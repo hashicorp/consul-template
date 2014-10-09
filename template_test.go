@@ -369,13 +369,13 @@ func TestExecute_rendersKeyPrefixes(t *testing.T) {
 func createTempfile(b []byte, t *testing.T) *os.File {
 	f, err := ioutil.TempFile(os.TempDir(), "")
 	if err != nil {
-		t.Errorf("could not create file: %s", err)
+		t.Fatal(err)
 	}
 
 	if len(b) > 0 {
 		_, err = f.Write(b)
 		if err != nil {
-			t.Errorf("could not write file: %s", err)
+			t.Fatal(err)
 		}
 	}
 
@@ -384,6 +384,6 @@ func createTempfile(b []byte, t *testing.T) *os.File {
 
 func deleteTempfile(f *os.File, t *testing.T) {
 	if err := os.Remove(f.Name()); err != nil {
-		t.Errorf("could not delete tempfile: %s", err)
+		t.Fatal(err)
 	}
 }
