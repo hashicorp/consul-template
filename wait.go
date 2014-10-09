@@ -25,15 +25,14 @@ func ParseWait(s string) (*Wait, error) {
 	var min, max time.Duration
 	var err error
 
-	switch len(parts) {
-	case 1:
+	if len(parts) == 1 {
 		min, err = time.ParseDuration(strings.TrimSpace(parts[0]))
 		if err != nil {
 			return nil, err
 		}
 
 		max = 4 * min
-	case 2:
+	} else if len(parts) == 2 {
 		min, err = time.ParseDuration(strings.TrimSpace(parts[0]))
 		if err != nil {
 			return nil, err
@@ -43,7 +42,7 @@ func ParseWait(s string) (*Wait, error) {
 		if err != nil {
 			return nil, err
 		}
-	default:
+	} else {
 		return nil, errors.New("invalid wait interval format")
 	}
 
