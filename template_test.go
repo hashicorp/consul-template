@@ -10,8 +10,6 @@ import (
 
 // Test that the parser does not barf when the file is empty
 func TestDependencies_empty(t *testing.T) {
-	t.Parallel()
-
 	inTemplate := createTempfile(nil, t)
 	defer deleteTempfile(inTemplate, t)
 
@@ -32,8 +30,6 @@ func TestDependencies_empty(t *testing.T) {
 
 // Test that the parser adds services, keys, and key prefixes
 func TestDependencies_funcs(t *testing.T) {
-	t.Parallel()
-
 	inTemplate := createTempfile([]byte(`
     {{ range service "release.webapp" }}{{ end }}
     {{ key "service/redis/maxconns" }}
@@ -82,8 +78,6 @@ func TestDependencies_funcs(t *testing.T) {
 
 // Test that an error is returned when no ioWriter is given
 func TestExecute_noIOWriter(t *testing.T) {
-	t.Parallel()
-
 	var tmpl Template
 	var context TemplateContext
 
@@ -100,8 +94,6 @@ func TestExecute_noIOWriter(t *testing.T) {
 
 // Test that an error is returned when no context is given
 func TestExecute_noTemplateContext(t *testing.T) {
-	t.Parallel()
-
 	var tmpl Template
 	var wr bytes.Buffer
 
@@ -119,8 +111,6 @@ func TestExecute_noTemplateContext(t *testing.T) {
 // Test that an error raised while fetching the template's dependencies is
 // propagated up
 func TestExecute_dependenciesError(t *testing.T) {
-	t.Parallel()
-
 	var io bytes.Buffer
 
 	inTemplate := createTempfile([]byte(`
@@ -145,8 +135,6 @@ func TestExecute_dependenciesError(t *testing.T) {
 
 // Test that an error is returned when the context is missing a service
 func TestExecute_missingService(t *testing.T) {
-	t.Parallel()
-
 	var io bytes.Buffer
 
 	inTemplate := createTempfile([]byte(`
@@ -178,8 +166,6 @@ func TestExecute_missingService(t *testing.T) {
 
 // Test that an error is returned when the context is missing a key
 func TestExecute_missingKey(t *testing.T) {
-	t.Parallel()
-
 	var io bytes.Buffer
 
 	inTemplate := createTempfile([]byte(`
@@ -211,8 +197,6 @@ func TestExecute_missingKey(t *testing.T) {
 
 // Test that an error is returned when the context is missing a key prefix
 func TestExecute_missingKeyPrefix(t *testing.T) {
-	t.Parallel()
-
 	var io bytes.Buffer
 
 	inTemplate := createTempfile([]byte(`
@@ -244,8 +228,6 @@ func TestExecute_missingKeyPrefix(t *testing.T) {
 
 // Test that services are rendered in the template
 func TestExecute_rendersServices(t *testing.T) {
-	t.Parallel()
-
 	var io bytes.Buffer
 
 	inTemplate := createTempfile([]byte(`
@@ -299,8 +281,6 @@ func TestExecute_rendersServices(t *testing.T) {
 
 // Test that keys are rendered in the template
 func TestExecute_rendersKeys(t *testing.T) {
-	t.Parallel()
-
 	var io bytes.Buffer
 
 	inTemplate := createTempfile([]byte(`
@@ -339,8 +319,6 @@ func TestExecute_rendersKeys(t *testing.T) {
 
 // Test that key prefixes are rendered in the template
 func TestExecute_rendersKeyPrefixes(t *testing.T) {
-	t.Parallel()
-
 	var io bytes.Buffer
 
 	inTemplate := createTempfile([]byte(`
