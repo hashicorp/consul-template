@@ -208,8 +208,8 @@ func TestExecute_missingKeyPrefix(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		KeyPrefixes: map[string][]*KeyPrefix{
-			"service/redis/config": []*KeyPrefix{},
+		KeyPrefixes: map[string][]*KeyPair{
+			"service/redis/config": []*KeyPair{},
 		},
 	}
 
@@ -367,19 +367,19 @@ func TestExecute_rendersKeyPrefixes(t *testing.T) {
 		Dry:    false,
 	}
 
-	minconnsConfig := &KeyPrefix{
+	minconnsConfig := &KeyPair{
 		Key:   "minconns",
 		Value: "2",
 	}
 
-	maxconnsConfig := &KeyPrefix{
+	maxconnsConfig := &KeyPair{
 		Key:   "maxconns",
 		Value: "11",
 	}
 
 	context := &TemplateContext{
-		KeyPrefixes: map[string][]*KeyPrefix{
-			"service/redis/config": []*KeyPrefix{minconnsConfig, maxconnsConfig},
+		KeyPrefixes: map[string][]*KeyPair{
+			"service/redis/config": []*KeyPair{minconnsConfig, maxconnsConfig},
 		},
 	}
 	err := tmpl.Execute(context)

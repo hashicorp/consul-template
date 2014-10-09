@@ -116,7 +116,7 @@ func (t *Template) dependencyAcc(d *[]*Dependency, dt DependencyType) interface{
 		case DependencyTypeKey:
 			return ""
 		case DependencyTypeKeyPrefix:
-			return []*KeyPrefix{}
+			return []*KeyPair{}
 		default:
 			panic(fmt.Sprintf("unexpected DependencyType %#v", dt))
 		}
@@ -157,7 +157,7 @@ func (t *Template) validateDependencies(c *TemplateContext) error {
 type TemplateContext struct {
 	Services    map[string][]*Service
 	Keys        map[string]string
-	KeyPrefixes map[string][]*KeyPrefix
+	KeyPrefixes map[string][]*KeyPair
 }
 
 // Evaluator takes a DependencyType and returns a function which returns the
@@ -190,14 +190,14 @@ type Service struct {
 
 /// ------------------------- ///
 
-type KeyPrefix struct {
+type KeyPair struct {
 	Key   string
 	Value string
 }
 
-// NewFromConsul creates a new KeyPrefix object by parsing the values in the
+// NewFromConsul creates a new KeyPair object by parsing the values in the
 // consulapi.KVPair. Not all values are transferred.
-func (kp KeyPrefix) NewFromConsul(c *consulapi.KVPair) {
+func (kp KeyPair) NewFromConsul(c *consulapi.KVPair) {
 	// TODO: lol
 	panic("not done!")
 }
