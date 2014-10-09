@@ -5,16 +5,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"os"
 	"text/template"
 
 	"github.com/armon/consul-api"
 )
 
 type Template struct {
-	Input  string
-	Output string
-	Dry    bool
+	Input string
 }
 
 // Dependencies returns the dependencies that this template has.
@@ -50,11 +47,11 @@ func (t *Template) Dependencies() ([]*Dependency, error) {
 //
 // If the TemplateContext does not have all required Dependencies, an error will
 // be returned.
-//
-// If Dry is true, it writes the contents of the file to os.Stdout. If Dry is
-// false, it writes the contents of the rendered template to the file at the
-// path specified in Output.
-func (t *Template) Execute(c *TemplateContext) error {
+func (t *Template) Execute(wr io.Writer, c *TemplateContext) error {
+	if wr == nil {
+		return errors.New("wr must be given")
+	}
+
 	if c == nil {
 		return errors.New("templateContext must be given")
 	}
@@ -80,24 +77,7 @@ func (t *Template) Execute(c *TemplateContext) error {
 		return err
 	}
 
-	var out io.Writer
-
-	if t.Dry {
-		out = os.Stdout
-	} else {
-		// TODO: Make this atomic
-		// TODO: File permissions
-		out, err = os.Create(t.Output)
-		if err != nil {
-			return err
-		}
-
-		// TODO: Needed?
-		// defer out.Sync()
-		// defer out.Close()
-	}
-
-	err = tmpl.Execute(out, c)
+	err = tmpl.Execute(wr, c)
 	if err != nil {
 		return err
 	}
