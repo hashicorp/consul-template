@@ -8,11 +8,9 @@ import (
 
 // Wait is the Min/Max duration used by the Watcher
 type Wait struct {
-	// Min is the minimum time to wait before rendering a new template to disk
-	Min time.Duration
-
-	// Max is the maximum time to wait before rendering a new template to disk
-	Max time.Duration
+	// Min and Max are the minimum and maximum time, respectively, to wait for
+	// data changes before rendering a new template to disk.
+	Min, Max time.Duration
 }
 
 // ParseWait parses a string of the format `minimum(:maximum)` into a Wait
