@@ -8,14 +8,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-// Instruction is the representation of an input template, output location, and
-// optional command to execute when rendered
-type Instruction struct {
-	Source      string `mapstructure:"source"`
-	Destination string `mapstructure:"destination"`
-	Command     string `mapstructure:"command"`
-}
-
 // Config is used to configure Consul Template
 type Config struct {
 	// Path is the path to this configuration file on disk. This value is not
@@ -88,4 +80,12 @@ func ParseConfig(path string) (*Config, error) {
 	}
 
 	return config, errs.GetError()
+}
+
+// Instruction is the representation of an input template, output location, and
+// optional command to execute when rendered
+type Instruction struct {
+	Source      string `mapstructure:"source"`
+	Destination string `mapstructure:"destination"`
+	Command     string `mapstructure:"command"`
 }
