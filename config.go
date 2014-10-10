@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"strings"
 
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/mapstructure"
@@ -95,4 +97,28 @@ type ConfigTemplate struct {
 // GoString returns the detailed format of this object
 func (t *ConfigTemplate) GoString() string {
 	return fmt.Sprintf("*%#v", *t)
+}
+
+// ParseWait parses a string of the format `minimum(:maximum)` into a Wait
+// struct.
+func ParseConfigTemplate(s string) (*ConfigTemplate, error) {
+	if len(strings.TrimSpace(s)) < 1 {
+		return nil, errors.New("cannot specify empty template declaration")
+	}
+
+	var source, destination, command string
+	parts := strings.Split(s, ":")
+
+	switch len(parts) {
+	case 1:
+		source = parts[0]
+	case 2:
+		source, destination = parts[0], parts[1]
+	case 3:
+		source, destination, command = parts[0], parts[1], parts[2]
+	default:
+		return nil, errors.New("invalid template declaration format")
+	}
+
+	return &ConfigTemplate{source, destination, command}, nil
 }

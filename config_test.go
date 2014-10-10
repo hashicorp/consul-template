@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"reflect"
@@ -126,5 +127,95 @@ func TestParseConfig_parseWaitError(t *testing.T) {
 	expectedErr := "invalid duration not_valid"
 	if !strings.Contains(err.Error(), expectedErr) {
 		t.Fatalf("expected error %q to contain %q", err.Error(), expectedErr)
+	}
+}
+
+// Test that an error is returned when the empty string is given
+func TestParseConfigTemplate_emptyStringArgs(t *testing.T) {
+	_, err := ParseConfigTemplate("")
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expectedErr := "cannot specify empty template declaration"
+	if !strings.Contains(err.Error(), expectedErr) {
+		t.Fatalf("expected error %q to contain %q", err.Error(), expectedErr)
+	}
+}
+
+// Test that an error is returned when a string with spaces is given
+func TestParseConfigTemplate_stringWithSpacesArgs(t *testing.T) {
+	_, err := ParseConfigTemplate("  ")
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expectedErr := "cannot specify empty template declaration"
+	if !strings.Contains(err.Error(), expectedErr) {
+		t.Fatalf("expected error %q to contain %q", err.Error(), expectedErr)
+	}
+}
+
+// Test that an error is returned when there are too many arguments
+func TestParseConfigurationTemplate_tooManyArgs(t *testing.T) {
+	_, err := ParseConfigTemplate("foo:bar:blitz:baz")
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expectedErr := "invalid template declaration format"
+	if !strings.Contains(err.Error(), expectedErr) {
+		t.Fatalf("expected error %q to contain %q", err.Error(), expectedErr)
+	}
+}
+
+// Test that a source value is correctly used
+func TestParseConfigurationTemplate_source(t *testing.T) {
+	source := "/tmp/config.ctmpl"
+	template, err := ParseConfigTemplate(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if template.Source != source {
+		t.Errorf("expected %q to equal %q", template.Source, source)
+	}
+}
+
+// Test that a destination wait value is correctly used
+func TestParseConfigurationTemplate_destination(t *testing.T) {
+	source, destination := "/tmp/config.ctmpl", "/tmp/out"
+	template, err := ParseConfigTemplate(fmt.Sprintf("%s:%s", source, destination))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if template.Source != source {
+		t.Errorf("expected %q to equal %q", template.Source, source)
+	}
+
+	if template.Destination != destination {
+		t.Errorf("expected %q to equal %q", template.Destination, destination)
+	}
+}
+
+// Test that a command wait value is correctly used
+func TestParseConfigurationTemplate_command(t *testing.T) {
+	source, destination, command := "/tmp/config.ctmpl", "/tmp/out", "reboot"
+	template, err := ParseConfigTemplate(fmt.Sprintf("%s:%s:%s", source, destination, command))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if template.Source != source {
+		t.Errorf("expected %q to equal %q", template.Source, source)
+	}
+
+	if template.Destination != destination {
+		t.Errorf("expected %q to equal %q", template.Destination, destination)
+	}
+
+	if template.Command != command {
+		t.Errorf("expected %q to equal %q", template.Command, command)
 	}
 }
