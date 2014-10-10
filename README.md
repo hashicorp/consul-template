@@ -167,7 +167,7 @@ For more examples of the templating language, see the [Examples](#examples) sect
 Examples
 --------
 ### HAProxy
-HAProxy is a very common load balancer. You can read more about the HAProxy configuration file in the HAProxy documentation, but here is an example template for rendering an HAProxy configuration file with Consul Template:
+HAProxy is a very common load balancer. You can read more about the HAProxy configuration file syntax in the HAProxy documentation, but here is an example template for rendering an HAProxy configuration file with Consul Template:
 
 ```liquid
 global
@@ -185,19 +185,59 @@ listen http-in
     server {{.Name}} {{.Address}}:{{.Port}}{{end}}
 ```
 
-Save this file to disk as `template.ctmpl` and  run the `consul-template` daemon:
+Save this file to disk as `haproxy.ctmpl` and  run the `consul-template` daemon:
 
 ```shell
 $ consul-template \
   -consul nyc1.demo.consul.io:80 \
-  -template template.ctmpl:out.conf
+  -template haproxy.ctmpl:/etc/haproxy/haproxy.conf
   -dry
 ```
 
-You should see the following output. For more information on how to save this result to disk or for the full list of functionality available inside a Consul template file, please consult the API documentation.
+You should see the following output:
 
-### Another Example
-TBD
+```text
+TODO: Run this command and add the output :)
+```
+
+For more information on how to save this result to disk or for the full list of functionality available inside a Consul template file, please consult the API documentation.
+
+### Varnish
+Varnish is an common caching engine that can also act as a proxy. You can read more about the Varnish configuration file syntax in the Varnish documentation, but here is an example template for rendering a Varnish configuration file with Consul Template:
+
+```liquid
+import directors;
+{{range service "consul@nyc1"}}
+backend {{.Name}}_{{.ID}} {
+    .host = "{{.Address}}";
+    .port = "{{.Port}}";"
+}{{end}}
+
+sub vcl_init {
+  new bar = directors.round_robin();
+{{range service "consul@nyc1"}}
+  bar.add_backend({{.Name}}_{{.ID}});{{end}}
+}
+
+sub vcl_recv {
+  set req.backend_hint = bar.backend();
+}
+```
+
+Save this file to disk as `varnish.ctmpl` and  run the `consul-template` daemon:
+
+```shell
+$ consul-template \
+  -consul nyc1.demo.consul.io:80 \
+  -template varnish.ctmpl:/etc/varnish/varnish.conf
+  -dry
+```
+
+You should see the following output:
+
+```text
+TODO: Run this command and add the output :)
+```
 
 
 Contributing
