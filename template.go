@@ -14,6 +14,11 @@ type Template struct {
 	Input string
 }
 
+// GoString returns the detailed format of this object
+func (t *Template) GoString() string {
+	return fmt.Sprintf("*%#v", *t)
+}
+
 // Dependencies returns the dependencies that this template has.
 func (t *Template) Dependencies() ([]*Dependency, error) {
 	var deps []*Dependency
@@ -140,6 +145,11 @@ type TemplateContext struct {
 	KeyPrefixes map[string][]*KeyPair
 }
 
+// GoString returns the detailed format of this object
+func (c *TemplateContext) GoString() string {
+	return fmt.Sprintf("*%#v", *c)
+}
+
 // Evaluator takes a DependencyType and returns a function which returns the
 // value in the TemplateContext that corresponds to the requested item.
 func (c *TemplateContext) Evaluator(dt DependencyType) interface{} {
@@ -168,11 +178,21 @@ type Service struct {
 	Port    uint
 }
 
+// GoString returns the detailed format of this object
+func (s *Service) GoString() string {
+	return fmt.Sprintf("*%#v", *s)
+}
+
 /// ------------------------- ///
 
 type KeyPair struct {
 	Key   string
 	Value string
+}
+
+// GoString returns the detailed format of this object
+func (kp *KeyPair) GoString() string {
+	return fmt.Sprintf("*%#v", *kp)
 }
 
 // NewFromConsul creates a new KeyPair object by parsing the values in the
@@ -189,6 +209,11 @@ func (kp KeyPair) NewFromConsul(c *consulapi.KVPair) {
 type Dependency struct {
 	Type  DependencyType
 	Value string
+}
+
+// GoString returns the detailed format of this object
+func (d *Dependency) GoString() string {
+	return fmt.Sprintf("*%#v", *d)
 }
 
 // DependencyType is an enum type that says the kind of the dependency.

@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 )
@@ -11,6 +12,11 @@ type Wait struct {
 	// Min and Max are the minimum and maximum time, respectively, to wait for
 	// data changes before rendering a new template to disk.
 	Min, Max time.Duration
+}
+
+// GoString returns the detailed format of this object
+func (w *Wait) GoString() string {
+	return fmt.Sprintf("*%#v", *w)
 }
 
 // ParseWait parses a string of the format `minimum(:maximum)` into a Wait

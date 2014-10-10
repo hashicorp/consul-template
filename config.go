@@ -34,6 +34,11 @@ type Config struct {
 	Once bool `mapstructure:"once"`
 }
 
+// GoString returns the detailed format of this object
+func (c *Config) GoString() string {
+	return fmt.Sprintf("*%#v", *c)
+}
+
 // ParseConfig reads the configuration file at the given path and returns a new
 // Config struct with the data populated.
 func ParseConfig(path string) (*Config, error) {
@@ -85,4 +90,9 @@ type ConfigTemplate struct {
 	Source      string `mapstructure:"source"`
 	Destination string `mapstructure:"destination"`
 	Command     string `mapstructure:"command"`
+}
+
+// GoString returns the detailed format of this object
+func (t *ConfigTemplate) GoString() string {
+	return fmt.Sprintf("*%#v", *t)
 }
