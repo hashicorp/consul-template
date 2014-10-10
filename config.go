@@ -29,9 +29,6 @@ type Config struct {
 	Wait    *Wait  `mapstructure:"-"`
 	WaitRaw string `mapstructure:"wait" json:""`
 
-	// Dry dumps generated templates to os.Stdout.
-	Dry bool `mapstructure:"dry"`
-
 	// Once runs once and exit as opposed to the default behavior of starting a
 	// daemon.
 	Once bool `mapstructure:"once"`

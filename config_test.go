@@ -209,24 +209,6 @@ func TestParseConfig_parseWaitError(t *testing.T) {
 	}
 }
 
-// Test that the config reads the "dry" key
-func TestParseConfig_readsDryKey(t *testing.T) {
-	configFile := createTempfile([]byte(`
-    dry = true
-  `), t)
-	defer deleteTempfile(configFile, t)
-
-	config, err := ParseConfig(configFile.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected := true
-	if config.Dry != expected {
-		t.Fatalf("expected config.Dry to be %q, was %q", expected, config.Dry)
-	}
-}
-
 // Test that the config reads the "once" key
 func TestParseConfig_readsOnceKey(t *testing.T) {
 	configFile := createTempfile([]byte(`
