@@ -133,7 +133,7 @@ func TestGetError_returnsError(t *testing.T) {
 	list.Append(errors.New("something bad"))
 	list.Append(errors.New("something worse"))
 
-	err, ok := list.GetError().(*Error)
+	err, ok := list.GetError().(*ErrorList)
 	if !ok {
 		t.Fatal("could not convert to Error")
 	}
