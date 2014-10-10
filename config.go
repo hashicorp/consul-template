@@ -19,8 +19,8 @@ type Config struct {
 	// address or FQDN) with port.
 	Consul string `mapstructure:"consul"`
 
-	// Instructions is a slice of the Instruction objects in the config.
-	Instructions []*Instruction `mapstructure:"template"`
+	// ConfigTemplates is a slice of the ConfigTemplate objects in the config.
+	ConfigTemplates []*ConfigTemplate `mapstructure:"template"`
 
 	// Token is the Consul API token.
 	Token string `mapstructure:"token"`
@@ -82,9 +82,9 @@ func ParseConfig(path string) (*Config, error) {
 	return config, errs.GetError()
 }
 
-// Instruction is the representation of an input template, output location, and
+// ConfigTemplate is the representation of an input template, output location, and
 // optional command to execute when rendered
-type Instruction struct {
+type ConfigTemplate struct {
 	Source      string `mapstructure:"source"`
 	Destination string `mapstructure:"destination"`
 	Command     string `mapstructure:"command"`

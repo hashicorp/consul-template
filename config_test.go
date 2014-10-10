@@ -96,11 +96,11 @@ func TestParseConfig_readsTemplateKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(config.Instructions) != 2 {
-		t.Fatalf("expected 3 Instructions, but slice had %d", len(config.Instructions))
+	if len(config.ConfigTemplates) != 2 {
+		t.Fatalf("expected 3 ConfigTemplates, but slice had %d", len(config.ConfigTemplates))
 	}
 
-	nginx := config.Instructions[0]
+	nginx := config.ConfigTemplates[0]
 	expected := "nginx.conf.ctmpl"
 	if nginx.Source != expected {
 		t.Errorf("expected nginx.Source to be %q, was %q", expected, nginx.Source)
@@ -114,7 +114,7 @@ func TestParseConfig_readsTemplateKeys(t *testing.T) {
 		t.Errorf("expected nginx.Command to be %q, was %q", expected, nginx.Command)
 	}
 
-	redis := config.Instructions[1]
+	redis := config.ConfigTemplates[1]
 	expected = "redis.conf.ctmpl"
 	if redis.Source != expected {
 		t.Errorf("expected redis.Source to be %q, was %q", expected, redis.Source)
