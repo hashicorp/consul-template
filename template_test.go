@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"io/ioutil"
-	"os"
 	"strings"
 	"testing"
 )
@@ -361,30 +360,5 @@ func TestExecute_rendersKeyPrefixes(t *testing.T) {
 	expectedContents := "minconns 2\n    maxconns 11"
 	if contents != expectedContents {
 		t.Errorf("expected contents to be:\n\n%#q\n\nbut was\n\n%#q\n", expectedContents, contents)
-	}
-}
-
-/*
- * Helpers
- */
-func createTempfile(b []byte, t *testing.T) *os.File {
-	f, err := ioutil.TempFile(os.TempDir(), "")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if len(b) > 0 {
-		_, err = f.Write(b)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	return f
-}
-
-func deleteTempfile(f *os.File, t *testing.T) {
-	if err := os.Remove(f.Name()); err != nil {
-		t.Fatal(err)
 	}
 }
