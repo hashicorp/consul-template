@@ -11,6 +11,6 @@ build:
 	go build -o bin/consul-template
 
 test: deps
-	go list ./... | xargs -n1 go test -v
+	go list ./... | xargs -n1 go test
 
 .PHONY: all deps build test
