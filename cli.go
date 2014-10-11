@@ -12,6 +12,7 @@ type CLI struct {
 }
 
 func (c *CLI) Parse(args []string) (*Config, error) {
+	dry := false
 	version := false
 	config := &Config{}
 
@@ -33,6 +34,8 @@ func (c *CLI) Parse(args []string) (*Config, error) {
 		"the path to a config file on disk")
 	flags.BoolVar(&config.Once, "once", false,
 		"do not run as a daemon")
+	flags.BoolVar(&dry, "dry", false,
+		"write generated templates to stdout")
 
 	// -version is special
 	flags.BoolVar(&version, "version", false, "display the version")
