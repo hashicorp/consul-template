@@ -10,6 +10,68 @@ import (
 	"time"
 )
 
+// Test that an empty config does nothing
+func TestMerge_emptyConfig(t *testing.T) {
+	consul := "consul.io:8500"
+	config := &Config{Consul: consul}
+	if err := config.Merge(&Config{}); err != nil {
+		t.Fatal(err)
+	}
+
+	if config.Consul != consul {
+		t.Fatalf("expected %q to equal %q", config.Consul, consul)
+	}
+}
+
+// Test that simple values are merged
+func TestMerge_simpleConfig(t *testing.T) {
+	config, newConsul := &Config{Consul: "consul.io:8500"}, "packer.io:7300"
+	if err := config.Merge(&Config{Consul: newConsul}); err != nil {
+		t.Fatal(err)
+	}
+
+	if config.Consul != newConsul {
+		t.Fatalf("expected %q to equal %q", config.Consul, newConsul)
+	}
+}
+
+// Test that complex values are merged
+func TestMerge_complexConfig(t *testing.T) {
+	config := &Config{
+		ConfigTemplates: []*ConfigTemplate{
+			&ConfigTemplate{
+				Source:      "a",
+				Destination: "b",
+			},
+			&ConfigTemplate{
+				Source:      "c",
+				Destination: "d",
+				Command:     "e",
+			},
+		},
+	}
+	otherConfig := &Config{
+		ConfigTemplates: []*ConfigTemplate{
+			&ConfigTemplate{
+				Source:      "f",
+				Destination: "g",
+				Command:     "h",
+			},
+			&ConfigTemplate{
+				Source:      "i",
+				Destination: "j",
+			},
+		},
+	}
+	if err := config.Merge(otherConfig); err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(config.ConfigTemplates, otherConfig.ConfigTemplates) {
+		t.Fatalf("expected %q to equal %q", config.ConfigTemplates, otherConfig.ConfigTemplates)
+	}
+}
+
 // Test that file read errors are propagated up
 func TestParseConfig_readFileError(t *testing.T) {
 	_, err := ParseConfig(path.Join(os.TempDir(), "config.json"))

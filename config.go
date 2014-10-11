@@ -36,6 +36,47 @@ type Config struct {
 	Once bool `mapstructure:"once"`
 }
 
+// Merge merges the values in config into this config object. Values in the
+// config object overwrite the values in c.
+func (c *Config) Merge(config *Config) error {
+	// Since this config is changing from what is loaded on disk, the Path is no
+	// longer trustable
+	c.Path = ""
+
+	if config.Consul != "" {
+		c.Consul = config.Consul
+	}
+
+	if len(config.ConfigTemplates) > 0 {
+		c.ConfigTemplates = make([]*ConfigTemplate, 0, 1)
+		for _, template := range config.ConfigTemplates {
+			c.ConfigTemplates = append(c.ConfigTemplates, &ConfigTemplate{
+				Source:      template.Source,
+				Destination: template.Destination,
+				Command:     template.Command,
+			})
+		}
+	}
+
+	if config.Token != "" {
+		c.Token = config.Token
+	}
+
+	if config.Wait != nil {
+		c.Wait = &Wait{
+			Min: config.Wait.Min,
+			Max: config.Wait.Max,
+		}
+		c.WaitRaw = config.WaitRaw
+	}
+
+	if config.Once {
+		c.Once = config.Once
+	}
+
+	return nil
+}
+
 // GoString returns the detailed format of this object
 func (c *Config) GoString() string {
 	return fmt.Sprintf("*%#v", *c)
