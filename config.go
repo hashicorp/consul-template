@@ -39,10 +39,6 @@ type Config struct {
 // Merge merges the values in config into this config object. Values in the
 // config object overwrite the values in c.
 func (c *Config) Merge(config *Config) error {
-	// Since this config is changing from what is loaded on disk, the Path is no
-	// longer trustable
-	c.Path = ""
-
 	if config.Consul != "" {
 		c.Consul = config.Consul
 	}
