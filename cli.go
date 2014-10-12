@@ -4,14 +4,36 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"os"
+	"io"
 	"path/filepath"
 )
 
+/// ------------------------- ///
+
+// Exit codes are int valuse that represent an exit code for a particular error.
+// Sub-systems may check this unique error to determine the cause of an error
+// without parsing the output or help text.
+const (
+	ExitCodeOK int = 0
+
+	// Errors start at 500
+	ExitCodeError = 500 + iota
+	ExitCodeParseError
+	ExitCodeParseWaitError
+	ExitCodeParseConfigError
+)
+
+/// ------------------------- ///
+
 type CLI struct {
+	// outSteam and errStream are the standard out and standard error streams to
+	// write messages from the CLI.
+	outStream, errStream io.Writer
 }
 
-func (c *CLI) Parse(args []string) (*Config, error) {
+// Run accepts a list of arguments and returns an int representing the exit
+// status from the command.
+func (c *CLI) Run(args []string) int {
 	var dry, version bool
 	config := &Config{}
 
@@ -19,7 +41,7 @@ func (c *CLI) Parse(args []string) (*Config, error) {
 
 	flags := flag.NewFlagSet("consul-template", flag.ExitOnError)
 	flags.Usage = func() {
-		fmt.Fprintf(os.Stderr, helpText, cmd)
+		fmt.Fprintf(c.errStream, helpText, cmd)
 	}
 	flags.StringVar(&config.Consul, "consul", "127.0.0.1:8500",
 		"address of the Consul instance")
@@ -35,27 +57,26 @@ func (c *CLI) Parse(args []string) (*Config, error) {
 		"do not run as a daemon")
 	flags.BoolVar(&dry, "dry", false,
 		"write generated templates to stdout")
-
-	// -version is special
 	flags.BoolVar(&version, "version", false, "display the version")
 
 	if err := flags.Parse(args[1:]); err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
+		fmt.Fprintf(c.errStream, "%s\n", err)
 		flags.Usage()
-		os.Exit(1)
+		return ExitCodeParseError
 	}
 
 	// If the version was requested, print and exit
 	if version {
-		fmt.Fprintf(os.Stderr, "%s v%s\n", cmd, Version)
-		os.Exit(1)
+		fmt.Fprintf(c.errStream, "%s v%s\n", cmd, Version)
+		return ExitCodeOK
 	}
 
 	// Parse the raw wait value into a Wait object
 	if config.WaitRaw != "" {
 		wait, err := ParseWait(config.WaitRaw)
 		if err != nil {
-			return nil, err
+			fmt.Fprintf(c.errStream, "%s\n", err)
+			return ExitCodeParseWaitError
 		}
 		config.Wait = wait
 	}
@@ -63,18 +84,16 @@ func (c *CLI) Parse(args []string) (*Config, error) {
 	// Merge a path config with the command line options. Command line options
 	// take precedence over config file options for easy overriding.
 	if config.Path != "" {
-		c, err := ParseConfig(config.Path)
+		fileConfig, err := ParseConfig(config.Path)
 		if err != nil {
-			panic(err)
-			return nil, err
+			fmt.Fprintf(c.errStream, "%s\n", err)
+			return ExitCodeParseConfigError
 		}
-		c.Merge(config)
-		config = c
+		fileConfig.Merge(config)
+		config = fileConfig
 	}
 
-	println(fmt.Sprintf("%#v", config))
-
-	return config, nil
+	return ExitCodeOK
 }
 
 const helpText = `
