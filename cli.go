@@ -40,7 +40,7 @@ func (c *CLI) Parse(args []string) (*Config, error) {
 	flags.BoolVar(&version, "version", false, "display the version")
 
 	if err := flags.Parse(args[1:]); err != nil {
-		fmt.Fprintf(os.Stderr, "%s", err)
+		fmt.Fprintf(os.Stderr, "%s\n", err)
 		flags.Usage()
 		os.Exit(1)
 	}
