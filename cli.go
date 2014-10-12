@@ -12,8 +12,7 @@ type CLI struct {
 }
 
 func (c *CLI) Parse(args []string) (*Config, error) {
-	dry := false
-	version := false
+	var dry, version bool
 	config := &Config{}
 
 	cmd := filepath.Base(args[0])
