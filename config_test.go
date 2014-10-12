@@ -14,9 +14,7 @@ import (
 func TestMerge_emptyConfig(t *testing.T) {
 	consul := "consul.io:8500"
 	config := &Config{Consul: consul}
-	if err := config.Merge(&Config{}); err != nil {
-		t.Fatal(err)
-	}
+	config.Merge(&Config{})
 
 	if config.Consul != consul {
 		t.Fatalf("expected %q to equal %q", config.Consul, consul)
@@ -26,9 +24,7 @@ func TestMerge_emptyConfig(t *testing.T) {
 // Test that simple values are merged
 func TestMerge_simpleConfig(t *testing.T) {
 	config, newConsul := &Config{Consul: "consul.io:8500"}, "packer.io:7300"
-	if err := config.Merge(&Config{Consul: newConsul}); err != nil {
-		t.Fatal(err)
-	}
+	config.Merge(&Config{Consul: newConsul})
 
 	if config.Consul != newConsul {
 		t.Fatalf("expected %q to equal %q", config.Consul, newConsul)
@@ -63,9 +59,7 @@ func TestMerge_complexConfig(t *testing.T) {
 			},
 		},
 	}
-	if err := config.Merge(otherConfig); err != nil {
-		t.Fatal(err)
-	}
+	config.Merge(otherConfig)
 
 	if !reflect.DeepEqual(config.ConfigTemplates, otherConfig.ConfigTemplates) {
 		t.Fatalf("expected %q to equal %q", config.ConfigTemplates, otherConfig.ConfigTemplates)

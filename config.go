@@ -38,7 +38,7 @@ type Config struct {
 
 // Merge merges the values in config into this config object. Values in the
 // config object overwrite the values in c.
-func (c *Config) Merge(config *Config) error {
+func (c *Config) Merge(config *Config) {
 	if config.Consul != "" {
 		c.Consul = config.Consul
 	}
@@ -69,8 +69,6 @@ func (c *Config) Merge(config *Config) error {
 	if config.Once {
 		c.Once = config.Once
 	}
-
-	return nil
 }
 
 // GoString returns the detailed format of this object
