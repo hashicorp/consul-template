@@ -24,7 +24,10 @@ func TestParseServiceDependency_name(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := &ServiceDependency{Name: "webapp"}
+	expected := &ServiceDependency{
+		RawKey: "webapp",
+		Name:   "webapp",
+	}
 	if !reflect.DeepEqual(sd, expected) {
 		t.Errorf("expected %#v to equal %#v", sd, expected)
 	}
@@ -37,8 +40,9 @@ func TestParseServiceDependency_nameTag(t *testing.T) {
 	}
 
 	expected := &ServiceDependency{
-		Name: "webapp",
-		Tag:  "release",
+		RawKey: "release.webapp",
+		Name:   "webapp",
+		Tag:    "release",
 	}
 
 	if !reflect.DeepEqual(sd, expected) {
@@ -53,6 +57,7 @@ func TestParseServiceDependency_nameTagDataCenter(t *testing.T) {
 	}
 
 	expected := &ServiceDependency{
+		RawKey:     "release.webapp@nyc1",
 		Name:       "webapp",
 		Tag:        "release",
 		DataCenter: "nyc1",
@@ -70,6 +75,7 @@ func TestParseServiceDependency_nameTagDataCenterPort(t *testing.T) {
 	}
 
 	expected := &ServiceDependency{
+		RawKey:     "release.webapp@nyc1:8500",
 		Name:       "webapp",
 		Tag:        "release",
 		DataCenter: "nyc1",
@@ -100,8 +106,9 @@ func TestParseServiceDependency_nameAndPort(t *testing.T) {
 	}
 
 	expected := &ServiceDependency{
-		Name: "webapp",
-		Port: 8500,
+		RawKey: "webapp:8500",
+		Name:   "webapp",
+		Port:   8500,
 	}
 
 	if !reflect.DeepEqual(sd, expected) {
@@ -116,6 +123,7 @@ func TestParseServiceDependency_nameAndDataCenter(t *testing.T) {
 	}
 
 	expected := &ServiceDependency{
+		RawKey:     "webapp@nyc1",
 		Name:       "webapp",
 		DataCenter: "nyc1",
 	}

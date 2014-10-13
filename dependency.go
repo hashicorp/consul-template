@@ -17,7 +17,7 @@ type Dependency interface {
 // ServiceDependency is the representation of a requested service dependency
 // from inside a template.
 type ServiceDependency struct {
-	RawPath    string
+	RawKey     string
 	Name       string
 	Tag        string
 	DataCenter string
@@ -25,7 +25,7 @@ type ServiceDependency struct {
 }
 
 func (s *ServiceDependency) Key() string {
-	return s.RawPath
+	return s.RawKey
 }
 
 // GoString returns the detailed format of this object
@@ -69,7 +69,7 @@ func ParseServiceDependency(s string) (*ServiceDependency, error) {
 	}
 
 	sd := &ServiceDependency{
-		RawPath:    s,
+		RawKey:     s,
 		Name:       name,
 		Tag:        tag,
 		DataCenter: datacenter,
