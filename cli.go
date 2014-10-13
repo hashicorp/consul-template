@@ -33,21 +33,34 @@ type CLI struct {
 
 // Run accepts a list of arguments and returns an int representing the exit
 // status from the command.
-func (c *CLI) Run(args []string) int {
+func (cli *CLI) Run(args []string) int {
+	config, status, err := cli.Parse(args)
+	if err != nil {
+		fmt.Fprint(cli.errStream, err.Error())
+		return status
+	}
+
+	println(config)
+
+	return ExitCodeOK
+}
+
+// Parse accepts a list of command line flags and returns a generated Config
+// object, an exit status, and any errors that occurred when parsing the flags.
+func (cli *CLI) Parse(args []string) (*Config, int, error) {
 	var dry, version bool
 	config := &Config{}
 
 	cmd := filepath.Base(args[0])
 
-	flags := flag.NewFlagSet("consul-template", flag.ExitOnError)
-	flags.Usage = func() {
-		fmt.Fprintf(c.errStream, helpText, cmd)
-	}
-	flags.StringVar(&config.Consul, "consul", "127.0.0.1:8500",
+	flags := flag.NewFlagSet("consul-template", flag.ContinueOnError)
+	flags.Usage = func() { fmt.Fprint(cli.outStream, usage) }
+	flags.SetOutput(cli.outStream)
+	flags.StringVar(&config.Consul, "consul", "",
 		"address of the Consul instance")
 	flags.Var((*configTemplateVar)(&config.ConfigTemplates), "template",
 		"new template declaration")
-	flags.StringVar(&config.Token, "token", "abcd1234",
+	flags.StringVar(&config.Token, "token", "",
 		"a consul API token")
 	flags.StringVar(&config.WaitRaw, "wait", "",
 		"the minimum(:maximum) to wait before rendering a new template")
@@ -60,23 +73,21 @@ func (c *CLI) Run(args []string) int {
 	flags.BoolVar(&version, "version", false, "display the version")
 
 	if err := flags.Parse(args[1:]); err != nil {
-		fmt.Fprintf(c.errStream, "%s\n", err)
-		flags.Usage()
-		return ExitCodeParseError
+		return nil, ExitCodeParseFlagsError, fmt.Errorf("%s\n\n%s", err, usage)
 	}
 
-	// If the version was requested, print and exit
+	// If the version was requested, return an "error" containing the version
+	// information. This might sound weird, but most *nix applications actually
+	// print their version on stderr anyway.
 	if version {
-		fmt.Fprintf(c.errStream, "%s v%s\n", cmd, Version)
-		return ExitCodeOK
+		return nil, ExitCodeOK, fmt.Errorf("%s v%s\n", cmd, Version)
 	}
 
 	// Parse the raw wait value into a Wait object
 	if config.WaitRaw != "" {
 		wait, err := ParseWait(config.WaitRaw)
 		if err != nil {
-			fmt.Fprintf(c.errStream, "%s\n", err)
-			return ExitCodeParseWaitError
+			return nil, ExitCodeParseWaitError, fmt.Errorf("%s\n\n%s", err, usage)
 		}
 		config.Wait = wait
 	}
@@ -86,14 +97,14 @@ func (c *CLI) Run(args []string) int {
 	if config.Path != "" {
 		fileConfig, err := ParseConfig(config.Path)
 		if err != nil {
-			fmt.Fprintf(c.errStream, "%s\n", err)
-			return ExitCodeParseConfigError
+			return nil, ExitCodeParseConfigError, fmt.Errorf("%s\n\n%s", err, usage)
 		}
+
 		fileConfig.Merge(config)
 		config = fileConfig
 	}
 
-	return ExitCodeOK
+	return config, ExitCodeOK, nil
 }
 
 const usage = `
