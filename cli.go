@@ -48,8 +48,8 @@ func (cli *CLI) Run(args []string) int {
 // Parse accepts a list of command line flags and returns a generated Config
 // object, an exit status, and any errors that occurred when parsing the flags.
 func (cli *CLI) Parse(args []string) (*Config, int, error) {
-	var dry, version bool
-	config := &Config{}
+	var version = false
+	var config = new(Config)
 
 	cmd := filepath.Base(args[0])
 
@@ -68,7 +68,7 @@ func (cli *CLI) Parse(args []string) (*Config, int, error) {
 		"the path to a config file on disk")
 	flags.BoolVar(&config.Once, "once", false,
 		"do not run as a daemon")
-	flags.BoolVar(&dry, "dry", false,
+	flags.BoolVar(&config.Dry, "dry", false,
 		"write generated templates to stdout")
 	flags.BoolVar(&version, "version", false, "display the version")
 

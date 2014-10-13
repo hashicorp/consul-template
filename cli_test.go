@@ -111,6 +111,25 @@ func TestParse_waitFlagError(t *testing.T) {
 	}
 }
 
+// Test dry flag is parsed
+func TestParse_dryFlag(t *testing.T) {
+	var cli CLI
+	args := strings.Split("consul-template -dry", " ")
+
+	config, status, err := cli.Parse(args)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if config.Dry != true {
+		t.Errorf("expected %q to equal %q", config.Dry, true)
+	}
+
+	if status != ExitCodeOK {
+		t.Errorf("expected %s to eq %s", status, ExitCodeOK)
+	}
+}
+
 // Test that the -config flag is parsed properly
 func TestParse_configFlag(t *testing.T) {
 	var cli CLI
