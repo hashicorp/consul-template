@@ -141,27 +141,33 @@ server nyc_web_02 456.789.101.213:8080
 Query Consul for the value at the given key. If the key cannot be converted to a string-like value, an error will occur. Keys are queried using the following syntax:
 
 ```liquid
+{{key "service/redis/maxconns@east-aws"}}
+```
+
+The example above is querying Consul for the `service/redis/maxconns` in the east-aws datacenter. If you omit the datacenter attribute, the local Consul datacenter will be queried:
+
+```liquid
 {{key "service/redis/maxconns"}}
 ```
 
-The example above is querying Consul for the `service/redis/maxconns`. The beauty of Consul is that the key-value structure is entirely up to you!
+The beauty of Consul is that the key-value structure is entirely up to you!
 
 #### `keyPrefix`
 Query Consul for all the key-value pairs at the given prefix. If any of the values cannot be converted to a string-like value, an error will occur. KeyPrefixes are queried using the following syntax:
 
 ```liquid
-{{range keyPrefix "service/redis"}}
+{{range keyPrefix "service/redis@east-aws"}}
 {{.Key}} {{.Value}}{{end}}
 ```
 
-If the Consul instance had the correct structure at `service/redis`, the resulting template could look like:
+If the Consul instance had the correct structure at `service/redis` in the east-aws datacenter, the resulting template could look like:
 
 ```text
 minconns 2
 maxconns 12
 ```
 
-For more examples of the templating language, see the [Examples](#examples) section below.
+Like `key`, if you omit the datacenter attribute on `keyPrefix`, the local Consul datacenter will be queried. For more examples of the templating language, see the [Examples](#examples) section below.
 
 
 Examples
