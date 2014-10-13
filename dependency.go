@@ -17,7 +17,7 @@ type Dependency interface {
 // ServiceDependency is the representation of a requested service dependency
 // from inside a template.
 type ServiceDependency struct {
-	RawKey     string
+	rawKey     string
 	Name       string
 	Tag        string
 	DataCenter string
@@ -25,7 +25,7 @@ type ServiceDependency struct {
 }
 
 func (s *ServiceDependency) Key() string {
-	return s.RawKey
+	return s.rawKey
 }
 
 // GoString returns the detailed format of this object
@@ -69,7 +69,7 @@ func ParseServiceDependency(s string) (*ServiceDependency, error) {
 	}
 
 	sd := &ServiceDependency{
-		RawKey:     s,
+		rawKey:     s,
 		Name:       name,
 		Tag:        tag,
 		DataCenter: datacenter,
@@ -92,12 +92,13 @@ func ParseServiceDependency(s string) (*ServiceDependency, error) {
 // KeyDependency is the representation of a requested key dependency
 // from inside a template.
 type KeyDependency struct {
+	rawKey     string
 	Path       string
 	DataCenter string
 }
 
 func (kd *KeyDependency) Key() string {
-	return kd.Path
+	return kd.rawKey
 }
 
 // GoString returns the detailed format of this object
@@ -139,6 +140,7 @@ func ParseKeyDependency(s string) (*KeyDependency, error) {
 	}
 
 	kd := &KeyDependency{
+		rawKey:     s,
 		Path:       key,
 		DataCenter: datacenter,
 	}
@@ -151,12 +153,13 @@ func ParseKeyDependency(s string) (*KeyDependency, error) {
 // KeyPrefixDependency is the representation of a requested key dependency
 // from inside a template.
 type KeyPrefixDependency struct {
+	rawKey     string
 	Prefix     string
 	DataCenter string
 }
 
 func (kpd *KeyPrefixDependency) Key() string {
-	return kpd.Prefix
+	return kpd.rawKey
 }
 
 // GoString returns the detailed format of this object
@@ -190,6 +193,7 @@ func ParseKeyPrefixDependency(s string) (*KeyPrefixDependency, error) {
 	prefix, datacenter := m["prefix"], m["datacenter"]
 
 	kpd := &KeyPrefixDependency{
+		rawKey:     s,
 		Prefix:     prefix,
 		DataCenter: datacenter,
 	}

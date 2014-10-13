@@ -25,7 +25,7 @@ func TestParseServiceDependency_name(t *testing.T) {
 	}
 
 	expected := &ServiceDependency{
-		RawKey: "webapp",
+		rawKey: "webapp",
 		Name:   "webapp",
 	}
 	if !reflect.DeepEqual(sd, expected) {
@@ -40,7 +40,7 @@ func TestParseServiceDependency_nameTag(t *testing.T) {
 	}
 
 	expected := &ServiceDependency{
-		RawKey: "release.webapp",
+		rawKey: "release.webapp",
 		Name:   "webapp",
 		Tag:    "release",
 	}
@@ -57,7 +57,7 @@ func TestParseServiceDependency_nameTagDataCenter(t *testing.T) {
 	}
 
 	expected := &ServiceDependency{
-		RawKey:     "release.webapp@nyc1",
+		rawKey:     "release.webapp@nyc1",
 		Name:       "webapp",
 		Tag:        "release",
 		DataCenter: "nyc1",
@@ -75,7 +75,7 @@ func TestParseServiceDependency_nameTagDataCenterPort(t *testing.T) {
 	}
 
 	expected := &ServiceDependency{
-		RawKey:     "release.webapp@nyc1:8500",
+		rawKey:     "release.webapp@nyc1:8500",
 		Name:       "webapp",
 		Tag:        "release",
 		DataCenter: "nyc1",
@@ -106,7 +106,7 @@ func TestParseServiceDependency_nameAndPort(t *testing.T) {
 	}
 
 	expected := &ServiceDependency{
-		RawKey: "webapp:8500",
+		rawKey: "webapp:8500",
 		Name:   "webapp",
 		Port:   8500,
 	}
@@ -123,7 +123,7 @@ func TestParseServiceDependency_nameAndDataCenter(t *testing.T) {
 	}
 
 	expected := &ServiceDependency{
-		RawKey:     "webapp@nyc1",
+		rawKey:     "webapp@nyc1",
 		Name:       "webapp",
 		DataCenter: "nyc1",
 	}
@@ -152,7 +152,8 @@ func TestParseKeyDependency_name(t *testing.T) {
 	}
 
 	expected := &KeyDependency{
-		Path: "config/redis/maxconns",
+		rawKey: "config/redis/maxconns",
+		Path:   "config/redis/maxconns",
 	}
 	if !reflect.DeepEqual(sd, expected) {
 		t.Errorf("expected %#v to equal %#v", sd, expected)
@@ -166,6 +167,7 @@ func TestParseKeyDependency_nameTagDataCenter(t *testing.T) {
 	}
 
 	expected := &KeyDependency{
+		rawKey:     "config/redis/maxconns@nyc1",
 		Path:       "config/redis/maxconns",
 		DataCenter: "nyc1",
 	}
@@ -194,6 +196,7 @@ func TestParseKeyPrefixDependency_name(t *testing.T) {
 	}
 
 	expected := &KeyPrefixDependency{
+		rawKey: "config/redis",
 		Prefix: "config/redis",
 	}
 	if !reflect.DeepEqual(kpd, expected) {
@@ -208,6 +211,7 @@ func TestParseKeyPrefixDependency_nameTagDataCenter(t *testing.T) {
 	}
 
 	expected := &KeyPrefixDependency{
+		rawKey:     "config/redis@nyc1",
 		Prefix:     "config/redis",
 		DataCenter: "nyc1",
 	}
@@ -224,6 +228,7 @@ func TestParseKeyPrefixDependency_dataCenter(t *testing.T) {
 	}
 
 	expected := &KeyPrefixDependency{
+		rawKey:     "@nyc1",
 		DataCenter: "nyc1",
 	}
 	if !reflect.DeepEqual(kpd, expected) {
