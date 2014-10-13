@@ -96,7 +96,7 @@ func (c *CLI) Run(args []string) int {
 	return ExitCodeOK
 }
 
-const helpText = `
+const usage = `
 Usage: %s [options]
 
   Watches a series of templates on the file system, writing new changes when
