@@ -202,20 +202,6 @@ func (kp KeyPair) NewFromConsul(c *consulapi.KVPair) {
 	panic("not done!")
 }
 
-/// ------------------------- ///
-
-// Dependency represents a single dependency that a template might have,
-// across a variety of categories: services, keys, etc.
-type Dependency struct {
-	Type  DependencyType
-	Value string
-}
-
-// GoString returns the detailed format of this object
-func (d *Dependency) GoString() string {
-	return fmt.Sprintf("*%#v", *d)
-}
-
 // DependencyType is an enum type that says the kind of the dependency.
 type DependencyType byte
 
