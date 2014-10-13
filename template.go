@@ -91,7 +91,7 @@ func (t *Template) Execute(wr io.Writer, c *TemplateContext) error {
 }
 
 // Helper function that is used by the dependency collecting.
-func (t *Template) dependencyAcc(d *[]Dependency, dt DependencyType) interface{} {
+func (t *Template) dependencyAcc(d *[]Dependency, dt DependencyType) func(string) (interface{}, error) {
 	return func(s string) (interface{}, error) {
 		switch dt {
 		case DependencyTypeService:
@@ -182,7 +182,7 @@ func (c *TemplateContext) GoString() string {
 
 // Evaluator takes a DependencyType and returns a function which returns the
 // value in the TemplateContext that corresponds to the requested item.
-func (c *TemplateContext) Evaluator(dt DependencyType) interface{} {
+func (c *TemplateContext) Evaluator(dt DependencyType) func(string) (interface{}, error) {
 	return func(s string) (interface{}, error) {
 		switch dt {
 		case DependencyTypeService:
