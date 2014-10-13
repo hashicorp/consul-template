@@ -4,6 +4,9 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
+	"time"
+
+	api "github.com/armon/consul-api"
 )
 
 /*
@@ -29,4 +32,21 @@ func deleteTempfile(f *os.File, t *testing.T) {
 	if err := os.Remove(f.Name()); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func demoConsulClient(t *testing.T) (*api.Client, *api.QueryOptions) {
+	config := api.DefaultConfig()
+	config.Address = "demo.consul.io"
+
+	client, err := api.NewClient(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := client.Agent().NodeName(); err != nil {
+		t.Fatal(err)
+	}
+
+	options := &api.QueryOptions{WaitTime: 10 * time.Second}
+
+	return client, options
 }

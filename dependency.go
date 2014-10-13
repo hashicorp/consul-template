@@ -5,10 +5,14 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+
+	api "github.com/armon/consul-api"
 )
 
-// Dependency is an interface which implements the Key() method.
+// Dependency is an interface
 type Dependency interface {
+	Fetch(*api.Client, *api.QueryOptions) (interface{}, error)
+	GoString() string
 	Key() string
 }
 
@@ -24,13 +28,41 @@ type ServiceDependency struct {
 	Port       uint64
 }
 
-func (s *ServiceDependency) Key() string {
-	return s.rawKey
+// Fetch queries the Consul API defined by the given client and returns a slice
+// of Service objects.
+func (d *ServiceDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, error) {
+	if d.DataCenter != "" {
+		options.Datacenter = d.DataCenter
+	}
+
+	health := client.Health()
+	entries, _, err := health.Service(d.Name, d.Tag, true, options)
+	if err != nil {
+		return nil, err
+	}
+
+	services := make([]*Service, 0, len(entries))
+
+	for _, entry := range entries {
+		services = append(services, &Service{
+			Node:    entry.Node.Node,
+			Address: entry.Node.Address,
+			ID:      entry.Service.ID,
+			Name:    entry.Service.Service,
+			Tags:    entry.Service.Tags,
+			Port:    uint64(entry.Service.Port),
+		})
+	}
+
+	return services, nil
 }
 
-// GoString returns the detailed format of this object
-func (s *ServiceDependency) GoString() string {
-	return fmt.Sprintf("*%#v", *s)
+func (d *ServiceDependency) GoString() string {
+	return fmt.Sprintf("*%#v", *d)
+}
+
+func (d *ServiceDependency) Key() string {
+	return d.rawKey
 }
 
 // ParseServiceDependency parses a string of the format
@@ -97,13 +129,32 @@ type KeyDependency struct {
 	DataCenter string
 }
 
-func (kd *KeyDependency) Key() string {
-	return kd.rawKey
+// Fetch queries the Consul API defined by the given client and returns string
+// of the value to Path.
+func (d *KeyDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, error) {
+	if d.DataCenter != "" {
+		options.Datacenter = d.DataCenter
+	}
+
+	store := client.KV()
+	pair, _, err := store.Get(d.Path, options)
+	if err != nil {
+		return "", err
+	}
+
+	if pair == nil {
+		return "", nil
+	}
+
+	return string(pair.Value), nil
 }
 
-// GoString returns the detailed format of this object
-func (kd *KeyDependency) GoString() string {
-	return fmt.Sprintf("*%#v", *kd)
+func (d *KeyDependency) GoString() string {
+	return fmt.Sprintf("*%#v", *d)
+}
+
+func (d *KeyDependency) Key() string {
+	return d.rawKey
 }
 
 // ParseKeyDependency parses a string of the format a(/b(/c...))
@@ -158,13 +209,37 @@ type KeyPrefixDependency struct {
 	DataCenter string
 }
 
-func (kpd *KeyPrefixDependency) Key() string {
-	return kpd.rawKey
+// Fetch queries the Consul API defined by the given client and returns a slice
+// of KeyPair objects.
+func (d *KeyPrefixDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, error) {
+	if d.DataCenter != "" {
+		options.Datacenter = d.DataCenter
+	}
+
+	store := client.KV()
+	prefixes, _, err := store.List(d.Prefix, options)
+	if err != nil {
+		return err, nil
+	}
+
+	keyPairs := make([]*KeyPair, 0, len(prefixes))
+
+	for _, pair := range prefixes {
+		keyPairs = append(keyPairs, &KeyPair{
+			Key:   pair.Key,
+			Value: string(pair.Value),
+		})
+	}
+
+	return keyPairs, nil
 }
 
-// GoString returns the detailed format of this object
-func (kpd *KeyPrefixDependency) GoString() string {
-	return fmt.Sprintf("*%#v", *kpd)
+func (d *KeyPrefixDependency) GoString() string {
+	return fmt.Sprintf("*%#v", *d)
+}
+
+func (d *KeyPrefixDependency) Key() string {
+	return d.rawKey
 }
 
 // ParseKeyDependency parses a string of the format a(/b(/c...))

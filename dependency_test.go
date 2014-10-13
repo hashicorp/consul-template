@@ -6,6 +6,25 @@ import (
 	"testing"
 )
 
+func TestServiceDependencyFetch(t *testing.T) {
+	client, options := demoConsulClient(t)
+	dep := &ServiceDependency{
+		rawKey:     "redis@nyc1",
+		Name:       "redis",
+		DataCenter: "nyc1",
+	}
+
+	results, err := dep.Fetch(client, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, ok := results.([]*Service)
+	if !ok {
+		t.Fatal("could not convert result to []*Service")
+	}
+}
+
 func TestParseServiceDependency_emptyString(t *testing.T) {
 	_, err := ParseServiceDependency("")
 	if err == nil {
@@ -133,6 +152,25 @@ func TestParseServiceDependency_nameAndDataCenter(t *testing.T) {
 	}
 }
 
+func TestKeyDependencyFetch(t *testing.T) {
+	client, options := demoConsulClient(t)
+	dep := &KeyDependency{
+		rawKey:     "global/time@nyc1",
+		Path:       "global/time",
+		DataCenter: "nyc1",
+	}
+
+	results, err := dep.Fetch(client, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, ok := results.(string)
+	if !ok {
+		t.Fatal("could not convert result to string")
+	}
+}
+
 func TestParseKeyDependency_emptyString(t *testing.T) {
 	_, err := ParseKeyDependency("")
 	if err == nil {
@@ -174,6 +212,25 @@ func TestParseKeyDependency_nameTagDataCenter(t *testing.T) {
 
 	if !reflect.DeepEqual(sd, expected) {
 		t.Errorf("expected %#v to equal %#v", sd, expected)
+	}
+}
+
+func TestKeyPrefixDependencyFetch(t *testing.T) {
+	client, options := demoConsulClient(t)
+	dep := &KeyPrefixDependency{
+		rawKey:     "global@nyc1",
+		Prefix:     "global",
+		DataCenter: "nyc1",
+	}
+
+	results, err := dep.Fetch(client, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, ok := results.([]*KeyPair)
+	if !ok {
+		t.Fatal("could not convert result to []*KeyPair")
 	}
 }
 
