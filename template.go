@@ -132,33 +132,21 @@ func (t *Template) validateDependencies(c *TemplateContext) error {
 	}
 
 	for _, dep := range deps {
-		switch dep.(type) {
+		switch d := dep.(type) {
 		case *ServiceDependency:
-			sd, ok := dep.(*ServiceDependency)
-			if !ok {
-				return fmt.Errorf("could not convert to ServiceDependency")
-			}
-			if _, ok := c.Services[sd.Key()]; !ok {
-				return fmt.Errorf("templateContext missing service `%s'", sd.Key())
+			if _, ok := c.Services[d.Key()]; !ok {
+				return fmt.Errorf("templateContext missing service `%s'", d.Key())
 			}
 		case *KeyDependency:
-			kd, ok := dep.(*KeyDependency)
-			if !ok {
-				return fmt.Errorf("could not convert to KeyDependency")
-			}
-			if _, ok := c.Keys[kd.Key()]; !ok {
-				return fmt.Errorf("templateContext missing key `%s'", kd.Key())
+			if _, ok := c.Keys[d.Key()]; !ok {
+				return fmt.Errorf("templateContext missing key `%s'", d.Key())
 			}
 		case *KeyPrefixDependency:
-			kpd, ok := dep.(*KeyPrefixDependency)
-			if !ok {
-				return fmt.Errorf("could not convert to KeyPrefixDependency")
-			}
-			if _, ok := c.KeyPrefixes[kpd.Key()]; !ok {
-				return fmt.Errorf("templateContext missing keyPrefix `%s'", kpd.Key())
+			if _, ok := c.KeyPrefixes[d.Key()]; !ok {
+				return fmt.Errorf("templateContext missing keyPrefix `%s'", d.Key())
 			}
 		default:
-			return fmt.Errorf("unknown dependency type %#v", dep)
+			return fmt.Errorf("unknown dependency type %#v", d)
 		}
 	}
 

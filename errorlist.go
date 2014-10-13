@@ -40,13 +40,9 @@ func (e *ErrorList) GetError() error {
 func (e *ErrorList) Error() string {
 	buff := make([]string, 0)
 	for _, err := range e.errors {
-		switch err.(type) {
+		switch err := err.(type) {
 		case *ErrorList:
-			typed, ok := err.(*ErrorList)
-			if !ok {
-				panic("could not convert error to ErrorList")
-			}
-			buff = e.recursiveError(buff, typed.errors, typed.title)
+			buff = e.recursiveError(buff, err.errors, err.title)
 		default:
 			buff = append(buff, fmt.Sprintf("* %s", err))
 		}
