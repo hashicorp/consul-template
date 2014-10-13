@@ -18,6 +18,7 @@ type Dependency interface {
 // ServiceDependency is the representation of a requested service dependency
 // from inside a template.
 type ServiceDependency struct {
+	RawPath    string
 	Name       string
 	Tag        string
 	DataCenter string
@@ -25,19 +26,7 @@ type ServiceDependency struct {
 }
 
 func (s *ServiceDependency) Key() string {
-	var buff = new(bytes.Buffer)
-	if s.Tag != "" {
-		fmt.Fprintf(buff, "%s.", s.Tag)
-	}
-	fmt.Fprintf(buff, "%s", s.Name)
-	if s.DataCenter != "" {
-		fmt.Fprintf(buff, "@%s", s.DataCenter)
-	}
-	if s.Port != 0 {
-		fmt.Fprintf(buff, ":%s", s.Port)
-	}
-
-	return buff.String()
+	return s.RawPath
 }
 
 // GoString returns the detailed format of this object
@@ -81,6 +70,7 @@ func ParseServiceDependency(s string) (*ServiceDependency, error) {
 	}
 
 	sd := &ServiceDependency{
+		RawPath:    s,
 		Name:       name,
 		Tag:        tag,
 		DataCenter: datacenter,
