@@ -205,7 +205,7 @@ type Service struct {
 	ID      string
 	Name    string
 	Tags    []string
-	Port    uint
+	Port    uint64
 }
 
 // GoString returns the detailed format of this object
