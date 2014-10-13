@@ -18,7 +18,7 @@ const (
 
 	// Errors start at 500
 	ExitCodeError = 500 + iota
-	ExitCodeParseError
+	ExitCodeParseFlagsError
 	ExitCodeParseWaitError
 	ExitCodeParseConfigError
 )
