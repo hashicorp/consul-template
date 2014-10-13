@@ -20,8 +20,8 @@ func (t *Template) GoString() string {
 }
 
 // Dependencies returns the dependencies that this template has.
-func (t *Template) Dependencies() ([]*Dependency, error) {
-	var deps []*Dependency
+func (t *Template) Dependencies() ([]Dependency, error) {
+	var deps []Dependency
 
 	contents, err := ioutil.ReadFile(t.Input)
 	if err != nil {
@@ -91,19 +91,35 @@ func (t *Template) Execute(wr io.Writer, c *TemplateContext) error {
 }
 
 // Helper function that is used by the dependency collecting.
-func (t *Template) dependencyAcc(d *[]*Dependency, dt DependencyType) interface{} {
-	return func(s string) interface{} {
-		*d = append(*d, &Dependency{Type: dt, Value: s})
-
+func (t *Template) dependencyAcc(d *[]Dependency, dt DependencyType) interface{} {
+	return func(s string) (interface{}, error) {
 		switch dt {
 		case DependencyTypeService:
-			return []*Service{}
+			sd, err := ParseServiceDependency(s)
+			if err != nil {
+				return nil, err
+			}
+			*d = append(*d, sd)
+
+			return []*Service{}, nil
 		case DependencyTypeKey:
-			return ""
+			kd, err := ParseKeyDependency(s)
+			if err != nil {
+				return nil, err
+			}
+			*d = append(*d, kd)
+
+			return "", nil
 		case DependencyTypeKeyPrefix:
-			return []*KeyPair{}
+			kpd, err := ParseKeyPrefixDependency(s)
+			if err != nil {
+				return nil, err
+			}
+			*d = append(*d, kpd)
+
+			return []*KeyPair{}, nil
 		default:
-			panic(fmt.Sprintf("unexpected DependencyType %#v", dt))
+			return nil, fmt.Errorf("unknown DependencyType %#v", dt)
 		}
 	}
 }
@@ -116,19 +132,33 @@ func (t *Template) validateDependencies(c *TemplateContext) error {
 	}
 
 	for _, dep := range deps {
-		switch dep.Type {
-		case DependencyTypeService:
-			if _, ok := c.Services[dep.Value]; !ok {
-				return fmt.Errorf("templateContext missing service `%s'", dep.Value)
+		switch dep.(type) {
+		case *ServiceDependency:
+			sd, ok := dep.(*ServiceDependency)
+			if !ok {
+				return fmt.Errorf("could not convert to ServiceDependency")
 			}
-		case DependencyTypeKey:
-			if _, ok := c.Keys[dep.Value]; !ok {
-				return fmt.Errorf("templateContext missing key `%s'", dep.Value)
+			if _, ok := c.Services[sd.Key()]; !ok {
+				return fmt.Errorf("templateContext missing service `%s'", sd.Key())
 			}
-		case DependencyTypeKeyPrefix:
-			if _, ok := c.KeyPrefixes[dep.Value]; !ok {
-				return fmt.Errorf("templateContext missing keyPrefix `%s'", dep.Value)
+		case *KeyDependency:
+			kd, ok := dep.(*KeyDependency)
+			if !ok {
+				return fmt.Errorf("could not convert to KeyDependency")
 			}
+			if _, ok := c.Keys[kd.Key()]; !ok {
+				return fmt.Errorf("templateContext missing key `%s'", kd.Key())
+			}
+		case *KeyPrefixDependency:
+			kpd, ok := dep.(*KeyPrefixDependency)
+			if !ok {
+				return fmt.Errorf("could not convert to KeyPrefixDependency")
+			}
+			if _, ok := c.KeyPrefixes[kpd.Key()]; !ok {
+				return fmt.Errorf("templateContext missing keyPrefix `%s'", kpd.Key())
+			}
+		default:
+			return fmt.Errorf("unknown dependency type %#v", dep)
 		}
 	}
 
@@ -153,16 +183,16 @@ func (c *TemplateContext) GoString() string {
 // Evaluator takes a DependencyType and returns a function which returns the
 // value in the TemplateContext that corresponds to the requested item.
 func (c *TemplateContext) Evaluator(dt DependencyType) interface{} {
-	return func(s string) interface{} {
+	return func(s string) (interface{}, error) {
 		switch dt {
 		case DependencyTypeService:
-			return c.Services[s]
+			return c.Services[s], nil
 		case DependencyTypeKey:
-			return c.Keys[s]
+			return c.Keys[s], nil
 		case DependencyTypeKeyPrefix:
-			return c.KeyPrefixes[s]
+			return c.KeyPrefixes[s], nil
 		default:
-			panic(fmt.Sprintf("unexpected DependencyType %#v", dt))
+			return nil, fmt.Errorf("unexpected DependencyType %#v", dt)
 		}
 	}
 }

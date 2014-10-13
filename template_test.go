@@ -19,7 +19,7 @@ func TestDependencies_empty(t *testing.T) {
 	dependencies, err := tmpl.Dependencies()
 
 	if err != nil {
-		t.Errorf("%s", err)
+		t.Fatal(err)
 	}
 
 	if num := len(dependencies); num != 0 {
@@ -43,35 +43,48 @@ func TestDependencies_funcs(t *testing.T) {
 	dependencies, err := tmpl.Dependencies()
 
 	if err != nil {
-		t.Errorf("%s", err)
+		t.Fatal(err)
 	}
 
 	if num := len(dependencies); num != 3 {
 		t.Fatalf("expected 3 dependencies, got: %d", num)
 	}
 
-	service := dependencies[0]
-	if service.Type != DependencyTypeService {
-		t.Errorf("expected dependencies[0] to be service, was: %#v", service.Type)
-	}
-	if service.Value != "release.webapp" {
-		t.Errorf("expected service value to be release.webapp, was: %s", service.Value)
+	dependency, expected := dependencies[0], "release.webapp"
+	if dependency.Key() != expected {
+		t.Errorf("expected %q to equal %q", dependency.Key(), expected)
 	}
 
-	key := dependencies[1]
-	if key.Type != DependencyTypeKey {
-		t.Errorf("expected dependencies[1] to be key, was: %#v", key.Type)
-	}
-	if key.Value != "service/redis/maxconns" {
-		t.Errorf("expected key value to be service/redis/maxconns, was: %s", key.Value)
+	dependency, expected = dependencies[1], "service/redis/maxconns"
+	if dependency.Key() != expected {
+		t.Errorf("expected %q to equal %q", dependency.Key(), expected)
 	}
 
-	keyPrefix := dependencies[2]
-	if keyPrefix.Type != DependencyTypeKeyPrefix {
-		t.Errorf("expected dependencies[2] to be keyPrefix, was: %#v", keyPrefix.Type)
+	dependency, expected = dependencies[2], "service/redis/config"
+	if dependency.Key() != expected {
+		t.Errorf("expected %q to equal %q", dependency.Key(), expected)
 	}
-	if keyPrefix.Value != "service/redis/config" {
-		t.Errorf("expected keyPrefix value to be service/redis/config, was: %s", keyPrefix.Value)
+}
+
+// Test that any errors raised while parsing the dependencies are propagated up
+func TestDependencies_funcsError(t *testing.T) {
+	inTemplate := createTempfile([]byte(`
+    {{ range service "totally/not/a/valid/service" }}{{ end }}
+  `), t)
+	defer deleteTempfile(inTemplate, t)
+
+	tmpl := &Template{
+		Input: inTemplate.Name(),
+	}
+
+	_, err := tmpl.Dependencies()
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "error calling service:"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to contain %q", err.Error(), expected)
 	}
 }
 
