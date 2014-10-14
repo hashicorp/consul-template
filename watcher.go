@@ -41,7 +41,7 @@ func (w *Watcher) Watch() error {
 		return err
 	}
 
-	views, templates, err := w.createViews()
+	views, templates, ctemplates, err := w.createViews()
 	if err != nil {
 		return err
 	}
@@ -78,7 +78,20 @@ func (w *Watcher) Watch() error {
 					}
 				}
 
-				template.Execute(os.Stderr, context)
+				if w.config.Dry {
+					template.Execute(os.Stderr, context)
+				} else {
+					ctemplate := ctemplates[template]
+					out, err := os.OpenFile(ctemplate.Destination, os.O_WRONLY, 0666)
+					if err != nil {
+						panic(err)
+					}
+
+					template.Execute(out, context)
+					if err := out.Close(); err != nil {
+						panic(err)
+					}
+				}
 			}
 		}
 	}
@@ -96,10 +109,10 @@ func (w *Watcher) waitForChanges(views map[Dependency]*DataView, client *api.Cli
 }
 
 //
-func (w *Watcher) createViews() (map[Dependency]*DataView, map[*Template][]Dependency, error) {
-	// Use a sane starting size - it is assumed that each ConfigTemplate has at
-	// least one Dependency
-	views, templates := make(map[Dependency]*DataView), make(map[*Template][]Dependency)
+func (w *Watcher) createViews() (map[Dependency]*DataView, map[*Template][]Dependency, map[*Template]*ConfigTemplate, error) {
+	views := make(map[Dependency]*DataView)
+	templates := make(map[*Template][]Dependency)
+	ctemplates := make(map[*Template]*ConfigTemplate)
 
 	// For each Dependency per ConfigTemplate, construct a DataView object which
 	// ties the dependency to the Templates which depend on it
@@ -107,7 +120,7 @@ func (w *Watcher) createViews() (map[Dependency]*DataView, map[*Template][]Depen
 		template := &Template{Input: ctemplate.Source}
 		deps, err := template.Dependencies()
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		for _, dep := range deps {
@@ -127,9 +140,12 @@ func (w *Watcher) createViews() (map[Dependency]*DataView, map[*Template][]Depen
 
 		// Add the template and its dependencies to the list
 		templates[template] = deps
+
+		// Map the template to its ConfigTemplate
+		ctemplates[template] = ctemplate
 	}
 
-	return views, templates, nil
+	return views, templates, ctemplates, nil
 }
 
 // ready determines if the views have loaded all the required information
