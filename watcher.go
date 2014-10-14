@@ -33,7 +33,7 @@ func (w *Watcher) Watch() error {
 		return err
 	}
 
-	views, err := w.createViews()
+	views, templates, err := w.createViews()
 	if err != nil {
 		return err
 	}
@@ -43,11 +43,7 @@ func (w *Watcher) Watch() error {
 		select {
 		case view := <-changes:
 			for _, template := range view.Templates {
-				deps, err := template.Dependencies()
-				if err != nil {
-					panic(err) // TODO: err chan?
-				}
-
+				deps := templates[template]
 				context := &TemplateContext{
 					Services:    make(map[string][]*Service),
 					Keys:        make(map[string]string),
@@ -57,7 +53,6 @@ func (w *Watcher) Watch() error {
 				// Continue if not all the required dependencies have been loaded
 				// into the views
 				if !w.ready(views, deps) {
-					println(fmt.Sprintf("%s was not ready", template.Input))
 					continue
 				}
 
@@ -93,10 +88,10 @@ func (w *Watcher) waitForChanges(views map[Dependency]*DataView, client *api.Cli
 }
 
 //
-func (w *Watcher) createViews() (map[Dependency]*DataView, error) {
+func (w *Watcher) createViews() (map[Dependency]*DataView, map[*Template][]Dependency, error) {
 	// Use a sane starting size - it is assumed that each ConfigTemplate has at
 	// least one Dependency
-	views := make(map[Dependency]*DataView)
+	views, templates := make(map[Dependency]*DataView), make(map[*Template][]Dependency)
 
 	// For each Dependency per ConfigTemplate, construct a DataView object which
 	// ties the dependency to the Templates which depend on it
@@ -104,7 +99,7 @@ func (w *Watcher) createViews() (map[Dependency]*DataView, error) {
 		template := &Template{Input: ctemplate.Source}
 		deps, err := template.Dependencies()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		for _, dep := range deps {
@@ -119,21 +114,22 @@ func (w *Watcher) createViews() (map[Dependency]*DataView, error) {
 			}
 
 			// Append the ConfigTemplate to the slice
-			views[dep].Templates = append(views[dep].Templates, &Template{
-				Input: ctemplate.Source,
-			})
+			views[dep].Templates = append(views[dep].Templates, template)
 		}
+
+		// Add the template and its dependencies to the list
+		templates[template] = deps
 	}
 
-	return views, nil
+	return views, templates, nil
 }
 
 // ready determines if the views have loaded all the required information
 // from the dependency.
 func (w *Watcher) ready(views map[Dependency]*DataView, deps []Dependency) bool {
 	for _, dep := range deps {
-		v, ok := views[dep]
-		if !ok || !v.loaded() {
+		v := views[dep]
+		if !v.loaded() {
 			return false
 		}
 	}
@@ -182,7 +178,7 @@ func (view *DataView) poll(ch chan *DataView, client *api.Client) {
 			panic(err) // TODO: push err to err ch or something
 		}
 
-		println(fmt.Sprintf("[%d] Checking %v", time.Now().Unix(), view.Dependency))
+		println(fmt.Sprintf("[%d] Poll: %#v", time.Now().Unix(), view.Dependency))
 
 		// Consul is allowed to return even if there's no new data. Ignore data if
 		// the index is the same.
