@@ -233,8 +233,6 @@ func (view *DataView) poll(ch chan *DataView, client *api.Client, doneCh chan st
 			panic(err) // TODO: push err to err ch or something
 		}
 
-		println(fmt.Sprintf("[%d] Poll: %#v", time.Now().Unix(), view.Dependency))
-
 		// Consul is allowed to return even if there's no new data. Ignore data if
 		// the index is the same.
 		if qm.LastIndex == view.LastIndex {
