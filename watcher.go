@@ -256,6 +256,8 @@ func (view *DataView) poll(ch chan *DataView, client *api.Client, doneCh chan st
 		select {
 		case <-doneCh:
 			return
+		default:
+			continue
 		}
 	}
 }
