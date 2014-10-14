@@ -46,10 +46,28 @@ func (w *Watcher) Watch() error {
 		return err
 	}
 
-	changes := w.waitForChanges(views, client)
+	doneCh := make(chan struct{})
+	viewCh := w.waitForChanges(views, client, doneCh)
+
+	if w.config.Once {
+		// If we are running in "once" mode, quit after the first poll
+		close(doneCh)
+	} else {
+		// Ensure we stop background polling when we quit the Watcher
+		defer close(doneCh)
+	}
+
 	for {
 		select {
-		case view := <-changes:
+		case view := <-viewCh:
+			println("received on viewCh")
+
+			if w.config.Once && w.renderedAll(views) {
+				// If we are in "once" mode and all the templates have been rendered,
+				// exit gracefully
+				return nil
+			}
+
 			for _, template := range view.Templates {
 				deps := templates[template]
 				context := &TemplateContext{
@@ -88,11 +106,11 @@ func (w *Watcher) Watch() error {
 					}
 
 					template.Execute(out, context)
-					if err := out.Close(); err != nil {
-						panic(err)
-					}
 				}
 			}
+		case <-doneCh:
+			println("received on doneCh")
+			return nil
 		}
 	}
 
@@ -100,12 +118,12 @@ func (w *Watcher) Watch() error {
 }
 
 //
-func (w *Watcher) waitForChanges(views map[Dependency]*DataView, client *api.Client) <-chan *DataView {
-	ch := make(chan *DataView, len(views))
+func (w *Watcher) waitForChanges(views map[Dependency]*DataView, client *api.Client, doneCh chan struct{}) <-chan *DataView {
+	viewCh := make(chan *DataView, len(views))
 	for _, view := range views {
-		go view.poll(ch, client)
+		go view.poll(viewCh, client, doneCh)
 	}
-	return ch
+	return viewCh
 }
 
 //
@@ -161,6 +179,19 @@ func (w *Watcher) ready(views map[Dependency]*DataView, deps []Dependency) bool 
 }
 
 //
+func (w *Watcher) renderedAll(views map[Dependency]*DataView) bool {
+	for _, view := range views {
+		for _, template := range view.Templates {
+			if !template.Rendered() {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
+//
 func (w *Watcher) client() (*api.Client, error) {
 	consulConfig := api.DefaultConfig()
 	if w.config.Consul != "" {
@@ -191,7 +222,7 @@ type DataView struct {
 }
 
 //
-func (view *DataView) poll(ch chan *DataView, client *api.Client) {
+func (view *DataView) poll(ch chan *DataView, client *api.Client, doneCh chan struct{}) {
 	for {
 		options := &api.QueryOptions{
 			WaitTime:  defaultWaitTime,
@@ -221,6 +252,13 @@ func (view *DataView) poll(ch chan *DataView, client *api.Client) {
 		// If we got this far, there is new data!
 		view.Data = data
 		ch <- view
+
+		// Break from the function if we are done - this happens at the end of the
+		// function to ensure it runs at least once
+		select {
+		case <-doneCh:
+			return
+		}
 	}
 }
 
