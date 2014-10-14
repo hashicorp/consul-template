@@ -190,6 +190,9 @@ func (view *DataView) poll(ch chan *DataView, client *api.Client) {
 			continue
 		}
 
+		// Update the index in case we got a new version, but the data is the same
+		view.LastIndex = qm.LastIndex
+
 		// Do not trigger a render if the data is the same
 		// TODO: Does this behave correctly without explicit type conversion?
 		if reflect.DeepEqual(data, view.Data) {
@@ -197,7 +200,6 @@ func (view *DataView) poll(ch chan *DataView, client *api.Client) {
 		}
 
 		// If we got this far, there is new data!
-		view.LastIndex = qm.LastIndex
 		view.Data = data
 		ch <- view
 	}
