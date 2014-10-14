@@ -111,9 +111,6 @@ func (w *Watcher) Watch() error {
 					template.Execute(out, context)
 				}
 			}
-		case <-doneCh:
-			println("received on doneCh")
-			return nil
 		}
 	}
 
