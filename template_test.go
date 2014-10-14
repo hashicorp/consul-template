@@ -7,7 +7,6 @@ import (
 	"testing"
 )
 
-// Test that the parser does not barf when the file is empty
 func TestDependencies_empty(t *testing.T) {
 	inTemplate := createTempfile(nil, t)
 	defer deleteTempfile(inTemplate, t)
@@ -27,7 +26,6 @@ func TestDependencies_empty(t *testing.T) {
 	}
 }
 
-// Test that the parser adds services, keys, and key prefixes
 func TestDependencies_funcs(t *testing.T) {
 	inTemplate := createTempfile([]byte(`
     {{ range service "release.webapp" }}{{ end }}
@@ -66,7 +64,6 @@ func TestDependencies_funcs(t *testing.T) {
 	}
 }
 
-// Test that any errors raised while parsing the dependencies are propagated up
 func TestDependencies_funcsError(t *testing.T) {
 	inTemplate := createTempfile([]byte(`
     {{ range service "totally/not/a/valid/service" }}{{ end }}
@@ -88,7 +85,6 @@ func TestDependencies_funcsError(t *testing.T) {
 	}
 }
 
-// Test that an error is returned when no ioWriter is given
 func TestExecute_noIOWriter(t *testing.T) {
 	var tmpl Template
 	var context TemplateContext
@@ -104,7 +100,6 @@ func TestExecute_noIOWriter(t *testing.T) {
 	}
 }
 
-// Test that an error is returned when no context is given
 func TestExecute_noTemplateContext(t *testing.T) {
 	var tmpl Template
 	var wr bytes.Buffer
@@ -120,8 +115,6 @@ func TestExecute_noTemplateContext(t *testing.T) {
 	}
 }
 
-// Test that an error raised while fetching the template's dependencies is
-// propagated up
 func TestExecute_dependenciesError(t *testing.T) {
 	var io bytes.Buffer
 
@@ -145,7 +138,6 @@ func TestExecute_dependenciesError(t *testing.T) {
 	}
 }
 
-// Test that an error is returned when the context is missing a service
 func TestExecute_missingService(t *testing.T) {
 	var io bytes.Buffer
 
@@ -176,7 +168,6 @@ func TestExecute_missingService(t *testing.T) {
 	}
 }
 
-// Test that an error is returned when the context is missing a key
 func TestExecute_missingKey(t *testing.T) {
 	var io bytes.Buffer
 
@@ -207,7 +198,6 @@ func TestExecute_missingKey(t *testing.T) {
 	}
 }
 
-// Test that an error is returned when the context is missing a key prefix
 func TestExecute_missingKeyPrefix(t *testing.T) {
 	var io bytes.Buffer
 
@@ -238,7 +228,6 @@ func TestExecute_missingKeyPrefix(t *testing.T) {
 	}
 }
 
-// Test that services are rendered in the template
 func TestExecute_rendersServices(t *testing.T) {
 	var io bytes.Buffer
 
@@ -291,7 +280,6 @@ func TestExecute_rendersServices(t *testing.T) {
 	}
 }
 
-// Test that keys are rendered in the template
 func TestExecute_rendersKeys(t *testing.T) {
 	var io bytes.Buffer
 
@@ -329,7 +317,6 @@ func TestExecute_rendersKeys(t *testing.T) {
 	}
 }
 
-// Test that key prefixes are rendered in the template
 func TestExecute_rendersKeyPrefixes(t *testing.T) {
 	var io bytes.Buffer
 
@@ -373,5 +360,24 @@ func TestExecute_rendersKeyPrefixes(t *testing.T) {
 	expectedContents := "minconns 2\n    maxconns 11"
 	if contents != expectedContents {
 		t.Errorf("expected contents to be:\n\n%#q\n\nbut was\n\n%#q\n", expectedContents, contents)
+	}
+}
+
+func TestExecute_setsRendered(t *testing.T) {
+	inTemplate := createTempfile(nil, t)
+	defer deleteTempfile(inTemplate, t)
+
+	tmpl, context := &Template{Input: inTemplate.Name()}, &TemplateContext{}
+
+	if tmpl.Rendered() {
+		t.Fatal("template should not be rendered yet")
+	}
+
+	if err := tmpl.Execute(ioutil.Discard, context); err != nil {
+		t.Fatal(err)
+	}
+
+	if !tmpl.Rendered() {
+		t.Fatal("expected template to be rendered")
 	}
 }

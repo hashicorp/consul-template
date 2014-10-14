@@ -12,6 +12,14 @@ import (
 
 type Template struct {
 	Input string
+
+	// Internal variable to represent that a template has been rendered
+	rendered bool
+}
+
+// Rendered returns true if the template has been executed
+func (t *Template) Rendered() bool {
+	return t.rendered
 }
 
 // GoString returns the detailed format of this object
@@ -86,6 +94,8 @@ func (t *Template) Execute(wr io.Writer, c *TemplateContext) error {
 	if err != nil {
 		return err
 	}
+
+	t.rendered = true
 
 	return nil
 }
