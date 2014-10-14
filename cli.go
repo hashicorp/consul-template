@@ -40,7 +40,11 @@ func (cli *CLI) Run(args []string) int {
 		return status
 	}
 
-	println(config)
+	watcher := NewWatcher(config)
+	if err := watcher.Watch(); err != nil {
+		fmt.Fprintf(cli.errStream, err.Error())
+		return ExitCodeError
+	}
 
 	return ExitCodeOK
 }

@@ -11,7 +11,7 @@ import (
 
 // Dependency is an interface
 type Dependency interface {
-	Fetch(*api.Client, *api.QueryOptions) (interface{}, error)
+	Fetch(*api.Client, *api.QueryOptions) (interface{}, *api.QueryMeta, error)
 	GoString() string
 	Key() string
 }
@@ -30,15 +30,15 @@ type ServiceDependency struct {
 
 // Fetch queries the Consul API defined by the given client and returns a slice
 // of Service objects.
-func (d *ServiceDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, error) {
+func (d *ServiceDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
 	if d.DataCenter != "" {
 		options.Datacenter = d.DataCenter
 	}
 
 	health := client.Health()
-	entries, _, err := health.Service(d.Name, d.Tag, true, options)
+	entries, qm, err := health.Service(d.Name, d.Tag, true, options)
 	if err != nil {
-		return nil, err
+		return nil, qm, err
 	}
 
 	services := make([]*Service, 0, len(entries))
@@ -54,7 +54,7 @@ func (d *ServiceDependency) Fetch(client *api.Client, options *api.QueryOptions)
 		})
 	}
 
-	return services, nil
+	return services, qm, nil
 }
 
 func (d *ServiceDependency) GoString() string {
@@ -131,22 +131,22 @@ type KeyDependency struct {
 
 // Fetch queries the Consul API defined by the given client and returns string
 // of the value to Path.
-func (d *KeyDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, error) {
+func (d *KeyDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
 	if d.DataCenter != "" {
 		options.Datacenter = d.DataCenter
 	}
 
 	store := client.KV()
-	pair, _, err := store.Get(d.Path, options)
+	pair, qm, err := store.Get(d.Path, options)
 	if err != nil {
-		return "", err
+		return "", qm, err
 	}
 
 	if pair == nil {
-		return "", nil
+		return "", qm, nil
 	}
 
-	return string(pair.Value), nil
+	return string(pair.Value), qm, nil
 }
 
 func (d *KeyDependency) GoString() string {
@@ -211,15 +211,15 @@ type KeyPrefixDependency struct {
 
 // Fetch queries the Consul API defined by the given client and returns a slice
 // of KeyPair objects.
-func (d *KeyPrefixDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, error) {
+func (d *KeyPrefixDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
 	if d.DataCenter != "" {
 		options.Datacenter = d.DataCenter
 	}
 
 	store := client.KV()
-	prefixes, _, err := store.List(d.Prefix, options)
+	prefixes, qm, err := store.List(d.Prefix, options)
 	if err != nil {
-		return err, nil
+		return err, qm, nil
 	}
 
 	keyPairs := make([]*KeyPair, 0, len(prefixes))
@@ -231,7 +231,7 @@ func (d *KeyPrefixDependency) Fetch(client *api.Client, options *api.QueryOption
 		})
 	}
 
-	return keyPairs, nil
+	return keyPairs, qm, nil
 }
 
 func (d *KeyPrefixDependency) GoString() string {

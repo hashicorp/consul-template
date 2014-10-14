@@ -14,7 +14,7 @@ func TestServiceDependencyFetch(t *testing.T) {
 		DataCenter: "nyc1",
 	}
 
-	results, err := dep.Fetch(client, options)
+	results, _, err := dep.Fetch(client, options)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +160,7 @@ func TestKeyDependencyFetch(t *testing.T) {
 		DataCenter: "nyc1",
 	}
 
-	results, err := dep.Fetch(client, options)
+	results, _, err := dep.Fetch(client, options)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -223,7 +223,7 @@ func TestKeyPrefixDependencyFetch(t *testing.T) {
 		DataCenter: "nyc1",
 	}
 
-	results, err := dep.Fetch(client, options)
+	results, _, err := dep.Fetch(client, options)
 	if err != nil {
 		t.Fatal(err)
 	}
