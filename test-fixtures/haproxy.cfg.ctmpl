@@ -8,8 +8,7 @@ frontend http-in
     bind *:80
     default_backend app
 
-backend app
-{{range service "consul@nyc1"}}
+backend app{{range service "consul@nyc1"}}
     server {{.Name}} {{.Address}}:{{.Port}}{{end}}
 
 listen admin

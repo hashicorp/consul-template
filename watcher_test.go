@@ -1,10 +1,11 @@
 package main
 
 import (
-	"bytes"
+	"errors"
 	"io/ioutil"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestNewWatcher_noConfig(t *testing.T) {
@@ -31,7 +32,40 @@ func TestNewMatcher_setsConfig(t *testing.T) {
 	}
 }
 
-func TestWatch_fuck(t *testing.T) {
+func TestWatch_polls(t *testing.T) {
+	t.Parallel()
+
+	config := &Config{
+		Consul: "demo.consul.io",
+	}
+	watcher, err := NewWatcher(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	errCh := make(chan error)
+	go func() {
+		errCh <- watcher.Watch()
+		errCh <- errors.New("returned too soon")
+	}()
+
+	// This test is a little weird, so I will explain it. We are checking to make
+	// sure that the Watch() function runs continuously so we put it in a go
+	// routine and if it does not return within a certain number of seconds, we
+	// call that "OK".
+	select {
+	case e := <-errCh:
+		if e != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(1 * time.Second):
+		// OK
+	}
+}
+
+func TestWatch_once(t *testing.T) {
+	t.Parallel()
+
 	outFile := createTempfile(nil, t)
 	defer deleteTempfile(outFile, t)
 
@@ -53,16 +87,20 @@ func TestWatch_fuck(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected, err := ioutil.ReadFile("test-fixtures/haproxy.cfg")
-	if err != nil {
-		t.Fatal(err)
-	}
-	actual, err := ioutil.ReadFile(outFile.Name())
+	bytes, err := ioutil.ReadFile(outFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if !bytes.Equal(actual, expected) {
-		t.Errorf("expected \n%s\n\nto eq\n\n%s\n", actual, expected)
+	actual := string(bytes)
+
+	expected := "global\n    maxconn 256"
+	if !strings.Contains(actual, expected) {
+		t.Errorf("expected %q to contain %q", actual, expected)
+	}
+
+	expected = "backend app\n    server consul"
+	if !strings.Contains(actual, expected) {
+		t.Errorf("expected %q to contain %q", actual, expected)
 	}
 }
