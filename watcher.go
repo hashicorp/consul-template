@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -19,10 +20,17 @@ type Watcher struct {
 	config *Config
 }
 
-func NewWatcher(config *Config) *Watcher {
-	return &Watcher{
+// NewWatcher accepts a Config and creates a new Watcher.
+func NewWatcher(config *Config) (*Watcher, error) {
+	if config == nil {
+		return nil, errors.New("cannot specify empty config")
+	}
+
+	watcher := &Watcher{
 		config: config,
 	}
+
+	return watcher, nil
 }
 
 // Watch starts the Watcher process, querying the Consul API and rendering any
