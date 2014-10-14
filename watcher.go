@@ -67,6 +67,11 @@ func (w *Watcher) Watch() error {
 		select {
 		case view := <-viewCh:
 			for _, template := range view.Templates {
+				if w.config.Once && template.Rendered() {
+					// If we are in "once" mode, do not rendered the same template twice
+					continue
+				}
+
 				deps := templates[template]
 				context := &TemplateContext{
 					Services:    make(map[string][]*Service),
