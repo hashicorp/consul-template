@@ -58,16 +58,14 @@ func (w *Watcher) Watch() error {
 	}
 
 	for {
+		if w.config.Once && w.renderedAll(views) {
+			// If we are in "once" mode and all the templates have been rendered,
+			// exit gracefully
+			return nil
+		}
+
 		select {
 		case view := <-viewCh:
-			println("received on viewCh")
-
-			if w.config.Once && w.renderedAll(views) {
-				// If we are in "once" mode and all the templates have been rendered,
-				// exit gracefully
-				return nil
-			}
-
 			for _, template := range view.Templates {
 				deps := templates[template]
 				context := &TemplateContext{
