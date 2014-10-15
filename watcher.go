@@ -103,12 +103,13 @@ func (w *Watcher) Watch() error {
 					template.Execute(os.Stderr, context)
 				} else {
 					ctemplate := ctemplates[template]
-					out, err := os.OpenFile(ctemplate.Destination, os.O_WRONLY, 0666)
+					out, err := os.Create(ctemplate.Destination)
 					if err != nil {
 						panic(err)
 					}
 
 					template.Execute(out, context)
+					out.Close()
 				}
 			}
 		}
