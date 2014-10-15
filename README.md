@@ -169,6 +169,22 @@ maxconns 12
 
 Like `key`, if you omit the datacenter attribute on `keyPrefix`, the local Consul datacenter will be queried. For more examples of the templating language, see the [Examples](#examples) section below.
 
+### File Permission Caveats
+Consul Template uses Go's file modification libraries under the hood. As a caveat, these libraries do not preserve file permissions. If you require specific file permissions on the output file, you can use the optional `command` parameter and `chmod`, for example:
+
+```bash
+consul-template \
+  -template "/tmp/nginx.ctmpl:/var/nginx/nginx.conf:chmod 644 /var/nginx/nginx.conf && sudo restart nginx"
+```
+
+```javascript
+template {
+  source = "/tmp/nginx.ctmpl"
+  destination = "/var/nginx/nginx.conf"
+  command = "chmod 644 /var/nginx/nginx.conf && sudo restart nginx"
+}
+```
+
 
 Examples
 --------
