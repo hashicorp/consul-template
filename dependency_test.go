@@ -25,6 +25,14 @@ func TestServiceDependencyFetch(t *testing.T) {
 	}
 }
 
+func TestServiceDependencyHashCode_returnsValue(t *testing.T) {
+	dep := &ServiceDependency{rawKey: "redis@nyc1"}
+	expected := "ServiceDependency|redis@nyc1"
+	if dep.HashCode() != expected {
+		t.Errorf("expected %q to equal %q", dep.HashCode(), expected)
+	}
+}
+
 func TestParseServiceDependency_emptyString(t *testing.T) {
 	_, err := ParseServiceDependency("")
 	if err == nil {
@@ -171,6 +179,14 @@ func TestKeyDependencyFetch(t *testing.T) {
 	}
 }
 
+func TestKeyDependencyHashCode_returnsValue(t *testing.T) {
+	dep := &KeyDependency{rawKey: "config/redis/maxconns"}
+	expected := "KeyDependency|config/redis/maxconns"
+	if dep.HashCode() != expected {
+		t.Errorf("expected %q to equal %q", dep.HashCode(), expected)
+	}
+}
+
 func TestParseKeyDependency_emptyString(t *testing.T) {
 	_, err := ParseKeyDependency("")
 	if err == nil {
@@ -231,6 +247,14 @@ func TestKeyPrefixDependencyFetch(t *testing.T) {
 	_, ok := results.([]*KeyPair)
 	if !ok {
 		t.Fatal("could not convert result to []*KeyPair")
+	}
+}
+
+func TestKeyPrefixDependencyHashCode_returnsValue(t *testing.T) {
+	dep := &KeyPrefixDependency{rawKey: "config/redis"}
+	expected := "KeyPrefixDependency|config/redis"
+	if dep.HashCode() != expected {
+		t.Errorf("expected %q to equal %q", dep.HashCode(), expected)
 	}
 }
 

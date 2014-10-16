@@ -13,6 +13,7 @@ import (
 type Dependency interface {
 	Fetch(*api.Client, *api.QueryOptions) (interface{}, *api.QueryMeta, error)
 	GoString() string
+	HashCode() string
 	Key() string
 }
 
@@ -55,6 +56,10 @@ func (d *ServiceDependency) Fetch(client *api.Client, options *api.QueryOptions)
 	}
 
 	return services, qm, nil
+}
+
+func (d *ServiceDependency) HashCode() string {
+	return fmt.Sprintf("ServiceDependency|%s", d.Key())
 }
 
 func (d *ServiceDependency) GoString() string {
@@ -149,6 +154,10 @@ func (d *KeyDependency) Fetch(client *api.Client, options *api.QueryOptions) (in
 	return string(pair.Value), qm, nil
 }
 
+func (d *KeyDependency) HashCode() string {
+	return fmt.Sprintf("KeyDependency|%s", d.Key())
+}
+
 func (d *KeyDependency) GoString() string {
 	return fmt.Sprintf("*%#v", *d)
 }
@@ -232,6 +241,10 @@ func (d *KeyPrefixDependency) Fetch(client *api.Client, options *api.QueryOption
 	}
 
 	return keyPairs, qm, nil
+}
+
+func (d *KeyPrefixDependency) HashCode() string {
+	return fmt.Sprintf("KeyPrefixDependency|%s", d.Key())
 }
 
 func (d *KeyPrefixDependency) GoString() string {
