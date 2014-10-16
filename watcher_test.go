@@ -94,24 +94,6 @@ func TestNewWatcher_makesstopCh(t *testing.T) {
 	}
 }
 
-func TestWatch_propagatesNewWatchDataError(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, make([]Dependency, 1))
-	if err != nil {
-		t.Fatal(err)
-	}
-	w.Watch()
-
-	select {
-	case err := <-w.ErrCh:
-		expected := "watchdata: missing Dependency"
-		if !strings.Contains(err.Error(), expected) {
-			t.Errorf("expected %q to contain %q", err.Error(), expected)
-		}
-	case <-time.After(1 * time.Second):
-		t.Fatal("expected error, but nothing was returned")
-	}
-}
-
 func TestWatch_propagatesDependencyFetchError(t *testing.T) {
 	dependencies := []Dependency{
 		&FakeDependencyFetchError{name: "tester"},

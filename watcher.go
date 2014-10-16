@@ -44,18 +44,22 @@ func NewWatcher(client *api.Client, dependencies []Dependency) (*Watcher, error)
 }
 
 //
-func (w *Watcher) Watch() {
+func (w *Watcher) Watch() error {
+	views := make([]*WatchData, 0, len(w.dependencies))
 	for _, dependency := range w.dependencies {
-		go func() {
-			view, err := NewWatchData(dependency)
-			if err != nil {
-				w.ErrCh <- err
-				return
-			}
+		view, err := NewWatchData(dependency)
+		if err != nil {
+			return err
+		}
 
-			view.poll(w.client, w.DataCh, w.ErrCh, w.stopCh)
-		}()
+		views = append(views, view)
 	}
+
+	for _, view := range views {
+		go view.poll(w.client, w.DataCh, w.ErrCh, w.stopCh)
+	}
+
+	return nil
 }
 
 //
