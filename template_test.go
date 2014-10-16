@@ -376,25 +376,3 @@ func TestHashCode_returnsValue(t *testing.T) {
 		t.Errorf("expected %q to equal %q", template.HashCode(), expected)
 	}
 }
-
-func TestExecute_setsRendered(t *testing.T) {
-	inTemplate := createTempfile(nil, t)
-	defer deleteTempfile(inTemplate, t)
-
-	template, err := NewTemplate(inTemplate.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if template.Rendered() {
-		t.Fatal("template should not be rendered yet")
-	}
-
-	if err := template.Execute(ioutil.Discard, &TemplateContext{}); err != nil {
-		t.Fatal(err)
-	}
-
-	if !template.Rendered() {
-		t.Fatal("expected template to be rendered")
-	}
-}

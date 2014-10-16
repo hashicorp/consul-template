@@ -113,8 +113,8 @@ func ParseConfig(path string) (*Config, error) {
 	return config, errs.GetError()
 }
 
-// ConfigTemplate is the representation of an input template, output location, and
-// optional command to execute when rendered
+// ConfigTemplate is the representation of an input template, output location,
+// and optional command to execute when rendered
 type ConfigTemplate struct {
 	Source      string `mapstructure:"source"`
 	Destination string `mapstructure:"destination"`

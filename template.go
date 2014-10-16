@@ -14,9 +14,6 @@ type Template struct {
 
 	//
 	dependencies []Dependency
-
-	// Internal variable to represent that a template has been rendered
-	rendered bool
 }
 
 //
@@ -37,11 +34,6 @@ func (t *Template) Path() string {
 // HashCode returns the map value for this Template
 func (t *Template) HashCode() string {
 	return fmt.Sprintf("Template|%s", t.path)
-}
-
-// Rendered returns true if the template has been executed
-func (t *Template) Rendered() bool {
-	return t.rendered
 }
 
 // GoString returns the detailed format of this object
@@ -94,8 +86,6 @@ func (t *Template) Execute(wr io.Writer, c *TemplateContext) error {
 	if err != nil {
 		return err
 	}
-
-	t.rendered = true
 
 	return nil
 }

@@ -132,6 +132,7 @@ func (cli *CLI) Run(args []string) int {
 	watcher.Watch()
 
 	for {
+		// If we are in once mode,
 		select {
 		case view := <-watcher.DataCh:
 			println(fmt.Sprintf("Got view: %#v", view))
