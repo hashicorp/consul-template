@@ -138,8 +138,6 @@ func (cli *CLI) Run(args []string) int {
 		case err := <-watcher.ErrCh:
 			fmt.Fprintf(cli.errStream, err.Error())
 			return ExitCodeError
-		default:
-			continue
 		}
 	}
 
