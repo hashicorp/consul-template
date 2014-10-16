@@ -72,8 +72,19 @@ func (w *Watcher) Watch() error {
 }
 
 //
+func (w *Watcher) WatchOnce() error {
+	w.Stop()
+	defer w.Wait()
+	return w.Watch()
+}
+
+//
 func (w *Watcher) Stop() {
 	close(w.stopCh)
+}
+
+//
+func (w *Watcher) Wait() {
 	w.waitGroup.Wait()
 }
 
