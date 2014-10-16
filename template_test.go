@@ -368,6 +368,15 @@ func TestExecute_rendersKeyPrefixes(t *testing.T) {
 	}
 }
 
+func TestHashCode_returnsValue(t *testing.T) {
+	template := &Template{path: "/foo/bar/blitz.ctmpl"}
+
+	expected := "Template|/foo/bar/blitz.ctmpl"
+	if template.HashCode() != expected {
+		t.Errorf("expected %q to equal %q", template.HashCode(), expected)
+	}
+}
+
 func TestExecute_setsRendered(t *testing.T) {
 	inTemplate := createTempfile(nil, t)
 	defer deleteTempfile(inTemplate, t)

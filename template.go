@@ -36,6 +36,11 @@ func (t *Template) Path() string {
 	return t.path
 }
 
+// HashCode returns the map value for this Template
+func (t *Template) HashCode() string {
+	return fmt.Sprintf("Template|%s", t.path)
+}
+
 // Rendered returns true if the template has been executed
 func (t *Template) Rendered() bool {
 	return t.rendered
