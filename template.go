@@ -11,10 +11,29 @@ import (
 )
 
 type Template struct {
-	Input string
+	//
+	path string
+
+	//
+	dependencies []Dependency
 
 	// Internal variable to represent that a template has been rendered
 	rendered bool
+}
+
+//
+func NewTemplate(path string) (*Template, error) {
+	template := &Template{path: path}
+	if err := template.init(); err != nil {
+		return nil, err
+	}
+
+	return template, nil
+}
+
+// Path returns the path to this Template
+func (t *Template) Path() string {
+	return t.path
 }
 
 // Rendered returns true if the template has been executed
@@ -28,30 +47,8 @@ func (t *Template) GoString() string {
 }
 
 // Dependencies returns the dependencies that this template has.
-func (t *Template) Dependencies() ([]Dependency, error) {
-	var deps []Dependency
-
-	contents, err := ioutil.ReadFile(t.Input)
-	if err != nil {
-		return nil, err
-	}
-
-	tmpl, err := template.New("out").Funcs(template.FuncMap{
-		"service":   t.dependencyAcc(&deps, DependencyTypeService),
-		"key":       t.dependencyAcc(&deps, DependencyTypeKey),
-		"keyPrefix": t.dependencyAcc(&deps, DependencyTypeKeyPrefix),
-	}).Parse(string(contents))
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = tmpl.Execute(ioutil.Discard, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return deps, nil
+func (t *Template) Dependencies() []Dependency {
+	return t.dependencies
 }
 
 // Execute takes the given template context and processes the template.
@@ -75,7 +72,7 @@ func (t *Template) Execute(wr io.Writer, c *TemplateContext) error {
 	}
 
 	// Render the template
-	contents, err := ioutil.ReadFile(t.Input)
+	contents, err := ioutil.ReadFile(t.path)
 	if err != nil {
 		return err
 	}
@@ -100,32 +97,74 @@ func (t *Template) Execute(wr io.Writer, c *TemplateContext) error {
 	return nil
 }
 
+// init reads the template file and parses all the required dependencies into a
+// dependencies slice which is then added onto the Template.
+func (t *Template) init() error {
+	contents, err := ioutil.ReadFile(t.path)
+	if err != nil {
+		return err
+	}
+
+	depsMap := make(map[string]Dependency)
+
+	tmpl, err := template.New("out").Funcs(template.FuncMap{
+		"service":   t.dependencyAcc(depsMap, DependencyTypeService),
+		"key":       t.dependencyAcc(depsMap, DependencyTypeKey),
+		"keyPrefix": t.dependencyAcc(depsMap, DependencyTypeKeyPrefix),
+	}).Parse(string(contents))
+
+	if err != nil {
+		return err
+	}
+
+	err = tmpl.Execute(ioutil.Discard, nil)
+	if err != nil {
+		return err
+	}
+
+	dependencies := make([]Dependency, 0, len(depsMap))
+	for _, dep := range depsMap {
+		dependencies = append(dependencies, dep)
+	}
+	depsMap = nil
+
+	t.dependencies = dependencies
+
+	return nil
+}
+
 // Helper function that is used by the dependency collecting.
-func (t *Template) dependencyAcc(d *[]Dependency, dt DependencyType) func(string) (interface{}, error) {
+func (t *Template) dependencyAcc(depsMap map[string]Dependency, dt DependencyType) func(string) (interface{}, error) {
 	return func(s string) (interface{}, error) {
 		switch dt {
 		case DependencyTypeService:
-			sd, err := ParseServiceDependency(s)
+			d, err := ParseServiceDependency(s)
 			if err != nil {
 				return nil, err
 			}
-			*d = append(*d, sd)
+			if _, ok := depsMap[d.HashCode()]; !ok {
+				depsMap[d.HashCode()] = d
+			}
 
 			return []*Service{}, nil
 		case DependencyTypeKey:
-			kd, err := ParseKeyDependency(s)
+			d, err := ParseKeyDependency(s)
 			if err != nil {
 				return nil, err
 			}
-			*d = append(*d, kd)
+			if _, ok := depsMap[d.HashCode()]; !ok {
+				depsMap[d.HashCode()] = d
+			}
 
 			return "", nil
 		case DependencyTypeKeyPrefix:
-			kpd, err := ParseKeyPrefixDependency(s)
+			d, err := ParseKeyPrefixDependency(s)
 			if err != nil {
 				return nil, err
 			}
-			*d = append(*d, kpd)
+			if _, ok := depsMap[d.HashCode()]; !ok {
+				depsMap[d.HashCode()] = d
+			}
 
 			return []*KeyPair{}, nil
 		default:
@@ -136,12 +175,7 @@ func (t *Template) dependencyAcc(d *[]Dependency, dt DependencyType) func(string
 
 // Validates that all required dependencies in t are defined in c.
 func (t *Template) validateDependencies(c *TemplateContext) error {
-	deps, err := t.Dependencies()
-	if err != nil {
-		return err
-	}
-
-	for _, dep := range deps {
+	for _, dep := range t.Dependencies() {
 		switch d := dep.(type) {
 		case *ServiceDependency:
 			if _, ok := c.Services[d.Key()]; !ok {
