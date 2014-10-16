@@ -116,15 +116,6 @@ func NewWatchData(dependency Dependency) (*WatchData, error) {
 //
 func (wd *WatchData) poll(w *Watcher) {
 	for {
-		// Break from the function if we are done
-		select {
-		case <-w.stopCh:
-			w.waitGroup.Done()
-			return
-		default:
-			break
-		}
-
 		options := &api.QueryOptions{
 			WaitTime:  defaultWaitTime,
 			WaitIndex: wd.lastIndex,
@@ -154,5 +145,14 @@ func (wd *WatchData) poll(w *Watcher) {
 		wd.data = data
 		wd.receivedData = true
 		w.DataCh <- wd
+
+		// Break from the function if we are done
+		select {
+		case <-w.stopCh:
+			w.waitGroup.Done()
+			return
+		default:
+			continue
+		}
 	}
 }
