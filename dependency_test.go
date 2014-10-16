@@ -25,11 +25,11 @@ func TestServiceDependencyFetch(t *testing.T) {
 	}
 }
 
-func TestServiceDependencyHashCode_returnsValue(t *testing.T) {
-	dep := &ServiceDependency{rawKey: "redis@nyc1"}
-	expected := "ServiceDependency|redis@nyc1"
-	if dep.HashCode() != expected {
-		t.Errorf("expected %q to equal %q", dep.HashCode(), expected)
+func TestServiceDependencyHashCode_isUnique(t *testing.T) {
+	dep1 := &ServiceDependency{rawKey: "redis@nyc1"}
+	dep2 := &ServiceDependency{rawKey: "redis@nyc2"}
+	if dep1.HashCode() == dep2.HashCode() {
+		t.Errorf("expected HashCode to be unique")
 	}
 }
 
@@ -179,11 +179,11 @@ func TestKeyDependencyFetch(t *testing.T) {
 	}
 }
 
-func TestKeyDependencyHashCode_returnsValue(t *testing.T) {
-	dep := &KeyDependency{rawKey: "config/redis/maxconns"}
-	expected := "KeyDependency|config/redis/maxconns"
-	if dep.HashCode() != expected {
-		t.Errorf("expected %q to equal %q", dep.HashCode(), expected)
+func TestKeyDependencyHashCode_isUnique(t *testing.T) {
+	dep1 := &KeyDependency{rawKey: "config/redis/maxconns"}
+	dep2 := &KeyDependency{rawKey: "config/redis/minconns"}
+	if dep1.HashCode() == dep2.HashCode() {
+		t.Errorf("expected HashCode to be unique")
 	}
 }
 
@@ -250,11 +250,11 @@ func TestKeyPrefixDependencyFetch(t *testing.T) {
 	}
 }
 
-func TestKeyPrefixDependencyHashCode_returnsValue(t *testing.T) {
-	dep := &KeyPrefixDependency{rawKey: "config/redis"}
-	expected := "KeyPrefixDependency|config/redis"
-	if dep.HashCode() != expected {
-		t.Errorf("expected %q to equal %q", dep.HashCode(), expected)
+func TestKeyPrefixDependencyHashCode_isUnique(t *testing.T) {
+	dep1 := &KeyPrefixDependency{rawKey: "config/redis"}
+	dep2 := &KeyPrefixDependency{rawKey: "config/consul"}
+	if dep1.HashCode() == dep2.HashCode() {
+		t.Errorf("expected HashCode to be unique")
 	}
 }
 
