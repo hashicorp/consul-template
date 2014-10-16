@@ -30,13 +30,6 @@ type Config struct {
 	// Wait
 	Wait    *Wait  `mapstructure:"-"`
 	WaitRaw string `mapstructure:"wait" json:""`
-
-	// Dry outputs templates to stdout instead of rendering them to disk.
-	Dry bool `mapstructure:"dry"`
-
-	// Once runs once and exit as opposed to the default behavior of starting a
-	// daemon.
-	Once bool `mapstructure:"once"`
 }
 
 // Merge merges the values in config into this config object. Values in the
@@ -67,10 +60,6 @@ func (c *Config) Merge(config *Config) {
 			Max: config.Wait.Max,
 		}
 		c.WaitRaw = config.WaitRaw
-	}
-
-	if config.Once {
-		c.Once = config.Once
 	}
 }
 

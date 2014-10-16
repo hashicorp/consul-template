@@ -121,7 +121,6 @@ func TestParseConfig_correctValues(t *testing.T) {
     consul = "nyc1.demo.consul.io"
     token = "abcd1234"
     wait = "5s:10s"
-    once = true
 
     template {
       source = "nginx.conf.ctmpl"
@@ -150,7 +149,6 @@ func TestParseConfig_correctValues(t *testing.T) {
 			Max: time.Second * 10,
 		},
 		WaitRaw: "5s:10s",
-		Once:    true,
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{
 				Source:      "nginx.conf.ctmpl",
