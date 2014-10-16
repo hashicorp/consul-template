@@ -95,7 +95,7 @@ func TestNewWatcher_makesstopCh(t *testing.T) {
 
 func TestWatch_propagatesDependencyFetchError(t *testing.T) {
 	dependencies := []Dependency{
-		&FakeDependencyFetchError{name: "tester"},
+		&fakeDependencyFetchError{name: "tester"},
 	}
 	w, err := NewWatcher(&api.Client{}, dependencies)
 	if err != nil {
@@ -116,7 +116,7 @@ func TestWatch_propagatesDependencyFetchError(t *testing.T) {
 
 func TestWatch_fetchesData(t *testing.T) {
 	dependencies := []Dependency{
-		&FakeDependency{name: "tester"},
+		&fakeDependency{name: "tester"},
 	}
 	w, err := NewWatcher(&api.Client{}, dependencies)
 	if err != nil {
@@ -147,7 +147,7 @@ func TestWatch_fetchesData(t *testing.T) {
 
 func TestStop_stopsWatch(t *testing.T) {
 	dependencies := []Dependency{
-		&FakeDependency{name: "tester"},
+		&fakeDependency{name: "tester"},
 	}
 	w, err := NewWatcher(&api.Client{}, dependencies)
 	if err != nil {

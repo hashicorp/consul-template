@@ -12,47 +12,47 @@ import (
 
 /// ------------------------- ///
 
-type FakeDependencyFetchError struct {
+type fakeDependencyFetchError struct {
 	name string
 }
 
-func (d *FakeDependencyFetchError) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
+func (d *fakeDependencyFetchError) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
 	return nil, nil, fmt.Errorf("failed to contact server")
 }
 
-func (d *FakeDependencyFetchError) GoString() string {
+func (d *fakeDependencyFetchError) GoString() string {
 	return fmt.Sprintf("%#v", d)
 }
 
-func (d *FakeDependencyFetchError) HashCode() string {
-	return fmt.Sprintf("FakeDependencyFetchError|%s", d.name)
+func (d *fakeDependencyFetchError) HashCode() string {
+	return fmt.Sprintf("fakeDependencyFetchError|%s", d.name)
 }
 
-func (d *FakeDependencyFetchError) Key() string {
+func (d *fakeDependencyFetchError) Key() string {
 	return d.name
 }
 
 /// ------------------------- ///
 
-type FakeDependency struct {
+type fakeDependency struct {
 	name string
 }
 
-func (d *FakeDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
+func (d *fakeDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
 	data := "this is some data"
 	qm := &api.QueryMeta{LastIndex: 1}
 	return data, qm, nil
 }
 
-func (d *FakeDependency) GoString() string {
+func (d *fakeDependency) GoString() string {
 	return fmt.Sprintf("%#v", d)
 }
 
-func (d *FakeDependency) HashCode() string {
-	return fmt.Sprintf("FakeDependency|%s", d.name)
+func (d *fakeDependency) HashCode() string {
+	return fmt.Sprintf("fakeDependency|%s", d.name)
 }
 
-func (d *FakeDependency) Key() string {
+func (d *fakeDependency) Key() string {
 	return d.name
 }
 

@@ -23,8 +23,8 @@ func TestNewRenderer_noDependencies(t *testing.T) {
 
 func TestNewRenderer_setsDependencies(t *testing.T) {
 	dependencies := []Dependency{
-		&FakeDependency{},
-		&FakeDependency{},
+		&fakeDependency{},
+		&fakeDependency{},
 	}
 
 	renderer, err := NewRenderer(dependencies, false)
@@ -79,7 +79,7 @@ func TestReceive_addsDependency(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dependency, data := &FakeDependency{}, "this is some data"
+	dependency, data := &fakeDependency{}, "this is some data"
 	renderer.Receive(dependency, data)
 
 	storedData, ok := renderer.dependencyDataMap[dependency]
@@ -97,7 +97,7 @@ func TestReceive_updatesDependency(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dependency, data := &FakeDependency{}, "this is new data"
+	dependency, data := &fakeDependency{}, "this is new data"
 	renderer.Receive(dependency, "first data")
 	renderer.Receive(dependency, data)
 
