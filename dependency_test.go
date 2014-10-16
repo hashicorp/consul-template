@@ -14,7 +14,7 @@ func TestServiceDependencyFetch(t *testing.T) {
 		DataCenter: "nyc1",
 	}
 
-	results, err := dep.Fetch(client, options)
+	results, _, err := dep.Fetch(client, options)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -22,6 +22,14 @@ func TestServiceDependencyFetch(t *testing.T) {
 	_, ok := results.([]*Service)
 	if !ok {
 		t.Fatal("could not convert result to []*Service")
+	}
+}
+
+func TestServiceDependencyHashCode_isUnique(t *testing.T) {
+	dep1 := &ServiceDependency{rawKey: "redis@nyc1"}
+	dep2 := &ServiceDependency{rawKey: "redis@nyc2"}
+	if dep1.HashCode() == dep2.HashCode() {
+		t.Errorf("expected HashCode to be unique")
 	}
 }
 
@@ -160,7 +168,7 @@ func TestKeyDependencyFetch(t *testing.T) {
 		DataCenter: "nyc1",
 	}
 
-	results, err := dep.Fetch(client, options)
+	results, _, err := dep.Fetch(client, options)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -168,6 +176,14 @@ func TestKeyDependencyFetch(t *testing.T) {
 	_, ok := results.(string)
 	if !ok {
 		t.Fatal("could not convert result to string")
+	}
+}
+
+func TestKeyDependencyHashCode_isUnique(t *testing.T) {
+	dep1 := &KeyDependency{rawKey: "config/redis/maxconns"}
+	dep2 := &KeyDependency{rawKey: "config/redis/minconns"}
+	if dep1.HashCode() == dep2.HashCode() {
+		t.Errorf("expected HashCode to be unique")
 	}
 }
 
@@ -223,7 +239,7 @@ func TestKeyPrefixDependencyFetch(t *testing.T) {
 		DataCenter: "nyc1",
 	}
 
-	results, err := dep.Fetch(client, options)
+	results, _, err := dep.Fetch(client, options)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -231,6 +247,14 @@ func TestKeyPrefixDependencyFetch(t *testing.T) {
 	_, ok := results.([]*KeyPair)
 	if !ok {
 		t.Fatal("could not convert result to []*KeyPair")
+	}
+}
+
+func TestKeyPrefixDependencyHashCode_isUnique(t *testing.T) {
+	dep1 := &KeyPrefixDependency{rawKey: "config/redis"}
+	dep2 := &KeyPrefixDependency{rawKey: "config/consul"}
+	if dep1.HashCode() == dep2.HashCode() {
+		t.Errorf("expected HashCode to be unique")
 	}
 }
 

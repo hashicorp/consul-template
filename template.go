@@ -1,17 +1,39 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"text/template"
-
-	"github.com/armon/consul-api"
 )
 
 type Template struct {
-	Input string
+	//
+	path string
+
+	//
+	dependencies []Dependency
+}
+
+//
+func NewTemplate(path string) (*Template, error) {
+	template := &Template{path: path}
+	if err := template.init(); err != nil {
+		return nil, err
+	}
+
+	return template, nil
+}
+
+// Path returns the path to this Template
+func (t *Template) Path() string {
+	return t.path
+}
+
+// HashCode returns the map value for this Template
+func (t *Template) HashCode() string {
+	return fmt.Sprintf("Template|%s", t.path)
 }
 
 // GoString returns the detailed format of this object
@@ -20,30 +42,8 @@ func (t *Template) GoString() string {
 }
 
 // Dependencies returns the dependencies that this template has.
-func (t *Template) Dependencies() ([]Dependency, error) {
-	var deps []Dependency
-
-	contents, err := ioutil.ReadFile(t.Input)
-	if err != nil {
-		return nil, err
-	}
-
-	tmpl, err := template.New("out").Funcs(template.FuncMap{
-		"service":   t.dependencyAcc(&deps, DependencyTypeService),
-		"key":       t.dependencyAcc(&deps, DependencyTypeKey),
-		"keyPrefix": t.dependencyAcc(&deps, DependencyTypeKeyPrefix),
-	}).Parse(string(contents))
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = tmpl.Execute(ioutil.Discard, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return deps, nil
+func (t *Template) Dependencies() []Dependency {
+	return t.dependencies
 }
 
 // Execute takes the given template context and processes the template.
@@ -52,24 +52,20 @@ func (t *Template) Dependencies() ([]Dependency, error) {
 //
 // If the TemplateContext does not have all required Dependencies, an error will
 // be returned.
-func (t *Template) Execute(wr io.Writer, c *TemplateContext) error {
-	if wr == nil {
-		return errors.New("wr must be given")
-	}
-
+func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 	if c == nil {
-		return errors.New("templateContext must be given")
+		return nil, errors.New("templateContext must be given")
 	}
 
 	// Make sure the context contains everything we need
 	if err := t.validateDependencies(c); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Render the template
-	contents, err := ioutil.ReadFile(t.Input)
+	contents, err := ioutil.ReadFile(t.path)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	tmpl, err := template.New("out").Funcs(template.FuncMap{
@@ -79,43 +75,86 @@ func (t *Template) Execute(wr io.Writer, c *TemplateContext) error {
 	}).Parse(string(contents))
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = tmpl.Execute(wr, c)
+	var buff = new(bytes.Buffer)
+	err = tmpl.Execute(buff, c)
+	if err != nil {
+		return nil, err
+	}
+
+	return buff.Bytes(), nil
+}
+
+// init reads the template file and parses all the required dependencies into a
+// dependencies slice which is then added onto the Template.
+func (t *Template) init() error {
+	contents, err := ioutil.ReadFile(t.path)
 	if err != nil {
 		return err
 	}
+
+	depsMap := make(map[string]Dependency)
+
+	tmpl, err := template.New("out").Funcs(template.FuncMap{
+		"service":   t.dependencyAcc(depsMap, DependencyTypeService),
+		"key":       t.dependencyAcc(depsMap, DependencyTypeKey),
+		"keyPrefix": t.dependencyAcc(depsMap, DependencyTypeKeyPrefix),
+	}).Parse(string(contents))
+
+	if err != nil {
+		return err
+	}
+
+	err = tmpl.Execute(ioutil.Discard, nil)
+	if err != nil {
+		return err
+	}
+
+	dependencies := make([]Dependency, 0, len(depsMap))
+	for _, dep := range depsMap {
+		dependencies = append(dependencies, dep)
+	}
+	depsMap = nil
+
+	t.dependencies = dependencies
 
 	return nil
 }
 
 // Helper function that is used by the dependency collecting.
-func (t *Template) dependencyAcc(d *[]Dependency, dt DependencyType) func(string) (interface{}, error) {
+func (t *Template) dependencyAcc(depsMap map[string]Dependency, dt DependencyType) func(string) (interface{}, error) {
 	return func(s string) (interface{}, error) {
 		switch dt {
 		case DependencyTypeService:
-			sd, err := ParseServiceDependency(s)
+			d, err := ParseServiceDependency(s)
 			if err != nil {
 				return nil, err
 			}
-			*d = append(*d, sd)
+			if _, ok := depsMap[d.HashCode()]; !ok {
+				depsMap[d.HashCode()] = d
+			}
 
 			return []*Service{}, nil
 		case DependencyTypeKey:
-			kd, err := ParseKeyDependency(s)
+			d, err := ParseKeyDependency(s)
 			if err != nil {
 				return nil, err
 			}
-			*d = append(*d, kd)
+			if _, ok := depsMap[d.HashCode()]; !ok {
+				depsMap[d.HashCode()] = d
+			}
 
 			return "", nil
 		case DependencyTypeKeyPrefix:
-			kpd, err := ParseKeyPrefixDependency(s)
+			d, err := ParseKeyPrefixDependency(s)
 			if err != nil {
 				return nil, err
 			}
-			*d = append(*d, kpd)
+			if _, ok := depsMap[d.HashCode()]; !ok {
+				depsMap[d.HashCode()] = d
+			}
 
 			return []*KeyPair{}, nil
 		default:
@@ -126,12 +165,7 @@ func (t *Template) dependencyAcc(d *[]Dependency, dt DependencyType) func(string
 
 // Validates that all required dependencies in t are defined in c.
 func (t *Template) validateDependencies(c *TemplateContext) error {
-	deps, err := t.Dependencies()
-	if err != nil {
-		return err
-	}
-
-	for _, dep := range deps {
+	for _, dep := range t.Dependencies() {
 		switch d := dep.(type) {
 		case *ServiceDependency:
 			if _, ok := c.Services[d.Key()]; !ok {
@@ -211,13 +245,6 @@ type KeyPair struct {
 // GoString returns the detailed format of this object
 func (kp *KeyPair) GoString() string {
 	return fmt.Sprintf("*%#v", *kp)
-}
-
-// NewFromConsul creates a new KeyPair object by parsing the values in the
-// consulapi.KVPair. Not all values are transferred.
-func (kp KeyPair) NewFromConsul(c *consulapi.KVPair) {
-	// TODO: lol
-	panic("not done!")
 }
 
 // DependencyType is an enum type that says the kind of the dependency.

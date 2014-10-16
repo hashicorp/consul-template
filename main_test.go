@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -9,9 +10,56 @@ import (
 	api "github.com/armon/consul-api"
 )
 
-/*
- * Helpers
- */
+/// ------------------------- ///
+
+type fakeDependencyFetchError struct {
+	name string
+}
+
+func (d *fakeDependencyFetchError) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
+	return nil, nil, fmt.Errorf("failed to contact server")
+}
+
+func (d *fakeDependencyFetchError) GoString() string {
+	return fmt.Sprintf("%#v", d)
+}
+
+func (d *fakeDependencyFetchError) HashCode() string {
+	return fmt.Sprintf("fakeDependencyFetchError|%s", d.name)
+}
+
+func (d *fakeDependencyFetchError) Key() string {
+	return d.name
+}
+
+/// ------------------------- ///
+
+type fakeDependency struct {
+	name string
+}
+
+func (d *fakeDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
+	data := "this is some data"
+	qm := &api.QueryMeta{LastIndex: 1}
+	return data, qm, nil
+}
+
+func (d *fakeDependency) GoString() string {
+	return fmt.Sprintf("%#v", d)
+}
+
+func (d *fakeDependency) HashCode() string {
+	return fmt.Sprintf("fakeDependency|%s", d.name)
+}
+
+func (d *fakeDependency) Key() string {
+	return d.name
+}
+
+/// ------------------------- ///
+///          Helpers          ///
+/// ------------------------- ///
+
 func createTempfile(b []byte, t *testing.T) *os.File {
 	f, err := ioutil.TempFile(os.TempDir(), "")
 	if err != nil {

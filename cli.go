@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+
+	api "github.com/armon/consul-api"
 )
 
 /// ------------------------- ///
@@ -16,11 +18,15 @@ import (
 const (
 	ExitCodeOK int = 0
 
-	// Errors start at 500
-	ExitCodeError = 500 + iota
+	// Errors start at 10
+	ExitCodeError = 10 + iota
 	ExitCodeParseFlagsError
 	ExitCodeParseWaitError
 	ExitCodeParseConfigError
+	ExitCodeMapperError
+	ExitCodeConsulAPIError
+	ExitCodeWatcherError
+	ExitCodeRendererError
 )
 
 /// ------------------------- ///
@@ -31,28 +37,14 @@ type CLI struct {
 	outStream, errStream io.Writer
 }
 
-// Run accepts a list of arguments and returns an int representing the exit
+// Run accepts a slice of arguments and returns an int representing the exit
 // status from the command.
 func (cli *CLI) Run(args []string) int {
-	config, status, err := cli.Parse(args)
-	if err != nil {
-		fmt.Fprint(cli.errStream, err.Error())
-		return status
-	}
-
-	println(config)
-
-	return ExitCodeOK
-}
-
-// Parse accepts a list of command line flags and returns a generated Config
-// object, an exit status, and any errors that occurred when parsing the flags.
-func (cli *CLI) Parse(args []string) (*Config, int, error) {
-	var version = false
+	var version, dry, once bool
 	var config = new(Config)
 
+	// Parse the flags and options
 	cmd := filepath.Base(args[0])
-
 	flags := flag.NewFlagSet("consul-template", flag.ContinueOnError)
 	flags.Usage = func() { fmt.Fprint(cli.outStream, usage) }
 	flags.SetOutput(cli.outStream)
@@ -66,28 +58,32 @@ func (cli *CLI) Parse(args []string) (*Config, int, error) {
 		"the minimum(:maximum) to wait before rendering a new template")
 	flags.StringVar(&config.Path, "config", "",
 		"the path to a config file on disk")
-	flags.BoolVar(&config.Once, "once", false,
+	flags.BoolVar(&once, "once", false,
 		"do not run as a daemon")
-	flags.BoolVar(&config.Dry, "dry", false,
+	flags.BoolVar(&dry, "dry", false,
 		"write generated templates to stdout")
 	flags.BoolVar(&version, "version", false, "display the version")
 
+	// If there was a parser error, stop
 	if err := flags.Parse(args[1:]); err != nil {
-		return nil, ExitCodeParseFlagsError, fmt.Errorf("%s\n\n%s", err, usage)
+		fmt.Fprintf(cli.errStream, "%s\n\n%s", err.Error(), usage)
+		return ExitCodeParseFlagsError
 	}
 
 	// If the version was requested, return an "error" containing the version
 	// information. This might sound weird, but most *nix applications actually
 	// print their version on stderr anyway.
 	if version {
-		return nil, ExitCodeOK, fmt.Errorf("%s v%s\n", cmd, Version)
+		fmt.Fprintf(cli.errStream, "%s v%s\n", cmd, Version)
+		return ExitCodeOK
 	}
 
 	// Parse the raw wait value into a Wait object
 	if config.WaitRaw != "" {
 		wait, err := ParseWait(config.WaitRaw)
 		if err != nil {
-			return nil, ExitCodeParseWaitError, fmt.Errorf("%s\n\n%s", err, usage)
+			fmt.Fprintf(cli.errStream, "%s\n\n%s", err.Error(), usage)
+			return ExitCodeParseWaitError
 		}
 		config.Wait = wait
 	}
@@ -97,14 +93,77 @@ func (cli *CLI) Parse(args []string) (*Config, int, error) {
 	if config.Path != "" {
 		fileConfig, err := ParseConfig(config.Path)
 		if err != nil {
-			return nil, ExitCodeParseConfigError, fmt.Errorf("%s\n\n%s", err, usage)
+			fmt.Fprintf(cli.errStream, "%s\n\n%s", err.Error(), usage)
+			return ExitCodeParseConfigError
 		}
 
 		fileConfig.Merge(config)
 		config = fileConfig
 	}
 
-	return config, ExitCodeOK, nil
+	mapper, err := NewMapper(config.ConfigTemplates)
+	if err != nil {
+		fmt.Fprint(cli.errStream, err.Error())
+		return ExitCodeMapperError
+	}
+
+	consulConfig := api.DefaultConfig()
+	if config.Consul != "" {
+		consulConfig.Address = config.Consul
+	}
+	if config.Token != "" {
+		consulConfig.Token = config.Token
+	}
+
+	client, err := api.NewClient(consulConfig)
+	if err != nil {
+		fmt.Fprintf(cli.errStream, err.Error())
+		return ExitCodeConsulAPIError
+	}
+	if _, err := client.Agent().NodeName(); err != nil {
+		fmt.Fprintf(cli.errStream, err.Error())
+		return ExitCodeConsulAPIError
+	}
+
+	watcher, err := NewWatcher(client, mapper.Dependencies())
+	if err != nil {
+		fmt.Fprintf(cli.errStream, err.Error())
+		return ExitCodeWatcherError
+	}
+	if err := watcher.Watch(); err != nil {
+		fmt.Fprintf(cli.errStream, err.Error())
+		return ExitCodeWatcherError
+	}
+	defer watcher.Stop()
+
+	renderer, err := NewRenderer(mapper.Dependencies(), dry)
+	if err != nil {
+		fmt.Fprintf(cli.errStream, err.Error())
+		return ExitCodeRendererError
+	}
+
+	for {
+		select {
+		case view := <-watcher.DataCh:
+			renderer.Receive(view.dependency, view.data)
+			for _, template := range mapper.TemplatesFor(view.dependency) {
+				configTemplates := mapper.ConfigTemplatesFor(template)
+				if err := renderer.MaybeRender(template, configTemplates); err != nil {
+					fmt.Fprintf(cli.errStream, err.Error())
+					return ExitCodeRendererError
+				}
+			}
+		case err := <-watcher.ErrCh:
+			fmt.Fprintf(cli.errStream, err.Error())
+			return ExitCodeError
+		case <-watcher.stopCh:
+			break
+		default:
+			continue
+		}
+	}
+
+	return ExitCodeOK
 }
 
 const usage = `
