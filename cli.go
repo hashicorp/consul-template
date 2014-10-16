@@ -24,10 +24,9 @@ const (
 	ExitCodeParseFlagsError
 	ExitCodeParseWaitError
 	ExitCodeParseConfigError
-	ExitCodeMapperError
+	ExitCodeRunnerError
 	ExitCodeConsulAPIError
 	ExitCodeWatcherError
-	ExitCodeRendererError
 )
 
 /// ------------------------- ///
@@ -102,10 +101,9 @@ func (cli *CLI) Run(args []string) int {
 		config = fileConfig
 	}
 
-	mapper, err := NewMapper(config.ConfigTemplates)
+	runner, err := NewRunner(config.ConfigTemplates)
 	if err != nil {
-		fmt.Fprint(cli.errStream, err.Error())
-		return ExitCodeMapperError
+		return cli.handleError(err, ExitCodeRunnerError)
 	}
 
 	consulConfig := api.DefaultConfig()
@@ -118,24 +116,15 @@ func (cli *CLI) Run(args []string) int {
 
 	client, err := api.NewClient(consulConfig)
 	if err != nil {
-		fmt.Fprintf(cli.errStream, err.Error())
-		return ExitCodeConsulAPIError
+		return cli.handleError(err, ExitCodeConsulAPIError)
 	}
 	if _, err := client.Agent().NodeName(); err != nil {
-		fmt.Fprintf(cli.errStream, err.Error())
-		return ExitCodeConsulAPIError
+		return cli.handleError(err, ExitCodeConsulAPIError)
 	}
 
-	renderer, err := NewRenderer(mapper.Dependencies(), dry)
+	watcher, err := NewWatcher(client, runner.Dependencies())
 	if err != nil {
-		fmt.Fprintf(cli.errStream, err.Error())
-		return ExitCodeRendererError
-	}
-
-	watcher, err := NewWatcher(client, mapper.Dependencies())
-	if err != nil {
-		fmt.Fprintf(cli.errStream, err.Error())
-		return ExitCodeWatcherError
+		return cli.handleError(err, ExitCodeWatcherError)
 	}
 
 	if once {
@@ -145,8 +134,7 @@ func (cli *CLI) Run(args []string) int {
 		defer watcher.Stop()
 	}
 	if err != nil {
-		fmt.Fprintf(cli.errStream, err.Error())
-		return ExitCodeWatcherError
+		return cli.handleError(err, ExitCodeWatcherError)
 	}
 
 	var minTimer, maxTimer <-chan time.Time
@@ -154,7 +142,7 @@ func (cli *CLI) Run(args []string) int {
 	for {
 		select {
 		case view := <-watcher.DataCh:
-			renderer.Receive(view.dependency, view.data)
+			runner.Receive(view.dependency, view.data)
 
 			// If we are waiting for quiescence, setup the timers
 			if config.Wait != nil {
@@ -165,27 +153,25 @@ func (cli *CLI) Run(args []string) int {
 				if maxTimer == nil {
 					maxTimer = time.After(config.Wait.Max)
 				}
-
-				// Do not render the template if the timers were set
-				continue
-			}
-
-			for _, template := range mapper.TemplatesFor(view.dependency) {
-				configTemplates := mapper.ConfigTemplatesFor(template)
-				if err := renderer.MaybeRender(template, configTemplates); err != nil {
-					fmt.Fprintf(cli.errStream, err.Error())
-					return ExitCodeRendererError
+			} else {
+				if err := runner.RunAll(dry); err != nil {
+					return cli.handleError(err, ExitCodeRunnerError)
 				}
 			}
 		case <-minTimer:
 			minTimer, maxTimer = nil, nil
-			// tryRender
+
+			if err := runner.RunAll(dry); err != nil {
+				return cli.handleError(err, ExitCodeRunnerError)
+			}
 		case <-maxTimer:
 			minTimer, maxTimer = nil, nil
-			// tryRender
+
+			if err := runner.RunAll(dry); err != nil {
+				return cli.handleError(err, ExitCodeRunnerError)
+			}
 		case err := <-watcher.ErrCh:
-			fmt.Fprintf(cli.errStream, err.Error())
-			return ExitCodeError
+			return cli.handleError(err, ExitCodeError)
 		case <-watcher.stopCh:
 			break
 		default:
@@ -194,6 +180,13 @@ func (cli *CLI) Run(args []string) int {
 	}
 
 	return ExitCodeOK
+}
+
+// handleError outputs the given error's Error() to the errStream and returns
+// the given exit status.
+func (cli *CLI) handleError(err error, status int) int {
+	fmt.Fprintf(cli.errStream, err.Error())
+	return status
 }
 
 const usage = `
