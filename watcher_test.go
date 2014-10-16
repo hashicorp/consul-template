@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -164,50 +163,4 @@ func TestStop_stopsWatch(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("expected stop, but nothing was returned")
 	}
-}
-
-/// ------------------------- ///
-
-type FakeDependencyFetchError struct {
-	name string
-}
-
-func (d *FakeDependencyFetchError) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
-	return nil, nil, fmt.Errorf("failed to contact server")
-}
-
-func (d *FakeDependencyFetchError) GoString() string {
-	return fmt.Sprintf("%#v", d)
-}
-
-func (d *FakeDependencyFetchError) HashCode() string {
-	return fmt.Sprintf("FakeDependencyFetchError|%s", d.name)
-}
-
-func (d *FakeDependencyFetchError) Key() string {
-	return d.name
-}
-
-/// ------------------------- ///
-
-type FakeDependency struct {
-	name string
-}
-
-func (d *FakeDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
-	data := "this is some data"
-	qm := &api.QueryMeta{LastIndex: 1}
-	return data, qm, nil
-}
-
-func (d *FakeDependency) GoString() string {
-	return fmt.Sprintf("%#v", d)
-}
-
-func (d *FakeDependency) HashCode() string {
-	return fmt.Sprintf("FakeDependency|%s", d.name)
-}
-
-func (d *FakeDependency) Key() string {
-	return d.name
 }
