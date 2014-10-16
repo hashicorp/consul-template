@@ -66,26 +66,28 @@ func (r *Renderer) Receive(dependency Dependency, data interface{}) {
 // Template's Dependencies is added to a TemplateContext and Executed. If there
 // is a failure, an error is returned.
 func (r *Renderer) MaybeRender(template *Template, configTemplates []*ConfigTemplate) error {
-	if r.canRender(template) {
-		context, err := r.templateContextFor(template)
-		if err != nil {
-			return err
-		}
+	if !r.canRender(template) {
+		return nil
+	}
 
-		contents, err := template.Execute(context)
-		if err != nil {
-			return err
-		}
+	context, err := r.templateContextFor(template)
+	if err != nil {
+		return err
+	}
 
-		for _, configTemplate := range configTemplates {
-			destination := configTemplate.Destination
+	contents, err := template.Execute(context)
+	if err != nil {
+		return err
+	}
 
-			if r.dry {
-				fmt.Fprintf(r.dryStream, "> %s\n%s", destination, contents)
-			} else {
-				if err := r.atomicWrite(destination, contents); err != nil {
-					return err
-				}
+	for _, configTemplate := range configTemplates {
+		destination := configTemplate.Destination
+
+		if r.dry {
+			fmt.Fprintf(r.dryStream, "> %s\n%s", destination, contents)
+		} else {
+			if err := r.atomicWrite(destination, contents); err != nil {
+				return err
 			}
 		}
 	}
