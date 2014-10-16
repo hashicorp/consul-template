@@ -134,6 +134,7 @@ func (cli *CLI) Run(args []string) int {
 		fmt.Fprintf(cli.errStream, err.Error())
 		return ExitCodeWatcherError
 	}
+	defer watcher.Stop()
 
 	renderer, err := NewRenderer(mapper.Dependencies(), dry)
 	if err != nil {
@@ -148,13 +149,11 @@ func (cli *CLI) Run(args []string) int {
 			for _, template := range mapper.TemplatesFor(view.dependency) {
 				configTemplates := mapper.ConfigTemplatesFor(template)
 				if err := renderer.MaybeRender(template, configTemplates); err != nil {
-					watcher.Stop()
 					fmt.Fprintf(cli.errStream, err.Error())
 					return ExitCodeRendererError
 				}
 			}
 		case err := <-watcher.ErrCh:
-			watcher.Stop()
 			fmt.Fprintf(cli.errStream, err.Error())
 			return ExitCodeError
 		case <-watcher.stopCh:
