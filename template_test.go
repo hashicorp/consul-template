@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"io/ioutil"
 	"strings"
 	"testing"
 )
@@ -18,7 +17,7 @@ func TestDependencies_empty(t *testing.T) {
 	dependencies := template.Dependencies()
 
 	if num := len(dependencies); num != 0 {
-		t.Errorf("expected 0 dependencies, got: %d", num)
+		t.Errorf("expected 0 Dependency, got: %d", num)
 	}
 }
 
@@ -82,26 +81,6 @@ func TestDependencies_funcsError(t *testing.T) {
 	}
 }
 
-func TestExecute_noIOWriter(t *testing.T) {
-	inTemplate := createTempfile(nil, t)
-	defer deleteTempfile(inTemplate, t)
-
-	template, err := NewTemplate(inTemplate.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	executeErr := template.Execute(nil, &TemplateContext{})
-	if executeErr == nil {
-		t.Fatal("expected error, but nothing was returned")
-	}
-
-	expected := "wr must be given"
-	if !strings.Contains(executeErr.Error(), expected) {
-		t.Errorf("expected %q to contain %q", executeErr.Error(), expected)
-	}
-}
-
 func TestExecute_noTemplateContext(t *testing.T) {
 	inTemplate := createTempfile(nil, t)
 	defer deleteTempfile(inTemplate, t)
@@ -111,8 +90,7 @@ func TestExecute_noTemplateContext(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var wr bytes.Buffer
-	executeErr := template.Execute(&wr, nil)
+	_, executeErr := template.Execute(nil)
 	if executeErr == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
@@ -141,8 +119,6 @@ func TestExecute_dependenciesError(t *testing.T) {
 }
 
 func TestExecute_missingService(t *testing.T) {
-	var io bytes.Buffer
-
 	inTemplate := createTempfile([]byte(`
     {{ range service "release.webapp" }}{{ end }}
     {{ range service "production.webapp" }}{{ end }}
@@ -160,7 +136,7 @@ func TestExecute_missingService(t *testing.T) {
 		},
 	}
 
-	executeErr := template.Execute(&io, context)
+	_, executeErr := template.Execute(context)
 	if executeErr == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
@@ -172,8 +148,6 @@ func TestExecute_missingService(t *testing.T) {
 }
 
 func TestExecute_missingKey(t *testing.T) {
-	var io bytes.Buffer
-
 	inTemplate := createTempfile([]byte(`
     {{ key "service/redis/maxconns" }}
     {{ key "service/redis/online" }}
@@ -191,7 +165,7 @@ func TestExecute_missingKey(t *testing.T) {
 		},
 	}
 
-	executeErr := template.Execute(&io, context)
+	_, executeErr := template.Execute(context)
 	if executeErr == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
@@ -203,8 +177,6 @@ func TestExecute_missingKey(t *testing.T) {
 }
 
 func TestExecute_missingKeyPrefix(t *testing.T) {
-	var io bytes.Buffer
-
 	inTemplate := createTempfile([]byte(`
     {{ range keyPrefix "service/redis/config" }}{{ end }}
     {{ range keyPrefix "service/nginx/config" }}{{ end }}
@@ -222,7 +194,7 @@ func TestExecute_missingKeyPrefix(t *testing.T) {
 		},
 	}
 
-	executeErr := template.Execute(&io, context)
+	_, executeErr := template.Execute(context)
 	if executeErr == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
@@ -234,8 +206,6 @@ func TestExecute_missingKeyPrefix(t *testing.T) {
 }
 
 func TestExecute_rendersServices(t *testing.T) {
-	var io bytes.Buffer
-
 	inTemplate := createTempfile([]byte(`
     {{ range service "release.webapp" }}
     server {{.Name}} {{.Address}}:{{.Port}}{{ end }}
@@ -269,25 +239,22 @@ func TestExecute_rendersServices(t *testing.T) {
 		},
 	}
 
-	if err := template.Execute(&io, context); err != nil {
-		t.Fatal(err)
-	}
-
-	buffer, err := ioutil.ReadAll(&io)
+	contents, err := template.Execute(context)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	contents := strings.TrimSpace(string(buffer))
-	expectedContents := "server web1 123.123.123.123:1234\n    server web2 456.456.456.456:5678"
-	if contents != expectedContents {
-		t.Errorf("expected contents to be:\n\n%#q\n\nbut was\n\n%#q\n", expectedContents, contents)
+	expected := bytes.TrimSpace([]byte(`
+    server web1 123.123.123.123:1234
+    server web2 456.456.456.456:5678
+  `))
+
+	if !bytes.Equal(bytes.TrimSpace(contents), expected) {
+		t.Errorf("expected \n%q\n to equal \n%q\n", bytes.TrimSpace(contents), expected)
 	}
 }
 
 func TestExecute_rendersKeys(t *testing.T) {
-	var io bytes.Buffer
-
 	inTemplate := createTempfile([]byte(`
     minconns: {{ key "service/redis/minconns" }}
     maxconns: {{ key "service/redis/maxconns" }}
@@ -306,25 +273,21 @@ func TestExecute_rendersKeys(t *testing.T) {
 		},
 	}
 
-	if err := template.Execute(&io, context); err != nil {
-		t.Fatal(err)
-	}
-
-	buffer, err := ioutil.ReadAll(&io)
+	contents, err := template.Execute(context)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	contents := strings.TrimSpace(string(buffer))
-	expectedContents := "minconns: 2\n    maxconns: 11"
-	if contents != expectedContents {
-		t.Errorf("expected contents to be:\n\n%#q\n\nbut was\n\n%#q\n", expectedContents, contents)
+	expected := []byte(`
+    minconns: 2
+    maxconns: 11
+  `)
+	if !bytes.Equal(contents, expected) {
+		t.Errorf("expected \n%q\n to equal \n%q\n", contents, expected)
 	}
 }
 
 func TestExecute_rendersKeyPrefixes(t *testing.T) {
-	var io bytes.Buffer
-
 	inTemplate := createTempfile([]byte(`
     {{ range keyPrefix "service/redis/config" }}
     {{.Key}} {{.Value}}{{ end }}
@@ -352,19 +315,17 @@ func TestExecute_rendersKeyPrefixes(t *testing.T) {
 		},
 	}
 
-	if err := template.Execute(&io, context); err != nil {
-		t.Fatal(err)
-	}
-
-	buffer, err := ioutil.ReadAll(&io)
+	contents, err := template.Execute(context)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	contents := strings.TrimSpace(string(buffer))
-	expectedContents := "minconns 2\n    maxconns 11"
-	if contents != expectedContents {
-		t.Errorf("expected contents to be:\n\n%#q\n\nbut was\n\n%#q\n", expectedContents, contents)
+	expected := bytes.TrimSpace([]byte(`
+    minconns 2
+    maxconns 11
+  `))
+	if !bytes.Equal(bytes.TrimSpace(contents), expected) {
+		t.Errorf("expected \n%q\n to equal \n%q\n", bytes.TrimSpace(contents), expected)
 	}
 }
 

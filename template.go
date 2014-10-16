@@ -1,9 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"text/template"
 )
@@ -52,24 +52,20 @@ func (t *Template) Dependencies() []Dependency {
 //
 // If the TemplateContext does not have all required Dependencies, an error will
 // be returned.
-func (t *Template) Execute(wr io.Writer, c *TemplateContext) error {
-	if wr == nil {
-		return errors.New("wr must be given")
-	}
-
+func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 	if c == nil {
-		return errors.New("templateContext must be given")
+		return nil, errors.New("templateContext must be given")
 	}
 
 	// Make sure the context contains everything we need
 	if err := t.validateDependencies(c); err != nil {
-		return err
+		return nil, err
 	}
 
 	// Render the template
 	contents, err := ioutil.ReadFile(t.path)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	tmpl, err := template.New("out").Funcs(template.FuncMap{
@@ -79,15 +75,16 @@ func (t *Template) Execute(wr io.Writer, c *TemplateContext) error {
 	}).Parse(string(contents))
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = tmpl.Execute(wr, c)
+	var buff = new(bytes.Buffer)
+	err = tmpl.Execute(buff, c)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return buff.Bytes(), nil
 }
 
 // init reads the template file and parses all the required dependencies into a
