@@ -140,9 +140,3 @@ func (wd *WatchData) poll(client *api.Client, dataCh chan *WatchData, errCh chan
 		}
 	}
 }
-
-// loaded determines if the data view has already received data from Consul at
-// least once
-func (v *WatchData) loaded() bool {
-	return v.lastIndex != 0
-}
