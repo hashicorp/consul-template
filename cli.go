@@ -26,6 +26,7 @@ const (
 	ExitCodeMapperError
 	ExitCodeConsulAPIError
 	ExitCodeWatcherError
+	ExitCodeRendererError
 )
 
 /// ------------------------- ///
@@ -129,17 +130,37 @@ func (cli *CLI) Run(args []string) int {
 		fmt.Fprintf(cli.errStream, err.Error())
 		return ExitCodeWatcherError
 	}
-	watcher.Watch()
+	if err := watcher.Watch(); err != nil {
+		fmt.Fprintf(cli.errStream, err.Error())
+		return ExitCodeWatcherError
+	}
+
+	renderer, err := NewRenderer(mapper.Dependencies(), dry)
+	if err != nil {
+		fmt.Fprintf(cli.errStream, err.Error())
+		return ExitCodeRendererError
+	}
 
 	for {
-		// If we are in once mode,
 		select {
 		case view := <-watcher.DataCh:
-			println(fmt.Sprintf("Got view: %#v", view))
+			renderer.Receive(view.dependency, view.data)
+			for _, template := range mapper.TemplatesFor(view.dependency) {
+				configTemplates := mapper.ConfigTemplatesFor(template)
+				if err := renderer.MaybeRender(template, configTemplates); err != nil {
+					watcher.Stop()
+					fmt.Fprintf(cli.errStream, err.Error())
+					return ExitCodeRendererError
+				}
+			}
 		case err := <-watcher.ErrCh:
 			watcher.Stop()
 			fmt.Fprintf(cli.errStream, err.Error())
 			return ExitCodeError
+		case <-watcher.stopCh:
+			break
+		default:
+			continue
 		}
 	}
 
