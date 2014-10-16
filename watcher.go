@@ -12,6 +12,10 @@ import (
 const (
 	// The amount of time to do a blocking query for
 	defaultWaitTime = 60 * time.Second
+
+	// pollErrorSleep the amount of time to sleep when an error occurs
+	// TODO: make this an exponential backoff.
+	pollErrorSleep = 5 * time.Second
 )
 
 type Watcher struct {
@@ -127,7 +131,8 @@ func (wd *WatchData) poll(w *Watcher) {
 		data, qm, err := wd.dependency.Fetch(w.client, options)
 		if err != nil {
 			w.ErrCh <- err
-			continue // TODO: should we continue or return?
+			time.Sleep(pollErrorSleep)
+			continue
 		}
 
 		// Consul is allowed to return even if there's no new data. Ignore data if
