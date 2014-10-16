@@ -16,8 +16,8 @@ import (
 const (
 	ExitCodeOK int = 0
 
-	// Errors start at 500
-	ExitCodeError = 500 + iota
+	// Errors start at 10
+	ExitCodeError = 10 + iota
 	ExitCodeParseFlagsError
 	ExitCodeParseWaitError
 	ExitCodeParseConfigError
