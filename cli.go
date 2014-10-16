@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+
+	api "github.com/armon/consul-api"
 )
 
 /// ------------------------- ///
@@ -21,6 +23,9 @@ const (
 	ExitCodeParseFlagsError
 	ExitCodeParseWaitError
 	ExitCodeParseConfigError
+	ExitCodeMapperError
+	ExitCodeConsulAPIError
+	ExitCodeWatcherError
 )
 
 /// ------------------------- ///
@@ -31,7 +36,7 @@ type CLI struct {
 	outStream, errStream io.Writer
 }
 
-// Run accepts a list of arguments and returns an int representing the exit
+// Run accepts a slice of arguments and returns an int representing the exit
 // status from the command.
 func (cli *CLI) Run(args []string) int {
 	config, status, err := cli.Parse(args)
@@ -40,21 +45,53 @@ func (cli *CLI) Run(args []string) int {
 		return status
 	}
 
-	watcher, err := NewWatcher(config)
+	mapper, err := NewMapper(config.ConfigTemplates)
 	if err != nil {
 		fmt.Fprint(cli.errStream, err.Error())
-		return ExitCodeError
+		return ExitCodeMapperError
 	}
 
-	if err := watcher.Watch(); err != nil {
+	consulConfig := api.DefaultConfig()
+	if config.Consul != "" {
+		consulConfig.Address = config.Consul
+	}
+	if config.Token != "" {
+		consulConfig.Token = config.Token
+	}
+
+	client, err := api.NewClient(consulConfig)
+	if err != nil {
 		fmt.Fprintf(cli.errStream, err.Error())
-		return ExitCodeError
+		return ExitCodeConsulAPIError
+	}
+	if _, err := client.Agent().NodeName(); err != nil {
+		fmt.Fprintf(cli.errStream, err.Error())
+		return ExitCodeConsulAPIError
+	}
+
+	watcher, err := NewWatcher(client, mapper.Dependencies())
+	if err != nil {
+		fmt.Fprintf(cli.errStream, err.Error())
+		return ExitCodeWatcherError
+	}
+	watcher.Watch()
+
+	for {
+		select {
+		case view := <-watcher.DataCh:
+			println(fmt.Sprintf("Got view: %#v", view))
+		case err := <-watcher.ErrCh:
+			fmt.Fprintf(cli.errStream, err.Error())
+			return ExitCodeError
+		default:
+			continue
+		}
 	}
 
 	return ExitCodeOK
 }
 
-// Parse accepts a list of command line flags and returns a generated Config
+// Parse accepts a slice of command line flags and returns a generated Config
 // object, an exit status, and any errors that occurred when parsing the flags.
 func (cli *CLI) Parse(args []string) (*Config, int, error) {
 	var version = false
