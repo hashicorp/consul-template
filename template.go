@@ -6,8 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"text/template"
-
-	"github.com/armon/consul-api"
 )
 
 type Template struct {
