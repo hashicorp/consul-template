@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 )
 
 // Renderer is a struct responsible for determining if a Template is renderable
@@ -76,17 +78,14 @@ func (r *Renderer) MaybeRender(template *Template, configTemplates []*ConfigTemp
 		}
 
 		for _, configTemplate := range configTemplates {
+			destination := configTemplate.Destination
+
 			if r.dry {
-				fmt.Fprintf(r.dryStream, "> %s\n%s", configTemplate.Destination, contents)
+				fmt.Fprintf(r.dryStream, "> %s\n%s", destination, contents)
 			} else {
-				f, err := os.Create(configTemplate.Destination)
-				if err != nil {
+				if err := r.atomicWrite(destination, contents); err != nil {
 					return err
 				}
-				defer f.Close()
-
-				f.Write(contents)
-				f.Sync()
 			}
 		}
 	}
@@ -147,4 +146,70 @@ func (r *Renderer) templateContextFor(template *Template) (*TemplateContext, err
 	}
 
 	return context, nil
+}
+
+// atomicWrite accepts a destination path and the template contents. It writes
+// the template contents to a TempFile on disk, returning if any errors occur.
+//
+// If the parent destination directory does not exist, it will be created
+// automatically with permissions 0755. To use a different permission, create
+// the directory first or use `chmod` in a Command.
+//
+// If the destination path exists, all attempts will be made to preserve the
+// existing file permissions. If those permissions cannot be read, an error is
+// returned. If the file does not exist, it will be created automatically with
+// permissions 0644. To use a different permission, create the destination file
+// first or use `chmod` in a Command.
+//
+// If no errors occur, the Tempfile is "renamed" (moved) to the destination
+// path.
+func (r *Renderer) atomicWrite(path string, contents []byte) error {
+	var mode os.FileMode
+
+	// If the current file exists, get permissions so we can preserve them
+	stat, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			mode = 0644
+		} else {
+			return err
+		}
+	} else {
+		mode = stat.Mode()
+	}
+
+	f, err := ioutil.TempFile(os.TempDir(), "")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(f.Name())
+
+	if _, err := f.Write(contents); err != nil {
+		return err
+	}
+
+	if err := f.Sync(); err != nil {
+		return err
+	}
+
+	if err := f.Close(); err != nil {
+		return err
+	}
+
+	if err := os.Chmod(f.Name(), mode); err != nil {
+		return err
+	}
+
+	parent := filepath.Dir(path)
+	if _, err := os.Stat(parent); os.IsNotExist(err) {
+		if err := os.MkdirAll(parent, 0755); err != nil {
+			return err
+		}
+	}
+
+	if err := os.Rename(f.Name(), path); err != nil {
+		return err
+	}
+
+	return nil
 }
