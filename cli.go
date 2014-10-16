@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"time"
 
 	api "github.com/armon/consul-api"
 )
@@ -125,27 +126,50 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeConsulAPIError
 	}
 
-	watcher, err := NewWatcher(client, mapper.Dependencies())
-	if err != nil {
-		fmt.Fprintf(cli.errStream, err.Error())
-		return ExitCodeWatcherError
-	}
-	if err := watcher.Watch(); err != nil {
-		fmt.Fprintf(cli.errStream, err.Error())
-		return ExitCodeWatcherError
-	}
-	defer watcher.Stop()
-
 	renderer, err := NewRenderer(mapper.Dependencies(), dry)
 	if err != nil {
 		fmt.Fprintf(cli.errStream, err.Error())
 		return ExitCodeRendererError
 	}
 
+	watcher, err := NewWatcher(client, mapper.Dependencies())
+	if err != nil {
+		fmt.Fprintf(cli.errStream, err.Error())
+		return ExitCodeWatcherError
+	}
+
+	if once {
+		err = watcher.WatchOnce()
+	} else {
+		err = watcher.Watch()
+		defer watcher.Stop()
+	}
+	if err != nil {
+		fmt.Fprintf(cli.errStream, err.Error())
+		return ExitCodeWatcherError
+	}
+
+	var minTimer, maxTimer <-chan time.Time
+
 	for {
 		select {
 		case view := <-watcher.DataCh:
 			renderer.Receive(view.dependency, view.data)
+
+			// If we are waiting for quiescence, setup the timers
+			if config.Wait != nil {
+				// Reset the min timer
+				minTimer = time.After(config.Wait.Min)
+
+				// Set the max timer if it does not already exist
+				if maxTimer == nil {
+					maxTimer = time.After(config.Wait.Max)
+				}
+
+				// Do not render the template if the timers were set
+				continue
+			}
+
 			for _, template := range mapper.TemplatesFor(view.dependency) {
 				configTemplates := mapper.ConfigTemplatesFor(template)
 				if err := renderer.MaybeRender(template, configTemplates); err != nil {
@@ -153,6 +177,12 @@ func (cli *CLI) Run(args []string) int {
 					return ExitCodeRendererError
 				}
 			}
+		case <-minTimer:
+			minTimer, maxTimer = nil, nil
+			// tryRender
+		case <-maxTimer:
+			minTimer, maxTimer = nil, nil
+			// tryRender
 		case err := <-watcher.ErrCh:
 			fmt.Fprintf(cli.errStream, err.Error())
 			return ExitCodeError
