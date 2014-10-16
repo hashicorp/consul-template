@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"reflect"
+	"sync"
 	"time"
 
 	api "github.com/armon/consul-api"
@@ -28,6 +29,9 @@ type Watcher struct {
 
 	// dependencies is the slice of Dependencies this Watcher will poll
 	dependencies []Dependency
+
+	// waitGroup is the WaitGroup to ensure all Go routines return when we stop
+	waitGroup sync.WaitGroup
 }
 
 //
@@ -56,7 +60,8 @@ func (w *Watcher) Watch() error {
 	}
 
 	for _, view := range views {
-		go view.poll(w.client, w.DataCh, w.ErrCh, w.stopCh)
+		go view.poll(w)
+		w.waitGroup.Add(1)
 	}
 
 	return nil
@@ -65,7 +70,7 @@ func (w *Watcher) Watch() error {
 //
 func (w *Watcher) Stop() {
 	close(w.stopCh)
-	// TODO: wait for routines to finish?
+	w.waitGroup.Wait()
 }
 
 //
@@ -104,15 +109,24 @@ func NewWatchData(dependency Dependency) (*WatchData, error) {
 }
 
 //
-func (wd *WatchData) poll(client *api.Client, dataCh chan *WatchData, errCh chan error, stopCh chan struct{}) {
+func (wd *WatchData) poll(w *Watcher) {
 	for {
+		// Break from the function if we are done
+		select {
+		case <-w.stopCh:
+			w.waitGroup.Done()
+			return
+		default:
+			break
+		}
+
 		options := &api.QueryOptions{
 			WaitTime:  defaultWaitTime,
 			WaitIndex: wd.lastIndex,
 		}
-		data, qm, err := wd.dependency.Fetch(client, options)
+		data, qm, err := wd.dependency.Fetch(w.client, options)
 		if err != nil {
-			errCh <- err
+			w.ErrCh <- err
 			continue // TODO: should we continue or return?
 		}
 
@@ -132,15 +146,6 @@ func (wd *WatchData) poll(client *api.Client, dataCh chan *WatchData, errCh chan
 
 		// If we got this far, there is new data!
 		wd.data = data
-		dataCh <- wd
-
-		// Break from the function if we are done - this happens at the end of the
-		// function to ensure it runs at least once
-		select {
-		case <-stopCh:
-			return
-		default:
-			continue
-		}
+		w.DataCh <- wd
 	}
 }

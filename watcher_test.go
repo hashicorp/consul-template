@@ -123,6 +123,7 @@ func TestWatch_fetchesData(t *testing.T) {
 		t.Fatal(err)
 	}
 	w.Watch()
+	defer w.Stop()
 
 	select {
 	case data := <-w.DataCh:
@@ -141,8 +142,6 @@ func TestWatch_fetchesData(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("expected data, but nothing was returned")
 	}
-
-	w.Stop()
 }
 
 func TestStop_stopsWatch(t *testing.T) {
