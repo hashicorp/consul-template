@@ -6,16 +6,33 @@ import (
 	"os"
 )
 
-//
+// Renderer is a struct responsible for determining if a Template is renderable
+// and performing the actual rendering steps.
 type Renderer struct {
+	// dependencies is the slice of Dependencies this Renderer knows how to
+	// render.
 	dependencies []Dependency
-	dry          bool
-	dryStream    io.Writer
 
+	// dry is the mode in which Templates are "rendered" to a stream (default is
+	// stdout). This stream can be set using the SetDryStream() function.
+	dry       bool
+	dryStream io.Writer
+
+	// dependencyDataMap is a map of each dependency to the data received from a
+	// poll.
 	dependencyDataMap map[Dependency]interface{}
 }
 
+// NewRenderer accepts a slice of Dependencies and a "dry" flag. The slice of
+// Dependencies corresponds to all the Dependencies this Renderer cares about.
+// The "dry" flag triggers a special mode in the Renderer where output files are
+// written to an IO stream instead of being written to disk. This mode is useful
+// for debugging or testing changes before actually applying them. This IO
+// stream defaults to os.Stdout but can be changed used the SetDryStream()
+// function.
 //
+// This function returns a pointer to the new Renderer and any error(s) that
+// occurred during creation.
 func NewRenderer(dependencies []Dependency, dry bool) (*Renderer, error) {
 	renderer := &Renderer{
 		dependencies: dependencies,
@@ -27,17 +44,25 @@ func NewRenderer(dependencies []Dependency, dry bool) (*Renderer, error) {
 	return renderer, nil
 }
 
-//
+// SetDryStream accepts an io.Writer and sets the internal dryStream for this
+// Renderer.
 func (r *Renderer) SetDryStream(s io.Writer) {
 	r.dryStream = s
 }
 
-//
+// Receive accepts a Dependency and data for that Dependency. This data is
+// cached on the Renderer. This data is then used to determine if a Template
+// is "renderable" (i.e. all its Dependencies have been downloaded at least
+// once).
 func (r *Renderer) Receive(dependency Dependency, data interface{}) {
 	r.dependencyDataMap[dependency] = data
 }
 
-//
+// MaybeRender accepts a Template and slice of ConfigTemplates that created that
+// Template. If the template is "renderable" (i.e. all its Dependencies have
+// been downlaoded at least once), the most recent version of the data from the
+// Template's Dependencies is added to a TemplateContext and Executed. If there
+// is a failure, an error is returned.
 func (r *Renderer) MaybeRender(template *Template, configTemplates []*ConfigTemplate) error {
 	if r.canRender(template) {
 		context, err := r.templateContextFor(template)
@@ -69,7 +94,8 @@ func (r *Renderer) MaybeRender(template *Template, configTemplates []*ConfigTemp
 	return nil
 }
 
-//
+// init() creates the Renderer's underlying data structures and returns an error
+// if any problems occur.
 func (r *Renderer) init() error {
 	if len(r.dependencies) == 0 {
 		return fmt.Errorf("renderer: must supply at least one Dependency")
@@ -81,8 +107,8 @@ func (r *Renderer) init() error {
 	return nil
 }
 
-// canRender accepts a Template and returns true iff all the Dependencies of
-// that template have data in the Renderer.
+// canRender accepts a Template and returns true if and only if all of the
+// Dependencies of that template have data in the Renderer.
 func (r *Renderer) canRender(template *Template) bool {
 	for _, dependency := range template.Dependencies() {
 		if r.dependencyDataMap[dependency] == nil {
@@ -93,10 +119,11 @@ func (r *Renderer) canRender(template *Template) bool {
 	return true
 }
 
-// templateContextFor creates a TemplateContext for the given Template,
-// iterating through all the Template's Dependencies and appending them where
-// appropriate in the TemplateContext. If an unknown Dependency is encountered,
-// an error will be returned.
+// templateContextFor creates and returns a new TemplateContext for the given
+// Template, iterating through all the Template's Dependencies and appending
+// them where appropriate in the TemplateContext.
+//
+// If an unknown Dependency.(type) is encountered, an error is returned.
 func (r *Renderer) templateContextFor(template *Template) (*TemplateContext, error) {
 	context := &TemplateContext{
 		Services:    make(map[string][]*Service),
