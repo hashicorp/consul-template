@@ -7,7 +7,6 @@ import (
 	"testing"
 )
 
-//
 func TestRun_printsErrors(t *testing.T) {
 	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
 	cli := &CLI{outStream: outStream, errStream: errStream}
@@ -24,7 +23,6 @@ func TestRun_printsErrors(t *testing.T) {
 	}
 }
 
-// Test that the version flag outputs the version and retuns an OK exit code
 func TestParse_versionFlag(t *testing.T) {
 	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
 	cli := &CLI{outStream: outStream, errStream: errStream}
@@ -41,7 +39,6 @@ func TestParse_versionFlag(t *testing.T) {
 	}
 }
 
-// Test that parser errors are returned
 func TestParse_parseError(t *testing.T) {
 	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
 	cli := &CLI{outStream: outStream, errStream: errStream}
@@ -58,7 +55,6 @@ func TestParse_parseError(t *testing.T) {
 	}
 }
 
-// Test wait flag error is propagated
 func TestParse_waitFlagError(t *testing.T) {
 	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
 	cli := &CLI{outStream: outStream, errStream: errStream}
@@ -73,4 +69,8 @@ func TestParse_waitFlagError(t *testing.T) {
 	if !strings.Contains(errStream.String(), expected) {
 		t.Fatalf("expected %q to contain %q", errStream.String(), expected)
 	}
+}
+
+func TestQuiescence(t *testing.T) {
+	t.Skip("TODO")
 }
