@@ -2,8 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
-	"os"
 	"reflect"
 	"time"
 
@@ -16,246 +14,127 @@ const (
 )
 
 type Watcher struct {
-	// config is a Consul Template Config object to be read by the watcher
-	config *Config
+	// DataCh is the chan where new WatchData will be published
+	DataCh chan *WatchData
+
+	// ErrCh is the chan where any errors will be published
+	ErrCh chan error
+
+	// stopCh is a chan that is only published when polling should stop
+	stopCh chan struct{}
+
+	// client is the mechanism for communicating with the Consul API
+	client *api.Client
+
+	// dependencies is the slice of Dependencies this Watcher will poll
+	dependencies []Dependency
 }
 
-// NewWatcher accepts a Config and creates a new Watcher.
-func NewWatcher(config *Config) (*Watcher, error) {
-	if config == nil {
-		return nil, errors.New("cannot specify empty config")
-	}
-
+//
+func NewWatcher(client *api.Client, dependencies []Dependency) (*Watcher, error) {
 	watcher := &Watcher{
-		config: config,
+		client:       client,
+		dependencies: dependencies,
+	}
+	if err := watcher.init(); err != nil {
+		return nil, err
 	}
 
 	return watcher, nil
 }
 
-// Watch starts the Watcher process, querying the Consul API and rendering any
-// configuration file changes.
-func (w *Watcher) Watch() error {
-	client, err := w.client()
-	if err != nil {
-		return err
-	}
-
-	views, templates, ctemplates, err := w.createViews()
-	if err != nil {
-		return err
-	}
-
-	doneCh := make(chan struct{})
-	viewCh := w.waitForChanges(views, client, doneCh)
-
-	if w.config.Once {
-		// If we are running in "once" mode, quit after the first poll
-		close(doneCh)
-	} else {
-		// Ensure we stop background polling when we quit the Watcher
-		defer close(doneCh)
-	}
-
-	for {
-		if w.config.Once && w.renderedAll(views) {
-			// If we are in "once" mode and all the templates have been rendered,
-			// exit gracefully
-			return nil
-		}
-
-		select {
-		case view := <-viewCh:
-			for _, template := range view.Templates {
-				if w.config.Once && template.Rendered() {
-					// If we are in "once" mode, do not rendered the same template twice
-					continue
-				}
-
-				deps := templates[template]
-				context := &TemplateContext{
-					Services:    make(map[string][]*Service),
-					Keys:        make(map[string]string),
-					KeyPrefixes: make(map[string][]*KeyPair),
-				}
-
-				// Continue if not all the required dependencies have been loaded
-				// into the views
-				if !w.ready(views, deps) {
-					continue
-				}
-
-				for _, dep := range deps {
-					v := views[dep]
-					switch d := v.Dependency.(type) {
-					case *ServiceDependency:
-						context.Services[d.Key()] = v.Data.([]*Service)
-					case *KeyDependency:
-						context.Keys[d.Key()] = v.Data.(string)
-					case *KeyPrefixDependency:
-						context.KeyPrefixes[d.Key()] = v.Data.([]*KeyPair)
-					default:
-						panic(fmt.Sprintf("unknown dependency type: %q", d))
-					}
-				}
-
-				if w.config.Dry {
-					template.Execute(os.Stderr, context)
-				} else {
-					ctemplate := ctemplates[template]
-					out, err := os.Create(ctemplate.Destination)
-					if err != nil {
-						panic(err)
-					}
-
-					template.Execute(out, context)
-					out.Close()
-				}
+//
+func (w *Watcher) Watch() {
+	for _, dependency := range w.dependencies {
+		go func() {
+			view, err := NewWatchData(dependency)
+			if err != nil {
+				w.ErrCh <- err
+				w.Stop()
+				return
 			}
-		}
+
+			view.poll(w.client, w.DataCh, w.ErrCh, w.stopCh)
+		}()
 	}
+}
+
+//
+func (w *Watcher) Stop() {
+	close(w.stopCh)
+	// TODO: wait for routines to finish?
+}
+
+//
+func (w *Watcher) init() error {
+	if w.client == nil {
+		return errors.New("watcher: missing Consul API client")
+	}
+
+	if len(w.dependencies) == 0 {
+		return errors.New("watcher: must supply at least one Dependency")
+	}
+
+	// Setup the chans
+	w.DataCh = make(chan *WatchData)
+	w.ErrCh = make(chan error)
+	w.stopCh = make(chan struct{})
 
 	return nil
 }
 
-//
-func (w *Watcher) waitForChanges(views map[Dependency]*DataView, client *api.Client, doneCh chan struct{}) <-chan *DataView {
-	viewCh := make(chan *DataView, len(views))
-	for _, view := range views {
-		go view.poll(viewCh, client, doneCh)
-	}
-	return viewCh
-}
-
-//
-func (w *Watcher) createViews() (map[Dependency]*DataView, map[*Template][]Dependency, map[*Template]*ConfigTemplate, error) {
-	views := make(map[Dependency]*DataView)
-	templates := make(map[*Template][]Dependency)
-	ctemplates := make(map[*Template]*ConfigTemplate)
-
-	// For each Dependency per ConfigTemplate, construct a DataView object which
-	// ties the dependency to the Templates which depend on it
-	for _, ctemplate := range w.config.ConfigTemplates {
-		template := &Template{Input: ctemplate.Source}
-		deps, err := template.Dependencies()
-		if err != nil {
-			return nil, nil, nil, err
-		}
-
-		for _, dep := range deps {
-			// Create the DataView if it does not exist
-			if _, ok := views[dep]; !ok {
-				views[dep] = &DataView{Dependency: dep}
-			}
-
-			// Create the Templtes slice if it does not exist
-			if len(views[dep].Templates) == 0 {
-				views[dep].Templates = make([]*Template, 0, 1)
-			}
-
-			// Append the ConfigTemplate to the slice
-			views[dep].Templates = append(views[dep].Templates, template)
-		}
-
-		// Add the template and its dependencies to the list
-		templates[template] = deps
-
-		// Map the template to its ConfigTemplate
-		ctemplates[template] = ctemplate
-	}
-
-	return views, templates, ctemplates, nil
-}
-
-// ready determines if the views have loaded all the required information
-// from the dependency.
-func (w *Watcher) ready(views map[Dependency]*DataView, deps []Dependency) bool {
-	for _, dep := range deps {
-		v := views[dep]
-		if !v.loaded() {
-			return false
-		}
-	}
-	return true
-}
-
-//
-func (w *Watcher) renderedAll(views map[Dependency]*DataView) bool {
-	for _, view := range views {
-		for _, template := range view.Templates {
-			if !template.Rendered() {
-				return false
-			}
-		}
-	}
-
-	return true
-}
-
-//
-func (w *Watcher) client() (*api.Client, error) {
-	consulConfig := api.DefaultConfig()
-	if w.config.Consul != "" {
-		consulConfig.Address = w.config.Consul
-	}
-	if w.config.Token != "" {
-		consulConfig.Token = w.config.Token
-	}
-
-	client, err := api.NewClient(consulConfig)
-	if err != nil {
-		return nil, err
-	}
-	if _, err := client.Agent().NodeName(); err != nil {
-		return nil, err
-	}
-
-	return client, nil
-}
-
 /// ------------------------- ///
 
-type DataView struct {
-	Templates  []*Template
-	Dependency Dependency
-	Data       interface{}
-	LastIndex  uint64
+type WatchData struct {
+	dependency Dependency
+	data       interface{}
+	lastIndex  uint64
 }
 
 //
-func (view *DataView) poll(ch chan *DataView, client *api.Client, doneCh chan struct{}) {
+func NewWatchData(dependency Dependency) (*WatchData, error) {
+	if dependency == nil {
+		return nil, errors.New("watchdata: missing Dependency")
+	}
+
+	return &WatchData{dependency: dependency}, nil
+}
+
+//
+func (wd *WatchData) poll(client *api.Client, dataCh chan *WatchData, errCh chan error, stopCh chan struct{}) {
 	for {
 		options := &api.QueryOptions{
 			WaitTime:  defaultWaitTime,
-			WaitIndex: view.LastIndex,
+			WaitIndex: wd.lastIndex,
 		}
-		data, qm, err := view.Dependency.Fetch(client, options)
+		data, qm, err := wd.dependency.Fetch(client, options)
 		if err != nil {
-			panic(err) // TODO: push err to err ch or something
+			errCh <- err
+			continue // TODO: should we continue or return?
 		}
 
 		// Consul is allowed to return even if there's no new data. Ignore data if
 		// the index is the same.
-		if qm.LastIndex == view.LastIndex {
+		if qm.LastIndex == wd.lastIndex {
 			continue
 		}
 
 		// Update the index in case we got a new version, but the data is the same
-		view.LastIndex = qm.LastIndex
+		wd.lastIndex = qm.LastIndex
 
 		// Do not trigger a render if the data is the same
-		if reflect.DeepEqual(data, view.Data) {
+		if reflect.DeepEqual(data, wd.data) {
 			continue
 		}
 
 		// If we got this far, there is new data!
-		view.Data = data
-		ch <- view
+		wd.data = data
+		dataCh <- wd
 
 		// Break from the function if we are done - this happens at the end of the
 		// function to ensure it runs at least once
 		select {
-		case <-doneCh:
+		case <-stopCh:
 			return
 		default:
 			continue
@@ -263,7 +142,8 @@ func (view *DataView) poll(ch chan *DataView, client *api.Client, doneCh chan st
 	}
 }
 
-//
-func (view *DataView) loaded() bool {
-	return view.LastIndex != 0
+// loaded determines if the data view has already received data from Consul at
+// least once
+func (v *WatchData) loaded() bool {
+	return v.lastIndex != 0
 }
