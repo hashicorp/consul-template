@@ -1,7 +1,7 @@
 package main
 
 import (
-	"errors"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -67,11 +67,11 @@ func (w *Watcher) Stop() {
 //
 func (w *Watcher) init() error {
 	if w.client == nil {
-		return errors.New("watcher: missing Consul API client")
+		return fmt.Errorf("watcher: missing Consul API client")
 	}
 
 	if len(w.dependencies) == 0 {
-		return errors.New("watcher: must supply at least one Dependency")
+		return fmt.Errorf("watcher: must supply at least one Dependency")
 	}
 
 	// Setup the chans
@@ -93,7 +93,7 @@ type WatchData struct {
 //
 func NewWatchData(dependency Dependency) (*WatchData, error) {
 	if dependency == nil {
-		return nil, errors.New("watchdata: missing Dependency")
+		return nil, fmt.Errorf("watchdata: missing Dependency")
 	}
 
 	return &WatchData{dependency: dependency}, nil
