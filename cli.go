@@ -136,6 +136,7 @@ func (cli *CLI) Run(args []string) int {
 		case view := <-watcher.DataCh:
 			println(fmt.Sprintf("Got view: %#v", view))
 		case err := <-watcher.ErrCh:
+			watcher.Stop()
 			fmt.Fprintf(cli.errStream, err.Error())
 			return ExitCodeError
 		}

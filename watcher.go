@@ -50,7 +50,6 @@ func (w *Watcher) Watch() {
 			view, err := NewWatchData(dependency)
 			if err != nil {
 				w.ErrCh <- err
-				w.Stop()
 				return
 			}
 
