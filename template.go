@@ -262,13 +262,6 @@ func (kp *KeyPair) GoString() string {
 	return fmt.Sprintf("*%#v", *kp)
 }
 
-// NewFromConsul creates a new KeyPair object by parsing the values in the
-// consulapi.KVPair. Not all values are transferred.
-func (kp KeyPair) NewFromConsul(c *consulapi.KVPair) {
-	// TODO: lol
-	panic("not done!")
-}
-
 // DependencyType is an enum type that says the kind of the dependency.
 type DependencyType byte
 
