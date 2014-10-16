@@ -98,9 +98,10 @@ func (w *Watcher) init() error {
 /// ------------------------- ///
 
 type WatchData struct {
-	dependency Dependency
-	data       interface{}
-	lastIndex  uint64
+	dependency   Dependency
+	data         interface{}
+	receivedData bool
+	lastIndex    uint64
 }
 
 //
@@ -144,13 +145,14 @@ func (wd *WatchData) poll(w *Watcher) {
 		// Update the index in case we got a new version, but the data is the same
 		wd.lastIndex = qm.LastIndex
 
-		// Do not trigger a render if the data is the same
-		if reflect.DeepEqual(data, wd.data) {
+		// Do not trigger a render if we have gotten data and the data is the same
+		if wd.receivedData && reflect.DeepEqual(data, wd.data) {
 			continue
 		}
 
 		// If we got this far, there is new data!
 		wd.data = data
+		wd.receivedData = true
 		w.DataCh <- wd
 	}
 }
