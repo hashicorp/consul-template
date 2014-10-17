@@ -9,9 +9,8 @@ import (
 func TestServiceDependencyFetch(t *testing.T) {
 	client, options := demoConsulClient(t)
 	dep := &ServiceDependency{
-		rawKey:     "redis@nyc1",
-		Name:       "redis",
-		DataCenter: "nyc1",
+		rawKey: "consul",
+		Name:   "consul",
 	}
 
 	results, _, err := dep.Fetch(client, options)
@@ -163,9 +162,8 @@ func TestParseServiceDependency_nameAndDataCenter(t *testing.T) {
 func TestKeyDependencyFetch(t *testing.T) {
 	client, options := demoConsulClient(t)
 	dep := &KeyDependency{
-		rawKey:     "global/time@nyc1",
-		Path:       "global/time",
-		DataCenter: "nyc1",
+		rawKey: "global/time",
+		Path:   "global/time",
 	}
 
 	results, _, err := dep.Fetch(client, options)
@@ -234,9 +232,8 @@ func TestParseKeyDependency_nameTagDataCenter(t *testing.T) {
 func TestKeyPrefixDependencyFetch(t *testing.T) {
 	client, options := demoConsulClient(t)
 	dep := &KeyPrefixDependency{
-		rawKey:     "global@nyc1",
-		Prefix:     "global",
-		DataCenter: "nyc1",
+		rawKey: "global",
+		Prefix: "global",
 	}
 
 	results, _, err := dep.Fetch(client, options)
