@@ -25,6 +25,9 @@ type Watcher struct {
 	// ErrCh is the chan where any errors will be published
 	ErrCh chan error
 
+	// FinishCh is the chan where the watcher reports it is "done"
+	FinishCh chan struct{}
+
 	// stopCh is a chan that is only published when polling should stop
 	stopCh chan struct{}
 
@@ -52,40 +55,43 @@ func NewWatcher(client *api.Client, dependencies []Dependency) (*Watcher, error)
 }
 
 //
-func (w *Watcher) Watch() error {
+func (w *Watcher) Watch(once bool) {
+	// In once mode, we want to immediately close the stopCh. This tells the
+	// underlying WatchData objects to terminate after they get data for the first
+	// time.
+	if once {
+		w.Stop()
+	}
+
 	views := make([]*WatchData, 0, len(w.dependencies))
 	for _, dependency := range w.dependencies {
 		view, err := NewWatchData(dependency)
 		if err != nil {
-			return err
+			w.ErrCh <- err
+			return
 		}
 
 		views = append(views, view)
 	}
 
 	for _, view := range views {
-		go view.poll(w)
 		w.waitGroup.Add(1)
+		go func(view *WatchData) {
+			defer w.waitGroup.Done()
+			view.poll(w)
+		}(view)
 	}
 
-	return nil
-}
+	w.waitGroup.Wait()
 
-//
-func (w *Watcher) WatchOnce() error {
-	w.Stop()
-	defer w.Wait()
-	return w.Watch()
+	if once {
+		close(w.FinishCh)
+	}
 }
 
 //
 func (w *Watcher) Stop() {
 	close(w.stopCh)
-}
-
-//
-func (w *Watcher) Wait() {
-	w.waitGroup.Wait()
 }
 
 //
@@ -101,6 +107,7 @@ func (w *Watcher) init() error {
 	// Setup the chans
 	w.DataCh = make(chan *WatchData)
 	w.ErrCh = make(chan error)
+	w.FinishCh = make(chan struct{})
 	w.stopCh = make(chan struct{})
 
 	return nil
@@ -160,7 +167,6 @@ func (wd *WatchData) poll(w *Watcher) {
 		// Break from the function if we are done
 		select {
 		case <-w.stopCh:
-			w.waitGroup.Done()
 			return
 		default:
 			continue

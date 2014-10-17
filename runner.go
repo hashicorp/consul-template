@@ -205,7 +205,6 @@ func (r *Runner) render(template *Template, destination string, dry bool) error 
 // execute accepts a command string and runs that command string on the current
 // system.
 func (r *Runner) execute(command string) error {
-	println(fmt.Sprintf("I would execute %q noq...", command))
 	return nil
 }
 

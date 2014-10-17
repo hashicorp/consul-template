@@ -127,15 +127,7 @@ func (cli *CLI) Run(args []string) int {
 		return cli.handleError(err, ExitCodeWatcherError)
 	}
 
-	if once {
-		err = watcher.WatchOnce()
-	} else {
-		err = watcher.Watch()
-		defer watcher.Stop()
-	}
-	if err != nil {
-		return cli.handleError(err, ExitCodeWatcherError)
-	}
+	go watcher.Watch(once)
 
 	var minTimer, maxTimer <-chan time.Time
 
@@ -172,10 +164,8 @@ func (cli *CLI) Run(args []string) int {
 			}
 		case err := <-watcher.ErrCh:
 			return cli.handleError(err, ExitCodeError)
-		case <-watcher.stopCh:
-			break
-		default:
-			continue
+		case <-watcher.FinishCh:
+			return ExitCodeOK
 		}
 	}
 

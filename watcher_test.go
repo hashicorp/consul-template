@@ -101,14 +101,18 @@ func TestWatch_propagatesDependencyFetchError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w.Watch()
+	go w.Watch(true)
 
 	select {
+	case data := <-w.DataCh:
+		t.Fatalf("expected no data, but got %v", data)
 	case err := <-w.ErrCh:
 		expected := "failed to contact server"
 		if !strings.Contains(err.Error(), expected) {
-			t.Errorf("expected %q to contain %q", err.Error(), expected)
+			t.Fatalf("expected %q to contain %q", err.Error(), expected)
 		}
+	case <-w.FinishCh:
+		t.Fatalf("watcher finished prematurely")
 	case <-time.After(1 * time.Second):
 		t.Fatal("expected error, but nothing was returned")
 	}
@@ -122,8 +126,7 @@ func TestWatch_fetchesData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	w.Watch()
-	defer w.Stop()
+	go w.Watch(true)
 
 	select {
 	case data := <-w.DataCh:
@@ -139,27 +142,9 @@ func TestWatch_fetchesData(t *testing.T) {
 		}
 	case err := <-w.ErrCh:
 		t.Fatal(err)
-	case <-time.After(5 * time.Second):
-		t.Fatal("expected data, but nothing was returned")
-	}
-}
-
-func TestStop_stopsWatch(t *testing.T) {
-	dependencies := []Dependency{
-		&fakeDependency{name: "tester"},
-	}
-	w, err := NewWatcher(&api.Client{}, dependencies)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	w.Watch()
-	w.Stop()
-
-	select {
-	case <-w.stopCh:
-		break
-	case <-time.After(5 * time.Second):
-		t.Fatal("expected stop, but nothing was returned")
+	case <-w.FinishCh:
+		t.Fatalf("watcher finished prematurely")
+	case <-time.After(1 * time.Second):
+		t.Fatal("expected error, but nothing was returned")
 	}
 }
