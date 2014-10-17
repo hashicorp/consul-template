@@ -5,10 +5,14 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
+	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	api "github.com/armon/consul-api"
+	logutils "github.com/hashicorp/logutils"
 )
 
 /// ------------------------- ///
@@ -40,14 +44,15 @@ type CLI struct {
 // Run accepts a slice of arguments and returns an int representing the exit
 // status from the command.
 func (cli *CLI) Run(args []string) int {
+	cli.initLogger()
+
 	var version, dry, once bool
 	var config = new(Config)
 
 	// Parse the flags and options
 	cmd := filepath.Base(args[0])
-	flags := flag.NewFlagSet("consul-template", flag.ContinueOnError)
-	flags.Usage = func() { fmt.Fprint(cli.outStream, usage) }
-	flags.SetOutput(cli.outStream)
+	flags := flag.NewFlagSet(Name, flag.ContinueOnError)
+	flags.SetOutput(cli.errStream)
 	flags.StringVar(&config.Consul, "consul", "",
 		"address of the Consul instance")
 	flags.Var((*configTemplateVar)(&config.ConfigTemplates), "template",
@@ -66,24 +71,26 @@ func (cli *CLI) Run(args []string) int {
 
 	// If there was a parser error, stop
 	if err := flags.Parse(args[1:]); err != nil {
-		fmt.Fprintf(cli.errStream, "%s\n\n%s", err.Error(), usage)
-		return ExitCodeParseFlagsError
+		err = fmt.Errorf("%s\n\n%s", err.Error(), usage)
+		return cli.handleError(err, ExitCodeParseFlagsError)
 	}
 
 	// If the version was requested, return an "error" containing the version
 	// information. This might sound weird, but most *nix applications actually
 	// print their version on stderr anyway.
 	if version {
+		log.Printf("[DEBUG] (cli) version flag was given, exiting now")
 		fmt.Fprintf(cli.errStream, "%s v%s\n", cmd, Version)
 		return ExitCodeOK
 	}
 
 	// Parse the raw wait value into a Wait object
 	if config.WaitRaw != "" {
+		log.Printf("[DEBUG] (cli) detected -wait, parsing")
 		wait, err := ParseWait(config.WaitRaw)
 		if err != nil {
-			fmt.Fprintf(cli.errStream, "%s\n\n%s", err.Error(), usage)
-			return ExitCodeParseWaitError
+			err = fmt.Errorf("%s\n\n%s", err.Error(), usage)
+			return cli.handleError(err, ExitCodeParseWaitError)
 		}
 		config.Wait = wait
 	}
@@ -91,21 +98,24 @@ func (cli *CLI) Run(args []string) int {
 	// Merge a path config with the command line options. Command line options
 	// take precedence over config file options for easy overriding.
 	if config.Path != "" {
+		log.Printf("[DEBUG] (cli) detected -config, merging")
 		fileConfig, err := ParseConfig(config.Path)
 		if err != nil {
-			fmt.Fprintf(cli.errStream, "%s\n\n%s", err.Error(), usage)
-			return ExitCodeParseConfigError
+			err = fmt.Errorf("%s\n\n%s", err.Error(), usage)
+			return cli.handleError(err, ExitCodeParseConfigError)
 		}
 
 		fileConfig.Merge(config)
 		config = fileConfig
 	}
 
+	log.Printf("[DEBUG] (cli) creating Runner")
 	runner, err := NewRunner(config.ConfigTemplates)
 	if err != nil {
 		return cli.handleError(err, ExitCodeRunnerError)
 	}
 
+	log.Printf("[DEBUG] (cli) creating Consul API client")
 	consulConfig := api.DefaultConfig()
 	if config.Consul != "" {
 		consulConfig.Address = config.Consul
@@ -113,7 +123,6 @@ func (cli *CLI) Run(args []string) int {
 	if config.Token != "" {
 		consulConfig.Token = config.Token
 	}
-
 	client, err := api.NewClient(consulConfig)
 	if err != nil {
 		return cli.handleError(err, ExitCodeConsulAPIError)
@@ -122,6 +131,7 @@ func (cli *CLI) Run(args []string) int {
 		return cli.handleError(err, ExitCodeConsulAPIError)
 	}
 
+	log.Printf("[DEBUG] (cli) creating Watcher")
 	watcher, err := NewWatcher(client, runner.Dependencies())
 	if err != nil {
 		return cli.handleError(err, ExitCodeWatcherError)
@@ -132,12 +142,19 @@ func (cli *CLI) Run(args []string) int {
 	var minTimer, maxTimer <-chan time.Time
 
 	for {
+		log.Printf("[DEBUG] (cli) looping for data")
+
 		select {
-		case view := <-watcher.DataCh:
-			runner.Receive(view.dependency, view.data)
+		case data := <-watcher.DataCh:
+			log.Printf("[INFO] (cli) received %s from Watcher", data.id())
+
+			// Tell the Runner about the data
+			runner.Receive(data.dependency, data.data)
 
 			// If we are waiting for quiescence, setup the timers
 			if config.Wait != nil {
+				log.Printf("[DEBUG] (cli) detected quiescence, starting timers")
+
 				// Reset the min timer
 				minTimer = time.After(config.Wait.Min)
 
@@ -146,17 +163,22 @@ func (cli *CLI) Run(args []string) int {
 					maxTimer = time.After(config.Wait.Max)
 				}
 			} else {
+				log.Printf("[INFO] (cli) invoking Runner")
 				if err := runner.RunAll(dry); err != nil {
 					return cli.handleError(err, ExitCodeRunnerError)
 				}
 			}
 		case <-minTimer:
+			log.Printf("[DEBUG] (cli) quiescence minTimer fired, invoking Runner")
+
 			minTimer, maxTimer = nil, nil
 
 			if err := runner.RunAll(dry); err != nil {
 				return cli.handleError(err, ExitCodeRunnerError)
 			}
 		case <-maxTimer:
+			log.Printf("[DEBUG] (cli) quiescence maxTimer fired, invoking Runner")
+
 			minTimer, maxTimer = nil, nil
 
 			if err := runner.RunAll(dry); err != nil {
@@ -165,6 +187,7 @@ func (cli *CLI) Run(args []string) int {
 		case err := <-watcher.ErrCh:
 			return cli.handleError(err, ExitCodeError)
 		case <-watcher.FinishCh:
+			log.Printf("[INFO] (cli) received finished signal, exiting now")
 			return ExitCodeOK
 		}
 	}
@@ -175,8 +198,26 @@ func (cli *CLI) Run(args []string) int {
 // handleError outputs the given error's Error() to the errStream and returns
 // the given exit status.
 func (cli *CLI) handleError(err error, status int) int {
-	fmt.Fprintf(cli.errStream, err.Error())
+	log.Printf("[ERR] %s", err.Error())
 	return status
+}
+
+// initLogger gets the log level from the environment, falling back to DEBUG if
+// nothing was given.
+func (cli *CLI) initLogger() {
+	minLevel := strings.ToUpper(strings.TrimSpace(os.Getenv("CONSUL_TEMPLATE_LOG")))
+	if minLevel == "" {
+		minLevel = "WARN"
+	}
+
+	levelFilter := &logutils.LevelFilter{
+		Levels: []logutils.LogLevel{"DEBUG", "INFO", "WARN", "ERR"},
+		Writer: cli.errStream,
+	}
+
+	levelFilter.SetMinLevel(logutils.LogLevel(minLevel))
+
+	log.SetOutput(levelFilter)
 }
 
 const usage = `

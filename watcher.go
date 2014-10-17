@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 	"sync"
 	"time"
@@ -56,10 +57,13 @@ func NewWatcher(client *api.Client, dependencies []Dependency) (*Watcher, error)
 
 //
 func (w *Watcher) Watch(once bool) {
+	log.Printf("[DEBUG] (watcher) starting watch")
+
 	// In once mode, we want to immediately close the stopCh. This tells the
 	// underlying WatchData objects to terminate after they get data for the first
 	// time.
 	if once {
+		log.Printf("[DEBUG] (watcher) detected once mode")
 		w.Stop()
 	}
 
@@ -82,9 +86,11 @@ func (w *Watcher) Watch(once bool) {
 		}(view)
 	}
 
+	log.Printf("[DEBUG] (watcher) all pollers have started, waiting for finish")
 	w.waitGroup.Wait()
 
 	if once {
+		log.Printf("[DEBUG] (watcher) closing finish channel")
 		close(w.FinishCh)
 	}
 }
@@ -134,12 +140,15 @@ func NewWatchData(dependency Dependency) (*WatchData, error) {
 //
 func (wd *WatchData) poll(w *Watcher) {
 	for {
+		log.Printf("[DEBUG] (%s) starting poll", wd.id())
+
 		options := &api.QueryOptions{
 			WaitTime:  defaultWaitTime,
 			WaitIndex: wd.lastIndex,
 		}
 		data, qm, err := wd.dependency.Fetch(w.client, options)
 		if err != nil {
+			log.Printf("[ERR] (%s) %s", wd.id(), err.Error())
 			w.ErrCh <- err
 			time.Sleep(pollErrorSleep)
 			continue
@@ -148,6 +157,7 @@ func (wd *WatchData) poll(w *Watcher) {
 		// Consul is allowed to return even if there's no new data. Ignore data if
 		// the index is the same.
 		if qm.LastIndex == wd.lastIndex {
+			log.Printf("[DEBUG] (%s) no new data (index was the same)", wd.id())
 			continue
 		}
 
@@ -156,8 +166,11 @@ func (wd *WatchData) poll(w *Watcher) {
 
 		// Do not trigger a render if we have gotten data and the data is the same
 		if wd.receivedData && reflect.DeepEqual(data, wd.data) {
+			log.Printf("[DEBUG] (%s) no new data (contents were the same)", wd.id())
 			continue
 		}
+
+		log.Printf("[DEBUG] (%s) writing data to channel", wd.id())
 
 		// If we got this far, there is new data!
 		wd.data = data
@@ -167,9 +180,15 @@ func (wd *WatchData) poll(w *Watcher) {
 		// Break from the function if we are done
 		select {
 		case <-w.stopCh:
+			log.Printf("[DEBUG] (%s) stopping poll (received on stopCh)", wd.id())
 			return
 		default:
 			continue
 		}
 	}
+}
+
+//
+func (wd *WatchData) id() string {
+	return wd.dependency.Key()
 }

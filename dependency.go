@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 	"regexp"
 	"strconv"
 
@@ -36,11 +37,17 @@ func (d *ServiceDependency) Fetch(client *api.Client, options *api.QueryOptions)
 		options.Datacenter = d.DataCenter
 	}
 
+	log.Printf("[DEBUG] (service %s) querying Consul with %+v",
+		d.rawKey, options)
+
 	health := client.Health()
 	entries, qm, err := health.Service(d.Name, d.Tag, true, options)
 	if err != nil {
 		return nil, qm, err
 	}
+
+	log.Printf("[DEBUG] (service %s) Consul returned %d services",
+		d.rawKey, len(entries))
 
 	services := make([]*Service, 0, len(entries))
 
@@ -141,6 +148,9 @@ func (d *KeyDependency) Fetch(client *api.Client, options *api.QueryOptions) (in
 		options.Datacenter = d.DataCenter
 	}
 
+	log.Printf("[DEBUG] (key %s) querying consul with %+v",
+		d.rawKey, options)
+
 	store := client.KV()
 	pair, qm, err := store.Get(d.Path, options)
 	if err != nil {
@@ -148,8 +158,12 @@ func (d *KeyDependency) Fetch(client *api.Client, options *api.QueryOptions) (in
 	}
 
 	if pair == nil {
+		log.Printf("[DEBUG] (key %s) Consul returned nothing (does the path exist?)",
+			d.rawKey)
 		return "", qm, nil
 	}
+
+	log.Printf("[DEBUG] (key %s) Consul returned %s", d.rawKey, pair.Value)
 
 	return string(pair.Value), qm, nil
 }
@@ -225,11 +239,17 @@ func (d *KeyPrefixDependency) Fetch(client *api.Client, options *api.QueryOption
 		options.Datacenter = d.DataCenter
 	}
 
+	log.Printf("[DEBUG] (keyPrefix %s) querying Consul with %+v",
+		d.rawKey, options)
+
 	store := client.KV()
 	prefixes, qm, err := store.List(d.Prefix, options)
 	if err != nil {
 		return err, qm, nil
 	}
+
+	log.Printf("[DEBUG] (service %s) Consul returned %d key pairs",
+		d.rawKey, len(prefixes))
 
 	keyPairs := make([]*KeyPair, 0, len(prefixes))
 
