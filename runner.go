@@ -5,14 +5,17 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 )
 
 // Runner responsible rendering Templates and invoking Commands.
 type Runner struct {
-	// dry is the mode in which Templates are "rendered" to a stream (default is
-	// stdout). This stream can be set using the SetDryStream() function.
-	dryStream io.Writer
+	// outStream and errStream are the io.Writer streams where the runner will
+	// write information. These streams can be set using the SetOutStream()
+	// and SetErrStream() functions.
+	outStream, errStream io.Writer
 
 	// configTemplates, templates, and dependencies are internally calculated
 	// caches of all the data this Runner knows about.
@@ -40,10 +43,16 @@ func NewRunner(configTemplates []*ConfigTemplate) (*Runner, error) {
 	return runner, nil
 }
 
-// SetDryStream accepts an io.Writer and sets the internal dryStream for this
+// SetOutStream accepts an io.Writer and sets the internal outStream for this
 // Runner.
-func (r *Runner) SetDryStream(s io.Writer) {
-	r.dryStream = s
+func (r *Runner) SetOutStream(s io.Writer) {
+	r.outStream = s
+}
+
+// SetErrStream accepts an io.Writer and sets the internal outStream for this
+// Runner.
+func (r *Runner) SetErrStream(s io.Writer) {
+	r.errStream = s
 }
 
 // Receive accepts a Dependency and data for that Dependency. This data is
@@ -68,7 +77,7 @@ func (r *Runner) Dependencies() []Dependency {
 // Please note that all templates are rendered **and then** any commands are
 // executed.
 //
-// If the dry flag is given, the template will be rendered to the dryStream,
+// If the dry flag is given, the template will be rendered to the outStream,
 // which defaults to os.Stdout. In dry mode, commands are never executed.
 func (r *Runner) RunAll(dry bool) error {
 	commands := make([]string, 0)
@@ -156,7 +165,7 @@ func (r *Runner) init() error {
 
 	r.dependencyDataReceivedMap = make(map[string]struct{})
 	r.dependencyDataMap = make(map[string]interface{})
-	r.dryStream = os.Stdout
+	r.outStream = os.Stdout
 
 	return nil
 }
@@ -192,7 +201,7 @@ func (r *Runner) render(template *Template, destination string, dry bool) error 
 	}
 
 	if dry {
-		fmt.Fprintf(r.dryStream, "> %s\n%s", destination, contents)
+		fmt.Fprintf(r.outStream, "> %s\n%s", destination, contents)
 	} else {
 		if err := r.atomicWrite(destination, contents); err != nil {
 			return err
@@ -205,7 +214,18 @@ func (r *Runner) render(template *Template, destination string, dry bool) error 
 // execute accepts a command string and runs that command string on the current
 // system.
 func (r *Runner) execute(command string) error {
-	return nil
+	var shell, flag string
+	if runtime.GOOS == "windows" {
+		shell, flag = "cmd", "/C"
+	} else {
+		shell, flag = "/bin/sh", "-c"
+	}
+
+	// Create an invoke the command
+	cmd := exec.Command(shell, flag, command)
+	cmd.Stdout = r.outStream
+	cmd.Stderr = r.errStream
+	return cmd.Run()
 }
 
 // receivedData returns true if the Runner has ever received data for the given

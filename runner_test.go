@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -18,17 +19,31 @@ func TestNewRunner_noDependencies(t *testing.T) {
 	}
 }
 
-func TestNewRunner_setsDryStream(t *testing.T) {
+func TestNewRunner_setsOutStream(t *testing.T) {
 	runner, err := NewRunner(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	buff := new(bytes.Buffer)
-	runner.SetDryStream(buff)
+	runner.SetOutStream(buff)
 
-	if runner.dryStream != buff {
-		t.Errorf("expected %q to equal %q", runner.dryStream, buff)
+	if runner.outStream != buff {
+		t.Errorf("expected %q to equal %q", runner.outStream, buff)
+	}
+}
+
+func TestNewRunner_setsErrStream(t *testing.T) {
+	runner, err := NewRunner(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buff := new(bytes.Buffer)
+	runner.SetErrStream(buff)
+
+	if runner.errStream != buff {
+		t.Errorf("expected %q to equal %q", runner.errStream, buff)
 	}
 }
 
@@ -314,7 +329,7 @@ func TestRender_noopIfMissingData(t *testing.T) {
 	}
 
 	buff := new(bytes.Buffer)
-	runner.SetDryStream(buff)
+	runner.SetOutStream(buff)
 
 	if err := runner.RunAll(true); err != nil {
 		t.Fatal(err)
@@ -351,7 +366,7 @@ func TestRender_dryRender(t *testing.T) {
 	runner.Receive(dependency, data)
 
 	buff := new(bytes.Buffer)
-	runner.SetDryStream(buff)
+	runner.SetOutStream(buff)
 
 	if err := runner.RunAll(true); err != nil {
 		t.Fatal(err)
@@ -527,5 +542,129 @@ func TestRender_outputFileRetainsPermissions(t *testing.T) {
 	expected := os.FileMode(0644)
 	if stat.Mode() != expected {
 		t.Errorf("expected %q to be %q", stat.Mode(), expected)
+	}
+}
+
+func TestExecute_doesNotRunInDry(t *testing.T) {
+	outFile := createTempfile(nil, t)
+	os.Remove(outFile.Name())
+	defer os.Remove(outFile.Name())
+
+	inTemplate := createTempfile([]byte(`
+    {{ range service "consul@nyc1"}}{{end}}
+  `), t)
+	defer deleteTempfile(inTemplate, t)
+
+	outTemplate := createTempfile(nil, t)
+	defer deleteTempfile(outTemplate, t)
+
+	ctemplates := []*ConfigTemplate{
+		&ConfigTemplate{
+			Source:      inTemplate.Name(),
+			Destination: outTemplate.Name(),
+			Command:     fmt.Sprintf("echo 'foo' > %s", outFile.Name()),
+		},
+	}
+
+	runner, err := NewRunner(ctemplates)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := runner.RunAll(true); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = os.Stat(outFile.Name())
+	if !os.IsNotExist(err) {
+		t.Fatalf("expected command to be run")
+	}
+}
+
+func TestExecute_doesNotExecuteCommandMissingDependencies(t *testing.T) {
+	outFile := createTempfile(nil, t)
+	os.Remove(outFile.Name())
+	defer os.Remove(outFile.Name())
+
+	inTemplate := createTempfile([]byte(`
+    {{ range service "consul@nyc1"}}{{end}}
+  `), t)
+	defer deleteTempfile(inTemplate, t)
+
+	outTemplate := createTempfile(nil, t)
+	defer deleteTempfile(outTemplate, t)
+
+	ctemplates := []*ConfigTemplate{
+		&ConfigTemplate{
+			Source:      inTemplate.Name(),
+			Destination: outTemplate.Name(),
+			Command:     fmt.Sprintf("echo 'foo' > %s", outFile.Name()),
+		},
+	}
+
+	runner, err := NewRunner(ctemplates)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := runner.RunAll(false); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = os.Stat(outFile.Name())
+	if !os.IsNotExist(err) {
+		t.Fatalf("expected command to be run")
+	}
+}
+
+func TestExecute_executesCommand(t *testing.T) {
+	outFile := createTempfile(nil, t)
+	os.Remove(outFile.Name())
+	defer os.Remove(outFile.Name())
+
+	inTemplate := createTempfile([]byte(`
+    {{ range service "consul@nyc1"}}{{end}}
+  `), t)
+	defer deleteTempfile(inTemplate, t)
+
+	outTemplate := createTempfile(nil, t)
+	defer deleteTempfile(outTemplate, t)
+
+	ctemplates := []*ConfigTemplate{
+		&ConfigTemplate{
+			Source:      inTemplate.Name(),
+			Destination: outTemplate.Name(),
+			Command:     fmt.Sprintf("echo 'foo' > %s", outFile.Name()),
+		},
+	}
+
+	runner, err := NewRunner(ctemplates)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	serviceDependency, err := ParseServiceDependency("consul@nyc1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data := []*Service{
+		&Service{
+			Node:    "consul",
+			Address: "1.2.3.4",
+			ID:      "consul@nyc1",
+			Name:    "consul",
+		},
+	}
+
+	runner.Receive(serviceDependency, data)
+
+	if err := runner.RunAll(false); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = os.Stat(outFile.Name())
+	if err != nil {
+		t.Fatal(err)
 	}
 }
