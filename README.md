@@ -39,7 +39,7 @@ Query the nyc1 demo Consul instance, rendering the template on disk at `/tmp/tem
 
 ```shell
 $ consul-template \
-  -consul nyc1.demo.consul.io \
+  -consul demo.consul.io \
   -template "/tmp/template.ctmpl:/tmp/result"
 ```
 
@@ -169,7 +169,7 @@ maxconns 12
 Like `key`, if you omit the datacenter attribute on `keyPrefix`, the local Consul datacenter will be queried. For more examples of the templating language, see the [Examples](#examples) section below.
 
 ### File Permission Caveats
-Consul Template uses Go's file modification libraries under the hood. As a caveat, these libraries do not preserve file permissions. If you require specific file permissions on the output file, you can use the optional `command` parameter and `chmod`, for example:
+Consul Template uses Go's file modification libraries under the hood. If a file at the destination path already exists, Consul Template will do its best to preserve the existing file permissions. For non-existent files, Go will default to the system default. If you require specific file permissions on the output file, you can use the optional `command` parameter and `chmod`, for example:
 
 ```bash
 consul-template \
@@ -196,29 +196,39 @@ global
     maxconn {{key "service/haproxy/maxconn"}}
 
 defaults
-    mode {{key "service/haproxy/mode"}}
-    {{range keyPrefix "service/haproxy/timeouts"}}
+    mode {{key "service/haproxy/mode"}}{{range keyPrefix "service/haproxy/timeouts"}}
     timeout {{.Key}}{{.Value}}{{end}}
 
 listen http-in
-    bind *:8000
-    {{range service "release.webapp"}}
-    server {{.Name}} {{.Address}}:{{.Port}}{{end}}
+    bind *:8000{{range service "release.webapp"}}
+    server {{.Node}} {{.Address}}:{{.Port}}{{end}}
 ```
 
 Save this file to disk as `haproxy.ctmpl` and  run the `consul-template` daemon:
 
 ```shell
 $ consul-template \
-  -consul nyc1.demo.consul.io:80 \
+  -consul demo.consul.io \
   -template haproxy.ctmpl:/etc/haproxy/haproxy.conf
   -dry
 ```
 
-You should see the following output:
+Depending on the state of the demo Consul instance, you could see the following output:
 
 ```text
-TODO: Run this command and add the output :)
+global
+    daemon
+    maxconn 4
+
+defaults
+    mode default
+    timeout 5
+
+listen http-in
+    bind *:8000
+    server nyc3-worker-2 104.131.109.224:80
+    server nyc3-worker-3 104.131.59.59:80
+    server nyc3-worker-1 104.131.86.92:80
 ```
 
 For more information on how to save this result to disk or for the full list of functionality available inside a Consul template file, please consult the API documentation.
@@ -228,15 +238,15 @@ Varnish is an common caching engine that can also act as a proxy. You can read m
 
 ```liquid
 import directors;
-{{range service "consul@nyc1"}}
-backend {{.Name}}_{{.ID}} {
+{{range service "consul"}}
+backend {{.Name}}_{{.Name}} {
     .host = "{{.Address}}";
     .port = "{{.Port}}";"
 }{{end}}
 
 sub vcl_init {
   new bar = directors.round_robin();
-{{range service "consul@nyc1"}}
+{{range service "consul"}}
   bar.add_backend({{.Name}}_{{.ID}});{{end}}
 }
 
@@ -257,7 +267,22 @@ $ consul-template \
 You should see the following output:
 
 ```text
-TODO: Run this command and add the output :)
+import directors;
+
+backend consul_consul {
+    .host = "104.131.109.106";
+    .port = "8300";"
+}
+
+sub vcl_init {
+  new bar = directors.round_robin();
+
+  bar.add_backend(consul_consul);
+}
+
+sub vcl_recv {
+  set req.backend_hint = bar.backend();
+}
 ```
 
 Debugging
