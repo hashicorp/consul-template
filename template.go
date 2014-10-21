@@ -237,6 +237,27 @@ func (s *Service) GoString() string {
 
 /// ------------------------- ///
 
+type ServiceList []*Service
+
+func (s ServiceList) Len() int {
+	return len(s)
+}
+
+func (s ServiceList) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s ServiceList) Less(i, j int) bool {
+	if s[i].Name < s[j].Name {
+		return true
+	} else if s[i].Name == s[j].Name {
+		return s[i].ID <= s[j].ID
+	}
+	return false
+}
+
+/// ------------------------- ///
+
 type KeyPair struct {
 	Key   string
 	Value string

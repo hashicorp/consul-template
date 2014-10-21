@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"reflect"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -335,5 +337,45 @@ func TestHashCode_returnsValue(t *testing.T) {
 	expected := "Template|/foo/bar/blitz.ctmpl"
 	if template.HashCode() != expected {
 		t.Errorf("expected %q to equal %q", template.HashCode(), expected)
+	}
+}
+
+func TestServiceList_sorts(t *testing.T) {
+	a := ServiceList{
+		&Service{Name: "a", ID: "b"},
+		&Service{Name: "a", ID: "c"},
+		&Service{Name: "b", ID: "a"},
+	}
+	b := ServiceList{
+		&Service{Name: "a", ID: "c"},
+		&Service{Name: "a", ID: "b"},
+		&Service{Name: "b", ID: "a"},
+	}
+	c := ServiceList{
+		&Service{Name: "b", ID: "a"},
+		&Service{Name: "a", ID: "b"},
+		&Service{Name: "a", ID: "c"},
+	}
+
+	sort.Stable(a)
+	sort.Stable(b)
+	sort.Stable(c)
+
+	expected := ServiceList{
+		&Service{Name: "a", ID: "b"},
+		&Service{Name: "a", ID: "c"},
+		&Service{Name: "b", ID: "a"},
+	}
+
+	if !reflect.DeepEqual(a, expected) {
+		t.Fatal("invalid sort")
+	}
+
+	if !reflect.DeepEqual(b, expected) {
+		t.Fatal("invalid sort")
+	}
+
+	if !reflect.DeepEqual(c, expected) {
+		t.Fatal("invalid sort")
 	}
 }

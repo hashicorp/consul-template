@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"sort"
 	"strconv"
 
 	api "github.com/armon/consul-api"
@@ -60,6 +61,8 @@ func (d *ServiceDependency) Fetch(client *api.Client, options *api.QueryOptions)
 			Port:    uint64(entry.Service.Port),
 		})
 	}
+
+	sort.Stable(ServiceList(services))
 
 	return services, qm, nil
 }
