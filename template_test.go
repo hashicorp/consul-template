@@ -342,19 +342,19 @@ func TestHashCode_returnsValue(t *testing.T) {
 
 func TestServiceList_sorts(t *testing.T) {
 	a := ServiceList{
-		&Service{Name: "a", ID: "b"},
-		&Service{Name: "a", ID: "c"},
-		&Service{Name: "b", ID: "a"},
+		&Service{Node: "frontend01", ID: "1"},
+		&Service{Node: "frontend01", ID: "2"},
+		&Service{Node: "frontend02", ID: "1"},
 	}
 	b := ServiceList{
-		&Service{Name: "a", ID: "c"},
-		&Service{Name: "a", ID: "b"},
-		&Service{Name: "b", ID: "a"},
+		&Service{Node: "frontend02", ID: "1"},
+		&Service{Node: "frontend01", ID: "2"},
+		&Service{Node: "frontend01", ID: "1"},
 	}
 	c := ServiceList{
-		&Service{Name: "b", ID: "a"},
-		&Service{Name: "a", ID: "b"},
-		&Service{Name: "a", ID: "c"},
+		&Service{Node: "frontend01", ID: "2"},
+		&Service{Node: "frontend01", ID: "1"},
+		&Service{Node: "frontend02", ID: "1"},
 	}
 
 	sort.Stable(a)
@@ -362,9 +362,9 @@ func TestServiceList_sorts(t *testing.T) {
 	sort.Stable(c)
 
 	expected := ServiceList{
-		&Service{Name: "a", ID: "b"},
-		&Service{Name: "a", ID: "c"},
-		&Service{Name: "b", ID: "a"},
+		&Service{Node: "frontend01", ID: "1"},
+		&Service{Node: "frontend01", ID: "2"},
+		&Service{Node: "frontend02", ID: "1"},
 	}
 
 	if !reflect.DeepEqual(a, expected) {
