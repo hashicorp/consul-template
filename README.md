@@ -323,6 +323,19 @@ $ CONSUL_TEMPLATE_LOG=debug consul-template ...
 # ...
 ```
 
+FAQ
+---
+**Q: How is this different than confd?**<br>
+A: The answer is simple: Service Discovery as a first class citizen. You are
+also encouraged to read [this Pull Request](https://github.com/kelseyhightower/confd/pull/102) on the project for more background information. We think confd is a
+great project, but Consul Template fills a missing gap.
+
+**Q: How is this different than Puppet/Chef/Ansible/Salt?**<br>
+A: Configuration management tools are designed to be used in unison with Consul
+Template. Instead of rendering a stale configuration file, use your
+configuration management software to render a dynamic template that will be
+populated by [Consul][].
+
 
 Contributing
 ------------
