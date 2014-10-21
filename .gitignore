@@ -21,5 +21,8 @@ _testmain.go
 
 *.exe
 *.test
-consul-template
+.proc
 *.conf
+
+bin/
+build/
