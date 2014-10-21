@@ -190,5 +190,5 @@ func (wd *WatchData) poll(w *Watcher) {
 
 //
 func (wd *WatchData) id() string {
-	return wd.dependency.Key()
+	return wd.dependency.Display()
 }

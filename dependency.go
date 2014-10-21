@@ -16,6 +16,7 @@ type Dependency interface {
 	GoString() string
 	HashCode() string
 	Key() string
+	Display() string
 }
 
 /// ------------------------- ///
@@ -37,8 +38,7 @@ func (d *ServiceDependency) Fetch(client *api.Client, options *api.QueryOptions)
 		options.Datacenter = d.DataCenter
 	}
 
-	log.Printf("[DEBUG] (service %s) querying Consul with %+v",
-		d.rawKey, options)
+	log.Printf("[DEBUG] (%s) querying Consul with %+v", d.Display(), options)
 
 	health := client.Health()
 	entries, qm, err := health.Service(d.Name, d.Tag, true, options)
@@ -46,8 +46,7 @@ func (d *ServiceDependency) Fetch(client *api.Client, options *api.QueryOptions)
 		return nil, qm, err
 	}
 
-	log.Printf("[DEBUG] (service %s) Consul returned %d services",
-		d.rawKey, len(entries))
+	log.Printf("[DEBUG] (%s) Consul returned %d services", d.Display(), len(entries))
 
 	services := make([]*Service, 0, len(entries))
 
@@ -75,6 +74,10 @@ func (d *ServiceDependency) GoString() string {
 
 func (d *ServiceDependency) Key() string {
 	return d.rawKey
+}
+
+func (d *ServiceDependency) Display() string {
+	return fmt.Sprintf(`service "%s"`, d.rawKey)
 }
 
 // ParseServiceDependency parses a string of the format
@@ -148,8 +151,7 @@ func (d *KeyDependency) Fetch(client *api.Client, options *api.QueryOptions) (in
 		options.Datacenter = d.DataCenter
 	}
 
-	log.Printf("[DEBUG] (key %s) querying consul with %+v",
-		d.rawKey, options)
+	log.Printf("[DEBUG] (%s) querying consul with %+v", d.Display(), options)
 
 	store := client.KV()
 	pair, qm, err := store.Get(d.Path, options)
@@ -158,12 +160,12 @@ func (d *KeyDependency) Fetch(client *api.Client, options *api.QueryOptions) (in
 	}
 
 	if pair == nil {
-		log.Printf("[DEBUG] (key %s) Consul returned nothing (does the path exist?)",
-			d.rawKey)
+		log.Printf("[DEBUG] (%s) Consul returned nothing (does the path exist?)",
+			d.Display())
 		return "", qm, nil
 	}
 
-	log.Printf("[DEBUG] (key %s) Consul returned %s", d.rawKey, pair.Value)
+	log.Printf("[DEBUG] (%s) Consul returned %s", d.Display(), pair.Value)
 
 	return string(pair.Value), qm, nil
 }
@@ -178,6 +180,10 @@ func (d *KeyDependency) GoString() string {
 
 func (d *KeyDependency) Key() string {
 	return d.rawKey
+}
+
+func (d *KeyDependency) Display() string {
+	return fmt.Sprintf(`key "%s"`, d.rawKey)
 }
 
 // ParseKeyDependency parses a string of the format a(/b(/c...))
@@ -239,8 +245,7 @@ func (d *KeyPrefixDependency) Fetch(client *api.Client, options *api.QueryOption
 		options.Datacenter = d.DataCenter
 	}
 
-	log.Printf("[DEBUG] (keyPrefix %s) querying Consul with %+v",
-		d.rawKey, options)
+	log.Printf("[DEBUG] (%s) querying Consul with %+v", d.Display(), options)
 
 	store := client.KV()
 	prefixes, qm, err := store.List(d.Prefix, options)
@@ -248,8 +253,7 @@ func (d *KeyPrefixDependency) Fetch(client *api.Client, options *api.QueryOption
 		return err, qm, nil
 	}
 
-	log.Printf("[DEBUG] (service %s) Consul returned %d key pairs",
-		d.rawKey, len(prefixes))
+	log.Printf("[DEBUG] (%s) Consul returned %d key pairs", d.Display(), len(prefixes))
 
 	keyPairs := make([]*KeyPair, 0, len(prefixes))
 
@@ -273,6 +277,10 @@ func (d *KeyPrefixDependency) GoString() string {
 
 func (d *KeyPrefixDependency) Key() string {
 	return d.rawKey
+}
+
+func (d *KeyPrefixDependency) Display() string {
+	return fmt.Sprintf(`keyPrefix "%s"`, d.rawKey)
 }
 
 // ParseKeyDependency parses a string of the format a(/b(/c...))

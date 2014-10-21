@@ -32,6 +32,10 @@ func (d *fakeDependencyFetchError) Key() string {
 	return d.name
 }
 
+func (d *fakeDependencyFetchError) Display() string {
+	return "fakedep"
+}
+
 /// ------------------------- ///
 
 type fakeDependency struct {
@@ -54,6 +58,10 @@ func (d *fakeDependency) HashCode() string {
 
 func (d *fakeDependency) Key() string {
 	return d.name
+}
+
+func (d *fakeDependency) Display() string {
+	return "fakedep"
 }
 
 /// ------------------------- ///
