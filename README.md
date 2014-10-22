@@ -1,7 +1,7 @@
 Consul Template
 ===============
 
-This project provides a convienent way to populate values from [Consul][] into the filesystem using the `consul-template` daemon.
+This project provides a convenient way to populate values from [Consul][] into the filesystem using the `consul-template` daemon.
 
 The daemon `consul-template` queries a [Consul][] instance and updates any number of specified templates on the filesystem. As an added bonus, `consul-template` can optionally run arbitrary commands when the update process completes. See the [Examples](#examples) section for some scenarios were this functionality might prove useful.
 
@@ -345,7 +345,7 @@ To hack on Consul Template, you will need a modern [Go][] environment. To compil
 $ make
 ```
 
-This will compile the `consul-template` bintary into `bin/consul-template` and run the test suite.
+This will compile the `consul-template` binary into `bin/consul-template` and run the test suite.
 
 If you just want to run the tests:
 
