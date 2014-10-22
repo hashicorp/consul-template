@@ -68,7 +68,7 @@ func TestDependencies_funcsDuplicates(t *testing.T) {
 
 func TestDependencies_funcsError(t *testing.T) {
 	inTemplate := createTempfile([]byte(`
-    {{ range service "totally/not/a/valid/service" }}{{ end }}
+    {{ range service "totally&not&a&valid&service" }}{{ end }}
   `), t)
 	defer deleteTempfile(inTemplate, t)
 

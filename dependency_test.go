@@ -59,6 +59,21 @@ func TestParseServiceDependency_name(t *testing.T) {
 	}
 }
 
+func TestParseServiceDependency_slashName(t *testing.T) {
+	sd, err := ParseServiceDependency("web/app")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := &ServiceDependency{
+		rawKey: "web/app",
+		Name:   "web/app",
+	}
+	if !reflect.DeepEqual(sd, expected) {
+		t.Errorf("expected %#v to equal %#v", sd, expected)
+	}
+}
+
 func TestParseServiceDependency_nameTag(t *testing.T) {
 	sd, err := ParseServiceDependency("release.webapp")
 	if err != nil {

@@ -93,7 +93,7 @@ func ParseServiceDependency(s string) (*ServiceDependency, error) {
 	// (tag.)service(@datacenter(:port))
 	re := regexp.MustCompile(`\A` +
 		`((?P<tag>[[:word:]\-]+)\.)?` +
-		`((?P<name>[[:word:]\-]+))` +
+		`((?P<name>[[:word:]\-/]+))` +
 		`(@(?P<datacenter>[[:word:]\.\-]+))?(:(?P<port>[0-9]+))?` +
 		`\z`)
 	names := re.SubexpNames()
