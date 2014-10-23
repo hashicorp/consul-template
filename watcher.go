@@ -107,7 +107,7 @@ func (w *Watcher) init() error {
 	}
 
 	if len(w.dependencies) == 0 {
-		return fmt.Errorf("watcher: must supply at least one Dependency")
+		log.Printf("[WARN] (watcher) no dependencies in template(s)")
 	}
 
 	// Setup the chans

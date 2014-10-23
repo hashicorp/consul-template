@@ -23,13 +23,8 @@ func TestNewWatcher_noClient(t *testing.T) {
 
 func TestNewWatcher_noDependencies(t *testing.T) {
 	_, err := NewWatcher(&api.Client{}, nil)
-	if err == nil {
-		t.Fatal("expected error, but nothing was returned")
-	}
-
-	expected := "watcher: must supply at least one Dependency"
-	if !strings.Contains(err.Error(), expected) {
-		t.Errorf("expected %q to contain %q", err.Error(), expected)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
