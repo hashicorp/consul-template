@@ -179,6 +179,10 @@ func (wd *WatchData) poll(w *Watcher) {
 		w.DataCh <- wd
 
 		// Break from the function if we are done
+		if qm==nil {
+			// we only render json once
+			return
+		}
 		select {
 		case <-w.stopCh:
 			log.Printf("[DEBUG] (%s) stopping poll (received on stopCh)", wd.id())
