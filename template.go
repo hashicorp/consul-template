@@ -72,6 +72,7 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 		"service":   c.Evaluator(DependencyTypeService),
 		"key":       c.Evaluator(DependencyTypeKey),
 		"keyPrefix": c.Evaluator(DependencyTypeKeyPrefix),
+		"json": c.Evaluator(DependencyTypeJson),
 	}).Parse(string(contents))
 
 	if err != nil {
@@ -101,6 +102,7 @@ func (t *Template) init() error {
 		"service":   t.dependencyAcc(depsMap, DependencyTypeService),
 		"key":       t.dependencyAcc(depsMap, DependencyTypeKey),
 		"keyPrefix": t.dependencyAcc(depsMap, DependencyTypeKeyPrefix),
+		"json":      t.dependencyAcc(depsMap, DependencyTypeJson),
 	}).Parse(string(contents))
 
 	if err != nil {
@@ -157,6 +159,16 @@ func (t *Template) dependencyAcc(depsMap map[string]Dependency, dt DependencyTyp
 			}
 
 			return []*KeyPair{}, nil
+		case DependencyTypeJson:
+			d, err := ParseJsonDependency(s)
+			if err != nil {
+				return nil, err
+			}
+			if _, ok := depsMap[d.HashCode()]; !ok {
+				depsMap[d.HashCode()] = d
+			}
+
+			return []*KeyPair{}, nil
 		default:
 			return nil, fmt.Errorf("unknown DependencyType %#v", dt)
 		}
@@ -175,12 +187,16 @@ func (t *Template) validateDependencies(c *TemplateContext) error {
 			if _, ok := c.Keys[d.Key()]; !ok {
 				return fmt.Errorf("templateContext missing key `%s'", d.Key())
 			}
+		case *JsonDependency:
+			if _, ok := c.Json[d.Key()]; !ok {
+				return fmt.Errorf("templateContext missing key `%s'", d.Key())
+			}
 		case *KeyPrefixDependency:
 			if _, ok := c.KeyPrefixes[d.Key()]; !ok {
 				return fmt.Errorf("templateContext missing keyPrefix `%s'", d.Key())
 			}
 		default:
-			return fmt.Errorf("unknown dependency type %#v", d)
+			return fmt.Errorf("unknown dependency type in template e %#v", d)
 		}
 	}
 
@@ -195,6 +211,7 @@ type TemplateContext struct {
 	Services    map[string][]*Service
 	Keys        map[string]string
 	KeyPrefixes map[string][]*KeyPair
+	Json        map[string]string
 }
 
 // GoString returns the detailed format of this object
@@ -213,6 +230,8 @@ func (c *TemplateContext) Evaluator(dt DependencyType) func(string) (interface{}
 			return c.Keys[s], nil
 		case DependencyTypeKeyPrefix:
 			return c.KeyPrefixes[s], nil
+		case DependencyTypeJson:
+			return c.Json[s], nil
 		default:
 			return nil, fmt.Errorf("unexpected DependencyType %#v", dt)
 		}
@@ -276,4 +295,5 @@ const (
 	DependencyTypeService
 	DependencyTypeKey
 	DependencyTypeKeyPrefix
+	DependencyTypeJson
 )

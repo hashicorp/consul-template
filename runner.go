@@ -255,6 +255,7 @@ func (r *Runner) templateContextFor(template *Template) (*TemplateContext, error
 		Services:    make(map[string][]*Service),
 		Keys:        make(map[string]string),
 		KeyPrefixes: make(map[string][]*KeyPair),
+		Json:        make(map[string]string),
 	}
 
 	for _, dependency := range template.Dependencies() {
@@ -265,6 +266,8 @@ func (r *Runner) templateContextFor(template *Template) (*TemplateContext, error
 			context.Services[dependency.Key()] = data.([]*Service)
 		case *KeyDependency:
 			context.Keys[dependency.Key()] = data.(string)
+		case *JsonDependency:
+			context.Json[dependency.Key()] = data.(string)
 		case *KeyPrefixDependency:
 			context.KeyPrefixes[dependency.Key()] = data.([]*KeyPair)
 		default:
