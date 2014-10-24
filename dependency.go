@@ -7,7 +7,8 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
-
+	"io/ioutil"
+	"encoding/json"
 	api "github.com/armon/consul-api"
 )
 
@@ -231,7 +232,82 @@ func ParseKeyDependency(s string) (*KeyDependency, error) {
 	return kd, nil
 }
 
+func ParseJsonDependency(s string) (*JsonDependency, error) {
+	if len(s) == 0 {
+		return nil, errors.New("cannot specify empty key dependency")
+	}
+
+	// a(/b(/c))(@datacenter)
+	re := regexp.MustCompile(`\A` +
+		`(?P<key>[[:word:]\.\-\/]+)` +
+		`(@(?P<jsonfile>[[:word:]\.\-/]+))` +
+		`\z`)
+	names := re.SubexpNames()
+	match := re.FindAllStringSubmatch(s, -1)
+
+	if len(match) == 0 {
+		return nil, errors.New("invalid key dependency format")
+	}
+
+	r := match[0]
+
+	m := map[string]string{}
+	for i, n := range r {
+		if names[i] != "" {
+			m[names[i]] = n
+		}
+	}
+
+	key, file := m["key"], m["jsonfile"]
+
+	if key == "" {
+		return nil, errors.New("key part is required")
+	}
+	if file == "" {
+		return nil, errors.New("file part is required")
+	}
+
+	kd := &JsonDependency{
+		rawKey:     s,
+	        jsonKey: key,
+		File:   file,
+	}
+
+	return kd, nil
+}
+
 /// ------------------------- ///
+
+type JsonDependency struct {
+	rawKey     string
+	File       string
+	jsonKey    string
+}
+
+func (d *JsonDependency) HashCode() string {
+	return fmt.Sprintf("KeyPrefixDependency|%s", d.Key())
+}
+
+func (d *JsonDependency) Key() string {
+	return d.rawKey
+}
+
+func (d *JsonDependency) Display() string {
+	return fmt.Sprintf(`json "%s"`, d.rawKey)
+}
+
+func (d *JsonDependency) GoString() string {
+	return fmt.Sprintf("*%#v", *d)
+}
+
+func (d *JsonDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
+	
+	log.Printf("[DEBUG] (%s) querying Json file", d.Display())
+	kv := make(map[string]string)
+	data,_ := ioutil.ReadFile(d.File)
+	json.Unmarshal(data,&kv)	
+	return kv[d.jsonKey], nil, nil
+}
 
 // KeyPrefixDependency is the representation of a requested key dependency
 // from inside a template.
@@ -241,8 +317,7 @@ type KeyPrefixDependency struct {
 	DataCenter string
 }
 
-// Fetch queries the Consul API defined by the given client and returns a slice
-// of KeyPair objects.
+
 func (d *KeyPrefixDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
 	if d.DataCenter != "" {
 		options.Datacenter = d.DataCenter
@@ -269,6 +344,7 @@ func (d *KeyPrefixDependency) Fetch(client *api.Client, options *api.QueryOption
 
 	return keyPairs, qm, nil
 }
+
 
 func (d *KeyPrefixDependency) HashCode() string {
 	return fmt.Sprintf("KeyPrefixDependency|%s", d.Key())
