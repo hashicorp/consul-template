@@ -234,19 +234,19 @@ func ParseKeyDependency(s string) (*KeyDependency, error) {
 
 func ParseJsonDependency(s string) (*JsonDependency, error) {
 	if len(s) == 0 {
-		return nil, errors.New("cannot specify empty key dependency")
+		return nil, errors.New("cannot specify empty json dependency")
 	}
 
 	// a(/b(/c))(@datacenter)
 	re := regexp.MustCompile(`\A` +
 		`(?P<key>[[:word:]\.\-\/]+)` +
-		`(@(?P<jsonfile>[[:word:]\.\-/]+))` +
+		`(@(?P<jsonfile>.+))` +
 		`\z`)
 	names := re.SubexpNames()
 	match := re.FindAllStringSubmatch(s, -1)
 
 	if len(match) == 0 {
-		return nil, errors.New("invalid key dependency format")
+		return nil, errors.New("invalid json dependency format")
 	}
 
 	r := match[0]
