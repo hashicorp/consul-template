@@ -304,9 +304,18 @@ func (d *JsonDependency) Fetch(client *api.Client, options *api.QueryOptions) (i
 	
 	log.Printf("[DEBUG] (%s) querying Json file", d.Display())
 	kv := make(map[string]string)
-	data,_ := ioutil.ReadFile(d.File)
-	json.Unmarshal(data,&kv)	
-	return kv[d.jsonKey], nil, nil
+	var err error = nil
+	var data []byte;
+	if data,err = ioutil.ReadFile(d.File); err==nil {
+		if err = json.Unmarshal(data,&kv); err==nil {
+			if v,ok:=kv[d.jsonKey]; ok {
+				return v, nil, nil
+			} else {
+				err = fmt.Errorf("key '%s' (in file %s) not found", d.jsonKey, d.File)
+			}
+		}
+	}
+	return "",nil,err
 }
 
 // KeyPrefixDependency is the representation of a requested key dependency
@@ -318,6 +327,8 @@ type KeyPrefixDependency struct {
 }
 
 
+// Fetch queries the Consul API defined by the given client and returns a slice
+// of KeyPair objects
 func (d *KeyPrefixDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
 	if d.DataCenter != "" {
 		options.Datacenter = d.DataCenter
