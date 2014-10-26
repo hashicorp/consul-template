@@ -383,6 +383,91 @@ func TestRender_dryRender(t *testing.T) {
 	}
 }
 
+func TestRender_sameContentsDoesNotRender(t *testing.T) {
+	inTemplate := createTempfile([]byte(`
+    {{range service "consul@nyc1"}}{{.Node}}{{end}}
+  `), t)
+	defer deleteTempfile(inTemplate, t)
+
+	outTemplate := createTempfile([]byte(`
+    consul1consul2
+  `), t)
+	defer deleteTempfile(outTemplate, t)
+
+	configTemplates := []*ConfigTemplate{
+		&ConfigTemplate{
+			Source:      inTemplate.Name(),
+			Destination: outTemplate.Name(),
+		},
+	}
+
+	runner, err := NewRunner(configTemplates)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dependency := runner.Dependencies()[0]
+	data := []*Service{
+		&Service{Node: "consul1"},
+		&Service{Node: "consul2"},
+	}
+	runner.Receive(dependency, data)
+
+	rendered, err := runner.render(runner.templates[0], outTemplate.Name(), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if rendered {
+		t.Fatal("expected file to not be rendered")
+	}
+}
+
+func TestRender_sameContentsDoesNotExecuteCommand(t *testing.T) {
+	outFile := createTempfile(nil, t)
+	os.Remove(outFile.Name())
+	defer os.Remove(outFile.Name())
+
+	inTemplate := createTempfile([]byte(`
+    {{range service "consul@nyc1"}}{{.Node}}{{end}}
+  `), t)
+	defer deleteTempfile(inTemplate, t)
+
+	outTemplate := createTempfile([]byte(`
+    consul1consul2
+  `), t)
+	defer deleteTempfile(outTemplate, t)
+
+	configTemplates := []*ConfigTemplate{
+		&ConfigTemplate{
+			Source:      inTemplate.Name(),
+			Destination: outTemplate.Name(),
+			Command:     fmt.Sprintf("echo 'foo' > %s", outFile.Name()),
+		},
+	}
+
+	runner, err := NewRunner(configTemplates)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dependency := runner.Dependencies()[0]
+	data := []*Service{
+		&Service{Node: "consul1"},
+		&Service{Node: "consul2"},
+	}
+	runner.Receive(dependency, data)
+
+	if err := runner.RunAll(false); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = os.Stat(outFile.Name())
+	if !os.IsNotExist(err) {
+		t.Fatalf("expected command to not be run")
+	}
+}
+
 func TestRender_containingFolderMissing(t *testing.T) {
 	inTemplate := createTempfile([]byte(`
     {{range service "consul@nyc1"}}{{.Node}}{{end}}
@@ -577,7 +662,7 @@ func TestExecute_doesNotRunInDry(t *testing.T) {
 
 	_, err = os.Stat(outFile.Name())
 	if !os.IsNotExist(err) {
-		t.Fatalf("expected command to be run")
+		t.Fatalf("expected command to not be run")
 	}
 }
 
@@ -613,7 +698,7 @@ func TestExecute_doesNotExecuteCommandMissingDependencies(t *testing.T) {
 
 	_, err = os.Stat(outFile.Name())
 	if !os.IsNotExist(err) {
-		t.Fatalf("expected command to be run")
+		t.Fatalf("expected command to not be run")
 	}
 }
 
