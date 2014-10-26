@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -90,12 +91,14 @@ func (r *Runner) RunAll(dry bool) error {
 
 		for _, ctemplate := range r.configTemplatesFor(template) {
 			// Render the template, taking dry mode into account
-			if err := r.render(template, ctemplate.Destination, dry); err != nil {
+			rendered, err := r.render(template, ctemplate.Destination, dry)
+			if err != nil {
 				return err
 			}
 
-			// If we are not in dry-run mode, fire any commands
-			if !dry {
+			// If the template was rendered (changed) and we are not in dry-run mode,
+			// aggregate commands
+			if rendered && !dry {
 				if ctemplate.Command != "" {
 					commands = append(commands, ctemplate.Command)
 				}
@@ -185,30 +188,45 @@ func (r *Runner) canRender(template *Template) bool {
 // Render accepts a Template and a destinations. This will return an error if
 // the Template is not ready to be rendered. You can check if a Template is
 // renderable using canRender().
-func (r *Runner) render(template *Template, destination string, dry bool) error {
+//
+// If the template has changed on disk, this method return true.
+//
+// If the template already exists and has the same contents as the "would-be"
+// template, no action is taken. In this scenario, the render function returns
+// false, indicating no template change has occurred.
+func (r *Runner) render(template *Template, destination string, dry bool) (bool, error) {
 	if !r.canRender(template) {
-		return fmt.Errorf("runner: template data not ready")
+		return false, fmt.Errorf("runner: template data not ready")
 	}
 
 	context, err := r.templateContextFor(template)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	contents, err := template.Execute(context)
 	if err != nil {
-		return err
+		return false, err
+	}
+
+	existingContents, err := ioutil.ReadFile(destination)
+	if err != nil && !os.IsNotExist(err) {
+		return false, err
+	}
+
+	if bytes.Equal(contents, existingContents) {
+		return false, nil
 	}
 
 	if dry {
 		fmt.Fprintf(r.outStream, "> %s\n%s", destination, contents)
 	} else {
 		if err := r.atomicWrite(destination, contents); err != nil {
-			return err
+			return false, err
 		}
 	}
 
-	return nil
+	return true, nil
 }
 
 // execute accepts a command string and runs that command string on the current
