@@ -89,6 +89,22 @@ func TestParseServiceDependency_underscoreName(t *testing.T) {
 	}
 }
 
+func TestParseServiceDependency_dotTag(t *testing.T) {
+	sd, err := ParseServiceDependency("first.release.webapp")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := &ServiceDependency{
+		rawKey: "first.release.webapp",
+		Name:   "webapp",
+		Tag:    "first.release",
+	}
+	if !reflect.DeepEqual(sd, expected) {
+		t.Errorf("expected %#v to equal %#v", sd, expected)
+	}
+}
+
 func TestParseServiceDependency_nameTag(t *testing.T) {
 	sd, err := ParseServiceDependency("release.webapp")
 	if err != nil {
