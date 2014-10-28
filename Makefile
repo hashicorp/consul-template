@@ -1,3 +1,4 @@
+NAME = `cat ./main.go | grep "Name = " | cut -d" " -f4 | sed 's/[^"]*"\([^"]*\).*/\1/'`
 VERSION = `cat ./main.go | grep "Version = " | cut -d" " -f4 | sed 's/[^"]*"\([^"]*\).*/\1/'`
 DEPS = $(go list -f '{{range .TestImports}}{{.}} {{end}}' ./...)
 
@@ -9,7 +10,7 @@ deps:
 
 build:
 	@mkdir -p bin/
-	go build -o bin/consul-template
+	go build -o bin/$(NAME)
 
 test: deps
 	go list ./... | xargs -n1 go test -timeout=3s
@@ -18,7 +19,7 @@ xcompile: deps test
 	@rm -rf build/
 	@mkdir -p build
 	gox \
-		-output="build/{{.Dir}}_$(VERSION)_{{.OS}}_{{.Arch}}/consul-template"
+		-output="build/{{.Dir}}_$(VERSION)_{{.OS}}_{{.Arch}}/$(NAME)"
 
 package: xcompile
 	$(eval FILES := $(shell ls build))
