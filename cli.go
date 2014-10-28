@@ -231,7 +231,7 @@ Options:
 
   -consul=<address>        Sets the address of the Consul instance
   -token=<token>           Sets the Consul API token
-  -template=<template>      Adds a new template to watch on disk in the format
+  -template=<template>     Adds a new template to watch on disk in the format
                            'templatePath:outputPath(:command)'.
   -wait=<duration>         Sets the 'minumum(:maximum)' amount of time to wait
                            before writing a template (and triggering a command)
