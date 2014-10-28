@@ -5,7 +5,7 @@ import (
 )
 
 const Name = "consul-template"
-const Version = "0.1.0"
+const Version = "0.1.1"
 
 func main() {
 	cli := &CLI{outStream: os.Stdout, errStream: os.Stderr}
