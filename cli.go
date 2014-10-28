@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -50,9 +49,11 @@ func (cli *CLI) Run(args []string) int {
 	var config = new(Config)
 
 	// Parse the flags and options
-	cmd := filepath.Base(args[0])
 	flags := flag.NewFlagSet(Name, flag.ContinueOnError)
 	flags.SetOutput(cli.errStream)
+	flags.Usage = func() {
+		fmt.Fprintf(cli.errStream, usage, Name)
+	}
 	flags.StringVar(&config.Consul, "consul", "",
 		"address of the Consul instance")
 	flags.Var((*configTemplateVar)(&config.ConfigTemplates), "template",
@@ -71,7 +72,6 @@ func (cli *CLI) Run(args []string) int {
 
 	// If there was a parser error, stop
 	if err := flags.Parse(args[1:]); err != nil {
-		err = fmt.Errorf("%s\n\n%s", err.Error(), usage)
 		return cli.handleError(err, ExitCodeParseFlagsError)
 	}
 
@@ -80,7 +80,7 @@ func (cli *CLI) Run(args []string) int {
 	// print their version on stderr anyway.
 	if version {
 		log.Printf("[DEBUG] (cli) version flag was given, exiting now")
-		fmt.Fprintf(cli.errStream, "%s v%s\n", cmd, Version)
+		fmt.Fprintf(cli.errStream, "%s v%s\n", Name, Version)
 		return ExitCodeOK
 	}
 
@@ -89,7 +89,6 @@ func (cli *CLI) Run(args []string) int {
 		log.Printf("[DEBUG] (cli) detected -wait, parsing")
 		wait, err := ParseWait(config.WaitRaw)
 		if err != nil {
-			err = fmt.Errorf("%s\n\n%s", err.Error(), usage)
 			return cli.handleError(err, ExitCodeParseWaitError)
 		}
 		config.Wait = wait
@@ -101,7 +100,6 @@ func (cli *CLI) Run(args []string) int {
 		log.Printf("[DEBUG] (cli) detected -config, merging")
 		fileConfig, err := ParseConfig(config.Path)
 		if err != nil {
-			err = fmt.Errorf("%s\n\n%s", err.Error(), usage)
 			return cli.handleError(err, ExitCodeParseConfigError)
 		}
 
