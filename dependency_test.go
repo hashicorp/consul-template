@@ -24,6 +24,21 @@ func TestServiceDependencyFetch(t *testing.T) {
 	}
 }
 
+func TestFileDependencyFetch(t *testing.T) {
+	data := `{"foo":"bar"}`
+	inTemplate := createTempfile([]byte(data), t)
+	defer deleteTempfile(inTemplate, t)
+
+	dep := &FileDependency{
+		rawKey: inTemplate.Name(),
+	}
+	if read,_,err :=dep.Fetch(nil,nil); err!=nil {
+		t.Fatal("Error reading data")
+	} else if read!=data {
+		t.Fatal("Read data was not identical")
+	}
+}
+
 func TestServiceDependencyHashCode_isUnique(t *testing.T) {
 	dep1 := &ServiceDependency{rawKey: "redis@nyc1"}
 	dep2 := &ServiceDependency{rawKey: "redis@nyc2"}
