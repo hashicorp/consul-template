@@ -3,12 +3,12 @@ package main
 import (
 	"errors"
 	"fmt"
+	api "github.com/armon/consul-api"
+	"io/ioutil"
 	"log"
 	"regexp"
 	"sort"
 	"strconv"
-	"io/ioutil"
-	api "github.com/armon/consul-api"
 )
 
 // Dependency is an interface
@@ -241,7 +241,7 @@ func ParseFileDependency(s string) (*FileDependency, error) {
 	}
 
 	kd := &FileDependency{
-		rawKey:     s,
+		rawKey: s,
 	}
 
 	return kd, nil
@@ -250,7 +250,7 @@ func ParseFileDependency(s string) (*FileDependency, error) {
 /// ------------------------- ///
 
 type FileDependency struct {
-	rawKey     string
+	rawKey string
 }
 
 func (d *FileDependency) HashCode() string {
@@ -270,14 +270,14 @@ func (d *FileDependency) GoString() string {
 }
 
 func (d *FileDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
-	
+
 	log.Printf("[DEBUG] (%s) querying file", d.Display())
 	var err error = nil
-	var data []byte;
-	if data,err = ioutil.ReadFile(d.rawKey); err==nil {
-		return string(data),nil,err
+	var data []byte
+	if data, err = ioutil.ReadFile(d.rawKey); err == nil {
+		return string(data), nil, err
 	}
-	return "",nil,err
+	return "", nil, err
 }
 
 // KeyPrefixDependency is the representation of a requested key dependency
@@ -287,7 +287,6 @@ type KeyPrefixDependency struct {
 	Prefix     string
 	DataCenter string
 }
-
 
 // Fetch queries the Consul API defined by the given client and returns a slice
 // of KeyPair objects
@@ -317,7 +316,6 @@ func (d *KeyPrefixDependency) Fetch(client *api.Client, options *api.QueryOption
 
 	return keyPairs, qm, nil
 }
-
 
 func (d *KeyPrefixDependency) HashCode() string {
 	return fmt.Sprintf("KeyPrefixDependency|%s", d.Key())

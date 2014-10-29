@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/yasuyuky/jsonpath"
 	"io/ioutil"
 	"text/template"
-	"github.com/yasuyuky/jsonpath"
 )
 
 type Template struct {
@@ -49,10 +49,10 @@ func (t *Template) Dependencies() []Dependency {
 
 // Decodestring calls jsonpath.DecodeString, which returns a structure for valid json
 func DecodeString(s string) (interface{}, error) {
-	if len(s)>0 {
+	if len(s) > 0 {
 		return jsonpath.DecodeString(s)
 	} else {
-		return map[string]interface{}{},nil
+		return map[string]interface{}{}, nil
 	}
 }
 

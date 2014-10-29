@@ -136,8 +136,8 @@ func TestExecute_json(t *testing.T) {
 	}
 	if data, executeErr := template.Execute(context); executeErr != nil {
 		t.Errorf("Should be able to parse json")
-	} else if string(data)!="bar" {
-	        t.Errorf("Should be equal '%s' == 'bar'", data)
+	} else if string(data) != "bar" {
+		t.Errorf("Should be equal '%s' == 'bar'", data)
 	}
 }
 
