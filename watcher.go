@@ -156,14 +156,13 @@ func (wd *WatchData) poll(w *Watcher) {
 
 		// Consul is allowed to return even if there's no new data. Ignore data if
 		// the index is the same. If there's no qm, it's a file query
-		if qm != nil {
-			if qm.LastIndex == wd.lastIndex {
-				log.Printf("[DEBUG] (%s) no new data (index was the same)", wd.id())
-				continue
-			}
-			// Update the index in case we got a new version, but the data is the same
-			wd.lastIndex = qm.LastIndex
+
+		if qm.LastIndex == wd.lastIndex {
+			log.Printf("[DEBUG] (%s) no new data (index was the same)", wd.id())
+			continue
 		}
+		// Update the index in case we got a new version, but the data is the same
+		wd.lastIndex = qm.LastIndex
 
 		// Do not trigger a render if we have gotten data and the data is the same
 		if wd.receivedData && reflect.DeepEqual(data, wd.data) {
@@ -179,10 +178,6 @@ func (wd *WatchData) poll(w *Watcher) {
 		w.DataCh <- wd
 
 		// Break from the function if we are done
-		if qm == nil {
-			// we only render files once
-			return
-		}
 		select {
 		case <-w.stopCh:
 			log.Printf("[DEBUG] (%s) stopping poll (received on stopCh)", wd.id())
