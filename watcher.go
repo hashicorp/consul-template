@@ -157,7 +157,7 @@ func (wd *WatchData) poll(w *Watcher) {
 		// Consul is allowed to return even if there's no new data. Ignore data if
 		// the index is the same. If there's no qm, it's a file query
 		if qm != nil {
-			if  qm.LastIndex == wd.lastIndex {
+			if qm.LastIndex == wd.lastIndex {
 				log.Printf("[DEBUG] (%s) no new data (index was the same)", wd.id())
 				continue
 			}
@@ -179,7 +179,7 @@ func (wd *WatchData) poll(w *Watcher) {
 		w.DataCh <- wd
 
 		// Break from the function if we are done
-		if qm==nil {
+		if qm == nil {
 			// we only render files once
 			return
 		}

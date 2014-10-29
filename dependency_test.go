@@ -32,9 +32,9 @@ func TestFileDependencyFetch(t *testing.T) {
 	dep := &FileDependency{
 		rawKey: inTemplate.Name(),
 	}
-	if read,_,err :=dep.Fetch(nil,nil); err!=nil {
+	if read, _, err := dep.Fetch(nil, nil); err != nil {
 		t.Fatal("Error reading data")
-	} else if read!=data {
+	} else if read != data {
 		t.Fatal("Read data was not identical")
 	}
 }
