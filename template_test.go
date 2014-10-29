@@ -120,6 +120,27 @@ func TestExecute_dependenciesError(t *testing.T) {
 	}
 }
 
+func TestExecute_json(t *testing.T) {
+	inTemplate := createTempfile([]byte(`{{(file "data.json" | json).foo}}`), t)
+	defer deleteTempfile(inTemplate, t)
+
+	template, err := NewTemplate(inTemplate.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	context := &TemplateContext{
+		File: map[string]string{
+			"data.json": `{"foo":"bar"}`,
+		},
+	}
+	if data, executeErr := template.Execute(context); executeErr != nil {
+		t.Errorf("Should be able to parse json")
+	} else if string(data) != "bar" {
+		t.Errorf("Should be equal '%q' == 'bar'", data)
+	}
+}
+
 func TestExecute_missingService(t *testing.T) {
 	inTemplate := createTempfile([]byte(`
     {{ range service "release.webapp" }}{{ end }}

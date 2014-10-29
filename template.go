@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/yasuyuky/jsonpath"
 	"io/ioutil"
 	"text/template"
 )
@@ -46,12 +47,22 @@ func (t *Template) Dependencies() []Dependency {
 	return t.dependencies
 }
 
+// Decodestring calls jsonpath.DecodeString, which returns a structure for valid json
+func DecodeString(s string) (interface{}, error) {
+	if len(s) > 0 {
+		return jsonpath.DecodeString(s)
+	} else {
+		return map[string]interface{}{}, nil
+	}
+}
+
 // Execute takes the given template context and processes the template.
 //
 // If the TemplateContext is nil, an error will be returned.
 //
 // If the TemplateContext does not have all required Dependencies, an error will
 // be returned.
+
 func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 	if c == nil {
 		return nil, errors.New("templateContext must be given")
@@ -72,6 +83,8 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 		"service":   c.Evaluator(DependencyTypeService),
 		"key":       c.Evaluator(DependencyTypeKey),
 		"keyPrefix": c.Evaluator(DependencyTypeKeyPrefix),
+		"file":      c.Evaluator(DependencyTypeFile),
+		"json":      DecodeString,
 	}).Parse(string(contents))
 
 	if err != nil {
@@ -101,6 +114,8 @@ func (t *Template) init() error {
 		"service":   t.dependencyAcc(depsMap, DependencyTypeService),
 		"key":       t.dependencyAcc(depsMap, DependencyTypeKey),
 		"keyPrefix": t.dependencyAcc(depsMap, DependencyTypeKeyPrefix),
+		"file":      t.dependencyAcc(depsMap, DependencyTypeFile),
+		"json":      DecodeString,
 	}).Parse(string(contents))
 
 	if err != nil {
@@ -157,6 +172,16 @@ func (t *Template) dependencyAcc(depsMap map[string]Dependency, dt DependencyTyp
 			}
 
 			return []*KeyPair{}, nil
+		case DependencyTypeFile:
+			d, err := ParseFileDependency(s)
+			if err != nil {
+				return nil, err
+			}
+			if _, ok := depsMap[d.HashCode()]; !ok {
+				depsMap[d.HashCode()] = d
+			}
+
+			return "", nil
 		default:
 			return nil, fmt.Errorf("unknown DependencyType %#v", dt)
 		}
@@ -175,12 +200,16 @@ func (t *Template) validateDependencies(c *TemplateContext) error {
 			if _, ok := c.Keys[d.Key()]; !ok {
 				return fmt.Errorf("templateContext missing key `%s'", d.Key())
 			}
+		case *FileDependency:
+			if _, ok := c.File[d.Key()]; !ok {
+				return fmt.Errorf("templateContext missing file `%s'", d.Key())
+			}
 		case *KeyPrefixDependency:
 			if _, ok := c.KeyPrefixes[d.Key()]; !ok {
 				return fmt.Errorf("templateContext missing keyPrefix `%s'", d.Key())
 			}
 		default:
-			return fmt.Errorf("unknown dependency type %#v", d)
+			return fmt.Errorf("unknown dependency type in template e %#v", d)
 		}
 	}
 
@@ -195,6 +224,7 @@ type TemplateContext struct {
 	Services    map[string][]*Service
 	Keys        map[string]string
 	KeyPrefixes map[string][]*KeyPair
+	File        map[string]string
 }
 
 // GoString returns the detailed format of this object
@@ -213,6 +243,8 @@ func (c *TemplateContext) Evaluator(dt DependencyType) func(string) (interface{}
 			return c.Keys[s], nil
 		case DependencyTypeKeyPrefix:
 			return c.KeyPrefixes[s], nil
+		case DependencyTypeFile:
+			return c.File[s], nil
 		default:
 			return nil, fmt.Errorf("unexpected DependencyType %#v", dt)
 		}
@@ -276,4 +308,5 @@ const (
 	DependencyTypeService
 	DependencyTypeKey
 	DependencyTypeKeyPrefix
+	DependencyTypeFile
 )

@@ -3,12 +3,12 @@ package main
 import (
 	"errors"
 	"fmt"
+	api "github.com/armon/consul-api"
+	"io/ioutil"
 	"log"
 	"regexp"
 	"sort"
 	"strconv"
-
-	api "github.com/armon/consul-api"
 )
 
 // Dependency is an interface
@@ -231,7 +231,58 @@ func ParseKeyDependency(s string) (*KeyDependency, error) {
 	return kd, nil
 }
 
+func ParseFileDependency(s string) (*FileDependency, error) {
+	if len(s) == 0 {
+		return nil, errors.New("cannot specify empty file dependency")
+	}
+
+	if s == "" {
+		return nil, errors.New("file part is required")
+	}
+
+	kd := &FileDependency{
+		rawKey: s,
+	}
+
+	return kd, nil
+}
+
 /// ------------------------- ///
+
+type FileDependency struct {
+	rawKey string
+}
+
+func (d *FileDependency) HashCode() string {
+	return fmt.Sprintf("KeyPrefixDependency|%s", d.Key())
+}
+
+func (d *FileDependency) Key() string {
+	return d.rawKey
+}
+
+func (d *FileDependency) Display() string {
+	return fmt.Sprintf(`file "%s"`, d.rawKey)
+}
+
+func (d *FileDependency) GoString() string {
+	return fmt.Sprintf("*%#v", *d)
+}
+
+func (d *FileDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
+
+	log.Printf("[DEBUG] (%s) querying file", d.Display())
+	var err error = nil
+	var data []byte
+
+	// fake metadata for calling function
+	fakeMeta := new(api.QueryMeta)
+	(*fakeMeta).LastIndex = 0
+	if data, err = ioutil.ReadFile(d.rawKey); err == nil {
+		return string(data), fakeMeta, err
+	}
+	return "", nil, err
+}
 
 // KeyPrefixDependency is the representation of a requested key dependency
 // from inside a template.
@@ -242,7 +293,7 @@ type KeyPrefixDependency struct {
 }
 
 // Fetch queries the Consul API defined by the given client and returns a slice
-// of KeyPair objects.
+// of KeyPair objects
 func (d *KeyPrefixDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
 	if d.DataCenter != "" {
 		options.Datacenter = d.DataCenter
