@@ -47,6 +47,7 @@ func (t *Template) Dependencies() []Dependency {
 	return t.dependencies
 }
 
+// Decodestring calls jsonpath.DecodeString, which returns a structure for valid json
 func DecodeString(s string) (interface{}, error) {
 	if len(s)>0 {
 		return jsonpath.DecodeString(s)
