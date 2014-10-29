@@ -8,7 +8,6 @@ import (
 	"sort"
 	"strconv"
 	"io/ioutil"
-	"encoding/json"
 	api "github.com/armon/consul-api"
 )
 
@@ -232,45 +231,17 @@ func ParseKeyDependency(s string) (*KeyDependency, error) {
 	return kd, nil
 }
 
-func ParseJsonDependency(s string) (*JsonDependency, error) {
+func ParseFileDependency(s string) (*FileDependency, error) {
 	if len(s) == 0 {
-		return nil, errors.New("cannot specify empty json dependency")
+		return nil, errors.New("cannot specify empty file dependency")
 	}
 
-	// a(/b(/c))(@datacenter)
-	re := regexp.MustCompile(`\A` +
-		`(?P<key>[[:word:]\.\-\/]+)` +
-		`(@(?P<jsonfile>.+))` +
-		`\z`)
-	names := re.SubexpNames()
-	match := re.FindAllStringSubmatch(s, -1)
-
-	if len(match) == 0 {
-		return nil, errors.New("invalid json dependency format")
-	}
-
-	r := match[0]
-
-	m := map[string]string{}
-	for i, n := range r {
-		if names[i] != "" {
-			m[names[i]] = n
-		}
-	}
-
-	key, file := m["key"], m["jsonfile"]
-
-	if key == "" {
-		return nil, errors.New("key part is required")
-	}
-	if file == "" {
+	if s == "" {
 		return nil, errors.New("file part is required")
 	}
 
-	kd := &JsonDependency{
+	kd := &FileDependency{
 		rawKey:     s,
-	        jsonKey: key,
-		File:   file,
 	}
 
 	return kd, nil
@@ -278,42 +249,33 @@ func ParseJsonDependency(s string) (*JsonDependency, error) {
 
 /// ------------------------- ///
 
-type JsonDependency struct {
+type FileDependency struct {
 	rawKey     string
-	File       string
-	jsonKey    string
 }
 
-func (d *JsonDependency) HashCode() string {
+func (d *FileDependency) HashCode() string {
 	return fmt.Sprintf("KeyPrefixDependency|%s", d.Key())
 }
 
-func (d *JsonDependency) Key() string {
+func (d *FileDependency) Key() string {
 	return d.rawKey
 }
 
-func (d *JsonDependency) Display() string {
-	return fmt.Sprintf(`json "%s"`, d.rawKey)
+func (d *FileDependency) Display() string {
+	return fmt.Sprintf(`file "%s"`, d.rawKey)
 }
 
-func (d *JsonDependency) GoString() string {
+func (d *FileDependency) GoString() string {
 	return fmt.Sprintf("*%#v", *d)
 }
 
-func (d *JsonDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
+func (d *FileDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
 	
-	log.Printf("[DEBUG] (%s) querying Json file", d.Display())
-	kv := make(map[string]string)
+	log.Printf("[DEBUG] (%s) querying file", d.Display())
 	var err error = nil
 	var data []byte;
-	if data,err = ioutil.ReadFile(d.File); err==nil {
-		if err = json.Unmarshal(data,&kv); err==nil {
-			if v,ok:=kv[d.jsonKey]; ok {
-				return v, nil, nil
-			} else {
-				err = fmt.Errorf("key '%s' (in file %s) not found", d.jsonKey, d.File)
-			}
-		}
+	if data,err = ioutil.ReadFile(d.rawKey); err==nil {
+		return string(data),nil,err
 	}
 	return "",nil,err
 }

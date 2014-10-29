@@ -155,7 +155,7 @@ func (wd *WatchData) poll(w *Watcher) {
 		}
 
 		// Consul is allowed to return even if there's no new data. Ignore data if
-		// the index is the same. If there's no qm, it's a json query
+		// the index is the same. If there's no qm, it's a file query
 		if qm != nil {
 			if  qm.LastIndex == wd.lastIndex {
 				log.Printf("[DEBUG] (%s) no new data (index was the same)", wd.id())
@@ -180,7 +180,7 @@ func (wd *WatchData) poll(w *Watcher) {
 
 		// Break from the function if we are done
 		if qm==nil {
-			// we only render json once
+			// we only render files once
 			return
 		}
 		select {
