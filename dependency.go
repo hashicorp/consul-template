@@ -276,7 +276,7 @@ func (d *FileDependency) Fetch(client *api.Client, options *api.QueryOptions) (i
 	var data []byte
 
 	// fake metadata for calling function
-	fakeMeta := new (api.QueryMeta)
+	fakeMeta := new(api.QueryMeta)
 	(*fakeMeta).LastIndex = 0
 	if data, err = ioutil.ReadFile(d.rawKey); err == nil {
 		return string(data), fakeMeta, err
