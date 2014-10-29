@@ -202,7 +202,7 @@ func (t *Template) validateDependencies(c *TemplateContext) error {
 			}
 		case *FileDependency:
 			if _, ok := c.File[d.Key()]; !ok {
-				return fmt.Errorf("templateContext missing key `%s'", d.Key())
+				return fmt.Errorf("templateContext missing file `%s'", d.Key())
 			}
 		case *KeyPrefixDependency:
 			if _, ok := c.KeyPrefixes[d.Key()]; !ok {

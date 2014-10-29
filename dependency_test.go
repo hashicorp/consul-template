@@ -33,9 +33,9 @@ func TestFileDependencyFetch(t *testing.T) {
 		rawKey: inTemplate.Name(),
 	}
 	if read, _, err := dep.Fetch(nil, nil); err != nil {
-		t.Fatal("Error reading data")
+		t.Fatal(err)
 	} else if read != data {
-		t.Fatal("Read data was not identical")
+		t.Fatalf("Read data was not identical '%q' != '%q'", read, data)
 	}
 }
 
