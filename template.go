@@ -2,9 +2,9 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/yasuyuky/jsonpath"
 	"io/ioutil"
 	"text/template"
 )
@@ -49,11 +49,17 @@ func (t *Template) Dependencies() []Dependency {
 
 // Decodestring calls jsonpath.DecodeString, which returns a structure for valid json
 func DecodeString(s string) (interface{}, error) {
-	if len(s) > 0 {
-		return jsonpath.DecodeString(s)
-	} else {
+	// Empty string returns an empty interface
+	if len(s) < 2 {
 		return map[string]interface{}{}, nil
 	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(s), &data); err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }
 
 // Execute takes the given template context and processes the template.

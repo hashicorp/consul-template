@@ -120,7 +120,7 @@ func TestExecute_dependenciesError(t *testing.T) {
 	}
 }
 
-func TestExecute_json(t *testing.T) {
+func TestExecute_JSON(t *testing.T) {
 	inTemplate := createTempfile([]byte(`{{(file "data.json" | json).foo}}`), t)
 	defer deleteTempfile(inTemplate, t)
 
@@ -135,14 +135,51 @@ func TestExecute_json(t *testing.T) {
 		},
 	}
 
-	data, executeErr := template.Execute(context)
+	data, err := template.Execute(context)
 
-	if executeErr != nil {
-		t.Errorf("Should be able to parse json")
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	if string(data) != "bar" {
 		t.Errorf("expected %q to equal %q", string(data), "bar")
+	}
+}
+
+func TestExecute_deepJSON(t *testing.T) {
+	inTemplate := createTempfile([]byte(`
+		{{ with $d := file "data.json" | json }}
+		{{ $d.foo.bar.zip }}
+		{{ end }}
+	`), t)
+	defer deleteTempfile(inTemplate, t)
+
+	template, err := NewTemplate(inTemplate.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	context := &TemplateContext{
+		File: map[string]string{
+			"data.json": `{
+				"foo": {
+					"bar": {
+						"zip": "zap"
+					}
+				}
+			}`,
+		},
+	}
+
+	data, err := template.Execute(context)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, expected := strings.TrimSpace(string(data)), "zap"
+	if result != expected {
+		t.Errorf("expected %q to equal %q", result, expected)
 	}
 }
 
