@@ -155,7 +155,7 @@ func (wd *WatchData) poll(w *Watcher) {
 		}
 
 		// Consul is allowed to return even if there's no new data. Ignore data if
-		// the index is the same.
+		// the index is the same. For files, the data is fake, index is always 0
 		if qm.LastIndex == wd.lastIndex {
 			log.Printf("[DEBUG] (%s) no new data (index was the same)", wd.id())
 			continue
