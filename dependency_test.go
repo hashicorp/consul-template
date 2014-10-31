@@ -32,10 +32,14 @@ func TestFileDependencyFetch(t *testing.T) {
 	dep := &FileDependency{
 		rawKey: inTemplate.Name(),
 	}
-	if read, _, err := dep.Fetch(nil, nil); err != nil {
+
+	read, _, err := dep.Fetch(nil, nil)
+	if err != nil {
 		t.Fatal(err)
-	} else if read != data {
-		t.Fatalf("Read data was not identical '%q' != '%q'", read, data)
+	}
+
+	if read != data {
+		t.Fatalf("expected %q to be %q", read, data)
 	}
 }
 

@@ -3,12 +3,13 @@ package main
 import (
 	"errors"
 	"fmt"
-	api "github.com/armon/consul-api"
 	"io/ioutil"
 	"log"
 	"regexp"
 	"sort"
 	"strconv"
+
+	api "github.com/armon/consul-api"
 )
 
 // Dependency is an interface
@@ -236,10 +237,6 @@ func ParseFileDependency(s string) (*FileDependency, error) {
 		return nil, errors.New("cannot specify empty file dependency")
 	}
 
-	if s == "" {
-		return nil, errors.New("file part is required")
-	}
-
 	kd := &FileDependency{
 		rawKey: s,
 	}
@@ -270,14 +267,13 @@ func (d *FileDependency) GoString() string {
 }
 
 func (d *FileDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
-
-	log.Printf("[DEBUG] (%s) querying file", d.Display())
 	var err error = nil
 	var data []byte
 
+	log.Printf("[DEBUG] (%s) querying file", d.Display())
+
 	// fake metadata for calling function
-	fakeMeta := new(api.QueryMeta)
-	(*fakeMeta).LastIndex = 0
+	fakeMeta := &api.QueryMeta{LastIndex: 0}
 	if data, err = ioutil.ReadFile(d.rawKey); err == nil {
 		return string(data), fakeMeta, err
 	}

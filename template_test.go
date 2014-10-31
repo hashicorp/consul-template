@@ -134,10 +134,15 @@ func TestExecute_json(t *testing.T) {
 			"data.json": `{"foo":"bar"}`,
 		},
 	}
-	if data, executeErr := template.Execute(context); executeErr != nil {
+
+	data, executeErr := template.Execute(context)
+
+	if executeErr != nil {
 		t.Errorf("Should be able to parse json")
-	} else if string(data) != "bar" {
-		t.Errorf("Should be equal '%q' == 'bar'", data)
+	}
+
+	if string(data) != "bar" {
+		t.Errorf("expected %q to equal %q", string(data), "bar")
 	}
 }
 
