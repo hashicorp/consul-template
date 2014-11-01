@@ -62,6 +62,17 @@ func DecodeString(s string) (interface{}, error) {
 	return data, nil
 }
 
+// ServiceByTag takes the provided services and produces a map based on service tags.
+func ServiceByTag(in []*Service) map[string][]*Service {
+	m := make(map[string][]*Service)
+	for _, s := range in {
+		for _, t := range s.Tags {
+			m[t] = append(m[t], s)
+		}
+	}
+	return m
+}
+
 // Execute takes the given template context and processes the template.
 //
 // If the TemplateContext is nil, an error will be returned.
@@ -90,6 +101,7 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 		"keyPrefix": c.Evaluator(DependencyTypeKeyPrefix),
 		"key":       c.Evaluator(DependencyTypeKey),
 		"service":   c.Evaluator(DependencyTypeService),
+		"byTag":     ServiceByTag,
 	}).Parse(string(contents))
 
 	if err != nil {
@@ -121,6 +133,7 @@ func (t *Template) init() error {
 		"keyPrefix": t.dependencyAcc(depsMap, DependencyTypeKeyPrefix),
 		"key":       t.dependencyAcc(depsMap, DependencyTypeKey),
 		"service":   t.dependencyAcc(depsMap, DependencyTypeService),
+		"byTag":     ServiceByTag,
 	}).Parse(string(contents))
 
 	if err != nil {
