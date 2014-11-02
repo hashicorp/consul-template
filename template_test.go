@@ -185,10 +185,10 @@ func TestExecute_deepJSON(t *testing.T) {
 
 func TestExecute_byTag(t *testing.T) {
 	inTemplate := createTempfile([]byte(`
-{{ range $t, $s := service "webapp" | byTag }}{{ $t }}
-{{ range $s }}	server {{.Name}} {{.Address}}:{{.Port}}
-{{ end }}{{end}}
-`), t)
+		{{range $t, $s := service "webapp" | byTag}}{{$t}}
+		{{range $s}}	server {{.Name}} {{.Address}}:{{.Port}}
+		{{end}}{{end}}
+	`), t)
 	defer deleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
@@ -235,14 +235,14 @@ func TestExecute_byTag(t *testing.T) {
 	}
 
 	expected := bytes.TrimSpace([]byte(`
-auth
-	server web1 127.0.0.1:1234
-metric
-	server web3 127.0.0.3:9012
-search
-	server web1 127.0.0.1:1234
-	server web2 127.0.0.2:5678
-`))
+		auth
+			server web1 127.0.0.1:1234
+		metric
+			server web3 127.0.0.3:9012
+		search
+			server web1 127.0.0.1:1234
+			server web2 127.0.0.2:5678
+	`))
 
 	if !bytes.Equal(bytes.TrimSpace(contents), expected) {
 		t.Errorf("expected \n%q\n to equal \n%q\n", bytes.TrimSpace(contents), expected)
