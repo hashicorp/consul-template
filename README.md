@@ -109,7 +109,9 @@ Consul Template consumes template files in the [Go Template][] format. If you ar
 
 In addition to the [Go-provided template functions][Go Template], Consul Template exposes the following functions:
 
-#### `service`
+#### API Functions
+
+##### `service`
 Query Consul for the service group(s) matching the given pattern. Services are queried using the following syntax:
 
 ```liquid
@@ -136,16 +138,7 @@ server nyc_web_01 123.456.789.10:8080
 server nyc_web_02 456.789.101.213:8080
 ```
 
-#### `byTag`
-Takes the list of services returned by the [`service`](#service) function and creates a map that groups services by tag.
-
-```liquid
-{{range $tag, $services := service "webapp" | byTag}}{{$tag}}
-{{range $services}}	server {{.Name}} {{.Address}}:{{.Port}}
-{{end}}{{end}}
-```
-
-#### `key`
+##### `key`
 Query Consul for the value at the given key. If the key cannot be converted to a string-like value, an error will occur. Keys are queried using the following syntax:
 
 ```liquid
@@ -160,7 +153,7 @@ The example above is querying Consul for the `service/redis/maxconns` in the eas
 
 The beauty of Consul is that the key-value structure is entirely up to you!
 
-#### `keyPrefix`
+##### `keyPrefix`
 Query Consul for all the key-value pairs at the given prefix. If any of the values cannot be converted to a string-like value, an error will occur. KeyPrefixes are queried using the following syntax:
 
 ```liquid
@@ -176,6 +169,42 @@ maxconns 12
 ```
 
 Like `key`, if you omit the datacenter attribute on `keyPrefix`, the local Consul datacenter will be queried. For more examples of the templating language, see the [Examples](#examples) section below.
+
+##### `file`
+Read and render the contents of a local file on disk. If the file cannot be read, an error will occur. Files are read using the following syntax:
+
+```liquid
+{{file "/path/to/local/file"}}
+```
+
+This example will render the entire contents of the file at `/path/to/local/file` into the template. You can also manipulate this data using the built-in Consul Template helpers. See the Helper Functions section below for more information.
+
+- - -
+
+#### Helper Functions
+
+##### `byTag`
+Takes the list of services returned by the [`service`](#service) function and creates a map that groups services by tag.
+
+```liquid
+{{range $tag, $services := service "webapp" | byTag}}{{$tag}}
+{{range $services}} server {{.Name}} {{.Address}}:{{.Port}}
+{{end}}{{end}}
+```
+
+##### `json`
+Takes the given input (usually the value from a key) and parses the result as JSON:
+
+```liquid
+{{(key "user/info" | json).name}}
+```
+
+Alternatively you can read data from a local JSON file:
+
+```liquid
+{{(file "/path/to/local/data.json" | json).some_key}}
+```
+
 
 ### File Permission Caveats
 Consul Template uses Go's file modification libraries under the hood. If a file at the destination path already exists, Consul Template will do its best to preserve the existing file permissions. For non-existent files, Go will default to the system default. If you require specific file permissions on the output file, you can use the optional `command` parameter and `chmod`, for example:
