@@ -225,22 +225,6 @@ template {
 
 Examples
 --------
-### Apache httpd - dynamic reverse proxy.
-Apache httpd is a popular web server. You can read more about the Apache httpd configuration file syntax in the Apache httpd documentation, but here is an example template for rendering part of an Apache httpd configuration file that is responsible for configuring a reverse proxy with dynamic end points based on service tags with Consul Template:
-
-```liquid
-{{range $t, $s := service "webapi" | byTag}}
-# "{{$t}}" api providers.
-<Proxy balancer://{{$t}}>
-{{range $s}}	BalancerMember http://{{.Address}}:{{.Port}}
-{{end}}	ProxySet lbmethod=bybusyness
-</Proxy>
-Redirect permanent /api/{{$t}} /api/{{$t}}/
-ProxyPass /api/{{$t}}/ balancer://{{$t}}/
-ProxyPassReverse /api/{{$t}}/ balancer://{{$t}}/
-{{end}}
-```
-
 ### HAProxy
 HAProxy is a very common load balancer. You can read more about the HAProxy configuration file syntax in the HAProxy documentation, but here is an example template for rendering an HAProxy configuration file with Consul Template:
 
@@ -313,8 +297,8 @@ Save this file to disk as `varnish.ctmpl` and  run the `consul-template` daemon:
 
 ```shell
 $ consul-template \
-  -consul nyc1.demo.consul.io:80 \
-  -template varnish.ctmpl:/etc/varnish/varnish.conf
+  -consul demo.consul.io \
+  -template varnish.ctmpl:/etc/varnish/varnish.conf \
   -dry
 ```
 
@@ -337,6 +321,30 @@ sub vcl_init {
 sub vcl_recv {
   set req.backend_hint = bar.backend();
 }
+```
+
+### Apache httpd
+Apache httpd is a popular web server. You can read more about the Apache httpd configuration file syntax in the Apache httpd documentation, but here is an example template for rendering part of an Apache httpd configuration file that is responsible for configuring a reverse proxy with dynamic end points based on service tags with Consul Template:
+
+```liquid
+{{range $t, $s := service "web" | byTag}}
+# "{{$t}}" api providers.
+<Proxy balancer://{{$t}}>
+{{range $s}}  BalancerMember http://{{.Address}}:{{.Port}}
+{{end}} ProxySet lbmethod=bybusyness
+</Proxy>
+Redirect permanent /api/{{$t}} /api/{{$t}}/
+ProxyPass /api/{{$t}}/ balancer://{{$t}}/
+ProxyPassReverse /api/{{$t}}/ balancer://{{$t}}/
+{{end}}
+```
+
+Just like the previous examples, save this file to disk and run the `consul-template` daemon:
+
+```shell
+$ consul-template \
+  -consul <YOUR.CONSUL.ADDRESS> \
+  -template httpd.ctmpl:/etc/httpd/sites-available/balancer.conf
 ```
 
 Debugging
