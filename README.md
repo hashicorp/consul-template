@@ -136,6 +136,15 @@ server nyc_web_01 123.456.789.10:8080
 server nyc_web_02 456.789.101.213:8080
 ```
 
+#### `byTag`
+Takes the list of services returned by the [`service`](#service) function and creates a map that groups services by tag.
+
+```liquid
+{{range $tag, $services := service "webapp" | byTag}}{{$tag}}
+{{range $services}}	server {{.Name}} {{.Address}}:{{.Port}}
+{{end}}{{end}}
+```
+
 #### `key`
 Query Consul for the value at the given key. If the key cannot be converted to a string-like value, an error will occur. Keys are queried using the following syntax:
 
@@ -187,6 +196,22 @@ template {
 
 Examples
 --------
+### Apache httpd - dynamic reverse proxy.
+Apache httpd is a popular web server. You can read more about the Apache httpd configuration file syntax in the Apache httpd documentation, but here is an example template for rendering part of an Apache httpd configuration file that is responsible for configuring a reverse proxy with dynamic end points based on service tags with Consul Template:
+
+```liquid
+{{range $t, $s := service "webapi" | byTag}}
+# "{{$t}}" api providers.
+<Proxy balancer://{{$t}}>
+{{range $s}}	BalancerMember http://{{.Address}}:{{.Port}}
+{{end}}	ProxySet lbmethod=bybusyness
+</Proxy>
+Redirect permanent /api/{{$t}} /api/{{$t}}/
+ProxyPass /api/{{$t}}/ balancer://{{$t}}/
+ProxyPassReverse /api/{{$t}}/ balancer://{{$t}}/
+{{end}}
+```
+
 ### HAProxy
 HAProxy is a very common load balancer. You can read more about the HAProxy configuration file syntax in the HAProxy documentation, but here is an example template for rendering an HAProxy configuration file with Consul Template:
 

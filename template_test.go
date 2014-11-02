@@ -183,6 +183,72 @@ func TestExecute_deepJSON(t *testing.T) {
 	}
 }
 
+func TestExecute_byTag(t *testing.T) {
+	inTemplate := createTempfile([]byte(`
+		{{range $t, $s := service "webapp" | byTag}}{{$t}}
+		{{range $s}}	server {{.Name}} {{.Address}}:{{.Port}}
+		{{end}}{{end}}
+	`), t)
+	defer deleteTempfile(inTemplate, t)
+
+	template, err := NewTemplate(inTemplate.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	serviceWeb1 := &Service{
+		Node:    "nyc-api-1",
+		Address: "127.0.0.1",
+		ID:      "web1",
+		Name:    "web1",
+		Port:    1234,
+		Tags:    []string{"auth", "search"},
+	}
+
+	serviceWeb2 := &Service{
+		Node:    "nyc-api-2",
+		Address: "127.0.0.2",
+		ID:      "web2",
+		Name:    "web2",
+		Port:    5678,
+		Tags:    []string{"search"},
+	}
+
+	serviceWeb3 := &Service{
+		Node:    "nyc-api-3",
+		Address: "127.0.0.3",
+		ID:      "web3",
+		Name:    "web3",
+		Port:    9012,
+		Tags:    []string{"metric"},
+	}
+
+	context := &TemplateContext{
+		Services: map[string][]*Service{
+			"webapp": []*Service{serviceWeb1, serviceWeb2, serviceWeb3},
+		},
+	}
+
+	contents, err := template.Execute(context)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := bytes.TrimSpace([]byte(`
+		auth
+			server web1 127.0.0.1:1234
+		metric
+			server web3 127.0.0.3:9012
+		search
+			server web1 127.0.0.1:1234
+			server web2 127.0.0.2:5678
+	`))
+
+	if !bytes.Equal(bytes.TrimSpace(contents), expected) {
+		t.Errorf("expected \n%q\n to equal \n%q\n", bytes.TrimSpace(contents), expected)
+	}
+}
+
 func TestExecute_missingService(t *testing.T) {
 	inTemplate := createTempfile([]byte(`
     {{ range service "release.webapp" }}{{ end }}
