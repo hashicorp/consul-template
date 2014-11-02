@@ -185,7 +185,7 @@ func TestExecute_deepJSON(t *testing.T) {
 
 func TestExecute_byTag(t *testing.T) {
 	inTemplate := createTempfile([]byte(`
-{{ range $t, $s := service "release.webapp" | byTag }}{{ $t }}
+{{ range $t, $s := service "webapp" | byTag }}{{ $t }}
 {{ range $s }}	server {{.Name}} {{.Address}}:{{.Port}}
 {{ end }}{{end}}
 `), t)
@@ -225,7 +225,7 @@ func TestExecute_byTag(t *testing.T) {
 
 	context := &TemplateContext{
 		Services: map[string][]*Service{
-			"release.webapp": []*Service{serviceWeb1, serviceWeb2, serviceWeb3},
+			"webapp": []*Service{serviceWeb1, serviceWeb2, serviceWeb3},
 		},
 	}
 
