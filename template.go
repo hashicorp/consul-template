@@ -62,7 +62,11 @@ func DecodeString(s string) (interface{}, error) {
 	return data, nil
 }
 
-// ServiceByTag takes the provided services and produces a map based on service tags.
+// ServiceByTag is a template func that takes the provided services and
+// produces a map based on service tags.
+//
+// The map key is a string representing the service tag. The map value is a
+// slice of Services which have the tag assigned.
 func ServiceByTag(in []*Service) map[string][]*Service {
 	m := make(map[string][]*Service)
 	for _, s := range in {
@@ -96,12 +100,12 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 	}
 
 	tmpl, err := template.New("out").Funcs(template.FuncMap{
+		"byTag":     ServiceByTag,
 		"file":      c.Evaluator(DependencyTypeFile),
 		"json":      DecodeString,
 		"keyPrefix": c.Evaluator(DependencyTypeKeyPrefix),
 		"key":       c.Evaluator(DependencyTypeKey),
 		"service":   c.Evaluator(DependencyTypeService),
-		"byTag":     ServiceByTag,
 	}).Parse(string(contents))
 
 	if err != nil {
@@ -128,12 +132,12 @@ func (t *Template) init() error {
 	depsMap := make(map[string]Dependency)
 
 	tmpl, err := template.New("out").Funcs(template.FuncMap{
+		"byTag":     ServiceByTag,
 		"file":      t.dependencyAcc(depsMap, DependencyTypeFile),
 		"json":      DecodeString,
 		"keyPrefix": t.dependencyAcc(depsMap, DependencyTypeKeyPrefix),
 		"key":       t.dependencyAcc(depsMap, DependencyTypeKey),
 		"service":   t.dependencyAcc(depsMap, DependencyTypeService),
-		"byTag":     ServiceByTag,
 	}).Parse(string(contents))
 
 	if err != nil {
