@@ -464,7 +464,7 @@ func TestExecute_rendersKeyPrefixes(t *testing.T) {
 }
 
 func TestHashCode_returnsValue(t *testing.T) {
-	template := &Template{path: "/foo/bar/blitz.ctmpl"}
+	template := &Template{Path: "/foo/bar/blitz.ctmpl"}
 
 	expected := "Template|/foo/bar/blitz.ctmpl"
 	if template.HashCode() != expected {

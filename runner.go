@@ -132,7 +132,7 @@ func (r *Runner) init() error {
 
 	// Process all Template first, so we can return errors
 	for _, configTemplate := range r.configTemplates {
-		template := &Template{path: configTemplate.Source}
+		template := &Template{Path: configTemplate.Source}
 		if _, ok := templatesMap[template.HashCode()]; !ok {
 			template, err := NewTemplate(configTemplate.Source)
 			if err != nil {

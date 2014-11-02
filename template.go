@@ -13,7 +13,7 @@ import (
 
 type Template struct {
 	//
-	path string
+	Path string
 
 	//
 	dependencies []util.Dependency
@@ -21,7 +21,7 @@ type Template struct {
 
 //
 func NewTemplate(path string) (*Template, error) {
-	template := &Template{path: path}
+	template := &Template{Path: path}
 	if err := template.init(); err != nil {
 		return nil, err
 	}
@@ -29,14 +29,9 @@ func NewTemplate(path string) (*Template, error) {
 	return template, nil
 }
 
-// Path returns the path to this Template
-func (t *Template) Path() string {
-	return t.path
-}
-
 // HashCode returns the map value for this Template
 func (t *Template) HashCode() string {
-	return fmt.Sprintf("Template|%s", t.path)
+	return fmt.Sprintf("Template|%s", t.Path)
 }
 
 // Dependencies returns the dependencies that this template has.
@@ -91,7 +86,7 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 	}
 
 	// Render the template
-	contents, err := ioutil.ReadFile(t.path)
+	contents, err := ioutil.ReadFile(t.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +116,7 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 // init reads the template file and parses all the required dependencies into a
 // dependencies slice which is then added onto the Template.
 func (t *Template) init() error {
-	contents, err := ioutil.ReadFile(t.path)
+	contents, err := ioutil.ReadFile(t.Path)
 	if err != nil {
 		return err
 	}
