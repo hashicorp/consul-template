@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"strings"
 	"text/template"
 
 	"github.com/hashicorp/consul-template/util"
@@ -92,12 +93,18 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 	}
 
 	tmpl, err := template.New("out").Funcs(template.FuncMap{
-		"byTag":     ServiceByTag,
+		// API functions
 		"file":      c.Evaluator(DependencyTypeFile),
-		"json":      DecodeString,
 		"keyPrefix": c.Evaluator(DependencyTypeKeyPrefix),
 		"key":       c.Evaluator(DependencyTypeKey),
 		"service":   c.Evaluator(DependencyTypeService),
+
+		// Helper functions
+		"byTag":   c.groupByTag,
+		"toJSON":  c.decodeJSON,
+		"toLower": c.toLower,
+		"toTitle": c.toTitle,
+		"toUpper": c.toUpper,
 	}).Parse(string(contents))
 
 	if err != nil {
@@ -124,12 +131,18 @@ func (t *Template) init() error {
 	depsMap := make(map[string]util.Dependency)
 
 	tmpl, err := template.New("out").Funcs(template.FuncMap{
-		"byTag":     ServiceByTag,
+		// API functions
 		"file":      t.dependencyAcc(depsMap, DependencyTypeFile),
-		"json":      DecodeString,
 		"keyPrefix": t.dependencyAcc(depsMap, DependencyTypeKeyPrefix),
 		"key":       t.dependencyAcc(depsMap, DependencyTypeKey),
 		"service":   t.dependencyAcc(depsMap, DependencyTypeService),
+
+		// Helper functions
+		"byTag":   t.noop,
+		"toJSON":  t.noop,
+		"toLower": t.noop,
+		"toTitle": t.noop,
+		"toUpper": t.noop,
 	}).Parse(string(contents))
 
 	if err != nil {
@@ -230,6 +243,12 @@ func (t *Template) validateDependencies(c *TemplateContext) error {
 	return nil
 }
 
+// noop is a special function that returns itself. This is used during the
+// dependency accumulation to allow the template to be processed once.
+func (t *Template) noop(thing interface{}) (interface{}, error) {
+	return thing, nil
+}
+
 // TemplateContext is what Template uses to determine the values that are
 // available for template parsing.
 type TemplateContext struct {
@@ -258,6 +277,96 @@ func (c *TemplateContext) Evaluator(dt DependencyType) func(string) (interface{}
 	}
 }
 
+// decodeJSON returns a structure for valid JSON
+func (c *TemplateContext) decodeJSON(s string) (interface{}, error) {
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(s), &data); err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+// groupByTag is a template func that takes the provided services and
+// produces a map based on Service tags.
+//
+// The map key is a string representing the service tag. The map value is a
+// slice of Services which have the tag assigned.
+func (c *TemplateContext) groupByTag(in []*Service) map[string][]*Service {
+	m := make(map[string][]*Service)
+	for _, s := range in {
+		for _, t := range s.Tags {
+			m[t] = append(m[t], s)
+		}
+	}
+	return m
+}
+
+// toLower converts the given string (usually by a pipe) to lowercase.
+func (c *TemplateContext) toLower(s string) (string, error) {
+	return strings.ToLower(s), nil
+}
+
+// toTitle converts the given string (usually by a pipe) to titlecase.
+func (c *TemplateContext) toTitle(s string) (string, error) {
+	return strings.Title(s), nil
+}
+
+// toUpper converts the given string (usually by a pipe) to uppercase.
+func (c *TemplateContext) toUpper(s string) (string, error) {
+	return strings.ToUpper(s), nil
+}
+
+/// ------------------------- ///
+
+type Service struct {
+	Node    string
+	Address string
+	ID      string
+	Name    string
+	Tags    []string
+	Port    uint64
+}
+
+// GoString returns the detailed format of this object
+func (s *Service) GoString() string {
+	return fmt.Sprintf("*%#v", *s)
+}
+
+/// ------------------------- ///
+
+type ServiceList []*Service
+
+func (s ServiceList) Len() int {
+	return len(s)
+}
+
+func (s ServiceList) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s ServiceList) Less(i, j int) bool {
+	if s[i].Node < s[j].Node {
+		return true
+	} else if s[i].Node == s[j].Node {
+		return s[i].ID <= s[j].ID
+	}
+	return false
+}
+
+/// ------------------------- ///
+
+type KeyPair struct {
+	Key   string
+	Value string
+}
+
+// GoString returns the detailed format of this object
+func (kp *KeyPair) GoString() string {
+	return fmt.Sprintf("*%#v", *kp)
+}
+
+>>>>>>> 15f69a2... Add helper functions for toLower, toUpper, and toTitle
 // DependencyType is an enum type that says the kind of the dependency.
 type DependencyType byte
 

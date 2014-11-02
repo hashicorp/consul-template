@@ -511,3 +511,195 @@ func TestServiceList_sorts(t *testing.T) {
 		t.Fatal("invalid sort")
 	}
 }
+
+func TestExecute_decodeJSON(t *testing.T) {
+	inTemplate := createTempfile([]byte(`
+		{{with $d := file "data.json" | toJSON}}
+		{{$d.foo}}
+		{{end}}
+	`), t)
+	defer deleteTempfile(inTemplate, t)
+
+	template, err := NewTemplate(inTemplate.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	context := &TemplateContext{
+		File: map[string]string{
+			"data.json": `{"foo":"bar"}`,
+		},
+	}
+
+	data, err := template.Execute(context)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, expected := bytes.TrimSpace(data), []byte("bar")
+	if !bytes.Equal(result, expected) {
+		t.Errorf("expected %q to equal %q", result, expected)
+	}
+}
+
+func TestExecute_decodeJSONDeep(t *testing.T) {
+	inTemplate := createTempfile([]byte(`
+		{{with $d := file "data.json" | toJSON}}
+		{{$d.foo.bar.zip}}
+		{{end}}
+	`), t)
+	defer deleteTempfile(inTemplate, t)
+
+	template, err := NewTemplate(inTemplate.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	context := &TemplateContext{
+		File: map[string]string{
+			"data.json": `{
+				"foo": {
+					"bar": {
+						"zip": "zap"
+					}
+				}
+			}`,
+		},
+	}
+
+	data, err := template.Execute(context)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, expected := bytes.TrimSpace(data), []byte("zap")
+	if !bytes.Equal(result, expected) {
+		t.Errorf("expected %q to equal %q", result, expected)
+	}
+}
+
+func TestExecute_groupByTag(t *testing.T) {
+	inTemplate := createTempfile([]byte(`
+		{{range $t, $s := service "webapp" | byTag}}{{$t}}
+		{{range $s}}	server {{.Name}} {{.Address}}:{{.Port}}
+		{{end}}{{end}}
+	`), t)
+	defer deleteTempfile(inTemplate, t)
+
+	template, err := NewTemplate(inTemplate.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	serviceWeb1 := &Service{
+		Node:    "nyc-api-1",
+		Address: "127.0.0.1",
+		ID:      "web1",
+		Name:    "web1",
+		Port:    1234,
+		Tags:    []string{"auth", "search"},
+	}
+
+	serviceWeb2 := &Service{
+		Node:    "nyc-api-2",
+		Address: "127.0.0.2",
+		ID:      "web2",
+		Name:    "web2",
+		Port:    5678,
+		Tags:    []string{"search"},
+	}
+
+	serviceWeb3 := &Service{
+		Node:    "nyc-api-3",
+		Address: "127.0.0.3",
+		ID:      "web3",
+		Name:    "web3",
+		Port:    9012,
+		Tags:    []string{"metric"},
+	}
+
+	context := &TemplateContext{
+		Services: map[string][]*Service{
+			"webapp": []*Service{serviceWeb1, serviceWeb2, serviceWeb3},
+		},
+	}
+
+	contents, err := template.Execute(context)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := bytes.TrimSpace([]byte(`
+		auth
+			server web1 127.0.0.1:1234
+		metric
+			server web3 127.0.0.3:9012
+		search
+			server web1 127.0.0.1:1234
+			server web2 127.0.0.2:5678
+	`))
+
+	if !bytes.Equal(bytes.TrimSpace(contents), expected) {
+		t.Errorf("expected \n%q\n to equal \n%q\n", bytes.TrimSpace(contents), expected)
+	}
+}
+
+func TestExecute_toLower(t *testing.T) {
+	inTemplate := createTempfile([]byte(`{{"BACON" | toLower}}`), t)
+	defer deleteTempfile(inTemplate, t)
+
+	template, err := NewTemplate(inTemplate.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	contents, err := template.Execute(&TemplateContext{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []byte("bacon")
+	if !bytes.Equal(contents, expected) {
+		t.Fatalf("expected %q to be %q", contents, expected)
+	}
+}
+
+func TestExecute_toTitle(t *testing.T) {
+	inTemplate := createTempfile([]byte(`{{"eat more bacon" | toTitle}}`), t)
+	defer deleteTempfile(inTemplate, t)
+
+	template, err := NewTemplate(inTemplate.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	contents, err := template.Execute(&TemplateContext{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []byte("Eat More Bacon")
+	if !bytes.Equal(contents, expected) {
+		t.Fatalf("expected %q to be %q", contents, expected)
+	}
+}
+
+func TestExecute_toUpper(t *testing.T) {
+	inTemplate := createTempfile([]byte(`{{"bacon" | toUpper}}`), t)
+	defer deleteTempfile(inTemplate, t)
+
+	template, err := NewTemplate(inTemplate.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	contents, err := template.Execute(&TemplateContext{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []byte("BACON")
+	if !bytes.Equal(contents, expected) {
+		t.Fatalf("expected %q to be %q", contents, expected)
+	}
+}
