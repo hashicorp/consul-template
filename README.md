@@ -192,19 +192,45 @@ Takes the list of services returned by the [`service`](#service) function and cr
 {{end}}{{end}}
 ```
 
-##### `json`
+##### `parseJSON`
 Takes the given input (usually the value from a key) and parses the result as JSON:
 
 ```liquid
-{{(key "user/info" | json).name}}
+{{(with $d := key "user/info" | parseJSON)}}{{$d.name}}{{end}}
 ```
 
 Alternatively you can read data from a local JSON file:
 
 ```liquid
-{{(file "/path/to/local/data.json" | json).some_key}}
+{{with $d := file "/path/to/local/data.json" | parseJSON}}{{$d.some_key}}{{end}}
 ```
 
+##### `toLower`
+Takes the argument as a string and converts it to lowercase.
+
+```liquid
+{{key "user/name" | toLower}}
+```
+
+See Go's [strings.ToLower()](http://golang.org/pkg/strings/#ToLower) for more information.
+
+##### `toTitle`
+Takes the argument as a string and converts it to titlecase.
+
+```liquid
+{{key "user/name" | toTitle}}
+```
+
+See Go's [strings.Title()](http://golang.org/pkg/strings/#Title) for more information.
+
+##### `toUpper`
+Takes the argument as a string and converts it to uppercase.
+
+```liquid
+{{key "user/name" | toUpper}}
+```
+
+See Go's [strings.ToUpper()](http://golang.org/pkg/strings/#ToUpper) for more information.
 
 ### File Permission Caveats
 Consul Template uses Go's file modification libraries under the hood. If a file at the destination path already exists, Consul Template will do its best to preserve the existing file permissions. For non-existent files, Go will default to the system default. If you require specific file permissions on the output file, you can use the optional `command` parameter and `chmod`, for example:

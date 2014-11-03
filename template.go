@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"strings"
 	"text/template"
 
 	"github.com/hashicorp/consul-template/util"
@@ -13,7 +14,7 @@ import (
 
 type Template struct {
 	//
-	path string
+	Path string
 
 	//
 	dependencies []util.Dependency
@@ -21,7 +22,7 @@ type Template struct {
 
 //
 func NewTemplate(path string) (*Template, error) {
-	template := &Template{path: path}
+	template := &Template{Path: path}
 	if err := template.init(); err != nil {
 		return nil, err
 	}
@@ -29,14 +30,9 @@ func NewTemplate(path string) (*Template, error) {
 	return template, nil
 }
 
-// Path returns the path to this Template
-func (t *Template) Path() string {
-	return t.path
-}
-
 // HashCode returns the map value for this Template
 func (t *Template) HashCode() string {
-	return fmt.Sprintf("Template|%s", t.path)
+	return fmt.Sprintf("Template|%s", t.Path)
 }
 
 // Dependencies returns the dependencies that this template has.
@@ -91,18 +87,24 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 	}
 
 	// Render the template
-	contents, err := ioutil.ReadFile(t.path)
+	contents, err := ioutil.ReadFile(t.Path)
 	if err != nil {
 		return nil, err
 	}
 
 	tmpl, err := template.New("out").Funcs(template.FuncMap{
-		"byTag":     ServiceByTag,
+		// API functions
 		"file":      c.Evaluator(DependencyTypeFile),
-		"json":      DecodeString,
 		"keyPrefix": c.Evaluator(DependencyTypeKeyPrefix),
 		"key":       c.Evaluator(DependencyTypeKey),
 		"service":   c.Evaluator(DependencyTypeService),
+
+		// Helper functions
+		"byTag":     c.groupByTag,
+		"parseJSON": c.decodeJSON,
+		"toLower":   c.toLower,
+		"toTitle":   c.toTitle,
+		"toUpper":   c.toUpper,
 	}).Parse(string(contents))
 
 	if err != nil {
@@ -121,7 +123,7 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 // init reads the template file and parses all the required dependencies into a
 // dependencies slice which is then added onto the Template.
 func (t *Template) init() error {
-	contents, err := ioutil.ReadFile(t.path)
+	contents, err := ioutil.ReadFile(t.Path)
 	if err != nil {
 		return err
 	}
@@ -129,12 +131,18 @@ func (t *Template) init() error {
 	depsMap := make(map[string]util.Dependency)
 
 	tmpl, err := template.New("out").Funcs(template.FuncMap{
-		"byTag":     ServiceByTag,
+		// API functions
 		"file":      t.dependencyAcc(depsMap, DependencyTypeFile),
-		"json":      DecodeString,
 		"keyPrefix": t.dependencyAcc(depsMap, DependencyTypeKeyPrefix),
 		"key":       t.dependencyAcc(depsMap, DependencyTypeKey),
 		"service":   t.dependencyAcc(depsMap, DependencyTypeService),
+
+		// Helper functions
+		"byTag":     t.noop,
+		"parseJSON": t.noop,
+		"toLower":   t.noop,
+		"toTitle":   t.noop,
+		"toUpper":   t.noop,
 	}).Parse(string(contents))
 
 	if err != nil {
@@ -235,6 +243,12 @@ func (t *Template) validateDependencies(c *TemplateContext) error {
 	return nil
 }
 
+// noop is a special function that returns itself. This is used during the
+// dependency accumulation to allow the template to be processed once.
+func (t *Template) noop(thing interface{}) (interface{}, error) {
+	return thing, nil
+}
+
 // TemplateContext is what Template uses to determine the values that are
 // available for template parsing.
 type TemplateContext struct {
@@ -261,6 +275,46 @@ func (c *TemplateContext) Evaluator(dt DependencyType) func(string) (interface{}
 			return nil, fmt.Errorf("unexpected DependencyType %#v", dt)
 		}
 	}
+}
+
+// decodeJSON returns a structure for valid JSON
+func (c *TemplateContext) decodeJSON(s string) (interface{}, error) {
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(s), &data); err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+// groupByTag is a template func that takes the provided services and
+// produces a map based on Service tags.
+//
+// The map key is a string representing the service tag. The map value is a
+// slice of Services which have the tag assigned.
+func (c *TemplateContext) groupByTag(in []*util.Service) map[string][]*util.Service {
+	m := make(map[string][]*util.Service)
+	for _, s := range in {
+		for _, t := range s.Tags {
+			m[t] = append(m[t], s)
+		}
+	}
+	return m
+}
+
+// toLower converts the given string (usually by a pipe) to lowercase.
+func (c *TemplateContext) toLower(s string) (string, error) {
+	return strings.ToLower(s), nil
+}
+
+// toTitle converts the given string (usually by a pipe) to titlecase.
+func (c *TemplateContext) toTitle(s string) (string, error) {
+	return strings.Title(s), nil
+}
+
+// toUpper converts the given string (usually by a pipe) to uppercase.
+func (c *TemplateContext) toUpper(s string) (string, error) {
+	return strings.ToUpper(s), nil
 }
 
 // DependencyType is an enum type that says the kind of the dependency.
