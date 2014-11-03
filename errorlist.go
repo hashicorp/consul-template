@@ -11,11 +11,6 @@ type ErrorList struct {
 	errors []error
 }
 
-// GoString returns the detailed format of this object
-func (e *ErrorList) GoString() string {
-	return fmt.Sprintf("*%#v", *e)
-}
-
 // Append adds a new error or errors onto the ErrorList
 func (e *ErrorList) Append(errs ...error) {
 	e.errors = append(e.errors, errs...)

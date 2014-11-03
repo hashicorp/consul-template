@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	util "github.com/hashicorp/consul-template/util"
 )
 
 // Test that an empty config does nothing
@@ -144,7 +146,7 @@ func TestParseConfig_correctValues(t *testing.T) {
 		Path:   configFile.Name(),
 		Consul: "nyc1.demo.consul.io",
 		Token:  "abcd1234",
-		Wait: &Wait{
+		Wait: &util.Wait{
 			Min: time.Second * 5,
 			Max: time.Second * 10,
 		},

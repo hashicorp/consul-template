@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
+
+	util "github.com/hashicorp/consul-template/util"
 )
 
 func TestNewRunner_noDependencies(t *testing.T) {
@@ -359,9 +361,9 @@ func TestRender_dryRender(t *testing.T) {
 	}
 
 	dependency := runner.Dependencies()[0]
-	data := []*Service{
-		&Service{Node: "consul1"},
-		&Service{Node: "consul2"},
+	data := []*util.Service{
+		&util.Service{Node: "consul1"},
+		&util.Service{Node: "consul2"},
 	}
 	runner.Receive(dependency, data)
 
@@ -407,9 +409,9 @@ func TestRender_sameContentsDoesNotRender(t *testing.T) {
 	}
 
 	dependency := runner.Dependencies()[0]
-	data := []*Service{
-		&Service{Node: "consul1"},
-		&Service{Node: "consul2"},
+	data := []*util.Service{
+		&util.Service{Node: "consul1"},
+		&util.Service{Node: "consul2"},
 	}
 	runner.Receive(dependency, data)
 
@@ -452,9 +454,9 @@ func TestRender_sameContentsDoesNotExecuteCommand(t *testing.T) {
 	}
 
 	dependency := runner.Dependencies()[0]
-	data := []*Service{
-		&Service{Node: "consul1"},
-		&Service{Node: "consul2"},
+	data := []*util.Service{
+		&util.Service{Node: "consul1"},
+		&util.Service{Node: "consul2"},
 	}
 	runner.Receive(dependency, data)
 
@@ -502,9 +504,9 @@ func TestRender_containingFolderMissing(t *testing.T) {
 	}
 
 	dependency := runner.Dependencies()[0]
-	data := []*Service{
-		&Service{Node: "consul1"},
-		&Service{Node: "consul2"},
+	data := []*util.Service{
+		&util.Service{Node: "consul1"},
+		&util.Service{Node: "consul2"},
 	}
 	runner.Receive(dependency, data)
 
@@ -556,9 +558,9 @@ func TestRender_outputFileMissing(t *testing.T) {
 	}
 
 	dependency := runner.Dependencies()[0]
-	data := []*Service{
-		&Service{Node: "consul1"},
-		&Service{Node: "consul2"},
+	data := []*util.Service{
+		&util.Service{Node: "consul1"},
+		&util.Service{Node: "consul2"},
 	}
 	runner.Receive(dependency, data)
 
@@ -609,9 +611,9 @@ func TestRender_outputFileRetainsPermissions(t *testing.T) {
 	}
 
 	dependency := runner.Dependencies()[0]
-	data := []*Service{
-		&Service{Node: "consul1"},
-		&Service{Node: "consul2"},
+	data := []*util.Service{
+		&util.Service{Node: "consul1"},
+		&util.Service{Node: "consul2"},
 	}
 	runner.Receive(dependency, data)
 
@@ -728,13 +730,13 @@ func TestExecute_executesCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	serviceDependency, err := ParseServiceDependency("consul@nyc1")
+	serviceDependency, err := util.ParseServiceDependency("consul@nyc1")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	data := []*Service{
-		&Service{
+	data := []*util.Service{
+		&util.Service{
 			Node:    "consul",
 			Address: "1.2.3.4",
 			ID:      "consul@nyc1",

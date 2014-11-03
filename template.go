@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"text/template"
+
+	util "github.com/hashicorp/consul-template/util"
 )
 
 type Template struct {
@@ -14,7 +16,7 @@ type Template struct {
 	path string
 
 	//
-	dependencies []Dependency
+	dependencies []util.Dependency
 }
 
 //
@@ -37,13 +39,8 @@ func (t *Template) HashCode() string {
 	return fmt.Sprintf("Template|%s", t.path)
 }
 
-// GoString returns the detailed format of this object
-func (t *Template) GoString() string {
-	return fmt.Sprintf("*%#v", *t)
-}
-
 // Dependencies returns the dependencies that this template has.
-func (t *Template) Dependencies() []Dependency {
+func (t *Template) Dependencies() []util.Dependency {
 	return t.dependencies
 }
 
@@ -67,8 +64,8 @@ func DecodeString(s string) (interface{}, error) {
 //
 // The map key is a string representing the service tag. The map value is a
 // slice of Services which have the tag assigned.
-func ServiceByTag(in []*Service) map[string][]*Service {
-	m := make(map[string][]*Service)
+func ServiceByTag(in []*util.Service) map[string][]*util.Service {
+	m := make(map[string][]*util.Service)
 	for _, s := range in {
 		for _, t := range s.Tags {
 			m[t] = append(m[t], s)
@@ -129,7 +126,7 @@ func (t *Template) init() error {
 		return err
 	}
 
-	depsMap := make(map[string]Dependency)
+	depsMap := make(map[string]util.Dependency)
 
 	tmpl, err := template.New("out").Funcs(template.FuncMap{
 		"byTag":     ServiceByTag,
@@ -149,7 +146,7 @@ func (t *Template) init() error {
 		return err
 	}
 
-	dependencies := make([]Dependency, 0, len(depsMap))
+	dependencies := make([]util.Dependency, 0, len(depsMap))
 	for _, dep := range depsMap {
 		dependencies = append(dependencies, dep)
 	}
@@ -161,11 +158,11 @@ func (t *Template) init() error {
 }
 
 // Helper function that is used by the dependency collecting.
-func (t *Template) dependencyAcc(depsMap map[string]Dependency, dt DependencyType) func(string) (interface{}, error) {
+func (t *Template) dependencyAcc(depsMap map[string]util.Dependency, dt DependencyType) func(string) (interface{}, error) {
 	return func(s string) (interface{}, error) {
 		switch dt {
 		case DependencyTypeFile:
-			d, err := ParseFileDependency(s)
+			d, err := util.ParseFileDependency(s)
 			if err != nil {
 				return nil, err
 			}
@@ -175,7 +172,7 @@ func (t *Template) dependencyAcc(depsMap map[string]Dependency, dt DependencyTyp
 
 			return "", nil
 		case DependencyTypeKeyPrefix:
-			d, err := ParseKeyPrefixDependency(s)
+			d, err := util.ParseKeyPrefixDependency(s)
 			if err != nil {
 				return nil, err
 			}
@@ -183,9 +180,9 @@ func (t *Template) dependencyAcc(depsMap map[string]Dependency, dt DependencyTyp
 				depsMap[d.HashCode()] = d
 			}
 
-			return []*KeyPair{}, nil
+			return []*util.KeyPair{}, nil
 		case DependencyTypeKey:
-			d, err := ParseKeyDependency(s)
+			d, err := util.ParseKeyDependency(s)
 			if err != nil {
 				return nil, err
 			}
@@ -195,7 +192,7 @@ func (t *Template) dependencyAcc(depsMap map[string]Dependency, dt DependencyTyp
 
 			return "", nil
 		case DependencyTypeService:
-			d, err := ParseServiceDependency(s)
+			d, err := util.ParseServiceDependency(s)
 			if err != nil {
 				return nil, err
 			}
@@ -203,7 +200,7 @@ func (t *Template) dependencyAcc(depsMap map[string]Dependency, dt DependencyTyp
 				depsMap[d.HashCode()] = d
 			}
 
-			return []*Service{}, nil
+			return []*util.Service{}, nil
 		default:
 			return nil, fmt.Errorf("unknown DependencyType %#v", dt)
 		}
@@ -214,19 +211,19 @@ func (t *Template) dependencyAcc(depsMap map[string]Dependency, dt DependencyTyp
 func (t *Template) validateDependencies(c *TemplateContext) error {
 	for _, dep := range t.Dependencies() {
 		switch d := dep.(type) {
-		case *FileDependency:
+		case *util.FileDependency:
 			if _, ok := c.File[d.Key()]; !ok {
 				return fmt.Errorf("templateContext missing file `%s'", d.Key())
 			}
-		case *KeyPrefixDependency:
+		case *util.KeyPrefixDependency:
 			if _, ok := c.KeyPrefixes[d.Key()]; !ok {
 				return fmt.Errorf("templateContext missing keyPrefix `%s'", d.Key())
 			}
-		case *KeyDependency:
+		case *util.KeyDependency:
 			if _, ok := c.Keys[d.Key()]; !ok {
 				return fmt.Errorf("templateContext missing key `%s'", d.Key())
 			}
-		case *ServiceDependency:
+		case *util.ServiceDependency:
 			if _, ok := c.Services[d.Key()]; !ok {
 				return fmt.Errorf("templateContext missing service `%s'", d.Key())
 			}
@@ -238,20 +235,13 @@ func (t *Template) validateDependencies(c *TemplateContext) error {
 	return nil
 }
 
-/// ------------------------- ///
-
 // TemplateContext is what Template uses to determine the values that are
 // available for template parsing.
 type TemplateContext struct {
-	Services    map[string][]*Service
+	Services    map[string][]*util.Service
 	Keys        map[string]string
-	KeyPrefixes map[string][]*KeyPair
+	KeyPrefixes map[string][]*util.KeyPair
 	File        map[string]string
-}
-
-// GoString returns the detailed format of this object
-func (c *TemplateContext) GoString() string {
-	return fmt.Sprintf("*%#v", *c)
 }
 
 // Evaluator takes a DependencyType and returns a function which returns the
@@ -271,55 +261,6 @@ func (c *TemplateContext) Evaluator(dt DependencyType) func(string) (interface{}
 			return nil, fmt.Errorf("unexpected DependencyType %#v", dt)
 		}
 	}
-}
-
-/// ------------------------- ///
-
-type Service struct {
-	Node    string
-	Address string
-	ID      string
-	Name    string
-	Tags    []string
-	Port    uint64
-}
-
-// GoString returns the detailed format of this object
-func (s *Service) GoString() string {
-	return fmt.Sprintf("*%#v", *s)
-}
-
-/// ------------------------- ///
-
-type ServiceList []*Service
-
-func (s ServiceList) Len() int {
-	return len(s)
-}
-
-func (s ServiceList) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
-func (s ServiceList) Less(i, j int) bool {
-	if s[i].Node < s[j].Node {
-		return true
-	} else if s[i].Node == s[j].Node {
-		return s[i].ID <= s[j].ID
-	}
-	return false
-}
-
-/// ------------------------- ///
-
-type KeyPair struct {
-	Key   string
-	Value string
-}
-
-// GoString returns the detailed format of this object
-func (kp *KeyPair) GoString() string {
-	return fmt.Sprintf("*%#v", *kp)
 }
 
 // DependencyType is an enum type that says the kind of the dependency.

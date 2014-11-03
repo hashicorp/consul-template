@@ -20,10 +20,6 @@ func (d *fakeDependencyFetchError) Fetch(client *api.Client, options *api.QueryO
 	return nil, nil, fmt.Errorf("failed to contact server")
 }
 
-func (d *fakeDependencyFetchError) GoString() string {
-	return fmt.Sprintf("%#v", d)
-}
-
 func (d *fakeDependencyFetchError) HashCode() string {
 	return fmt.Sprintf("fakeDependencyFetchError|%s", d.name)
 }
@@ -46,10 +42,6 @@ func (d *fakeDependency) Fetch(client *api.Client, options *api.QueryOptions) (i
 	data := "this is some data"
 	qm := &api.QueryMeta{LastIndex: 1}
 	return data, qm, nil
-}
-
-func (d *fakeDependency) GoString() string {
-	return fmt.Sprintf("%#v", d)
 }
 
 func (d *fakeDependency) HashCode() string {
