@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 
 	api "github.com/armon/consul-api"
 )
@@ -295,8 +296,12 @@ func (d *KeyPrefixDependency) Fetch(client *api.Client, options *api.QueryOption
 	keyPairs := make([]*KeyPair, 0, len(prefixes))
 
 	for _, pair := range prefixes {
+		key := strings.TrimPrefix(pair.Key, d.Prefix)
+		key = strings.TrimLeft(key, "/")
+
 		keyPairs = append(keyPairs, &KeyPair{
-			Key:   pair.Key,
+			Path:  pair.Key,
+			Key:   key,
 			Value: string(pair.Value),
 		})
 	}
@@ -382,6 +387,7 @@ func (s ServiceList) Less(i, j int) bool {
 
 // KeyPair is a simple Key-Value pair
 type KeyPair struct {
+	Path  string
 	Key   string
 	Value string
 }
