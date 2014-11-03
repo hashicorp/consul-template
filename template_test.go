@@ -6,11 +6,14 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/consul-template/test"
+	"github.com/hashicorp/consul-template/util"
 )
 
 func TestDependencies_empty(t *testing.T) {
-	inTemplate := createTempfile(nil, t)
-	defer deleteTempfile(inTemplate, t)
+	inTemplate := test.CreateTempfile(nil, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
 	if err != nil {
@@ -24,12 +27,12 @@ func TestDependencies_empty(t *testing.T) {
 }
 
 func TestDependencies_funcs(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{ range service "release.webapp" }}{{ end }}
     {{ key "service/redis/maxconns" }}
     {{ range keyPrefix "service/redis/config" }}{{ end }}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
 	if err != nil {
@@ -43,12 +46,12 @@ func TestDependencies_funcs(t *testing.T) {
 }
 
 func TestDependencies_funcsDuplicates(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{ range service "release.webapp" }}{{ end }}
     {{ range service "release.webapp" }}{{ end }}
     {{ range service "release.webapp" }}{{ end }}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
 	if err != nil {
@@ -67,10 +70,10 @@ func TestDependencies_funcsDuplicates(t *testing.T) {
 }
 
 func TestDependencies_funcsError(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{ range service "totally&not&a&valid&service" }}{{ end }}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	_, err := NewTemplate(inTemplate.Name())
 	if err == nil {
@@ -84,8 +87,8 @@ func TestDependencies_funcsError(t *testing.T) {
 }
 
 func TestExecute_noTemplateContext(t *testing.T) {
-	inTemplate := createTempfile(nil, t)
-	defer deleteTempfile(inTemplate, t)
+	inTemplate := test.CreateTempfile(nil, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
 	if err != nil {
@@ -104,10 +107,10 @@ func TestExecute_noTemplateContext(t *testing.T) {
 }
 
 func TestExecute_dependenciesError(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{ range not_a_valid "template" }}{{ end }}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	_, err := NewTemplate(inTemplate.Name())
 	if err == nil {
@@ -121,8 +124,8 @@ func TestExecute_dependenciesError(t *testing.T) {
 }
 
 func TestExecute_JSON(t *testing.T) {
-	inTemplate := createTempfile([]byte(`{{(file "data.json" | json).foo}}`), t)
-	defer deleteTempfile(inTemplate, t)
+	inTemplate := test.CreateTempfile([]byte(`{{(file "data.json" | json).foo}}`), t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
 	if err != nil {
@@ -147,12 +150,12 @@ func TestExecute_JSON(t *testing.T) {
 }
 
 func TestExecute_deepJSON(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
 		{{ with $d := file "data.json" | json }}
 		{{ $d.foo.bar.zip }}
 		{{ end }}
 	`), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
 	if err != nil {
@@ -184,19 +187,19 @@ func TestExecute_deepJSON(t *testing.T) {
 }
 
 func TestExecute_byTag(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
 		{{range $t, $s := service "webapp" | byTag}}{{$t}}
 		{{range $s}}	server {{.Name}} {{.Address}}:{{.Port}}
 		{{end}}{{end}}
 	`), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	serviceWeb1 := &Service{
+	serviceWeb1 := &util.Service{
 		Node:    "nyc-api-1",
 		Address: "127.0.0.1",
 		ID:      "web1",
@@ -205,7 +208,7 @@ func TestExecute_byTag(t *testing.T) {
 		Tags:    []string{"auth", "search"},
 	}
 
-	serviceWeb2 := &Service{
+	serviceWeb2 := &util.Service{
 		Node:    "nyc-api-2",
 		Address: "127.0.0.2",
 		ID:      "web2",
@@ -214,7 +217,7 @@ func TestExecute_byTag(t *testing.T) {
 		Tags:    []string{"search"},
 	}
 
-	serviceWeb3 := &Service{
+	serviceWeb3 := &util.Service{
 		Node:    "nyc-api-3",
 		Address: "127.0.0.3",
 		ID:      "web3",
@@ -224,8 +227,8 @@ func TestExecute_byTag(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		Services: map[string][]*Service{
-			"webapp": []*Service{serviceWeb1, serviceWeb2, serviceWeb3},
+		Services: map[string][]*util.Service{
+			"webapp": []*util.Service{serviceWeb1, serviceWeb2, serviceWeb3},
 		},
 	}
 
@@ -250,11 +253,11 @@ func TestExecute_byTag(t *testing.T) {
 }
 
 func TestExecute_missingService(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{ range service "release.webapp" }}{{ end }}
     {{ range service "production.webapp" }}{{ end }}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
 	if err != nil {
@@ -262,8 +265,8 @@ func TestExecute_missingService(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		Services: map[string][]*Service{
-			"release.webapp": []*Service{},
+		Services: map[string][]*util.Service{
+			"release.webapp": []*util.Service{},
 		},
 	}
 
@@ -279,11 +282,11 @@ func TestExecute_missingService(t *testing.T) {
 }
 
 func TestExecute_missingKey(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{ key "service/redis/maxconns" }}
     {{ key "service/redis/online" }}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
 	if err != nil {
@@ -308,11 +311,11 @@ func TestExecute_missingKey(t *testing.T) {
 }
 
 func TestExecute_missingKeyPrefix(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{ range keyPrefix "service/redis/config" }}{{ end }}
     {{ range keyPrefix "service/nginx/config" }}{{ end }}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
 	if err != nil {
@@ -320,8 +323,8 @@ func TestExecute_missingKeyPrefix(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		KeyPrefixes: map[string][]*KeyPair{
-			"service/redis/config": []*KeyPair{},
+		KeyPrefixes: map[string][]*util.KeyPair{
+			"service/redis/config": []*util.KeyPair{},
 		},
 	}
 
@@ -337,18 +340,18 @@ func TestExecute_missingKeyPrefix(t *testing.T) {
 }
 
 func TestExecute_rendersServices(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{ range service "release.webapp" }}
     server {{.Name}} {{.Address}}:{{.Port}}{{ end }}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	serviceWeb1 := &Service{
+	serviceWeb1 := &util.Service{
 		Node:    "nyc-worker-1",
 		Address: "123.123.123.123",
 		ID:      "web1",
@@ -356,7 +359,7 @@ func TestExecute_rendersServices(t *testing.T) {
 		Port:    1234,
 	}
 
-	serviceWeb2 := &Service{
+	serviceWeb2 := &util.Service{
 		Node:    "nyc-worker-2",
 		Address: "456.456.456.456",
 		ID:      "web2",
@@ -365,8 +368,8 @@ func TestExecute_rendersServices(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		Services: map[string][]*Service{
-			"release.webapp": []*Service{serviceWeb1, serviceWeb2},
+		Services: map[string][]*util.Service{
+			"release.webapp": []*util.Service{serviceWeb1, serviceWeb2},
 		},
 	}
 
@@ -386,11 +389,11 @@ func TestExecute_rendersServices(t *testing.T) {
 }
 
 func TestExecute_rendersKeys(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     minconns: {{ key "service/redis/minconns" }}
     maxconns: {{ key "service/redis/maxconns" }}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
 	if err != nil {
@@ -419,30 +422,30 @@ func TestExecute_rendersKeys(t *testing.T) {
 }
 
 func TestExecute_rendersKeyPrefixes(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{ range keyPrefix "service/redis/config" }}
     {{.Key}} {{.Value}}{{ end }}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	minconnsConfig := &KeyPair{
+	minconnsConfig := &util.KeyPair{
 		Key:   "minconns",
 		Value: "2",
 	}
 
-	maxconnsConfig := &KeyPair{
+	maxconnsConfig := &util.KeyPair{
 		Key:   "maxconns",
 		Value: "11",
 	}
 
 	context := &TemplateContext{
-		KeyPrefixes: map[string][]*KeyPair{
-			"service/redis/config": []*KeyPair{minconnsConfig, maxconnsConfig},
+		KeyPrefixes: map[string][]*util.KeyPair{
+			"service/redis/config": []*util.KeyPair{minconnsConfig, maxconnsConfig},
 		},
 	}
 
@@ -470,30 +473,30 @@ func TestHashCode_returnsValue(t *testing.T) {
 }
 
 func TestServiceList_sorts(t *testing.T) {
-	a := ServiceList{
-		&Service{Node: "frontend01", ID: "1"},
-		&Service{Node: "frontend01", ID: "2"},
-		&Service{Node: "frontend02", ID: "1"},
+	a := util.ServiceList{
+		&util.Service{Node: "frontend01", ID: "1"},
+		&util.Service{Node: "frontend01", ID: "2"},
+		&util.Service{Node: "frontend02", ID: "1"},
 	}
-	b := ServiceList{
-		&Service{Node: "frontend02", ID: "1"},
-		&Service{Node: "frontend01", ID: "2"},
-		&Service{Node: "frontend01", ID: "1"},
+	b := util.ServiceList{
+		&util.Service{Node: "frontend02", ID: "1"},
+		&util.Service{Node: "frontend01", ID: "2"},
+		&util.Service{Node: "frontend01", ID: "1"},
 	}
-	c := ServiceList{
-		&Service{Node: "frontend01", ID: "2"},
-		&Service{Node: "frontend01", ID: "1"},
-		&Service{Node: "frontend02", ID: "1"},
+	c := util.ServiceList{
+		&util.Service{Node: "frontend01", ID: "2"},
+		&util.Service{Node: "frontend01", ID: "1"},
+		&util.Service{Node: "frontend02", ID: "1"},
 	}
 
 	sort.Stable(a)
 	sort.Stable(b)
 	sort.Stable(c)
 
-	expected := ServiceList{
-		&Service{Node: "frontend01", ID: "1"},
-		&Service{Node: "frontend01", ID: "2"},
-		&Service{Node: "frontend02", ID: "1"},
+	expected := util.ServiceList{
+		&util.Service{Node: "frontend01", ID: "1"},
+		&util.Service{Node: "frontend01", ID: "2"},
+		&util.Service{Node: "frontend02", ID: "1"},
 	}
 
 	if !reflect.DeepEqual(a, expected) {

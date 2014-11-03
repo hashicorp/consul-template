@@ -9,6 +9,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+
+	"github.com/hashicorp/consul-template/util"
 )
 
 // Runner responsible rendering Templates and invoking Commands.
@@ -22,7 +24,7 @@ type Runner struct {
 	// caches of all the data this Runner knows about.
 	configTemplates []*ConfigTemplate
 	templates       []*Template
-	dependencies    []Dependency
+	dependencies    []util.Dependency
 
 	// templateConfigTemplateMap is a map of each template to the ConfigTemplates
 	// that made it.
@@ -60,13 +62,13 @@ func (r *Runner) SetErrStream(s io.Writer) {
 // cached on the Runner. This data is then used to determine if a Template
 // is "renderable" (i.e. all its Dependencies have been downloaded at least
 // once).
-func (r *Runner) Receive(dependency Dependency, data interface{}) {
+func (r *Runner) Receive(dependency util.Dependency, data interface{}) {
 	r.dependencyDataReceivedMap[dependency.HashCode()] = struct{}{}
 	r.dependencyDataMap[dependency.HashCode()] = data
 }
 
 // Dependencies returns the unique slice of Dependency in the Runner
-func (r *Runner) Dependencies() []Dependency {
+func (r *Runner) Dependencies() []util.Dependency {
 	return r.dependencies
 }
 
@@ -124,7 +126,7 @@ func (r *Runner) init() error {
 	}
 
 	templatesMap := make(map[string]*Template)
-	dependenciesMap := make(map[string]Dependency)
+	dependenciesMap := make(map[string]util.Dependency)
 
 	r.templateConfigTemplateMap = make(map[string][]*ConfigTemplate)
 
@@ -161,7 +163,7 @@ func (r *Runner) init() error {
 	}
 
 	// Calculate the list of Dependency
-	r.dependencies = make([]Dependency, 0, len(dependenciesMap))
+	r.dependencies = make([]util.Dependency, 0, len(dependenciesMap))
 	for _, dependency := range dependenciesMap {
 		r.dependencies = append(r.dependencies, dependency)
 	}
@@ -248,13 +250,13 @@ func (r *Runner) execute(command string) error {
 
 // receivedData returns true if the Runner has ever received data for the given
 // dependency and false otherwise.
-func (r *Runner) receivedData(dependency Dependency) bool {
+func (r *Runner) receivedData(dependency util.Dependency) bool {
 	_, ok := r.dependencyDataReceivedMap[dependency.HashCode()]
 	return ok
 }
 
 // data returns the data for the given dependency.
-func (r *Runner) data(dependency Dependency) interface{} {
+func (r *Runner) data(dependency util.Dependency) interface{} {
 	return r.dependencyDataMap[dependency.HashCode()]
 }
 
@@ -271,23 +273,23 @@ func (r *Runner) configTemplatesFor(template *Template) []*ConfigTemplate {
 func (r *Runner) templateContextFor(template *Template) (*TemplateContext, error) {
 	context := &TemplateContext{
 		File:        make(map[string]string),
-		KeyPrefixes: make(map[string][]*KeyPair),
+		KeyPrefixes: make(map[string][]*util.KeyPair),
 		Keys:        make(map[string]string),
-		Services:    make(map[string][]*Service),
+		Services:    make(map[string][]*util.Service),
 	}
 
 	for _, dependency := range template.Dependencies() {
 		data := r.data(dependency)
 
 		switch dependency := dependency.(type) {
-		case *FileDependency:
+		case *util.FileDependency:
 			context.File[dependency.Key()] = data.(string)
-		case *KeyPrefixDependency:
-			context.KeyPrefixes[dependency.Key()] = data.([]*KeyPair)
-		case *KeyDependency:
+		case *util.KeyPrefixDependency:
+			context.KeyPrefixes[dependency.Key()] = data.([]*util.KeyPair)
+		case *util.KeyDependency:
 			context.Keys[dependency.Key()] = data.(string)
-		case *ServiceDependency:
-			context.Services[dependency.Key()] = data.([]*Service)
+		case *util.ServiceDependency:
+			context.Services[dependency.Key()] = data.([]*util.Service)
 		default:
 			return nil, fmt.Errorf("unknown dependency type %#v", dependency)
 		}

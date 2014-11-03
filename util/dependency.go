@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	"errors"
@@ -15,7 +15,6 @@ import (
 // Dependency is an interface
 type Dependency interface {
 	Fetch(*api.Client, *api.QueryOptions) (interface{}, *api.QueryMeta, error)
-	GoString() string
 	HashCode() string
 	Key() string
 	Display() string
@@ -70,10 +69,6 @@ func (d *ServiceDependency) Fetch(client *api.Client, options *api.QueryOptions)
 
 func (d *ServiceDependency) HashCode() string {
 	return fmt.Sprintf("ServiceDependency|%s", d.Key())
-}
-
-func (d *ServiceDependency) GoString() string {
-	return fmt.Sprintf("*%#v", *d)
 }
 
 func (d *ServiceDependency) Key() string {
@@ -178,10 +173,6 @@ func (d *KeyDependency) HashCode() string {
 	return fmt.Sprintf("KeyDependency|%s", d.Key())
 }
 
-func (d *KeyDependency) GoString() string {
-	return fmt.Sprintf("*%#v", *d)
-}
-
 func (d *KeyDependency) Key() string {
 	return d.rawKey
 }
@@ -262,10 +253,6 @@ func (d *FileDependency) Display() string {
 	return fmt.Sprintf(`file "%s"`, d.rawKey)
 }
 
-func (d *FileDependency) GoString() string {
-	return fmt.Sprintf("*%#v", *d)
-}
-
 func (d *FileDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
 	var err error = nil
 	var data []byte
@@ -321,10 +308,6 @@ func (d *KeyPrefixDependency) HashCode() string {
 	return fmt.Sprintf("KeyPrefixDependency|%s", d.Key())
 }
 
-func (d *KeyPrefixDependency) GoString() string {
-	return fmt.Sprintf("*%#v", *d)
-}
-
 func (d *KeyPrefixDependency) Key() string {
 	return d.rawKey
 }
@@ -365,4 +348,40 @@ func ParseKeyPrefixDependency(s string) (*KeyPrefixDependency, error) {
 	}
 
 	return kpd, nil
+}
+
+// Service is a service entry in Consul
+type Service struct {
+	Node    string
+	Address string
+	ID      string
+	Name    string
+	Tags    []string
+	Port    uint64
+}
+
+// ServiceList is a sortable slice of Service
+type ServiceList []*Service
+
+func (s ServiceList) Len() int {
+	return len(s)
+}
+
+func (s ServiceList) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (s ServiceList) Less(i, j int) bool {
+	if s[i].Node < s[j].Node {
+		return true
+	} else if s[i].Node == s[j].Node {
+		return s[i].ID <= s[j].ID
+	}
+	return false
+}
+
+// KeyPair is a simple Key-Value pair
+type KeyPair struct {
+	Key   string
+	Value string
 }

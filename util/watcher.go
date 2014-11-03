@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	"fmt"
@@ -122,8 +122,9 @@ func (w *Watcher) init() error {
 /// ------------------------- ///
 
 type WatchData struct {
-	dependency   Dependency
-	data         interface{}
+	Dependency Dependency
+	Data       interface{}
+
 	receivedData bool
 	lastIndex    uint64
 }
@@ -134,21 +135,21 @@ func NewWatchData(dependency Dependency) (*WatchData, error) {
 		return nil, fmt.Errorf("watchdata: missing Dependency")
 	}
 
-	return &WatchData{dependency: dependency}, nil
+	return &WatchData{Dependency: dependency}, nil
 }
 
 //
 func (wd *WatchData) poll(w *Watcher) {
 	for {
-		log.Printf("[DEBUG] (%s) starting poll", wd.id())
+		log.Printf("[DEBUG] (%s) starting poll", wd.Display())
 
 		options := &api.QueryOptions{
 			WaitTime:  defaultWaitTime,
 			WaitIndex: wd.lastIndex,
 		}
-		data, qm, err := wd.dependency.Fetch(w.client, options)
+		data, qm, err := wd.Dependency.Fetch(w.client, options)
 		if err != nil {
-			log.Printf("[ERR] (%s) %s", wd.id(), err.Error())
+			log.Printf("[ERR] (%s) %s", wd.Display(), err.Error())
 			w.ErrCh <- err
 			time.Sleep(pollErrorSleep)
 			continue
@@ -157,7 +158,7 @@ func (wd *WatchData) poll(w *Watcher) {
 		// Consul is allowed to return even if there's no new data. Ignore data if
 		// the index is the same. For files, the data is fake, index is always 0
 		if qm.LastIndex == wd.lastIndex {
-			log.Printf("[DEBUG] (%s) no new data (index was the same)", wd.id())
+			log.Printf("[DEBUG] (%s) no new data (index was the same)", wd.Display())
 			continue
 		}
 
@@ -165,22 +166,22 @@ func (wd *WatchData) poll(w *Watcher) {
 		wd.lastIndex = qm.LastIndex
 
 		// Do not trigger a render if we have gotten data and the data is the same
-		if wd.receivedData && reflect.DeepEqual(data, wd.data) {
-			log.Printf("[DEBUG] (%s) no new data (contents were the same)", wd.id())
+		if wd.receivedData && reflect.DeepEqual(data, wd.Data) {
+			log.Printf("[DEBUG] (%s) no new data (contents were the same)", wd.Display())
 			continue
 		}
 
-		log.Printf("[DEBUG] (%s) writing data to channel", wd.id())
+		log.Printf("[DEBUG] (%s) writing data to channel", wd.Display())
 
 		// If we got this far, there is new data!
-		wd.data = data
+		wd.Data = data
 		wd.receivedData = true
 		w.DataCh <- wd
 
 		// Break from the function if we are done
 		select {
 		case <-w.stopCh:
-			log.Printf("[DEBUG] (%s) stopping poll (received on stopCh)", wd.id())
+			log.Printf("[DEBUG] (%s) stopping poll (received on stopCh)", wd.Display())
 			return
 		default:
 			continue
@@ -189,6 +190,6 @@ func (wd *WatchData) poll(w *Watcher) {
 }
 
 //
-func (wd *WatchData) id() string {
-	return wd.dependency.Display()
+func (wd *WatchData) Display() string {
+	return wd.Dependency.Display()
 }

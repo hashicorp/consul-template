@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"strings"
 
+	util "github.com/hashicorp/consul-template/util"
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/mapstructure"
 )
@@ -28,8 +29,8 @@ type Config struct {
 	Token string `mapstructure:"token"`
 
 	// Wait
-	Wait    *Wait  `mapstructure:"-"`
-	WaitRaw string `mapstructure:"wait" json:""`
+	Wait    *util.Wait `mapstructure:"-"`
+	WaitRaw string     `mapstructure:"wait" json:""`
 }
 
 // Merge merges the values in config into this config object. Values in the
@@ -55,17 +56,12 @@ func (c *Config) Merge(config *Config) {
 	}
 
 	if config.Wait != nil {
-		c.Wait = &Wait{
+		c.Wait = &util.Wait{
 			Min: config.Wait.Min,
 			Max: config.Wait.Max,
 		}
 		c.WaitRaw = config.WaitRaw
 	}
-}
-
-// GoString returns the detailed format of this object
-func (c *Config) GoString() string {
-	return fmt.Sprintf("*%#v", *c)
 }
 
 // ParseConfig reads the configuration file at the given path and returns a new
@@ -101,7 +97,7 @@ func ParseConfig(path string) (*Config, error) {
 
 	// Parse the Wait component
 	if raw := config.WaitRaw; raw != "" {
-		wait, err := ParseWait(raw)
+		wait, err := util.ParseWait(raw)
 
 		if err == nil {
 			config.Wait = wait
@@ -121,13 +117,7 @@ type ConfigTemplate struct {
 	Command     string `mapstructure:"command"`
 }
 
-// GoString returns the detailed format of this object
-func (t *ConfigTemplate) GoString() string {
-	return fmt.Sprintf("*%#v", *t)
-}
-
-// ParseWait parses a string of the format `minimum(:maximum)` into a Wait
-// struct.
+// ParseConfigTemplate parses a string into a ConfigTemplate struct
 func ParseConfigTemplate(s string) (*ConfigTemplate, error) {
 	if len(strings.TrimSpace(s)) < 1 {
 		return nil, errors.New("cannot specify empty template declaration")

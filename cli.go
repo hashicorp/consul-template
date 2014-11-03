@@ -11,7 +11,8 @@ import (
 	"time"
 
 	api "github.com/armon/consul-api"
-	logutils "github.com/hashicorp/logutils"
+	"github.com/hashicorp/consul-template/util"
+	"github.com/hashicorp/logutils"
 )
 
 /// ------------------------- ///
@@ -87,7 +88,7 @@ func (cli *CLI) Run(args []string) int {
 	// Parse the raw wait value into a Wait object
 	if config.WaitRaw != "" {
 		log.Printf("[DEBUG] (cli) detected -wait, parsing")
-		wait, err := ParseWait(config.WaitRaw)
+		wait, err := util.ParseWait(config.WaitRaw)
 		if err != nil {
 			return cli.handleError(err, ExitCodeParseWaitError)
 		}
@@ -130,7 +131,7 @@ func (cli *CLI) Run(args []string) int {
 	}
 
 	log.Printf("[DEBUG] (cli) creating Watcher")
-	watcher, err := NewWatcher(client, runner.Dependencies())
+	watcher, err := util.NewWatcher(client, runner.Dependencies())
 	if err != nil {
 		return cli.handleError(err, ExitCodeWatcherError)
 	}
@@ -144,10 +145,10 @@ func (cli *CLI) Run(args []string) int {
 
 		select {
 		case data := <-watcher.DataCh:
-			log.Printf("[INFO] (cli) received %s from Watcher", data.id())
+			log.Printf("[INFO] (cli) received %s from Watcher", data.Display())
 
 			// Tell the Runner about the data
-			runner.Receive(data.dependency, data.data)
+			runner.Receive(data.Dependency, data.Data)
 
 			// If we are waiting for quiescence, setup the timers
 			if config.Wait != nil {
