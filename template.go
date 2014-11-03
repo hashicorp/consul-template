@@ -100,11 +100,11 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 		"service":   c.Evaluator(DependencyTypeService),
 
 		// Helper functions
-		"byTag":   c.groupByTag,
-		"toJSON":  c.decodeJSON,
-		"toLower": c.toLower,
-		"toTitle": c.toTitle,
-		"toUpper": c.toUpper,
+		"byTag":     c.groupByTag,
+		"parseJSON": c.decodeJSON,
+		"toLower":   c.toLower,
+		"toTitle":   c.toTitle,
+		"toUpper":   c.toUpper,
 	}).Parse(string(contents))
 
 	if err != nil {
@@ -138,11 +138,11 @@ func (t *Template) init() error {
 		"service":   t.dependencyAcc(depsMap, DependencyTypeService),
 
 		// Helper functions
-		"byTag":   t.noop,
-		"toJSON":  t.noop,
-		"toLower": t.noop,
-		"toTitle": t.noop,
-		"toUpper": t.noop,
+		"byTag":     t.noop,
+		"parseJSON": t.noop,
+		"toLower":   t.noop,
+		"toTitle":   t.noop,
+		"toUpper":   t.noop,
 	}).Parse(string(contents))
 
 	if err != nil {

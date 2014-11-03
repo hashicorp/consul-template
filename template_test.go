@@ -385,7 +385,7 @@ func TestServiceList_sorts(t *testing.T) {
 
 func TestExecute_decodeJSON(t *testing.T) {
 	inTemplate := test.CreateTempfile([]byte(`
-		{{with $d := file "data.json" | toJSON}}
+		{{with $d := file "data.json" | parseJSON}}
 		{{$d.foo}}
 		{{end}}
 	`), t)
@@ -415,7 +415,7 @@ func TestExecute_decodeJSON(t *testing.T) {
 
 func TestExecute_decodeJSONDeep(t *testing.T) {
 	inTemplate := test.CreateTempfile([]byte(`
-		{{with $d := file "data.json" | toJSON}}
+		{{with $d := file "data.json" | parseJSON}}
 		{{$d.foo.bar.zip}}
 		{{end}}
 	`), t)
