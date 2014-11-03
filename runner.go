@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	util "github.com/hashicorp/consul-template/util"
+	"github.com/hashicorp/consul-template/util"
 )
 
 // Runner responsible rendering Templates and invoking Commands.

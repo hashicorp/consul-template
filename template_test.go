@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	util "github.com/hashicorp/consul-template/util"
+	"github.com/hashicorp/consul-template/util"
 )
 
 func TestDependencies_empty(t *testing.T) {

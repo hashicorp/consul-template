@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	util "github.com/hashicorp/consul-template/util"
-	hcl "github.com/hashicorp/hcl"
-	mapstructure "github.com/mitchellh/mapstructure"
+	"github.com/hashicorp/hcl"
+	"github.com/mitchellh/mapstructure"
 )
 
 // Config is used to configure Consul Template

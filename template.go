@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 	"text/template"
 
-	util "github.com/hashicorp/consul-template/util"
+	"github.com/hashicorp/consul-template/util"
 )
 
 type Template struct {

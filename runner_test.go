@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	util "github.com/hashicorp/consul-template/util"
+	"github.com/hashicorp/consul-template/util"
 )
 
 func TestNewRunner_noDependencies(t *testing.T) {

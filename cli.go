@@ -11,8 +11,8 @@ import (
 	"time"
 
 	api "github.com/armon/consul-api"
-	util "github.com/hashicorp/consul-template/util"
-	logutils "github.com/hashicorp/logutils"
+	"github.com/hashicorp/consul-template/util"
+	"github.com/hashicorp/logutils"
 )
 
 /// ------------------------- ///

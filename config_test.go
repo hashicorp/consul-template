@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	util "github.com/hashicorp/consul-template/util"
+	"github.com/hashicorp/consul-template/util"
 )
 
 // Test that an empty config does nothing
