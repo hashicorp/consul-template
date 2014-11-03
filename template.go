@@ -292,8 +292,8 @@ func (c *TemplateContext) decodeJSON(s string) (interface{}, error) {
 //
 // The map key is a string representing the service tag. The map value is a
 // slice of Services which have the tag assigned.
-func (c *TemplateContext) groupByTag(in []*Service) map[string][]*Service {
-	m := make(map[string][]*Service)
+func (c *TemplateContext) groupByTag(in []*util.Service) map[string][]*util.Service {
+	m := make(map[string][]*util.Service)
 	for _, s := range in {
 		for _, t := range s.Tags {
 			m[t] = append(m[t], s)
@@ -317,56 +317,6 @@ func (c *TemplateContext) toUpper(s string) (string, error) {
 	return strings.ToUpper(s), nil
 }
 
-/// ------------------------- ///
-
-type Service struct {
-	Node    string
-	Address string
-	ID      string
-	Name    string
-	Tags    []string
-	Port    uint64
-}
-
-// GoString returns the detailed format of this object
-func (s *Service) GoString() string {
-	return fmt.Sprintf("*%#v", *s)
-}
-
-/// ------------------------- ///
-
-type ServiceList []*Service
-
-func (s ServiceList) Len() int {
-	return len(s)
-}
-
-func (s ServiceList) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
-func (s ServiceList) Less(i, j int) bool {
-	if s[i].Node < s[j].Node {
-		return true
-	} else if s[i].Node == s[j].Node {
-		return s[i].ID <= s[j].ID
-	}
-	return false
-}
-
-/// ------------------------- ///
-
-type KeyPair struct {
-	Key   string
-	Value string
-}
-
-// GoString returns the detailed format of this object
-func (kp *KeyPair) GoString() string {
-	return fmt.Sprintf("*%#v", *kp)
-}
-
->>>>>>> 15f69a2... Add helper functions for toLower, toUpper, and toTitle
 // DependencyType is an enum type that says the kind of the dependency.
 type DependencyType byte
 
