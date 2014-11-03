@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul-template/test"
 )
 
 func TestRun_printsErrors(t *testing.T) {
@@ -73,13 +75,13 @@ func TestRun_waitFlagError(t *testing.T) {
 }
 
 func TestRun_onceFlag(t *testing.T) {
-	template := createTempfile([]byte(`
+	template := test.CreateTempfile([]byte(`
     {{range service "consul"}}{{.Name}}{{end}}
   `), t)
-	defer deleteTempfile(template, t)
+	defer test.DeleteTempfile(template, t)
 
-	out := createTempfile(nil, t)
-	defer deleteTempfile(out, t)
+	out := test.CreateTempfile(nil, t)
+	defer test.DeleteTempfile(out, t)
 
 	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
 	cli := &CLI{outStream: outStream, errStream: errStream}

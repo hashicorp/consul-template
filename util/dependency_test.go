@@ -4,10 +4,12 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/consul-template/test"
 )
 
 func TestServiceDependencyFetch(t *testing.T) {
-	client, options := demoConsulClient(t)
+	client, options := test.DemoConsulClient(t)
 	dep := &ServiceDependency{
 		rawKey: "consul",
 		Name:   "consul",
@@ -26,8 +28,8 @@ func TestServiceDependencyFetch(t *testing.T) {
 
 func TestFileDependencyFetch(t *testing.T) {
 	data := `{"foo":"bar"}`
-	inTemplate := createTempfile([]byte(data), t)
-	defer deleteTempfile(inTemplate, t)
+	inTemplate := test.CreateTempfile([]byte(data), t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	dep := &FileDependency{
 		rawKey: inTemplate.Name(),
@@ -225,7 +227,7 @@ func TestParseServiceDependency_nameAndDataCenter(t *testing.T) {
 }
 
 func TestKeyDependencyFetch(t *testing.T) {
-	client, options := demoConsulClient(t)
+	client, options := test.DemoConsulClient(t)
 	dep := &KeyDependency{
 		rawKey: "global/time",
 		Path:   "global/time",
@@ -295,7 +297,7 @@ func TestParseKeyDependency_nameTagDataCenter(t *testing.T) {
 }
 
 func TestKeyPrefixDependencyFetch(t *testing.T) {
-	client, options := demoConsulClient(t)
+	client, options := test.DemoConsulClient(t)
 	dep := &KeyPrefixDependency{
 		rawKey: "global",
 		Prefix: "global",

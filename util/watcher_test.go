@@ -7,6 +7,7 @@ import (
 	"time"
 
 	api "github.com/armon/consul-api"
+	"github.com/hashicorp/consul-template/test"
 )
 
 func TestNewWatcher_noClient(t *testing.T) {
@@ -90,7 +91,7 @@ func TestNewWatcher_makesstopCh(t *testing.T) {
 
 func TestWatch_propagatesDependencyFetchError(t *testing.T) {
 	dependencies := []Dependency{
-		&fakeDependencyFetchError{name: "tester"},
+		&test.FakeDependencyFetchError{Name: "tester"},
 	}
 	w, err := NewWatcher(&api.Client{}, dependencies)
 	if err != nil {
@@ -115,7 +116,7 @@ func TestWatch_propagatesDependencyFetchError(t *testing.T) {
 
 func TestWatch_fetchesData(t *testing.T) {
 	dependencies := []Dependency{
-		&fakeDependency{name: "tester"},
+		&test.FakeDependency{Name: "tester"},
 	}
 	w, err := NewWatcher(&api.Client{}, dependencies)
 	if err != nil {
@@ -125,13 +126,13 @@ func TestWatch_fetchesData(t *testing.T) {
 
 	select {
 	case data := <-w.DataCh:
-		if !reflect.DeepEqual(data.dependency, dependencies[0]) {
+		if !reflect.DeepEqual(data.Dependency, dependencies[0]) {
 			t.Error("did not get the correct dependency")
 		}
 		if data.lastIndex != 1 {
 			t.Errorf("expected %d to equal %d", data.lastIndex, 1)
 		}
-		s, expected := data.data.(string), "this is some data"
+		s, expected := data.Data.(string), "this is some data"
 		if s != expected {
 			t.Errorf("expected %q to equal %q", s, expected)
 		}

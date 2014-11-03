@@ -7,12 +7,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul-template/util"
 )
 
 func TestDependencies_empty(t *testing.T) {
-	inTemplate := createTempfile(nil, t)
-	defer deleteTempfile(inTemplate, t)
+	inTemplate := test.CreateTempfile(nil, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
 	if err != nil {
@@ -26,12 +27,12 @@ func TestDependencies_empty(t *testing.T) {
 }
 
 func TestDependencies_funcs(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{ range service "release.webapp" }}{{ end }}
     {{ key "service/redis/maxconns" }}
     {{ range keyPrefix "service/redis/config" }}{{ end }}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
 	if err != nil {
@@ -45,12 +46,12 @@ func TestDependencies_funcs(t *testing.T) {
 }
 
 func TestDependencies_funcsDuplicates(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{ range service "release.webapp" }}{{ end }}
     {{ range service "release.webapp" }}{{ end }}
     {{ range service "release.webapp" }}{{ end }}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
 	if err != nil {
@@ -69,10 +70,10 @@ func TestDependencies_funcsDuplicates(t *testing.T) {
 }
 
 func TestDependencies_funcsError(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{ range service "totally&not&a&valid&service" }}{{ end }}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	_, err := NewTemplate(inTemplate.Name())
 	if err == nil {
@@ -86,8 +87,8 @@ func TestDependencies_funcsError(t *testing.T) {
 }
 
 func TestExecute_noTemplateContext(t *testing.T) {
-	inTemplate := createTempfile(nil, t)
-	defer deleteTempfile(inTemplate, t)
+	inTemplate := test.CreateTempfile(nil, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
 	if err != nil {
@@ -106,10 +107,10 @@ func TestExecute_noTemplateContext(t *testing.T) {
 }
 
 func TestExecute_dependenciesError(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{ range not_a_valid "template" }}{{ end }}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	_, err := NewTemplate(inTemplate.Name())
 	if err == nil {
@@ -123,8 +124,8 @@ func TestExecute_dependenciesError(t *testing.T) {
 }
 
 func TestExecute_JSON(t *testing.T) {
-	inTemplate := createTempfile([]byte(`{{(file "data.json" | json).foo}}`), t)
-	defer deleteTempfile(inTemplate, t)
+	inTemplate := test.CreateTempfile([]byte(`{{(file "data.json" | json).foo}}`), t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
 	if err != nil {
@@ -149,12 +150,12 @@ func TestExecute_JSON(t *testing.T) {
 }
 
 func TestExecute_deepJSON(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
 		{{ with $d := file "data.json" | json }}
 		{{ $d.foo.bar.zip }}
 		{{ end }}
 	`), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
 	if err != nil {
@@ -186,12 +187,12 @@ func TestExecute_deepJSON(t *testing.T) {
 }
 
 func TestExecute_byTag(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
 		{{range $t, $s := service "webapp" | byTag}}{{$t}}
 		{{range $s}}	server {{.Name}} {{.Address}}:{{.Port}}
 		{{end}}{{end}}
 	`), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
 	if err != nil {
@@ -252,11 +253,11 @@ func TestExecute_byTag(t *testing.T) {
 }
 
 func TestExecute_missingService(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{ range service "release.webapp" }}{{ end }}
     {{ range service "production.webapp" }}{{ end }}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
 	if err != nil {
@@ -281,11 +282,11 @@ func TestExecute_missingService(t *testing.T) {
 }
 
 func TestExecute_missingKey(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{ key "service/redis/maxconns" }}
     {{ key "service/redis/online" }}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
 	if err != nil {
@@ -310,11 +311,11 @@ func TestExecute_missingKey(t *testing.T) {
 }
 
 func TestExecute_missingKeyPrefix(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{ range keyPrefix "service/redis/config" }}{{ end }}
     {{ range keyPrefix "service/nginx/config" }}{{ end }}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
 	if err != nil {
@@ -339,11 +340,11 @@ func TestExecute_missingKeyPrefix(t *testing.T) {
 }
 
 func TestExecute_rendersServices(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{ range service "release.webapp" }}
     server {{.Name}} {{.Address}}:{{.Port}}{{ end }}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
 	if err != nil {
@@ -388,11 +389,11 @@ func TestExecute_rendersServices(t *testing.T) {
 }
 
 func TestExecute_rendersKeys(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     minconns: {{ key "service/redis/minconns" }}
     maxconns: {{ key "service/redis/maxconns" }}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
 	if err != nil {
@@ -421,11 +422,11 @@ func TestExecute_rendersKeys(t *testing.T) {
 }
 
 func TestExecute_rendersKeyPrefixes(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{ range keyPrefix "service/redis/config" }}
     {{.Key}} {{.Value}}{{ end }}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())
 	if err != nil {

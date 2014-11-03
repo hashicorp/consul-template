@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul-template/util"
 )
 
@@ -83,10 +84,10 @@ func TestParseConfig_readFileError(t *testing.T) {
 
 // Test that parser errors are propagated up
 func TestParseConfig_parseFileError(t *testing.T) {
-	configFile := createTempfile([]byte(`
+	configFile := test.CreateTempfile([]byte(`
     invalid file in here
   `), t)
-	defer deleteTempfile(configFile, t)
+	defer test.DeleteTempfile(configFile, t)
 
 	_, err := ParseConfig(configFile.Name())
 	if err == nil {
@@ -101,10 +102,10 @@ func TestParseConfig_parseFileError(t *testing.T) {
 
 // Test that mapstructure errors are propagated up
 func TestParseConfig_mapstructureError(t *testing.T) {
-	configFile := createTempfile([]byte(`
+	configFile := test.CreateTempfile([]byte(`
     consul = true
   `), t)
-	defer deleteTempfile(configFile, t)
+	defer test.DeleteTempfile(configFile, t)
 
 	_, err := ParseConfig(configFile.Name())
 	if err == nil {
@@ -119,7 +120,7 @@ func TestParseConfig_mapstructureError(t *testing.T) {
 
 // Test that the config is parsed correctly
 func TestParseConfig_correctValues(t *testing.T) {
-	configFile := createTempfile([]byte(`
+	configFile := test.CreateTempfile([]byte(`
     consul = "nyc1.demo.consul.io"
     token = "abcd1234"
     wait = "5s:10s"
@@ -135,7 +136,7 @@ func TestParseConfig_correctValues(t *testing.T) {
       command = "service redis restart"
     }
   `), t)
-	defer deleteTempfile(configFile, t)
+	defer test.DeleteTempfile(configFile, t)
 
 	config, err := ParseConfig(configFile.Name())
 	if err != nil {
@@ -170,10 +171,10 @@ func TestParseConfig_correctValues(t *testing.T) {
 
 // Test that ParseWait errors are propagated up
 func TestParseConfig_parseWaitError(t *testing.T) {
-	configFile := createTempfile([]byte(`
+	configFile := test.CreateTempfile([]byte(`
     wait = "not_valid:duration"
   `), t)
-	defer deleteTempfile(configFile, t)
+	defer test.DeleteTempfile(configFile, t)
 
 	_, err := ParseConfig(configFile.Name())
 	if err == nil {

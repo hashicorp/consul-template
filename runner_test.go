@@ -7,6 +7,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul-template/util"
 )
 
@@ -50,10 +51,10 @@ func TestNewRunner_setsErrStream(t *testing.T) {
 }
 
 func TestNewRunner_singleConfigTemplate(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{ range service "consul@nyc1"}}{{end}}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	ctemplates := []*ConfigTemplate{
 		&ConfigTemplate{Source: inTemplate.Name()},
@@ -78,20 +79,20 @@ func TestNewRunner_singleConfigTemplate(t *testing.T) {
 }
 
 func TestNewRunner_multipleConfigTemplate(t *testing.T) {
-	inTemplate1 := createTempfile([]byte(`
+	inTemplate1 := test.CreateTempfile([]byte(`
     {{ range service "consul@nyc1"}}{{end}}
   `), t)
-	defer deleteTempfile(inTemplate1, t)
+	defer test.DeleteTempfile(inTemplate1, t)
 
-	inTemplate2 := createTempfile([]byte(`
+	inTemplate2 := test.CreateTempfile([]byte(`
     {{ range service "consul@nyc2"}}{{end}}
   `), t)
-	defer deleteTempfile(inTemplate2, t)
+	defer test.DeleteTempfile(inTemplate2, t)
 
-	inTemplate3 := createTempfile([]byte(`
+	inTemplate3 := test.CreateTempfile([]byte(`
     {{ range service "consul@nyc3"}}{{end}}
   `), t)
-	defer deleteTempfile(inTemplate3, t)
+	defer test.DeleteTempfile(inTemplate3, t)
 
 	ctemplates := []*ConfigTemplate{
 		&ConfigTemplate{Source: inTemplate1.Name()},
@@ -118,12 +119,12 @@ func TestNewRunner_multipleConfigTemplate(t *testing.T) {
 }
 
 func TestNewRunner_templateWithMultipleDependency(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{ range service "consul@nyc1"}}{{end}}
     {{ range service "consul@nyc2"}}{{end}}
     {{ range service "consul@nyc3"}}{{end}}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	ctemplates := []*ConfigTemplate{
 		&ConfigTemplate{Source: inTemplate.Name()},
@@ -148,12 +149,12 @@ func TestNewRunner_templateWithMultipleDependency(t *testing.T) {
 }
 
 func TestNewRunner_templatesWithDuplicateDependency(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{ range service "consul@nyc1"}}{{end}}
     {{ range service "consul@nyc1"}}{{end}}
     {{ range service "consul@nyc1"}}{{end}}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	ctemplates := []*ConfigTemplate{
 		&ConfigTemplate{Source: inTemplate.Name()},
@@ -178,14 +179,14 @@ func TestNewRunner_templatesWithDuplicateDependency(t *testing.T) {
 }
 
 func TestNewRunner_multipleTemplatesWithDuplicateDependency(t *testing.T) {
-	inTemplate1 := createTempfile([]byte(`
+	inTemplate1 := test.CreateTempfile([]byte(`
     {{ range service "consul@nyc1"}}{{end}}
   `), t)
-	defer deleteTempfile(inTemplate1, t)
-	inTemplate2 := createTempfile([]byte(`
+	defer test.DeleteTempfile(inTemplate1, t)
+	inTemplate2 := test.CreateTempfile([]byte(`
     {{ range service "consul@nyc1"}}{{end}}
   `), t)
-	defer deleteTempfile(inTemplate2, t)
+	defer test.DeleteTempfile(inTemplate2, t)
 
 	ctemplates := []*ConfigTemplate{
 		&ConfigTemplate{Source: inTemplate1.Name()},
@@ -211,21 +212,21 @@ func TestNewRunner_multipleTemplatesWithDuplicateDependency(t *testing.T) {
 }
 
 func TestNewRunner_multipleTemplatesWithMultipleDependencies(t *testing.T) {
-	inTemplate1 := createTempfile([]byte(`
+	inTemplate1 := test.CreateTempfile([]byte(`
     {{ range service "consul@nyc1"}}{{end}}
     {{ range service "consul@nyc2"}}{{end}}
   `), t)
-	defer deleteTempfile(inTemplate1, t)
-	inTemplate2 := createTempfile([]byte(`
+	defer test.DeleteTempfile(inTemplate1, t)
+	inTemplate2 := test.CreateTempfile([]byte(`
     {{ range service "consul@nyc2"}}{{end}}
     {{ range service "consul@nyc3"}}{{end}}
   `), t)
-	defer deleteTempfile(inTemplate2, t)
-	inTemplate3 := createTempfile([]byte(`
+	defer test.DeleteTempfile(inTemplate2, t)
+	inTemplate3 := test.CreateTempfile([]byte(`
     {{ range service "consul@nyc3"}}{{end}}
     {{ range service "consul@nyc4"}}{{end}}
   `), t)
-	defer deleteTempfile(inTemplate3, t)
+	defer test.DeleteTempfile(inTemplate3, t)
 
 	ctemplates := []*ConfigTemplate{
 		&ConfigTemplate{Source: inTemplate1.Name()},
@@ -252,10 +253,10 @@ func TestNewRunner_multipleTemplatesWithMultipleDependencies(t *testing.T) {
 }
 
 func TestNewRunner_multipleConfigTemplateSameTemplate(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{ range service "consul@nyc1"}}{{end}}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	ctemplates := []*ConfigTemplate{
 		&ConfigTemplate{Source: inTemplate.Name()},
@@ -286,7 +287,7 @@ func TestReceive_addsDependency(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dependency, data := &fakeDependency{}, "this is some data"
+	dependency, data := &test.FakeDependency{}, "this is some data"
 	runner.Receive(dependency, data)
 
 	if !runner.receivedData(dependency) {
@@ -303,7 +304,7 @@ func TestReceive_updatesDependency(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dependency, data := &fakeDependency{}, "this is new data"
+	dependency, data := &test.FakeDependency{}, "this is new data"
 	runner.Receive(dependency, "first data")
 	runner.Receive(dependency, data)
 
@@ -316,10 +317,10 @@ func TestReceive_updatesDependency(t *testing.T) {
 }
 
 func TestRender_noopIfMissingData(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{range service "consul@nyc1"}}{{end}}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	configTemplates := []*ConfigTemplate{
 		&ConfigTemplate{Source: inTemplate.Name()},
@@ -343,10 +344,10 @@ func TestRender_noopIfMissingData(t *testing.T) {
 }
 
 func TestRender_dryRender(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{range service "consul@nyc1"}}{{.Node}}{{end}}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	configTemplates := []*ConfigTemplate{
 		&ConfigTemplate{
@@ -386,15 +387,15 @@ func TestRender_dryRender(t *testing.T) {
 }
 
 func TestRender_sameContentsDoesNotRender(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{range service "consul@nyc1"}}{{.Node}}{{end}}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
-	outTemplate := createTempfile([]byte(`
+	outTemplate := test.CreateTempfile([]byte(`
     consul1consul2
   `), t)
-	defer deleteTempfile(outTemplate, t)
+	defer test.DeleteTempfile(outTemplate, t)
 
 	configTemplates := []*ConfigTemplate{
 		&ConfigTemplate{
@@ -426,19 +427,19 @@ func TestRender_sameContentsDoesNotRender(t *testing.T) {
 }
 
 func TestRender_sameContentsDoesNotExecuteCommand(t *testing.T) {
-	outFile := createTempfile(nil, t)
+	outFile := test.CreateTempfile(nil, t)
 	os.Remove(outFile.Name())
 	defer os.Remove(outFile.Name())
 
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{range service "consul@nyc1"}}{{.Node}}{{end}}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
-	outTemplate := createTempfile([]byte(`
+	outTemplate := test.CreateTempfile([]byte(`
     consul1consul2
   `), t)
-	defer deleteTempfile(outTemplate, t)
+	defer test.DeleteTempfile(outTemplate, t)
 
 	configTemplates := []*ConfigTemplate{
 		&ConfigTemplate{
@@ -471,10 +472,10 @@ func TestRender_sameContentsDoesNotExecuteCommand(t *testing.T) {
 }
 
 func TestRender_containingFolderMissing(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{range service "consul@nyc1"}}{{.Node}}{{end}}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	// Create a TempDir and a TempFile in that TempDir, then remove them to
 	// "simulate" a non-existent folder
@@ -526,10 +527,10 @@ func TestRender_containingFolderMissing(t *testing.T) {
 }
 
 func TestRender_outputFileMissing(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{range service "consul@nyc1"}}{{.Node}}{{end}}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	// Create a TempDir and a TempFile in that TempDir, then remove the file to
 	// "simulate" a non-existent file
@@ -580,10 +581,10 @@ func TestRender_outputFileMissing(t *testing.T) {
 }
 
 func TestRender_outputFileRetainsPermissions(t *testing.T) {
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{range service "consul@nyc1"}}{{.Node}}{{end}}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
 	// Create a TempDir and a TempFile in that TempDir, then remove the file to
 	// "simulate" a non-existent file
@@ -633,17 +634,17 @@ func TestRender_outputFileRetainsPermissions(t *testing.T) {
 }
 
 func TestExecute_doesNotRunInDry(t *testing.T) {
-	outFile := createTempfile(nil, t)
+	outFile := test.CreateTempfile(nil, t)
 	os.Remove(outFile.Name())
 	defer os.Remove(outFile.Name())
 
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{ range service "consul@nyc1"}}{{end}}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
-	outTemplate := createTempfile(nil, t)
-	defer deleteTempfile(outTemplate, t)
+	outTemplate := test.CreateTempfile(nil, t)
+	defer test.DeleteTempfile(outTemplate, t)
 
 	ctemplates := []*ConfigTemplate{
 		&ConfigTemplate{
@@ -669,17 +670,17 @@ func TestExecute_doesNotRunInDry(t *testing.T) {
 }
 
 func TestExecute_doesNotExecuteCommandMissingDependencies(t *testing.T) {
-	outFile := createTempfile(nil, t)
+	outFile := test.CreateTempfile(nil, t)
 	os.Remove(outFile.Name())
 	defer os.Remove(outFile.Name())
 
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{ range service "consul@nyc1"}}{{end}}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
-	outTemplate := createTempfile(nil, t)
-	defer deleteTempfile(outTemplate, t)
+	outTemplate := test.CreateTempfile(nil, t)
+	defer test.DeleteTempfile(outTemplate, t)
 
 	ctemplates := []*ConfigTemplate{
 		&ConfigTemplate{
@@ -705,17 +706,17 @@ func TestExecute_doesNotExecuteCommandMissingDependencies(t *testing.T) {
 }
 
 func TestExecute_executesCommand(t *testing.T) {
-	outFile := createTempfile(nil, t)
+	outFile := test.CreateTempfile(nil, t)
 	os.Remove(outFile.Name())
 	defer os.Remove(outFile.Name())
 
-	inTemplate := createTempfile([]byte(`
+	inTemplate := test.CreateTempfile([]byte(`
     {{ range service "consul@nyc1"}}{{end}}
   `), t)
-	defer deleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(inTemplate, t)
 
-	outTemplate := createTempfile(nil, t)
-	defer deleteTempfile(outTemplate, t)
+	outTemplate := test.CreateTempfile(nil, t)
+	defer test.DeleteTempfile(outTemplate, t)
 
 	ctemplates := []*ConfigTemplate{
 		&ConfigTemplate{
