@@ -205,6 +205,19 @@ Alternatively you can read data from a local JSON file:
 {{with $d := file "/path/to/local/data.json" | parseJSON}}{{$d.some_key}}{{end}}
 ```
 
+##### `replaceAll`
+Takes the argument as a string and replaces all occurences of the given string with the given string.
+
+```liquid
+{{"foo.bar" | replaceAll ".", "_"}}
+```
+
+This function can be chained with other functions as well:
+
+```liquid
+{{service "webapp"}}{{.Name | replaceAll ":", "_"}}{{end}}
+```
+
 ##### `toLower`
 Takes the argument as a string and converts it to lowercase.
 
