@@ -248,7 +248,7 @@ func (t *Template) validateDependencies(c *TemplateContext) error {
 // noop is a special function that returns itself. This is used during the
 // dependency accumulation to allow the template to be processed once.
 func (t *Template) noop(thing ...interface{}) (interface{}, error) {
-	return thing[0], nil
+	return thing[len(thing)-1], nil
 }
 
 // TemplateContext is what Template uses to determine the values that are
