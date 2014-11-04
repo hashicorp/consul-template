@@ -102,10 +102,10 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 		// Helper functions
 		"byTag":      c.groupByTag,
 		"parseJSON":  c.decodeJSON,
+		"replaceAll": c.replaceAll,
 		"toLower":    c.toLower,
 		"toTitle":    c.toTitle,
 		"toUpper":    c.toUpper,
-		"replaceAll": c.replaceAll,
 	}).Parse(string(contents))
 
 	if err != nil {
@@ -141,10 +141,10 @@ func (t *Template) init() error {
 		// Helper functions
 		"byTag":      t.noop,
 		"parseJSON":  t.noop,
+		"replaceAll": t.noop,
 		"toLower":    t.noop,
 		"toTitle":    t.noop,
 		"toUpper":    t.noop,
-		"replaceAll": t.noop,
 	}).Parse(string(contents))
 
 	if err != nil {
@@ -319,7 +319,8 @@ func (c *TemplateContext) toUpper(s string) (string, error) {
 	return strings.ToUpper(s), nil
 }
 
-// strip
+// replaceAll replaces all occurrences of a value in a string with the given
+// replacement value.
 func (c *TemplateContext) replaceAll(f, t, s string) (string, error) {
 	return strings.Replace(s, f, t, -1), nil
 }
