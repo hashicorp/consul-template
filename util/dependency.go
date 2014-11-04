@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	api "github.com/armon/consul-api"
 )
@@ -239,7 +242,9 @@ func ParseFileDependency(s string) (*FileDependency, error) {
 /// ------------------------- ///
 
 type FileDependency struct {
-	rawKey string
+	mutex    sync.RWMutex
+	rawKey   string
+	lastStat os.FileInfo
 }
 
 func (d *FileDependency) HashCode() string {
@@ -260,12 +265,58 @@ func (d *FileDependency) Fetch(client *api.Client, options *api.QueryOptions) (i
 
 	log.Printf("[DEBUG] (%s) querying file", d.Display())
 
+	// Block until we get a change
+	newStat, err := d.watch()
+	if err != nil {
+		return "", nil, err
+	}
+
+	// Lock updating the stat in case another process is also fetching
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	d.lastStat = newStat
+
 	// fake metadata for calling function
-	fakeMeta := &api.QueryMeta{LastIndex: 0}
+	fakeMeta := &api.QueryMeta{LastIndex: uint64(newStat.ModTime().Unix())}
+
 	if data, err = ioutil.ReadFile(d.rawKey); err == nil {
 		return string(data), fakeMeta, err
 	}
 	return "", nil, err
+}
+
+// watch watchers the file for changes
+func (d *FileDependency) watch() (os.FileInfo, error) {
+	for {
+		stat, err := os.Stat(d.rawKey)
+		if err != nil {
+			return nil, err
+		}
+
+		changed := func(d *FileDependency, stat os.FileInfo) bool {
+			d.mutex.RLock()
+			defer d.mutex.RUnlock()
+
+			if d.lastStat == nil {
+				return true
+			}
+			if d.lastStat.Size() != stat.Size() {
+				return true
+			}
+
+			if d.lastStat.ModTime() != stat.ModTime() {
+				return true
+			}
+
+			return false
+		}(d, stat)
+
+		if changed {
+			return stat, nil
+		} else {
+			time.Sleep(3 * time.Second)
+		}
+	}
 }
 
 // KeyPrefixDependency is the representation of a requested key dependency
