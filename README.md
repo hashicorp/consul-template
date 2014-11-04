@@ -159,7 +159,7 @@ Query Consul for the service group(s) matching the given pattern. Services are q
 {{service "release.webapp@east-aws:8000"}}
 ```
 
-The example above is querying Consul for the "webapp" service, with the "release" tag, in the "east-aws" datacenter, using port "8000". The tag, datacenter and port attributes are optional. To query all nodes in the "webapp" service (regardless of tag, datacenter, etc):
+The example above is querying Consul for the "webapp" service, with the "release" tag, in the "east-aws" datacenter, using port "8000". The tag, datacenter and port attributes are optional. To query all nodes of the "webapp" service (regardless of tag and port) for the current datacenter:
 
 ```liquid
 {{service "webapp"}}
