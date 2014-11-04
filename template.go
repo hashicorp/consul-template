@@ -100,11 +100,12 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 		"service":   c.Evaluator(DependencyTypeService),
 
 		// Helper functions
-		"byTag":     c.groupByTag,
-		"parseJSON": c.decodeJSON,
-		"toLower":   c.toLower,
-		"toTitle":   c.toTitle,
-		"toUpper":   c.toUpper,
+		"byTag":      c.groupByTag,
+		"parseJSON":  c.decodeJSON,
+		"toLower":    c.toLower,
+		"toTitle":    c.toTitle,
+		"toUpper":    c.toUpper,
+		"replaceAll": c.replaceAll,
 	}).Parse(string(contents))
 
 	if err != nil {
@@ -138,11 +139,12 @@ func (t *Template) init() error {
 		"service":   t.dependencyAcc(depsMap, DependencyTypeService),
 
 		// Helper functions
-		"byTag":     t.noop,
-		"parseJSON": t.noop,
-		"toLower":   t.noop,
-		"toTitle":   t.noop,
-		"toUpper":   t.noop,
+		"byTag":      t.noop,
+		"parseJSON":  t.noop,
+		"toLower":    t.noop,
+		"toTitle":    t.noop,
+		"toUpper":    t.noop,
+		"replaceAll": t.noop,
 	}).Parse(string(contents))
 
 	if err != nil {
@@ -245,8 +247,8 @@ func (t *Template) validateDependencies(c *TemplateContext) error {
 
 // noop is a special function that returns itself. This is used during the
 // dependency accumulation to allow the template to be processed once.
-func (t *Template) noop(thing interface{}) (interface{}, error) {
-	return thing, nil
+func (t *Template) noop(thing ...interface{}) (interface{}, error) {
+	return thing[0], nil
 }
 
 // TemplateContext is what Template uses to determine the values that are
@@ -315,6 +317,11 @@ func (c *TemplateContext) toTitle(s string) (string, error) {
 // toUpper converts the given string (usually by a pipe) to uppercase.
 func (c *TemplateContext) toUpper(s string) (string, error) {
 	return strings.ToUpper(s), nil
+}
+
+// strip
+func (c *TemplateContext) replaceAll(f, t, s string) (string, error) {
+	return strings.Replace(s, f, t, -1), nil
 }
 
 // DependencyType is an enum type that says the kind of the dependency.
