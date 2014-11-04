@@ -292,9 +292,9 @@ func TestExecute_rendersKeys(t *testing.T) {
 	}
 }
 
-func TestExecute_rendersKeyPrefixes(t *testing.T) {
+func TestExecute_rendersLs(t *testing.T) {
 	inTemplate := test.CreateTempfile([]byte(`
-    {{ range keyPrefix "service/redis/config" }}
+    {{ range ls "service/redis/config" }}
     {{.Key}} {{.Value}}{{ end }}
   `), t)
 	defer test.DeleteTempfile(inTemplate, t)
@@ -314,9 +314,18 @@ func TestExecute_rendersKeyPrefixes(t *testing.T) {
 		Value: "11",
 	}
 
+	childConfig := &util.KeyPair{
+		Key:   "user/sethvargo",
+		Value: "true",
+	}
+
 	context := &TemplateContext{
 		KeyPrefixes: map[string][]*util.KeyPair{
-			"service/redis/config": []*util.KeyPair{minconnsConfig, maxconnsConfig},
+			"service/redis/config": []*util.KeyPair{
+				minconnsConfig,
+				maxconnsConfig,
+				childConfig,
+			},
 		},
 	}
 
@@ -328,6 +337,58 @@ func TestExecute_rendersKeyPrefixes(t *testing.T) {
 	expected := bytes.TrimSpace([]byte(`
     minconns 2
     maxconns 11
+  `))
+	if !bytes.Equal(bytes.TrimSpace(contents), expected) {
+		t.Errorf("expected \n%q\n to equal \n%q\n", bytes.TrimSpace(contents), expected)
+	}
+}
+
+func TestExecute_rendersTree(t *testing.T) {
+	inTemplate := test.CreateTempfile([]byte(`
+    {{ range tree "service/redis/config" }}
+    {{.Key}} {{.Value}}{{ end }}
+  `), t)
+	defer test.DeleteTempfile(inTemplate, t)
+
+	template, err := NewTemplate(inTemplate.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	minconnsConfig := &util.KeyPair{
+		Key:   "minconns",
+		Value: "2",
+	}
+
+	maxconnsConfig := &util.KeyPair{
+		Key:   "maxconns",
+		Value: "11",
+	}
+
+	childConfig := &util.KeyPair{
+		Key:   "user/sethvargo",
+		Value: "true",
+	}
+
+	context := &TemplateContext{
+		KeyPrefixes: map[string][]*util.KeyPair{
+			"service/redis/config": []*util.KeyPair{
+				minconnsConfig,
+				maxconnsConfig,
+				childConfig,
+			},
+		},
+	}
+
+	contents, err := template.Execute(context)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := bytes.TrimSpace([]byte(`
+    minconns 2
+    maxconns 11
+    user/sethvargo true
   `))
 	if !bytes.Equal(bytes.TrimSpace(contents), expected) {
 		t.Errorf("expected \n%q\n to equal \n%q\n", bytes.TrimSpace(contents), expected)

@@ -111,6 +111,47 @@ In addition to the [Go-provided template functions][Go Template], Consul Templat
 
 #### API Functions
 
+##### `file`
+Read and render the contents of a local file on disk. If the file cannot be read, an error will occur. Files are read using the following syntax:
+
+```liquid
+{{file "/path/to/local/file"}}
+```
+
+This example will render the entire contents of the file at `/path/to/local/file` into the template.
+
+##### `key`
+Query Consul for the value at the given key. If the key cannot be converted to a string-like value, an error will occur. Keys are queried using the following syntax:
+
+```liquid
+{{key "service/redis/maxconns@east-aws"}}
+```
+
+The example above is querying Consul for the `service/redis/maxconns` in the east-aws datacenter. If you omit the datacenter attribute, the local Consul datacenter will be queried:
+
+```liquid
+{{key "service/redis/maxconns"}}
+```
+
+The beauty of Consul is that the key-value structure is entirely up to you!
+
+##### `ls`
+Query Consul for all top-level key-value pairs at the given prefix. If any of the values cannot be converted to a string-like value, an error will occur:
+
+```liquid
+{{range ls "service/redis@east-aws"}}
+{{.Key}} {{.Value}}{{end}}
+```
+
+If the Consul instance had the correct structure at `service/redis` in the east-aws datacenter, the resulting template could look like:
+
+```text
+minconns 2
+maxconns 12
+```
+
+If you omit the datacenter attribute on `ls`, the local Consul datacenter will be queried.
+
 ##### `service`
 Query Consul for the service group(s) matching the given pattern. Services are queried using the following syntax:
 
@@ -138,26 +179,11 @@ server nyc_web_01 123.456.789.10:8080
 server nyc_web_02 456.789.101.213:8080
 ```
 
-##### `key`
-Query Consul for the value at the given key. If the key cannot be converted to a string-like value, an error will occur. Keys are queried using the following syntax:
+##### `tree`
+Query Consul for all key-value pairs at the given prefix. If any of the values cannot be converted to a string-like value, an error will occur:
 
 ```liquid
-{{key "service/redis/maxconns@east-aws"}}
-```
-
-The example above is querying Consul for the `service/redis/maxconns` in the east-aws datacenter. If you omit the datacenter attribute, the local Consul datacenter will be queried:
-
-```liquid
-{{key "service/redis/maxconns"}}
-```
-
-The beauty of Consul is that the key-value structure is entirely up to you!
-
-##### `keyPrefix`
-Query Consul for all the key-value pairs at the given prefix. If any of the values cannot be converted to a string-like value, an error will occur. KeyPrefixes are queried using the following syntax:
-
-```liquid
-{{range keyPrefix "service/redis@east-aws"}}
+{{range tree "service/redis@east-aws"}}
 {{.Key}} {{.Value}}{{end}}
 ```
 
@@ -166,18 +192,12 @@ If the Consul instance had the correct structure at `service/redis` in the east-
 ```text
 minconns 2
 maxconns 12
+nested/config/value "value"
 ```
 
-Like `key`, if you omit the datacenter attribute on `keyPrefix`, the local Consul datacenter will be queried. For more examples of the templating language, see the [Examples](#examples) section below.
+Unlike `ls`, `tree` returns **all** keys under the prefix, just like the Unix `tree` command.
 
-##### `file`
-Read and render the contents of a local file on disk. If the file cannot be read, an error will occur. Files are read using the following syntax:
-
-```liquid
-{{file "/path/to/local/file"}}
-```
-
-This example will render the entire contents of the file at `/path/to/local/file` into the template. You can also manipulate this data using the built-in Consul Template helpers. See the Helper Functions section below for more information.
+If you omit the datacenter attribute on `tree`, the local Consul datacenter will be queried.
 
 - - -
 
@@ -273,7 +293,7 @@ global
     maxconn {{key "service/haproxy/maxconn"}}
 
 defaults
-    mode {{key "service/haproxy/mode"}}{{range keyPrefix "service/haproxy/timeouts"}}
+    mode {{key "service/haproxy/mode"}}{{range ls "service/haproxy/timeouts"}}
     timeout {{.Key}}{{.Value}}{{end}}
 
 listen http-in
