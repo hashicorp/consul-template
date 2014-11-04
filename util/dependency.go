@@ -242,7 +242,7 @@ func ParseFileDependency(s string) (*FileDependency, error) {
 /// ------------------------- ///
 
 type FileDependency struct {
-	sync.RWMutex
+	mutex    sync.RWMutex
 	rawKey   string
 	lastStat os.FileInfo
 }
@@ -272,8 +272,8 @@ func (d *FileDependency) Fetch(client *api.Client, options *api.QueryOptions) (i
 	}
 
 	// Lock updating the stat in case another process is also fetching
-	d.Lock()
-	defer d.Unlock()
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 	d.lastStat = newStat
 
 	// fake metadata for calling function
@@ -294,8 +294,8 @@ func (d *FileDependency) watch() (os.FileInfo, error) {
 		}
 
 		changed := func(d *FileDependency, stat os.FileInfo) bool {
-			d.RLock()
-			defer d.RUnlock()
+			d.mutex.RLock()
+			defer d.mutex.RUnlock()
 
 			if d.lastStat == nil {
 				return true
