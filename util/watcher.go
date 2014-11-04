@@ -155,9 +155,11 @@ func (wd *WatchData) poll(w *Watcher) {
 			continue
 		}
 
+		_, isFile := wd.Dependency.(*FileDependency)
+
 		// Consul is allowed to return even if there's no new data. Ignore data if
 		// the index is the same. For files, the data is fake, index is always 0
-		if qm.LastIndex == wd.lastIndex {
+		if qm.LastIndex == wd.lastIndex && !isFile {
 			log.Printf("[DEBUG] (%s) no new data (index was the same)", wd.Display())
 			continue
 		}
@@ -178,6 +180,9 @@ func (wd *WatchData) poll(w *Watcher) {
 		wd.receivedData = true
 		w.DataCh <- wd
 
+		if isFile {
+			return
+		}
 		// Break from the function if we are done
 		select {
 		case <-w.stopCh:
