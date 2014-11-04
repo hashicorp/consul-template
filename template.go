@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"strings"
 	"text/template"
 
@@ -94,10 +95,32 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 
 	tmpl, err := template.New("out").Funcs(template.FuncMap{
 		// API functions
-		"file":      c.Evaluator(DependencyTypeFile),
-		"keyPrefix": c.Evaluator(DependencyTypeKeyPrefix),
-		"key":       c.Evaluator(DependencyTypeKey),
-		"service":   c.Evaluator(DependencyTypeService),
+		"file": func(s string) string {
+			return c.File[s]
+		},
+		"keyPrefix": func(s string) []*util.KeyPair {
+			log.Printf("[WARN] DEPRECATED: Please use `ls` or `tree` instead of `keyPrefix`")
+			return c.KeyPrefixes[s]
+		},
+		"key": func(s string) string {
+			return c.Keys[s]
+		},
+		"ls": func(s string) []*util.KeyPair {
+			result := make([](*util.KeyPair), 0)
+			// Only return top-level keys
+			for _, pair := range c.KeyPrefixes[s] {
+				if !strings.Contains(pair.Key, "/") {
+					result = append(result, pair)
+				}
+			}
+			return result
+		},
+		"service": func(s string) []*util.Service {
+			return c.Services[s]
+		},
+		"tree": func(s string) []*util.KeyPair {
+			return c.KeyPrefixes[s]
+		},
 
 		// Helper functions
 		"byTag":      c.groupByTag,
@@ -136,7 +159,9 @@ func (t *Template) init() error {
 		"file":      t.dependencyAcc(depsMap, DependencyTypeFile),
 		"keyPrefix": t.dependencyAcc(depsMap, DependencyTypeKeyPrefix),
 		"key":       t.dependencyAcc(depsMap, DependencyTypeKey),
+		"ls":        t.dependencyAcc(depsMap, DependencyTypeKeyPrefix),
 		"service":   t.dependencyAcc(depsMap, DependencyTypeService),
+		"tree":      t.dependencyAcc(depsMap, DependencyTypeKeyPrefix),
 
 		// Helper functions
 		"byTag":      t.noop,
@@ -258,25 +283,6 @@ type TemplateContext struct {
 	Keys        map[string]string
 	KeyPrefixes map[string][]*util.KeyPair
 	File        map[string]string
-}
-
-// Evaluator takes a DependencyType and returns a function which returns the
-// value in the TemplateContext that corresponds to the requested item.
-func (c *TemplateContext) Evaluator(dt DependencyType) func(string) (interface{}, error) {
-	return func(s string) (interface{}, error) {
-		switch dt {
-		case DependencyTypeFile:
-			return c.File[s], nil
-		case DependencyTypeKeyPrefix:
-			return c.KeyPrefixes[s], nil
-		case DependencyTypeKey:
-			return c.Keys[s], nil
-		case DependencyTypeService:
-			return c.Services[s], nil
-		default:
-			return nil, fmt.Errorf("unexpected DependencyType %#v", dt)
-		}
-	}
 }
 
 // decodeJSON returns a structure for valid JSON
