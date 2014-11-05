@@ -295,7 +295,7 @@ func TestExecute_rendersKeys(t *testing.T) {
 func TestExecute_rendersLs(t *testing.T) {
 	inTemplate := test.CreateTempfile([]byte(`
     {{ range ls "service/redis/config" }}
-    {{.Key}} {{.Value}}{{ end }}
+    {{.Key}} = {{.Value}}{{ end }}
   `), t)
 	defer test.DeleteTempfile(inTemplate, t)
 
@@ -314,6 +314,11 @@ func TestExecute_rendersLs(t *testing.T) {
 		Value: "11",
 	}
 
+	emptyFolderConfig := &util.KeyPair{
+		Key:   "",
+		Value: "",
+	}
+
 	childConfig := &util.KeyPair{
 		Key:   "user/sethvargo",
 		Value: "true",
@@ -322,6 +327,7 @@ func TestExecute_rendersLs(t *testing.T) {
 	context := &TemplateContext{
 		KeyPrefixes: map[string][]*util.KeyPair{
 			"service/redis/config": []*util.KeyPair{
+				emptyFolderConfig,
 				minconnsConfig,
 				maxconnsConfig,
 				childConfig,
@@ -335,8 +341,8 @@ func TestExecute_rendersLs(t *testing.T) {
 	}
 
 	expected := bytes.TrimSpace([]byte(`
-    minconns 2
-    maxconns 11
+    minconns = 2
+    maxconns = 11
   `))
 	if !bytes.Equal(bytes.TrimSpace(contents), expected) {
 		t.Errorf("expected \n%q\n to equal \n%q\n", bytes.TrimSpace(contents), expected)
