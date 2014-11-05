@@ -107,9 +107,9 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 		},
 		"ls": func(s string) []*util.KeyPair {
 			result := make([](*util.KeyPair), 0)
-			// Only return top-level keys
+			// Only return non-empty top-level keys
 			for _, pair := range c.KeyPrefixes[s] {
-				if !strings.Contains(pair.Key, "/") {
+				if pair.Key != "" && !strings.Contains(pair.Key, "/") {
 					result = append(result, pair)
 				}
 			}
