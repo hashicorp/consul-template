@@ -31,6 +31,9 @@ type Config struct {
 	// Wait
 	Wait    *util.Wait `mapstructure:"-"`
 	WaitRaw string     `mapstructure:"wait" json:""`
+
+	// Retry is the time to wait when a query fails. Default: 5s
+	Retry string `mapstructure:"retry"`
 }
 
 // Merge merges the values in config into this config object. Values in the
