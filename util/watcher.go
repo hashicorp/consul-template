@@ -40,16 +40,13 @@ type Watcher struct {
 
 	// waitGroup is the WaitGroup to ensure all Go routines return when we stop
 	waitGroup sync.WaitGroup
-
-	retry Retry
 }
 
 //
-func NewWatcher(client *api.Client, dependencies []Dependency, retry Retry) (*Watcher, error) {
+func NewWatcher(client *api.Client, dependencies []Dependency) (*Watcher, error) {
 	watcher := &Watcher{
 		client:       client,
 		dependencies: dependencies,
-		retry: retry,
 	}
 	if err := watcher.init(); err != nil {
 		return nil, err
@@ -59,7 +56,7 @@ func NewWatcher(client *api.Client, dependencies []Dependency, retry Retry) (*Wa
 }
 
 //
-func (w *Watcher) Watch(once bool) {
+func (w *Watcher) Watch(once bool, retry *Retry) {
 	log.Printf("[DEBUG] (watcher) starting watch")
 
 	// In once mode, we want to immediately close the stopCh. This tells the
@@ -72,7 +69,7 @@ func (w *Watcher) Watch(once bool) {
 
 	views := make([]*WatchData, 0, len(w.dependencies))
 	for _, dependency := range w.dependencies {
-		view, err := NewWatchData(dependency)
+		view, err := NewWatchData(dependency, *retry)
 		if err != nil {
 			w.ErrCh <- err
 			return
@@ -130,10 +127,12 @@ type WatchData struct {
 
 	receivedData bool
 	lastIndex    uint64
+
+	retry Retry
 }
 
 //
-func NewWatchData(dependency Dependency) (*WatchData, error) {
+func NewWatchData(dependency Dependency, retry Retry) (*WatchData, error) {
 	if dependency == nil {
 		return nil, fmt.Errorf("watchdata: missing Dependency")
 	}
@@ -154,7 +153,7 @@ func (wd *WatchData) poll(w *Watcher) {
 		if err != nil {
 			log.Printf("[ERR] (%s) %s", wd.Display(), err.Error())
 			w.ErrCh <- err
-			time.Sleep(pollErrorSleep)
+			time.Sleep(wd.retry.Tick())
 			continue
 		}
 

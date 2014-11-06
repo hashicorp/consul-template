@@ -15,6 +15,8 @@ type Retry struct {
   // Growth is the factor of which to increase the initial retry period for
   // additional failures
   Growth float64
+
+  Next time.Duration
 }
 
 func ParseRetry(s string) (*Retry, error) {
@@ -57,8 +59,15 @@ func ParseRetry(s string) (*Retry, error) {
     return nil, errors.New("cannot specify a growth factor of less than 1")
   }
 
-  return &Retry{
+  return &Retry {
     Initial: initial,
     Growth: growth,
+    Next: initial,
   }, nil
+}
+
+func (r *Retry) Tick() time.Duration {
+  wait := r.Next
+  r.Next = time.Duration(float64(r.Next) * r.Growth)
+  return wait
 }

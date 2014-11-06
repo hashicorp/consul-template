@@ -156,6 +156,7 @@ func TestParseConfig_correctValues(t *testing.T) {
 		Retry: &util.Retry{
 			Initial: time.Second * 10,
 			Growth: 2,
+			Next: time.Second * 10,
 		},
 		RetryRaw: "10s:2",
 		ConfigTemplates: []*ConfigTemplate{
