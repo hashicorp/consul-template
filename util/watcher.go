@@ -40,13 +40,16 @@ type Watcher struct {
 
 	// waitGroup is the WaitGroup to ensure all Go routines return when we stop
 	waitGroup sync.WaitGroup
+
+	retry Retry
 }
 
 //
-func NewWatcher(client *api.Client, dependencies []Dependency) (*Watcher, error) {
+func NewWatcher(client *api.Client, dependencies []Dependency, retry Retry) (*Watcher, error) {
 	watcher := &Watcher{
 		client:       client,
 		dependencies: dependencies,
+		retry: retry,
 	}
 	if err := watcher.init(); err != nil {
 		return nil, err

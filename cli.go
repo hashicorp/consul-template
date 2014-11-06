@@ -28,6 +28,7 @@ const (
 	ExitCodeParseFlagsError
 	ExitCodeParseWaitError
 	ExitCodeParseConfigError
+	ExitCodeParseRetryError
 	ExitCodeRunnerError
 	ExitCodeConsulAPIError
 	ExitCodeWatcherError
@@ -65,8 +66,8 @@ func (cli *CLI) Run(args []string) int {
 		"the minimum(:maximum) to wait before rendering a new template")
 	flags.StringVar(&config.Path, "config", "",
 		"the path to a config file on disk")
-	flags.StringVar(&config.Retry, "retry", "5s",
-		"the time to wait when a query fails (default: 5s)")
+	flags.StringVar(&config.RetryRaw, "retry", "5s:1",
+		"the retry(:growth) initial retry time and growth factor when a query fails (default: 5s:1)")
 	flags.BoolVar(&once, "once", false,
 		"do not run as a daemon")
 	flags.BoolVar(&dry, "dry", false,
@@ -110,9 +111,9 @@ func (cli *CLI) Run(args []string) int {
 		config = fileConfig
 	}
 
-	if config.Retry != "" {
+	if config.RetryRaw != "" {
 		log.Printf("[DEBUG] (cli) detected -retry, parsing")
-		retry, err := time.ParseDuration(config.Retry)
+		retry, err := util.ParseRetry(config.RetryRaw)
 		if err != nil {
 			return cli.handleError(err, ExitCodeParseRetryError)
 		}
@@ -142,7 +143,7 @@ func (cli *CLI) Run(args []string) int {
 	}
 
 	log.Printf("[DEBUG] (cli) creating Watcher")
-	watcher, err := util.NewWatcher(client, runner.Dependencies())
+	watcher, err := util.NewWatcher(client, runner.Dependencies(), *config.Retry)
 	if err != nil {
 		return cli.handleError(err, ExitCodeWatcherError)
 	}

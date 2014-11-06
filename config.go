@@ -33,7 +33,8 @@ type Config struct {
 	WaitRaw string     `mapstructure:"wait" json:""`
 
 	// Retry is the time to wait when a query fails. Default: 5s
-	Retry string `mapstructure:"retry"`
+	Retry *util.Retry `mapstructure:"-"`
+	RetryRaw string     `mapstructure:"retry" json:""`
 }
 
 // Merge merges the values in config into this config object. Values in the
@@ -64,6 +65,14 @@ func (c *Config) Merge(config *Config) {
 			Max: config.Wait.Max,
 		}
 		c.WaitRaw = config.WaitRaw
+	}
+
+	if config.Retry != nil {
+		c.Retry = &util.Retry{
+			Initial: config.Retry.Initial,
+			Growth: config.Retry.Growth,
+		}
+		c.RetryRaw = config.RetryRaw
 	}
 }
 
@@ -99,13 +108,24 @@ func ParseConfig(path string) (*Config, error) {
 	config.Path = path
 
 	// Parse the Wait component
-	if raw := config.WaitRaw; raw != "" {
-		wait, err := util.ParseWait(raw)
+	if waitRaw := config.WaitRaw; waitRaw != "" {
+		wait, err := util.ParseWait(waitRaw)
 
 		if err == nil {
 			config.Wait = wait
 		} else {
 			errs.Append(fmt.Errorf("Wait invalid: %v", err))
+		}
+	}
+
+	// Parse the Retry component
+	if retryRaw := config.RetryRaw; retryRaw != "" {
+		retry, err := util.ParseRetry(retryRaw)
+
+		if err == nil {
+			config.Retry = retry
+		} else {
+			errs.Append(fmt.Errorf("Retry invalid: %v", err))
 		}
 	}
 
