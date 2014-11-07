@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -26,7 +28,7 @@ func TestRun_printsErrors(t *testing.T) {
 	}
 }
 
-func TestRun__versionFlag(t *testing.T) {
+func TestRun_versionFlag(t *testing.T) {
 	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
 	cli := &CLI{outStream: outStream, errStream: errStream}
 	args := strings.Split("consul-template -version", " ")
@@ -76,7 +78,7 @@ func TestRun_waitFlagError(t *testing.T) {
 
 func TestRun_onceFlag(t *testing.T) {
 	template := test.CreateTempfile([]byte(`
-    {{range service "consul"}}{{.Name}}{{end}}
+	{{range service "consul"}}{{.Name}}{{end}}
   `), t)
 	defer test.DeleteTempfile(template, t)
 
@@ -109,4 +111,112 @@ func TestRun_onceFlag(t *testing.T) {
 
 func TestQuiescence(t *testing.T) {
 	t.Skip("TODO")
+}
+
+func TestRun_configDir(t *testing.T) {
+	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
+	cli := &CLI{outStream: outStream, errStream: errStream}
+	configDir, err := ioutil.TempDir(os.TempDir(), "")
+	if err != nil {
+		t.Skip("Unable to make temp dir")
+	}
+	configFile1, err := ioutil.TempFile(configDir, "")
+	if err != nil {
+		t.Skip("Unable to make temp config file 1")
+	}
+	config1 := []byte(`
+		consul = "127.0.0.1:8500"
+	`)
+	_, err = configFile1.Write(config1)
+	if err != nil {
+		t.Skip("Unable to write config file 1")
+	}
+	configFile2, err := ioutil.TempFile(configDir, "")
+	if err != nil {
+		t.Skip("Unable to make temp config file 2")
+	}
+	config2 := []byte(`
+		template {
+		  source = "/path/on/disk/to/template"
+		  destination = "/path/on/disk/where/template/will/render"
+		  command = "optional command to run when the template is updated"
+		}
+	`)
+	_, err = configFile2.Write(config2)
+	if err != nil {
+		t.Skip("Unable to write config file 2")
+	}
+
+	args := strings.Split("consul-template -config "+configDir, " ")
+
+	status := cli.Run(args)
+	if status == ExitCodeOK {
+		t.Fatal("expected not OK exit code")
+	}
+}
+
+func TestCLI_BuildConfig(t *testing.T) {
+	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
+	cli := &CLI{outStream: outStream, errStream: errStream}
+	configDir, err := ioutil.TempDir(os.TempDir(), "")
+	if err != nil {
+		t.Skip("Unable to make temp dir")
+	}
+	configFile1, err := ioutil.TempFile(configDir, "")
+	if err != nil {
+		t.Skip("Unable to make temp config file 1")
+	}
+	config1 := []byte(`
+		consul = "127.0.0.1:8500"
+	`)
+	_, err = configFile1.Write(config1)
+	if err != nil {
+		t.Skip("Unable to write config file 1")
+	}
+	configFile2, err := ioutil.TempFile(configDir, "")
+	if err != nil {
+		t.Skip("Unable to make temp config file 2")
+	}
+	config2 := []byte(`
+		template {
+		  source = "/path/on/disk/to/template"
+		  destination = "/path/on/disk/where/template/will/render"
+		  command = "optional command to run when the template is updated"
+		}
+	`)
+	_, err = configFile2.Write(config2)
+	if err != nil {
+		t.Skip("Unable to write config file 2")
+	}
+
+	config := new(Config)
+
+	cli.BuildConfig(config, configDir)
+
+	expectedConfig := Config{
+		Consul: "127.0.0.1:8500",
+		ConfigTemplates: []*ConfigTemplate{{
+			Source:      "/path/on/disk/to/template",
+			Destination: "/path/on/disk/where/template/will/render",
+			Command:     "optional command to run when the template is updated",
+		}},
+	}
+	if expectedConfig.Consul != config.Consul {
+		t.Fatalf("Config files failed to combine. Expected Consul to be %s but got %s", expectedConfig.Consul, config.Consul)
+	}
+	if len(config.ConfigTemplates) != len(expectedConfig.ConfigTemplates) {
+		t.Fatalf("Expected %d ConfigTemplate but got %d", len(expectedConfig.ConfigTemplates), len(config.ConfigTemplates))
+	}
+	for i, expectTemplate := range expectedConfig.ConfigTemplates {
+		actualTemplate := config.ConfigTemplates[i]
+		if actualTemplate.Source != expectTemplate.Source {
+			t.Fatalf("Expected template Source to be %s but got %s", expectTemplate.Source, actualTemplate.Source)
+		}
+		if actualTemplate.Destination != expectTemplate.Destination {
+			t.Fatalf("Expected template Destination to be %s but got %s", expectTemplate.Destination, actualTemplate.Destination)
+		}
+		if actualTemplate.Command != expectTemplate.Command {
+			t.Fatalf("Expected template Command to be %s but got %s", expectTemplate.Command, actualTemplate.Command)
+		}
+	}
 }
