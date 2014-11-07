@@ -216,7 +216,7 @@ Takes the list of services returned by the [`service`](#service) function and cr
 Takes the given input (usually the value from a key) and parses the result as JSON:
 
 ```liquid
-{{(with $d := key "user/info" | parseJSON)}}{{$d.name}}{{end}}
+{{with $d := key "user/info" | parseJSON}}{{$d.name}}{{end}}
 ```
 
 Alternatively you can read data from a local JSON file:
