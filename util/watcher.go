@@ -13,10 +13,6 @@ import (
 const (
 	// The amount of time to do a blocking query for
 	defaultWaitTime = 60 * time.Second
-
-	// pollErrorSleep the amount of time to sleep when an error occurs
-	// TODO: make this an exponential backoff.
-	pollErrorSleep = 5 * time.Second
 )
 
 type Watcher struct {
