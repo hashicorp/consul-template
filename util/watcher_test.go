@@ -97,7 +97,12 @@ func TestWatch_propagatesDependencyFetchError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	go w.Watch(true)
+	retry := &Retry {
+		Initial: 20 * time.Second,
+		Growth: 1.5,
+		Next: 5 * time.Second,
+	}
+	go w.Watch(true, retry)
 
 	select {
 	case data := <-w.DataCh:
@@ -122,7 +127,12 @@ func TestWatch_fetchesData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	go w.Watch(true)
+	retry := &Retry {
+		Initial: 20 * time.Second,
+		Growth: 1.5,
+		Next: 5 * time.Second,
+	}
+	go w.Watch(true, retry)
 
 	select {
 	case data := <-w.DataCh:

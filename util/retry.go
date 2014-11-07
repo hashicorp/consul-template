@@ -7,6 +7,10 @@ import (
   "strconv"
 )
 
+const (
+  maxRetry = 1 * time.Hour
+)
+
 // Retry is the Min/Max duration used by the Watcher
 type Retry struct {
   // Initial is the initial time to wait after an erro
@@ -36,7 +40,8 @@ func ParseRetry(s string) (*Retry, error) {
       return nil, err
     }
 
-    growth = 1.5
+    // Default growth
+    growth = 1.0
   } else if len(parts) == 2 {
     initial, err = time.ParseDuration(strings.TrimSpace(parts[0]))
     if err != nil {
@@ -51,7 +56,7 @@ func ParseRetry(s string) (*Retry, error) {
     return nil, errors.New("invalid retry period format")
   }
 
-  if initial == 0 {
+  if initial <= 0 {
     return nil, errors.New("cannot specify a negative initial retry period")
   }
 
@@ -69,5 +74,8 @@ func ParseRetry(s string) (*Retry, error) {
 func (r *Retry) Tick() time.Duration {
   wait := r.Next
   r.Next = time.Duration(float64(r.Next) * r.Growth)
+  if r.Next > maxRetry {
+    r.Next = maxRetry
+  }
   return wait
 }

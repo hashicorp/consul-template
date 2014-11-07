@@ -155,7 +155,7 @@ func (wd *WatchData) poll(w *Watcher) {
 			w.ErrCh <- err
 			time.Sleep(wd.retry.Tick())
 			continue
-			wd.retry.Next = wd.Retry.Initial
+			wd.retry.Next = wd.retry.Initial
 		}
 
 		// Consul is allowed to return even if there's no new data. Ignore data if

@@ -33,8 +33,8 @@ type Config struct {
 	WaitRaw string     `mapstructure:"wait" json:""`
 
 	// Retry is the time to wait when a query fails. Default: 5s
-	Retry *util.Retry `mapstructure:"-"`
-	RetryRaw string     `mapstructure:"retry" json:""`
+	Retry    *util.Retry `mapstructure:"-"`
+	RetryRaw string      `mapstructure:"retry" json:""`
 }
 
 // Merge merges the values in config into this config object. Values in the
@@ -70,7 +70,7 @@ func (c *Config) Merge(config *Config) {
 	if config.Retry != nil {
 		c.Retry = &util.Retry{
 			Initial: config.Retry.Initial,
-			Growth: config.Retry.Growth,
+			Growth:  config.Retry.Growth,
 		}
 		c.RetryRaw = config.RetryRaw
 	}
