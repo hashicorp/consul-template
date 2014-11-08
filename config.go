@@ -71,7 +71,7 @@ func (c *Config) Merge(config *Config) {
 		c.Retry = &util.Retry{
 			Initial: config.Retry.Initial,
 			Growth:  config.Retry.Growth,
-			Next: config.Retry.Initial,
+			Next:    config.Retry.Initial,
 		}
 		c.RetryRaw = config.RetryRaw
 	}
