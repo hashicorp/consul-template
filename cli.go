@@ -28,6 +28,7 @@ const (
 	ExitCodeParseFlagsError
 	ExitCodeParseWaitError
 	ExitCodeParseConfigError
+	ExitCodeParseRetryError
 	ExitCodeRunnerError
 	ExitCodeConsulAPIError
 	ExitCodeWatcherError
@@ -65,6 +66,8 @@ func (cli *CLI) Run(args []string) int {
 		"the minimum(:maximum) to wait before rendering a new template")
 	flags.StringVar(&config.Path, "config", "",
 		"the path to a config file on disk")
+	flags.StringVar(&config.RetryRaw, "retry", "5s:1",
+		"the retry(:growth) initial retry time and growth factor when a query fails (default: 5s:1)")
 	flags.BoolVar(&once, "once", false,
 		"do not run as a daemon")
 	flags.BoolVar(&dry, "dry", false,
@@ -108,6 +111,15 @@ func (cli *CLI) Run(args []string) int {
 		config = fileConfig
 	}
 
+	if config.RetryRaw != "" {
+		log.Printf("[DEBUG] (cli) detected -retry, parsing")
+		retry, err := util.ParseRetry(config.RetryRaw)
+		if err != nil {
+			return cli.handleError(err, ExitCodeParseRetryError)
+		}
+		config.Retry = retry
+	}
+
 	log.Printf("[DEBUG] (cli) creating Runner")
 	runner, err := NewRunner(config.ConfigTemplates)
 	if err != nil {
@@ -136,7 +148,7 @@ func (cli *CLI) Run(args []string) int {
 		return cli.handleError(err, ExitCodeWatcherError)
 	}
 
-	go watcher.Watch(once)
+	go watcher.Watch(once, config.Retry)
 
 	var minTimer, maxTimer <-chan time.Time
 
@@ -239,6 +251,7 @@ Options:
   -dry                     Dump generated templates to stdout
   -once                    Do not run the process as a daemon
   -version                 Print the version of this daemon
+  -retry=<seconds>         Time to wait when a query fails. Default: 5
 `
 
 /// ------------------------- ///

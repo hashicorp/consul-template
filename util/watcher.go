@@ -13,10 +13,6 @@ import (
 const (
 	// The amount of time to do a blocking query for
 	defaultWaitTime = 60 * time.Second
-
-	// pollErrorSleep the amount of time to sleep when an error occurs
-	// TODO: make this an exponential backoff.
-	pollErrorSleep = 5 * time.Second
 )
 
 type Watcher struct {
@@ -56,7 +52,7 @@ func NewWatcher(client *api.Client, dependencies []Dependency) (*Watcher, error)
 }
 
 //
-func (w *Watcher) Watch(once bool) {
+func (w *Watcher) Watch(once bool, retry *Retry) {
 	log.Printf("[DEBUG] (watcher) starting watch")
 
 	// In once mode, we want to immediately close the stopCh. This tells the
@@ -69,7 +65,7 @@ func (w *Watcher) Watch(once bool) {
 
 	views := make([]*WatchData, 0, len(w.dependencies))
 	for _, dependency := range w.dependencies {
-		view, err := NewWatchData(dependency)
+		view, err := NewWatchData(dependency, *retry)
 		if err != nil {
 			w.ErrCh <- err
 			return
@@ -127,10 +123,12 @@ type WatchData struct {
 
 	receivedData bool
 	lastIndex    uint64
+
+	retry Retry
 }
 
 //
-func NewWatchData(dependency Dependency) (*WatchData, error) {
+func NewWatchData(dependency Dependency, retry Retry) (*WatchData, error) {
 	if dependency == nil {
 		return nil, fmt.Errorf("watchdata: missing Dependency")
 	}
@@ -151,8 +149,9 @@ func (wd *WatchData) poll(w *Watcher) {
 		if err != nil {
 			log.Printf("[ERR] (%s) %s", wd.Display(), err.Error())
 			w.ErrCh <- err
-			time.Sleep(pollErrorSleep)
+			time.Sleep(wd.retry.Tick())
 			continue
+			wd.retry.Next = wd.retry.Initial
 		}
 
 		// Consul is allowed to return even if there's no new data. Ignore data if

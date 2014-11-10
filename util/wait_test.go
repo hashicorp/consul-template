@@ -7,7 +7,7 @@ import (
 )
 
 // Test that an error is returned when the empty string is given
-func TestParse_emptyStringArgs(t *testing.T) {
+func TestWaitParse_emptyStringArgs(t *testing.T) {
 	_, err := ParseWait("")
 
 	if err == nil {
@@ -21,7 +21,7 @@ func TestParse_emptyStringArgs(t *testing.T) {
 }
 
 // Test that an error is returned when a string with spaces is given
-func TestParse_stringWithSpacesArgs(t *testing.T) {
+func TestWaitParse_stringWithSpacesArgs(t *testing.T) {
 	_, err := ParseWait("  ")
 
 	if err == nil {
@@ -35,7 +35,7 @@ func TestParse_stringWithSpacesArgs(t *testing.T) {
 }
 
 // Test that an error is returned when there are too many arguments
-func TestParse_tooManyArgs(t *testing.T) {
+func TestWaitParse_tooManyArgs(t *testing.T) {
 	_, err := ParseWait("5s:10s:15s")
 
 	if err == nil {
@@ -49,7 +49,7 @@ func TestParse_tooManyArgs(t *testing.T) {
 }
 
 // Test that the error returned from parsing is propagated
-func TestParse_noUnits(t *testing.T) {
+func TestWaitParse_noUnits(t *testing.T) {
 	_, err := ParseWait("5:10")
 
 	if err == nil {
@@ -63,7 +63,7 @@ func TestParse_noUnits(t *testing.T) {
 }
 
 // Test that a single wait value is correctly used
-func TestParse_singleWait(t *testing.T) {
+func TestWaitParse_singleWait(t *testing.T) {
 	wait, err := ParseWait("5s")
 
 	if err != nil {
@@ -82,7 +82,7 @@ func TestParse_singleWait(t *testing.T) {
 }
 
 // Test that a multiple wait value is correctly used
-func TestParse_multipleWait(t *testing.T) {
+func TestWaitParse_multipleWait(t *testing.T) {
 	wait, err := ParseWait("10s:20s")
 	if err != nil {
 		t.Fatal(err)
@@ -100,7 +100,7 @@ func TestParse_multipleWait(t *testing.T) {
 }
 
 // Test that an error is returned the min is negative
-func TestParse_minNegative(t *testing.T) {
+func TestWaitParse_minNegative(t *testing.T) {
 	_, err := ParseWait("-5s")
 
 	if err == nil {
@@ -114,7 +114,7 @@ func TestParse_minNegative(t *testing.T) {
 }
 
 // Test that an error is returned the min is negative
-func TestParse_maxNegative(t *testing.T) {
+func TestWaitParse_maxNegative(t *testing.T) {
 	_, err := ParseWait("-5s:-10s")
 
 	if err == nil {
@@ -128,7 +128,7 @@ func TestParse_maxNegative(t *testing.T) {
 }
 
 // Test that an error is returned if the maximum larger than minimum
-func TestParse_maxLargerThanMin(t *testing.T) {
+func TestWaitParse_maxLargerThanMin(t *testing.T) {
 	_, err := ParseWait("15s:5s")
 
 	if err == nil {
