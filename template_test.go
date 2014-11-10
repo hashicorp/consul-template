@@ -582,6 +582,65 @@ func TestExecute_groupByTag(t *testing.T) {
 	}
 }
 
+func TestExecute_serviceTagsContains(t *testing.T) {
+	inTemplate := test.CreateTempfile([]byte(`
+		{{range service "web" }}
+		{{.ID}}:
+			{{if .Tags.Contains "auth"}}a{{else}}-{{end}}
+			{{if .Tags.Contains "search"}}s{{else}}-{{end}}
+			{{if .Tags.Contains "other"}}o{{else}}-{{end}}{{end}}
+	`), t)
+	defer test.DeleteTempfile(inTemplate, t)
+
+	template, err := NewTemplate(inTemplate.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	service1 := &util.Service{
+		Node:    "nyc-api-1",
+		Address: "127.0.0.1",
+		ID:      "web1",
+		Name:    "web1",
+		Port:    1234,
+		Tags:    []string{"auth", "search"},
+	}
+	service2 := &util.Service{
+		Node:    "nyc-api-2",
+		Address: "127.0.0.2",
+		ID:      "web2",
+		Name:    "web2",
+		Port:    5678,
+		Tags:    []string{"auth"},
+	}
+
+	context := &TemplateContext{
+		Services: map[string][]*util.Service{
+			"web": []*util.Service{service1, service2},
+		},
+	}
+
+	contents, err := template.Execute(context)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := bytes.TrimSpace([]byte(`
+		web1:
+			a
+			s
+			-
+		web2:
+			a
+			-
+			-
+	`))
+
+	if !bytes.Equal(bytes.TrimSpace(contents), expected) {
+		t.Errorf("expected \n%q\n to equal \n%q\n", bytes.TrimSpace(contents), expected)
+	}
+}
+
 func TestExecute_replaceAll(t *testing.T) {
 	inTemplate := test.CreateTempfile([]byte(`{{"random:name:532" | replaceAll ":" "_"}}`), t)
 	defer test.DeleteTempfile(inTemplate, t)

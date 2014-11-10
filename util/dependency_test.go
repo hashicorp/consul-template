@@ -449,3 +449,23 @@ func TestParseKeyPrefixDependency_dataCenter(t *testing.T) {
 		t.Errorf("expected %#v to equal %#v", kpd, expected)
 	}
 }
+
+func TestServiceTagsContains(t *testing.T) {
+	s := &Service{
+		Node:    "node",
+		Address: "127.0.0.1",
+		ID:      "id",
+		Name:    "name",
+		Tags:    []string{"foo", "baz"},
+		Port:    1234,
+	}
+	if !s.Tags.Contains("foo") {
+		t.Error("expected Contains to return true for foo.")
+	}
+	if s.Tags.Contains("bar") {
+		t.Error("expected Contains to return false for bar.")
+	}
+	if !s.Tags.Contains("baz") {
+		t.Error("expected Contains to return true for baz.")
+	}
+}
