@@ -412,8 +412,21 @@ type Service struct {
 	Address string
 	ID      string
 	Name    string
-	Tags    []string
+	Tags    ServiceTags
 	Port    uint64
+}
+
+// ServiceTags is a slice of tags assigned to a Service
+type ServiceTags []string
+
+// Contains returns true if the tags exists in the ServiceTags slice.
+func (t ServiceTags) Contains(s string) bool {
+	for _, v := range t {
+		if v == s {
+			return true
+		}
+	}
+	return false
 }
 
 // ServiceList is a sortable slice of Service
