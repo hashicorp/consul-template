@@ -328,7 +328,14 @@ func (r *Runner) atomicWrite(path string, contents []byte) error {
 		mode = stat.Mode()
 	}
 
-	f, err := ioutil.TempFile(os.TempDir(), "")
+	parent := filepath.Dir(path)
+	if _, err := os.Stat(parent); os.IsNotExist(err) {
+		if err := os.MkdirAll(parent, 0755); err != nil {
+			return err
+		}
+	}
+
+	f, err := ioutil.TempFile(parent, "")
 	if err != nil {
 		return err
 	}
@@ -348,13 +355,6 @@ func (r *Runner) atomicWrite(path string, contents []byte) error {
 
 	if err := os.Chmod(f.Name(), mode); err != nil {
 		return err
-	}
-
-	parent := filepath.Dir(path)
-	if _, err := os.Stat(parent); os.IsNotExist(err) {
-		if err := os.MkdirAll(parent, 0755); err != nil {
-			return err
-		}
 	}
 
 	// Remove the file if we are running on Windows. There is a bug in Go on
