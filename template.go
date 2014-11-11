@@ -115,14 +115,14 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 			}
 			return result
 		},
-		"service": func(s ...string) []*util.Service {
+		"service": func(s ...string) ([]*util.Service, error) {
 			// We should not get any errors here as the same arguments will
 			// have been processed in the template pre process stage.
 			d, err := util.ParseServiceDependency(s...)
 			if err != nil {
-				panic(err)
+				return nil, err
 			}
-			return c.Services[d.Key()]
+			return c.Services[d.Key()], nil
 		},
 		"tree": func(s string) []*util.KeyPair {
 			return c.KeyPrefixes[s]
