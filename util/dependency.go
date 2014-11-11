@@ -126,10 +126,10 @@ func ParseServiceDependency(s ...string) (*ServiceDependency, error) {
 		case HealthPassing:
 			status = ServiceStatusFilter{HealthPassing}
 		default:
-			return nil, fmt.Errorf("Expecting either \"%s\" or \"%s\" as service health status.", HealthAny, HealthPassing)
+			return nil, fmt.Errorf("expected either %q or %q as health status", HealthAny, HealthPassing)
 		}
 	default:
-		return nil, fmt.Errorf("Expects 1 (service) or 2 (service, health) arguments. %d given.", len(s))
+		return nil, fmt.Errorf("expected 1 or 2 arguments, got %d", len(s))
 	}
 
 	if len(query) == 0 {
