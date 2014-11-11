@@ -159,7 +159,7 @@ Query Consul for the service group(s) matching the given pattern. Services are q
 {{service "release.webapp@east-aws:8000"}}
 ```
 
-The example above is querying Consul for the "webapp" service, with the "release" tag, in the "east-aws" datacenter, using port "8000". The tag, datacenter and port attributes are optional. To query all nodes of the "webapp" service (regardless of tag and port) for the current datacenter:
+The example above is querying Consul for healthy "webapp" services, with the "release" tag, in the "east-aws" datacenter, using port "8000". The tag, datacenter and port attributes are optional. To query all nodes of the "webapp" service (regardless of tag and port) for the current datacenter:
 
 ```liquid
 {{service "webapp"}}
@@ -178,6 +178,13 @@ which would produce something like:
 server nyc_web_01 123.456.789.10:8080
 server nyc_web_02 456.789.101.213:8080
 ```
+
+By default only healthy services are returned. If you want to get all services, regardless of their health, then you can specify a health check status. Currently only `"passing"` and `"any"` are supported.
+
+```liquid
+{{service "webapp" "any"}}
+```
+
 
 ##### `tree`
 Query Consul for all key-value pairs at the given prefix. If any of the values cannot be converted to a string-like value, an error will occur:
