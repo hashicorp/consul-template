@@ -115,8 +115,14 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 			}
 			return result
 		},
-		"service": func(s string) []*util.Service {
-			return c.Services[s]
+		"service": func(s ...string) []*util.Service {
+			// We should not get any errors here as the same arguments will
+			// have been processed in the template pre process stage.
+			d, err := util.ParseServiceDependency(s...)
+			if err != nil {
+				panic(err)
+			}
+			return c.Services[d.Key()]
 		},
 		"tree": func(s string) []*util.KeyPair {
 			return c.KeyPrefixes[s]
@@ -160,7 +166,7 @@ func (t *Template) init() error {
 		"keyPrefix": t.dependencyAcc(depsMap, DependencyTypeKeyPrefix),
 		"key":       t.dependencyAcc(depsMap, DependencyTypeKey),
 		"ls":        t.dependencyAcc(depsMap, DependencyTypeKeyPrefix),
-		"service":   t.dependencyAcc(depsMap, DependencyTypeService),
+		"service":   t.dependencyAccVariadic(depsMap, DependencyTypeService),
 		"tree":      t.dependencyAcc(depsMap, DependencyTypeKeyPrefix),
 
 		// Helper functions
@@ -226,8 +232,18 @@ func (t *Template) dependencyAcc(depsMap map[string]util.Dependency, dt Dependen
 			}
 
 			return "", nil
+		default:
+			return nil, fmt.Errorf("unknown DependencyType %#v", dt)
+		}
+	}
+}
+
+// Helper function that is used by the dependency collecting fot remplate functions that accept variadic arguments.
+func (t *Template) dependencyAccVariadic(depsMap map[string]util.Dependency, dt DependencyType) func(...string) (interface{}, error) {
+	return func(s ...string) (interface{}, error) {
+		switch dt {
 		case DependencyTypeService:
-			d, err := util.ParseServiceDependency(s)
+			d, err := util.ParseServiceDependency(s...)
 			if err != nil {
 				return nil, err
 			}
@@ -237,7 +253,7 @@ func (t *Template) dependencyAcc(depsMap map[string]util.Dependency, dt Dependen
 
 			return []*util.Service{}, nil
 		default:
-			return nil, fmt.Errorf("unknown DependencyType %#v", dt)
+			return nil, fmt.Errorf("unknown variadic DependencyType %#v", dt)
 		}
 	}
 }

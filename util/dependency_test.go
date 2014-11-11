@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	api "github.com/armon/consul-api"
 	"github.com/hashicorp/consul-template/test"
 )
 
@@ -25,6 +26,131 @@ func TestServiceDependencyFetch(t *testing.T) {
 	_, ok := results.([]*Service)
 	if !ok {
 		t.Fatal("could not convert result to []*Service")
+	}
+}
+
+func TestServiceStatusFilter_onlyAllowPassing(t *testing.T) {
+	var f ServiceStatusFilter
+	f = ServiceStatusFilter{}
+	if f.onlyAllowPassing() {
+		t.Fatal("Expecting and empty status filter to return false for onlyAllowPassing.")
+	}
+	f = ServiceStatusFilter{HealthPassing}
+	if !f.onlyAllowPassing() {
+		t.Fatal("Expecting and empty status filter to return true for onlyAllowPassing.")
+	}
+	f = ServiceStatusFilter{HealthPassing, HealthWarning}
+	if f.onlyAllowPassing() {
+		t.Fatal("Expecting passing and warning status filter to return false for onlyAllowPassing.")
+	}
+	f = ServiceStatusFilter{HealthWarning}
+	if f.onlyAllowPassing() {
+		t.Fatal("Expecting warning status filter to return false for onlyAllowPassing.")
+	}
+}
+
+func TestServiceStatusFilter_acceptWithEmptyFilterReturnsTrue(t *testing.T) {
+	f := &ServiceStatusFilter{}
+	c0 := []*api.HealthCheck{
+		&api.HealthCheck{
+			Status: HealthUnknown,
+		},
+		&api.HealthCheck{
+			Status: HealthPassing,
+		},
+		&api.HealthCheck{
+			Status: HealthWarning,
+		},
+		&api.HealthCheck{
+			Status: HealthCritical,
+		},
+	}
+	c1 := []*api.HealthCheck{
+		&api.HealthCheck{
+			Status: HealthUnknown,
+		},
+	}
+	c2 := []*api.HealthCheck{
+		&api.HealthCheck{
+			Status: HealthPassing,
+		},
+	}
+	c3 := []*api.HealthCheck{
+		&api.HealthCheck{
+			Status: HealthWarning,
+		},
+	}
+	c4 := []*api.HealthCheck{
+		&api.HealthCheck{
+			Status: HealthCritical,
+		},
+	}
+	if !f.accept(c0) {
+		t.Fatal("Expecting empty filter to accept c0.")
+	}
+	if !f.accept(c1) {
+		t.Fatal("Expecting empty filter to accept c1.")
+	}
+	if !f.accept(c2) {
+		t.Fatal("Expecting empty filter to accept c2.")
+	}
+	if !f.accept(c3) {
+		t.Fatal("Expecting empty filter to accept c3.")
+	}
+	if !f.accept(c4) {
+		t.Fatal("Expecting empty filter to accept c4.")
+	}
+}
+
+func TestServiceStatusFilter_acceptOnlyReturnsTrueForItemsInFilter(t *testing.T) {
+	f1 := &ServiceStatusFilter{HealthPassing}
+	f2 := &ServiceStatusFilter{HealthPassing, HealthWarning}
+	c1 := []*api.HealthCheck{
+		&api.HealthCheck{
+			Status: HealthPassing,
+		},
+	}
+	c2 := []*api.HealthCheck{
+		&api.HealthCheck{
+			Status: HealthWarning,
+		},
+	}
+	c3 := []*api.HealthCheck{
+		&api.HealthCheck{
+			Status: HealthPassing,
+		},
+		&api.HealthCheck{
+			Status: HealthWarning,
+		},
+	}
+	c4 := []*api.HealthCheck{
+		&api.HealthCheck{
+			Status: HealthCritical,
+		},
+	}
+	if !f1.accept(c1) {
+		t.Fatal("Expecting f1 to accept c1.")
+	}
+	if f1.accept(c2) {
+		t.Fatal("Expecting f1 to not accept c2.")
+	}
+	if f1.accept(c3) {
+		t.Fatal("Expecting f1 to not accept c3.")
+	}
+	if f1.accept(c4) {
+		t.Fatal("Expecting f1 to not accept c4.")
+	}
+	if !f2.accept(c1) {
+		t.Fatal("Expecting f2 to accept c1.")
+	}
+	if !f2.accept(c2) {
+		t.Fatal("Expecting f2 to accept c2.")
+	}
+	if !f2.accept(c3) {
+		t.Fatal("Expecting f2 to accept c3.")
+	}
+	if f2.accept(c4) {
+		t.Fatal("Expecting f2 to not accept c4.")
 	}
 }
 
@@ -141,8 +267,25 @@ func TestParseServiceDependency_name(t *testing.T) {
 	}
 
 	expected := &ServiceDependency{
-		rawKey: "webapp",
+		rawKey: "webapp [passing]",
 		Name:   "webapp",
+		Status: ServiceStatusFilter{HealthPassing},
+	}
+	if !reflect.DeepEqual(sd, expected) {
+		t.Errorf("expected %#v to equal %#v", sd, expected)
+	}
+}
+
+func TestParseServiceDependency_nameAndStatus(t *testing.T) {
+	sd, err := ParseServiceDependency("webapp", "any")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := &ServiceDependency{
+		rawKey: "webapp [any]",
+		Name:   "webapp",
+		Status: ServiceStatusFilter{},
 	}
 	if !reflect.DeepEqual(sd, expected) {
 		t.Errorf("expected %#v to equal %#v", sd, expected)
@@ -156,8 +299,9 @@ func TestParseServiceDependency_slashName(t *testing.T) {
 	}
 
 	expected := &ServiceDependency{
-		rawKey: "web/app",
+		rawKey: "web/app [passing]",
 		Name:   "web/app",
+		Status: ServiceStatusFilter{HealthPassing},
 	}
 	if !reflect.DeepEqual(sd, expected) {
 		t.Errorf("expected %#v to equal %#v", sd, expected)
@@ -171,8 +315,9 @@ func TestParseServiceDependency_underscoreName(t *testing.T) {
 	}
 
 	expected := &ServiceDependency{
-		rawKey: "web_app",
+		rawKey: "web_app [passing]",
 		Name:   "web_app",
+		Status: ServiceStatusFilter{HealthPassing},
 	}
 	if !reflect.DeepEqual(sd, expected) {
 		t.Errorf("expected %#v to equal %#v", sd, expected)
@@ -186,9 +331,10 @@ func TestParseServiceDependency_dotTag(t *testing.T) {
 	}
 
 	expected := &ServiceDependency{
-		rawKey: "first.release.webapp",
+		rawKey: "first.release.webapp [passing]",
 		Name:   "webapp",
 		Tag:    "first.release",
+		Status: ServiceStatusFilter{HealthPassing},
 	}
 	if !reflect.DeepEqual(sd, expected) {
 		t.Errorf("expected %#v to equal %#v", sd, expected)
@@ -202,9 +348,10 @@ func TestParseServiceDependency_nameTag(t *testing.T) {
 	}
 
 	expected := &ServiceDependency{
-		rawKey: "release.webapp",
+		rawKey: "release.webapp [passing]",
 		Name:   "webapp",
 		Tag:    "release",
+		Status: ServiceStatusFilter{HealthPassing},
 	}
 
 	if !reflect.DeepEqual(sd, expected) {
@@ -219,10 +366,11 @@ func TestParseServiceDependency_nameTagDataCenter(t *testing.T) {
 	}
 
 	expected := &ServiceDependency{
-		rawKey:     "release.webapp@nyc1",
+		rawKey:     "release.webapp@nyc1 [passing]",
 		Name:       "webapp",
 		Tag:        "release",
 		DataCenter: "nyc1",
+		Status:     ServiceStatusFilter{HealthPassing},
 	}
 
 	if !reflect.DeepEqual(sd, expected) {
@@ -237,11 +385,12 @@ func TestParseServiceDependency_nameTagDataCenterPort(t *testing.T) {
 	}
 
 	expected := &ServiceDependency{
-		rawKey:     "release.webapp@nyc1:8500",
+		rawKey:     "release.webapp@nyc1:8500 [passing]",
 		Name:       "webapp",
 		Tag:        "release",
 		DataCenter: "nyc1",
 		Port:       8500,
+		Status:     ServiceStatusFilter{HealthPassing},
 	}
 
 	if !reflect.DeepEqual(sd, expected) {
@@ -268,9 +417,10 @@ func TestParseServiceDependency_nameAndPort(t *testing.T) {
 	}
 
 	expected := &ServiceDependency{
-		rawKey: "webapp:8500",
+		rawKey: "webapp:8500 [passing]",
 		Name:   "webapp",
 		Port:   8500,
+		Status: ServiceStatusFilter{HealthPassing},
 	}
 
 	if !reflect.DeepEqual(sd, expected) {
@@ -285,9 +435,10 @@ func TestParseServiceDependency_nameAndDataCenter(t *testing.T) {
 	}
 
 	expected := &ServiceDependency{
-		rawKey:     "webapp@nyc1",
+		rawKey:     "webapp@nyc1 [passing]",
 		Name:       "webapp",
 		DataCenter: "nyc1",
+		Status:     ServiceStatusFilter{HealthPassing},
 	}
 
 	if !reflect.DeepEqual(sd, expected) {
