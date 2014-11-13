@@ -251,7 +251,6 @@ func (t *Template) dependencyAcc(depsMap map[string]util.Dependency, dt Dependen
 			}
 
 			return []*util.Service{}, nil
-
 		default:
 			return nil, fmt.Errorf("unknown DependencyType %#v", dt)
 		}
