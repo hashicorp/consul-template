@@ -115,6 +115,15 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 			}
 			return result
 		},
+		"nodes": func(s ...string) ([]*util.Node, error) {
+			// We should not get any errors here as the same arguments will
+			// have been processed in the template pre process stage.
+			d, err := util.ParseNodeDependency(s...)
+			if err != nil {
+				return nil, err
+			}
+			return c.Nodes[d.Key()], nil
+		},
 		"service": func(s ...string) ([]*util.Service, error) {
 			// We should not get any errors here as the same arguments will
 			// have been processed in the template pre process stage.
@@ -166,6 +175,7 @@ func (t *Template) init() error {
 		"keyPrefix": t.dependencyAcc(depsMap, DependencyTypeKeyPrefix),
 		"key":       t.dependencyAcc(depsMap, DependencyTypeKey),
 		"ls":        t.dependencyAcc(depsMap, DependencyTypeKeyPrefix),
+		"nodes":     t.dependencyAcc(depsMap, DependencyTypeNodes),
 		"service":   t.dependencyAcc(depsMap, DependencyTypeService),
 		"tree":      t.dependencyAcc(depsMap, DependencyTypeKeyPrefix),
 
@@ -241,6 +251,16 @@ func (t *Template) dependencyAcc(depsMap map[string]util.Dependency, dt Dependen
 			}
 
 			return "", nil
+		case DependencyTypeNodes:
+			d, err := util.ParseNodeDependency(s...)
+			if err != nil {
+				return nil, err
+			}
+			if _, ok := depsMap[d.HashCode()]; !ok {
+				depsMap[d.HashCode()] = d
+			}
+
+			return []*util.Node{}, nil
 		case DependencyTypeService:
 			d, err := util.ParseServiceDependency(s...)
 			if err != nil {
@@ -252,7 +272,7 @@ func (t *Template) dependencyAcc(depsMap map[string]util.Dependency, dt Dependen
 
 			return []*util.Service{}, nil
 		default:
-			return nil, fmt.Errorf("unknown DependencyType %#v", dt)
+			return nil, fmt.Errorf("unknown DependencyType %+v", dt)
 		}
 	}
 }
@@ -273,12 +293,16 @@ func (t *Template) validateDependencies(c *TemplateContext) error {
 			if _, ok := c.Keys[d.Key()]; !ok {
 				return fmt.Errorf("templateContext missing key `%s'", d.Key())
 			}
+		case *util.NodeDependency:
+			if _, ok := c.Nodes[d.Key()]; !ok {
+				return fmt.Errorf("templateContext missing nodes `%s'", d.Key())
+			}
 		case *util.ServiceDependency:
 			if _, ok := c.Services[d.Key()]; !ok {
 				return fmt.Errorf("templateContext missing service `%s'", d.Key())
 			}
 		default:
-			return fmt.Errorf("unknown dependency type in template e %#v", d)
+			return fmt.Errorf("unknown dependency type in template %+v", d)
 		}
 	}
 
@@ -297,6 +321,7 @@ type TemplateContext struct {
 	Services    map[string][]*util.Service
 	Keys        map[string]string
 	KeyPrefixes map[string][]*util.KeyPair
+	Nodes       map[string][]*util.Node
 	File        map[string]string
 }
 
@@ -354,5 +379,6 @@ const (
 	DependencyTypeService
 	DependencyTypeKey
 	DependencyTypeKeyPrefix
+	DependencyTypeNodes
 	DependencyTypeFile
 )

@@ -210,6 +210,35 @@ func TestExecute_missingKeyPrefix(t *testing.T) {
 	}
 }
 
+func TestExecute_missingNode(t *testing.T) {
+	inTemplate := test.CreateTempfile([]byte(`
+    {{ range nodes }}{{ end }}
+    {{ range nodes "@nyc1" }}{{ end }}
+  `), t)
+	defer test.DeleteTempfile(inTemplate, t)
+
+	template, err := NewTemplate(inTemplate.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	context := &TemplateContext{
+		Nodes: map[string][]*util.Node{
+			"": []*util.Node{},
+		},
+	}
+
+	_, executeErr := template.Execute(context)
+	if executeErr == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "templateContext missing nodes `@nyc1'"
+	if !strings.Contains(executeErr.Error(), expected) {
+		t.Errorf("expected %q to contain %q", executeErr.Error(), expected)
+	}
+}
+
 func TestExecute_rendersServices(t *testing.T) {
 	inTemplate := test.CreateTempfile([]byte(`
     {{ range service "release.webapp" }}
@@ -338,6 +367,49 @@ func TestExecute_rendersKeys(t *testing.T) {
   `)
 	if !bytes.Equal(contents, expected) {
 		t.Errorf("expected \n%q\n to equal \n%q\n", contents, expected)
+	}
+}
+
+func TestExecute_rendersNodes(t *testing.T) {
+	inTemplate := test.CreateTempfile([]byte(`
+    {{ range nodes }}
+    node {{.Node}} {{.Address}}{{ end }}
+  `), t)
+	defer test.DeleteTempfile(inTemplate, t)
+
+	template, err := NewTemplate(inTemplate.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	node1 := &util.Node{
+		Node:    "nyc-worker-1",
+		Address: "123.123.123.123",
+	}
+
+	node2 := &util.Node{
+		Node:    "nyc-worker-2",
+		Address: "456.456.456.456",
+	}
+
+	context := &TemplateContext{
+		Nodes: map[string][]*util.Node{
+			"": []*util.Node{node1, node2},
+		},
+	}
+
+	contents, err := template.Execute(context)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := bytes.TrimSpace([]byte(`
+    node nyc-worker-1 123.123.123.123
+    node nyc-worker-2 456.456.456.456
+  `))
+
+	if !bytes.Equal(bytes.TrimSpace(contents), expected) {
+		t.Errorf("expected \n%q\n to equal \n%q\n", bytes.TrimSpace(contents), expected)
 	}
 }
 

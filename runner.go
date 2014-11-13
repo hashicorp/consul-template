@@ -287,6 +287,7 @@ func (r *Runner) templateContextFor(template *Template) (*TemplateContext, error
 		File:        make(map[string]string),
 		KeyPrefixes: make(map[string][]*util.KeyPair),
 		Keys:        make(map[string]string),
+		Nodes:       make(map[string][]*util.Node),
 		Services:    make(map[string][]*util.Service),
 	}
 
@@ -300,10 +301,12 @@ func (r *Runner) templateContextFor(template *Template) (*TemplateContext, error
 			context.KeyPrefixes[dependency.Key()] = data.([]*util.KeyPair)
 		case *util.KeyDependency:
 			context.Keys[dependency.Key()] = data.(string)
+		case *util.NodeDependency:
+			context.Nodes[dependency.Key()] = data.([]*util.Node)
 		case *util.ServiceDependency:
 			context.Services[dependency.Key()] = data.([]*util.Service)
 		default:
-			return nil, fmt.Errorf("unknown dependency type %#v", dependency)
+			return nil, fmt.Errorf("unknown dependency type %+v", dependency)
 		}
 	}
 
