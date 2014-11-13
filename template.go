@@ -115,8 +115,14 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 			}
 			return result
 		},
-		"service": func(s string) []*util.Service {
-			return c.Services[s]
+		"service": func(s ...string) ([]*util.Service, error) {
+			// We should not get any errors here as the same arguments will
+			// have been processed in the template pre process stage.
+			d, err := util.ParseServiceDependency(s...)
+			if err != nil {
+				return nil, err
+			}
+			return c.Services[d.Key()], nil
 		},
 		"tree": func(s string) []*util.KeyPair {
 			return c.KeyPrefixes[s]
@@ -193,11 +199,14 @@ func (t *Template) init() error {
 }
 
 // Helper function that is used by the dependency collecting.
-func (t *Template) dependencyAcc(depsMap map[string]util.Dependency, dt DependencyType) func(string) (interface{}, error) {
-	return func(s string) (interface{}, error) {
+func (t *Template) dependencyAcc(depsMap map[string]util.Dependency, dt DependencyType) func(...string) (interface{}, error) {
+	return func(s ...string) (interface{}, error) {
 		switch dt {
 		case DependencyTypeFile:
-			d, err := util.ParseFileDependency(s)
+			if len(s) != 1 {
+				return nil, fmt.Errorf("expected 1 argument, got %d", len(s))
+			}
+			d, err := util.ParseFileDependency(s[0])
 			if err != nil {
 				return nil, err
 			}
@@ -207,7 +216,10 @@ func (t *Template) dependencyAcc(depsMap map[string]util.Dependency, dt Dependen
 
 			return "", nil
 		case DependencyTypeKeyPrefix:
-			d, err := util.ParseKeyPrefixDependency(s)
+			if len(s) != 1 {
+				return nil, fmt.Errorf("expected 1 argument, got %d", len(s))
+			}
+			d, err := util.ParseKeyPrefixDependency(s[0])
 			if err != nil {
 				return nil, err
 			}
@@ -217,7 +229,10 @@ func (t *Template) dependencyAcc(depsMap map[string]util.Dependency, dt Dependen
 
 			return []*util.KeyPair{}, nil
 		case DependencyTypeKey:
-			d, err := util.ParseKeyDependency(s)
+			if len(s) != 1 {
+				return nil, fmt.Errorf("expected 1 argument, got %d", len(s))
+			}
+			d, err := util.ParseKeyDependency(s[0])
 			if err != nil {
 				return nil, err
 			}
@@ -227,7 +242,7 @@ func (t *Template) dependencyAcc(depsMap map[string]util.Dependency, dt Dependen
 
 			return "", nil
 		case DependencyTypeService:
-			d, err := util.ParseServiceDependency(s)
+			d, err := util.ParseServiceDependency(s...)
 			if err != nil {
 				return nil, err
 			}

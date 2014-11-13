@@ -16,6 +16,15 @@ import (
 	api "github.com/armon/consul-api"
 )
 
+// ripped from https://github.com/hashicorp/consul/blob/master/consul/structs/structs.go#L31
+const (
+	HealthAny      = "any"
+	HealthUnknown  = "unknown"
+	HealthPassing  = "passing"
+	HealthWarning  = "warning"
+	HealthCritical = "critical"
+)
+
 // Dependency is an interface
 type Dependency interface {
 	Fetch(*api.Client, *api.QueryOptions) (interface{}, *api.QueryMeta, error)
@@ -34,6 +43,7 @@ type ServiceDependency struct {
 	Tag        string
 	DataCenter string
 	Port       uint64
+	Status     ServiceStatusFilter
 }
 
 // Fetch queries the Consul API defined by the given client and returns a slice
@@ -46,7 +56,7 @@ func (d *ServiceDependency) Fetch(client *api.Client, options *api.QueryOptions)
 	log.Printf("[DEBUG] (%s) querying Consul with %+v", d.Display(), options)
 
 	health := client.Health()
-	entries, qm, err := health.Service(d.Name, d.Tag, true, options)
+	entries, qm, err := health.Service(d.Name, d.Tag, d.Status.onlyAllowPassing(), options)
 	if err != nil {
 		return nil, qm, err
 	}
@@ -56,6 +66,9 @@ func (d *ServiceDependency) Fetch(client *api.Client, options *api.QueryOptions)
 	services := make([]*Service, 0, len(entries))
 
 	for _, entry := range entries {
+		if !d.Status.accept(entry.Checks) {
+			continue
+		}
 		services = append(services, &Service{
 			Node:    entry.Node.Node,
 			Address: entry.Node.Address,
@@ -65,6 +78,8 @@ func (d *ServiceDependency) Fetch(client *api.Client, options *api.QueryOptions)
 			Port:    uint64(entry.Service.Port),
 		})
 	}
+
+	log.Printf("[DEBUG] (%s) %d services after health check status filtering", d.Display(), len(services))
 
 	sort.Stable(ServiceList(services))
 
@@ -83,10 +98,41 @@ func (d *ServiceDependency) Display() string {
 	return fmt.Sprintf(`service "%s"`, d.rawKey)
 }
 
-// ParseServiceDependency parses a string of the format
-// service(.tag(@datacenter(:port)))
-func ParseServiceDependency(s string) (*ServiceDependency, error) {
-	if len(s) == 0 {
+// ParseServiceDependency processes the incoming strings to build a service dependency.
+//
+// Supported arguments
+//   ParseServiceDependency("service_id")
+//   ParseServiceDependency("service_id", "health_check")
+//
+// Where service_id is in the format of service(.tag(@datacenter(:port)))
+// and health_check is either "any" or "passing".
+//
+// If no health_check is provided then its the same as "passing".
+func ParseServiceDependency(s ...string) (*ServiceDependency, error) {
+	var (
+		query  string
+		status ServiceStatusFilter
+	)
+	// In the future we can expand this to support more complex health filtering.
+	switch len(s) {
+	case 1:
+		query = s[0]
+		status = ServiceStatusFilter{HealthPassing}
+	case 2:
+		query = s[0]
+		switch s[1] {
+		case HealthAny:
+			status = ServiceStatusFilter{}
+		case HealthPassing:
+			status = ServiceStatusFilter{HealthPassing}
+		default:
+			return nil, fmt.Errorf("expected either %q or %q as health status", HealthAny, HealthPassing)
+		}
+	default:
+		return nil, fmt.Errorf("expected 1 or 2 arguments, got %d", len(s))
+	}
+
+	if len(query) == 0 {
 		return nil, errors.New("cannot specify empty service dependency")
 	}
 
@@ -97,7 +143,7 @@ func ParseServiceDependency(s string) (*ServiceDependency, error) {
 		`(@(?P<datacenter>[[:word:]\.\-]+))?(:(?P<port>[0-9]+))?` +
 		`\z`)
 	names := re.SubexpNames()
-	match := re.FindAllStringSubmatch(s, -1)
+	match := re.FindAllStringSubmatch(query, -1)
 
 	if len(match) == 0 {
 		return nil, errors.New("invalid service dependency format")
@@ -119,10 +165,11 @@ func ParseServiceDependency(s string) (*ServiceDependency, error) {
 	}
 
 	sd := &ServiceDependency{
-		rawKey:     s,
+		rawKey:     fmt.Sprintf("%s %s", query, status),
 		Name:       name,
 		Tag:        tag,
 		DataCenter: datacenter,
+		Status:     status,
 	}
 
 	if port != "" {
@@ -135,6 +182,49 @@ func ParseServiceDependency(s string) (*ServiceDependency, error) {
 	}
 
 	return sd, nil
+}
+
+// ServiceStatusFilter is used to specify a list of service statuses that you want filter by.
+type ServiceStatusFilter []string
+
+func (f ServiceStatusFilter) String() string {
+	if len(f) < 1 {
+		return fmt.Sprintf("[%s]", HealthAny)
+	}
+	return fmt.Sprintf("[%s]", strings.Join(f, ","))
+}
+
+// onlyAllowPassing allows us to use the passingOnly argumeny in the health service
+func (f ServiceStatusFilter) onlyAllowPassing() bool {
+	if len(f) < 1 {
+		return false
+	}
+	for _, status := range f {
+		if status != HealthPassing {
+			return false
+		}
+	}
+	return true
+}
+
+// accept allows us to check if a slice of health checks pass this filter.
+func (f ServiceStatusFilter) accept(checks []*api.HealthCheck) bool {
+	if len(f) < 1 {
+		return true
+	}
+	for _, check := range checks {
+		accept := false
+		for _, status := range f {
+			if status == check.Status {
+				accept = true
+				break
+			}
+		}
+		if !accept {
+			return false
+		}
+	}
+	return true
 }
 
 /// ------------------------- ///

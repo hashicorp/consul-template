@@ -63,7 +63,7 @@ func TestDependencies_funcsDuplicates(t *testing.T) {
 		t.Fatalf("expected 1 Dependency, got: %d", num)
 	}
 
-	dependency, expected := dependencies[0], "release.webapp"
+	dependency, expected := dependencies[0], "release.webapp [passing]"
 	if dependency.Key() != expected {
 		t.Errorf("expected %q to equal %q", dependency.Key(), expected)
 	}
@@ -137,7 +137,7 @@ func TestExecute_missingService(t *testing.T) {
 
 	context := &TemplateContext{
 		Services: map[string][]*util.Service{
-			"release.webapp": []*util.Service{},
+			"release.webapp [passing]": []*util.Service{},
 		},
 	}
 
@@ -146,7 +146,7 @@ func TestExecute_missingService(t *testing.T) {
 		t.Fatal("expected error, but nothing was returned")
 	}
 
-	expected := "templateContext missing service `production.webapp'"
+	expected := "templateContext missing service `production.webapp [passing]'"
 	if !strings.Contains(executeErr.Error(), expected) {
 		t.Errorf("expected %q to contain %q", executeErr.Error(), expected)
 	}
@@ -240,7 +240,7 @@ func TestExecute_rendersServices(t *testing.T) {
 
 	context := &TemplateContext{
 		Services: map[string][]*util.Service{
-			"release.webapp": []*util.Service{serviceWeb1, serviceWeb2},
+			"release.webapp [passing]": []*util.Service{serviceWeb1, serviceWeb2},
 		},
 	}
 
@@ -253,6 +253,55 @@ func TestExecute_rendersServices(t *testing.T) {
     server web1 123.123.123.123:1234
     server web2 456.456.456.456:5678
   `))
+
+	if !bytes.Equal(bytes.TrimSpace(contents), expected) {
+		t.Errorf("expected \n%q\n to equal \n%q\n", bytes.TrimSpace(contents), expected)
+	}
+}
+
+func TestExecute_rendersServicesWithHealthCheckArgument(t *testing.T) {
+	inTemplate := test.CreateTempfile([]byte(`
+		{{ range service "release.webapp" "any" }}
+		server {{.Name}} {{.Address}}:{{.Port}}{{ end }}
+	`), t)
+	defer test.DeleteTempfile(inTemplate, t)
+
+	template, err := NewTemplate(inTemplate.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	serviceWeb1 := &util.Service{
+		Node:    "nyc-worker-1",
+		Address: "123.123.123.123",
+		ID:      "web1",
+		Name:    "web1",
+		Port:    1234,
+	}
+
+	serviceWeb2 := &util.Service{
+		Node:    "nyc-worker-2",
+		Address: "456.456.456.456",
+		ID:      "web2",
+		Name:    "web2",
+		Port:    5678,
+	}
+
+	context := &TemplateContext{
+		Services: map[string][]*util.Service{
+			"release.webapp [any]": []*util.Service{serviceWeb1, serviceWeb2},
+		},
+	}
+
+	contents, err := template.Execute(context)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := bytes.TrimSpace([]byte(`
+		server web1 123.123.123.123:1234
+		server web2 456.456.456.456:5678
+	`))
 
 	if !bytes.Equal(bytes.TrimSpace(contents), expected) {
 		t.Errorf("expected \n%q\n to equal \n%q\n", bytes.TrimSpace(contents), expected)
@@ -558,7 +607,7 @@ func TestExecute_groupByTag(t *testing.T) {
 
 	context := &TemplateContext{
 		Services: map[string][]*util.Service{
-			"webapp": []*util.Service{serviceWeb1, serviceWeb2, serviceWeb3},
+			"webapp [passing]": []*util.Service{serviceWeb1, serviceWeb2, serviceWeb3},
 		},
 	}
 
@@ -616,7 +665,7 @@ func TestExecute_serviceTagsContains(t *testing.T) {
 
 	context := &TemplateContext{
 		Services: map[string][]*util.Service{
-			"web": []*util.Service{service1, service2},
+			"web [passing]": []*util.Service{service1, service2},
 		},
 	}
 
