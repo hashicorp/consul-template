@@ -154,6 +154,21 @@ maxconns 12
 
 If you omit the datacenter attribute on `ls`, the local Consul datacenter will be queried.
 
+##### `nodes`
+Query Consul for all nodes in the catalog. Nodes are queried using the following syntax:
+
+```liquid
+{{nodes}}
+```
+
+This example will query Consul's default datacenter. You can specify an optional parameter to the `nodes` call to specify the datacenter:
+
+```liquid
+{{nodes "@east-aws"}}
+```
+
+This will query Consul for all nodes in the east-aws datacenter.
+
 ##### `service`
 Query Consul for the service group(s) matching the given pattern. Services are queried using the following syntax:
 
