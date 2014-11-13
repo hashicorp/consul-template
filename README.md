@@ -27,7 +27,7 @@ Usage
 | `consul`    | _(required)_ | The location of the Consul instance to query (may be an IP address or FQDN) with port. |
 | `template`  | _(required)_ | The input template, output path, and optional command separated by a colon (`:`). This option is additive and may be specified multiple times for multiple templates. |
 | `token`     | | The [Consul API token][Consul ACLs]. |
-| `config`    | | The path to a configuration file on disk, relative to the current working directory. Values specified on the CLI take precedence over values specified in the configuration file |
+| `config`    | | The path to a configuration file or directory on disk, relative to the current working directory. Values specified on the CLI take precedence over values specified in the configuration file |
 | `wait`      | | The `minimum(:maximum)` to wait before rendering a new template to disk and triggering a command, separated by a colon (`:`). If the optional maximum value is omitted, it is assumed to be 4x the required minimum value. |
 | `dry`       | | Dump generated templates to the console. If specified, generated templates are not committed to disk and commands are not invoked. |
 | `once`      | | Run Consul Template once and exit (as opposed to the default behavior of daemon). |
@@ -71,8 +71,8 @@ $ consul-template \
   -dry
 ```
 
-### Configuration File
-The Consul Template configuration file is written in [HashiCorp Configuration Language (HCL)][HCL]. By proxy, this means the Consul Template configuration file is JSON-compatible. For more information, please see the [HCL specification][HCL].
+### Configuration File(s)
+The Consul Template configuration files are written in [HashiCorp Configuration Language (HCL)][HCL]. By proxy, this means the Consul Template configuration file is JSON-compatible. For more information, please see the [HCL specification][HCL].
 
 The Configuration file syntax interface supports all of the options detailed above.
 
@@ -101,6 +101,8 @@ template {
   destination  = "/tmp/result"
 }
 ```
+
+If a directory is given instead of a file, all files in the directory (recursively) will be merged in [lexical order](http://golang.org/pkg/path/filepath/#Walk). So if multiple files declare a "consul" key for instance, the last one will be used.
 
 **Commands specified on the command line take precedence over those defined in a config file!**
 
