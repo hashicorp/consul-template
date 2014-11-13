@@ -108,11 +108,23 @@ func (r *Runner) RunAll(dry bool) error {
 		}
 	}
 
-	// Execute each command in sequence
+	// Execute each command in sequence, collecting any errors that occur - this
+	// ensures all commands execute at least once
+	errs := make([]error, 0)
 	for _, command := range commands {
 		if err := r.execute(command); err != nil {
-			return err
+			errs = append(errs, err)
 		}
+	}
+
+	// If any errors were returned, convert them to an ErrorList for human
+	// readability
+	if len(errs) != 0 {
+		errors := NewErrorList("running commands")
+		for _, err := range errs {
+			errors.Append(err)
+		}
+		return errors.GetError()
 	}
 
 	return nil
