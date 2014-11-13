@@ -118,22 +118,22 @@ func TestRun_configDir(t *testing.T) {
 	cli := &CLI{outStream: outStream, errStream: errStream}
 	configDir, err := ioutil.TempDir(os.TempDir(), "")
 	if err != nil {
-		t.Skip("Unable to make temp dir")
+		t.Fatal(err)
 	}
 	configFile1, err := ioutil.TempFile(configDir, "")
 	if err != nil {
-		t.Skip("Unable to make temp config file 1")
+		t.Fatal(err)
 	}
 	config1 := []byte(`
 		consul = "127.0.0.1:8500"
 	`)
 	_, err = configFile1.Write(config1)
 	if err != nil {
-		t.Skip("Unable to write config file 1")
+		t.Fatal(err)
 	}
 	configFile2, err := ioutil.TempFile(configDir, "")
 	if err != nil {
-		t.Skip("Unable to make temp config file 2")
+		t.Fatal(err)
 	}
 	config2 := []byte(`
 		template {
@@ -144,7 +144,7 @@ func TestRun_configDir(t *testing.T) {
 	`)
 	_, err = configFile2.Write(config2)
 	if err != nil {
-		t.Skip("Unable to write config file 2")
+		t.Fatal(err)
 	}
 
 	args := strings.Split("consul-template -config "+configDir, " ")
@@ -160,22 +160,22 @@ func TestCLI_BuildConfig(t *testing.T) {
 	cli := &CLI{outStream: outStream, errStream: errStream}
 	configDir, err := ioutil.TempDir(os.TempDir(), "")
 	if err != nil {
-		t.Skip("Unable to make temp dir")
+		t.Fatal(err)
 	}
 	configFile1, err := ioutil.TempFile(configDir, "")
 	if err != nil {
-		t.Skip("Unable to make temp config file 1")
+		t.Fatal(err)
 	}
 	config1 := []byte(`
 		consul = "127.0.0.1:8500"
 	`)
 	_, err = configFile1.Write(config1)
 	if err != nil {
-		t.Skip("Unable to write config file 1")
+		t.Fatal(err)
 	}
 	configFile2, err := ioutil.TempFile(configDir, "")
 	if err != nil {
-		t.Skip("Unable to make temp config file 2")
+		t.Fatal(err)
 	}
 	config2 := []byte(`
 		template {
@@ -186,7 +186,7 @@ func TestCLI_BuildConfig(t *testing.T) {
 	`)
 	_, err = configFile2.Write(config2)
 	if err != nil {
-		t.Skip("Unable to write config file 2")
+		t.Fatal(err)
 	}
 
 	config := new(Config)
