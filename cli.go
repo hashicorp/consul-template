@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -17,7 +18,7 @@ import (
 
 /// ------------------------- ///
 
-// Exit codes are int valuse that represent an exit code for a particular error.
+// Exit codes are int values that represent an exit code for a particular error.
 // Sub-systems may check this unique error to determine the cause of an error
 // without parsing the output or help text.
 const (
@@ -98,14 +99,10 @@ func (cli *CLI) Run(args []string) int {
 	// Merge a path config with the command line options. Command line options
 	// take precedence over config file options for easy overriding.
 	if config.Path != "" {
-		log.Printf("[DEBUG] (cli) detected -config, merging")
-		fileConfig, err := ParseConfig(config.Path)
+		err := cli.BuildConfig(config, config.Path)
 		if err != nil {
 			return cli.handleError(err, ExitCodeParseConfigError)
 		}
-
-		fileConfig.Merge(config)
-		config = fileConfig
 	}
 
 	log.Printf("[DEBUG] (cli) creating Runner")
@@ -275,5 +272,32 @@ func (ctv *configTemplateVar) Set(value string) error {
 	}
 	*ctv = append(*ctv, template)
 
+	return nil
+}
+
+func (cli *CLI) BuildConfig(config *Config, configPath string) error {
+	log.Printf("[DEBUG] (cli) detected -config, merging")
+	configFiles := []string{}
+	buildConfig := func(path string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			configFiles = append(configFiles, path)
+			fileConfig, err := ParseConfig(path)
+			if err != nil {
+				return err
+			}
+			log.Printf("[DEBUG] (cli) merging %s into config", path)
+			config.Merge(fileConfig)
+		}
+		return nil
+	}
+	log.Printf("[DEBUG] (cli) using config path %s", configPath)
+	err := filepath.Walk(configPath, buildConfig)
+	if err != nil {
+		return err
+	}
+	if len(configFiles) == 0 {
+		err := fmt.Errorf("Empty configuration directory: %s", configPath)
+		return err
+	}
 	return nil
 }
