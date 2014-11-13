@@ -25,7 +25,7 @@ package: xcompile
 	$(eval FILES := $(shell ls build))
 	@mkdir -p build/tgz
 	for f in $(FILES); do \
-		(cd build && tar -zcvf tgz/$$f.tar.gz $$f); \
+		(cd $(shell pwd)/build && tar -zcvf tgz/$$f.tar.gz $$f); \
 		echo $$f; \
 	done
 
