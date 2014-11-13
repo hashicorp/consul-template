@@ -1,23 +1,48 @@
 Consul Template Changelog
 =========================
 
+## v0.3.0 (November 13, 2014)
+
+FEATURES:
+
+  * Added a `Contains` method to `Service.Tags`
+  * Added support for specifying a configuration directory in `-config`, in
+    addition to a file
+  * Added support for querying all nodes in Consul's catalog with the `nodes`
+    template function
+
+BUG FIXES:
+
+  * Update README documentation to clarify that `service` dependencies default
+    to the current datacenter if one is not explicitly given
+  * Ignore empty keys that are returned from an `ls` call (GH-54)
+  * When writing a file atomicly, ensure the drive is the same (GH-58)
+  * Run all commands before exiting - previously if a single command failed in
+    a multi-template environment, the other commands would not execute, but
+    Consul Template would return
+
+IMPROVEMENTS:
+
+  * Added support for querying all `service` nodes by passing an additional
+    parameter to `service`
+
 ## v0.2.0 (November 4, 2014)
 
 FEATURES:
 
   * Added helper for decoding a result as JSON using the `parseJSON` pipe
-  function
+    function
   * Added support for reading and watching changes from a file using the `file`
-  template function
+    template function
   * Added helper for sorting service entires by a particular tag
   * Added helper function `toLower()` for converting a string to lowercase
   * Added helper function `toTitle()` for converting a string to titlecase
   * Added helper function `toUpper()` for converting a string to uppercase
   * Added helper function `replaceAll()` for replacing occurrences of a
-  substring with a new string
+    substring with a new string
   * Added `tree` function for returning all key prefixes recursively
   * Added `ls` function for returning all keys in the top-level prefix (but not
-  deeply nested ones)
+    deeply nested ones)
 
 BUG FIXES:
 
