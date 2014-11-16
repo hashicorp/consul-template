@@ -1,5 +1,5 @@
-NAME = `cat ./main.go | grep "Name = " | cut -d" " -f4 | sed 's/[^"]*"\([^"]*\).*/\1/'`
-VERSION = `cat ./main.go | grep "Version = " | cut -d" " -f4 | sed 's/[^"]*"\([^"]*\).*/\1/'`
+NAME = $(shell awk -F\" '/^const Name/ { print $$2 }' main.go)
+VERSION = $(shell awk -F\" '/^const Version/ { print $$2 }' main.go)
 DEPS = $(go list -f '{{range .TestImports}}{{.}} {{end}}' ./...)
 
 all: deps build
