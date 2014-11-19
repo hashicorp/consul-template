@@ -35,7 +35,7 @@ func TestRun_versionFlag(t *testing.T) {
 
 	status := cli.Run(args)
 	if status != ExitCodeOK {
-		t.Errorf("expected %s to eq %s", status, ExitCodeOK)
+		t.Errorf("expected %q to eq %q", status, ExitCodeOK)
 	}
 
 	expected := fmt.Sprintf("consul-template v%s", Version)
@@ -51,7 +51,7 @@ func TestRun_parseError(t *testing.T) {
 
 	status := cli.Run(args)
 	if status != ExitCodeParseFlagsError {
-		t.Errorf("expected %s to eq %s", status, ExitCodeParseFlagsError)
+		t.Errorf("expected %q to eq %q", status, ExitCodeParseFlagsError)
 	}
 
 	expected := "flag provided but not defined: -bacon"
@@ -67,7 +67,7 @@ func TestRun_waitFlagError(t *testing.T) {
 
 	status := cli.Run(args)
 	if status != ExitCodeParseWaitError {
-		t.Errorf("expected %s to eq %s", status, ExitCodeParseWaitError)
+		t.Errorf("expected %q to eq %q", status, ExitCodeParseWaitError)
 	}
 
 	expected := "time: invalid duration watermelon"
