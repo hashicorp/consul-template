@@ -374,7 +374,7 @@ Varnish is an common caching engine that can also act as a proxy. You can read m
 ```liquid
 import directors;
 {{range service "consul"}}
-backend {{.Name}}_{{.Name}} {
+backend {{.Name}}_{{.ID}} {
     .host = "{{.Address}}";
     .port = "{{.Port}}";"
 }{{end}}
