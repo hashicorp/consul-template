@@ -111,6 +111,13 @@ func (cli *CLI) Run(args []string) int {
 		return cli.handleError(err, ExitCodeRunnerError)
 	}
 
+	// Run all templates now. There are currently no dependencies because the
+	// watcher has not been started. As a result, this will render all templates
+	// that have no dependencies (once), before we even begin watching.
+	if err := runner.RunAll(dry); err != nil {
+		return cli.handleError(err, ExitCodeRunnerError)
+	}
+
 	log.Printf("[DEBUG] (cli) creating Consul API client")
 	consulConfig := api.DefaultConfig()
 	if config.Consul != "" {
