@@ -1,7 +1,7 @@
 Consul Template
 ===============
-[![Latest Version](http://img.shields.io/github/release/hashicorp/consul-template.svg)][release]
-[![Build Status](http://img.shields.io/travis/hashicorp/consul-template.svg)][travis]
+[![Latest Version](http://img.shields.io/github/release/hashicorp/consul-template.svg?style=flat-square)][release]
+[![Build Status](http://img.shields.io/travis/hashicorp/consul-template.svg?style=flat-square)][travis]
 
 [release]: https://github.com/hashicorp/consul-template/releases
 [travis]: http://travis-ci.org/hashicorp/consul-template
