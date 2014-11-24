@@ -1,6 +1,22 @@
 Consul Template Changelog
 =========================
 
+## v0.3.1 (November 24, 2014)
+
+BUG FIXES:
+
+  * Allow colons in key names (GH-67)
+  * Fix a documentation bug in the README in the Varnish example (GH-82)
+  * Attempt to render templates before starting the watcher - this fixes an
+    issue where a template that declared no Consul dependencies would never be
+    rendered (GH-85)
+  * Update inline Go documentation for better clarity
+
+IMPROVEMENTS:
+
+  * Fix all issues raised by `go vet`
+  * Update packaging script to fix ZSHisms and use awk for clarity
+
 ## v0.3.0 (November 13, 2014)
 
 FEATURES:
