@@ -337,7 +337,7 @@ global
 
 defaults
     mode {{key "service/haproxy/mode"}}{{range ls "service/haproxy/timeouts"}}
-    timeout {{.Key}}{{.Value}}{{end}}
+    timeout {{.Key}} {{.Value}}{{end}}
 
 listen http-in
     bind *:8000{{range service "release.webapp"}}
