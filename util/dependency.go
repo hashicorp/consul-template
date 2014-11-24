@@ -283,7 +283,7 @@ func ParseKeyDependency(s string) (*KeyDependency, error) {
 
 	// a(/b(/c))(@datacenter)
 	re := regexp.MustCompile(`\A` +
-		`(?P<key>[[:word:]\.\-\/]+)` +
+		`(?P<key>[[:word:]\.\:\-\/]+)` +
 		`(@(?P<datacenter>[[:word:]\.\-]+))?` +
 		`\z`)
 	names := re.SubexpNames()

@@ -495,7 +495,22 @@ func TestParseKeyDependency_name(t *testing.T) {
 		Path:   "config/redis/maxconns",
 	}
 	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %#v to equal %#v", sd, expected)
+		t.Errorf("expected %+v to equal %+v", sd, expected)
+	}
+}
+
+func TestParseKeyDependency_nameColon(t *testing.T) {
+	sd, err := ParseKeyDependency("config/redis:magic:80/maxconns")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := &KeyDependency{
+		rawKey: "config/redis:magic:80/maxconns",
+		Path:   "config/redis:magic:80/maxconns",
+	}
+	if !reflect.DeepEqual(sd, expected) {
+		t.Errorf("expected %+v to equal %+v", sd, expected)
 	}
 }
 
