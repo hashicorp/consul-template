@@ -461,7 +461,7 @@ func (d *KeyPrefixDependency) Display() string {
 	return fmt.Sprintf(`keyPrefix "%s"`, d.rawKey)
 }
 
-// ParseKeyDependency parses a string of the format a(/b(/c...))
+// ParseKeyPrefixDependency parses a string of the format a(/b(/c...))
 func ParseKeyPrefixDependency(s string) (*KeyPrefixDependency, error) {
 	// a(/b(/c))(@datacenter)
 	re := regexp.MustCompile(`\A` +
@@ -541,7 +541,7 @@ func (d *NodeDependency) Display() string {
 	return fmt.Sprintf(`node "%s"`, d.rawKey)
 }
 
-// ParseKeyDependency parses a string of the format a(/b(/c...))
+// ParseNodeDependency parses a string of the format a(/b(/c...))
 func ParseNodeDependency(s ...string) (*NodeDependency, error) {
 	switch len(s) {
 	case 0:
