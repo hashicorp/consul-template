@@ -102,7 +102,7 @@ func ParseConfig(path string) (*Config, error) {
 		if err == nil {
 			config.Wait = wait
 		} else {
-			errs.Append(fmt.Errorf("Wait invalid: %v", err))
+			errs.Append(fmt.Errorf("wait invalid: %v", err))
 		}
 	}
 

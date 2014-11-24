@@ -305,7 +305,7 @@ func (cli *CLI) buildConfig(config *Config, configPath string) error {
 		return err
 	}
 	if len(configFiles) == 0 {
-		err := fmt.Errorf("Empty configuration directory: %s", configPath)
+		err := fmt.Errorf("empty configuration directory: %s", configPath)
 		return err
 	}
 	return nil
