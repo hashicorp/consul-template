@@ -44,21 +44,21 @@ func TestAppend_singleError(t *testing.T) {
 // Test that a multiple errors are appended
 func TestAppend_multipleErrors(t *testing.T) {
 	list := NewErrorList("title")
-	err_1 := errors.New("error 1")
-	err_2 := errors.New("error 2")
+	err1 := errors.New("error 1")
+	err2 := errors.New("error 2")
 
-	list.Append(err_1, err_2)
+	list.Append(err1, err2)
 
 	if len(list.errors) != 2 {
 		t.Fatalf("expected 2 errors, but slice had %d", len(list.errors))
 	}
 
-	if list.errors[0] != err_1 {
-		t.Fatalf("expected error to be %q, but was %q", err_1, list.errors[0])
+	if list.errors[0] != err1 {
+		t.Fatalf("expected error to be %q, but was %q", err1, list.errors[0])
 	}
 
-	if list.errors[1] != err_2 {
-		t.Fatalf("expected error to be %q, but was %q", err_2, list.errors[0])
+	if list.errors[1] != err2 {
+		t.Fatalf("expected error to be %q, but was %q", err2, list.errors[0])
 	}
 }
 

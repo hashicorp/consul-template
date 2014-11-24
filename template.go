@@ -13,15 +13,19 @@ import (
 	"github.com/hashicorp/consul-template/util"
 )
 
+// Template is the Go representation of a Consul Template template on disk.
 type Template struct {
-	//
+	// The path to this Template on disk.
 	Path string
 
-	//
+	// The internal list of dependencies for this Template.
 	dependencies []util.Dependency
 }
 
-//
+// NewTemplate creates and parses a new Consul Template template at the given
+// path. If the template does not exist, an error is returned. During
+// initialization, the template is read and is parsed for dependencies. Any
+// errors that occur are returned.
 func NewTemplate(path string) (*Template, error) {
 	template := &Template{Path: path}
 	if err := template.init(); err != nil {
@@ -41,7 +45,8 @@ func (t *Template) Dependencies() []util.Dependency {
 	return t.dependencies
 }
 
-// Decodestring calls jsonpath.DecodeString, which returns a structure for valid json
+// DecodeString calls jsonpath.DecodeString, which returns a structure for vali
+// json.
 func DecodeString(s string) (interface{}, error) {
 	// Empty string returns an empty interface
 	if len(s) < 2 {
@@ -106,7 +111,7 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 			return c.Keys[s]
 		},
 		"ls": func(s string) []*util.KeyPair {
-			result := make([](*util.KeyPair), 0)
+			var result [](*util.KeyPair)
 			// Only return non-empty top-level keys
 			for _, pair := range c.KeyPrefixes[s] {
 				if pair.Key != "" && !strings.Contains(pair.Key, "/") {
@@ -374,6 +379,7 @@ func (c *TemplateContext) replaceAll(f, t, s string) (string, error) {
 // DependencyType is an enum type that says the kind of the dependency.
 type DependencyType byte
 
+// The list of Dependency types.
 const (
 	DependencyTypeInvalid DependencyType = iota
 	DependencyTypeService

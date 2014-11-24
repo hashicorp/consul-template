@@ -155,7 +155,7 @@ func TestRun_configDir(t *testing.T) {
 	}
 }
 
-func TestCLI_BuildConfig(t *testing.T) {
+func TestCLI_buildConfig(t *testing.T) {
 	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
 	cli := &CLI{outStream: outStream, errStream: errStream}
 	configDir, err := ioutil.TempDir(os.TempDir(), "")
@@ -191,7 +191,7 @@ func TestCLI_BuildConfig(t *testing.T) {
 
 	config := new(Config)
 
-	cli.BuildConfig(config, configDir)
+	cli.buildConfig(config, configDir)
 
 	expectedConfig := Config{
 		Consul: "127.0.0.1:8500",

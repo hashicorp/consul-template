@@ -83,7 +83,7 @@ func (r *Runner) Dependencies() []util.Dependency {
 // If the dry flag is given, the template will be rendered to the outStream,
 // which defaults to os.Stdout. In dry mode, commands are never executed.
 func (r *Runner) RunAll(dry bool) error {
-	commands := make([]string, 0)
+	var commands []string
 
 	for _, template := range r.templates {
 		// If the template is not ready to be rendered, just return
@@ -110,7 +110,7 @@ func (r *Runner) RunAll(dry bool) error {
 
 	// Execute each command in sequence, collecting any errors that occur - this
 	// ensures all commands execute at least once
-	errs := make([]error, 0)
+	var errs []error
 	for _, command := range commands {
 		if err := r.execute(command); err != nil {
 			errs = append(errs, err)

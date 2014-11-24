@@ -22,8 +22,8 @@ func (e *ErrorList) Appendf(text string, args ...interface{}) {
 	e.errors = append(e.errors, fmt.Errorf(text, args...))
 }
 
-// ErrorList returns a formatted error with the title and each error as a bullet. If
-// there are no errors in the list, ErrorList will return nil.
+// GetError returns a formatted error with the title and each error as a bullet.
+// If there are no errors in the list, ErrorList will return nil.
 func (e *ErrorList) GetError() error {
 	if len(e.errors) == 0 {
 		return nil
@@ -33,7 +33,7 @@ func (e *ErrorList) GetError() error {
 
 // Error implements the Error interface
 func (e *ErrorList) Error() string {
-	buff := make([]string, 0)
+	var buff []string
 	for _, err := range e.errors {
 		switch err := err.(type) {
 		case *ErrorList:

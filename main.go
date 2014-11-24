@@ -4,7 +4,10 @@ import (
 	"os"
 )
 
+// Name is the exported name of this application.
 const Name = "consul-template"
+
+// Version is the current version of this application.
 const Version = "0.3.1"
 
 func main() {

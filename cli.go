@@ -21,10 +21,11 @@ import (
 // Exit codes are int values that represent an exit code for a particular error.
 // Sub-systems may check this unique error to determine the cause of an error
 // without parsing the output or help text.
+//
+// Errors start at 10
 const (
 	ExitCodeOK int = 0
 
-	// Errors start at 10
 	ExitCodeError = 10 + iota
 	ExitCodeParseFlagsError
 	ExitCodeParseWaitError
@@ -36,6 +37,7 @@ const (
 
 /// ------------------------- ///
 
+// CLI is the main entry point for Consul Template.
 type CLI struct {
 	// outSteam and errStream are the standard out and standard error streams to
 	// write messages from the CLI.
@@ -99,7 +101,7 @@ func (cli *CLI) Run(args []string) int {
 	// Merge a path config with the command line options. Command line options
 	// take precedence over config file options for easy overriding.
 	if config.Path != "" {
-		err := cli.BuildConfig(config, config.Path)
+		err := cli.buildConfig(config, config.Path)
 		if err != nil {
 			return cli.handleError(err, ExitCodeParseConfigError)
 		}
@@ -280,7 +282,9 @@ func (ctv *configTemplateVar) Set(value string) error {
 	return nil
 }
 
-func (cli *CLI) BuildConfig(config *Config, configPath string) error {
+// buildConfig is responsible for building configurations from the given path or
+// directory.
+func (cli *CLI) buildConfig(config *Config, configPath string) error {
 	log.Printf("[DEBUG] (cli) detected -config, merging")
 	configFiles := []string{}
 	buildConfig := func(path string, info os.FileInfo, err error) error {
