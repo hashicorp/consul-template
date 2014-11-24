@@ -272,7 +272,7 @@ func TestParseServiceDependency_name(t *testing.T) {
 		Status: ServiceStatusFilter{HealthPassing},
 	}
 	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %#v to equal %#v", sd, expected)
+		t.Errorf("expected %+v to equal %+v", sd, expected)
 	}
 }
 
@@ -288,7 +288,7 @@ func TestParseServiceDependency_nameAndStatus(t *testing.T) {
 		Status: ServiceStatusFilter{},
 	}
 	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %#v to equal %#v", sd, expected)
+		t.Errorf("expected %+v to equal %+v", sd, expected)
 	}
 }
 
@@ -304,7 +304,7 @@ func TestParseServiceDependency_slashName(t *testing.T) {
 		Status: ServiceStatusFilter{HealthPassing},
 	}
 	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %#v to equal %#v", sd, expected)
+		t.Errorf("expected %+v to equal %+v", sd, expected)
 	}
 }
 
@@ -320,7 +320,7 @@ func TestParseServiceDependency_underscoreName(t *testing.T) {
 		Status: ServiceStatusFilter{HealthPassing},
 	}
 	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %#v to equal %#v", sd, expected)
+		t.Errorf("expected %+v to equal %+v", sd, expected)
 	}
 }
 
@@ -337,7 +337,7 @@ func TestParseServiceDependency_dotTag(t *testing.T) {
 		Status: ServiceStatusFilter{HealthPassing},
 	}
 	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %#v to equal %#v", sd, expected)
+		t.Errorf("expected %+v to equal %+v", sd, expected)
 	}
 }
 
@@ -355,7 +355,7 @@ func TestParseServiceDependency_nameTag(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %#v to equal %#v", sd, expected)
+		t.Errorf("expected %+v to equal %+v", sd, expected)
 	}
 }
 
@@ -374,7 +374,7 @@ func TestParseServiceDependency_nameTagDataCenter(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %#v to equal %#v", sd, expected)
+		t.Errorf("expected %+v to equal %+v", sd, expected)
 	}
 }
 
@@ -394,7 +394,7 @@ func TestParseServiceDependency_nameTagDataCenterPort(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %#v to equal %#v", sd, expected)
+		t.Errorf("expected %+v to equal %+v", sd, expected)
 	}
 }
 
@@ -424,7 +424,7 @@ func TestParseServiceDependency_nameAndPort(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %#v to equal %#v", sd, expected)
+		t.Errorf("expected %+v to equal %+v", sd, expected)
 	}
 }
 
@@ -442,7 +442,7 @@ func TestParseServiceDependency_nameAndDataCenter(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %#v to equal %#v", sd, expected)
+		t.Errorf("expected %+v to equal %+v", sd, expected)
 	}
 }
 
@@ -495,7 +495,22 @@ func TestParseKeyDependency_name(t *testing.T) {
 		Path:   "config/redis/maxconns",
 	}
 	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %#v to equal %#v", sd, expected)
+		t.Errorf("expected %+v to equal %+v", sd, expected)
+	}
+}
+
+func TestParseKeyDependency_nameColon(t *testing.T) {
+	sd, err := ParseKeyDependency("config/redis:magic:80/maxconns")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := &KeyDependency{
+		rawKey: "config/redis:magic:80/maxconns",
+		Path:   "config/redis:magic:80/maxconns",
+	}
+	if !reflect.DeepEqual(sd, expected) {
+		t.Errorf("expected %+v to equal %+v", sd, expected)
 	}
 }
 
@@ -512,7 +527,7 @@ func TestParseKeyDependency_nameTagDataCenter(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %#v to equal %#v", sd, expected)
+		t.Errorf("expected %+v to equal %+v", sd, expected)
 	}
 }
 
@@ -550,7 +565,7 @@ func TestParseKeyPrefixDependency_emptyString(t *testing.T) {
 
 	expected := &KeyPrefixDependency{}
 	if !reflect.DeepEqual(kpd, expected) {
-		t.Errorf("expected %#v to equal %#v", kpd, expected)
+		t.Errorf("expected %+v to equal %+v", kpd, expected)
 	}
 }
 
@@ -565,7 +580,7 @@ func TestParseKeyPrefixDependency_name(t *testing.T) {
 		Prefix: "config/redis",
 	}
 	if !reflect.DeepEqual(kpd, expected) {
-		t.Errorf("expected %#v to equal %#v", kpd, expected)
+		t.Errorf("expected %+v to equal %+v", kpd, expected)
 	}
 }
 
@@ -582,7 +597,7 @@ func TestParseKeyPrefixDependency_nameTagDataCenter(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(kpd, expected) {
-		t.Errorf("expected %#v to equal %#v", kpd, expected)
+		t.Errorf("expected %+v to equal %+v", kpd, expected)
 	}
 }
 
@@ -597,7 +612,7 @@ func TestParseKeyPrefixDependency_dataCenter(t *testing.T) {
 		DataCenter: "nyc1",
 	}
 	if !reflect.DeepEqual(kpd, expected) {
-		t.Errorf("expected %#v to equal %#v", kpd, expected)
+		t.Errorf("expected %+v to equal %+v", kpd, expected)
 	}
 }
 
@@ -634,7 +649,7 @@ func TestParseNodeDependency_emptyString(t *testing.T) {
 
 	expected := &NodeDependency{}
 	if !reflect.DeepEqual(nd, expected) {
-		t.Errorf("expected %#v to equal %#v", nd, expected)
+		t.Errorf("expected %+v to equal %+v", nd, expected)
 	}
 }
 
@@ -649,7 +664,7 @@ func TestParseNodeDependency_dataCenter(t *testing.T) {
 		DataCenter: "nyc1",
 	}
 	if !reflect.DeepEqual(nd, expected) {
-		t.Errorf("expected %#v to equal %#v", nd, expected)
+		t.Errorf("expected %+v to equal %+v", nd, expected)
 	}
 }
 
