@@ -1,5 +1,10 @@
 Consul Template
 ===============
+[![Latest Version](http://img.shields.io/github/release/hashicorp/consul-template.svg)][release]
+[![Build Status](http://img.shields.io/travis/hashicorp/consul-template.svg)][travis]
+
+[release]: https://github.com/hashicorp/consul-template/releases
+[travis]: http://travis-ci.org/hashicorp/consul-template
 
 This project provides a convenient way to populate values from [Consul][] into the filesystem using the `consul-template` daemon.
 
