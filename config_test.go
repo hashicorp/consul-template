@@ -165,7 +165,7 @@ func TestParseConfig_correctValues(t *testing.T) {
 		},
 	}
 	if !reflect.DeepEqual(config, expected) {
-		t.Fatalf("expected \n%#v\n\n, got \n\n%#v", expected, config)
+		t.Fatalf("expected %+v to be %+v", expected, config)
 	}
 }
 
