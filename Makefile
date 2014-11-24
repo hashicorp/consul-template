@@ -5,7 +5,11 @@ DEPS = $(go list -f '{{range .TestImports}}{{.}} {{end}}' ./...)
 all: deps build
 
 deps:
-	go get -d -v ./...
+	go get -v -d ./...
+	echo $(DEPS) | xargs -n1 go get -d
+
+updatedeps:
+	go get -u -v ./...
 	echo $(DEPS) | xargs -n1 go get -d
 
 build:
@@ -29,4 +33,6 @@ package: xcompile
 		echo $$f; \
 	done
 
-.PHONY: all deps build test xcompile package
+ci: updatedeps build test
+
+.PHONY: all deps updatedeps build test xcompile package ci

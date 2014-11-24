@@ -5,4 +5,4 @@ language: go
 go:
   - 1.3
 
-script: make deps && make test
+script: make ci
