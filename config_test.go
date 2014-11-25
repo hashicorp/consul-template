@@ -36,36 +36,32 @@ func TestMerge_simpleConfig(t *testing.T) {
 
 // Test that complex values are merged
 func TestMerge_complexConfig(t *testing.T) {
-	config := &Config{
-		ConfigTemplates: []*ConfigTemplate{
-			&ConfigTemplate{
-				Source:      "a",
-				Destination: "b",
-			},
-			&ConfigTemplate{
-				Source:      "c",
-				Destination: "d",
-				Command:     "e",
-			},
+	templates := []*ConfigTemplate{
+		&ConfigTemplate{
+			Source:      "a",
+			Destination: "b",
+		},
+		&ConfigTemplate{
+			Source:      "c",
+			Destination: "d",
+			Command:     "e",
+		},
+		&ConfigTemplate{
+			Source:      "f",
+			Destination: "g",
+			Command:     "h",
+		},
+		&ConfigTemplate{
+			Source:      "i",
+			Destination: "j",
 		},
 	}
-	otherConfig := &Config{
-		ConfigTemplates: []*ConfigTemplate{
-			&ConfigTemplate{
-				Source:      "f",
-				Destination: "g",
-				Command:     "h",
-			},
-			&ConfigTemplate{
-				Source:      "i",
-				Destination: "j",
-			},
-		},
-	}
-	config.Merge(otherConfig)
 
-	if !reflect.DeepEqual(config.ConfigTemplates, otherConfig.ConfigTemplates) {
-		t.Fatalf("expected %q to equal %q", config.ConfigTemplates, otherConfig.ConfigTemplates)
+	config := &Config{ConfigTemplates: templates[:2]}
+	config.Merge(&Config{ConfigTemplates: templates[2:]})
+
+	if !reflect.DeepEqual(config.ConfigTemplates, templates) {
+		t.Fatalf("expected %q to equal %q", config.ConfigTemplates, templates)
 	}
 }
 

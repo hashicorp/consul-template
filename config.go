@@ -41,7 +41,9 @@ func (c *Config) Merge(config *Config) {
 	}
 
 	if len(config.ConfigTemplates) > 0 {
-		c.ConfigTemplates = make([]*ConfigTemplate, 0, 1)
+		if c.ConfigTemplates == nil {
+			c.ConfigTemplates = make([]*ConfigTemplate, 0, 1)
+		}
 		for _, template := range config.ConfigTemplates {
 			c.ConfigTemplates = append(c.ConfigTemplates, &ConfigTemplate{
 				Source:      template.Source,
