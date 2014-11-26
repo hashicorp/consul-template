@@ -155,6 +155,18 @@ func (wd *WatchData) poll(w *Watcher) {
 			continue
 		}
 
+		// If the query metadata is nil, return an error instead of panicing. See
+		// (GH-72) for more information. This does not actually "fix" the issue,
+		// which appears to be a bug in armon/consul-api, but will at least give a
+		// nicer error message to the user and help us better trace this issue.
+		if qm == nil {
+			err := fmt.Errorf("consul returned nil qm; this should never happen" +
+				"and is probably a bug in consul-template or consulapi")
+			log.Printf("[ERR] (%s) %s", wd.Display(), err)
+			w.ErrCh <- err
+			continue
+		}
+
 		// Consul is allowed to return even if there's no new data. Ignore data if
 		// the index is the same. For files, the data is fake, index is always 0
 		if qm.LastIndex == wd.lastIndex {
