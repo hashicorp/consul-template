@@ -34,7 +34,7 @@ func TestMerge_simpleConfig(t *testing.T) {
 	}
 }
 
-// Test that complex values are merged
+// Test that complex values are merged, and that ConfigTemplates are additive
 func TestMerge_complexConfig(t *testing.T) {
 	templates := []*ConfigTemplate{
 		&ConfigTemplate{
@@ -58,7 +58,8 @@ func TestMerge_complexConfig(t *testing.T) {
 	}
 
 	config := &Config{ConfigTemplates: templates[:2]}
-	config.Merge(&Config{ConfigTemplates: templates[2:]})
+	otherConfig := &Config{ConfigTemplates: templates[2:]}
+	config.Merge(otherConfig)
 
 	if !reflect.DeepEqual(config.ConfigTemplates, templates) {
 		t.Fatalf("expected %q to equal %q", config.ConfigTemplates, templates)
