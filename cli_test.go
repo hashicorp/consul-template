@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -152,6 +153,77 @@ func TestRun_configDir(t *testing.T) {
 	status := cli.Run(args)
 	if status == ExitCodeOK {
 		t.Fatal("expected not OK exit code")
+	}
+}
+
+func TestCLI_buildConfigNonExistentDirectory(t *testing.T) {
+	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
+	cli := &CLI{outStream: outStream, errStream: errStream}
+
+	// Create a directory and then delete it
+	configDir, err := ioutil.TempDir(os.TempDir(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.RemoveAll(configDir); err != nil {
+		t.Fatal(err)
+	}
+
+	config := new(Config)
+	err = cli.buildConfig(config, configDir)
+	if err == nil {
+		t.Fatalf("expected error, but nothing was returned")
+	}
+
+	expected := "missing file/folder"
+	if !strings.Contains(err.Error(), expected) {
+		t.Fatalf("expected %q to contain %q", err.Error(), expected)
+	}
+}
+
+func TestCLI_buildConfigEmptyDirectory(t *testing.T) {
+	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
+	cli := &CLI{outStream: outStream, errStream: errStream}
+
+	// Create a directory with no files
+	configDir, err := ioutil.TempDir(os.TempDir(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(configDir)
+
+	config := new(Config)
+	err = cli.buildConfig(config, configDir)
+	if err == nil {
+		t.Fatalf("expected error, but nothing was returned")
+	}
+
+	expected := "must contain at least one configuration file"
+	if !strings.Contains(err.Error(), expected) {
+		t.Fatalf("expected %q to contain %q", err.Error(), expected)
+	}
+}
+
+func TestCLI_buildConfigBadConfigs(t *testing.T) {
+	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
+	cli := &CLI{outStream: outStream, errStream: errStream}
+
+	configFile := test.CreateTempfile([]byte(`
+		totally not a vaild config
+	`), t)
+	defer test.DeleteTempfile(configFile, t)
+
+	configDir := filepath.Dir(configFile.Name())
+
+	config := new(Config)
+	err := cli.buildConfig(config, configDir)
+	if err == nil {
+		t.Fatalf("expected error, but nothing was returned")
+	}
+
+	expected := "error(s) parsing the config"
+	if !strings.Contains(err.Error(), expected) {
+		t.Fatalf("expected %q to contain %q", err.Error(), expected)
 	}
 }
 
