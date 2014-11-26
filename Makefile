@@ -33,6 +33,4 @@ package: xcompile
 		echo $$f; \
 	done
 
-ci: updatedeps build test
-
 .PHONY: all deps updatedeps build test xcompile package ci

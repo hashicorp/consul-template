@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -101,6 +102,7 @@ func (cli *CLI) Run(args []string) int {
 	// Merge a path config with the command line options. Command line options
 	// take precedence over config file options for easy overriding.
 	if config.Path != "" {
+		log.Printf("[DEBUG] (cli) detected -config, merging")
 		err := cli.buildConfig(config, config.Path)
 		if err != nil {
 			return cli.handleError(err, ExitCodeParseConfigError)
@@ -282,31 +284,51 @@ func (ctv *configTemplateVar) Set(value string) error {
 	return nil
 }
 
-// buildConfig is responsible for building configurations from the given path or
-// directory.
-func (cli *CLI) buildConfig(config *Config, configPath string) error {
-	log.Printf("[DEBUG] (cli) detected -config, merging")
-	configFiles := []string{}
-	buildConfig := func(path string, info os.FileInfo, err error) error {
-		if !info.IsDir() {
-			configFiles = append(configFiles, path)
-			fileConfig, err := ParseConfig(path)
-			if err != nil {
-				return err
-			}
-			log.Printf("[DEBUG] (cli) merging %s into config", path)
-			config.Merge(fileConfig)
-		}
-		return nil
+// buildConfig iterates and merges all configuration files in a given directory.
+// The config parameter will be modified and merged with subsequent configs
+// found in the directory.
+func (cli *CLI) buildConfig(config *Config, path string) error {
+	log.Printf("[DEBUG] (cli) merging with config at %s", path)
+
+	// Ensure the given filepath exists
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return fmt.Errorf("config: missing file/folder: %s", path)
 	}
-	log.Printf("[DEBUG] (cli) using config path %s", configPath)
-	err := filepath.Walk(configPath, buildConfig)
+
+	// Ensure the given filepath has at least one config file
+	files, err := ioutil.ReadDir(path)
 	if err != nil {
-		return err
+		return fmt.Errorf("config: error listing directory: %s", err)
 	}
-	if len(configFiles) == 0 {
-		err := fmt.Errorf("empty configuration directory: %s", configPath)
-		return err
+	if len(files) == 0 {
+		return fmt.Errorf("config: must contain at least one configuration file")
 	}
+
+	// Potential bug: Walk does not follow symlinks!
+	err = filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+		// If WalkFunc had an error, just return it
+		if err != nil {
+			return err
+		}
+
+		// Do nothing for directories
+		if info.IsDir() {
+			return nil
+		}
+
+		// Parse and merge the config
+		newConfig, err := ParseConfig(path)
+		if err != nil {
+			return err
+		}
+		config.Merge(newConfig)
+
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("config: walk error: %s", err)
+	}
+
 	return nil
 }
