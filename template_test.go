@@ -841,3 +841,25 @@ func TestExecute_toUpper(t *testing.T) {
 		t.Fatalf("expected %q to be %q", contents, expected)
 	}
 }
+
+func TestExecute_iter(t *testing.T) {
+	// parseJSON uses float64 numbers so let iter be able to
+	// handle that case
+	inTemplate := test.CreateTempfile([]byte(`{{range $i := iter 0 10.0}}{{$i}}{{end}}`), t)
+	defer test.DeleteTempfile(inTemplate, t)
+
+	template, err := NewTemplate(inTemplate.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	contents, err := template.Execute(&TemplateContext{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []byte("0123456789")
+	if !bytes.Equal(contents, expected) {
+		t.Errorf("expected %q to equal %q", contents, expected)
+	}
+}
