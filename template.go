@@ -149,6 +149,7 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 		"toLower":    c.toLower,
 		"toTitle":    c.toTitle,
 		"toUpper":    c.toUpper,
+		"iter":       iter,
 	}).Parse(string(contents))
 
 	if err != nil {
@@ -191,6 +192,7 @@ func (t *Template) init() error {
 		"toLower":    t.noop,
 		"toTitle":    t.noop,
 		"toUpper":    t.noop,
+		"iter":       iter,
 	}).Parse(string(contents))
 
 	if err != nil {
@@ -374,6 +376,35 @@ func (c *TemplateContext) toUpper(s string) (string, error) {
 // replacement value.
 func (c *TemplateContext) replaceAll(f, t, s string) (string, error) {
 	return strings.Replace(s, f, t, -1), nil
+}
+
+// iter retrieves a range of 'size' integers starting at 'start'
+func iter(start, size interface{}) (stream chan int) {
+
+	var new_start, new_size int
+
+	switch v := start.(type) {
+	case float32, float64:
+		new_start = int(v.(float64))
+	default:
+		new_start = int(v.(int))
+	}
+
+	switch v := size.(type) {
+	case float32, float64:
+		new_size = int(v.(float64))
+	default:
+		new_size = int(v.(int))
+	}
+
+	stream = make(chan int)
+	go func() {
+		for i := new_start; i < new_start+new_size; i++ {
+			stream <- i
+		}
+		close(stream)
+	}()
+	return
 }
 
 // DependencyType is an enum type that says the kind of the dependency.
