@@ -584,6 +584,21 @@ func TestParseKeyPrefixDependency_name(t *testing.T) {
 	}
 }
 
+func TestParseKeyPrefixDependency_nameColon(t *testing.T) {
+	sd, err := ParseKeyPrefixDependency("config/redis:magic:80")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := &KeyPrefixDependency{
+		rawKey: "config/redis:magic:80",
+		Prefix: "config/redis:magic:80",
+	}
+	if !reflect.DeepEqual(sd, expected) {
+		t.Errorf("expected %+v to equal %+v", sd, expected)
+	}
+}
+
 func TestParseKeyPrefixDependency_nameTagDataCenter(t *testing.T) {
 	kpd, err := ParseKeyPrefixDependency("config/redis@nyc1")
 	if err != nil {
