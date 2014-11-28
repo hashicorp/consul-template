@@ -601,6 +601,34 @@ func TestExecute_decodeJSON(t *testing.T) {
 	}
 }
 
+func TestExecute_decodeJSONArray(t *testing.T) {
+	inTemplate := test.CreateTempfile([]byte(`
+		{{with $d := file "data.json" | parseJSON}}
+		{{range $i := $d}}{{$i}}{{end}}
+		{{end}}
+	`), t)
+	defer test.DeleteTempfile(inTemplate, t)
+
+	template, err := NewTemplate(inTemplate.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	context := &TemplateContext{
+		File: map[string]string{
+			"data.json": `["1", "2", "3"]`,
+		},
+	}
+	data, err := template.Execute(context)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, expected := bytes.TrimSpace(data), []byte("123")
+	if !bytes.Equal(result, expected) {
+		t.Errorf("expected %q to equal %q", result, expected)
+	}
+}
+
 func TestExecute_decodeJSONDeep(t *testing.T) {
 	inTemplate := test.CreateTempfile([]byte(`
 		{{with $d := file "data.json" | parseJSON}}
