@@ -53,7 +53,7 @@ func DecodeString(s string) (interface{}, error) {
 		return map[string]interface{}{}, nil
 	}
 
-	var data map[string]interface{}
+	var data interface{}
 	if err := json.Unmarshal([]byte(s), &data); err != nil {
 		return nil, err
 	}
@@ -332,7 +332,7 @@ type TemplateContext struct {
 
 // decodeJSON returns a structure for valid JSON
 func (c *TemplateContext) decodeJSON(s string) (interface{}, error) {
-	var data map[string]interface{}
+	var data interface{}
 	if err := json.Unmarshal([]byte(s), &data); err != nil {
 		return nil, err
 	}
