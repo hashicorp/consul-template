@@ -45,22 +45,6 @@ func (t *Template) Dependencies() []util.Dependency {
 	return t.dependencies
 }
 
-// DecodeString calls jsonpath.DecodeString, which returns a structure for vali
-// json.
-func DecodeString(s string) (interface{}, error) {
-	// Empty string returns an empty interface
-	if len(s) < 2 {
-		return map[string]interface{}{}, nil
-	}
-
-	var data interface{}
-	if err := json.Unmarshal([]byte(s), &data); err != nil {
-		return nil, err
-	}
-
-	return data, nil
-}
-
 // ServiceByTag is a template func that takes the provided services and
 // produces a map based on service tags.
 //
