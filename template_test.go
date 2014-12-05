@@ -497,12 +497,24 @@ func TestExecute_rendersTree(t *testing.T) {
 		Value: "true",
 	}
 
+	emptyFolderConfig := &util.KeyPair{
+		Key:   "",
+		Value: "",
+	}
+
+	emptyChildFolderConfig := &util.KeyPair{
+		Key:   "user/",
+		Value: "",
+	}
+
 	context := &TemplateContext{
 		KeyPrefixes: map[string][]*util.KeyPair{
 			"service/redis/config": []*util.KeyPair{
 				minconnsConfig,
 				maxconnsConfig,
 				childConfig,
+				emptyFolderConfig,
+				emptyChildFolderConfig,
 			},
 		},
 	}

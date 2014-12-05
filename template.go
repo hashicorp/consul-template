@@ -123,7 +123,15 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 			return c.Services[d.Key()], nil
 		},
 		"tree": func(s string) []*util.KeyPair {
-			return c.KeyPrefixes[s]
+			var result []*util.KeyPair
+			// Filter empty keys (folder nodes)
+			for _, pair := range c.KeyPrefixes[s] {
+				parts := strings.Split(pair.Key, "/")
+				if parts[len(parts)-1] != "" {
+					result = append(result, pair)
+				}
+			}
+			return result
 		},
 
 		// Helper functions
