@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul-template/util"
 	"io/ioutil"
 	"log"
+	"regexp"
 	"strings"
 	"text/template"
-
-	"github.com/hashicorp/consul-template/util"
 )
 
 // Template is the Go representation of a Consul Template template on disk.
@@ -135,12 +135,13 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 		},
 
 		// Helper functions
-		"byTag":      c.groupByTag,
-		"parseJSON":  c.decodeJSON,
-		"replaceAll": c.replaceAll,
-		"toLower":    c.toLower,
-		"toTitle":    c.toTitle,
-		"toUpper":    c.toUpper,
+		"byTag":           c.groupByTag,
+		"parseJSON":       c.decodeJSON,
+		"replaceAll":      c.replaceAll,
+		"regexReplaceAll": c.regexReplaceAll,
+		"toLower":         c.toLower,
+		"toTitle":         c.toTitle,
+		"toUpper":         c.toUpper,
 	}).Parse(string(contents))
 
 	if err != nil {
@@ -177,12 +178,13 @@ func (t *Template) init() error {
 		"tree":      t.dependencyAcc(depsMap, DependencyTypeKeyPrefix),
 
 		// Helper functions
-		"byTag":      t.noop,
-		"parseJSON":  t.noop,
-		"replaceAll": t.noop,
-		"toLower":    t.noop,
-		"toTitle":    t.noop,
-		"toUpper":    t.noop,
+		"byTag":           t.noop,
+		"parseJSON":       t.noop,
+		"replaceAll":      t.noop,
+		"regexReplaceAll": t.noop,
+		"toLower":         t.noop,
+		"toTitle":         t.noop,
+		"toUpper":         t.noop,
 	}).Parse(string(contents))
 
 	if err != nil {
@@ -366,6 +368,16 @@ func (c *TemplateContext) toUpper(s string) (string, error) {
 // replacement value.
 func (c *TemplateContext) replaceAll(f, t, s string) (string, error) {
 	return strings.Replace(s, f, t, -1), nil
+}
+
+// regexReplaceAll replaces all occurrences of a regular expression with
+// the given replacement value.
+func (c *TemplateContext) regexReplaceAll(re, pl, s string) (string, error) {
+	if compiled, err := regexp.Compile(re); err == nil {
+		return compiled.ReplaceAllString(s, pl), nil
+	} else {
+		return "", err
+	}
 }
 
 // DependencyType is an enum type that says the kind of the dependency.

@@ -822,6 +822,26 @@ func TestExecute_replaceAll(t *testing.T) {
 	}
 }
 
+func TestExecute_regexReplaceAll(t *testing.T) {
+	inTemplate := test.CreateTempfile([]byte(`{{"random:name:532" | regexReplaceAll ":(name):" "($1)"}}`), t)
+	defer test.DeleteTempfile(inTemplate, t)
+
+	template, err := NewTemplate(inTemplate.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	contents, err := template.Execute(&TemplateContext{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []byte("random(name)532")
+	if !bytes.Equal(contents, expected) {
+		t.Fatalf("expected %q to be %q", contents, expected)
+	}
+}
+
 func TestExecute_toLower(t *testing.T) {
 	inTemplate := test.CreateTempfile([]byte(`{{"BACON" | toLower}}`), t)
 	defer test.DeleteTempfile(inTemplate, t)
