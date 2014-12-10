@@ -19,8 +19,9 @@ IMPROVEMENTS:
 
 FEATURES:
 
-  * Add `env` functionality for reading an environment variable in the current
-    process into the template
+  * Add `env` template function for reading an environment variable in the
+    current process into the template
+  * Add `regexReplaceAll` template function
 
 ## v0.3.1 (November 24, 2014)
 
