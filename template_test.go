@@ -803,8 +803,8 @@ func TestExecute_serviceTagsContains(t *testing.T) {
 	}
 }
 
-func TestExecute_getenv(t *testing.T) {
-	inTemplate := test.CreateTempfile([]byte(`{{getenv "CONSUL_TEMPLATE_TESTVAR"}}`), t)
+func TestExecute_env(t *testing.T) {
+	inTemplate := test.CreateTempfile([]byte(`{{env "CONSUL_TEMPLATE_TESTVAR"}}`), t)
 	defer test.DeleteTempfile(inTemplate, t)
 
 	template, err := NewTemplate(inTemplate.Name())

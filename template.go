@@ -137,7 +137,7 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 
 		// Helper functions
 		"byTag":      c.groupByTag,
-		"getenv":     c.getenv,
+		"env":        c.env,
 		"parseJSON":  c.decodeJSON,
 		"replaceAll": c.replaceAll,
 		"toLower":    c.toLower,
@@ -180,7 +180,7 @@ func (t *Template) init() error {
 
 		// Helper functions
 		"byTag":      t.noop,
-		"getenv":     t.noop,
+		"env":        t.noop,
 		"parseJSON":  t.noop,
 		"replaceAll": t.noop,
 		"toLower":    t.noop,
@@ -352,7 +352,7 @@ func (c *TemplateContext) groupByTag(in []*util.Service) map[string][]*util.Serv
 
 // returns the value of the environment variable set
 
-func (c *TemplateContext) getenv(s string) (string, error) {
+func (c *TemplateContext) env(s string) (string, error) {
 	return os.Getenv(s), nil
 }
 
