@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+  "os"
 	"reflect"
 	"sort"
 	"strings"
@@ -800,6 +801,28 @@ func TestExecute_serviceTagsContains(t *testing.T) {
 	if !bytes.Equal(bytes.TrimSpace(contents), expected) {
 		t.Errorf("expected \n%q\n to equal \n%q\n", bytes.TrimSpace(contents), expected)
 	}
+}
+
+func TestExecute_getenv(t *testing.T) {
+  inTemplate := test.CreateTempfile([]byte(`{{getenv "CONSUL_TEMPLATE_TESTVAR"}}`), t)
+	defer test.DeleteTempfile(inTemplate, t)
+
+  template, err := NewTemplate(inTemplate.Name())
+  if err != nil {
+   t.Fatal(err)
+  }
+  
+  os.Setenv("CONSUL_TEMPLATE_TESTVAR", "F0F0F0") 
+  contents, err := template.Execute(&TemplateContext{})
+  if err != nil { 
+   t.Fatal(err)
+  }
+  
+  expected := []byte("F0F0F0") 
+  if !bytes.Equal(contents, expected) {
+    t.Fatalf("expected %q to be %q", contents, expected)
+  }
+
 }
 
 func TestExecute_replaceAll(t *testing.T) {
