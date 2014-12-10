@@ -243,6 +243,19 @@ Takes the list of services returned by the [`service`](#service) function and cr
 {{end}}{{end}}
 ```
 
+##### `env`
+Reads the given environment variable accessible to the current process.
+
+```liquid
+{{env "CLUSTER_ID"}}
+```
+
+This function can be chained to manipulate the output:
+
+```liquid
+{{env "CLUSTER_ID" | toLower}}
+```
+
 ##### `parseJSON`
 Takes the given input (usually the value from a key) and parses the result as JSON:
 
