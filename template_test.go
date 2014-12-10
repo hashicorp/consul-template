@@ -822,7 +822,6 @@ func TestExecute_env(t *testing.T) {
 	if !bytes.Equal(contents, expected) {
 		t.Fatalf("expected %q to be %q", contents, expected)
 	}
-
 }
 
 func TestExecute_replaceAll(t *testing.T) {
