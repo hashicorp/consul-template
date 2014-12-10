@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+  "os"
 	"strings"
 	"text/template"
 
@@ -136,6 +137,7 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 
 		// Helper functions
 		"byTag":      c.groupByTag,
+    "getenv":     c.getenv,
 		"parseJSON":  c.decodeJSON,
 		"replaceAll": c.replaceAll,
 		"toLower":    c.toLower,
@@ -178,6 +180,7 @@ func (t *Template) init() error {
 
 		// Helper functions
 		"byTag":      t.noop,
+    "getenv":     t.noop,
 		"parseJSON":  t.noop,
 		"replaceAll": t.noop,
 		"toLower":    t.noop,
@@ -345,6 +348,12 @@ func (c *TemplateContext) groupByTag(in []*util.Service) map[string][]*util.Serv
 		}
 	}
 	return m
+}
+
+// returns the value of the environment variable set  
+
+func (c *TemplateContext) getenv(s string) (string, error) {
+  return os.Getenv(s), nil
 }
 
 // toLower converts the given string (usually by a pipe) to lowercase.
