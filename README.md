@@ -269,6 +269,13 @@ Alternatively you can read data from a local JSON file:
 {{with $d := file "/path/to/local/data.json" | parseJSON}}{{$d.some_key}}{{end}}
 ```
 
+##### `regexReplaceAll`
+Takes the argument as a regular expression and replaces all occurences of the regex with the given string. As in go, you can use variables like $1 to refer to subexpressions in the replacement string.
+
+```liquid
+{{"foo.bar" | regexReplaceAll "foo([.a-z]+)", "$1"}}
+```
+
 ##### `replaceAll`
 Takes the argument as a string and replaces all occurences of the given string with the given string.
 
@@ -280,13 +287,6 @@ This function can be chained with other functions as well:
 
 ```liquid
 {{service "webapp"}}{{.Name | replaceAll ":", "_"}}{{end}}
-```
-
-##### `regexReplaceAll`
-Takes the argument as a regular expression and replaces all occurences of the regex with the given string. As in go, you can use variables like $1 to refer to subexpressions in the replacement string.
-
-```liquid
-{{"foo.bar" | regexReplaceAll "foo([.a-z]+)", "$1"}}
 ```
 
 ##### `toLower`

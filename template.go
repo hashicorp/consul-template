@@ -139,10 +139,9 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 		// Helper functions
 		"byTag":           c.groupByTag,
 		"env":             c.env,
-		"byTag":           c.groupByTag,
 		"parseJSON":       c.decodeJSON,
-		"replaceAll":      c.replaceAll,
 		"regexReplaceAll": c.regexReplaceAll,
+		"replaceAll":      c.replaceAll,
 		"toLower":         c.toLower,
 		"toTitle":         c.toTitle,
 		"toUpper":         c.toUpper,
@@ -184,10 +183,9 @@ func (t *Template) init() error {
 		// Helper functions
 		"byTag":           t.noop,
 		"env":             t.noop,
-		"byTag":           t.noop,
 		"parseJSON":       t.noop,
-		"replaceAll":      t.noop,
 		"regexReplaceAll": t.noop,
+		"replaceAll":      t.noop,
 		"toLower":         t.noop,
 		"toTitle":         t.noop,
 		"toUpper":         t.noop,
