@@ -1,6 +1,27 @@
 Consul Template Changelog
 =========================
 
+## vx.y.z (Unreleased)
+
+BUG FIXES:
+
+  * Fix documentation examples
+  * Fix `golint` and `go vet` errors
+  * Fix a panic when Consul returned empty query metadata
+  * Allow colons in key prefixes (`ls` and `tree` receive this by proxy)
+  * Allow `parseJSON` to handle top-level JSON objects
+  * Filter empty keys in `tree` and `ls` (folder nodes)
+
+IMPROVEMENTS:
+
+  * Merge multiple configuration template definitions when a configuration
+    directory is specified
+
+FEATURES:
+
+  * Add `env` functionality for reading an environment variable in the current
+    process into the template
+
 ## v0.3.1 (November 24, 2014)
 
 BUG FIXES:
