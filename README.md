@@ -269,6 +269,13 @@ This function can be chained with other functions as well:
 {{service "webapp"}}{{.Name | replaceAll ":", "_"}}{{end}}
 ```
 
+##### `regexReplaceAll`
+Takes the argument as a regular expression and replaces all occurences of the regex with the given string. As in go, you can use variables like $1 to refer to subexpressions in the replacement string.
+
+```liquid
+{{"foo.bar" | regexReplaceAll "foo([.a-z]+)", "$1"}}
+```
+
 ##### `toLower`
 Takes the argument as a string and converts it to lowercase.
 
