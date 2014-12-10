@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul-template/util"
 	"io/ioutil"
 	"log"
 	"regexp"
 	"strings"
 	"text/template"
+
+	"github.com/hashicorp/consul-template/util"
 )
 
 // Template is the Go representation of a Consul Template template on disk.
