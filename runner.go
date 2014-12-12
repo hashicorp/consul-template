@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/hashicorp/consul-template/util"
 )
@@ -395,8 +396,9 @@ func (r *Runner) atomicWrite(path string, contents []byte) error {
 
 // Checks if a value exists in an array 
 func exists(needle string, haystack []string) bool {
+	needle = strings.TrimSpace(needle)
     for _,value := range haystack {
-        if needle == value {
+        if needle == strings.TrimSpace(value) {
             return true
         } 
     }
