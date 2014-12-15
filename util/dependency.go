@@ -120,13 +120,20 @@ func ParseServiceDependency(s ...string) (*ServiceDependency, error) {
 		status = ServiceStatusFilter{HealthPassing}
 	case 2:
 		query = s[0]
-		switch s[1] {
-		case HealthAny:
-			status = ServiceStatusFilter{}
-		case HealthPassing:
-			status = ServiceStatusFilter{HealthPassing}
-		default:
-			return nil, fmt.Errorf("expected either %q or %q as health status", HealthAny, HealthPassing)
+		rawStatuses := strings.Split(s[1], ",")
+		status = make(ServiceStatusFilter, len(rawStatuses))
+
+		for i, rawStatus := range rawStatuses {
+			rawStatus = strings.TrimSpace(rawStatus)
+			if rawStatus == HealthAny {
+				status = ServiceStatusFilter{}
+				break
+			} else if rawStatus == HealthPassing || rawStatus == HealthWarning || rawStatus == HealthCritical {
+				status[i] = rawStatus
+			} else {
+				return nil, fmt.Errorf("expected some of %q as health status",
+					strings.Join([]string{HealthAny, HealthPassing, HealthWarning, HealthCritical}, ", "))
+			}
 		}
 	default:
 		return nil, fmt.Errorf("expected 1 or 2 arguments, got %d", len(s))
