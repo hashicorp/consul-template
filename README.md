@@ -203,10 +203,14 @@ server nyc_web_01 123.456.789.10:8080
 server nyc_web_02 456.789.101.213:8080
 ```
 
-By default only healthy services are returned. If you want to get all services, regardless of their health, then you can specify a health check status. Currently only `"passing"` and `"any"` are supported.
+By default only healthy services are returned.
+If you want to get all services, in specific healths, then you can specify a comma-separated list of health check statuses.
+Currently supported are `"any"`, `"passing"`, `"warning"` and `"critical"`.
 
 ```liquid
 {{service "webapp" "any"}}
+{{service "webapp" "passing"}}
+{{service "webapp" "passing, warning, critical"}}
 ```
 
 

@@ -276,7 +276,7 @@ func TestParseServiceDependency_name(t *testing.T) {
 	}
 }
 
-func TestParseServiceDependency_nameAndStatus(t *testing.T) {
+func TestParseServiceDependency_nameAndAnyStatus(t *testing.T) {
 	sd, err := ParseServiceDependency("webapp", "any")
 	if err != nil {
 		t.Fatal(err)
@@ -286,6 +286,82 @@ func TestParseServiceDependency_nameAndStatus(t *testing.T) {
 		rawKey: "webapp [any]",
 		Name:   "webapp",
 		Status: ServiceStatusFilter{},
+	}
+	if !reflect.DeepEqual(sd, expected) {
+		t.Errorf("expected %+v to equal %+v", sd, expected)
+	}
+}
+
+func TestParseServiceDependency_nameAndPassingStatus(t *testing.T) {
+	sd, err := ParseServiceDependency("webapp", "passing")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := &ServiceDependency{
+		rawKey: "webapp [passing]",
+		Name:   "webapp",
+		Status: ServiceStatusFilter{HealthPassing},
+	}
+	if !reflect.DeepEqual(sd, expected) {
+		t.Errorf("expected %+v to equal %+v", sd, expected)
+	}
+}
+
+func TestParseServiceDependency_nameAndMultipleStatuses(t *testing.T) {
+	sd, err := ParseServiceDependency("webapp", "passing,warning,critical")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := &ServiceDependency{
+		rawKey: "webapp [passing,warning,critical]",
+		Name:   "webapp",
+		Status: ServiceStatusFilter{HealthPassing, HealthWarning, HealthCritical},
+	}
+	if !reflect.DeepEqual(sd, expected) {
+		t.Errorf("expected %+v to equal %+v", sd, expected)
+	}
+}
+
+func TestParseServiceDependency_nameAndMultipleStatusesIncludingAny(t *testing.T) {
+	sd, err := ParseServiceDependency("webapp", "passing,any,warning")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := &ServiceDependency{
+		rawKey: "webapp [any]",
+		Name:   "webapp",
+		Status: ServiceStatusFilter{},
+	}
+	if !reflect.DeepEqual(sd, expected) {
+		t.Errorf("expected %+v to equal %+v", sd, expected)
+	}
+}
+
+func TestParseServiceDependency_nameAndInvalidStatus(t *testing.T) {
+	_, err := ParseServiceDependency("webapp", "passing,invalid")
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "expected some of \"any, passing, warning, critical\" as health status"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected error %q to contain %q", err.Error(), expected)
+	}
+}
+
+func TestParseServiceDependency_nameAndMultipleStatusesWithWeirdWhitespace(t *testing.T) {
+	sd, err := ParseServiceDependency("webapp", "  passing,\nwarning  ,critical     \t ")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := &ServiceDependency{
+		rawKey: "webapp [passing,warning,critical]",
+		Name:   "webapp",
+		Status: ServiceStatusFilter{HealthPassing, HealthWarning, HealthCritical},
 	}
 	if !reflect.DeepEqual(sd, expected) {
 		t.Errorf("expected %+v to equal %+v", sd, expected)
