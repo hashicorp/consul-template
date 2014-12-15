@@ -383,11 +383,12 @@ func (c *TemplateContext) replaceAll(f, t, s string) (string, error) {
 // regexReplaceAll replaces all occurrences of a regular expression with
 // the given replacement value.
 func (c *TemplateContext) regexReplaceAll(re, pl, s string) (string, error) {
-	if compiled, err := regexp.Compile(re); err == nil {
+	compiled, err := regexp.Compile(re)
+	if err == nil {
 		return compiled.ReplaceAllString(s, pl), nil
-	} else {
-		return "", err
 	}
+
+	return "", err
 }
 
 // DependencyType is an enum type that says the kind of the dependency.
