@@ -1,6 +1,12 @@
 Consul Template Changelog
 =========================
 
+## vx.y.z (Unreleased)
+
+IMPROVEMENTS:
+
+  * Support more complex service health filtering (GH-116)
+
 ## v0.4.0 (December 10, 2014)
 
 BUG FIXES:
