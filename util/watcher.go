@@ -181,7 +181,6 @@ func (wd *WatchData) poll(w *Watcher) {
 		data, qm, err := wd.Dependency.Fetch(w.client, options)
 		if err != nil {
 			log.Printf("[ERR] (%s) %s", wd.Display(), err.Error())
-			w.ErrCh <- err
 
 			w.Lock()
 			w.currentTimeout = w.timeoutFunc(w.currentTimeout)

@@ -129,31 +129,6 @@ func TestSetTimeoutFunc_setsTimeoutFunc(t *testing.T) {
 	}
 }
 
-func TestWatch_propagatesDependencyFetchError(t *testing.T) {
-	dependencies := []Dependency{
-		&test.FakeDependencyFetchError{Name: "tester"},
-	}
-	w, err := NewWatcher(&api.Client{}, dependencies)
-	if err != nil {
-		t.Fatal(err)
-	}
-	go w.Watch(true)
-
-	select {
-	case data := <-w.DataCh:
-		t.Fatalf("expected no data, but got %v", data)
-	case err := <-w.ErrCh:
-		expected := "failed to contact server"
-		if !strings.Contains(err.Error(), expected) {
-			t.Fatalf("expected %q to contain %q", err.Error(), expected)
-		}
-	case <-w.FinishCh:
-		t.Fatalf("watcher finished prematurely")
-	case <-time.After(1 * time.Second):
-		t.Fatal("expected error, but nothing was returned")
-	}
-}
-
 func TestWatch_fetchesData(t *testing.T) {
 	dependencies := []Dependency{
 		&test.FakeDependency{Name: "tester"},
