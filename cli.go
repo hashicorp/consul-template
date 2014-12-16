@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
 	"time"
@@ -136,8 +137,6 @@ func (cli *CLI) Run(args []string) int {
 	if err != nil {
 		return cli.handleError(err, ExitCodeConsulAPIError)
 	}
-	// This line is super, super, super important. Do not remove it.
-	client.Agent().Self()
 
 	log.Printf("[DEBUG] (cli) creating Watcher")
 	watcher, err := util.NewWatcher(client, runner.Dependencies())
@@ -153,6 +152,10 @@ func (cli *CLI) Run(args []string) int {
 	go watcher.Watch(once)
 
 	var minTimer, maxTimer <-chan time.Time
+
+	// Wait for termination
+	signalCh := make(chan os.Signal, 1)
+	signal.Notify(signalCh, os.Interrupt)
 
 	for {
 		log.Printf("[DEBUG] (cli) looping for data")
@@ -202,6 +205,9 @@ func (cli *CLI) Run(args []string) int {
 		case <-watcher.FinishCh:
 			log.Printf("[INFO] (cli) received finished signal, exiting now")
 			return ExitCodeOK
+		case <-signalCh:
+			fmt.Fprintf(cli.errStream, "Received interrupt, stopping...\n")
+			return ExitCodeError
 		}
 	}
 }

@@ -107,7 +107,6 @@ func TestRun_onceFlag(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Errorf("expected data, but nothing was returned")
 	}
-
 }
 
 func TestQuiescence(t *testing.T) {
