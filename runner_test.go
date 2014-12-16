@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul-template/test"
@@ -755,4 +756,74 @@ func TestExecute_executesCommand(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestExecute_doesNotExecuteCommandMoreThanOnce(t *testing.T) {
+	outFile := test.CreateTempfile(nil, t)
+	os.Remove(outFile.Name())
+	defer os.Remove(outFile.Name())
+
+	inTemplate := test.CreateTempfile([]byte(`
+    {{ range service "consul@nyc1"}}{{end}}
+  `), t)
+	defer test.DeleteTempfile(inTemplate, t)
+
+	outTemplateA := test.CreateTempfile(nil, t)
+	defer test.DeleteTempfile(outTemplateA, t)
+
+	outTemplateB := test.CreateTempfile(nil, t)
+	defer test.DeleteTempfile(outTemplateB, t)
+
+	ctemplates := []*ConfigTemplate{
+		&ConfigTemplate{
+			Source:      inTemplate.Name(),
+			Destination: outTemplateA.Name(),
+			Command:     fmt.Sprintf("echo 'foo' >> %s", outFile.Name()),
+		},
+		&ConfigTemplate{
+			Source:      inTemplate.Name(),
+			Destination: outTemplateB.Name(),
+			Command:     fmt.Sprintf("echo 'foo' >> %s", outFile.Name()),
+		},
+	}
+
+	runner, err := NewRunner(ctemplates)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	serviceDependency, err := util.ParseServiceDependency("consul@nyc1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data := []*util.Service{
+		&util.Service{
+			Node:    "consul",
+			Address: "1.2.3.4",
+			ID:      "consul@nyc1",
+			Name:    "consul",
+		},
+	}
+
+	runner.Receive(serviceDependency, data)
+
+	if err := runner.RunAll(false); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = os.Stat(outFile.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	output, err := ioutil.ReadFile(outFile.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Count(string(output), "foo") > 1 {
+		t.Fatalf("expected command to be run once.")
+	}
+
 }

@@ -3,6 +3,10 @@ Consul Template Changelog
 
 ## vx.y.z (Unreleased)
 
+BUG FIXES:
+
+  * Prevent commands from being executed multiple times (GH-112)
+
 IMPROVEMENTS:
 
   * Support more complex service health filtering (GH-116)
