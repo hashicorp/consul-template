@@ -13,6 +13,7 @@ IMPROVEMENTS:
   * Add support for more complex service health filtering (GH-116)
   * Add support for specifying a `-retry` interval for Consul timeouts and
     connection errors (GH-22)
+  * Use official HashiCorp multierror package for errors
 
 ## v0.4.0 (December 10, 2014)
 
