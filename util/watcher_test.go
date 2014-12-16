@@ -89,28 +89,28 @@ func TestNewWatcher_makesstopCh(t *testing.T) {
 	}
 }
 
-func TestSetTimeout_setsTimeoutFunc(t *testing.T) {
+func TestSetRetry_setsRetryFunc(t *testing.T) {
 	w, err := NewWatcher(&api.Client{}, make([]Dependency, 1))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	timeout := 10 * time.Second
-	w.SetTimeout(timeout)
-	result := w.timeoutFunc(0 * time.Second)
+	retry := 10 * time.Second
+	w.SetRetry(retry)
+	result := w.retryFunc(0 * time.Second)
 
-	if result != timeout {
-		t.Errorf("expected %q to be %q", result, timeout)
+	if result != retry {
+		t.Errorf("expected %q to be %q", result, retry)
 	}
 }
 
-func TestSetTimeoutFunc_setsTimeoutFunc(t *testing.T) {
+func TestSetRetryFunc_setsRetryFunc(t *testing.T) {
 	w, err := NewWatcher(&api.Client{}, make([]Dependency, 1))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	w.SetTimeoutFunc(func(current time.Duration) time.Duration {
+	w.SetRetryFunc(func(current time.Duration) time.Duration {
 		return 2 * current
 	})
 
@@ -122,7 +122,7 @@ func TestSetTimeoutFunc_setsTimeoutFunc(t *testing.T) {
 	}
 
 	for current, expected := range data {
-		result := w.timeoutFunc(current)
+		result := w.retryFunc(current)
 		if result != expected {
 			t.Errorf("expected %q to be %q", result, expected)
 		}

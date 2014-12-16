@@ -15,14 +15,14 @@ const (
 	defaultWaitTime = 60 * time.Second
 
 	// The amount of time to wait when Consul returns an error
-	defaultTimeout = 5 * time.Second
+	defaultRetry = 5 * time.Second
 )
 
-// TimeoutFunc is a function that defines the timeout for a given watcher. The
-// function parameter is the current timeout (which might be nil), and the
-// return value is the new timeout. In this way, you can build complex timeout
+// RetryFunc is a function that defines the retry for a given watcher. The
+// function parameter is the current retry (which might be nil), and the
+// return value is the new retry. In this way, you can build complex retry
 // functions that are based off the previous values.
-type TimeoutFunc func(time.Duration) time.Duration
+type RetryFunc func(time.Duration) time.Duration
 
 type Watcher struct {
 	sync.Mutex
@@ -45,12 +45,12 @@ type Watcher struct {
 	// dependencies is the slice of Dependencies this Watcher will poll
 	dependencies []Dependency
 
-	// currentTimeout is the current value of the timeout for the Watcher.
+	// currentRetry is the current value of the retry for the Watcher.
 	//
-	// timeoutFunc is a TimeoutFunc that represents the way timeouts and backoffs
+	// retryFunc is a RetryFunc that represents the way retrys and backoffs
 	// should occur.
-	currentTimeout time.Duration
-	timeoutFunc    TimeoutFunc
+	currentRetry time.Duration
+	retryFunc    RetryFunc
 
 	// waitGroup is the WaitGroup to ensure all Go routines return when we stop
 	waitGroup sync.WaitGroup
@@ -69,18 +69,18 @@ func NewWatcher(client *api.Client, dependencies []Dependency) (*Watcher, error)
 	return watcher, nil
 }
 
-// SetTimeout is used to set the timeout to a static value.
-func (w *Watcher) SetTimeout(duration time.Duration) {
-	w.SetTimeoutFunc(func(current time.Duration) time.Duration {
+// SetRetry is used to set the retry to a static value.
+func (w *Watcher) SetRetry(duration time.Duration) {
+	w.SetRetryFunc(func(current time.Duration) time.Duration {
 		return duration
 	})
 }
 
-// SetTimeoutFunc is used to set a dynamic timeout function.
-func (w *Watcher) SetTimeoutFunc(f TimeoutFunc) {
+// SetRetryFunc is used to set a dynamic retry function.
+func (w *Watcher) SetRetryFunc(f RetryFunc) {
 	w.Lock()
 	defer w.Unlock()
-	w.timeoutFunc = f
+	w.retryFunc = f
 }
 
 //
@@ -144,8 +144,8 @@ func (w *Watcher) init() error {
 	w.FinishCh = make(chan struct{})
 	w.stopCh = make(chan struct{})
 
-	// Setup the default timeout
-	w.SetTimeout(defaultTimeout)
+	// Setup the default retry
+	w.SetRetry(defaultRetry)
 
 	return nil
 }
@@ -183,10 +183,10 @@ func (wd *WatchData) poll(w *Watcher) {
 			log.Printf("[ERR] (%s) %s", wd.Display(), err.Error())
 
 			w.Lock()
-			w.currentTimeout = w.timeoutFunc(w.currentTimeout)
+			w.currentRetry = w.retryFunc(w.currentRetry)
 			w.Unlock()
 
-			time.Sleep(w.currentTimeout)
+			time.Sleep(w.currentRetry)
 			continue
 		}
 

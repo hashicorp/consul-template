@@ -52,7 +52,6 @@ func (cli *CLI) Run(args []string) int {
 
 	var version, dry, once bool
 	var config = new(Config)
-	var timeout time.Duration
 
 	// Parse the flags and options
 	flags := flag.NewFlagSet(Name, flag.ContinueOnError)
@@ -70,7 +69,7 @@ func (cli *CLI) Run(args []string) int {
 		"the minimum(:maximum) to wait before rendering a new template")
 	flags.StringVar(&config.Path, "config", "",
 		"the path to a config file on disk")
-	flags.DurationVar(&timeout, "retry", 0,
+	flags.DurationVar(&config.Retry, "retry", 0,
 		"the duration to wait when Consul is not available")
 	flags.BoolVar(&once, "once", false,
 		"do not run as a daemon")
@@ -146,9 +145,9 @@ func (cli *CLI) Run(args []string) int {
 		return cli.handleError(err, ExitCodeWatcherError)
 	}
 
-	// Set the timeout on the watcher if one was given
-	if timeout != 0 {
-		watcher.SetTimeout(timeout)
+	// Set the retry timeout on the watcher if one was given
+	if config.Retry != 0 {
+		watcher.SetRetry(config.Retry)
 	}
 
 	go watcher.Watch(once)

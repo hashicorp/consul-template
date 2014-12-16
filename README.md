@@ -88,6 +88,7 @@ The Configuration file syntax interface supports all of the options detailed abo
 ```javascript
 consul = "127.0.0.1:8500"
 token = "abcd1234"
+retry = "10s"
 
 template {
   source = "/path/on/disk/to/template"

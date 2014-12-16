@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
+	"time"
 
 	util "github.com/hashicorp/consul-template/util"
 	"github.com/hashicorp/hcl"
@@ -24,6 +25,9 @@ type Config struct {
 
 	// ConfigTemplates is a slice of the ConfigTemplate objects in the config.
 	ConfigTemplates []*ConfigTemplate `mapstructure:"template"`
+
+	// Retry is the duration of time to wait between Consul failures.
+	Retry time.Duration `mapstructure:"retry"`
 
 	// Token is the Consul API token.
 	Token string `mapstructure:"token"`
