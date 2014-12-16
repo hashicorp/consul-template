@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/hashicorp/consul-template/util"
 )
@@ -99,14 +100,15 @@ func (r *Runner) RunAll(dry bool) error {
 			}
 
 			// If the template was rendered (changed) and we are not in dry-run mode,
-			// aggregate commands
+			// aggregate commands, ignoring previously known commands
 			if rendered && !dry {
-				if ctemplate.Command != "" {
+				if ctemplate.Command != "" && !exists(ctemplate.Command, commands) {
 					commands = append(commands, ctemplate.Command)
 				}
 			}
 		}
 	}
+
 
 	// Execute each command in sequence, collecting any errors that occur - this
 	// ensures all commands execute at least once
@@ -389,4 +391,17 @@ func (r *Runner) atomicWrite(path string, contents []byte) error {
 	}
 
 	return nil
+}
+
+
+// Checks if a value exists in an array 
+func exists(needle string, haystack []string) bool {
+	needle = strings.TrimSpace(needle)
+    for _,value := range haystack {
+        if needle == strings.TrimSpace(value) {
+            return true
+        } 
+    }
+
+    return false
 }
