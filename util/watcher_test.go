@@ -37,7 +37,7 @@ func TestNewWatcher_setsClient(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(w.client, client) {
-		t.Errorf("expected %q to equal %q", w.client, client)
+		t.Errorf("expected %+v to equal %+v", w.client, client)
 	}
 }
 
