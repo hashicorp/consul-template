@@ -36,7 +36,7 @@ Usage
 | `token`     | | The [Consul API token][Consul ACLs]. |
 | `config`    | | The path to a configuration file or directory on disk, relative to the current working directory. Values specified on the CLI take precedence over values specified in the configuration file |
 | `wait`      | | The `minimum(:maximum)` to wait before rendering a new template to disk and triggering a command, separated by a colon (`:`). If the optional maximum value is omitted, it is assumed to be 4x the required minimum value. |
-| `retry`       | | The amount of time to wait if Consul returns an error when communicating with the API. |
+| `retry`     | | The amount of time to wait if Consul returns an error when communicating with the API. |
 | `dry`       | | Dump generated templates to the console. If specified, generated templates are not committed to disk and commands are not invoked. |
 | `once`      | | Run Consul Template once and exit (as opposed to the default behavior of daemon). |
 
