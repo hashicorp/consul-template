@@ -107,17 +107,13 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 			return result
 		},
 		"nodes": func(s ...string) ([]*util.Node, error) {
-			// We should not get any errors here as the same arguments will
-			// have been processed in the template pre process stage.
-			d, err := util.ParseNodeDependency(s...)
+			d, err := util.ParseNodesDependency(s...)
 			if err != nil {
 				return nil, err
 			}
 			return c.Nodes[d.Key()], nil
 		},
 		"service": func(s ...string) ([]*util.Service, error) {
-			// We should not get any errors here as the same arguments will
-			// have been processed in the template pre process stage.
 			d, err := util.ParseServiceDependency(s...)
 			if err != nil {
 				return nil, err
@@ -255,7 +251,7 @@ func (t *Template) dependencyAcc(depsMap map[string]util.Dependency, dt Dependen
 
 			return "", nil
 		case DependencyTypeNodes:
-			d, err := util.ParseNodeDependency(s...)
+			d, err := util.ParseNodesDependency(s...)
 			if err != nil {
 				return nil, err
 			}
@@ -296,7 +292,7 @@ func (t *Template) validateDependencies(c *TemplateContext) error {
 			if _, ok := c.Keys[d.Key()]; !ok {
 				return fmt.Errorf("templateContext missing key `%s'", d.Key())
 			}
-		case *util.NodeDependency:
+		case *util.NodesDependency:
 			if _, ok := c.Nodes[d.Key()]; !ok {
 				return fmt.Errorf("templateContext missing nodes `%s'", d.Key())
 			}

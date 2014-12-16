@@ -304,7 +304,7 @@ func (r *Runner) templateContextFor(template *Template) (*TemplateContext, error
 			context.KeyPrefixes[dependency.Key()] = data.([]*util.KeyPair)
 		case *util.KeyDependency:
 			context.Keys[dependency.Key()] = data.(string)
-		case *util.NodeDependency:
+		case *util.NodesDependency:
 			context.Nodes[dependency.Key()] = data.([]*util.Node)
 		case *util.ServiceDependency:
 			context.Services[dependency.Key()] = data.([]*util.Service)
