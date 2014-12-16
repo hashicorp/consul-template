@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul-template/util"
+	multierror "github.com/hashicorp/go-multierror"
 )
 
 // Runner responsible rendering Templates and invoking Commands.
@@ -121,11 +122,12 @@ func (r *Runner) RunAll(dry bool) error {
 	// If any errors were returned, convert them to an ErrorList for human
 	// readability
 	if len(errs) != 0 {
-		errors := NewErrorList("running commands")
+		var result *multierror.Error
+
 		for _, err := range errs {
-			errors.Append(err)
+			result = multierror.Append(result, err)
 		}
-		return errors.GetError()
+		return result.ErrorOrNil()
 	}
 
 	return nil
