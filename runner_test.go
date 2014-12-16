@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"testing"
 	"strings"
+	"testing"
 
 	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul-template/util"
@@ -758,7 +758,6 @@ func TestExecute_executesCommand(t *testing.T) {
 	}
 }
 
-
 func TestExecute_doesNotExecuteCommandMoreThanOnce(t *testing.T) {
 	outFile := test.CreateTempfile(nil, t)
 	os.Remove(outFile.Name())
@@ -822,11 +821,9 @@ func TestExecute_doesNotExecuteCommandMoreThanOnce(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	if strings.Count(string(output), "foo") > 1 {
 		t.Fatalf("expected command to be run once.")
 	}
 
-
 }
-

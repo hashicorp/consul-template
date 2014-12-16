@@ -109,7 +109,6 @@ func (r *Runner) RunAll(dry bool) error {
 		}
 	}
 
-
 	// Execute each command in sequence, collecting any errors that occur - this
 	// ensures all commands execute at least once
 	var errs []error
@@ -393,15 +392,14 @@ func (r *Runner) atomicWrite(path string, contents []byte) error {
 	return nil
 }
 
-
-// Checks if a value exists in an array 
+// Checks if a value exists in an array
 func exists(needle string, haystack []string) bool {
 	needle = strings.TrimSpace(needle)
-    for _,value := range haystack {
-        if needle == strings.TrimSpace(value) {
-            return true
-        } 
-    }
+	for _, value := range haystack {
+		if needle == strings.TrimSpace(value) {
+			return true
+		}
+	}
 
-    return false
+	return false
 }
