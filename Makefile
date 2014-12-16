@@ -33,4 +33,4 @@ package: xcompile
 		echo $$f; \
 	done
 
-.PHONY: all deps updatedeps build test xcompile package ci
+.PHONY: all deps updatedeps build test xcompile package

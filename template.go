@@ -107,22 +107,25 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 			return result
 		},
 		"nodes": func(s ...string) ([]*util.Node, error) {
-			// We should not get any errors here as the same arguments will
-			// have been processed in the template pre process stage.
-			d, err := util.ParseNodeDependency(s...)
+			d, err := util.ParseNodesDependency(s...)
 			if err != nil {
 				return nil, err
 			}
 			return c.Nodes[d.Key()], nil
 		},
 		"service": func(s ...string) ([]*util.Service, error) {
-			// We should not get any errors here as the same arguments will
-			// have been processed in the template pre process stage.
 			d, err := util.ParseServiceDependency(s...)
 			if err != nil {
 				return nil, err
 			}
 			return c.Services[d.Key()], nil
+		},
+		"services": func(s ...string) ([]*util.CatalogService, error) {
+			d, err := util.ParseCatalogServicesDependency(s...)
+			if err != nil {
+				return nil, err
+			}
+			return c.CatalogServices[d.Key()], nil
 		},
 		"tree": func(s string) []*util.KeyPair {
 			var result []*util.KeyPair
@@ -178,6 +181,7 @@ func (t *Template) init() error {
 		"ls":        t.dependencyAcc(depsMap, DependencyTypeKeyPrefix),
 		"nodes":     t.dependencyAcc(depsMap, DependencyTypeNodes),
 		"service":   t.dependencyAcc(depsMap, DependencyTypeService),
+		"services":  t.dependencyAcc(depsMap, DependencyTypeCatalogServices),
 		"tree":      t.dependencyAcc(depsMap, DependencyTypeKeyPrefix),
 
 		// Helper functions
@@ -255,7 +259,7 @@ func (t *Template) dependencyAcc(depsMap map[string]util.Dependency, dt Dependen
 
 			return "", nil
 		case DependencyTypeNodes:
-			d, err := util.ParseNodeDependency(s...)
+			d, err := util.ParseNodesDependency(s...)
 			if err != nil {
 				return nil, err
 			}
@@ -274,6 +278,17 @@ func (t *Template) dependencyAcc(depsMap map[string]util.Dependency, dt Dependen
 			}
 
 			return []*util.Service{}, nil
+		case DependencyTypeCatalogServices:
+			d, err := util.ParseCatalogServicesDependency(s...)
+			if err != nil {
+				return nil, err
+			}
+			if _, ok := depsMap[d.HashCode()]; !ok {
+				depsMap[d.HashCode()] = d
+			}
+
+			var result map[string][]string
+			return result, nil
 		default:
 			return nil, fmt.Errorf("unknown DependencyType %+v", dt)
 		}
@@ -296,13 +311,17 @@ func (t *Template) validateDependencies(c *TemplateContext) error {
 			if _, ok := c.Keys[d.Key()]; !ok {
 				return fmt.Errorf("templateContext missing key `%s'", d.Key())
 			}
-		case *util.NodeDependency:
+		case *util.NodesDependency:
 			if _, ok := c.Nodes[d.Key()]; !ok {
 				return fmt.Errorf("templateContext missing nodes `%s'", d.Key())
 			}
 		case *util.ServiceDependency:
 			if _, ok := c.Services[d.Key()]; !ok {
 				return fmt.Errorf("templateContext missing service `%s'", d.Key())
+			}
+		case *util.CatalogServicesDependency:
+			if _, ok := c.CatalogServices[d.Key()]; !ok {
+				return fmt.Errorf("templateContext missing catalog services: `%s'", d.Key())
 			}
 		default:
 			return fmt.Errorf("unknown dependency type in template %+v", d)
@@ -321,11 +340,12 @@ func (t *Template) noop(thing ...interface{}) (interface{}, error) {
 // TemplateContext is what Template uses to determine the values that are
 // available for template parsing.
 type TemplateContext struct {
-	Services    map[string][]*util.Service
-	Keys        map[string]string
-	KeyPrefixes map[string][]*util.KeyPair
-	Nodes       map[string][]*util.Node
-	File        map[string]string
+	CatalogServices map[string][]*util.CatalogService
+	Services        map[string][]*util.Service
+	Keys            map[string]string
+	KeyPrefixes     map[string][]*util.KeyPair
+	Nodes           map[string][]*util.Node
+	File            map[string]string
 }
 
 // decodeJSON returns a structure for valid JSON
@@ -397,6 +417,7 @@ type DependencyType byte
 // The list of Dependency types.
 const (
 	DependencyTypeInvalid DependencyType = iota
+	DependencyTypeCatalogServices
 	DependencyTypeService
 	DependencyTypeKey
 	DependencyTypeKeyPrefix
