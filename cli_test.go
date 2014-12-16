@@ -221,7 +221,7 @@ func TestCLI_buildConfigBadConfigs(t *testing.T) {
 		t.Fatalf("expected error, but nothing was returned")
 	}
 
-	expected := "error(s) parsing the config"
+	expected := "1 error(s) occurred"
 	if !strings.Contains(err.Error(), expected) {
 		t.Fatalf("expected %q to contain %q", err.Error(), expected)
 	}

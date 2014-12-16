@@ -8,6 +8,7 @@ import (
 	"time"
 
 	util "github.com/hashicorp/consul-template/util"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/mapstructure"
 )
@@ -73,20 +74,20 @@ func (c *Config) Merge(config *Config) {
 // ParseConfig reads the configuration file at the given path and returns a new
 // Config struct with the data populated.
 func ParseConfig(path string) (*Config, error) {
-	errs := NewErrorList("parsing the config")
+	var errs *multierror.Error
 
 	// Read the contents of the file
 	contents, err := ioutil.ReadFile(path)
 	if err != nil {
-		errs.Append(err)
-		return nil, errs.GetError()
+		errs = multierror.Append(errs, err)
+		return nil, errs.ErrorOrNil()
 	}
 
 	// Parse the file (could be HCL or JSON)
 	var parsed interface{}
 	if err := hcl.Decode(&parsed, string(contents)); err != nil {
-		errs.Append(err)
-		return nil, errs.GetError()
+		errs = multierror.Append(errs, err)
+		return nil, errs.ErrorOrNil()
 	}
 
 	// Create a new, empty config
@@ -94,8 +95,8 @@ func ParseConfig(path string) (*Config, error) {
 
 	// Use mapstructure to populate the basic config fields
 	if err := mapstructure.Decode(parsed, config); err != nil {
-		errs.Append(err)
-		return nil, errs.GetError()
+		errs = multierror.Append(errs, err)
+		return nil, errs.ErrorOrNil()
 	}
 
 	// Store a reference to the path where this config was read from
@@ -108,11 +109,11 @@ func ParseConfig(path string) (*Config, error) {
 		if err == nil {
 			config.Wait = wait
 		} else {
-			errs.Append(fmt.Errorf("wait invalid: %v", err))
+			errs = multierror.Append(errs, fmt.Errorf("wait invalid: %v", err))
 		}
 	}
 
-	return config, errs.GetError()
+	return config, errs.ErrorOrNil()
 }
 
 // ConfigTemplate is the representation of an input template, output location,
