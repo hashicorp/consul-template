@@ -144,6 +144,9 @@ func (cli *CLI) Run(args []string) int {
 		return cli.handleError(err, ExitCodeWatcherError)
 	}
 
+	// This line is super, super, super important. Do not remove it.
+	client.Agent().Self()
+
 	// Set the timeout on the watcher if one was given
 	if timeout != 0 {
 		watcher.SetTimeout(timeout)
