@@ -89,6 +89,46 @@ func TestNewWatcher_makesstopCh(t *testing.T) {
 	}
 }
 
+func TestSetTimeout_setsTimeoutFunc(t *testing.T) {
+	w, err := NewWatcher(&api.Client{}, make([]Dependency, 1))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	timeout := 10 * time.Second
+	w.SetTimeout(timeout)
+	result := w.timeoutFunc(0 * time.Second)
+
+	if result != timeout {
+		t.Errorf("expected %q to be %q", result, timeout)
+	}
+}
+
+func TestSetTimeoutFunc_setsTimeoutFunc(t *testing.T) {
+	w, err := NewWatcher(&api.Client{}, make([]Dependency, 1))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	w.SetTimeoutFunc(func(current time.Duration) time.Duration {
+		return 2 * current
+	})
+
+	data := map[time.Duration]time.Duration{
+		0 * time.Second: 0 * time.Second,
+		1 * time.Second: 2 * time.Second,
+		2 * time.Second: 4 * time.Second,
+		9 * time.Second: 18 * time.Second,
+	}
+
+	for current, expected := range data {
+		result := w.timeoutFunc(current)
+		if result != expected {
+			t.Errorf("expected %q to be %q", result, expected)
+		}
+	}
+}
+
 func TestWatch_propagatesDependencyFetchError(t *testing.T) {
 	dependencies := []Dependency{
 		&test.FakeDependencyFetchError{Name: "tester"},

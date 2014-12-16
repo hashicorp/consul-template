@@ -14,12 +14,19 @@ const (
 	// The amount of time to do a blocking query for
 	defaultWaitTime = 60 * time.Second
 
-	// pollErrorSleep the amount of time to sleep when an error occurs
-	// TODO: make this an exponential backoff.
-	pollErrorSleep = 5 * time.Second
+	// The amount of time to wait when Consul returns an error
+	defaultTimeout = 5 * time.Second
 )
 
+// TimeoutFunc is a function that defines the timeout for a given watcher. The
+// function parameter is the current timeout (which might be nil), and the
+// return value is the new timeout. In this way, you can build complex timeout
+// functions that are based off the previous values.
+type TimeoutFunc func(time.Duration) time.Duration
+
 type Watcher struct {
+	sync.Mutex
+
 	// DataCh is the chan where new WatchData will be published
 	DataCh chan *WatchData
 
@@ -38,6 +45,13 @@ type Watcher struct {
 	// dependencies is the slice of Dependencies this Watcher will poll
 	dependencies []Dependency
 
+	// currentTimeout is the current value of the timeout for the Watcher.
+	//
+	// timeoutFunc is a TimeoutFunc that represents the way timeouts and backoffs
+	// should occur.
+	currentTimeout time.Duration
+	timeoutFunc    TimeoutFunc
+
 	// waitGroup is the WaitGroup to ensure all Go routines return when we stop
 	waitGroup sync.WaitGroup
 }
@@ -53,6 +67,18 @@ func NewWatcher(client *api.Client, dependencies []Dependency) (*Watcher, error)
 	}
 
 	return watcher, nil
+}
+
+// SetTimeout is used to set the timeout to a static value.
+func (w *Watcher) SetTimeout(duration time.Duration) {
+	w.SetTimeoutFunc(func(current time.Duration) time.Duration {
+		return duration
+	})
+}
+
+// SetTimeoutFunc is used to set a dynamic timeout function.
+func (w *Watcher) SetTimeoutFunc(f TimeoutFunc) {
+	w.timeoutFunc = f
 }
 
 //
@@ -116,6 +142,9 @@ func (w *Watcher) init() error {
 	w.FinishCh = make(chan struct{})
 	w.stopCh = make(chan struct{})
 
+	// Setup the default timeout
+	w.SetTimeout(defaultTimeout)
+
 	return nil
 }
 
@@ -151,7 +180,12 @@ func (wd *WatchData) poll(w *Watcher) {
 		if err != nil {
 			log.Printf("[ERR] (%s) %s", wd.Display(), err.Error())
 			w.ErrCh <- err
-			time.Sleep(pollErrorSleep)
+
+			w.Lock()
+			w.currentTimeout = w.timeoutFunc(w.currentTimeout)
+			w.Unlock()
+
+			time.Sleep(w.currentTimeout)
 			continue
 		}
 
