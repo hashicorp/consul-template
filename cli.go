@@ -134,9 +134,6 @@ func (cli *CLI) Run(args []string) int {
 	if err != nil {
 		return cli.handleError(err, ExitCodeConsulAPIError)
 	}
-	if _, err := client.Agent().NodeName(); err != nil {
-		return cli.handleError(err, ExitCodeConsulAPIError)
-	}
 
 	log.Printf("[DEBUG] (cli) creating Watcher")
 	watcher, err := util.NewWatcher(client, runner.Dependencies())
