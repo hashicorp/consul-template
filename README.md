@@ -216,6 +216,28 @@ Currently supported are `"any"`, `"passing"`, `"warning"` and `"critical"`.
 {{service "webapp" "passing, warning, critical"}}
 ```
 
+##### `services`
+Query Consul for all services in the catalog. Services are queried using the following syntax:
+
+```liquid
+{{services}}
+```
+
+This example will query Consul's default datacenter. You can specify an optional parameter to the `services` call to specify the datacenter:
+
+```liquid
+{{services "@east-aws"}}
+```
+
+Please be advised: the `services` function is different than `service`, which accepts more parameters and queries the **health** endpoints for a list of services. This endpoint queries the Consul **catalog** which returns a map of services to its list of tags. For example:
+
+```liquid
+{{range services}}
+{{.Name}}
+{{range .Tags}}
+  {{.}}{{end}}
+{{end}}
+```
 
 ##### `tree`
 Query Consul for all key-value pairs at the given prefix. If any of the values cannot be converted to a string-like value, an error will occur:
