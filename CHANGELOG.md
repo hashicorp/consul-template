@@ -6,10 +6,13 @@ Consul Template Changelog
 BUG FIXES:
 
   * Prevent commands from being executed multiple times (GH-112)
+  * Do not exit when Consul is unavailable (GH-103)
 
 IMPROVEMENTS:
 
-  * Support more complex service health filtering (GH-116)
+  * Add support for more complex service health filtering (GH-116)
+  * Add support for specifying a `-retry` interval for Consul timeouts and
+    connection errors (GH-22)
 
 ## v0.4.0 (December 10, 2014)
 

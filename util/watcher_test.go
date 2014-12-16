@@ -89,28 +89,43 @@ func TestNewWatcher_makesstopCh(t *testing.T) {
 	}
 }
 
-func TestWatch_propagatesDependencyFetchError(t *testing.T) {
-	dependencies := []Dependency{
-		&test.FakeDependencyFetchError{Name: "tester"},
-	}
-	w, err := NewWatcher(&api.Client{}, dependencies)
+func TestSetRetry_setsRetryFunc(t *testing.T) {
+	w, err := NewWatcher(&api.Client{}, make([]Dependency, 1))
 	if err != nil {
 		t.Fatal(err)
 	}
-	go w.Watch(true)
 
-	select {
-	case data := <-w.DataCh:
-		t.Fatalf("expected no data, but got %v", data)
-	case err := <-w.ErrCh:
-		expected := "failed to contact server"
-		if !strings.Contains(err.Error(), expected) {
-			t.Fatalf("expected %q to contain %q", err.Error(), expected)
+	retry := 10 * time.Second
+	w.SetRetry(retry)
+	result := w.retryFunc(0 * time.Second)
+
+	if result != retry {
+		t.Errorf("expected %q to be %q", result, retry)
+	}
+}
+
+func TestSetRetryFunc_setsRetryFunc(t *testing.T) {
+	w, err := NewWatcher(&api.Client{}, make([]Dependency, 1))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	w.SetRetryFunc(func(current time.Duration) time.Duration {
+		return 2 * current
+	})
+
+	data := map[time.Duration]time.Duration{
+		0 * time.Second: 0 * time.Second,
+		1 * time.Second: 2 * time.Second,
+		2 * time.Second: 4 * time.Second,
+		9 * time.Second: 18 * time.Second,
+	}
+
+	for current, expected := range data {
+		result := w.retryFunc(current)
+		if result != expected {
+			t.Errorf("expected %q to be %q", result, expected)
 		}
-	case <-w.FinishCh:
-		t.Fatalf("watcher finished prematurely")
-	case <-time.After(1 * time.Second):
-		t.Fatal("expected error, but nothing was returned")
 	}
 }
 

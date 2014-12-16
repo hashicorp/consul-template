@@ -14,12 +14,19 @@ const (
 	// The amount of time to do a blocking query for
 	defaultWaitTime = 60 * time.Second
 
-	// pollErrorSleep the amount of time to sleep when an error occurs
-	// TODO: make this an exponential backoff.
-	pollErrorSleep = 5 * time.Second
+	// The amount of time to wait when Consul returns an error
+	defaultRetry = 5 * time.Second
 )
 
+// RetryFunc is a function that defines the retry for a given watcher. The
+// function parameter is the current retry (which might be nil), and the
+// return value is the new retry. In this way, you can build complex retry
+// functions that are based off the previous values.
+type RetryFunc func(time.Duration) time.Duration
+
 type Watcher struct {
+	sync.Mutex
+
 	// DataCh is the chan where new WatchData will be published
 	DataCh chan *WatchData
 
@@ -38,6 +45,13 @@ type Watcher struct {
 	// dependencies is the slice of Dependencies this Watcher will poll
 	dependencies []Dependency
 
+	// currentRetry is the current value of the retry for the Watcher.
+	//
+	// retryFunc is a RetryFunc that represents the way retrys and backoffs
+	// should occur.
+	currentRetry time.Duration
+	retryFunc    RetryFunc
+
 	// waitGroup is the WaitGroup to ensure all Go routines return when we stop
 	waitGroup sync.WaitGroup
 }
@@ -53,6 +67,20 @@ func NewWatcher(client *api.Client, dependencies []Dependency) (*Watcher, error)
 	}
 
 	return watcher, nil
+}
+
+// SetRetry is used to set the retry to a static value.
+func (w *Watcher) SetRetry(duration time.Duration) {
+	w.SetRetryFunc(func(current time.Duration) time.Duration {
+		return duration
+	})
+}
+
+// SetRetryFunc is used to set a dynamic retry function.
+func (w *Watcher) SetRetryFunc(f RetryFunc) {
+	w.Lock()
+	defer w.Unlock()
+	w.retryFunc = f
 }
 
 //
@@ -116,6 +144,9 @@ func (w *Watcher) init() error {
 	w.FinishCh = make(chan struct{})
 	w.stopCh = make(chan struct{})
 
+	// Setup the default retry
+	w.SetRetry(defaultRetry)
+
 	return nil
 }
 
@@ -150,8 +181,12 @@ func (wd *WatchData) poll(w *Watcher) {
 		data, qm, err := wd.Dependency.Fetch(w.client, options)
 		if err != nil {
 			log.Printf("[ERR] (%s) %s", wd.Display(), err.Error())
-			w.ErrCh <- err
-			time.Sleep(pollErrorSleep)
+
+			w.Lock()
+			w.currentRetry = w.retryFunc(w.currentRetry)
+			w.Unlock()
+
+			time.Sleep(w.currentRetry)
 			continue
 		}
 

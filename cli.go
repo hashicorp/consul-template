@@ -69,6 +69,8 @@ func (cli *CLI) Run(args []string) int {
 		"the minimum(:maximum) to wait before rendering a new template")
 	flags.StringVar(&config.Path, "config", "",
 		"the path to a config file on disk")
+	flags.DurationVar(&config.Retry, "retry", 0,
+		"the duration to wait when Consul is not available")
 	flags.BoolVar(&once, "once", false,
 		"do not run as a daemon")
 	flags.BoolVar(&dry, "dry", false,
@@ -134,14 +136,18 @@ func (cli *CLI) Run(args []string) int {
 	if err != nil {
 		return cli.handleError(err, ExitCodeConsulAPIError)
 	}
-	if _, err := client.Agent().NodeName(); err != nil {
-		return cli.handleError(err, ExitCodeConsulAPIError)
-	}
+	// This line is super, super, super important. Do not remove it.
+	client.Agent().Self()
 
 	log.Printf("[DEBUG] (cli) creating Watcher")
 	watcher, err := util.NewWatcher(client, runner.Dependencies())
 	if err != nil {
 		return cli.handleError(err, ExitCodeWatcherError)
+	}
+
+	// Set the retry timeout on the watcher if one was given
+	if config.Retry != 0 {
+		watcher.SetRetry(config.Retry)
 	}
 
 	go watcher.Watch(once)
@@ -240,6 +246,8 @@ Options:
                            'templatePath:outputPath(:command)'.
   -wait=<duration>         Sets the 'minumum(:maximum)' amount of time to wait
                            before writing a template (and triggering a command)
+  -retry=<duration>        The amount of time to wait if Consul returns an
+                           error when communicating with the API.
   -config=<path>           Sets the path to a configuration file on disk
 
   -dry                     Dump generated templates to stdout
