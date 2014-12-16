@@ -78,6 +78,8 @@ func (w *Watcher) SetTimeout(duration time.Duration) {
 
 // SetTimeoutFunc is used to set a dynamic timeout function.
 func (w *Watcher) SetTimeoutFunc(f TimeoutFunc) {
+	w.Lock()
+	defer w.Unlock()
 	w.timeoutFunc = f
 }
 
