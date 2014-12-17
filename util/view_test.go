@@ -59,7 +59,7 @@ func TestPoll_returnsViewCh(t *testing.T) {
 	errCh := make(chan error)
 	stopCh := make(chan struct{})
 
-	go view.poll(viewCh, errCh, stopCh)
+	go view.poll(viewCh, errCh, stopCh, defaultRetryFunc)
 	defer close(stopCh)
 
 	select {
@@ -82,7 +82,7 @@ func TestPoll_returnsErrCh(t *testing.T) {
 	errCh := make(chan error)
 	stopCh := make(chan struct{})
 
-	go view.poll(viewCh, errCh, stopCh)
+	go view.poll(viewCh, errCh, stopCh, defaultRetryFunc)
 	defer close(stopCh)
 
 	select {
@@ -108,7 +108,7 @@ func TestPoll_stopsStopCh(t *testing.T) {
 	errCh := make(chan error)
 	stopCh := make(chan struct{})
 
-	go view.poll(viewCh, errCh, stopCh)
+	go view.poll(viewCh, errCh, stopCh, defaultRetryFunc)
 	close(stopCh)
 
 	select {

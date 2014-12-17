@@ -4,8 +4,17 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"time"
 
 	api "github.com/armon/consul-api"
+)
+
+const (
+	// The amount of time to do a blocking query for
+	defaultWaitTime = 60 * time.Second
+
+	// The amount of time to wait when Consul returns an error
+	defaultRetry = 1 * time.Second
 )
 
 // View is a representation of a Dependency and the most recent data it has
@@ -41,7 +50,9 @@ func NewView(client *api.Client, dep Dependency) (*View, error) {
 // accounts for interrupts on the interrupt channel. This allows the poll
 // function to be fired in a goroutine, but then halted even if the fetch
 // function is in the middle of a blocking query.
-func (v *View) poll(viewCh chan<- *View, errCh chan<- error, stopCh <-chan struct{}) {
+func (v *View) poll(viewCh chan<- *View,
+	errCh chan<- error, stopCh <-chan struct{}, retryFunc RetryFunc) {
+	currentRetry := defaultRetry
 	doneCh, fetchErrCh := make(chan struct{}, 1), make(chan error, 1)
 
 	for {
@@ -49,11 +60,20 @@ func (v *View) poll(viewCh chan<- *View, errCh chan<- error, stopCh <-chan struc
 
 		select {
 		case <-doneCh:
+			// Reset the retry to avoid exponentially incrementing retries when we
+			// have some successful requests
+			currentRetry = defaultRetry
+
 			log.Printf("[INFO] (%s) received data from consul", v.display())
 			viewCh <- v
 		case err := <-fetchErrCh:
 			log.Printf("[ERR] (%s) %s", v.display(), err)
 			errCh <- err
+
+			// Sleep and retry
+			currentRetry = retryFunc(currentRetry)
+			time.Sleep(currentRetry)
+			continue
 		case <-stopCh:
 			log.Printf("[DEBUG] (%s) stopping poll (received on stopCh)", v.display())
 			return

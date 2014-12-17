@@ -1,6 +1,3 @@
-// TODO:
-//   - Re-add retry functionality
-
 package util
 
 import (
@@ -12,13 +9,11 @@ import (
 	api "github.com/armon/consul-api"
 )
 
-const (
-	// The amount of time to do a blocking query for
-	defaultWaitTime = 60 * time.Second
-
-	// The amount of time to wait when Consul returns an error
-	defaultRetry = 5 * time.Second
-)
+// defaultRetryFunc is the default return function, which just echos whatever
+// duration it was given.
+var defaultRetryFunc RetryFunc = func(t time.Duration) time.Duration {
+	return t
+}
 
 // RetryFunc is a function that defines the retry for a given watcher. The
 // function parameter is the current retry (which might be nil), and the
@@ -47,12 +42,9 @@ type Watcher struct {
 	// dependencies is the slice of Dependencies this Watcher will poll
 	dependencies []Dependency
 
-	// currentRetry is the current value of the retry for the Watcher.
-	//
 	// retryFunc is a RetryFunc that represents the way retrys and backoffs
 	// should occur.
-	currentRetry time.Duration
-	retryFunc    RetryFunc
+	retryFunc RetryFunc
 
 	// waitGroup is the WaitGroup to ensure all Go routines return when we stop
 	waitGroup sync.WaitGroup
@@ -112,7 +104,7 @@ func (w *Watcher) Watch(once bool) {
 		w.waitGroup.Add(1)
 		go func(v *View) {
 			defer w.waitGroup.Done()
-			v.poll(w.DataCh, w.ErrCh, w.stopCh)
+			v.poll(w.DataCh, w.ErrCh, w.stopCh, w.retryFunc)
 		}(v)
 	}
 
@@ -147,7 +139,7 @@ func (w *Watcher) init() error {
 	w.stopCh = make(chan struct{})
 
 	// Setup the default retry
-	w.SetRetry(defaultRetry)
+	w.SetRetryFunc(defaultRetryFunc)
 
 	return nil
 }
