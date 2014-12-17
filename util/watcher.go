@@ -63,14 +63,17 @@ func NewWatcher(client *api.Client, dependencies []Dependency) (*Watcher, error)
 	return watcher, nil
 }
 
-// SetRetry is used to set the retry to a static value.
+// SetRetry is used to set the retry to a static value. See SetRetryFunc for
+// more informatoin.
 func (w *Watcher) SetRetry(duration time.Duration) {
 	w.SetRetryFunc(func(current time.Duration) time.Duration {
 		return duration
 	})
 }
 
-// SetRetryFunc is used to set a dynamic retry function.
+// SetRetryFunc is used to set a dynamic retry function. Only new views created
+// after this function has been set will inherit the new retry functionality.
+// Existing views will use the retry functionality with which they were created.
 func (w *Watcher) SetRetryFunc(f RetryFunc) {
 	w.Lock()
 	defer w.Unlock()
@@ -80,14 +83,6 @@ func (w *Watcher) SetRetryFunc(f RetryFunc) {
 //
 func (w *Watcher) Watch(once bool) {
 	log.Printf("[DEBUG] (watcher) starting watch")
-
-	// In once mode, we want to immediately close the stopCh. This tells the
-	// underlying View objects to terminate after they get data for the first
-	// time.
-	if once {
-		log.Printf("[DEBUG] (watcher) detected once mode")
-		w.Stop()
-	}
 
 	views := make([]*View, 0, len(w.dependencies))
 	for _, dep := range w.dependencies {
@@ -102,19 +97,17 @@ func (w *Watcher) Watch(once bool) {
 
 	for _, v := range views {
 		w.waitGroup.Add(1)
-		go func(v *View) {
+		go func(once bool, v *View) {
 			defer w.waitGroup.Done()
-			v.poll(w.DataCh, w.ErrCh, w.stopCh, w.retryFunc)
-		}(v)
+			v.poll(once, w.DataCh, w.ErrCh, w.stopCh, w.retryFunc)
+		}(once, v)
 	}
 
 	log.Printf("[DEBUG] (watcher) all pollers have started, waiting for finish")
 	w.waitGroup.Wait()
 
-	if once {
-		log.Printf("[DEBUG] (watcher) closing finish channel")
-		close(w.FinishCh)
-	}
+	log.Printf("[DEBUG] (watcher) closing finish channel")
+	close(w.FinishCh)
 }
 
 //

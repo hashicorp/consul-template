@@ -50,7 +50,7 @@ func NewView(client *api.Client, dep Dependency) (*View, error) {
 // accounts for interrupts on the interrupt channel. This allows the poll
 // function to be fired in a goroutine, but then halted even if the fetch
 // function is in the middle of a blocking query.
-func (v *View) poll(viewCh chan<- *View,
+func (v *View) poll(once bool, viewCh chan<- *View,
 	errCh chan<- error, stopCh <-chan struct{}, retryFunc RetryFunc) {
 	currentRetry := defaultRetry
 	doneCh, fetchErrCh := make(chan struct{}, 1), make(chan error, 1)
@@ -66,6 +66,12 @@ func (v *View) poll(viewCh chan<- *View,
 
 			log.Printf("[INFO] (%s) received data from consul", v.display())
 			viewCh <- v
+
+			// If we are operating in once mode, do not loop - we received data at
+			// least once which is the API promise here.
+			if once {
+				return
+			}
 		case err := <-fetchErrCh:
 			log.Printf("[ERR] (%s) %s", v.display(), err)
 			errCh <- err

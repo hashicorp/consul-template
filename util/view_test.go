@@ -59,7 +59,7 @@ func TestPoll_returnsViewCh(t *testing.T) {
 	errCh := make(chan error)
 	stopCh := make(chan struct{})
 
-	go view.poll(viewCh, errCh, stopCh, defaultRetryFunc)
+	go view.poll(true, viewCh, errCh, stopCh, defaultRetryFunc)
 	defer close(stopCh)
 
 	select {
@@ -82,7 +82,7 @@ func TestPoll_returnsErrCh(t *testing.T) {
 	errCh := make(chan error)
 	stopCh := make(chan struct{})
 
-	go view.poll(viewCh, errCh, stopCh, defaultRetryFunc)
+	go view.poll(true, viewCh, errCh, stopCh, defaultRetryFunc)
 	defer close(stopCh)
 
 	select {
@@ -108,7 +108,7 @@ func TestPoll_stopsStopCh(t *testing.T) {
 	errCh := make(chan error)
 	stopCh := make(chan struct{})
 
-	go view.poll(viewCh, errCh, stopCh, defaultRetryFunc)
+	go view.poll(true, viewCh, errCh, stopCh, defaultRetryFunc)
 	close(stopCh)
 
 	select {
@@ -122,6 +122,40 @@ func TestPoll_stopsStopCh(t *testing.T) {
 	}
 }
 
+func TestPoll_once(t *testing.T) {
+	view, err := NewView(&api.Client{}, &test.FakeDependency{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	viewCh := make(chan *View)
+	errCh := make(chan error)
+	stopCh := make(chan struct{})
+
+	go view.poll(true, viewCh, errCh, stopCh, defaultRetryFunc)
+	defer close(stopCh)
+
+	select {
+	case <-viewCh:
+		// Got this far, so the test passes
+	case err := <-errCh:
+		t.Errorf("error while polling: %s", err)
+	case <-stopCh:
+		t.Errorf("poll received premature stop")
+	}
+
+	select {
+	case <-viewCh:
+		t.Errorf("expected no data (should have stopped), but received view data")
+	case err := <-errCh:
+		t.Errorf("error while polling: %s", err)
+	case <-stopCh:
+		t.Errorf("poll received premature stop")
+	case <-time.After(500 * time.Millisecond):
+		// No data in 0.5s, so the test passes
+	}
+}
+
 func TestPoll_retries(t *testing.T) {
 	view, err := NewView(&api.Client{}, &test.FakeDependencyFetchRetry{})
 	if err != nil {
@@ -132,7 +166,7 @@ func TestPoll_retries(t *testing.T) {
 	errCh := make(chan error)
 	stopCh := make(chan struct{})
 
-	go view.poll(viewCh, errCh, stopCh, defaultRetryFunc)
+	go view.poll(false, viewCh, errCh, stopCh, defaultRetryFunc)
 	defer close(stopCh)
 
 	select {
