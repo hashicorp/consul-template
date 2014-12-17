@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	api "github.com/armon/consul-api"
@@ -29,6 +30,7 @@ const (
 	ExitCodeOK int = 0
 
 	ExitCodeError = 10 + iota
+	ExitCodeInterrupt
 	ExitCodeParseFlagsError
 	ExitCodeParseWaitError
 	ExitCodeParseConfigError
@@ -153,16 +155,23 @@ func (cli *CLI) Run(args []string) int {
 
 	var minTimer, maxTimer <-chan time.Time
 
-	// Wait for termination
+	// Listen for signals
 	signalCh := make(chan os.Signal, 1)
-	signal.Notify(signalCh, os.Interrupt)
+	signal.Notify(signalCh,
+		os.Interrupt,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT,
+	)
 
 	for {
 		log.Printf("[DEBUG] (cli) looping for data")
 
 		select {
 		case data := <-watcher.DataCh:
-			log.Printf("[INFO] (cli) received %s from Watcher", data.Display())
+			log.Printf("[INFO] (cli) received data from Watcher for %s",
+				data.Dependency.Display())
 
 			// Tell the Runner about the data
 			runner.Receive(data.Dependency, data.Data)
@@ -205,9 +214,16 @@ func (cli *CLI) Run(args []string) int {
 		case <-watcher.FinishCh:
 			log.Printf("[INFO] (cli) received finished signal, exiting now")
 			return ExitCodeOK
-		case <-signalCh:
-			fmt.Fprintf(cli.errStream, "Received interrupt, stopping...\n")
-			return ExitCodeError
+		case s := <-signalCh:
+			switch s {
+			case os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
+				fmt.Fprintf(cli.errStream, "Received interrupt, stopping...\n")
+				return ExitCodeInterrupt
+			case syscall.SIGHUP:
+				fmt.Fprintf(cli.errStream, "Received HUP, would reload config if I knew how...")
+			default:
+				fmt.Fprintf(cli.errStream, "wtf: %#v", s)
+			}
 		}
 	}
 }
