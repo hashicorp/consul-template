@@ -7,7 +7,6 @@ import (
 	"time"
 
 	api "github.com/armon/consul-api"
-	"github.com/hashicorp/consul-template/test"
 )
 
 func TestNewWatcher_noClient(t *testing.T) {
@@ -78,6 +77,17 @@ func TestNewWatcher_makesErrCh(t *testing.T) {
 	}
 }
 
+func TestNewWatcher_makesFinishCh(t *testing.T) {
+	w, err := NewWatcher(&api.Client{}, make([]Dependency, 1))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if w.FinishCh == nil {
+		t.Errorf("expected FinishCh to exist")
+	}
+}
+
 func TestNewWatcher_makesstopCh(t *testing.T) {
 	w, err := NewWatcher(&api.Client{}, make([]Dependency, 1))
 	if err != nil {
@@ -86,6 +96,17 @@ func TestNewWatcher_makesstopCh(t *testing.T) {
 
 	if w.stopCh == nil {
 		t.Errorf("expected stopCh to exist")
+	}
+}
+
+func TestNewWatcher_setsRetry(t *testing.T) {
+	w, err := NewWatcher(&api.Client{}, make([]Dependency, 1))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if w.retryFunc == nil {
+		t.Errorf("expected retryFunc to exist")
 	}
 }
 
@@ -126,36 +147,5 @@ func TestSetRetryFunc_setsRetryFunc(t *testing.T) {
 		if result != expected {
 			t.Errorf("expected %q to be %q", result, expected)
 		}
-	}
-}
-
-func TestWatch_fetchesData(t *testing.T) {
-	dependencies := []Dependency{
-		&test.FakeDependency{Name: "tester"},
-	}
-	w, err := NewWatcher(&api.Client{}, dependencies)
-	if err != nil {
-		t.Fatal(err)
-	}
-	go w.Watch(true)
-
-	select {
-	case data := <-w.DataCh:
-		if !reflect.DeepEqual(data.Dependency, dependencies[0]) {
-			t.Error("did not get the correct dependency")
-		}
-		if data.lastIndex != 1 {
-			t.Errorf("expected %d to equal %d", data.lastIndex, 1)
-		}
-		s, expected := data.Data.(string), "this is some data"
-		if s != expected {
-			t.Errorf("expected %q to equal %q", s, expected)
-		}
-	case err := <-w.ErrCh:
-		t.Fatal(err)
-	case <-w.FinishCh:
-		t.Fatalf("watcher finished prematurely")
-	case <-time.After(1 * time.Second):
-		t.Fatal("expected error, but nothing was returned")
 	}
 }
