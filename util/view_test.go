@@ -122,6 +122,41 @@ func TestPoll_stopsStopCh(t *testing.T) {
 	}
 }
 
+func TestPoll_retries(t *testing.T) {
+	view, err := NewView(&api.Client{}, &test.FakeDependencyFetchRetry{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	viewCh := make(chan *View)
+	errCh := make(chan error)
+	stopCh := make(chan struct{})
+
+	go view.poll(viewCh, errCh, stopCh, defaultRetryFunc)
+	defer close(stopCh)
+
+	select {
+	case <-viewCh:
+		t.Errorf("expected no data (yet), but received view data")
+	case err := <-errCh:
+		expected := "failed to contact server (try again)"
+		if err.Error() != expected {
+			t.Fatalf("expected error %q to be %q", err.Error(), expected)
+		}
+	case <-stopCh:
+		t.Errorf("poll received premature stop")
+	}
+
+	select {
+	case <-viewCh:
+		// Got this far, so the test passes
+	case err := <-errCh:
+		t.Errorf("error while polling: %s", err)
+	case <-stopCh:
+		t.Errorf("poll received premature stop")
+	}
+}
+
 func TestFetch_savesView(t *testing.T) {
 	view, err := NewView(&api.Client{}, &test.FakeDependency{})
 	if err != nil {
