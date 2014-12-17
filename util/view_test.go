@@ -9,6 +9,9 @@ import (
 	"github.com/hashicorp/consul-template/test"
 )
 
+// testRetryFunc is a function specifically for tests that has a 0-time retry.
+var testRetryFunc = func(time.Duration) time.Duration { return 0 }
+
 func TestNewView_noClient(t *testing.T) {
 	_, err := NewView(nil, &test.FakeDependency{})
 	if err == nil {
@@ -59,7 +62,7 @@ func TestPoll_returnsViewCh(t *testing.T) {
 	errCh := make(chan error)
 	stopCh := make(chan struct{})
 
-	go view.poll(true, viewCh, errCh, stopCh, defaultRetryFunc)
+	go view.poll(true, viewCh, errCh, stopCh, testRetryFunc)
 	defer close(stopCh)
 
 	select {
@@ -82,7 +85,7 @@ func TestPoll_returnsErrCh(t *testing.T) {
 	errCh := make(chan error)
 	stopCh := make(chan struct{})
 
-	go view.poll(true, viewCh, errCh, stopCh, defaultRetryFunc)
+	go view.poll(true, viewCh, errCh, stopCh, testRetryFunc)
 	defer close(stopCh)
 
 	select {
@@ -108,7 +111,7 @@ func TestPoll_stopsStopCh(t *testing.T) {
 	errCh := make(chan error)
 	stopCh := make(chan struct{})
 
-	go view.poll(true, viewCh, errCh, stopCh, defaultRetryFunc)
+	go view.poll(true, viewCh, errCh, stopCh, testRetryFunc)
 	close(stopCh)
 
 	select {
@@ -132,7 +135,7 @@ func TestPoll_once(t *testing.T) {
 	errCh := make(chan error)
 	stopCh := make(chan struct{})
 
-	go view.poll(true, viewCh, errCh, stopCh, defaultRetryFunc)
+	go view.poll(true, viewCh, errCh, stopCh, testRetryFunc)
 	defer close(stopCh)
 
 	select {
@@ -166,7 +169,7 @@ func TestPoll_retries(t *testing.T) {
 	errCh := make(chan error)
 	stopCh := make(chan struct{})
 
-	go view.poll(false, viewCh, errCh, stopCh, defaultRetryFunc)
+	go view.poll(false, viewCh, errCh, stopCh, testRetryFunc)
 	defer close(stopCh)
 
 	select {
