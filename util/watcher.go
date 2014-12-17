@@ -80,10 +80,14 @@ func (w *Watcher) SetRetryFunc(f RetryFunc) {
 	w.retryFunc = f
 }
 
-//
+// Watch creates a series of Consul views which poll for data in parallel. If
+// the `once` flag is true, each view will return data (or an error) exactly
+// once and terminate. If the `once` flag is false, views will continue to poll
+// indefinitely unless they encounter an irrecoverable error.
 func (w *Watcher) Watch(once bool) {
 	log.Printf("[DEBUG] (watcher) starting watch")
 
+	// Create the views
 	views := make([]*View, 0, len(w.dependencies))
 	for _, dep := range w.dependencies {
 		view, err := NewView(w.client, dep)
@@ -95,6 +99,7 @@ func (w *Watcher) Watch(once bool) {
 		views = append(views, view)
 	}
 
+	// Poll on all the views
 	for _, v := range views {
 		w.waitGroup.Add(1)
 		go func(once bool, v *View) {
@@ -103,14 +108,18 @@ func (w *Watcher) Watch(once bool) {
 		}(once, v)
 	}
 
+	// Wait for them to stop
 	log.Printf("[DEBUG] (watcher) all pollers have started, waiting for finish")
 	w.waitGroup.Wait()
 
+	// Close everything up
+	// TODO (SV) - is this needed anymore?
 	log.Printf("[DEBUG] (watcher) closing finish channel")
 	close(w.FinishCh)
 }
 
-//
+// Stop halts this watcher and any currently polling views immediately. If a
+// view was in the middle of a poll, no data will be returned.
 func (w *Watcher) Stop() {
 	close(w.stopCh)
 }
@@ -125,14 +134,14 @@ func (w *Watcher) init() error {
 		log.Printf("[WARN] (watcher) no dependencies in template(s)")
 	}
 
-	// Setup the chans
+	// Setup the default retry
+	w.SetRetryFunc(defaultRetryFunc)
+
+	// Setup the channels
 	w.DataCh = make(chan *View)
 	w.ErrCh = make(chan error)
 	w.FinishCh = make(chan struct{})
 	w.stopCh = make(chan struct{})
-
-	// Setup the default retry
-	w.SetRetryFunc(defaultRetryFunc)
 
 	return nil
 }
