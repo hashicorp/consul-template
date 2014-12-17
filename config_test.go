@@ -223,6 +223,24 @@ func TestParseConfigurationTemplate_tooManyArgs(t *testing.T) {
 	}
 }
 
+// Test that we properly parse Windows drive paths
+func TestParseConfigurationTemplate_windowsDrives(t *testing.T) {
+	ct, err := ParseConfigTemplate(`C:\abc\123:D:\xyz\789:some command`)
+	if err != nil {
+		t.Fatalf("failed parsing windows drive letters: %s", err)
+	}
+
+	expected := &ConfigTemplate{
+		Source:      `C:\abc\123`,
+		Destination: `D:\xyz\789`,
+		Command:     "some command",
+	}
+
+	if !reflect.DeepEqual(ct, expected) {
+		t.Fatalf("unexpected result parsing windows drives: %#v", ct)
+	}
+}
+
 // Test that a source value is correctly used
 func TestParseConfigurationTemplate_source(t *testing.T) {
 	source := "/tmp/config.ctmpl"
