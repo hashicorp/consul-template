@@ -15,6 +15,7 @@ type FakeDependencyFetchError struct {
 }
 
 func (d *FakeDependencyFetchError) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
+	time.Sleep(100 * time.Millisecond)
 	return nil, nil, fmt.Errorf("failed to contact server")
 }
 
@@ -35,6 +36,7 @@ type FakeDependency struct {
 }
 
 func (d *FakeDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
+	time.Sleep(100 * time.Millisecond)
 	data := "this is some data"
 	qm := &api.QueryMeta{LastIndex: 1}
 	return data, qm, nil
