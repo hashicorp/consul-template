@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"regexp"
 	"strings"
 	"time"
 
@@ -12,6 +13,9 @@ import (
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/mapstructure"
 )
+
+// The pattern to split the config template syntax on
+var configTemplateRe = regexp.MustCompile("([a-zA-Z]:)?([^:]+)")
 
 // Config is used to configure Consul Template
 type Config struct {
@@ -131,7 +135,7 @@ func ParseConfigTemplate(s string) (*ConfigTemplate, error) {
 	}
 
 	var source, destination, command string
-	parts := strings.Split(s, ":")
+	parts := configTemplateRe.FindAllString(s, -1)
 
 	switch len(parts) {
 	case 1:
