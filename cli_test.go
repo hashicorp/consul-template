@@ -150,49 +150,24 @@ func TestReload_sighup(t *testing.T) {
 	}
 }
 
-func TestRun_configDir(t *testing.T) {
-	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
-	cli := &CLI{outStream: outStream, errStream: errStream}
-	configDir, err := ioutil.TempDir(os.TempDir(), "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	configFile1, err := ioutil.TempFile(configDir, "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	config1 := []byte(`
-		consul = "127.0.0.1:8500"
-	`)
-	_, err = configFile1.Write(config1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	configFile2, err := ioutil.TempFile(configDir, "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	config2 := []byte(`
-		template {
-		  source = "/path/on/disk/to/template"
-		  destination = "/path/on/disk/where/template/will/render"
-		  command = "optional command to run when the template is updated"
-		}
-	`)
-	_, err = configFile2.Write(config2)
-	if err != nil {
+func TestBuildConfig_singleFile(t *testing.T) {
+	configFile := test.CreateTempfile([]byte(`
+		consul = "127.0.0.1"
+	`), t)
+	defer test.DeleteTempfile(configFile, t)
+
+	config := new(Config)
+	if err := buildConfig(config, configFile.Name()); err != nil {
 		t.Fatal(err)
 	}
 
-	args := strings.Split("consul-template -config "+configDir, " ")
-
-	status := cli.Run(args)
-	if status == ExitCodeOK {
-		t.Fatal("expected not OK exit code")
+	expected := "127.0.0.1"
+	if config.Consul != expected {
+		t.Errorf("expected %q to be %q", config.Consul, expected)
 	}
 }
 
-func TestbuildConfig_NonExistentDirectory(t *testing.T) {
+func TestBuildConfig_NonExistentDirectory(t *testing.T) {
 	// Create a directory and then delete it
 	configDir, err := ioutil.TempDir(os.TempDir(), "")
 	if err != nil {
@@ -214,7 +189,7 @@ func TestbuildConfig_NonExistentDirectory(t *testing.T) {
 	}
 }
 
-func TestbuildConfig_EmptyDirectory(t *testing.T) {
+func TestBuildConfig_EmptyDirectory(t *testing.T) {
 	// Create a directory with no files
 	configDir, err := ioutil.TempDir(os.TempDir(), "")
 	if err != nil {
@@ -234,7 +209,7 @@ func TestbuildConfig_EmptyDirectory(t *testing.T) {
 	}
 }
 
-func TestbuildConfig_BadConfigs(t *testing.T) {
+func TestBuildConfig_BadConfigs(t *testing.T) {
 	configFile := test.CreateTempfile([]byte(`
 		totally not a vaild config
 	`), t)
@@ -254,7 +229,7 @@ func TestbuildConfig_BadConfigs(t *testing.T) {
 	}
 }
 
-func TestbuildConfig_complex(t *testing.T) {
+func TestBuildConfig_configDir(t *testing.T) {
 	configDir, err := ioutil.TempDir(os.TempDir(), "")
 	if err != nil {
 		t.Fatal(err)
@@ -287,8 +262,9 @@ func TestbuildConfig_complex(t *testing.T) {
 	}
 
 	config := new(Config)
-
-	buildConfig(config, configDir)
+	if err := buildConfig(config, configDir); err != nil {
+		t.Fatal(err)
+	}
 
 	expectedConfig := Config{
 		Consul: "127.0.0.1:8500",
