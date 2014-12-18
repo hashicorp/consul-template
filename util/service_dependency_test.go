@@ -2,6 +2,7 @@ package util
 
 import (
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 
@@ -24,6 +25,46 @@ func TestServiceDependencyFetch(t *testing.T) {
 	_, ok := results.([]*Service)
 	if !ok {
 		t.Fatal("could not convert result to []*Service")
+	}
+}
+
+func TestServiceList_sorts(t *testing.T) {
+	a := ServiceList{
+		&Service{Node: "frontend01", ID: "1"},
+		&Service{Node: "frontend01", ID: "2"},
+		&Service{Node: "frontend02", ID: "1"},
+	}
+	b := ServiceList{
+		&Service{Node: "frontend02", ID: "1"},
+		&Service{Node: "frontend01", ID: "2"},
+		&Service{Node: "frontend01", ID: "1"},
+	}
+	c := ServiceList{
+		&Service{Node: "frontend01", ID: "2"},
+		&Service{Node: "frontend01", ID: "1"},
+		&Service{Node: "frontend02", ID: "1"},
+	}
+
+	sort.Stable(a)
+	sort.Stable(b)
+	sort.Stable(c)
+
+	expected := ServiceList{
+		&Service{Node: "frontend01", ID: "1"},
+		&Service{Node: "frontend01", ID: "2"},
+		&Service{Node: "frontend02", ID: "1"},
+	}
+
+	if !reflect.DeepEqual(a, expected) {
+		t.Fatal("invalid sort")
+	}
+
+	if !reflect.DeepEqual(b, expected) {
+		t.Fatal("invalid sort")
+	}
+
+	if !reflect.DeepEqual(c, expected) {
+		t.Fatal("invalid sort")
 	}
 }
 
