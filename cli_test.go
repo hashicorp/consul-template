@@ -131,14 +131,14 @@ func TestReload_sighup(t *testing.T) {
 	defer cli.shutdown()
 
 	// Sleep to let the Runner run
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 
 	newValue := []byte("new value")
 	ioutil.WriteFile(template.Name(), newValue, 0644)
 	syscall.Kill(syscall.Getpid(), syscall.SIGHUP)
 
 	// Sleep to give the file time to write
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 
 	contents, err := ioutil.ReadFile(out.Name())
 	if err != nil {
