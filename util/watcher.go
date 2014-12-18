@@ -113,7 +113,6 @@ func (w *Watcher) Watch(once bool) {
 	w.waitGroup.Wait()
 
 	// Close everything up
-	// TODO (SV) - is this needed anymore?
 	log.Printf("[DEBUG] (watcher) closing finish channel")
 	close(w.FinishCh)
 }

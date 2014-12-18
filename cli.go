@@ -184,11 +184,11 @@ func (cli *CLI) Run(args []string) int {
 				if err != nil {
 					return cli.handleError(err, 1)
 				}
-			default:
-				fmt.Fprintf(cli.errStream, "wtf: %#v", s)
 			}
 		}
 	}
+
+	return ExitCodeOK
 }
 
 // handleError outputs the given error's Error() to the errStream and returns
