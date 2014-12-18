@@ -155,10 +155,7 @@ func TestRun_configDir(t *testing.T) {
 	}
 }
 
-func TestCLI_buildConfigNonExistentDirectory(t *testing.T) {
-	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
-	cli := &CLI{outStream: outStream, errStream: errStream}
-
+func TestbuildConfig_NonExistentDirectory(t *testing.T) {
 	// Create a directory and then delete it
 	configDir, err := ioutil.TempDir(os.TempDir(), "")
 	if err != nil {
@@ -169,7 +166,7 @@ func TestCLI_buildConfigNonExistentDirectory(t *testing.T) {
 	}
 
 	config := new(Config)
-	err = cli.buildConfig(config, configDir)
+	err = buildConfig(config, configDir)
 	if err == nil {
 		t.Fatalf("expected error, but nothing was returned")
 	}
@@ -180,10 +177,7 @@ func TestCLI_buildConfigNonExistentDirectory(t *testing.T) {
 	}
 }
 
-func TestCLI_buildConfigEmptyDirectory(t *testing.T) {
-	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
-	cli := &CLI{outStream: outStream, errStream: errStream}
-
+func TestbuildConfig_EmptyDirectory(t *testing.T) {
 	// Create a directory with no files
 	configDir, err := ioutil.TempDir(os.TempDir(), "")
 	if err != nil {
@@ -192,7 +186,7 @@ func TestCLI_buildConfigEmptyDirectory(t *testing.T) {
 	defer os.RemoveAll(configDir)
 
 	config := new(Config)
-	err = cli.buildConfig(config, configDir)
+	err = buildConfig(config, configDir)
 	if err == nil {
 		t.Fatalf("expected error, but nothing was returned")
 	}
@@ -203,10 +197,7 @@ func TestCLI_buildConfigEmptyDirectory(t *testing.T) {
 	}
 }
 
-func TestCLI_buildConfigBadConfigs(t *testing.T) {
-	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
-	cli := &CLI{outStream: outStream, errStream: errStream}
-
+func TestbuildConfig_BadConfigs(t *testing.T) {
 	configFile := test.CreateTempfile([]byte(`
 		totally not a vaild config
 	`), t)
@@ -215,7 +206,7 @@ func TestCLI_buildConfigBadConfigs(t *testing.T) {
 	configDir := filepath.Dir(configFile.Name())
 
 	config := new(Config)
-	err := cli.buildConfig(config, configDir)
+	err := buildConfig(config, configDir)
 	if err == nil {
 		t.Fatalf("expected error, but nothing was returned")
 	}
@@ -226,9 +217,7 @@ func TestCLI_buildConfigBadConfigs(t *testing.T) {
 	}
 }
 
-func TestCLI_buildConfig(t *testing.T) {
-	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
-	cli := &CLI{outStream: outStream, errStream: errStream}
+func TestbuildConfig_complex(t *testing.T) {
 	configDir, err := ioutil.TempDir(os.TempDir(), "")
 	if err != nil {
 		t.Fatal(err)
@@ -262,7 +251,7 @@ func TestCLI_buildConfig(t *testing.T) {
 
 	config := new(Config)
 
-	cli.buildConfig(config, configDir)
+	buildConfig(config, configDir)
 
 	expectedConfig := Config{
 		Consul: "127.0.0.1:8500",
