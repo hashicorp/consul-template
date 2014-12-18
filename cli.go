@@ -46,6 +46,10 @@ type CLI struct {
 	// outSteam and errStream are the standard out and standard error streams to
 	// write messages from the CLI.
 	outStream, errStream io.Writer
+
+	// shutdownCh is an internal channel that can be used to terminate the CLI's
+	// watcher.
+	shutdownCh chan struct{}
 }
 
 // Run accepts a slice of arguments and returns an int representing the exit
@@ -122,6 +126,9 @@ func (cli *CLI) Run(args []string) int {
 		syscall.SIGQUIT,
 	)
 
+	// Create the shutdown channel
+	shutdownCh := make(chan struct{}, 1)
+
 	for {
 		log.Printf("[DEBUG] (cli) looping for data")
 
@@ -185,6 +192,8 @@ func (cli *CLI) Run(args []string) int {
 					return cli.handleError(err, 1)
 				}
 			}
+		case <-cli.shutdownCh:
+			return ExitCodeOK
 		}
 	}
 
@@ -196,6 +205,12 @@ func (cli *CLI) Run(args []string) int {
 func (cli *CLI) handleError(err error, status int) int {
 	log.Printf("[ERR] %s", err.Error())
 	return status
+}
+
+// shutdown will stop the CLI from running by closing the shutdownCh. This is
+// only used for testing purposes and should never be called outside of tests!
+func (cli *CLI) shutdown() {
+	close(cli.shutdownCh)
 }
 
 // initLogger gets the log level from the environment, falling back to DEBUG if

@@ -128,7 +128,7 @@ func TestReload_sighup(t *testing.T) {
 	args := strings.Split(command, " ")
 
 	go cli.Run(args)
-	// defer syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+	defer cli.shutdown()
 
 	// Sleep to let the Runner run
 	time.Sleep(50 * time.Millisecond)
