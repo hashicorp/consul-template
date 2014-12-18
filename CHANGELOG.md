@@ -3,10 +3,19 @@ Consul Template Changelog
 
 ## vx.y.z (Unreleased)
 
+FEATURES:
+
+  * Reload configuration on `SIGHUP`
+  * Add `services` template function for listing all services and associated
+    tags in the Consul catalog (GH-77)
+
 BUG FIXES:
 
-  * Prevent commands from being executed multiple times (GH-112)
+  * Do not execute the same command more than once in one run (GH-112)
   * Do not exit when Consul is unavailable (GH-103)
+  * Accept configuration files as a valid option to `-config` (GH-126)
+  * Accept Windows drive letters in template paths (GH-78)
+  * Deep copy and sort data returned from Consul API (specifically tags)
 
 IMPROVEMENTS:
 
@@ -14,8 +23,17 @@ IMPROVEMENTS:
   * Add support for specifying a `-retry` interval for Consul timeouts and
     connection errors (GH-22)
   * Use official HashiCorp multierror package for errors
+  * Gracefully stop watchers on interrupt
+  * Add support for Go 1.4
+  * Improve test coverage around retrying failures
 
 ## v0.4.0 (December 10, 2014)
+
+FEATURES:
+
+  * Add `env` template function for reading an environment variable in the
+    current process into the template
+  * Add `regexReplaceAll` template function
 
 BUG FIXES:
 
@@ -30,12 +48,6 @@ IMPROVEMENTS:
 
   * Merge multiple configuration template definitions when a configuration
     directory is specified
-
-FEATURES:
-
-  * Add `env` template function for reading an environment variable in the
-    current process into the template
-  * Add `regexReplaceAll` template function
 
 ## v0.3.1 (November 24, 2014)
 
