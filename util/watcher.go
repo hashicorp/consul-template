@@ -113,8 +113,10 @@ func (w *Watcher) Watch(once bool) {
 	w.waitGroup.Wait()
 
 	// Close everything up
-	log.Printf("[DEBUG] (watcher) closing finish channel")
-	close(w.FinishCh)
+	if once {
+		log.Printf("[DEBUG] (watcher) closing finish channel")
+		close(w.FinishCh)
+	}
 }
 
 // Stop halts this watcher and any currently polling views immediately. If a
