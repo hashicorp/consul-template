@@ -127,7 +127,7 @@ func (cli *CLI) Run(args []string) int {
 	)
 
 	// Create the shutdown channel
-	shutdownCh := make(chan struct{}, 1)
+	cli.shutdownCh = make(chan struct{}, 1)
 
 	for {
 		log.Printf("[DEBUG] (cli) looping for data")
