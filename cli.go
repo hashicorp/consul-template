@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	api "github.com/armon/consul-api"
@@ -29,6 +30,7 @@ const (
 	ExitCodeOK int = 0
 
 	ExitCodeError = 10 + iota
+	ExitCodeInterrupt
 	ExitCodeParseFlagsError
 	ExitCodeParseWaitError
 	ExitCodeParseConfigError
@@ -44,6 +46,10 @@ type CLI struct {
 	// outSteam and errStream are the standard out and standard error streams to
 	// write messages from the CLI.
 	outStream, errStream io.Writer
+
+	// shutdownCh is an internal channel that can be used to terminate the CLI's
+	// watcher.
+	shutdownCh chan struct{}
 }
 
 // Run accepts a slice of arguments and returns an int representing the exit
@@ -102,67 +108,33 @@ func (cli *CLI) Run(args []string) int {
 		config.Wait = wait
 	}
 
-	// Merge a path config with the command line options. Command line options
-	// take precedence over config file options for easy overriding.
-	if config.Path != "" {
-		log.Printf("[DEBUG] (cli) detected -config, merging")
-		err := cli.buildConfig(config, config.Path)
-		if err != nil {
-			return cli.handleError(err, ExitCodeParseConfigError)
-		}
-	}
-
-	log.Printf("[DEBUG] (cli) creating Runner")
-	runner, err := NewRunner(config.ConfigTemplates)
+	// Initial bootstrap
+	runner, watcher, err := bootstrap(config, dry, once)
 	if err != nil {
-		return cli.handleError(err, ExitCodeRunnerError)
+		return cli.handleError(err, 1)
 	}
-
-	// Run all templates now. There are currently no dependencies because the
-	// watcher has not been started. As a result, this will render all templates
-	// that have no dependencies (once), before we even begin watching.
-	if err := runner.RunAll(dry); err != nil {
-		return cli.handleError(err, ExitCodeRunnerError)
-	}
-
-	log.Printf("[DEBUG] (cli) creating Consul API client")
-	consulConfig := api.DefaultConfig()
-	if config.Consul != "" {
-		consulConfig.Address = config.Consul
-	}
-	if config.Token != "" {
-		consulConfig.Token = config.Token
-	}
-	client, err := api.NewClient(consulConfig)
-	if err != nil {
-		return cli.handleError(err, ExitCodeConsulAPIError)
-	}
-
-	log.Printf("[DEBUG] (cli) creating Watcher")
-	watcher, err := util.NewWatcher(client, runner.Dependencies())
-	if err != nil {
-		return cli.handleError(err, ExitCodeWatcherError)
-	}
-
-	// Set the retry timeout on the watcher if one was given
-	if config.Retry != 0 {
-		watcher.SetRetry(config.Retry)
-	}
-
-	go watcher.Watch(once)
 
 	var minTimer, maxTimer <-chan time.Time
 
-	// Wait for termination
+	// Listen for signals
 	signalCh := make(chan os.Signal, 1)
-	signal.Notify(signalCh, os.Interrupt)
+	signal.Notify(signalCh,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT,
+	)
+
+	// Create the shutdown channel
+	cli.shutdownCh = make(chan struct{}, 1)
 
 	for {
 		log.Printf("[DEBUG] (cli) looping for data")
 
 		select {
 		case data := <-watcher.DataCh:
-			log.Printf("[INFO] (cli) received %s from Watcher", data.Display())
+			log.Printf("[INFO] (cli) received data from Watcher for %s",
+				data.Dependency.Display())
 
 			// Tell the Runner about the data
 			runner.Receive(data.Dependency, data.Data)
@@ -205,11 +177,26 @@ func (cli *CLI) Run(args []string) int {
 		case <-watcher.FinishCh:
 			log.Printf("[INFO] (cli) received finished signal, exiting now")
 			return ExitCodeOK
-		case <-signalCh:
-			fmt.Fprintf(cli.errStream, "Received interrupt, stopping...\n")
-			return ExitCodeError
+		case s := <-signalCh:
+			switch s {
+			case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
+				fmt.Fprintf(cli.errStream, "Received interrupt, cleaning up...\n")
+				watcher.Stop()
+				return ExitCodeInterrupt
+			case syscall.SIGHUP:
+				fmt.Fprintf(cli.errStream, "Received HUP, reloading configuration...\n")
+				watcher.Stop()
+				runner, watcher, err = bootstrap(config, dry, once)
+				if err != nil {
+					return cli.handleError(err, 1)
+				}
+			}
+		case <-cli.shutdownCh:
+			return ExitCodeOK
 		}
 	}
+
+	return ExitCodeOK
 }
 
 // handleError outputs the given error's Error() to the errStream and returns
@@ -217,6 +204,12 @@ func (cli *CLI) Run(args []string) int {
 func (cli *CLI) handleError(err error, status int) int {
 	log.Printf("[ERR] %s", err.Error())
 	return status
+}
+
+// shutdown will stop the CLI from running by closing the shutdownCh. This is
+// only used for testing purposes and should never be called outside of tests!
+func (cli *CLI) shutdown() {
+	close(cli.shutdownCh)
 }
 
 // initLogger gets the log level from the environment, falling back to DEBUG if
@@ -235,6 +228,113 @@ func (cli *CLI) initLogger() {
 	levelFilter.SetMinLevel(logutils.LogLevel(minLevel))
 
 	log.SetOutput(levelFilter)
+}
+
+// bootstrap accepts the configuration, a dry flag, and a once flag and creates
+// all the required components to make a new watcher object. This function
+// returns the created Runner and Watcher. If an error occurs, it is returned as
+// the final parameter.
+func bootstrap(config *Config, dry bool, once bool) (*Runner, *util.Watcher, error) {
+	// Merge a path config with the command line options. Command line options
+	// take precedence over config file options for easy overriding.
+	if config.Path != "" {
+		log.Printf("[DEBUG] (cli) detected -config, merging")
+		err := buildConfig(config, config.Path)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	log.Printf("[DEBUG] (cli) creating Runner")
+	runner, err := NewRunner(config.ConfigTemplates)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Run all templates now. There are currently no dependencies because the
+	// watcher has not been started. As a result, this will render all templates
+	// that have no dependencies (once), before we even begin watching.
+	if err := runner.RunAll(dry); err != nil {
+		return nil, nil, err
+	}
+
+	log.Printf("[DEBUG] (cli) creating Consul API client")
+	consulConfig := api.DefaultConfig()
+	if config.Consul != "" {
+		consulConfig.Address = config.Consul
+	}
+	if config.Token != "" {
+		consulConfig.Token = config.Token
+	}
+	client, err := api.NewClient(consulConfig)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	log.Printf("[DEBUG] (cli) creating Watcher")
+	watcher, err := util.NewWatcher(client, runner.Dependencies())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Set the retry timeout on the watcher if one was given
+	if config.Retry != 0 {
+		watcher.SetRetry(config.Retry)
+	}
+
+	// Start the watcher in the background
+	go watcher.Watch(once)
+
+	return runner, watcher, nil
+}
+
+// buildConfig iterates and merges all configuration files in a given directory.
+// The config parameter will be modified and merged with subsequent configs
+// found in the directory.
+func buildConfig(config *Config, path string) error {
+	log.Printf("[DEBUG] merging with config at %s", path)
+
+	// Ensure the given filepath exists
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return fmt.Errorf("config: missing file/folder: %s", path)
+	}
+
+	// Ensure the given filepath has at least one config file
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		return fmt.Errorf("config: error listing directory: %s", err)
+	}
+	if len(files) == 0 {
+		return fmt.Errorf("config: must contain at least one configuration file")
+	}
+
+	// Potential bug: Walk does not follow symlinks!
+	err = filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+		// If WalkFunc had an error, just return it
+		if err != nil {
+			return err
+		}
+
+		// Do nothing for directories
+		if info.IsDir() {
+			return nil
+		}
+
+		// Parse and merge the config
+		newConfig, err := ParseConfig(path)
+		if err != nil {
+			return err
+		}
+		config.Merge(newConfig)
+
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("config: walk error: %s", err)
+	}
+
+	return nil
 }
 
 const usage = `
@@ -294,55 +394,6 @@ func (ctv *configTemplateVar) Set(value string) error {
 		*ctv = make([]*ConfigTemplate, 0, 1)
 	}
 	*ctv = append(*ctv, template)
-
-	return nil
-}
-
-// buildConfig iterates and merges all configuration files in a given directory.
-// The config parameter will be modified and merged with subsequent configs
-// found in the directory.
-func (cli *CLI) buildConfig(config *Config, path string) error {
-	log.Printf("[DEBUG] (cli) merging with config at %s", path)
-
-	// Ensure the given filepath exists
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return fmt.Errorf("config: missing file/folder: %s", path)
-	}
-
-	// Ensure the given filepath has at least one config file
-	files, err := ioutil.ReadDir(path)
-	if err != nil {
-		return fmt.Errorf("config: error listing directory: %s", err)
-	}
-	if len(files) == 0 {
-		return fmt.Errorf("config: must contain at least one configuration file")
-	}
-
-	// Potential bug: Walk does not follow symlinks!
-	err = filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
-		// If WalkFunc had an error, just return it
-		if err != nil {
-			return err
-		}
-
-		// Do nothing for directories
-		if info.IsDir() {
-			return nil
-		}
-
-		// Parse and merge the config
-		newConfig, err := ParseConfig(path)
-		if err != nil {
-			return err
-		}
-		config.Merge(newConfig)
-
-		return nil
-	})
-
-	if err != nil {
-		return fmt.Errorf("config: walk error: %s", err)
-	}
 
 	return nil
 }

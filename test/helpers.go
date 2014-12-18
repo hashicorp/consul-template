@@ -15,6 +15,7 @@ type FakeDependencyFetchError struct {
 }
 
 func (d *FakeDependencyFetchError) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
+	time.Sleep(50 * time.Millisecond)
 	return nil, nil, fmt.Errorf("failed to contact server")
 }
 
@@ -30,11 +31,42 @@ func (d *FakeDependencyFetchError) Display() string {
 	return "fakedep"
 }
 
+type FakeDependencyFetchRetry struct {
+	Name    string
+	retried bool
+}
+
+func (d *FakeDependencyFetchRetry) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
+	time.Sleep(50 * time.Millisecond)
+
+	if d.retried {
+		data := "this is some data"
+		qm := &api.QueryMeta{LastIndex: 1}
+		return data, qm, nil
+	} else {
+		d.retried = true
+		return nil, nil, fmt.Errorf("failed to contact server (try again)")
+	}
+}
+
+func (d *FakeDependencyFetchRetry) HashCode() string {
+	return fmt.Sprintf("FakeDependencyFetchRetry|%s", d.Name)
+}
+
+func (d *FakeDependencyFetchRetry) Key() string {
+	return d.Name
+}
+
+func (d *FakeDependencyFetchRetry) Display() string {
+	return "fakedep"
+}
+
 type FakeDependency struct {
 	Name string
 }
 
 func (d *FakeDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
+	time.Sleep(50 * time.Millisecond)
 	data := "this is some data"
 	qm := &api.QueryMeta{LastIndex: 1}
 	return data, qm, nil
