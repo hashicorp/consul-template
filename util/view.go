@@ -99,7 +99,7 @@ func (v *View) poll(once bool, viewCh chan<- *View,
 // written to errCh. It is designed to be run in a goroutine that selects the
 // result of doneCh and errCh. It is assumed that only one instance of fetch
 // is running per View and therefore no locking or mutexes are used.
-func (v *View) fetch(doneCh chan struct{}, errCh chan<- error) {
+func (v *View) fetch(doneCh chan<- struct{}, errCh chan<- error) {
 	log.Printf("[DEBUG] (%s) starting fetch", v.display())
 
 	for {
