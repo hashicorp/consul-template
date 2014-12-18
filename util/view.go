@@ -53,9 +53,9 @@ func NewView(client *api.Client, dep Dependency) (*View, error) {
 func (v *View) poll(once bool, viewCh chan<- *View,
 	errCh chan<- error, stopCh <-chan struct{}, retryFunc RetryFunc) {
 	currentRetry := defaultRetry
-	doneCh, fetchErrCh := make(chan struct{}, 1), make(chan error, 1)
 
 	for {
+		doneCh, fetchErrCh := make(chan struct{}, 1), make(chan error, 1)
 		go v.fetch(doneCh, fetchErrCh)
 
 		select {
