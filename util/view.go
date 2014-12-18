@@ -74,7 +74,14 @@ func (v *View) poll(once bool, viewCh chan<- *View,
 			}
 		case err := <-fetchErrCh:
 			log.Printf("[ERR] (%s) %s", v.display(), err)
-			errCh <- err
+
+			// Intentionally do not send the error back up to the watcher and just
+			// retry. Eventually, once Consul API implements errwrap and multierror,
+			// we can check the "type" of error and conditionally alert back, but for
+			// now we will just swallow the error and continue.
+			// if err.Contains(Something) {
+			//   errCh <- err
+			// }
 
 			// Sleep and retry
 			currentRetry = retryFunc(currentRetry)
