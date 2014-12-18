@@ -119,7 +119,6 @@ func (cli *CLI) Run(args []string) int {
 	// Listen for signals
 	signalCh := make(chan os.Signal, 1)
 	signal.Notify(signalCh,
-		os.Interrupt,
 		syscall.SIGHUP,
 		syscall.SIGINT,
 		syscall.SIGTERM,
@@ -180,7 +179,7 @@ func (cli *CLI) Run(args []string) int {
 			return ExitCodeOK
 		case s := <-signalCh:
 			switch s {
-			case os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
+			case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
 				fmt.Fprintf(cli.errStream, "Received interrupt, cleaning up...\n")
 				watcher.Stop()
 				return ExitCodeInterrupt
