@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -111,6 +112,42 @@ func TestRun_onceFlag(t *testing.T) {
 
 func TestQuiescence(t *testing.T) {
 	t.Skip("TODO")
+}
+
+func TestReload_sighup(t *testing.T) {
+	template := test.CreateTempfile([]byte("initial value"), t)
+	defer test.DeleteTempfile(template, t)
+
+	out := test.CreateTempfile(nil, t)
+	defer test.DeleteTempfile(out, t)
+
+	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
+	cli := &CLI{outStream: outStream, errStream: errStream}
+
+	command := fmt.Sprintf("consul-template -template %s:%s", template.Name(), out.Name())
+	args := strings.Split(command, " ")
+
+	go cli.Run(args)
+	// defer syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+
+	// Sleep to let the Runner run
+	time.Sleep(50 * time.Millisecond)
+
+	newValue := []byte("new value")
+	ioutil.WriteFile(template.Name(), newValue, 0644)
+	syscall.Kill(syscall.Getpid(), syscall.SIGHUP)
+
+	// Sleep to give the file time to write
+	time.Sleep(50 * time.Millisecond)
+
+	contents, err := ioutil.ReadFile(out.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(contents, newValue) {
+		t.Errorf("expected %q to contain %q", contents, newValue)
+	}
 }
 
 func TestRun_configDir(t *testing.T) {
