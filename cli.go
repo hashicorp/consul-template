@@ -33,10 +33,7 @@ const (
 	ExitCodeInterrupt
 	ExitCodeParseFlagsError
 	ExitCodeParseWaitError
-	ExitCodeParseConfigError
 	ExitCodeRunnerError
-	ExitCodeConsulAPIError
-	ExitCodeWatcherError
 )
 
 /// ------------------------- ///
@@ -299,39 +296,56 @@ func buildConfig(config *Config, path string) error {
 		return fmt.Errorf("config: missing file/folder: %s", path)
 	}
 
-	// Ensure the given filepath has at least one config file
-	files, err := ioutil.ReadDir(path)
+	// Check if a file was given or a path to a directory
+	stat, err := os.Stat(path)
 	if err != nil {
-		return fmt.Errorf("config: error listing directory: %s", err)
-	}
-	if len(files) == 0 {
-		return fmt.Errorf("config: must contain at least one configuration file")
+		return fmt.Errorf("config: error stating file: %s", err)
 	}
 
-	// Potential bug: Walk does not follow symlinks!
-	err = filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
-		// If WalkFunc had an error, just return it
+	// Recursively parse directories, single load files
+	if stat.Mode().IsDir() {
+		// Ensure the given filepath has at least one config file
+		files, err := ioutil.ReadDir(path)
 		if err != nil {
-			return err
+			return fmt.Errorf("config: error listing directory: %s", err)
+		}
+		if len(files) == 0 {
+			return fmt.Errorf("config: must contain at least one configuration file")
 		}
 
-		// Do nothing for directories
-		if info.IsDir() {
+		// Potential bug: Walk does not follow symlinks!
+		err = filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+			// If WalkFunc had an error, just return it
+			if err != nil {
+				return err
+			}
+
+			// Do nothing for directories
+			if info.IsDir() {
+				return nil
+			}
+
+			// Parse and merge the config
+			newConfig, err := ParseConfig(path)
+			if err != nil {
+				return err
+			}
+			config.Merge(newConfig)
+
 			return nil
-		}
+		})
 
-		// Parse and merge the config
+		if err != nil {
+			return fmt.Errorf("config: walk error: %s", err)
+		}
+	} else if stat.Mode().IsRegular() {
 		newConfig, err := ParseConfig(path)
 		if err != nil {
 			return err
 		}
 		config.Merge(newConfig)
-
-		return nil
-	})
-
-	if err != nil {
-		return fmt.Errorf("config: walk error: %s", err)
+	} else {
+		return fmt.Errorf("config: unknown filetype: %s", stat.Mode().String())
 	}
 
 	return nil
