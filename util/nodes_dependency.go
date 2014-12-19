@@ -57,7 +57,11 @@ func (d *NodesDependency) Key() string {
 }
 
 func (d *NodesDependency) Display() string {
-	return fmt.Sprintf(`node "%s"`, d.rawKey)
+	if d.rawKey == "" {
+		return fmt.Sprintf("nodes")
+	}
+
+	return fmt.Sprintf(`nodes "%s"`, d.rawKey)
 }
 
 // ParseNodesDependency parses a string of the format @dc.

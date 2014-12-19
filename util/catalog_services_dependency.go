@@ -69,7 +69,11 @@ func (d *CatalogServicesDependency) Key() string {
 // Display returns a string that should be displayed to the user in output (for
 // example).
 func (d *CatalogServicesDependency) Display() string {
-	return fmt.Sprintf(`service "%s"`, d.rawKey)
+	if d.rawKey == "" {
+		return fmt.Sprintf("catalog services")
+	}
+
+	return fmt.Sprintf(`catalog services "%s"`, d.rawKey)
 }
 
 // ParseCatalogServicesDependency parses a string of the format @dc.
