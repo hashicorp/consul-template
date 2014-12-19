@@ -88,9 +88,9 @@ func (r *Runner) RunAll(dry bool) error {
 	var commands []string
 
 	for _, template := range r.templates {
-		// If the template is not ready to be rendered, just return
+		// If the template is not ready to be rendered, move onto the next one
 		if !r.canRender(template) {
-			return nil
+			continue
 		}
 
 		for _, ctemplate := range r.configTemplatesFor(template) {
