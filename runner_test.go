@@ -387,6 +387,82 @@ func TestRender_dryRender(t *testing.T) {
 	}
 }
 
+func TestRender_multipleTemplatesRunsCommands(t *testing.T) {
+	inTemplate1 := test.CreateTempfile([]byte(`
+    {{range service "consul@nyc1"}}{{.Node}}{{end}}
+  `), t)
+	defer test.DeleteTempfile(inTemplate1, t)
+
+	inTemplate2 := test.CreateTempfile([]byte(`
+    {{range service "consul@nyc2"}}{{.Node}}{{end}}
+  `), t)
+	defer test.DeleteTempfile(inTemplate2, t)
+
+	outTemplate1 := test.CreateTempfile(nil, t)
+	test.DeleteTempfile(outTemplate1, t)
+
+	outTemplate2 := test.CreateTempfile(nil, t)
+	test.DeleteTempfile(outTemplate2, t)
+
+	touch1, err := ioutil.TempFile(os.TempDir(), "touch1-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Remove(touch1.Name())
+	defer os.Remove(touch1.Name())
+
+	touch2, err := ioutil.TempFile(os.TempDir(), "touch2-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Remove(touch2.Name())
+	defer os.Remove(touch2.Name())
+
+	configTemplates := []*ConfigTemplate{
+		&ConfigTemplate{
+			Source:      inTemplate1.Name(),
+			Destination: outTemplate1.Name(),
+			Command:     fmt.Sprintf("touch %s", touch1.Name()),
+		},
+		&ConfigTemplate{
+			Source:      inTemplate2.Name(),
+			Destination: outTemplate2.Name(),
+			Command:     fmt.Sprintf("touch %s", touch2.Name()),
+		},
+	}
+
+	runner, err := NewRunner(configTemplates)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var dependency util.Dependency
+	for _, dep := range runner.Dependencies() {
+		if strings.Contains(dep.Key(), "@nyc1") {
+			dependency = dep
+			break
+		}
+	}
+
+	data := []*util.Service{
+		&util.Service{Node: "consul1"},
+		&util.Service{Node: "consul2"},
+	}
+	runner.Receive(dependency, data)
+
+	if err := runner.RunAll(false); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := os.Stat(touch1.Name()); err != nil {
+		t.Errorf("expected first command to run, but did not: %s", err)
+	}
+
+	if _, err := os.Stat(touch2.Name()); err == nil {
+		t.Errorf("expected second command to not run, but touch exists")
+	}
+}
+
 func TestRender_sameContentsDoesNotRender(t *testing.T) {
 	inTemplate := test.CreateTempfile([]byte(`
     {{range service "consul@nyc1"}}{{.Node}}{{end}}
