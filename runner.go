@@ -288,13 +288,13 @@ func (r *Runner) configTemplatesFor(template *Template) []*ConfigTemplate {
 func (r *Runner) templateContextFor(template *Template) (*TemplateContext, error) {
 	context, err := NewTemplateContext()
 	if err != nil {
-		return fmt.Errorf("runner: %s", err)
+		return nil, fmt.Errorf("runner: %s", err)
 	}
 
 	for _, dependency := range template.Dependencies() {
 		data := r.data(dependency)
-		if err := dependency.AddToContext(context, data); err != nil {
-			return fmt.Errorf("runner: %s", err)
+		if err := dependency.addToContext(context, data); err != nil {
+			return nil, fmt.Errorf("runner: %s", err)
 		}
 	}
 

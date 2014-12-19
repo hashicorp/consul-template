@@ -69,44 +69,6 @@ func (d *KeyPrefixDependency) Display() string {
 	return fmt.Sprintf(`keyPrefix "%s"`, d.rawKey)
 }
 
-// AddToContext accepts a TemplateContext and data. It coerces the interface{}
-// data into the correct format via type assertions, returning an errors that
-// occur. The data is then set on the TemplateContext.
-func (d *KeyPrefixDependency) AddToContext(context *TemplateContext, data interface{}) error {
-	coerced, ok := data.([]*KeyPair)
-	if !ok {
-		return fmt.Errorf("key prefix dependency: could not convert to KeyPair")
-	}
-
-	context.KeyPrefixes[d.rawKey] = coerced
-	return nil
-}
-
-// InContext checks if the dependency is contained in the given TemplateContext.
-func (d *KeyPrefixDependency) InContext(c *TemplateContext) bool {
-	_, ok := c.KeyPrefixes[d.rawKey]
-	return ok
-}
-
-func KeyPrefixFunc(deps map[string]Dependency) func(...string) (interface{}, error) {
-	return func(s ...string) (interface{}, error) {
-		if len(s) != 1 {
-			return nil, fmt.Errorf("keyPrefix: expected 1 argument, got %d", len(s))
-		}
-
-		d, err := ParseKeyPrefixDependency(s[0])
-		if err != nil {
-			return nil, err
-		}
-
-		if _, ok := deps[d.HashCode()]; !ok {
-			deps[d.HashCode()] = d
-		}
-
-		return []*KeyPair{}, nil
-	}
-}
-
 // ParseKeyPrefixDependency parses a string of the format a(/b(/c...))
 func ParseKeyPrefixDependency(s string) (*KeyPrefixDependency, error) {
 	// a(/b(/c))(@datacenter)

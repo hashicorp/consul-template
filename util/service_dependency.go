@@ -96,40 +96,6 @@ func (d *ServiceDependency) Display() string {
 	return fmt.Sprintf(`service "%s"`, d.rawKey)
 }
 
-// AddToContext accepts a TemplateContext and data. It coerces the interface{}
-// data into the correct format via type assertions, returning an errors that
-// occur. The data is then set on the TemplateContext.
-func (d *ServiceDependency) AddToContext(context *TemplateContext, data interface{}) error {
-	coerced, ok := data.([]*Service)
-	if !ok {
-		return fmt.Errorf("service dependency: could not convert to Service")
-	}
-
-	context.Services[d.rawKey] = coerced
-	return nil
-}
-
-// InContext checks if the dependency is contained in the given TemplateContext.
-func (d *ServiceDependency) InContext(c *TemplateContext) bool {
-	_, ok := c.Services[d.rawKey]
-	return ok
-}
-
-func ServiceFunc(deps map[string]Dependency) func(...string) (interface{}, error) {
-	return func(s ...string) (interface{}, error) {
-		d, err := ParseServiceDependency(s...)
-		if err != nil {
-			return nil, err
-		}
-
-		if _, ok := deps[d.HashCode()]; !ok {
-			deps[d.HashCode()] = d
-		}
-
-		return []*Service{}, nil
-	}
-}
-
 // ParseServiceDependency processes the incoming strings to build a service dependency.
 //
 // Supported arguments

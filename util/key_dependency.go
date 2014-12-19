@@ -54,44 +54,6 @@ func (d *KeyDependency) Display() string {
 	return fmt.Sprintf(`key "%s"`, d.rawKey)
 }
 
-// AddToContext accepts a TemplateContext and data. It coerces the interface{}
-// data into the correct format via type assertions, returning an errors that
-// occur. The data is then set on the TemplateContext.
-func (d *KeyDependency) AddToContext(context *TemplateContext, data interface{}) error {
-	coerced, ok := data.(string)
-	if !ok {
-		return fmt.Errorf("key dependency: could not convert to string")
-	}
-
-	context.Keys[d.rawKey] = coerced
-	return nil
-}
-
-// InContext checks if the dependency is contained in the given TemplateContext.
-func (d *KeyDependency) InContext(c *TemplateContext) bool {
-	_, ok := c.Keys[d.rawKey]
-	return ok
-}
-
-func KeyFunc(deps map[string]Dependency) func(...string) (interface{}, error) {
-	return func(s ...string) (interface{}, error) {
-		if len(s) != 1 {
-			return nil, fmt.Errorf("key: expected 1 argument, got %d", len(s))
-		}
-
-		d, err := ParseKeyDependency(s[0])
-		if err != nil {
-			return nil, err
-		}
-
-		if _, ok := deps[d.HashCode()]; !ok {
-			deps[d.HashCode()] = d
-		}
-
-		return "", nil
-	}
-}
-
 // ParseKeyDependency parses a string of the format a(/b(/c...))
 func ParseKeyDependency(s string) (*KeyDependency, error) {
 	if len(s) == 0 {
