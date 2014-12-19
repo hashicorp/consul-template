@@ -1,7 +1,7 @@
 Consul Template Changelog
 =========================
 
-## vx.y.z (Unreleased)
+## v0.5.0 (December 19, 2014)
 
 FEATURES:
 

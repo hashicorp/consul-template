@@ -23,6 +23,14 @@ xcompile: deps test
 	@rm -rf build/
 	@mkdir -p build
 	gox \
+		-os="darwin" \
+		-os="dragonfly" \
+		-os="freebsd" \
+		-os="linux" \
+		-os="netbsd" \
+		-os="openbsd" \
+		-os="solaris" \
+		-os="windows" \
 		-output="build/{{.Dir}}_$(VERSION)_{{.OS}}_{{.Arch}}/$(NAME)"
 
 package: xcompile
