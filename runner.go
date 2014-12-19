@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -65,6 +66,7 @@ func (r *Runner) SetErrStream(s io.Writer) {
 // is "renderable" (i.e. all its Dependencies have been downloaded at least
 // once).
 func (r *Runner) Receive(dependency util.Dependency, data interface{}) {
+	log.Printf("[DEBUG] (runner) Receiving dependency %s", dependency.Display())
 	r.dependencyDataReceivedMap[dependency.HashCode()] = struct{}{}
 	r.dependencyDataMap[dependency.HashCode()] = data
 }
@@ -85,25 +87,36 @@ func (r *Runner) Dependencies() []util.Dependency {
 // If the dry flag is given, the template will be rendered to the outStream,
 // which defaults to os.Stdout. In dry mode, commands are never executed.
 func (r *Runner) RunAll(dry bool) error {
+	log.Printf("[DEBUG] (runner) RunAll")
+
 	var commands []string
 
 	for _, template := range r.templates {
+		log.Printf("[DEBUG] (runner) checking template: %#v", template)
+
 		// If the template is not ready to be rendered, move onto the next one
 		if !r.canRender(template) {
+			log.Printf("[DEBUG] (runner) cannot render template (not ready), continuing")
 			continue
 		}
 
 		for _, ctemplate := range r.configTemplatesFor(template) {
+			log.Printf("[DEBUG] (runner) checking ctemplate: %v", ctemplate.Command)
+
 			// Render the template, taking dry mode into account
 			rendered, err := r.render(template, ctemplate.Destination, dry)
 			if err != nil {
+				log.Printf("[DEBUG] (runner) error rendering template: `%s`", template.Path)
 				return err
 			}
+
+			log.Printf("[DEBUG] (runner) rendered: %t", rendered)
 
 			// If the template was rendered (changed) and we are not in dry-run mode,
 			// aggregate commands, ignoring previously known commands
 			if rendered && !dry {
 				if ctemplate.Command != "" && !exists(ctemplate.Command, commands) {
+					log.Printf("[DEBUG] (runner) appending command: `%s`", ctemplate.Command)
 					commands = append(commands, ctemplate.Command)
 				}
 			}
@@ -114,7 +127,9 @@ func (r *Runner) RunAll(dry bool) error {
 	// ensures all commands execute at least once
 	var errs []error
 	for _, command := range commands {
+		log.Printf("[DEBUG] (runner) running command: `%s`", command)
 		if err := r.execute(command); err != nil {
+			log.Printf("[ERR] (runner) error running command: %s", err)
 			errs = append(errs, err)
 		}
 	}
