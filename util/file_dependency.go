@@ -18,18 +18,6 @@ type FileDependency struct {
 	lastStat os.FileInfo
 }
 
-func (d *FileDependency) HashCode() string {
-	return fmt.Sprintf("KeyPrefixDependency|%s", d.Key())
-}
-
-func (d *FileDependency) Key() string {
-	return d.rawKey
-}
-
-func (d *FileDependency) Display() string {
-	return fmt.Sprintf(`file "%s"`, d.rawKey)
-}
-
 func (d *FileDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
 	var err error = nil
 	var data []byte
@@ -51,6 +39,18 @@ func (d *FileDependency) Fetch(client *api.Client, options *api.QueryOptions) (i
 		return string(data), fakeMeta, err
 	}
 	return "", nil, err
+}
+
+func (d *FileDependency) HashCode() string {
+	return fmt.Sprintf("KeyPrefixDependency|%s", d.Key())
+}
+
+func (d *FileDependency) Key() string {
+	return d.rawKey
+}
+
+func (d *FileDependency) Display() string {
+	return fmt.Sprintf(`file "%s"`, d.rawKey)
 }
 
 // watch watchers the file for changes

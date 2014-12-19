@@ -148,7 +148,7 @@ func TestExecute_missingFile(t *testing.T) {
 		t.Fatal("expected error, but nothing was returned")
 	}
 
-	expected := "templateContext missing file `/path/to/file'"
+	expected := `template context missing file "/path/to/file"`
 	if !strings.Contains(executeErr.Error(), expected) {
 		t.Errorf("expected %q to contain %q", executeErr.Error(), expected)
 	}
@@ -171,7 +171,7 @@ func TestExecute_missingKeyPrefix(t *testing.T) {
 		t.Fatal("expected error, but nothing was returned")
 	}
 
-	expected := "templateContext missing keyPrefix `service/nginx/config'"
+	expected := `template context missing keyPrefix "service/nginx/config"`
 	if !strings.Contains(executeErr.Error(), expected) {
 		t.Errorf("expected %q to contain %q", executeErr.Error(), expected)
 	}
@@ -194,7 +194,7 @@ func TestExecute_missingKey(t *testing.T) {
 		t.Fatal("expected error, but nothing was returned")
 	}
 
-	expected := "templateContext missing key `service/redis/online'"
+	expected := `template context missing key "service/redis/online"`
 	if !strings.Contains(executeErr.Error(), expected) {
 		t.Errorf("expected %q to contain %q", executeErr.Error(), expected)
 	}
@@ -217,7 +217,7 @@ func TestExecute_missingNodes(t *testing.T) {
 		t.Fatal("expected error, but nothing was returned")
 	}
 
-	expected := "templateContext missing nodes `@nyc1'"
+	expected := `template context missing nodes "@nyc1"`
 	if !strings.Contains(executeErr.Error(), expected) {
 		t.Errorf("expected %q to contain %q", executeErr.Error(), expected)
 	}
@@ -240,7 +240,7 @@ func TestExecute_missingService(t *testing.T) {
 		t.Fatal("expected error, but nothing was returned")
 	}
 
-	expected := "templateContext missing service `production.webapp [passing]'"
+	expected := `template context missing service "production.webapp [passing]"`
 	if !strings.Contains(executeErr.Error(), expected) {
 		t.Errorf("expected %q to contain %q", executeErr.Error(), expected)
 	}
@@ -263,7 +263,7 @@ func TestExecute_missingServices(t *testing.T) {
 		t.Fatal("expected error, but nothing was returned")
 	}
 
-	expected := "templateContext missing catalog services"
+	expected := "template context missing catalog services"
 	if !strings.Contains(executeErr.Error(), expected) {
 		t.Errorf("expected %q to contain %q", executeErr.Error(), expected)
 	}
@@ -281,7 +281,7 @@ func TestExecute_rendersFile(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		File: map[string]string{
+		files: map[string]string{
 			"/path/to/file": "some content",
 		},
 	}
@@ -312,7 +312,7 @@ func TestExecute_rendersKeyPrefix(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		KeyPrefixes: map[string][]*util.KeyPair{
+		keyPrefixes: map[string][]*util.KeyPair{
 			"service/redis": []*util.KeyPair{
 				&util.KeyPair{Path: "/path1", Key: "key1", Value: "value1"},
 				&util.KeyPair{Path: "/path2", Key: "key2", Value: "value2"},
@@ -346,7 +346,7 @@ func TestExecute_rendersKey(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		Keys: map[string]string{
+		keys: map[string]string{
 			"service/redis/minconns": "2",
 			"service/redis/maxconns": "11",
 		},
@@ -399,7 +399,7 @@ func TestExecute_rendersLs(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		KeyPrefixes: map[string][]*util.KeyPair{
+		keyPrefixes: map[string][]*util.KeyPair{
 			"service/redis/config": []*util.KeyPair{
 				emptyFolderConfig,
 				minconnsConfig,
@@ -446,7 +446,7 @@ func TestExecute_rendersNodes(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		Nodes: map[string][]*util.Node{
+		nodes: map[string][]*util.Node{
 			"": []*util.Node{node1, node2},
 		},
 	}
@@ -495,7 +495,7 @@ func TestExecute_rendersService(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		Services: map[string][]*util.Service{
+		services: map[string][]*util.Service{
 			"release.webapp [passing]": []*util.Service{serviceWeb1, serviceWeb2},
 		},
 	}
@@ -544,7 +544,7 @@ func TestExecute_rendersServiceWithHealthCheckArgument(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		Services: map[string][]*util.Service{
+		services: map[string][]*util.Service{
 			"release.webapp [any]": []*util.Service{serviceWeb1, serviceWeb2},
 		},
 	}
@@ -586,7 +586,7 @@ func TestExecute_rendersServices(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		CatalogServices: map[string][]*util.CatalogService{
+		catalogServices: map[string][]*util.CatalogService{
 			"": []*util.CatalogService{catalogWeb1, catalogWeb2},
 		},
 	}
@@ -643,7 +643,7 @@ func TestExecute_rendersTree(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		KeyPrefixes: map[string][]*util.KeyPair{
+		keyPrefixes: map[string][]*util.KeyPair{
 			"service/redis/config": []*util.KeyPair{
 				minconnsConfig,
 				maxconnsConfig,
@@ -702,7 +702,7 @@ func TestExecute_serviceTagsContains(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		Services: map[string][]*util.Service{
+		services: map[string][]*util.Service{
 			"web [passing]": []*util.Service{service1, service2},
 		},
 	}
@@ -769,7 +769,7 @@ func TestExecute_byTag(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		Services: map[string][]*util.Service{
+		services: map[string][]*util.Service{
 			"webapp [passing]": []*util.Service{serviceWeb1, serviceWeb2, serviceWeb3},
 		},
 	}
@@ -829,7 +829,7 @@ func TestExecute_parseJSON(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		File: map[string]string{
+		files: map[string]string{
 			"data.json": `{"foo":"bar"}`,
 		},
 	}
@@ -859,7 +859,7 @@ func TestExecute_parseJSONArray(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		File: map[string]string{
+		files: map[string]string{
 			"data.json": `["1", "2", "3"]`,
 		},
 	}
@@ -887,7 +887,7 @@ func TestExecute_parseJSONDeep(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		File: map[string]string{
+		files: map[string]string{
 			"data.json": `{
 				"foo": {
 					"bar": {
