@@ -287,17 +287,20 @@ func (r *Runner) configTemplatesFor(template *Template) []*ConfigTemplate {
 // If an unknown Dependency.(type) is encountered, an error is returned.
 func (r *Runner) templateContextFor(template *Template) (*TemplateContext, error) {
 	context := &TemplateContext{
-		File:        make(map[string]string),
-		KeyPrefixes: make(map[string][]*util.KeyPair),
-		Keys:        make(map[string]string),
-		Nodes:       make(map[string][]*util.Node),
-		Services:    make(map[string][]*util.Service),
+		CatalogServices: make(map[string][]*util.CatalogService),
+		File:            make(map[string]string),
+		KeyPrefixes:     make(map[string][]*util.KeyPair),
+		Keys:            make(map[string]string),
+		Nodes:           make(map[string][]*util.Node),
+		Services:        make(map[string][]*util.Service),
 	}
 
 	for _, dependency := range template.Dependencies() {
 		data := r.data(dependency)
 
 		switch dependency := dependency.(type) {
+		case *util.CatalogServicesDependency:
+			context.CatalogServices[dependency.Key()] = data.([]*util.CatalogService)
 		case *util.FileDependency:
 			context.File[dependency.Key()] = data.(string)
 		case *util.KeyPrefixDependency:
