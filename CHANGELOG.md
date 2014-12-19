@@ -16,6 +16,7 @@ BUG FIXES:
   * Accept configuration files as a valid option to `-config` (GH-126)
   * Accept Windows drive letters in template paths (GH-78)
   * Deep copy and sort data returned from Consul API (specifically tags)
+  * Run commands even if not all templates have received data (GH-119)
 
 IMPROVEMENTS:
 
