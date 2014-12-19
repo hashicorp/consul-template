@@ -47,21 +47,6 @@ func (t *Template) Dependencies() []util.Dependency {
 	return t.dependencies
 }
 
-// ServiceByTag is a template func that takes the provided services and
-// produces a map based on service tags.
-//
-// The map key is a string representing the service tag. The map value is a
-// slice of Services which have the tag assigned.
-func ServiceByTag(in []*util.Service) map[string][]*util.Service {
-	m := make(map[string][]*util.Service)
-	for _, s := range in {
-		for _, t := range s.Tags {
-			m[t] = append(m[t], s)
-		}
-	}
-	return m
-}
-
 // Execute takes the given template context and processes the template.
 //
 // If the TemplateContext is nil, an error will be returned.
@@ -171,18 +156,18 @@ func (t *Template) init() error {
 		return err
 	}
 
-	depsMap := make(map[string]util.Dependency)
+	deps := make(map[string]util.Dependency)
 
 	tmpl, err := template.New("out").Funcs(template.FuncMap{
 		// API functions
-		"file":      t.dependencyAcc(depsMap, DependencyTypeFile),
-		"keyPrefix": t.dependencyAcc(depsMap, DependencyTypeKeyPrefix),
-		"key":       t.dependencyAcc(depsMap, DependencyTypeKey),
-		"ls":        t.dependencyAcc(depsMap, DependencyTypeKeyPrefix),
-		"nodes":     t.dependencyAcc(depsMap, DependencyTypeNodes),
-		"service":   t.dependencyAcc(depsMap, DependencyTypeService),
-		"services":  t.dependencyAcc(depsMap, DependencyTypeCatalogServices),
-		"tree":      t.dependencyAcc(depsMap, DependencyTypeKeyPrefix),
+		"file":      util.FileDependencyFunc(deps),
+		"key":       util.KeyFunc(deps),
+		"keyPrefix": util.KeyPrefixFunc(deps),
+		"ls":        util.KeyPrefixFunc(deps),
+		"nodes":     util.NodesFunc(deps),
+		"service":   util.ServiceFunc(deps),
+		"services":  util.CatalogServicesFunc(deps),
+		"tree":      util.KeyPrefixFunc(deps),
 
 		// Helper functions
 		"byTag":           t.noop,
@@ -204,127 +189,22 @@ func (t *Template) init() error {
 		return err
 	}
 
-	dependencies := make([]util.Dependency, 0, len(depsMap))
-	for _, dep := range depsMap {
+	dependencies := make([]util.Dependency, 0, len(deps))
+	for _, dep := range deps {
 		dependencies = append(dependencies, dep)
 	}
-	depsMap = nil
+	deps = nil
 
 	t.dependencies = dependencies
 
 	return nil
 }
 
-// Helper function that is used by the dependency collecting.
-func (t *Template) dependencyAcc(depsMap map[string]util.Dependency, dt DependencyType) func(...string) (interface{}, error) {
-	return func(s ...string) (interface{}, error) {
-		switch dt {
-		case DependencyTypeFile:
-			if len(s) != 1 {
-				return nil, fmt.Errorf("expected 1 argument, got %d", len(s))
-			}
-			d, err := util.ParseFileDependency(s[0])
-			if err != nil {
-				return nil, err
-			}
-			if _, ok := depsMap[d.HashCode()]; !ok {
-				depsMap[d.HashCode()] = d
-			}
-
-			return "", nil
-		case DependencyTypeKeyPrefix:
-			if len(s) != 1 {
-				return nil, fmt.Errorf("expected 1 argument, got %d", len(s))
-			}
-			d, err := util.ParseKeyPrefixDependency(s[0])
-			if err != nil {
-				return nil, err
-			}
-			if _, ok := depsMap[d.HashCode()]; !ok {
-				depsMap[d.HashCode()] = d
-			}
-
-			return []*util.KeyPair{}, nil
-		case DependencyTypeKey:
-			if len(s) != 1 {
-				return nil, fmt.Errorf("expected 1 argument, got %d", len(s))
-			}
-			d, err := util.ParseKeyDependency(s[0])
-			if err != nil {
-				return nil, err
-			}
-			if _, ok := depsMap[d.HashCode()]; !ok {
-				depsMap[d.HashCode()] = d
-			}
-
-			return "", nil
-		case DependencyTypeNodes:
-			d, err := util.ParseNodesDependency(s...)
-			if err != nil {
-				return nil, err
-			}
-			if _, ok := depsMap[d.HashCode()]; !ok {
-				depsMap[d.HashCode()] = d
-			}
-
-			return []*util.Node{}, nil
-		case DependencyTypeService:
-			d, err := util.ParseServiceDependency(s...)
-			if err != nil {
-				return nil, err
-			}
-			if _, ok := depsMap[d.HashCode()]; !ok {
-				depsMap[d.HashCode()] = d
-			}
-
-			return []*util.Service{}, nil
-		case DependencyTypeCatalogServices:
-			d, err := util.ParseCatalogServicesDependency(s...)
-			if err != nil {
-				return nil, err
-			}
-			if _, ok := depsMap[d.HashCode()]; !ok {
-				depsMap[d.HashCode()] = d
-			}
-
-			var result map[string][]string
-			return result, nil
-		default:
-			return nil, fmt.Errorf("unknown DependencyType %+v", dt)
-		}
-	}
-}
-
 // Validates that all required dependencies in t are defined in c.
 func (t *Template) validateDependencies(c *TemplateContext) error {
 	for _, dep := range t.Dependencies() {
-		switch d := dep.(type) {
-		case *util.FileDependency:
-			if _, ok := c.File[d.Key()]; !ok {
-				return fmt.Errorf("templateContext missing file `%s'", d.Key())
-			}
-		case *util.KeyPrefixDependency:
-			if _, ok := c.KeyPrefixes[d.Key()]; !ok {
-				return fmt.Errorf("templateContext missing keyPrefix `%s'", d.Key())
-			}
-		case *util.KeyDependency:
-			if _, ok := c.Keys[d.Key()]; !ok {
-				return fmt.Errorf("templateContext missing key `%s'", d.Key())
-			}
-		case *util.NodesDependency:
-			if _, ok := c.Nodes[d.Key()]; !ok {
-				return fmt.Errorf("templateContext missing nodes `%s'", d.Key())
-			}
-		case *util.ServiceDependency:
-			if _, ok := c.Services[d.Key()]; !ok {
-				return fmt.Errorf("templateContext missing service `%s'", d.Key())
-			}
-		case *util.CatalogServicesDependency:
-			if _, ok := c.CatalogServices[d.Key()]; !ok {
-				return fmt.Errorf("templateContext missing catalog services: `%s'", d.Key())
-			}
-		default:
-			return fmt.Errorf("unknown dependency type in template %+v", d)
+		if !dep.InContext(c) {
+			return fmt.Errorf("template context missing %s", dep.Display())
 		}
 	}
 
@@ -341,11 +221,24 @@ func (t *Template) noop(thing ...interface{}) (interface{}, error) {
 // available for template parsing.
 type TemplateContext struct {
 	CatalogServices map[string][]*util.CatalogService
-	Services        map[string][]*util.Service
+	Files           map[string]string
 	Keys            map[string]string
 	KeyPrefixes     map[string][]*util.KeyPair
 	Nodes           map[string][]*util.Node
-	File            map[string]string
+	Services        map[string][]*util.Service
+}
+
+// NewTemplateContext creates a new TemplateContext with empty values for each
+// of the key structs.
+func NewTemplateContext() (*TemplateContext, error) {
+	return &TemplateContext{
+		CatalogServices: make(map[string][]*util.CatalogService),
+		Files:           make(map[string]string),
+		Keys:            make(map[string]string),
+		KeyPrefixes:     make(map[string][]*util.KeyPair),
+		Nodes:           make(map[string][]*util.Node),
+		Services:        make(map[string][]*util.Service),
+	}, nil
 }
 
 // decodeJSON returns a structure for valid JSON
@@ -356,6 +249,11 @@ func (c *TemplateContext) decodeJSON(s string) (interface{}, error) {
 	}
 
 	return data, nil
+}
+
+// returns the value of the environment variable set
+func (c *TemplateContext) env(s string) (string, error) {
+	return os.Getenv(s), nil
 }
 
 // groupByTag is a template func that takes the provided services and
@@ -371,12 +269,6 @@ func (c *TemplateContext) groupByTag(in []*util.Service) map[string][]*util.Serv
 		}
 	}
 	return m
-}
-
-// returns the value of the environment variable set
-
-func (c *TemplateContext) env(s string) (string, error) {
-	return os.Getenv(s), nil
 }
 
 // toLower converts the given string (usually by a pipe) to lowercase.
@@ -410,17 +302,3 @@ func (c *TemplateContext) regexReplaceAll(re, pl, s string) (string, error) {
 
 	return "", err
 }
-
-// DependencyType is an enum type that says the kind of the dependency.
-type DependencyType byte
-
-// The list of Dependency types.
-const (
-	DependencyTypeInvalid DependencyType = iota
-	DependencyTypeCatalogServices
-	DependencyTypeService
-	DependencyTypeKey
-	DependencyTypeKeyPrefix
-	DependencyTypeNodes
-	DependencyTypeFile
-)

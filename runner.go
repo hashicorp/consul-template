@@ -286,33 +286,15 @@ func (r *Runner) configTemplatesFor(template *Template) []*ConfigTemplate {
 //
 // If an unknown Dependency.(type) is encountered, an error is returned.
 func (r *Runner) templateContextFor(template *Template) (*TemplateContext, error) {
-	context := &TemplateContext{
-		CatalogServices: make(map[string][]*util.CatalogService),
-		File:            make(map[string]string),
-		KeyPrefixes:     make(map[string][]*util.KeyPair),
-		Keys:            make(map[string]string),
-		Nodes:           make(map[string][]*util.Node),
-		Services:        make(map[string][]*util.Service),
+	context, err := NewTemplateContext()
+	if err != nil {
+		return fmt.Errorf("runner: %s", err)
 	}
 
 	for _, dependency := range template.Dependencies() {
 		data := r.data(dependency)
-
-		switch dependency := dependency.(type) {
-		case *util.CatalogServicesDependency:
-			context.CatalogServices[dependency.Key()] = data.([]*util.CatalogService)
-		case *util.FileDependency:
-			context.File[dependency.Key()] = data.(string)
-		case *util.KeyPrefixDependency:
-			context.KeyPrefixes[dependency.Key()] = data.([]*util.KeyPair)
-		case *util.KeyDependency:
-			context.Keys[dependency.Key()] = data.(string)
-		case *util.NodesDependency:
-			context.Nodes[dependency.Key()] = data.([]*util.Node)
-		case *util.ServiceDependency:
-			context.Services[dependency.Key()] = data.([]*util.Service)
-		default:
-			return nil, fmt.Errorf("unknown dependency type %+v", dependency)
+		if err := dependency.AddToContext(context, data); err != nil {
+			return fmt.Errorf("runner: %s", err)
 		}
 	}
 

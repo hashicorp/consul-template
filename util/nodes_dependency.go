@@ -64,6 +64,40 @@ func (d *NodesDependency) Display() string {
 	return fmt.Sprintf(`nodes "%s"`, d.rawKey)
 }
 
+// AddToContext accepts a TemplateContext and data. It coerces the interface{}
+// data into the correct format via type assertions, returning an errors that
+// occur. The data is then set on the TemplateContext.
+func (d *NodesDependency) AddToContext(context *TemplateContext, data interface{}) error {
+	coerced, ok := data.([]*Node)
+	if !ok {
+		return fmt.Errorf("nodes dependency: could not convert to Node")
+	}
+
+	context.Nodes[d.rawKey] = coerced
+	return nil
+}
+
+// InContext checks if the dependency is contained in the given TemplateContext.
+func (d *NodesDependency) InContext(c *TemplateContext) bool {
+	_, ok := c.Nodes[d.rawKey]
+	return ok
+}
+
+func NodesFunc(deps map[string]Dependency) func(...string) (interface{}, error) {
+	return func(s ...string) (interface{}, error) {
+		d, err := ParseNodesDependency(s...)
+		if err != nil {
+			return nil, err
+		}
+
+		if _, ok := deps[d.HashCode()]; !ok {
+			deps[d.HashCode()] = d
+		}
+
+		return []*Node{}, nil
+	}
+}
+
 // ParseNodesDependency parses a string of the format @dc.
 func ParseNodesDependency(s ...string) (*NodesDependency, error) {
 	switch len(s) {

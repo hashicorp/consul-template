@@ -13,6 +13,8 @@ type Dependency interface {
 	HashCode() string
 	Key() string
 	Display() string
+	AddToContext() error
+	InContext() error
 }
 
 // deepCopyAndSortTags deep copies the tags in the given string slice and then

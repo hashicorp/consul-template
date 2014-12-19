@@ -76,6 +76,41 @@ func (d *CatalogServicesDependency) Display() string {
 	return fmt.Sprintf(`catalog services "%s"`, d.rawKey)
 }
 
+// AddToContext accepts a TemplateContext and data. It coerces the interface{}
+// data into the correct format via type assertions, returning an errors that
+// occur. The data is then set on the TemplateContext.
+func (d *CatalogServicesDependency) AddToContext(c *TemplateContext, data interface{}) error {
+	coerced, ok := data.([]*CatalogService)
+	if !ok {
+		return fmt.Errorf("catalog services dependency: could not convert to CatalogService")
+	}
+
+	c.CatalogServices[d.rawKey] = coerced
+	return nil
+}
+
+// InContext checks if the dependency is contained in the given TemplateContext.
+func (d *CatalogServicesDependency) InContext(c *TemplateContext) bool {
+	_, ok := c.CatalogServices[d.rawKey]
+	return ok
+}
+
+func CatalogServicesFunc(deps map[string]Dependency) func(...string) (interface{}, error) {
+	return func(s ...string) (interface{}, error) {
+		d, err := ParseCatalogServicesDependency(s...)
+		if err != nil {
+			return nil, err
+		}
+
+		if _, ok := deps[d.HashCode()]; !ok {
+			deps[d.HashCode()] = d
+		}
+
+		var result map[string][]string
+		return result, nil
+	}
+}
+
 // ParseCatalogServicesDependency parses a string of the format @dc.
 func ParseCatalogServicesDependency(s ...string) (*CatalogServicesDependency, error) {
 	switch len(s) {
