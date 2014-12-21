@@ -15,7 +15,6 @@ import (
 	"time"
 
 	api "github.com/armon/consul-api"
-	"github.com/hashicorp/consul-template/util"
 	"github.com/hashicorp/consul-template/watch"
 	"github.com/hashicorp/logutils"
 )
@@ -99,7 +98,7 @@ func (cli *CLI) Run(args []string) int {
 	// Parse the raw wait value into a Wait object
 	if config.WaitRaw != "" {
 		log.Printf("[DEBUG] (cli) detected -wait, parsing")
-		wait, err := util.ParseWait(config.WaitRaw)
+		wait, err := watch.ParseWait(config.WaitRaw)
 		if err != nil {
 			return cli.handleError(err, ExitCodeParseWaitError)
 		}

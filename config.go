@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	util "github.com/hashicorp/consul-template/util"
+	"github.com/hashicorp/consul-template/watch"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/mapstructure"
@@ -38,8 +38,8 @@ type Config struct {
 	Token string `mapstructure:"token"`
 
 	// Wait
-	Wait    *util.Wait `mapstructure:"-"`
-	WaitRaw string     `mapstructure:"wait" json:""`
+	Wait    *watch.Wait `mapstructure:"-"`
+	WaitRaw string      `mapstructure:"wait" json:""`
 }
 
 // Merge merges the values in config into this config object. Values in the
@@ -67,7 +67,7 @@ func (c *Config) Merge(config *Config) {
 	}
 
 	if config.Wait != nil {
-		c.Wait = &util.Wait{
+		c.Wait = &watch.Wait{
 			Min: config.Wait.Min,
 			Max: config.Wait.Max,
 		}
@@ -108,7 +108,7 @@ func ParseConfig(path string) (*Config, error) {
 
 	// Parse the Wait component
 	if raw := config.WaitRaw; raw != "" {
-		wait, err := util.ParseWait(raw)
+		wait, err := watch.ParseWait(raw)
 
 		if err == nil {
 			config.Wait = wait
