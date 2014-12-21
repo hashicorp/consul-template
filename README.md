@@ -37,8 +37,8 @@ Usage
 | `config`    | | The path to a configuration file or directory on disk, relative to the current working directory. Values specified on the CLI take precedence over values specified in the configuration file |
 | `wait`      | | The `minimum(:maximum)` to wait before rendering a new template to disk and triggering a command, separated by a colon (`:`). If the optional maximum value is omitted, it is assumed to be 4x the required minimum value. |
 | `retry`     | | The amount of time to wait if Consul returns an error when communicating with the API. |
-| `dry`       | | Dump generated templates to the console. If specified, generated templates are not committed to disk and commands are not invoked. |
-| `once`      | | Run Consul Template once and exit (as opposed to the default behavior of daemon). |
+| `dry`       | | Dump generated templates to the console. If specified, generated templates are not committed to disk and commands are not invoked. _(CLI-only)_ |
+| `once`      | | Run Consul Template once and exit (as opposed to the default behavior of daemon). _(CLI-only)_ |
 
 ### Command Line
 The CLI interface supports all of the options detailed above.
@@ -83,7 +83,7 @@ $ consul-template \
 ### Configuration File(s)
 The Consul Template configuration files are written in [HashiCorp Configuration Language (HCL)][HCL]. By proxy, this means the Consul Template configuration file is JSON-compatible. For more information, please see the [HCL specification][HCL].
 
-The Configuration file syntax interface supports all of the options detailed above.
+The Configuration file syntax interface supports all of the options detailed above, unless otherwise noted in the table.
 
 ```javascript
 consul = "127.0.0.1:8500"
