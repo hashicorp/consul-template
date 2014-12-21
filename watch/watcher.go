@@ -1,4 +1,4 @@
-package util
+package watch
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	api "github.com/armon/consul-api"
+	"github.com/hashicorp/consul-template/util"
 )
 
 // defaultRetryFunc is the default return function, which just echos whatever
@@ -40,7 +41,7 @@ type Watcher struct {
 	client *api.Client
 
 	// dependencies is the slice of Dependencies this Watcher will poll
-	dependencies []Dependency
+	dependencies []util.Dependency
 
 	// retryFunc is a RetryFunc that represents the way retrys and backoffs
 	// should occur.
@@ -51,7 +52,7 @@ type Watcher struct {
 }
 
 //
-func NewWatcher(client *api.Client, dependencies []Dependency) (*Watcher, error) {
+func NewWatcher(client *api.Client, dependencies []util.Dependency) (*Watcher, error) {
 	watcher := &Watcher{
 		client:       client,
 		dependencies: dependencies,

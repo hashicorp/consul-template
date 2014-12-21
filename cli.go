@@ -16,6 +16,7 @@ import (
 
 	api "github.com/armon/consul-api"
 	"github.com/hashicorp/consul-template/util"
+	"github.com/hashicorp/consul-template/watch"
 	"github.com/hashicorp/logutils"
 )
 
@@ -231,7 +232,7 @@ func (cli *CLI) initLogger() {
 // all the required components to make a new watcher object. This function
 // returns the created Runner and Watcher. If an error occurs, it is returned as
 // the final parameter.
-func bootstrap(config *Config, dry bool, once bool) (*Runner, *util.Watcher, error) {
+func bootstrap(config *Config, dry bool, once bool) (*Runner, *watch.Watcher, error) {
 	// Merge a path config with the command line options. Command line options
 	// take precedence over config file options for easy overriding.
 	if config.Path != "" {
@@ -269,7 +270,7 @@ func bootstrap(config *Config, dry bool, once bool) (*Runner, *util.Watcher, err
 	}
 
 	log.Printf("[DEBUG] (cli) creating Watcher")
-	watcher, err := util.NewWatcher(client, runner.Dependencies())
+	watcher, err := watch.NewWatcher(client, runner.Dependencies())
 	if err != nil {
 		return nil, nil, err
 	}

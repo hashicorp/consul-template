@@ -1,4 +1,4 @@
-package util
+package watch
 
 import (
 	"reflect"
@@ -7,10 +7,11 @@ import (
 	"time"
 
 	api "github.com/armon/consul-api"
+	"github.com/hashicorp/consul-template/util"
 )
 
 func TestNewWatcher_noClient(t *testing.T) {
-	_, err := NewWatcher(nil, make([]Dependency, 1))
+	_, err := NewWatcher(nil, make([]util.Dependency, 1))
 	if err == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
@@ -30,7 +31,7 @@ func TestNewWatcher_noDependencies(t *testing.T) {
 
 func TestNewWatcher_setsClient(t *testing.T) {
 	client := &api.Client{}
-	w, err := NewWatcher(client, make([]Dependency, 1))
+	w, err := NewWatcher(client, make([]util.Dependency, 1))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,9 +42,9 @@ func TestNewWatcher_setsClient(t *testing.T) {
 }
 
 func TestNewWatcher_setsDependencies(t *testing.T) {
-	dependencies := []Dependency{
-		&ServiceDependency{},
-		&ServiceDependency{},
+	dependencies := []util.Dependency{
+		&util.ServiceDependency{},
+		&util.ServiceDependency{},
 	}
 	w, err := NewWatcher(&api.Client{}, dependencies)
 	if err != nil {
@@ -56,7 +57,7 @@ func TestNewWatcher_setsDependencies(t *testing.T) {
 }
 
 func TestNewWatcher_makesDataCh(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, make([]Dependency, 1))
+	w, err := NewWatcher(&api.Client{}, make([]util.Dependency, 1))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +68,7 @@ func TestNewWatcher_makesDataCh(t *testing.T) {
 }
 
 func TestNewWatcher_makesErrCh(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, make([]Dependency, 1))
+	w, err := NewWatcher(&api.Client{}, make([]util.Dependency, 1))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +79,7 @@ func TestNewWatcher_makesErrCh(t *testing.T) {
 }
 
 func TestNewWatcher_makesFinishCh(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, make([]Dependency, 1))
+	w, err := NewWatcher(&api.Client{}, make([]util.Dependency, 1))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +90,7 @@ func TestNewWatcher_makesFinishCh(t *testing.T) {
 }
 
 func TestNewWatcher_makesstopCh(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, make([]Dependency, 1))
+	w, err := NewWatcher(&api.Client{}, make([]util.Dependency, 1))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +101,7 @@ func TestNewWatcher_makesstopCh(t *testing.T) {
 }
 
 func TestNewWatcher_setsRetry(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, make([]Dependency, 1))
+	w, err := NewWatcher(&api.Client{}, make([]util.Dependency, 1))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +112,7 @@ func TestNewWatcher_setsRetry(t *testing.T) {
 }
 
 func TestSetRetry_setsRetryFunc(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, make([]Dependency, 1))
+	w, err := NewWatcher(&api.Client{}, make([]util.Dependency, 1))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,7 +127,7 @@ func TestSetRetry_setsRetryFunc(t *testing.T) {
 }
 
 func TestSetRetryFunc_setsRetryFunc(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, make([]Dependency, 1))
+	w, err := NewWatcher(&api.Client{}, make([]util.Dependency, 1))
 	if err != nil {
 		t.Fatal(err)
 	}
