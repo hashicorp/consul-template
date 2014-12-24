@@ -17,7 +17,7 @@ type TemplateContext struct {
 	keys            map[string]string
 	keyPrefixes     map[string][]*util.KeyPair
 	nodes           map[string][]*util.Node
-	services        map[string][]*util.Service
+	services        map[string][]*util.HealthService
 }
 
 // NewTemplateContext creates a new TemplateContext with empty values for each
@@ -29,7 +29,7 @@ func NewTemplateContext() (*TemplateContext, error) {
 		keys:            make(map[string]string),
 		keyPrefixes:     make(map[string][]*util.KeyPair),
 		nodes:           make(map[string][]*util.Node),
-		services:        make(map[string][]*util.Service),
+		services:        make(map[string][]*util.HealthService),
 	}, nil
 }
 
@@ -53,8 +53,8 @@ func (c *TemplateContext) env(s string) (string, error) {
 //
 // The map key is a string representing the service tag. The map value is a
 // slice of Services which have the tag assigned.
-func (c *TemplateContext) groupByTag(in []*util.Service) map[string][]*util.Service {
-	m := make(map[string][]*util.Service)
+func (c *TemplateContext) groupByTag(in []*util.HealthService) map[string][]*util.HealthService {
+	m := make(map[string][]*util.HealthService)
 	for _, s := range in {
 		for _, t := range s.Tags {
 			m[t] = append(m[t], s)

@@ -43,8 +43,8 @@ func TestNewWatcher_setsClient(t *testing.T) {
 
 func TestNewWatcher_setsDependencies(t *testing.T) {
 	dependencies := []util.Dependency{
-		&util.ServiceDependency{},
-		&util.ServiceDependency{},
+		&util.HealthServices{},
+		&util.HealthServices{},
 	}
 	w, err := NewWatcher(&api.Client{}, dependencies)
 	if err != nil {

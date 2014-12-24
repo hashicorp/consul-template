@@ -478,7 +478,7 @@ func TestExecute_rendersService(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	serviceWeb1 := &util.Service{
+	serviceWeb1 := &util.HealthService{
 		Node:    "nyc-worker-1",
 		Address: "123.123.123.123",
 		ID:      "web1",
@@ -486,7 +486,7 @@ func TestExecute_rendersService(t *testing.T) {
 		Port:    1234,
 	}
 
-	serviceWeb2 := &util.Service{
+	serviceWeb2 := &util.HealthService{
 		Node:    "nyc-worker-2",
 		Address: "456.456.456.456",
 		ID:      "web2",
@@ -495,8 +495,8 @@ func TestExecute_rendersService(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		services: map[string][]*util.Service{
-			"release.webapp [passing]": []*util.Service{serviceWeb1, serviceWeb2},
+		services: map[string][]*util.HealthService{
+			"release.webapp [passing]": []*util.HealthService{serviceWeb1, serviceWeb2},
 		},
 	}
 
@@ -527,7 +527,7 @@ func TestExecute_rendersServiceWithHealthCheckArgument(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	serviceWeb1 := &util.Service{
+	serviceWeb1 := &util.HealthService{
 		Node:    "nyc-worker-1",
 		Address: "123.123.123.123",
 		ID:      "web1",
@@ -535,7 +535,7 @@ func TestExecute_rendersServiceWithHealthCheckArgument(t *testing.T) {
 		Port:    1234,
 	}
 
-	serviceWeb2 := &util.Service{
+	serviceWeb2 := &util.HealthService{
 		Node:    "nyc-worker-2",
 		Address: "456.456.456.456",
 		ID:      "web2",
@@ -544,8 +544,8 @@ func TestExecute_rendersServiceWithHealthCheckArgument(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		services: map[string][]*util.Service{
-			"release.webapp [any]": []*util.Service{serviceWeb1, serviceWeb2},
+		services: map[string][]*util.HealthService{
+			"release.webapp [any]": []*util.HealthService{serviceWeb1, serviceWeb2},
 		},
 	}
 
@@ -684,7 +684,7 @@ func TestExecute_serviceTagsContains(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	service1 := &util.Service{
+	service1 := &util.HealthService{
 		Node:    "nyc-api-1",
 		Address: "127.0.0.1",
 		ID:      "web1",
@@ -692,7 +692,7 @@ func TestExecute_serviceTagsContains(t *testing.T) {
 		Port:    1234,
 		Tags:    []string{"auth", "search"},
 	}
-	service2 := &util.Service{
+	service2 := &util.HealthService{
 		Node:    "nyc-api-2",
 		Address: "127.0.0.2",
 		ID:      "web2",
@@ -702,8 +702,8 @@ func TestExecute_serviceTagsContains(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		services: map[string][]*util.Service{
-			"web [passing]": []*util.Service{service1, service2},
+		services: map[string][]*util.HealthService{
+			"web [passing]": []*util.HealthService{service1, service2},
 		},
 	}
 
@@ -741,7 +741,7 @@ func TestExecute_byTag(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	serviceWeb1 := &util.Service{
+	serviceWeb1 := &util.HealthService{
 		Node:    "nyc-api-1",
 		Address: "127.0.0.1",
 		ID:      "web1",
@@ -750,7 +750,7 @@ func TestExecute_byTag(t *testing.T) {
 		Tags:    []string{"auth", "search"},
 	}
 
-	serviceWeb2 := &util.Service{
+	serviceWeb2 := &util.HealthService{
 		Node:    "nyc-api-2",
 		Address: "127.0.0.2",
 		ID:      "web2",
@@ -759,7 +759,7 @@ func TestExecute_byTag(t *testing.T) {
 		Tags:    []string{"search"},
 	}
 
-	serviceWeb3 := &util.Service{
+	serviceWeb3 := &util.HealthService{
 		Node:    "nyc-api-3",
 		Address: "127.0.0.3",
 		ID:      "web3",
@@ -769,8 +769,8 @@ func TestExecute_byTag(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		services: map[string][]*util.Service{
-			"webapp [passing]": []*util.Service{serviceWeb1, serviceWeb2, serviceWeb3},
+		services: map[string][]*util.HealthService{
+			"webapp [passing]": []*util.HealthService{serviceWeb1, serviceWeb2, serviceWeb3},
 		},
 	}
 

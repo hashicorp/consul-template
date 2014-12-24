@@ -95,8 +95,8 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 			}
 			return c.nodes[d.Key()], nil
 		},
-		"service": func(s ...string) ([]*util.Service, error) {
-			d, err := util.ParseServiceDependency(s...)
+		"service": func(s ...string) ([]*util.HealthService, error) {
+			d, err := util.ParseHealthServices(s...)
 			if err != nil {
 				return nil, err
 			}
@@ -310,7 +310,7 @@ func nodesFunc(deps map[string]dependencyContextBridge) func(...string) (interfa
 // serviceFunc parses the value from the template into a usable object.
 func serviceFunc(deps map[string]dependencyContextBridge) func(...string) (interface{}, error) {
 	return func(s ...string) (interface{}, error) {
-		d, err := util.ParseServiceDependency(s...)
+		d, err := util.ParseHealthServices(s...)
 		if err != nil {
 			return nil, err
 		}
@@ -319,6 +319,6 @@ func serviceFunc(deps map[string]dependencyContextBridge) func(...string) (inter
 			deps[d.HashCode()] = &serviceDependencyBridge{d}
 		}
 
-		return []*util.Service{}, nil
+		return []*util.HealthService{}, nil
 	}
 }

@@ -21,8 +21,8 @@ const (
 	HealthCritical = "critical"
 )
 
-// Service is a service entry in Consul
-type Service struct {
+// HealthService is a service entry in Consul
+type HealthService struct {
 	Node    string
 	Address string
 	ID      string
@@ -32,7 +32,7 @@ type Service struct {
 }
 
 // from inside a template.
-type ServiceDependency struct {
+type HealthServices struct {
 	rawKey     string
 	Name       string
 	Tag        string
@@ -42,8 +42,8 @@ type ServiceDependency struct {
 }
 
 // Fetch queries the Consul API defined by the given client and returns a slice
-// of Service objects.
-func (d *ServiceDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
+// of HealthService objects.
+func (d *HealthServices) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
 	if d.DataCenter != "" {
 		options.Datacenter = d.DataCenter
 	}
@@ -58,7 +58,7 @@ func (d *ServiceDependency) Fetch(client *api.Client, options *api.QueryOptions)
 
 	log.Printf("[DEBUG] (%s) Consul returned %d services", d.Display(), len(entries))
 
-	services := make([]*Service, 0, len(entries))
+	services := make([]*HealthService, 0, len(entries))
 
 	for _, entry := range entries {
 		if !d.Status.accept(entry.Checks) {
@@ -67,7 +67,7 @@ func (d *ServiceDependency) Fetch(client *api.Client, options *api.QueryOptions)
 
 		tags := deepCopyAndSortTags(entry.Service.Tags)
 
-		services = append(services, &Service{
+		services = append(services, &HealthService{
 			Node:    entry.Node.Node,
 			Address: entry.Node.Address,
 			ID:      entry.Service.ID,
@@ -79,34 +79,34 @@ func (d *ServiceDependency) Fetch(client *api.Client, options *api.QueryOptions)
 
 	log.Printf("[DEBUG] (%s) %d services after health check status filtering", d.Display(), len(services))
 
-	sort.Stable(ServiceList(services))
+	sort.Stable(HealthServiceList(services))
 
 	return services, qm, nil
 }
 
-func (d *ServiceDependency) HashCode() string {
-	return fmt.Sprintf("ServiceDependency|%s", d.Key())
+func (d *HealthServices) HashCode() string {
+	return fmt.Sprintf("HealthServices|%s", d.Key())
 }
 
-func (d *ServiceDependency) Key() string {
+func (d *HealthServices) Key() string {
 	return d.rawKey
 }
 
-func (d *ServiceDependency) Display() string {
+func (d *HealthServices) Display() string {
 	return fmt.Sprintf(`service "%s"`, d.rawKey)
 }
 
-// ParseServiceDependency processes the incoming strings to build a service dependency.
+// ParseHealthServices processes the incoming strings to build a service dependency.
 //
 // Supported arguments
-//   ParseServiceDependency("service_id")
-//   ParseServiceDependency("service_id", "health_check")
+//   ParseHealthServices("service_id")
+//   ParseHealthServices("service_id", "health_check")
 //
 // Where service_id is in the format of service(.tag(@datacenter(:port)))
 // and health_check is either "any" or "passing".
 //
 // If no health_check is provided then its the same as "passing".
-func ParseServiceDependency(s ...string) (*ServiceDependency, error) {
+func ParseHealthServices(s ...string) (*HealthServices, error) {
 	var (
 		query  string
 		status ServiceStatusFilter
@@ -138,7 +138,7 @@ func ParseServiceDependency(s ...string) (*ServiceDependency, error) {
 	}
 
 	if len(query) == 0 {
-		return nil, errors.New("cannot specify empty service dependency")
+		return nil, errors.New("cannot specify empty health service dependency")
 	}
 
 	re := regexp.MustCompile(`\A` +
@@ -150,7 +150,7 @@ func ParseServiceDependency(s ...string) (*ServiceDependency, error) {
 	match := re.FindAllStringSubmatch(query, -1)
 
 	if len(match) == 0 {
-		return nil, errors.New("invalid service dependency format")
+		return nil, errors.New("invalid health service dependency format")
 	}
 
 	r := match[0]
@@ -168,7 +168,7 @@ func ParseServiceDependency(s ...string) (*ServiceDependency, error) {
 		return nil, errors.New("name part is required")
 	}
 
-	sd := &ServiceDependency{
+	sd := &HealthServices{
 		rawKey:     fmt.Sprintf("%s %s", query, status),
 		Name:       name,
 		Tag:        tag,
@@ -244,18 +244,18 @@ func (t ServiceTags) Contains(s string) bool {
 	return false
 }
 
-// ServiceList is a sortable slice of Service
-type ServiceList []*Service
+// HealthServiceList is a sortable slice of Service
+type HealthServiceList []*HealthService
 
-func (s ServiceList) Len() int {
+func (s HealthServiceList) Len() int {
 	return len(s)
 }
 
-func (s ServiceList) Swap(i, j int) {
+func (s HealthServiceList) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-func (s ServiceList) Less(i, j int) bool {
+func (s HealthServiceList) Less(i, j int) bool {
 	if s[i].Node < s[j].Node {
 		return true
 	} else if s[i].Node == s[j].Node {

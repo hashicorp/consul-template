@@ -130,13 +130,13 @@ func (d *nodesDependencyBridge) inContext(c *TemplateContext) bool {
 
 // serviceDependencyBridge is a bridged interface with extra helpers for
 // adding and removing items from a TemplateContext.
-type serviceDependencyBridge struct{ *util.ServiceDependency }
+type serviceDependencyBridge struct{ *util.HealthServices }
 
 // addToContext accepts a TemplateContext and data. It coerces the interface{}
 // data into the correct format via type assertions, returning an errors that
 // occur. The data is then set on the TemplateContext.
 func (d *serviceDependencyBridge) addToContext(c *TemplateContext, data interface{}) error {
-	coerced, ok := data.([]*util.Service)
+	coerced, ok := data.([]*util.HealthService)
 	if !ok {
 		return fmt.Errorf("service dependency: could not convert to Service")
 	}
