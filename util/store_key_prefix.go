@@ -17,9 +17,9 @@ type KeyPair struct {
 	Value string
 }
 
-// KeyPrefix is the representation of a requested key dependency
+// StoreKeyPrefix is the representation of a requested key dependency
 // from inside a template.
-type KeyPrefix struct {
+type StoreKeyPrefix struct {
 	rawKey     string
 	Prefix     string
 	DataCenter string
@@ -27,7 +27,7 @@ type KeyPrefix struct {
 
 // Fetch queries the Consul API defined by the given client and returns a slice
 // of KeyPair objects
-func (d *KeyPrefix) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
+func (d *StoreKeyPrefix) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
 	if d.DataCenter != "" {
 		options.Datacenter = d.DataCenter
 	}
@@ -57,20 +57,20 @@ func (d *KeyPrefix) Fetch(client *api.Client, options *api.QueryOptions) (interf
 	return keyPairs, qm, nil
 }
 
-func (d *KeyPrefix) HashCode() string {
-	return fmt.Sprintf("KeyPrefix|%s", d.Key())
+func (d *StoreKeyPrefix) HashCode() string {
+	return fmt.Sprintf("StoreKeyPrefix|%s", d.Key())
 }
 
-func (d *KeyPrefix) Key() string {
+func (d *StoreKeyPrefix) Key() string {
 	return d.rawKey
 }
 
-func (d *KeyPrefix) Display() string {
-	return fmt.Sprintf(`keyPrefix "%s"`, d.rawKey)
+func (d *StoreKeyPrefix) Display() string {
+	return fmt.Sprintf(`storeKeyPrefix "%s"`, d.rawKey)
 }
 
-// ParseKeyPrefix parses a string of the format a(/b(/c...))
-func ParseKeyPrefix(s string) (*KeyPrefix, error) {
+// ParseStoreKeyPrefix parses a string of the format a(/b(/c...))
+func ParseStoreKeyPrefix(s string) (*StoreKeyPrefix, error) {
 	// a(/b(/c))(@datacenter)
 	re := regexp.MustCompile(`\A` +
 		`(?P<prefix>[[:word:]\.\:\-\/]+)?` +
@@ -94,7 +94,7 @@ func ParseKeyPrefix(s string) (*KeyPrefix, error) {
 
 	prefix, datacenter := m["prefix"], m["datacenter"]
 
-	kpd := &KeyPrefix{
+	kpd := &StoreKeyPrefix{
 		rawKey:     s,
 		Prefix:     prefix,
 		DataCenter: datacenter,

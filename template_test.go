@@ -29,7 +29,7 @@ func TestDependencies_funcs(t *testing.T) {
 	inTemplate := test.CreateTempfile([]byte(`
     {{ range service "release.webapp" }}{{ end }}
     {{ key "service/redis/maxconns" }}
-    {{ range keyPrefix "service/redis/config" }}{{ end }}
+    {{ range storeKeyPrefix "service/redis/config" }}{{ end }}
   `), t)
 	defer test.DeleteTempfile(inTemplate, t)
 
@@ -154,9 +154,9 @@ func TestExecute_missingFile(t *testing.T) {
 	}
 }
 
-func TestExecute_missingKeyPrefix(t *testing.T) {
+func TestExecute_missingStoreKeyPrefix(t *testing.T) {
 	inTemplate := test.CreateTempfile([]byte(`
-    {{ range keyPrefix "service/nginx/config" }}{{ end }}
+    {{ range storeKeyPrefix "service/nginx/config" }}{{ end }}
   `), t)
 	defer test.DeleteTempfile(inTemplate, t)
 
@@ -171,7 +171,7 @@ func TestExecute_missingKeyPrefix(t *testing.T) {
 		t.Fatal("expected error, but nothing was returned")
 	}
 
-	expected := `template context missing keyPrefix "service/nginx/config"`
+	expected := `template context missing storeKeyPrefix "service/nginx/config"`
 	if !strings.Contains(executeErr.Error(), expected) {
 		t.Errorf("expected %q to contain %q", executeErr.Error(), expected)
 	}
@@ -300,9 +300,9 @@ func TestExecute_rendersFile(t *testing.T) {
 }
 
 // DEPRECATED. Use `ls` or `tree` instead.
-func TestExecute_rendersKeyPrefix(t *testing.T) {
+func TestExecute_rendersStoreKeyPrefix(t *testing.T) {
 	inTemplate := test.CreateTempfile([]byte(`
-    {{ range keyPrefix "service/redis" }}{{.Key}}={{.Value}}{{end}}
+    {{ range storeKeyPrefix "service/redis" }}{{.Key}}={{.Value}}{{end}}
   `), t)
 	defer test.DeleteTempfile(inTemplate, t)
 
@@ -312,7 +312,7 @@ func TestExecute_rendersKeyPrefix(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		keyPrefixes: map[string][]*util.KeyPair{
+		storeKeyPrefixes: map[string][]*util.KeyPair{
 			"service/redis": []*util.KeyPair{
 				&util.KeyPair{Path: "/path1", Key: "key1", Value: "value1"},
 				&util.KeyPair{Path: "/path2", Key: "key2", Value: "value2"},
@@ -399,7 +399,7 @@ func TestExecute_rendersLs(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		keyPrefixes: map[string][]*util.KeyPair{
+		storeKeyPrefixes: map[string][]*util.KeyPair{
 			"service/redis/config": []*util.KeyPair{
 				emptyFolderConfig,
 				minconnsConfig,
@@ -643,7 +643,7 @@ func TestExecute_rendersTree(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		keyPrefixes: map[string][]*util.KeyPair{
+		storeKeyPrefixes: map[string][]*util.KeyPair{
 			"service/redis/config": []*util.KeyPair{
 				minconnsConfig,
 				maxconnsConfig,

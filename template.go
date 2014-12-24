@@ -71,9 +71,9 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 		"file": func(s string) string {
 			return c.files[s]
 		},
-		"keyPrefix": func(s string) []*util.KeyPair {
-			log.Printf("[WARN] DEPRECATED: Please use `ls` or `tree` instead of `keyPrefix`")
-			return c.keyPrefixes[s]
+		"storeKeyPrefix": func(s string) []*util.KeyPair {
+			log.Printf("[WARN] DEPRECATED: Please use `ls` or `tree` instead of `storeKeyPrefix`")
+			return c.storeKeyPrefixes[s]
 		},
 		"key": func(s string) string {
 			return c.keys[s]
@@ -81,7 +81,7 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 		"ls": func(s string) []*util.KeyPair {
 			var result [](*util.KeyPair)
 			// Only return non-empty top-level keys
-			for _, pair := range c.keyPrefixes[s] {
+			for _, pair := range c.storeKeyPrefixes[s] {
 				if pair.Key != "" && !strings.Contains(pair.Key, "/") {
 					result = append(result, pair)
 				}
@@ -112,7 +112,7 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 		"tree": func(s string) []*util.KeyPair {
 			var result []*util.KeyPair
 			// Filter empty keys (folder nodes)
-			for _, pair := range c.keyPrefixes[s] {
+			for _, pair := range c.storeKeyPrefixes[s] {
 				parts := strings.Split(pair.Key, "/")
 				if parts[len(parts)-1] != "" {
 					result = append(result, pair)
@@ -157,14 +157,14 @@ func (t *Template) init() error {
 
 	tmpl, err := template.New("out").Funcs(template.FuncMap{
 		// API functions
-		"file":      fileFunc(deps),
-		"key":       keyFunc(deps),
-		"keyPrefix": keyPrefixFunc(deps),
-		"ls":        keyPrefixFunc(deps),
-		"nodes":     nodesFunc(deps),
-		"service":   serviceFunc(deps),
-		"services":  catalogServicesFunc(deps),
-		"tree":      keyPrefixFunc(deps),
+		"file":           fileFunc(deps),
+		"key":            keyFunc(deps),
+		"storeKeyPrefix": storeKeyPrefixFunc(deps),
+		"ls":             storeKeyPrefixFunc(deps),
+		"nodes":          nodesFunc(deps),
+		"service":        serviceFunc(deps),
+		"services":       catalogServicesFunc(deps),
+		"tree":           storeKeyPrefixFunc(deps),
 
 		// Helper functions
 		"byTag":           t.noop,
@@ -271,20 +271,20 @@ func keyFunc(deps map[string]dependencyContextBridge) func(...string) (interface
 	}
 }
 
-// keyPrefixFunc parses the value from the template into a usable object.
-func keyPrefixFunc(deps map[string]dependencyContextBridge) func(...string) (interface{}, error) {
+// storeKeyPrefixFunc parses the value from the template into a usable object.
+func storeKeyPrefixFunc(deps map[string]dependencyContextBridge) func(...string) (interface{}, error) {
 	return func(s ...string) (interface{}, error) {
 		if len(s) != 1 {
-			return nil, fmt.Errorf("keyPrefix: expected 1 argument, got %d", len(s))
+			return nil, fmt.Errorf("storeKeyPrefix: expected 1 argument, got %d", len(s))
 		}
 
-		d, err := util.ParseKeyPrefix(s[0])
+		d, err := util.ParseStoreKeyPrefix(s[0])
 		if err != nil {
 			return nil, err
 		}
 
 		if _, ok := deps[d.HashCode()]; !ok {
-			deps[d.HashCode()] = &keyPrefixBridge{d}
+			deps[d.HashCode()] = &storeKeyPrefixBridge{d}
 		}
 
 		return []*util.KeyPair{}, nil

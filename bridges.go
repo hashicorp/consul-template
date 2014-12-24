@@ -83,25 +83,25 @@ func (d *storeKeyBridge) inContext(c *TemplateContext) bool {
 	return ok
 }
 
-// keyPrefixBridge is a bridged interface with extra helpers for
+// storeKeyPrefixBridge is a bridged interface with extra helpers for
 // adding and removing items from a TemplateContext.
-type keyPrefixBridge struct{ *util.KeyPrefix }
+type storeKeyPrefixBridge struct{ *util.StoreKeyPrefix }
 
 // data into the correct format via type assertions, returning an errors that
 // occur. The data is then set on the TemplateContext.
-func (d *keyPrefixBridge) addToContext(c *TemplateContext, data interface{}) error {
+func (d *storeKeyPrefixBridge) addToContext(c *TemplateContext, data interface{}) error {
 	coerced, ok := data.([]*util.KeyPair)
 	if !ok {
 		return fmt.Errorf("key prefix dependency: could not convert to KeyPair")
 	}
 
-	c.keyPrefixes[d.Key()] = coerced
+	c.storeKeyPrefixes[d.Key()] = coerced
 	return nil
 }
 
 // InContext checks if the dependency is contained in the given TemplateContext.
-func (d *keyPrefixBridge) inContext(c *TemplateContext) bool {
-	_, ok := c.keyPrefixes[d.Key()]
+func (d *storeKeyPrefixBridge) inContext(c *TemplateContext) bool {
+	_, ok := c.storeKeyPrefixes[d.Key()]
 	return ok
 }
 

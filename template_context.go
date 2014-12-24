@@ -12,24 +12,24 @@ import (
 // TemplateContext is what Template uses to determine the values that are
 // available for template parsing.
 type TemplateContext struct {
-	catalogServices map[string][]*util.CatalogService
-	files           map[string]string
-	keys            map[string]string
-	keyPrefixes     map[string][]*util.KeyPair
-	nodes           map[string][]*util.Node
-	services        map[string][]*util.HealthService
+	catalogServices  map[string][]*util.CatalogService
+	files            map[string]string
+	keys             map[string]string
+	storeKeyPrefixes map[string][]*util.KeyPair
+	nodes            map[string][]*util.Node
+	services         map[string][]*util.HealthService
 }
 
 // NewTemplateContext creates a new TemplateContext with empty values for each
 // of the key structs.
 func NewTemplateContext() (*TemplateContext, error) {
 	return &TemplateContext{
-		catalogServices: make(map[string][]*util.CatalogService),
-		files:           make(map[string]string),
-		keys:            make(map[string]string),
-		keyPrefixes:     make(map[string][]*util.KeyPair),
-		nodes:           make(map[string][]*util.Node),
-		services:        make(map[string][]*util.HealthService),
+		catalogServices:  make(map[string][]*util.CatalogService),
+		files:            make(map[string]string),
+		keys:             make(map[string]string),
+		storeKeyPrefixes: make(map[string][]*util.KeyPair),
+		nodes:            make(map[string][]*util.Node),
+		services:         make(map[string][]*util.HealthService),
 	}, nil
 }
 
