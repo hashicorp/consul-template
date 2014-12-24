@@ -15,14 +15,14 @@ type Node struct {
 	Address string
 }
 
-type NodesDependency struct {
+type CatalogNodes struct {
 	rawKey     string
 	DataCenter string
 }
 
 // Fetch queries the Consul API defined by the given client and returns a slice
 // of Node objects
-func (d *NodesDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
+func (d *CatalogNodes) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
 	if d.DataCenter != "" {
 		options.Datacenter = d.DataCenter
 	}
@@ -48,15 +48,15 @@ func (d *NodesDependency) Fetch(client *api.Client, options *api.QueryOptions) (
 	return nodes, qm, nil
 }
 
-func (d *NodesDependency) HashCode() string {
-	return fmt.Sprintf("NodesDependency|%s", d.Key())
+func (d *CatalogNodes) HashCode() string {
+	return fmt.Sprintf("CatalogNodes|%s", d.Key())
 }
 
-func (d *NodesDependency) Key() string {
+func (d *CatalogNodes) Key() string {
 	return d.rawKey
 }
 
-func (d *NodesDependency) Display() string {
+func (d *CatalogNodes) Display() string {
 	if d.rawKey == "" {
 		return fmt.Sprintf("nodes")
 	}
@@ -64,11 +64,11 @@ func (d *NodesDependency) Display() string {
 	return fmt.Sprintf(`nodes "%s"`, d.rawKey)
 }
 
-// ParseNodesDependency parses a string of the format @dc.
-func ParseNodesDependency(s ...string) (*NodesDependency, error) {
+// ParseCatalogNodes parses a string of the format @dc.
+func ParseCatalogNodes(s ...string) (*CatalogNodes, error) {
 	switch len(s) {
 	case 0:
-		return &NodesDependency{rawKey: ""}, nil
+		return &CatalogNodes{rawKey: ""}, nil
 	case 1:
 		dc := s[0]
 
@@ -91,7 +91,7 @@ func ParseNodesDependency(s ...string) (*NodesDependency, error) {
 			}
 		}
 
-		nd := &NodesDependency{
+		nd := &CatalogNodes{
 			rawKey:     dc,
 			DataCenter: m["datacenter"],
 		}

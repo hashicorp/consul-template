@@ -105,14 +105,14 @@ func (d *keyPrefixBridge) inContext(c *TemplateContext) bool {
 	return ok
 }
 
-// nodesDependencyBridge is a bridged interface with extra helpers for
+// catalogNodesBridge is a bridged interface with extra helpers for
 // adding and removing items from a TemplateContext.
-type nodesDependencyBridge struct{ *util.NodesDependency }
+type catalogNodesBridge struct{ *util.CatalogNodes }
 
 // addToContext accepts a TemplateContext and data. It coerces the interface{}
 // data into the correct format via type assertions, returning an errors that
 // occur. The data is then set on the TemplateContext.
-func (d *nodesDependencyBridge) addToContext(c *TemplateContext, data interface{}) error {
+func (d *catalogNodesBridge) addToContext(c *TemplateContext, data interface{}) error {
 	coerced, ok := data.([]*util.Node)
 	if !ok {
 		return fmt.Errorf("nodes dependency: could not convert to Node")
@@ -123,7 +123,7 @@ func (d *nodesDependencyBridge) addToContext(c *TemplateContext, data interface{
 }
 
 // inContext checks if the dependency is contained in the given TemplateContext.
-func (d *nodesDependencyBridge) inContext(c *TemplateContext) bool {
+func (d *catalogNodesBridge) inContext(c *TemplateContext) bool {
 	_, ok := c.nodes[d.Key()]
 	return ok
 }

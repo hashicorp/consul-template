@@ -89,7 +89,7 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 			return result
 		},
 		"nodes": func(s ...string) ([]*util.Node, error) {
-			d, err := util.ParseNodesDependency(s...)
+			d, err := util.ParseCatalogNodes(s...)
 			if err != nil {
 				return nil, err
 			}
@@ -294,13 +294,13 @@ func keyPrefixFunc(deps map[string]dependencyContextBridge) func(...string) (int
 // nodesFunc parses the value from the template into a usable object.
 func nodesFunc(deps map[string]dependencyContextBridge) func(...string) (interface{}, error) {
 	return func(s ...string) (interface{}, error) {
-		d, err := util.ParseNodesDependency(s...)
+		d, err := util.ParseCatalogNodes(s...)
 		if err != nil {
 			return nil, err
 		}
 
 		if _, ok := deps[d.HashCode()]; !ok {
-			deps[d.HashCode()] = &nodesDependencyBridge{d}
+			deps[d.HashCode()] = &catalogNodesBridge{d}
 		}
 
 		return []*util.Node{}, nil
