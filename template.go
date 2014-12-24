@@ -103,7 +103,7 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 			return c.services[d.Key()], nil
 		},
 		"services": func(s ...string) ([]*util.CatalogService, error) {
-			d, err := util.ParseCatalogServicesDependency(s...)
+			d, err := util.ParseCatalogServices(s...)
 			if err != nil {
 				return nil, err
 			}
@@ -217,13 +217,13 @@ func (t *Template) noop(thing ...interface{}) (interface{}, error) {
 // catalogServicesFunc parses the value from the template into a usable object.
 func catalogServicesFunc(deps map[string]dependencyContextBridge) func(...string) (interface{}, error) {
 	return func(s ...string) (interface{}, error) {
-		d, err := util.ParseCatalogServicesDependency(s...)
+		d, err := util.ParseCatalogServices(s...)
 		if err != nil {
 			return nil, err
 		}
 
 		if _, ok := deps[d.HashCode()]; !ok {
-			deps[d.HashCode()] = &catalogServicesDependencyBridge{d}
+			deps[d.HashCode()] = &catalogServicesBridge{d}
 		}
 
 		var result map[string][]string

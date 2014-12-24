@@ -12,16 +12,16 @@ type dependencyContextBridge interface {
 	inContext(*TemplateContext) bool
 }
 
-// catalogServicesDependencyBridge is a bridged interface with extra helpers for
+// catalogServicesBridge is a bridged interface with extra helpers for
 // adding and removing items from a TemplateContext.
-type catalogServicesDependencyBridge struct {
-	*util.CatalogServicesDependency
+type catalogServicesBridge struct {
+	*util.CatalogServices
 }
 
 // addToContext accepts a TemplateContext and data. It coerces the interface{}
 // data into the correct format via type assertions, returning an errors that
 // occur. The data is then set on the TemplateContext.
-func (d *catalogServicesDependencyBridge) addToContext(c *TemplateContext, data interface{}) error {
+func (d *catalogServicesBridge) addToContext(c *TemplateContext, data interface{}) error {
 	coerced, ok := data.([]*util.CatalogService)
 	if !ok {
 		return fmt.Errorf("services dependency: could not convert to CatalogService")
@@ -32,7 +32,7 @@ func (d *catalogServicesDependencyBridge) addToContext(c *TemplateContext, data 
 }
 
 // inContext checks if the dependency is contained in the given TemplateContext.
-func (d *catalogServicesDependencyBridge) inContext(c *TemplateContext) bool {
+func (d *catalogServicesBridge) inContext(c *TemplateContext) bool {
 	_, ok := c.catalogServices[d.Key()]
 	return ok
 }
