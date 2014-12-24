@@ -346,7 +346,7 @@ func TestExecute_rendersKey(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		keys: map[string]string{
+		storeKeys: map[string]string{
 			"service/redis/minconns": "2",
 			"service/redis/maxconns": "11",
 		},
@@ -446,7 +446,7 @@ func TestExecute_rendersNodes(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		nodes: map[string][]*util.Node{
+		catalogNodes: map[string][]*util.Node{
 			"": []*util.Node{node1, node2},
 		},
 	}
@@ -495,7 +495,7 @@ func TestExecute_rendersService(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		services: map[string][]*util.HealthService{
+		healthServices: map[string][]*util.HealthService{
 			"release.webapp [passing]": []*util.HealthService{serviceWeb1, serviceWeb2},
 		},
 	}
@@ -544,7 +544,7 @@ func TestExecute_rendersServiceWithHealthCheckArgument(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		services: map[string][]*util.HealthService{
+		healthServices: map[string][]*util.HealthService{
 			"release.webapp [any]": []*util.HealthService{serviceWeb1, serviceWeb2},
 		},
 	}
@@ -702,7 +702,7 @@ func TestExecute_serviceTagsContains(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		services: map[string][]*util.HealthService{
+		healthServices: map[string][]*util.HealthService{
 			"web [passing]": []*util.HealthService{service1, service2},
 		},
 	}
@@ -769,7 +769,7 @@ func TestExecute_byTag(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		services: map[string][]*util.HealthService{
+		healthServices: map[string][]*util.HealthService{
 			"webapp [passing]": []*util.HealthService{serviceWeb1, serviceWeb2, serviceWeb3},
 		},
 	}

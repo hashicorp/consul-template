@@ -76,7 +76,7 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 			return c.storeKeyPrefixes[s]
 		},
 		"key": func(s string) string {
-			return c.keys[s]
+			return c.storeKeys[s]
 		},
 		"ls": func(s string) []*util.KeyPair {
 			var result [](*util.KeyPair)
@@ -93,14 +93,14 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 			if err != nil {
 				return nil, err
 			}
-			return c.nodes[d.Key()], nil
+			return c.catalogNodes[d.Key()], nil
 		},
 		"service": func(s ...string) ([]*util.HealthService, error) {
 			d, err := util.ParseHealthServices(s...)
 			if err != nil {
 				return nil, err
 			}
-			return c.services[d.Key()], nil
+			return c.healthServices[d.Key()], nil
 		},
 		"services": func(s ...string) ([]*util.CatalogService, error) {
 			d, err := util.ParseCatalogServices(s...)

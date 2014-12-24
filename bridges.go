@@ -73,13 +73,13 @@ func (d *storeKeyBridge) addToContext(c *TemplateContext, data interface{}) erro
 		return fmt.Errorf("key dependency: could not convert to string")
 	}
 
-	c.keys[d.Key()] = coerced
+	c.storeKeys[d.Key()] = coerced
 	return nil
 }
 
 // inContext checks if the dependency is contained in the given TemplateContext.
 func (d *storeKeyBridge) inContext(c *TemplateContext) bool {
-	_, ok := c.keys[d.Key()]
+	_, ok := c.storeKeys[d.Key()]
 	return ok
 }
 
@@ -118,13 +118,13 @@ func (d *catalogNodesBridge) addToContext(c *TemplateContext, data interface{}) 
 		return fmt.Errorf("nodes dependency: could not convert to Node")
 	}
 
-	c.nodes[d.Key()] = coerced
+	c.catalogNodes[d.Key()] = coerced
 	return nil
 }
 
 // inContext checks if the dependency is contained in the given TemplateContext.
 func (d *catalogNodesBridge) inContext(c *TemplateContext) bool {
-	_, ok := c.nodes[d.Key()]
+	_, ok := c.catalogNodes[d.Key()]
 	return ok
 }
 
@@ -141,12 +141,12 @@ func (d *serviceDependencyBridge) addToContext(c *TemplateContext, data interfac
 		return fmt.Errorf("service dependency: could not convert to Service")
 	}
 
-	c.services[d.Key()] = coerced
+	c.healthServices[d.Key()] = coerced
 	return nil
 }
 
 // inContext checks if the dependency is contained in the given TemplateContext.
 func (d *serviceDependencyBridge) inContext(c *TemplateContext) bool {
-	_, ok := c.services[d.Key()]
+	_, ok := c.healthServices[d.Key()]
 	return ok
 }
