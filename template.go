@@ -278,13 +278,13 @@ func keyPrefixFunc(deps map[string]dependencyContextBridge) func(...string) (int
 			return nil, fmt.Errorf("keyPrefix: expected 1 argument, got %d", len(s))
 		}
 
-		d, err := util.ParseKeyPrefixDependency(s[0])
+		d, err := util.ParseKeyPrefix(s[0])
 		if err != nil {
 			return nil, err
 		}
 
 		if _, ok := deps[d.HashCode()]; !ok {
-			deps[d.HashCode()] = &keyPrefixDependencyBridge{d}
+			deps[d.HashCode()] = &keyPrefixBridge{d}
 		}
 
 		return []*util.KeyPair{}, nil

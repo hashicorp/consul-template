@@ -42,7 +42,7 @@ func (d *File) Fetch(client *api.Client, options *api.QueryOptions) (interface{}
 }
 
 func (d *File) HashCode() string {
-	return fmt.Sprintf("KeyPrefixDependency|%s", d.Key())
+	return fmt.Sprintf("KeyPrefix|%s", d.Key())
 }
 
 func (d *File) Key() string {
