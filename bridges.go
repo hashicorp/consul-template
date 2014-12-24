@@ -60,14 +60,14 @@ func (d *fileBridge) inContext(c *TemplateContext) bool {
 	return ok
 }
 
-// keyDependencyBridge is a bridged interface with extra helpers for
+// storeKeyBridge is a bridged interface with extra helpers for
 // adding and removing items from a TemplateContext.
-type keyDependencyBridge struct{ *util.KeyDependency }
+type storeKeyBridge struct{ *util.StoreKey }
 
 // addToContext accepts a TemplateContext and data. It coerces the interface{}
 // data into the correct format via type assertions, returning an errors that
 // occur. The data is then set on the TemplateContext.
-func (d *keyDependencyBridge) addToContext(c *TemplateContext, data interface{}) error {
+func (d *storeKeyBridge) addToContext(c *TemplateContext, data interface{}) error {
 	coerced, ok := data.(string)
 	if !ok {
 		return fmt.Errorf("key dependency: could not convert to string")
@@ -78,7 +78,7 @@ func (d *keyDependencyBridge) addToContext(c *TemplateContext, data interface{})
 }
 
 // inContext checks if the dependency is contained in the given TemplateContext.
-func (d *keyDependencyBridge) inContext(c *TemplateContext) bool {
+func (d *storeKeyBridge) inContext(c *TemplateContext) bool {
 	_, ok := c.keys[d.Key()]
 	return ok
 }

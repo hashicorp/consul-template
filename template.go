@@ -258,13 +258,13 @@ func keyFunc(deps map[string]dependencyContextBridge) func(...string) (interface
 			return nil, fmt.Errorf("key: expected 1 argument, got %d", len(s))
 		}
 
-		d, err := util.ParseKeyDependency(s[0])
+		d, err := util.ParseStoreKey(s[0])
 		if err != nil {
 			return nil, err
 		}
 
 		if _, ok := deps[d.HashCode()]; !ok {
-			deps[d.HashCode()] = &keyDependencyBridge{d}
+			deps[d.HashCode()] = &storeKeyBridge{d}
 		}
 
 		return "", nil
