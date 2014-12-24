@@ -157,7 +157,7 @@ func (t *Template) init() error {
 
 	tmpl, err := template.New("out").Funcs(template.FuncMap{
 		// API functions
-		"file":      fileDependencyFunc(deps),
+		"file":      fileFunc(deps),
 		"key":       keyFunc(deps),
 		"keyPrefix": keyPrefixFunc(deps),
 		"ls":        keyPrefixFunc(deps),
@@ -231,20 +231,20 @@ func catalogServicesFunc(deps map[string]dependencyContextBridge) func(...string
 	}
 }
 
-// fileDependencyFunc parses the value from the template into a usable object.
-func fileDependencyFunc(deps map[string]dependencyContextBridge) func(...string) (interface{}, error) {
+// fileFunc parses the value from the template into a usable object.
+func fileFunc(deps map[string]dependencyContextBridge) func(...string) (interface{}, error) {
 	return func(s ...string) (interface{}, error) {
 		if len(s) != 1 {
 			return nil, fmt.Errorf("file: expected 1 argument, got %d", len(s))
 		}
 
-		d, err := util.ParseFileDependency(s[0])
+		d, err := util.ParseFile(s[0])
 		if err != nil {
 			return nil, err
 		}
 
 		if _, ok := deps[d.HashCode()]; !ok {
-			deps[d.HashCode()] = &fileDependencyBridge{d}
+			deps[d.HashCode()] = &fileBridge{d}
 		}
 
 		return "", nil

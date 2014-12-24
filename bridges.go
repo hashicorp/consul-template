@@ -37,14 +37,14 @@ func (d *catalogServicesBridge) inContext(c *TemplateContext) bool {
 	return ok
 }
 
-// fileDependencyBridge is a bridged interface with extra helpers for
+// fileBridge is a bridged interface with extra helpers for
 // adding and removing items from a TemplateContext.
-type fileDependencyBridge struct{ *util.FileDependency }
+type fileBridge struct{ *util.File }
 
 // addToContext accepts a TemplateContext and data. It coerces the interface{}
 // data into the correct format via type assertions, returning an errors that
 // occur. The data is then set on the TemplateContext.
-func (d *fileDependencyBridge) addToContext(c *TemplateContext, data interface{}) error {
+func (d *fileBridge) addToContext(c *TemplateContext, data interface{}) error {
 	coerced, ok := data.(string)
 	if !ok {
 		return fmt.Errorf("file dependency: could not convert to string")
@@ -55,7 +55,7 @@ func (d *fileDependencyBridge) addToContext(c *TemplateContext, data interface{}
 }
 
 // inContext checks if the dependency is contained in the given TemplateContext.
-func (d *fileDependencyBridge) inContext(c *TemplateContext) bool {
+func (d *fileBridge) inContext(c *TemplateContext) bool {
 	_, ok := c.files[d.Key()]
 	return ok
 }
