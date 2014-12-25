@@ -32,7 +32,8 @@ type Config struct {
 	ConfigTemplates []*ConfigTemplate `mapstructure:"template"`
 
 	// Retry is the duration of time to wait between Consul failures.
-	Retry time.Duration `mapstructure:"retry"`
+	Retry    time.Duration `mapstructure:"-"`
+	RetryRaw string        `mapstructure:"retry" json:""`
 
 	// Token is the Consul API token.
 	Token string `mapstructure:"token"`
@@ -60,6 +61,10 @@ func (c *Config) Merge(config *Config) {
 				Command:     template.Command,
 			})
 		}
+	}
+
+	if config.Retry != 0 {
+		c.Retry = config.Retry
 	}
 
 	if config.Token != "" {
@@ -105,6 +110,17 @@ func ParseConfig(path string) (*Config, error) {
 
 	// Store a reference to the path where this config was read from
 	config.Path = path
+
+	// Parse the Retry component
+	if raw := config.RetryRaw; raw != "" {
+		retry, err := time.ParseDuration(raw)
+
+		if err == nil {
+			config.Retry = retry
+		} else {
+			errs = multierror.Append(errs, fmt.Errorf("retry invalid: %v", err))
+		}
+	}
 
 	// Parse the Wait component
 	if raw := config.WaitRaw; raw != "" {
