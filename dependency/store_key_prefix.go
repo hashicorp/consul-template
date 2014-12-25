@@ -1,4 +1,4 @@
-package util
+package dependency
 
 import (
 	"errors"
@@ -17,9 +17,9 @@ type KeyPair struct {
 	Value string
 }
 
-// KeyPrefixDependency is the representation of a requested key dependency
+// StoreKeyPrefix is the representation of a requested key dependency
 // from inside a template.
-type KeyPrefixDependency struct {
+type StoreKeyPrefix struct {
 	rawKey     string
 	Prefix     string
 	DataCenter string
@@ -27,7 +27,7 @@ type KeyPrefixDependency struct {
 
 // Fetch queries the Consul API defined by the given client and returns a slice
 // of KeyPair objects
-func (d *KeyPrefixDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
+func (d *StoreKeyPrefix) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
 	if d.DataCenter != "" {
 		options.Datacenter = d.DataCenter
 	}
@@ -57,20 +57,20 @@ func (d *KeyPrefixDependency) Fetch(client *api.Client, options *api.QueryOption
 	return keyPairs, qm, nil
 }
 
-func (d *KeyPrefixDependency) HashCode() string {
-	return fmt.Sprintf("KeyPrefixDependency|%s", d.Key())
+func (d *StoreKeyPrefix) HashCode() string {
+	return fmt.Sprintf("StoreKeyPrefix|%s", d.Key())
 }
 
-func (d *KeyPrefixDependency) Key() string {
+func (d *StoreKeyPrefix) Key() string {
 	return d.rawKey
 }
 
-func (d *KeyPrefixDependency) Display() string {
-	return fmt.Sprintf(`keyPrefix "%s"`, d.rawKey)
+func (d *StoreKeyPrefix) Display() string {
+	return fmt.Sprintf(`storeKeyPrefix "%s"`, d.rawKey)
 }
 
-// ParseKeyPrefixDependency parses a string of the format a(/b(/c...))
-func ParseKeyPrefixDependency(s string) (*KeyPrefixDependency, error) {
+// ParseStoreKeyPrefix parses a string of the format a(/b(/c...))
+func ParseStoreKeyPrefix(s string) (*StoreKeyPrefix, error) {
 	// a(/b(/c))(@datacenter)
 	re := regexp.MustCompile(`\A` +
 		`(?P<prefix>[[:word:]\.\:\-\/]+)?` +
@@ -94,7 +94,7 @@ func ParseKeyPrefixDependency(s string) (*KeyPrefixDependency, error) {
 
 	prefix, datacenter := m["prefix"], m["datacenter"]
 
-	kpd := &KeyPrefixDependency{
+	kpd := &StoreKeyPrefix{
 		rawKey:     s,
 		Prefix:     prefix,
 		DataCenter: datacenter,

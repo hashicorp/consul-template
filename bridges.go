@@ -3,26 +3,26 @@ package main
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul-template/util"
+	"github.com/hashicorp/consul-template/dependency"
 )
 
 type dependencyContextBridge interface {
-	util.Dependency
+	dependency.Dependency
 	addToContext(*TemplateContext, interface{}) error
 	inContext(*TemplateContext) bool
 }
 
-// catalogServicesDependencyBridge is a bridged interface with extra helpers for
+// catalogServicesBridge is a bridged interface with extra helpers for
 // adding and removing items from a TemplateContext.
-type catalogServicesDependencyBridge struct {
-	*util.CatalogServicesDependency
+type catalogServicesBridge struct {
+	*dependency.CatalogServices
 }
 
 // addToContext accepts a TemplateContext and data. It coerces the interface{}
 // data into the correct format via type assertions, returning an errors that
 // occur. The data is then set on the TemplateContext.
-func (d *catalogServicesDependencyBridge) addToContext(c *TemplateContext, data interface{}) error {
-	coerced, ok := data.([]*util.CatalogService)
+func (d *catalogServicesBridge) addToContext(c *TemplateContext, data interface{}) error {
+	coerced, ok := data.([]*dependency.CatalogService)
 	if !ok {
 		return fmt.Errorf("services dependency: could not convert to CatalogService")
 	}
@@ -32,19 +32,19 @@ func (d *catalogServicesDependencyBridge) addToContext(c *TemplateContext, data 
 }
 
 // inContext checks if the dependency is contained in the given TemplateContext.
-func (d *catalogServicesDependencyBridge) inContext(c *TemplateContext) bool {
+func (d *catalogServicesBridge) inContext(c *TemplateContext) bool {
 	_, ok := c.catalogServices[d.Key()]
 	return ok
 }
 
-// fileDependencyBridge is a bridged interface with extra helpers for
+// fileBridge is a bridged interface with extra helpers for
 // adding and removing items from a TemplateContext.
-type fileDependencyBridge struct{ *util.FileDependency }
+type fileBridge struct{ *dependency.File }
 
 // addToContext accepts a TemplateContext and data. It coerces the interface{}
 // data into the correct format via type assertions, returning an errors that
 // occur. The data is then set on the TemplateContext.
-func (d *fileDependencyBridge) addToContext(c *TemplateContext, data interface{}) error {
+func (d *fileBridge) addToContext(c *TemplateContext, data interface{}) error {
 	coerced, ok := data.(string)
 	if !ok {
 		return fmt.Errorf("file dependency: could not convert to string")
@@ -55,98 +55,98 @@ func (d *fileDependencyBridge) addToContext(c *TemplateContext, data interface{}
 }
 
 // inContext checks if the dependency is contained in the given TemplateContext.
-func (d *fileDependencyBridge) inContext(c *TemplateContext) bool {
+func (d *fileBridge) inContext(c *TemplateContext) bool {
 	_, ok := c.files[d.Key()]
 	return ok
 }
 
-// keyDependencyBridge is a bridged interface with extra helpers for
+// storeKeyBridge is a bridged interface with extra helpers for
 // adding and removing items from a TemplateContext.
-type keyDependencyBridge struct{ *util.KeyDependency }
+type storeKeyBridge struct{ *dependency.StoreKey }
 
 // addToContext accepts a TemplateContext and data. It coerces the interface{}
 // data into the correct format via type assertions, returning an errors that
 // occur. The data is then set on the TemplateContext.
-func (d *keyDependencyBridge) addToContext(c *TemplateContext, data interface{}) error {
+func (d *storeKeyBridge) addToContext(c *TemplateContext, data interface{}) error {
 	coerced, ok := data.(string)
 	if !ok {
 		return fmt.Errorf("key dependency: could not convert to string")
 	}
 
-	c.keys[d.Key()] = coerced
+	c.storeKeys[d.Key()] = coerced
 	return nil
 }
 
 // inContext checks if the dependency is contained in the given TemplateContext.
-func (d *keyDependencyBridge) inContext(c *TemplateContext) bool {
-	_, ok := c.keys[d.Key()]
+func (d *storeKeyBridge) inContext(c *TemplateContext) bool {
+	_, ok := c.storeKeys[d.Key()]
 	return ok
 }
 
-// keyPrefixDependencyBridge is a bridged interface with extra helpers for
+// storeKeyPrefixBridge is a bridged interface with extra helpers for
 // adding and removing items from a TemplateContext.
-type keyPrefixDependencyBridge struct{ *util.KeyPrefixDependency }
+type storeKeyPrefixBridge struct{ *dependency.StoreKeyPrefix }
 
 // data into the correct format via type assertions, returning an errors that
 // occur. The data is then set on the TemplateContext.
-func (d *keyPrefixDependencyBridge) addToContext(c *TemplateContext, data interface{}) error {
-	coerced, ok := data.([]*util.KeyPair)
+func (d *storeKeyPrefixBridge) addToContext(c *TemplateContext, data interface{}) error {
+	coerced, ok := data.([]*dependency.KeyPair)
 	if !ok {
 		return fmt.Errorf("key prefix dependency: could not convert to KeyPair")
 	}
 
-	c.keyPrefixes[d.Key()] = coerced
+	c.storeKeyPrefixes[d.Key()] = coerced
 	return nil
 }
 
 // InContext checks if the dependency is contained in the given TemplateContext.
-func (d *keyPrefixDependencyBridge) inContext(c *TemplateContext) bool {
-	_, ok := c.keyPrefixes[d.Key()]
+func (d *storeKeyPrefixBridge) inContext(c *TemplateContext) bool {
+	_, ok := c.storeKeyPrefixes[d.Key()]
 	return ok
 }
 
-// nodesDependencyBridge is a bridged interface with extra helpers for
+// catalogNodesBridge is a bridged interface with extra helpers for
 // adding and removing items from a TemplateContext.
-type nodesDependencyBridge struct{ *util.NodesDependency }
+type catalogNodesBridge struct{ *dependency.CatalogNodes }
 
 // addToContext accepts a TemplateContext and data. It coerces the interface{}
 // data into the correct format via type assertions, returning an errors that
 // occur. The data is then set on the TemplateContext.
-func (d *nodesDependencyBridge) addToContext(c *TemplateContext, data interface{}) error {
-	coerced, ok := data.([]*util.Node)
+func (d *catalogNodesBridge) addToContext(c *TemplateContext, data interface{}) error {
+	coerced, ok := data.([]*dependency.Node)
 	if !ok {
 		return fmt.Errorf("nodes dependency: could not convert to Node")
 	}
 
-	c.nodes[d.Key()] = coerced
+	c.catalogNodes[d.Key()] = coerced
 	return nil
 }
 
 // inContext checks if the dependency is contained in the given TemplateContext.
-func (d *nodesDependencyBridge) inContext(c *TemplateContext) bool {
-	_, ok := c.nodes[d.Key()]
+func (d *catalogNodesBridge) inContext(c *TemplateContext) bool {
+	_, ok := c.catalogNodes[d.Key()]
 	return ok
 }
 
 // serviceDependencyBridge is a bridged interface with extra helpers for
 // adding and removing items from a TemplateContext.
-type serviceDependencyBridge struct{ *util.ServiceDependency }
+type serviceDependencyBridge struct{ *dependency.HealthServices }
 
 // addToContext accepts a TemplateContext and data. It coerces the interface{}
 // data into the correct format via type assertions, returning an errors that
 // occur. The data is then set on the TemplateContext.
 func (d *serviceDependencyBridge) addToContext(c *TemplateContext, data interface{}) error {
-	coerced, ok := data.([]*util.Service)
+	coerced, ok := data.([]*dependency.HealthService)
 	if !ok {
 		return fmt.Errorf("service dependency: could not convert to Service")
 	}
 
-	c.services[d.Key()] = coerced
+	c.healthServices[d.Key()] = coerced
 	return nil
 }
 
 // inContext checks if the dependency is contained in the given TemplateContext.
 func (d *serviceDependencyBridge) inContext(c *TemplateContext) bool {
-	_, ok := c.services[d.Key()]
+	_, ok := c.healthServices[d.Key()]
 	return ok
 }

@@ -1,4 +1,4 @@
-package util
+package watch
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	api "github.com/armon/consul-api"
+	"github.com/hashicorp/consul-template/dependency"
 )
 
 const (
@@ -20,7 +21,7 @@ const (
 // View is a representation of a Dependency and the most recent data it has
 // received from Consul.
 type View struct {
-	Dependency Dependency
+	Dependency dependency.Dependency
 
 	Data         interface{}
 	receivedData bool
@@ -31,7 +32,7 @@ type View struct {
 
 // NewView creates a new view object from the given Consul API client and
 // Dependency. If an error occurs, it will be returned.
-func NewView(client *api.Client, dep Dependency) (*View, error) {
+func NewView(client *api.Client, dep dependency.Dependency) (*View, error) {
 	if client == nil {
 		return nil, fmt.Errorf("view: missing Consul API client")
 	}

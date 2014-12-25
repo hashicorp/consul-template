@@ -1,4 +1,4 @@
-package util
+package dependency
 
 import (
 	"errors"
@@ -10,7 +10,7 @@ import (
 )
 
 // from inside a template.
-type KeyDependency struct {
+type StoreKey struct {
 	rawKey     string
 	Path       string
 	DataCenter string
@@ -18,7 +18,7 @@ type KeyDependency struct {
 
 // Fetch queries the Consul API defined by the given client and returns string
 // of the value to Path.
-func (d *KeyDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
+func (d *StoreKey) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
 	if d.DataCenter != "" {
 		options.Datacenter = d.DataCenter
 	}
@@ -42,20 +42,20 @@ func (d *KeyDependency) Fetch(client *api.Client, options *api.QueryOptions) (in
 	return string(pair.Value), qm, nil
 }
 
-func (d *KeyDependency) HashCode() string {
-	return fmt.Sprintf("KeyDependency|%s", d.Key())
+func (d *StoreKey) HashCode() string {
+	return fmt.Sprintf("StoreKey|%s", d.Key())
 }
 
-func (d *KeyDependency) Key() string {
+func (d *StoreKey) Key() string {
 	return d.rawKey
 }
 
-func (d *KeyDependency) Display() string {
+func (d *StoreKey) Display() string {
 	return fmt.Sprintf(`key "%s"`, d.rawKey)
 }
 
-// ParseKeyDependency parses a string of the format a(/b(/c...))
-func ParseKeyDependency(s string) (*KeyDependency, error) {
+// ParseStoreKey parses a string of the format a(/b(/c...))
+func ParseStoreKey(s string) (*StoreKey, error) {
 	if len(s) == 0 {
 		return nil, errors.New("cannot specify empty key dependency")
 	}
@@ -86,7 +86,7 @@ func ParseKeyDependency(s string) (*KeyDependency, error) {
 		return nil, errors.New("key part is required")
 	}
 
-	kd := &KeyDependency{
+	kd := &StoreKey{
 		rawKey:     s,
 		Path:       key,
 		DataCenter: datacenter,

@@ -1,4 +1,4 @@
-package util
+package dependency
 
 import (
 	"io/ioutil"
@@ -8,12 +8,12 @@ import (
 	"github.com/hashicorp/consul-template/test"
 )
 
-func TestFileDependencyFetch(t *testing.T) {
+func TestFileFetch(t *testing.T) {
 	data := `{"foo":"bar"}`
 	inTemplate := test.CreateTempfile([]byte(data), t)
 	defer test.DeleteTempfile(inTemplate, t)
 
-	dep := &FileDependency{
+	dep := &File{
 		rawKey: inTemplate.Name(),
 	}
 
@@ -27,12 +27,12 @@ func TestFileDependencyFetch(t *testing.T) {
 	}
 }
 
-func TestFileDependencyFetch_waits(t *testing.T) {
+func TestFileFetch_waits(t *testing.T) {
 	data := `{"foo":"bar"}`
 	inTemplate := test.CreateTempfile([]byte(data), t)
 	defer test.DeleteTempfile(inTemplate, t)
 
-	dep := &FileDependency{
+	dep := &File{
 		rawKey: inTemplate.Name(),
 	}
 
@@ -58,12 +58,12 @@ func TestFileDependencyFetch_waits(t *testing.T) {
 	}
 }
 
-func TestFileDependencyFetch_firesChanges(t *testing.T) {
+func TestFileFetch_firesChanges(t *testing.T) {
 	data := `{"foo":"bar"}`
 	inTemplate := test.CreateTempfile([]byte(data), t)
 	defer test.DeleteTempfile(inTemplate, t)
 
-	dep := &FileDependency{
+	dep := &File{
 		rawKey: inTemplate.Name(),
 	}
 

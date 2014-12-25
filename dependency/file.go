@@ -1,4 +1,4 @@
-package util
+package dependency
 
 import (
 	"errors"
@@ -12,13 +12,13 @@ import (
 	api "github.com/armon/consul-api"
 )
 
-type FileDependency struct {
+type File struct {
 	mutex    sync.RWMutex
 	rawKey   string
 	lastStat os.FileInfo
 }
 
-func (d *FileDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
+func (d *File) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
 	var err error = nil
 	var data []byte
 
@@ -41,27 +41,27 @@ func (d *FileDependency) Fetch(client *api.Client, options *api.QueryOptions) (i
 	return "", nil, err
 }
 
-func (d *FileDependency) HashCode() string {
-	return fmt.Sprintf("KeyPrefixDependency|%s", d.Key())
+func (d *File) HashCode() string {
+	return fmt.Sprintf("StoreKeyPrefix|%s", d.Key())
 }
 
-func (d *FileDependency) Key() string {
+func (d *File) Key() string {
 	return d.rawKey
 }
 
-func (d *FileDependency) Display() string {
+func (d *File) Display() string {
 	return fmt.Sprintf(`file "%s"`, d.rawKey)
 }
 
 // watch watchers the file for changes
-func (d *FileDependency) watch() (os.FileInfo, error) {
+func (d *File) watch() (os.FileInfo, error) {
 	for {
 		stat, err := os.Stat(d.rawKey)
 		if err != nil {
 			return nil, err
 		}
 
-		changed := func(d *FileDependency, stat os.FileInfo) bool {
+		changed := func(d *File, stat os.FileInfo) bool {
 			d.mutex.RLock()
 			defer d.mutex.RUnlock()
 
@@ -87,12 +87,12 @@ func (d *FileDependency) watch() (os.FileInfo, error) {
 	}
 }
 
-func ParseFileDependency(s string) (*FileDependency, error) {
+func ParseFile(s string) (*File, error) {
 	if len(s) == 0 {
 		return nil, errors.New("cannot specify empty file dependency")
 	}
 
-	kd := &FileDependency{
+	kd := &File{
 		rawKey: s,
 	}
 

@@ -1,4 +1,4 @@
-package util
+package dependency
 
 import (
 	"errors"
@@ -16,9 +16,9 @@ type CatalogService struct {
 	Tags []string
 }
 
-// CatalogServicesDependency is the representation of a requested catalog service
+// CatalogServices is the representation of a requested catalog service
 // dependency from inside a template.
-type CatalogServicesDependency struct {
+type CatalogServices struct {
 	rawKey     string
 	Name       string
 	Tags       []string
@@ -27,7 +27,7 @@ type CatalogServicesDependency struct {
 
 // Fetch queries the Consul API defined by the given client and returns a slice
 // of CatalogService objects.
-func (d *CatalogServicesDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
+func (d *CatalogServices) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
 	if d.DataCenter != "" {
 		options.Datacenter = d.DataCenter
 	}
@@ -57,18 +57,18 @@ func (d *CatalogServicesDependency) Fetch(client *api.Client, options *api.Query
 }
 
 // HashCode returns the hash code for this dependency.
-func (d *CatalogServicesDependency) HashCode() string {
-	return fmt.Sprintf("CatalogServicesDependency|%s", d.Key())
+func (d *CatalogServices) HashCode() string {
+	return fmt.Sprintf("CatalogServices|%s", d.Key())
 }
 
 // Key returns the key given by the user in the template.
-func (d *CatalogServicesDependency) Key() string {
+func (d *CatalogServices) Key() string {
 	return d.rawKey
 }
 
 // Display returns a string that should be displayed to the user in output (for
 // example).
-func (d *CatalogServicesDependency) Display() string {
+func (d *CatalogServices) Display() string {
 	if d.rawKey == "" {
 		return fmt.Sprintf("catalog services")
 	}
@@ -76,11 +76,11 @@ func (d *CatalogServicesDependency) Display() string {
 	return fmt.Sprintf(`catalog services "%s"`, d.rawKey)
 }
 
-// ParseCatalogServicesDependency parses a string of the format @dc.
-func ParseCatalogServicesDependency(s ...string) (*CatalogServicesDependency, error) {
+// ParseCatalogServices parses a string of the format @dc.
+func ParseCatalogServices(s ...string) (*CatalogServices, error) {
 	switch len(s) {
 	case 0:
-		return &CatalogServicesDependency{rawKey: ""}, nil
+		return &CatalogServices{rawKey: ""}, nil
 	case 1:
 		dc := s[0]
 
@@ -103,7 +103,7 @@ func ParseCatalogServicesDependency(s ...string) (*CatalogServicesDependency, er
 			}
 		}
 
-		nd := &CatalogServicesDependency{
+		nd := &CatalogServices{
 			rawKey:     dc,
 			DataCenter: m["datacenter"],
 		}

@@ -1,4 +1,4 @@
-package util
+package dependency
 
 import (
 	"reflect"
@@ -7,9 +7,9 @@ import (
 	"github.com/hashicorp/consul-template/test"
 )
 
-func TestKeyPrefixDependencyFetch(t *testing.T) {
+func TestStoreKeyPrefixFetch(t *testing.T) {
 	client, options := test.DemoConsulClient(t)
-	dep := &KeyPrefixDependency{
+	dep := &StoreKeyPrefix{
 		rawKey: "global",
 		Prefix: "global",
 	}
@@ -25,33 +25,33 @@ func TestKeyPrefixDependencyFetch(t *testing.T) {
 	}
 }
 
-func TestKeyPrefixDependencyHashCode_isUnique(t *testing.T) {
-	dep1 := &KeyPrefixDependency{rawKey: "config/redis"}
-	dep2 := &KeyPrefixDependency{rawKey: "config/consul"}
+func TestStoreKeyPrefixHashCode_isUnique(t *testing.T) {
+	dep1 := &StoreKeyPrefix{rawKey: "config/redis"}
+	dep2 := &StoreKeyPrefix{rawKey: "config/consul"}
 	if dep1.HashCode() == dep2.HashCode() {
 		t.Errorf("expected HashCode to be unique")
 	}
 }
 
-func TestParseKeyPrefixDependency_emptyString(t *testing.T) {
-	kpd, err := ParseKeyPrefixDependency("")
+func TestParseStoreKeyPrefix_emptyString(t *testing.T) {
+	kpd, err := ParseStoreKeyPrefix("")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expected := &KeyPrefixDependency{}
+	expected := &StoreKeyPrefix{}
 	if !reflect.DeepEqual(kpd, expected) {
 		t.Errorf("expected %+v to equal %+v", kpd, expected)
 	}
 }
 
-func TestParseKeyPrefixDependency_name(t *testing.T) {
-	kpd, err := ParseKeyPrefixDependency("config/redis")
+func TestParseStoreKeyPrefix_name(t *testing.T) {
+	kpd, err := ParseStoreKeyPrefix("config/redis")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expected := &KeyPrefixDependency{
+	expected := &StoreKeyPrefix{
 		rawKey: "config/redis",
 		Prefix: "config/redis",
 	}
@@ -60,13 +60,13 @@ func TestParseKeyPrefixDependency_name(t *testing.T) {
 	}
 }
 
-func TestParseKeyPrefixDependency_nameColon(t *testing.T) {
-	sd, err := ParseKeyPrefixDependency("config/redis:magic:80")
+func TestParseStoreKeyPrefix_nameColon(t *testing.T) {
+	sd, err := ParseStoreKeyPrefix("config/redis:magic:80")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expected := &KeyPrefixDependency{
+	expected := &StoreKeyPrefix{
 		rawKey: "config/redis:magic:80",
 		Prefix: "config/redis:magic:80",
 	}
@@ -75,13 +75,13 @@ func TestParseKeyPrefixDependency_nameColon(t *testing.T) {
 	}
 }
 
-func TestParseKeyPrefixDependency_nameTagDataCenter(t *testing.T) {
-	kpd, err := ParseKeyPrefixDependency("config/redis@nyc1")
+func TestParseStoreKeyPrefix_nameTagDataCenter(t *testing.T) {
+	kpd, err := ParseStoreKeyPrefix("config/redis@nyc1")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expected := &KeyPrefixDependency{
+	expected := &StoreKeyPrefix{
 		rawKey:     "config/redis@nyc1",
 		Prefix:     "config/redis",
 		DataCenter: "nyc1",
@@ -92,13 +92,13 @@ func TestParseKeyPrefixDependency_nameTagDataCenter(t *testing.T) {
 	}
 }
 
-func TestParseKeyPrefixDependency_dataCenter(t *testing.T) {
-	kpd, err := ParseKeyPrefixDependency("@nyc1")
+func TestParseStoreKeyPrefix_dataCenter(t *testing.T) {
+	kpd, err := ParseStoreKeyPrefix("@nyc1")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expected := &KeyPrefixDependency{
+	expected := &StoreKeyPrefix{
 		rawKey:     "@nyc1",
 		DataCenter: "nyc1",
 	}
