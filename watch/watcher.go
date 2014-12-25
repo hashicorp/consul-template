@@ -7,7 +7,7 @@ import (
 	"time"
 
 	api "github.com/armon/consul-api"
-	"github.com/hashicorp/consul-template/util"
+	"github.com/hashicorp/consul-template/dependency"
 )
 
 // defaultRetryFunc is the default return function, which just echos whatever
@@ -41,7 +41,7 @@ type Watcher struct {
 	client *api.Client
 
 	// dependencies is the slice of Dependencies this Watcher will poll
-	dependencies []util.Dependency
+	dependencies []dependency.Dependency
 
 	// retryFunc is a RetryFunc that represents the way retrys and backoffs
 	// should occur.
@@ -52,7 +52,7 @@ type Watcher struct {
 }
 
 //
-func NewWatcher(client *api.Client, dependencies []util.Dependency) (*Watcher, error) {
+func NewWatcher(client *api.Client, dependencies []dependency.Dependency) (*Watcher, error) {
 	watcher := &Watcher{
 		client:       client,
 		dependencies: dependencies,

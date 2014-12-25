@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul-template/util"
+	"github.com/hashicorp/consul-template/dependency"
 )
 
 type dependencyContextBridge interface {
-	util.Dependency
+	dependency.Dependency
 	addToContext(*TemplateContext, interface{}) error
 	inContext(*TemplateContext) bool
 }
@@ -15,14 +15,14 @@ type dependencyContextBridge interface {
 // catalogServicesBridge is a bridged interface with extra helpers for
 // adding and removing items from a TemplateContext.
 type catalogServicesBridge struct {
-	*util.CatalogServices
+	*dependency.CatalogServices
 }
 
 // addToContext accepts a TemplateContext and data. It coerces the interface{}
 // data into the correct format via type assertions, returning an errors that
 // occur. The data is then set on the TemplateContext.
 func (d *catalogServicesBridge) addToContext(c *TemplateContext, data interface{}) error {
-	coerced, ok := data.([]*util.CatalogService)
+	coerced, ok := data.([]*dependency.CatalogService)
 	if !ok {
 		return fmt.Errorf("services dependency: could not convert to CatalogService")
 	}
@@ -39,7 +39,7 @@ func (d *catalogServicesBridge) inContext(c *TemplateContext) bool {
 
 // fileBridge is a bridged interface with extra helpers for
 // adding and removing items from a TemplateContext.
-type fileBridge struct{ *util.File }
+type fileBridge struct{ *dependency.File }
 
 // addToContext accepts a TemplateContext and data. It coerces the interface{}
 // data into the correct format via type assertions, returning an errors that
@@ -62,7 +62,7 @@ func (d *fileBridge) inContext(c *TemplateContext) bool {
 
 // storeKeyBridge is a bridged interface with extra helpers for
 // adding and removing items from a TemplateContext.
-type storeKeyBridge struct{ *util.StoreKey }
+type storeKeyBridge struct{ *dependency.StoreKey }
 
 // addToContext accepts a TemplateContext and data. It coerces the interface{}
 // data into the correct format via type assertions, returning an errors that
@@ -85,12 +85,12 @@ func (d *storeKeyBridge) inContext(c *TemplateContext) bool {
 
 // storeKeyPrefixBridge is a bridged interface with extra helpers for
 // adding and removing items from a TemplateContext.
-type storeKeyPrefixBridge struct{ *util.StoreKeyPrefix }
+type storeKeyPrefixBridge struct{ *dependency.StoreKeyPrefix }
 
 // data into the correct format via type assertions, returning an errors that
 // occur. The data is then set on the TemplateContext.
 func (d *storeKeyPrefixBridge) addToContext(c *TemplateContext, data interface{}) error {
-	coerced, ok := data.([]*util.KeyPair)
+	coerced, ok := data.([]*dependency.KeyPair)
 	if !ok {
 		return fmt.Errorf("key prefix dependency: could not convert to KeyPair")
 	}
@@ -107,13 +107,13 @@ func (d *storeKeyPrefixBridge) inContext(c *TemplateContext) bool {
 
 // catalogNodesBridge is a bridged interface with extra helpers for
 // adding and removing items from a TemplateContext.
-type catalogNodesBridge struct{ *util.CatalogNodes }
+type catalogNodesBridge struct{ *dependency.CatalogNodes }
 
 // addToContext accepts a TemplateContext and data. It coerces the interface{}
 // data into the correct format via type assertions, returning an errors that
 // occur. The data is then set on the TemplateContext.
 func (d *catalogNodesBridge) addToContext(c *TemplateContext, data interface{}) error {
-	coerced, ok := data.([]*util.Node)
+	coerced, ok := data.([]*dependency.Node)
 	if !ok {
 		return fmt.Errorf("nodes dependency: could not convert to Node")
 	}
@@ -130,13 +130,13 @@ func (d *catalogNodesBridge) inContext(c *TemplateContext) bool {
 
 // serviceDependencyBridge is a bridged interface with extra helpers for
 // adding and removing items from a TemplateContext.
-type serviceDependencyBridge struct{ *util.HealthServices }
+type serviceDependencyBridge struct{ *dependency.HealthServices }
 
 // addToContext accepts a TemplateContext and data. It coerces the interface{}
 // data into the correct format via type assertions, returning an errors that
 // occur. The data is then set on the TemplateContext.
 func (d *serviceDependencyBridge) addToContext(c *TemplateContext, data interface{}) error {
-	coerced, ok := data.([]*util.HealthService)
+	coerced, ok := data.([]*dependency.HealthService)
 	if !ok {
 		return fmt.Errorf("service dependency: could not convert to Service")
 	}

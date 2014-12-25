@@ -9,7 +9,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/hashicorp/consul-template/util"
+	"github.com/hashicorp/consul-template/dependency"
 )
 
 // Template is the Go representation of a Consul Template template on disk.
@@ -71,15 +71,15 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 		"file": func(s string) string {
 			return c.files[s]
 		},
-		"storeKeyPrefix": func(s string) []*util.KeyPair {
+		"storeKeyPrefix": func(s string) []*dependency.KeyPair {
 			log.Printf("[WARN] DEPRECATED: Please use `ls` or `tree` instead of `storeKeyPrefix`")
 			return c.storeKeyPrefixes[s]
 		},
 		"key": func(s string) string {
 			return c.storeKeys[s]
 		},
-		"ls": func(s string) []*util.KeyPair {
-			var result [](*util.KeyPair)
+		"ls": func(s string) []*dependency.KeyPair {
+			var result [](*dependency.KeyPair)
 			// Only return non-empty top-level keys
 			for _, pair := range c.storeKeyPrefixes[s] {
 				if pair.Key != "" && !strings.Contains(pair.Key, "/") {
@@ -88,29 +88,29 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 			}
 			return result
 		},
-		"nodes": func(s ...string) ([]*util.Node, error) {
-			d, err := util.ParseCatalogNodes(s...)
+		"nodes": func(s ...string) ([]*dependency.Node, error) {
+			d, err := dependency.ParseCatalogNodes(s...)
 			if err != nil {
 				return nil, err
 			}
 			return c.catalogNodes[d.Key()], nil
 		},
-		"service": func(s ...string) ([]*util.HealthService, error) {
-			d, err := util.ParseHealthServices(s...)
+		"service": func(s ...string) ([]*dependency.HealthService, error) {
+			d, err := dependency.ParseHealthServices(s...)
 			if err != nil {
 				return nil, err
 			}
 			return c.healthServices[d.Key()], nil
 		},
-		"services": func(s ...string) ([]*util.CatalogService, error) {
-			d, err := util.ParseCatalogServices(s...)
+		"services": func(s ...string) ([]*dependency.CatalogService, error) {
+			d, err := dependency.ParseCatalogServices(s...)
 			if err != nil {
 				return nil, err
 			}
 			return c.catalogServices[d.Key()], nil
 		},
-		"tree": func(s string) []*util.KeyPair {
-			var result []*util.KeyPair
+		"tree": func(s string) []*dependency.KeyPair {
+			var result []*dependency.KeyPair
 			// Filter empty keys (folder nodes)
 			for _, pair := range c.storeKeyPrefixes[s] {
 				parts := strings.Split(pair.Key, "/")
@@ -217,7 +217,7 @@ func (t *Template) noop(thing ...interface{}) (interface{}, error) {
 // catalogServicesFunc parses the value from the template into a usable object.
 func catalogServicesFunc(deps map[string]dependencyContextBridge) func(...string) (interface{}, error) {
 	return func(s ...string) (interface{}, error) {
-		d, err := util.ParseCatalogServices(s...)
+		d, err := dependency.ParseCatalogServices(s...)
 		if err != nil {
 			return nil, err
 		}
@@ -238,7 +238,7 @@ func fileFunc(deps map[string]dependencyContextBridge) func(...string) (interfac
 			return nil, fmt.Errorf("file: expected 1 argument, got %d", len(s))
 		}
 
-		d, err := util.ParseFile(s[0])
+		d, err := dependency.ParseFile(s[0])
 		if err != nil {
 			return nil, err
 		}
@@ -258,7 +258,7 @@ func keyFunc(deps map[string]dependencyContextBridge) func(...string) (interface
 			return nil, fmt.Errorf("key: expected 1 argument, got %d", len(s))
 		}
 
-		d, err := util.ParseStoreKey(s[0])
+		d, err := dependency.ParseStoreKey(s[0])
 		if err != nil {
 			return nil, err
 		}
@@ -278,7 +278,7 @@ func storeKeyPrefixFunc(deps map[string]dependencyContextBridge) func(...string)
 			return nil, fmt.Errorf("storeKeyPrefix: expected 1 argument, got %d", len(s))
 		}
 
-		d, err := util.ParseStoreKeyPrefix(s[0])
+		d, err := dependency.ParseStoreKeyPrefix(s[0])
 		if err != nil {
 			return nil, err
 		}
@@ -287,14 +287,14 @@ func storeKeyPrefixFunc(deps map[string]dependencyContextBridge) func(...string)
 			deps[d.HashCode()] = &storeKeyPrefixBridge{d}
 		}
 
-		return []*util.KeyPair{}, nil
+		return []*dependency.KeyPair{}, nil
 	}
 }
 
 // nodesFunc parses the value from the template into a usable object.
 func nodesFunc(deps map[string]dependencyContextBridge) func(...string) (interface{}, error) {
 	return func(s ...string) (interface{}, error) {
-		d, err := util.ParseCatalogNodes(s...)
+		d, err := dependency.ParseCatalogNodes(s...)
 		if err != nil {
 			return nil, err
 		}
@@ -303,14 +303,14 @@ func nodesFunc(deps map[string]dependencyContextBridge) func(...string) (interfa
 			deps[d.HashCode()] = &catalogNodesBridge{d}
 		}
 
-		return []*util.Node{}, nil
+		return []*dependency.Node{}, nil
 	}
 }
 
 // serviceFunc parses the value from the template into a usable object.
 func serviceFunc(deps map[string]dependencyContextBridge) func(...string) (interface{}, error) {
 	return func(s ...string) (interface{}, error) {
-		d, err := util.ParseHealthServices(s...)
+		d, err := dependency.ParseHealthServices(s...)
 		if err != nil {
 			return nil, err
 		}
@@ -319,6 +319,6 @@ func serviceFunc(deps map[string]dependencyContextBridge) func(...string) (inter
 			deps[d.HashCode()] = &serviceDependencyBridge{d}
 		}
 
-		return []*util.HealthService{}, nil
+		return []*dependency.HealthService{}, nil
 	}
 }

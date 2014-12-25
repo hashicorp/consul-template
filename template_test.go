@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul-template/test"
-	"github.com/hashicorp/consul-template/util"
 )
 
 func TestDependencies_empty(t *testing.T) {
@@ -312,10 +312,10 @@ func TestExecute_rendersStoreKeyPrefix(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		storeKeyPrefixes: map[string][]*util.KeyPair{
-			"service/redis": []*util.KeyPair{
-				&util.KeyPair{Path: "/path1", Key: "key1", Value: "value1"},
-				&util.KeyPair{Path: "/path2", Key: "key2", Value: "value2"},
+		storeKeyPrefixes: map[string][]*dependency.KeyPair{
+			"service/redis": []*dependency.KeyPair{
+				&dependency.KeyPair{Path: "/path1", Key: "key1", Value: "value1"},
+				&dependency.KeyPair{Path: "/path2", Key: "key2", Value: "value2"},
 			},
 		},
 	}
@@ -378,29 +378,29 @@ func TestExecute_rendersLs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	minconnsConfig := &util.KeyPair{
+	minconnsConfig := &dependency.KeyPair{
 		Key:   "minconns",
 		Value: "2",
 	}
 
-	maxconnsConfig := &util.KeyPair{
+	maxconnsConfig := &dependency.KeyPair{
 		Key:   "maxconns",
 		Value: "11",
 	}
 
-	emptyFolderConfig := &util.KeyPair{
+	emptyFolderConfig := &dependency.KeyPair{
 		Key:   "",
 		Value: "",
 	}
 
-	childConfig := &util.KeyPair{
+	childConfig := &dependency.KeyPair{
 		Key:   "user/sethvargo",
 		Value: "true",
 	}
 
 	context := &TemplateContext{
-		storeKeyPrefixes: map[string][]*util.KeyPair{
-			"service/redis/config": []*util.KeyPair{
+		storeKeyPrefixes: map[string][]*dependency.KeyPair{
+			"service/redis/config": []*dependency.KeyPair{
 				emptyFolderConfig,
 				minconnsConfig,
 				maxconnsConfig,
@@ -435,19 +435,19 @@ func TestExecute_rendersNodes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	node1 := &util.Node{
+	node1 := &dependency.Node{
 		Node:    "nyc-worker-1",
 		Address: "123.123.123.123",
 	}
 
-	node2 := &util.Node{
+	node2 := &dependency.Node{
 		Node:    "nyc-worker-2",
 		Address: "456.456.456.456",
 	}
 
 	context := &TemplateContext{
-		catalogNodes: map[string][]*util.Node{
-			"": []*util.Node{node1, node2},
+		catalogNodes: map[string][]*dependency.Node{
+			"": []*dependency.Node{node1, node2},
 		},
 	}
 
@@ -478,7 +478,7 @@ func TestExecute_rendersService(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	serviceWeb1 := &util.HealthService{
+	serviceWeb1 := &dependency.HealthService{
 		Node:    "nyc-worker-1",
 		Address: "123.123.123.123",
 		ID:      "web1",
@@ -486,7 +486,7 @@ func TestExecute_rendersService(t *testing.T) {
 		Port:    1234,
 	}
 
-	serviceWeb2 := &util.HealthService{
+	serviceWeb2 := &dependency.HealthService{
 		Node:    "nyc-worker-2",
 		Address: "456.456.456.456",
 		ID:      "web2",
@@ -495,8 +495,8 @@ func TestExecute_rendersService(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		healthServices: map[string][]*util.HealthService{
-			"release.webapp [passing]": []*util.HealthService{serviceWeb1, serviceWeb2},
+		healthServices: map[string][]*dependency.HealthService{
+			"release.webapp [passing]": []*dependency.HealthService{serviceWeb1, serviceWeb2},
 		},
 	}
 
@@ -527,7 +527,7 @@ func TestExecute_rendersServiceWithHealthCheckArgument(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	serviceWeb1 := &util.HealthService{
+	serviceWeb1 := &dependency.HealthService{
 		Node:    "nyc-worker-1",
 		Address: "123.123.123.123",
 		ID:      "web1",
@@ -535,7 +535,7 @@ func TestExecute_rendersServiceWithHealthCheckArgument(t *testing.T) {
 		Port:    1234,
 	}
 
-	serviceWeb2 := &util.HealthService{
+	serviceWeb2 := &dependency.HealthService{
 		Node:    "nyc-worker-2",
 		Address: "456.456.456.456",
 		ID:      "web2",
@@ -544,8 +544,8 @@ func TestExecute_rendersServiceWithHealthCheckArgument(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		healthServices: map[string][]*util.HealthService{
-			"release.webapp [any]": []*util.HealthService{serviceWeb1, serviceWeb2},
+		healthServices: map[string][]*dependency.HealthService{
+			"release.webapp [any]": []*dependency.HealthService{serviceWeb1, serviceWeb2},
 		},
 	}
 
@@ -575,19 +575,19 @@ func TestExecute_rendersServices(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	catalogWeb1 := &util.CatalogService{
+	catalogWeb1 := &dependency.CatalogService{
 		Name: "nyc-worker-1",
 		Tags: []string{"tag1", "tag2"},
 	}
 
-	catalogWeb2 := &util.CatalogService{
+	catalogWeb2 := &dependency.CatalogService{
 		Name: "nyc-worker-2",
 		Tags: []string{"tag2", "tag3"},
 	}
 
 	context := &TemplateContext{
-		catalogServices: map[string][]*util.CatalogService{
-			"": []*util.CatalogService{catalogWeb1, catalogWeb2},
+		catalogServices: map[string][]*dependency.CatalogService{
+			"": []*dependency.CatalogService{catalogWeb1, catalogWeb2},
 		},
 	}
 
@@ -617,34 +617,34 @@ func TestExecute_rendersTree(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	minconnsConfig := &util.KeyPair{
+	minconnsConfig := &dependency.KeyPair{
 		Key:   "minconns",
 		Value: "2",
 	}
 
-	maxconnsConfig := &util.KeyPair{
+	maxconnsConfig := &dependency.KeyPair{
 		Key:   "maxconns",
 		Value: "11",
 	}
 
-	childConfig := &util.KeyPair{
+	childConfig := &dependency.KeyPair{
 		Key:   "user/sethvargo",
 		Value: "true",
 	}
 
-	emptyFolderConfig := &util.KeyPair{
+	emptyFolderConfig := &dependency.KeyPair{
 		Key:   "",
 		Value: "",
 	}
 
-	emptyChildFolderConfig := &util.KeyPair{
+	emptyChildFolderConfig := &dependency.KeyPair{
 		Key:   "user/",
 		Value: "",
 	}
 
 	context := &TemplateContext{
-		storeKeyPrefixes: map[string][]*util.KeyPair{
-			"service/redis/config": []*util.KeyPair{
+		storeKeyPrefixes: map[string][]*dependency.KeyPair{
+			"service/redis/config": []*dependency.KeyPair{
 				minconnsConfig,
 				maxconnsConfig,
 				childConfig,
@@ -684,7 +684,7 @@ func TestExecute_serviceTagsContains(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	service1 := &util.HealthService{
+	service1 := &dependency.HealthService{
 		Node:    "nyc-api-1",
 		Address: "127.0.0.1",
 		ID:      "web1",
@@ -692,7 +692,7 @@ func TestExecute_serviceTagsContains(t *testing.T) {
 		Port:    1234,
 		Tags:    []string{"auth", "search"},
 	}
-	service2 := &util.HealthService{
+	service2 := &dependency.HealthService{
 		Node:    "nyc-api-2",
 		Address: "127.0.0.2",
 		ID:      "web2",
@@ -702,8 +702,8 @@ func TestExecute_serviceTagsContains(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		healthServices: map[string][]*util.HealthService{
-			"web [passing]": []*util.HealthService{service1, service2},
+		healthServices: map[string][]*dependency.HealthService{
+			"web [passing]": []*dependency.HealthService{service1, service2},
 		},
 	}
 
@@ -741,7 +741,7 @@ func TestExecute_byTag(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	serviceWeb1 := &util.HealthService{
+	serviceWeb1 := &dependency.HealthService{
 		Node:    "nyc-api-1",
 		Address: "127.0.0.1",
 		ID:      "web1",
@@ -750,7 +750,7 @@ func TestExecute_byTag(t *testing.T) {
 		Tags:    []string{"auth", "search"},
 	}
 
-	serviceWeb2 := &util.HealthService{
+	serviceWeb2 := &dependency.HealthService{
 		Node:    "nyc-api-2",
 		Address: "127.0.0.2",
 		ID:      "web2",
@@ -759,7 +759,7 @@ func TestExecute_byTag(t *testing.T) {
 		Tags:    []string{"search"},
 	}
 
-	serviceWeb3 := &util.HealthService{
+	serviceWeb3 := &dependency.HealthService{
 		Node:    "nyc-api-3",
 		Address: "127.0.0.3",
 		ID:      "web3",
@@ -769,8 +769,8 @@ func TestExecute_byTag(t *testing.T) {
 	}
 
 	context := &TemplateContext{
-		healthServices: map[string][]*util.HealthService{
-			"webapp [passing]": []*util.HealthService{serviceWeb1, serviceWeb2, serviceWeb3},
+		healthServices: map[string][]*dependency.HealthService{
+			"webapp [passing]": []*dependency.HealthService{serviceWeb1, serviceWeb2, serviceWeb3},
 		},
 	}
 

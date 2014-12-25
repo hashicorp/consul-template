@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul-template/test"
-	"github.com/hashicorp/consul-template/util"
 )
 
 func TestNewRunner_noDependencies(t *testing.T) {
@@ -362,12 +362,12 @@ func TestRender_dryRender(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dependency := runner.Dependencies()[0]
-	data := []*util.HealthService{
-		&util.HealthService{Node: "consul1"},
-		&util.HealthService{Node: "consul2"},
+	dep := runner.Dependencies()[0]
+	data := []*dependency.HealthService{
+		&dependency.HealthService{Node: "consul1"},
+		&dependency.HealthService{Node: "consul2"},
 	}
-	runner.Receive(dependency, data)
+	runner.Receive(dep, data)
 
 	buff := new(bytes.Buffer)
 	runner.SetOutStream(buff)
@@ -436,19 +436,19 @@ func TestRender_multipleTemplatesRunsCommands(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var dependency util.Dependency
-	for _, dep := range runner.Dependencies() {
-		if strings.Contains(dep.Key(), "@nyc1") {
-			dependency = dep
+	var dep dependency.Dependency
+	for _, d := range runner.Dependencies() {
+		if strings.Contains(d.Key(), "@nyc1") {
+			dep = d
 			break
 		}
 	}
 
-	data := []*util.HealthService{
-		&util.HealthService{Node: "consul1"},
-		&util.HealthService{Node: "consul2"},
+	data := []*dependency.HealthService{
+		&dependency.HealthService{Node: "consul1"},
+		&dependency.HealthService{Node: "consul2"},
 	}
-	runner.Receive(dependency, data)
+	runner.Receive(dep, data)
 
 	if err := runner.RunAll(false); err != nil {
 		t.Fatal(err)
@@ -486,12 +486,12 @@ func TestRender_sameContentsDoesNotRender(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dependency := runner.Dependencies()[0]
-	data := []*util.HealthService{
-		&util.HealthService{Node: "consul1"},
-		&util.HealthService{Node: "consul2"},
+	dep := runner.Dependencies()[0]
+	data := []*dependency.HealthService{
+		&dependency.HealthService{Node: "consul1"},
+		&dependency.HealthService{Node: "consul2"},
 	}
-	runner.Receive(dependency, data)
+	runner.Receive(dep, data)
 
 	rendered, err := runner.render(runner.templates[0], outTemplate.Name(), false)
 	if err != nil {
@@ -531,12 +531,12 @@ func TestRender_sameContentsDoesNotExecuteCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dependency := runner.Dependencies()[0]
-	data := []*util.HealthService{
-		&util.HealthService{Node: "consul1"},
-		&util.HealthService{Node: "consul2"},
+	dep := runner.Dependencies()[0]
+	data := []*dependency.HealthService{
+		&dependency.HealthService{Node: "consul1"},
+		&dependency.HealthService{Node: "consul2"},
 	}
-	runner.Receive(dependency, data)
+	runner.Receive(dep, data)
 
 	if err := runner.RunAll(false); err != nil {
 		t.Fatal(err)
@@ -581,12 +581,12 @@ func TestRender_containingFolderMissing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dependency := runner.Dependencies()[0]
-	data := []*util.HealthService{
-		&util.HealthService{Node: "consul1"},
-		&util.HealthService{Node: "consul2"},
+	dep := runner.Dependencies()[0]
+	data := []*dependency.HealthService{
+		&dependency.HealthService{Node: "consul1"},
+		&dependency.HealthService{Node: "consul2"},
 	}
-	runner.Receive(dependency, data)
+	runner.Receive(dep, data)
 
 	if err := runner.RunAll(false); err != nil {
 		t.Fatal(err)
@@ -635,12 +635,12 @@ func TestRender_outputFileMissing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dependency := runner.Dependencies()[0]
-	data := []*util.HealthService{
-		&util.HealthService{Node: "consul1"},
-		&util.HealthService{Node: "consul2"},
+	dep := runner.Dependencies()[0]
+	data := []*dependency.HealthService{
+		&dependency.HealthService{Node: "consul1"},
+		&dependency.HealthService{Node: "consul2"},
 	}
-	runner.Receive(dependency, data)
+	runner.Receive(dep, data)
 
 	if err := runner.RunAll(false); err != nil {
 		t.Fatal(err)
@@ -688,12 +688,12 @@ func TestRender_outputFileRetainsPermissions(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dependency := runner.Dependencies()[0]
-	data := []*util.HealthService{
-		&util.HealthService{Node: "consul1"},
-		&util.HealthService{Node: "consul2"},
+	dep := runner.Dependencies()[0]
+	data := []*dependency.HealthService{
+		&dependency.HealthService{Node: "consul1"},
+		&dependency.HealthService{Node: "consul2"},
 	}
-	runner.Receive(dependency, data)
+	runner.Receive(dep, data)
 
 	if err := runner.RunAll(false); err != nil {
 		t.Fatal(err)
@@ -808,13 +808,13 @@ func TestExecute_executesCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	serviceDependency, err := util.ParseHealthServices("consul@nyc1")
+	serviceDependency, err := dependency.ParseHealthServices("consul@nyc1")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	data := []*util.HealthService{
-		&util.HealthService{
+	data := []*dependency.HealthService{
+		&dependency.HealthService{
 			Node:    "consul",
 			Address: "1.2.3.4",
 			ID:      "consul@nyc1",
@@ -868,13 +868,13 @@ func TestExecute_doesNotExecuteCommandMoreThanOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	serviceDependency, err := util.ParseHealthServices("consul@nyc1")
+	serviceDependency, err := dependency.ParseHealthServices("consul@nyc1")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	data := []*util.HealthService{
-		&util.HealthService{
+	data := []*dependency.HealthService{
+		&dependency.HealthService{
 			Node:    "consul",
 			Address: "1.2.3.4",
 			ID:      "consul@nyc1",

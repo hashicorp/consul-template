@@ -6,30 +6,30 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/hashicorp/consul-template/util"
+	"github.com/hashicorp/consul-template/dependency"
 )
 
 // TemplateContext is what Template uses to determine the values that are
 // available for template parsing.
 type TemplateContext struct {
-	catalogNodes     map[string][]*util.Node
-	catalogServices  map[string][]*util.CatalogService
-	healthServices   map[string][]*util.HealthService
+	catalogNodes     map[string][]*dependency.Node
+	catalogServices  map[string][]*dependency.CatalogService
+	healthServices   map[string][]*dependency.HealthService
 	files            map[string]string
 	storeKeys        map[string]string
-	storeKeyPrefixes map[string][]*util.KeyPair
+	storeKeyPrefixes map[string][]*dependency.KeyPair
 }
 
 // NewTemplateContext creates a new TemplateContext with empty values for each
 // of the key structs.
 func NewTemplateContext() (*TemplateContext, error) {
 	return &TemplateContext{
-		catalogNodes:     make(map[string][]*util.Node),
-		catalogServices:  make(map[string][]*util.CatalogService),
-		healthServices:   make(map[string][]*util.HealthService),
+		catalogNodes:     make(map[string][]*dependency.Node),
+		catalogServices:  make(map[string][]*dependency.CatalogService),
+		healthServices:   make(map[string][]*dependency.HealthService),
 		files:            make(map[string]string),
 		storeKeys:        make(map[string]string),
-		storeKeyPrefixes: make(map[string][]*util.KeyPair),
+		storeKeyPrefixes: make(map[string][]*dependency.KeyPair),
 	}, nil
 }
 
@@ -53,8 +53,8 @@ func (c *TemplateContext) env(s string) (string, error) {
 //
 // The map key is a string representing the service tag. The map value is a
 // slice of Services which have the tag assigned.
-func (c *TemplateContext) groupByTag(in []*util.HealthService) map[string][]*util.HealthService {
-	m := make(map[string][]*util.HealthService)
+func (c *TemplateContext) groupByTag(in []*dependency.HealthService) map[string][]*dependency.HealthService {
+	m := make(map[string][]*dependency.HealthService)
 	for _, s := range in {
 		for _, t := range s.Tags {
 			m[t] = append(m[t], s)
