@@ -1,6 +1,19 @@
 Consul Template Changelog
 =========================
 
+## vx.y.z (unreleased)
+
+FEATURES:
+
+BUG FIXES:
+
+  * Remove `util` package as it is a code smell and separate `Watcher` and
+    `Dependency` structs and functions into their own packages for re-use
+    (GH-137)
+
+IMPROVEMENTS:
+
+
 ## v0.5.0 (December 19, 2014)
 
 FEATURES:
