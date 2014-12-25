@@ -57,12 +57,30 @@ func TestMerge_complexConfig(t *testing.T) {
 		},
 	}
 
-	config := &Config{ConfigTemplates: templates[:2]}
-	otherConfig := &Config{ConfigTemplates: templates[2:]}
+	config := &Config{
+		ConfigTemplates: templates[:2],
+		Retry:           5 * time.Second,
+		Token:           "abc123",
+		Wait:            &watch.Wait{Min: 5 * time.Second, Max: 10 * time.Second},
+	}
+	otherConfig := &Config{
+		ConfigTemplates: templates[2:],
+		Retry:           15 * time.Second,
+		Token:           "def456",
+		Wait:            &watch.Wait{Min: 25 * time.Second, Max: 50 * time.Second},
+	}
+
 	config.Merge(otherConfig)
 
-	if !reflect.DeepEqual(config.ConfigTemplates, templates) {
-		t.Fatalf("expected %q to equal %q", config.ConfigTemplates, templates)
+	expected := &Config{
+		ConfigTemplates: templates,
+		Retry:           15 * time.Second,
+		Token:           "def456",
+		Wait:            &watch.Wait{Min: 25 * time.Second, Max: 50 * time.Second},
+	}
+
+	if !reflect.DeepEqual(config, expected) {
+		t.Fatalf("expected %q to equal %q", config, expected)
 	}
 }
 
@@ -121,6 +139,7 @@ func TestParseConfig_correctValues(t *testing.T) {
     consul = "nyc1.demo.consul.io"
     token = "abcd1234"
     wait = "5s:10s"
+    retry = "10s"
 
     template {
       source = "nginx.conf.ctmpl"
@@ -148,7 +167,9 @@ func TestParseConfig_correctValues(t *testing.T) {
 			Min: time.Second * 5,
 			Max: time.Second * 10,
 		},
-		WaitRaw: "5s:10s",
+		WaitRaw:  "5s:10s",
+		Retry:    10 * time.Second,
+		RetryRaw: "10s",
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{
 				Source:      "nginx.conf.ctmpl",
@@ -162,11 +183,27 @@ func TestParseConfig_correctValues(t *testing.T) {
 		},
 	}
 	if !reflect.DeepEqual(config, expected) {
-		t.Fatalf("expected %+v to be %+v", expected, config)
+		t.Fatalf("expected %+v to be %+v", config, expected)
 	}
 }
 
-// Test that ParseWait errors are propagated up
+func TestParseConfig_parseRetryError(t *testing.T) {
+	configFile := test.CreateTempfile([]byte(`
+    retry = "bacon pants"
+  `), t)
+	defer test.DeleteTempfile(configFile, t)
+
+	_, err := ParseConfig(configFile.Name())
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expectedErr := "retry invalid"
+	if !strings.Contains(err.Error(), expectedErr) {
+		t.Fatalf("expected error %q to contain %q", err.Error(), expectedErr)
+	}
+}
+
 func TestParseConfig_parseWaitError(t *testing.T) {
 	configFile := test.CreateTempfile([]byte(`
     wait = "not_valid:duration"
@@ -178,7 +215,7 @@ func TestParseConfig_parseWaitError(t *testing.T) {
 		t.Fatal("expected error, but nothing was returned")
 	}
 
-	expectedErr := "invalid duration not_valid"
+	expectedErr := "wait invalid"
 	if !strings.Contains(err.Error(), expectedErr) {
 		t.Fatalf("expected error %q to contain %q", err.Error(), expectedErr)
 	}
