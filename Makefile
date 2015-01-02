@@ -16,6 +16,9 @@ build:
 	@mkdir -p bin/
 	go build -o bin/$(NAME)
 
+docker: deps build
+	docker build -t hashicorp/consul-template:latest  .
+
 test: deps
 	go list ./... | xargs -n1 go test -timeout=3s
 
