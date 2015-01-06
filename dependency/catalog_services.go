@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"sort"
 
-	api "github.com/armon/consul-api"
+	"github.com/hashicorp/consul/api"
 )
 
 // CatalogService is a catalog entry in Consul.

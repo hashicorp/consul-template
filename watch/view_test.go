@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	api "github.com/armon/consul-api"
 	"github.com/hashicorp/consul-template/test"
+	"github.com/hashicorp/consul/api"
 )
 
 // testRetryFunc is a function specifically for tests that has a 0-time retry.

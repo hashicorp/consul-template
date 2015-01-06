@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	api "github.com/armon/consul-api"
+	"github.com/hashicorp/consul/api"
 )
 
 type FakeDependencyFetchError struct {

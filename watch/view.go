@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"time"
 
-	api "github.com/armon/consul-api"
 	"github.com/hashicorp/consul-template/dependency"
+	"github.com/hashicorp/consul/api"
 )
 
 const (

@@ -3,7 +3,7 @@ package dependency
 import (
 	"sort"
 
-	api "github.com/armon/consul-api"
+	"github.com/hashicorp/consul/api"
 )
 
 // Dependency is an interface for a dependency that Consul Template is capable

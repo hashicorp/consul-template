@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	api "github.com/armon/consul-api"
+	"github.com/hashicorp/consul/api"
 )
 
 type File struct {

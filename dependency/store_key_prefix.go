@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	api "github.com/armon/consul-api"
+	"github.com/hashicorp/consul/api"
 )
 
 // KeyPair is a simple Key-Value pair

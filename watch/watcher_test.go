@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	api "github.com/armon/consul-api"
 	"github.com/hashicorp/consul-template/dependency"
+	"github.com/hashicorp/consul/api"
 )
 
 func TestNewWatcher_noClient(t *testing.T) {
