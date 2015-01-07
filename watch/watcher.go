@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	api "github.com/armon/consul-api"
 	"github.com/hashicorp/consul-template/dependency"
+	"github.com/hashicorp/consul/api"
 )
 
 // defaultRetryFunc is the default return function, which just echos whatever

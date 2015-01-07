@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	api "github.com/armon/consul-api"
 	"github.com/hashicorp/consul-template/test"
+	"github.com/hashicorp/consul/api"
 )
 
 func TestServiceDependencyFetch(t *testing.T) {

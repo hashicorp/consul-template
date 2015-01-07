@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	api "github.com/armon/consul-api"
+	"github.com/hashicorp/consul/api"
 )
 
 // Ripped from https://github.com/hashicorp/consul/blob/master/consul/structs/structs.go#L31

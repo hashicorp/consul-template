@@ -6,7 +6,7 @@ import (
 	"log"
 	"regexp"
 
-	api "github.com/armon/consul-api"
+	"github.com/hashicorp/consul/api"
 )
 
 // Node is a node entry in Consul
