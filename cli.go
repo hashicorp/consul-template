@@ -2,11 +2,13 @@ package main
 
 import (
 	"bytes"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -65,6 +67,10 @@ func (cli *CLI) Run(args []string) int {
 	}
 	flags.StringVar(&config.Consul, "consul", "",
 		"address of the Consul instance")
+	flags.BoolVar(&config.HTTPS, "https", false,
+		"use https while talking to consul")
+	flags.BoolVar(&config.Insecure, "insecure", false,
+		"ignore certificate warnings under https")
 	flags.Var((*configTemplateVar)(&config.ConfigTemplates), "template",
 		"new template declaration")
 	flags.StringVar(&config.Token, "token", "",
@@ -262,6 +268,16 @@ func bootstrap(config *Config, dry bool, once bool) (*Runner, *watch.Watcher, er
 	}
 	if config.Token != "" {
 		consulConfig.Token = config.Token
+	}
+	if config.HTTPS {
+		consulConfig.Scheme = "https"
+	}
+	if config.Insecure {
+		consulConfig.HttpClient.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		}
 	}
 	client, err := api.NewClient(consulConfig)
 	if err != nil {

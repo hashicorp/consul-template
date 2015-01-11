@@ -84,6 +84,41 @@ func TestMerge_complexConfig(t *testing.T) {
 	}
 }
 
+// Test that the flags for HTTPS are properly merged
+func TestMerge_HttpsOptions(t *testing.T) {
+	{
+		// True merges over false
+		config := &Config{
+			HTTPS:    false,
+			Insecure: false,
+		}
+		otherConfig := &Config{
+			HTTPS:    true,
+			Insecure: true,
+		}
+		config.Merge(otherConfig)
+		if !config.HTTPS || !config.Insecure {
+			t.Fatalf("bad: %#v", config)
+		}
+	}
+
+	{
+		// False does not merge over true
+		config := &Config{
+			HTTPS:    true,
+			Insecure: true,
+		}
+		otherConfig := &Config{
+			HTTPS:    false,
+			Insecure: false,
+		}
+		config.Merge(otherConfig)
+		if !config.HTTPS || !config.Insecure {
+			t.Fatalf("bad: %#v", config)
+		}
+	}
+}
+
 // Test that file read errors are propagated up
 func TestParseConfig_readFileError(t *testing.T) {
 	_, err := ParseConfig(path.Join(os.TempDir(), "config.json"))
@@ -137,6 +172,8 @@ func TestParseConfig_mapstructureError(t *testing.T) {
 func TestParseConfig_correctValues(t *testing.T) {
 	configFile := test.CreateTempfile([]byte(`
     consul = "nyc1.demo.consul.io"
+    https = true
+    insecure = true
     token = "abcd1234"
     wait = "5s:10s"
     retry = "10s"
@@ -160,9 +197,11 @@ func TestParseConfig_correctValues(t *testing.T) {
 	}
 
 	expected := &Config{
-		Path:   configFile.Name(),
-		Consul: "nyc1.demo.consul.io",
-		Token:  "abcd1234",
+		Path:     configFile.Name(),
+		Consul:   "nyc1.demo.consul.io",
+		HTTPS:    true,
+		Insecure: true,
+		Token:    "abcd1234",
 		Wait: &watch.Wait{
 			Min: time.Second * 5,
 			Max: time.Second * 10,
