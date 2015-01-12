@@ -29,18 +29,18 @@ This process will create `bin/consul-template` which make be invoked as a binary
 Usage
 -----
 ### Options
-| Option | Required | Description |
-| ------ | -------- |------------ |
-| `consul`    | _(required)_ | The location of the Consul instance to query (may be an IP address or FQDN) with port. |
-| `template`  | _(required)_ | The input template, output path, and optional command separated by a colon (`:`). This option is additive and may be specified multiple times for multiple templates. |
-| `ssl`       | | Use HTTPS while talking to Consul. Requires the Consul server to be configured to serve secure connections.
+|      Option     |   Required   | Description |
+| --------------- | ------------ |------------ |
+| `consul`        | _(required)_ | The location of the Consul instance to query (may be an IP address or FQDN) with port. |
+| `template`      | _(required)_ | The input template, output path, and optional command separated by a colon (`:`). This option is additive and may be specified multiple times for multiple templates. |
+| `ssl`           | | Use HTTPS while talking to Consul. Requires the Consul server to be configured to serve secure connections.
 | `ssl_no_verify` | | Ignore certificate warnings. Only used if `ssl` is enabled.
-| `token`     | | The [Consul API token][Consul ACLs]. |
-| `config`    | | The path to a configuration file or directory on disk, relative to the current working directory. Values specified on the CLI take precedence over values specified in the configuration file |
-| `wait`      | | The `minimum(:maximum)` to wait before rendering a new template to disk and triggering a command, separated by a colon (`:`). If the optional maximum value is omitted, it is assumed to be 4x the required minimum value. |
-| `retry`     | | The amount of time to wait if Consul returns an error when communicating with the API. |
-| `dry`       | | Dump generated templates to the console. If specified, generated templates are not committed to disk and commands are not invoked. _(CLI-only)_ |
-| `once`      | | Run Consul Template once and exit (as opposed to the default behavior of daemon). _(CLI-only)_ |
+| `token`         | | The [Consul API token][Consul ACLs]. |
+| `config`        | | The path to a configuration file or directory on disk, relative to the current working directory. Values specified on the CLI take precedence over values specified in the configuration file |
+| `wait`          | | The `minimum(:maximum)` to wait before rendering a new template to disk and triggering a command, separated by a colon (`:`). If the optional maximum value is omitted, it is assumed to be 4x the required minimum value. |
+| `retry`         | | The amount of time to wait if Consul returns an error when communicating with the API. |
+| `dry`           | | Dump generated templates to the console. If specified, generated templates are not committed to disk and commands are not invoked. _(CLI-only)_ |
+| `once`          | | Run Consul Template once and exit (as opposed to the default behavior of daemon). _(CLI-only)_ |
 
 ### Command Line
 The CLI interface supports all of the options detailed above.
