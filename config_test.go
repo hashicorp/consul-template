@@ -89,15 +89,15 @@ func TestMerge_HttpsOptions(t *testing.T) {
 	{
 		// True merges over false
 		config := &Config{
-			UseSSL:      false,
+			SSL:         false,
 			SSLNoVerify: false,
 		}
 		otherConfig := &Config{
-			UseSSL:      true,
+			SSL:         true,
 			SSLNoVerify: true,
 		}
 		config.Merge(otherConfig)
-		if !config.UseSSL || !config.SSLNoVerify {
+		if !config.SSL || !config.SSLNoVerify {
 			t.Fatalf("bad: %#v", config)
 		}
 	}
@@ -105,15 +105,15 @@ func TestMerge_HttpsOptions(t *testing.T) {
 	{
 		// False does not merge over true
 		config := &Config{
-			UseSSL:      true,
+			SSL:         true,
 			SSLNoVerify: true,
 		}
 		otherConfig := &Config{
-			UseSSL:      false,
+			SSL:         false,
 			SSLNoVerify: false,
 		}
 		config.Merge(otherConfig)
-		if !config.UseSSL || !config.SSLNoVerify {
+		if !config.SSL || !config.SSLNoVerify {
 			t.Fatalf("bad: %#v", config)
 		}
 	}
@@ -199,7 +199,7 @@ func TestParseConfig_correctValues(t *testing.T) {
 	expected := &Config{
 		Path:        configFile.Name(),
 		Consul:      "nyc1.demo.consul.io",
-		UseSSL:      true,
+		SSL:         true,
 		SSLNoVerify: true,
 		Token:       "abcd1234",
 		Wait: &watch.Wait{
