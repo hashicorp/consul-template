@@ -71,6 +71,10 @@ func (cli *CLI) Run(args []string) int {
 		"use https while talking to consul")
 	flags.BoolVar(&config.SSLNoVerify, "ssl-no-verify", false,
 		"ignore certificate warnings under https")
+	flags.StringVar(&config.HttpAuth.Username, "basic-auth-username", "",
+		"set BasicAuth username")
+	flags.StringVar(&config.HttpAuth.Password, "basic-auth-password", "",
+		"set BasicAuth password")
 	flags.Var((*configTemplateVar)(&config.ConfigTemplates), "template",
 		"new template declaration")
 	flags.StringVar(&config.Token, "token", "",
@@ -278,6 +282,10 @@ func bootstrap(config *Config, dry bool, once bool) (*Runner, *watch.Watcher, er
 				InsecureSkipVerify: true,
 			},
 		}
+	}
+	if (config.HttpAuth.Username != "") || (config.HttpAuth.Password != "") {
+		consulConfig.HttpAuth.Username = config.HttpAuth.Username
+		consulConfig.HttpAuth.Password = config.HttpAuth.Password
 	}
 	client, err := api.NewClient(consulConfig)
 	if err != nil {
