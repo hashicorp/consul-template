@@ -1,6 +1,13 @@
 Consul Template Changelog
 =========================
 
+## vx.y.z (Unreleased)
+
+IMPROVEMENTS:
+
+  * Switch to using `hashicorp/consul/api` instead of `armon/consul-api`
+  * Add support for talking to Consul via HTTPS/SSL (GH-143)
+
 ## v0.5.1 (December 25, 2014)
 
 BUG FIXES:
