@@ -18,6 +18,7 @@ type TemplateContext struct {
 	files            map[string]string
 	storeKeys        map[string]string
 	storeKeyPrefixes map[string][]*dependency.KeyPair
+	datacenters      map[string][]string
 }
 
 // NewTemplateContext creates a new TemplateContext with empty values for each
@@ -30,6 +31,7 @@ func NewTemplateContext() (*TemplateContext, error) {
 		files:            make(map[string]string),
 		storeKeys:        make(map[string]string),
 		storeKeyPrefixes: make(map[string][]*dependency.KeyPair),
+		datacenters:      make(map[string][]string),
 	}, nil
 }
 

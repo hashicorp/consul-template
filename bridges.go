@@ -150,3 +150,26 @@ func (d *serviceDependencyBridge) inContext(c *TemplateContext) bool {
 	_, ok := c.healthServices[d.Key()]
 	return ok
 }
+
+// datacentersDependencyBridge is a bridged interface with extra
+// helpers for adding and removing items from a TemplateContext
+type datacentersDependencyBridge struct{ *dependency.Datacenters }
+
+// addToContext accepts a TemplateContext and data. It coerces the interface{}
+// data into the correct format via type assertions, returning any errors that
+// occur. The data is then set on the TemplateContext
+func (d *datacentersDependencyBridge) addToContext(c *TemplateContext, data interface{}) error {
+	coerced, ok := data.([]string)
+	if !ok {
+		return fmt.Errorf("key prefix dependency: could not convert to Datacenters")
+	}
+
+	c.datacenters[d.Key()] = coerced
+	return nil
+}
+
+// inContext checks if the dependency is contained in the given TemplateContext.
+func (d *datacentersDependencyBridge) inContext(c *TemplateContext) bool {
+	_, ok := c.datacenters[d.Key()]
+	return ok
+}
