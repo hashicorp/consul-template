@@ -67,9 +67,9 @@ func (cli *CLI) Run(args []string) int {
 	}
 	flags.StringVar(&config.Consul, "consul", "",
 		"address of the Consul instance")
-	flags.BoolVar(&config.HTTPS, "https", false,
+	flags.BoolVar(&config.UseSSL, "ssl", false,
 		"use https while talking to consul")
-	flags.BoolVar(&config.Insecure, "insecure", false,
+	flags.BoolVar(&config.SSLNoVerify, "ssl-no-verify", false,
 		"ignore certificate warnings under https")
 	flags.Var((*configTemplateVar)(&config.ConfigTemplates), "template",
 		"new template declaration")
@@ -269,10 +269,10 @@ func bootstrap(config *Config, dry bool, once bool) (*Runner, *watch.Watcher, er
 	if config.Token != "" {
 		consulConfig.Token = config.Token
 	}
-	if config.HTTPS {
+	if config.UseSSL {
 		consulConfig.Scheme = "https"
 	}
-	if config.Insecure {
+	if config.SSLNoVerify {
 		consulConfig.HttpClient.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,

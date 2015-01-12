@@ -89,15 +89,15 @@ func TestMerge_HttpsOptions(t *testing.T) {
 	{
 		// True merges over false
 		config := &Config{
-			HTTPS:    false,
-			Insecure: false,
+			UseSSL:      false,
+			SSLNoVerify: false,
 		}
 		otherConfig := &Config{
-			HTTPS:    true,
-			Insecure: true,
+			UseSSL:      true,
+			SSLNoVerify: true,
 		}
 		config.Merge(otherConfig)
-		if !config.HTTPS || !config.Insecure {
+		if !config.UseSSL || !config.SSLNoVerify {
 			t.Fatalf("bad: %#v", config)
 		}
 	}
@@ -105,15 +105,15 @@ func TestMerge_HttpsOptions(t *testing.T) {
 	{
 		// False does not merge over true
 		config := &Config{
-			HTTPS:    true,
-			Insecure: true,
+			UseSSL:      true,
+			SSLNoVerify: true,
 		}
 		otherConfig := &Config{
-			HTTPS:    false,
-			Insecure: false,
+			UseSSL:      false,
+			SSLNoVerify: false,
 		}
 		config.Merge(otherConfig)
-		if !config.HTTPS || !config.Insecure {
+		if !config.UseSSL || !config.SSLNoVerify {
 			t.Fatalf("bad: %#v", config)
 		}
 	}
@@ -172,8 +172,8 @@ func TestParseConfig_mapstructureError(t *testing.T) {
 func TestParseConfig_correctValues(t *testing.T) {
 	configFile := test.CreateTempfile([]byte(`
     consul = "nyc1.demo.consul.io"
-    https = true
-    insecure = true
+    ssl = true
+    ssl_no_verify = true
     token = "abcd1234"
     wait = "5s:10s"
     retry = "10s"
@@ -197,11 +197,11 @@ func TestParseConfig_correctValues(t *testing.T) {
 	}
 
 	expected := &Config{
-		Path:     configFile.Name(),
-		Consul:   "nyc1.demo.consul.io",
-		HTTPS:    true,
-		Insecure: true,
-		Token:    "abcd1234",
+		Path:        configFile.Name(),
+		Consul:      "nyc1.demo.consul.io",
+		UseSSL:      true,
+		SSLNoVerify: true,
+		Token:       "abcd1234",
 		Wait: &watch.Wait{
 			Min: time.Second * 5,
 			Max: time.Second * 10,

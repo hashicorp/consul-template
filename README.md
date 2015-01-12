@@ -33,8 +33,8 @@ Usage
 | ------ | -------- |------------ |
 | `consul`    | _(required)_ | The location of the Consul instance to query (may be an IP address or FQDN) with port. |
 | `template`  | _(required)_ | The input template, output path, and optional command separated by a colon (`:`). This option is additive and may be specified multiple times for multiple templates. |
-| `https`     | | Use HTTPS while talking to Consul. Requires the Consul server to be configured to serve secure connections.
-| `insecure`  | | Ignore certificate warnings. Only used if `https` is enabled.
+| `ssl`       | | Use HTTPS while talking to Consul. Requires the Consul server to be configured to serve secure connections.
+| `ssl_no_verify` | | Ignore certificate warnings. Only used if `ssl` is enabled.
 | `token`     | | The [Consul API token][Consul ACLs]. |
 | `config`    | | The path to a configuration file or directory on disk, relative to the current working directory. Values specified on the CLI take precedence over values specified in the configuration file |
 | `wait`      | | The `minimum(:maximum)` to wait before rendering a new template to disk and triggering a command, separated by a colon (`:`). If the optional maximum value is omitted, it is assumed to be 4x the required minimum value. |
