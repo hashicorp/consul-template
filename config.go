@@ -28,6 +28,13 @@ type Config struct {
 	// address or FQDN) with port.
 	Consul string `mapstructure:"consul"`
 
+	// UseSSL indicates we should use a secure connection while talking to
+	// Consul. This requires Consul to be configured to serve HTTPS.
+	UseSSL bool `mapstructure:"ssl"`
+
+	// SSLNoVerify determines if we should skip certificate warnings
+	SSLNoVerify bool `mapstructure:"ssl_no_verify"`
+
 	// ConfigTemplates is a slice of the ConfigTemplate objects in the config.
 	ConfigTemplates []*ConfigTemplate `mapstructure:"template"`
 
@@ -48,6 +55,14 @@ type Config struct {
 func (c *Config) Merge(config *Config) {
 	if config.Consul != "" {
 		c.Consul = config.Consul
+	}
+
+	if config.UseSSL {
+		c.UseSSL = true
+	}
+
+	if config.SSLNoVerify {
+		c.SSLNoVerify = true
 	}
 
 	if len(config.ConfigTemplates) > 0 {
