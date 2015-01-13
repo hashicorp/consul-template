@@ -57,6 +57,7 @@ func (cli *CLI) Run(args []string) int {
 	cli.initLogger()
 
 	var version, dry, once bool
+	var httpAuthArg string
 	var config = new(Config)
 
 	// Parse the flags and options
@@ -71,10 +72,8 @@ func (cli *CLI) Run(args []string) int {
 		"use https while talking to consul")
 	flags.BoolVar(&config.SSLNoVerify, "ssl-no-verify", false,
 		"ignore certificate warnings under https")
-	flags.StringVar(&config.HttpAuth.Username, "basic-auth-username", "",
-		"set BasicAuth username")
-	flags.StringVar(&config.HttpAuth.Password, "basic-auth-password", "",
-		"set BasicAuth password")
+	flags.StringVar(&httpAuthArg, "auth", "",
+		"set BasicAuth username[:password]")
 	flags.Var((*configTemplateVar)(&config.ConfigTemplates), "template",
 		"new template declaration")
 	flags.StringVar(&config.Token, "token", "",
@@ -116,7 +115,7 @@ func (cli *CLI) Run(args []string) int {
 	}
 
 	// Initial bootstrap
-	runner, watcher, err := bootstrap(config, dry, once)
+	runner, watcher, err := bootstrap(config, dry, once, httpAuthArg)
 	if err != nil {
 		return cli.handleError(err, 1)
 	}
@@ -193,7 +192,7 @@ func (cli *CLI) Run(args []string) int {
 			case syscall.SIGHUP:
 				fmt.Fprintf(cli.errStream, "Received HUP, reloading configuration...\n")
 				watcher.Stop()
-				runner, watcher, err = bootstrap(config, dry, once)
+				runner, watcher, err = bootstrap(config, dry, once, httpAuthArg)
 				if err != nil {
 					return cli.handleError(err, 1)
 				}
@@ -241,7 +240,7 @@ func (cli *CLI) initLogger() {
 // all the required components to make a new watcher object. This function
 // returns the created Runner and Watcher. If an error occurs, it is returned as
 // the final parameter.
-func bootstrap(config *Config, dry bool, once bool) (*Runner, *watch.Watcher, error) {
+func bootstrap(config *Config, dry bool, once bool, httpAuthArg string) (*Runner, *watch.Watcher, error) {
 	// Merge a path config with the command line options. Command line options
 	// take precedence over config file options for easy overriding.
 	if config.Path != "" {
@@ -283,9 +282,17 @@ func bootstrap(config *Config, dry bool, once bool) (*Runner, *watch.Watcher, er
 			},
 		}
 	}
-	if (config.HttpAuth.Username != "") || (config.HttpAuth.Password != "") {
-		consulConfig.HttpAuth.Username = config.HttpAuth.Username
-		consulConfig.HttpAuth.Password = config.HttpAuth.Password
+	if httpAuthArg != "" {
+		passwordSeperator := ":"
+
+		if strings.Contains(httpAuthArg, passwordSeperator) {
+			credsTuple := strings.Split(httpAuthArg, passwordSeperator)
+
+			consulConfig.HttpAuth.Username = credsTuple[0]
+			consulConfig.HttpAuth.Password = credsTuple[1]
+		} else {
+			consulConfig.HttpAuth.Username = httpAuthArg
+		}
 	}
 	client, err := api.NewClient(consulConfig)
 	if err != nil {

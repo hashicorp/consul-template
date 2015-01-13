@@ -76,10 +76,6 @@ func (c *Config) Merge(config *Config) {
 		c.HttpAuth = config.HttpAuth
 	}
 
-	if config.HttpAuth.Password != "" {
-		c.HttpAuth.Password = config.HttpAuth.Password
-	}
-
 	if len(config.ConfigTemplates) > 0 {
 		if c.ConfigTemplates == nil {
 			c.ConfigTemplates = make([]*ConfigTemplate, 0, 1)
