@@ -285,18 +285,20 @@ func bootstrap(config *Config, dry bool, once bool) (*Runner, *watch.Watcher, er
 	}
 
 	log.Printf("[DEBUG] (cli) creating Watcher")
-	watcher, err := watch.NewWatcher(client, runner.Dependencies())
+	watcher, err := watch.NewWatcher(client, once)
 	if err != nil {
 		return nil, nil, err
+	}
+	for _, dep := range runner.Dependencies() {
+		if _, err := watcher.AddDependency(dep); err != nil {
+			return nil, nil, err
+		}
 	}
 
 	// Set the retry timeout on the watcher if one was given
 	if config.Retry != 0 {
 		watcher.SetRetry(config.Retry)
 	}
-
-	// Start the watcher in the background
-	go watcher.Watch(once)
 
 	return runner, watcher, nil
 }

@@ -21,13 +21,19 @@ const (
 // View is a representation of a Dependency and the most recent data it has
 // received from Consul.
 type View struct {
+	// Dependency is the dependency that is associated with this View
 	Dependency dependency.Dependency
 
+	// Data is the most-recently-received data from Consul for this View
 	Data         interface{}
 	receivedData bool
 	lastIndex    uint64
 
+	// client is the Consul API client
 	client *api.Client
+
+	// stopCh is used to stop polling on this View
+	stopCh chan struct{}
 }
 
 // NewView creates a new view object from the given Consul API client and
@@ -42,8 +48,9 @@ func NewView(client *api.Client, dep dependency.Dependency) (*View, error) {
 	}
 
 	return &View{
-		client:     client,
 		Dependency: dep,
+		client:     client,
+		stopCh:     make(chan struct{}, 1),
 	}, nil
 }
 
@@ -51,8 +58,7 @@ func NewView(client *api.Client, dep dependency.Dependency) (*View, error) {
 // accounts for interrupts on the interrupt channel. This allows the poll
 // function to be fired in a goroutine, but then halted even if the fetch
 // function is in the middle of a blocking query.
-func (v *View) poll(once bool, viewCh chan<- *View,
-	errCh chan<- error, stopCh <-chan struct{}, retryFunc RetryFunc) {
+func (v *View) poll(once bool, viewCh chan<- *View, errCh chan<- error, retryFunc RetryFunc) {
 	currentRetry := defaultRetry
 
 	for {
@@ -88,8 +94,8 @@ func (v *View) poll(once bool, viewCh chan<- *View,
 			currentRetry = retryFunc(currentRetry)
 			time.Sleep(currentRetry)
 			continue
-		case <-stopCh:
-			log.Printf("[DEBUG] (%s) stopping poll (received on stopCh)", v.display())
+		case <-v.stopCh:
+			log.Printf("[DEBUG] (%s) stopping poll (received on view stopCh)", v.display())
 			return
 		}
 	}
@@ -142,4 +148,9 @@ func (v *View) fetch(doneCh chan<- struct{}, errCh chan<- error) {
 // display returns a string that represents this view.
 func (v *View) display() string {
 	return v.Dependency.Display()
+}
+
+// stop halts polling of this view.
+func (v *View) stop() {
+	close(v.stopCh)
 }
