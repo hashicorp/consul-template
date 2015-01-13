@@ -120,26 +120,24 @@ func TestMerge_HttpsOptions(t *testing.T) {
 }
 
 func TestMerge_BasicAuthOptions(t *testing.T) {
-	{
-		// If username is present it merges in
-		httpAuth := HttpAuth{
-			Username: "TestUser",
-			Password: "",
-		}
-		config := &Config{
-			HttpAuth: httpAuth,
-		}
-		otherHttpAuth := HttpAuth{
-			Username: "",
-			Password: "",
-		}
-		otherConfig := &Config{
-			HttpAuth: otherHttpAuth,
-		}
-		config.Merge(otherConfig)
-		if config.HttpAuth.Username != "TestUser" {
-			t.Fatalf("bad %#v", config)
-		}
+	// If username is present it merges in
+	httpAuth := HttpAuth{
+		Username: "TestUser",
+		Password: "",
+	}
+	config := &Config{
+		HttpAuth: httpAuth,
+	}
+	otherHttpAuth := HttpAuth{
+		Username: "",
+		Password: "",
+	}
+	otherConfig := &Config{
+		HttpAuth: otherHttpAuth,
+	}
+	config.Merge(otherConfig)
+	if config.HttpAuth.Username != "TestUser" {
+		t.Fatalf("bad %#v", config)
 	}
 }
 
