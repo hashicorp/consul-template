@@ -34,9 +34,6 @@ type Watcher struct {
 	// FinishCh is the chan where the watcher reports it is "done"
 	FinishCh chan struct{}
 
-	// stopCh is a chan that is only published when polling should stop
-	stopCh chan struct{}
-
 	// client is the mechanism for communicating with the Consul API
 	client *api.Client
 
@@ -123,10 +120,15 @@ func (w *Watcher) Watch(once bool) {
 // Stop halts this watcher and any currently polling views immediately. If a
 // view was in the middle of a poll, no data will be returned.
 func (w *Watcher) Stop() {
-	close(w.stopCh)
+	log.Printf("[INFO] (watcher) stopping all views")
+
+	for _, view := range w.depViewMap {
+		log.Printf("[DEBUG] (watcher) stopping %+v", view)
+		view.stop()
+	}
 }
 
-//
+// init sets up the initial values for the watcher.
 func (w *Watcher) init() error {
 	if w.client == nil {
 		return fmt.Errorf("watcher: missing Consul API client")
@@ -143,7 +145,6 @@ func (w *Watcher) init() error {
 	w.DataCh = make(chan *View)
 	w.ErrCh = make(chan error)
 	w.FinishCh = make(chan struct{})
-	w.stopCh = make(chan struct{})
 
 	return nil
 }

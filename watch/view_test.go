@@ -60,17 +60,16 @@ func TestPoll_returnsViewCh(t *testing.T) {
 
 	viewCh := make(chan *View)
 	errCh := make(chan error)
-	stopCh := make(chan struct{})
 
-	go view.poll(true, viewCh, errCh, stopCh, testRetryFunc)
-	defer close(stopCh)
+	go view.poll(true, viewCh, errCh, testRetryFunc)
+	defer view.stop()
 
 	select {
 	case <-viewCh:
 		// Got this far, so the test passes
 	case err := <-errCh:
 		t.Errorf("error while polling: %s", err)
-	case <-stopCh:
+	case <-view.stopCh:
 		t.Errorf("poll received premature stop")
 	}
 }
@@ -83,24 +82,23 @@ func TestPoll_noReturnErrCh(t *testing.T) {
 
 	viewCh := make(chan *View)
 	errCh := make(chan error)
-	stopCh := make(chan struct{})
 
-	go view.poll(true, viewCh, errCh, stopCh, testRetryFunc)
-	defer close(stopCh)
+	go view.poll(true, viewCh, errCh, testRetryFunc)
+	defer view.stop()
 
 	select {
 	case data := <-viewCh:
 		t.Errorf("expected no data, but got %+v", data)
 	case err := <-errCh:
 		t.Errorf("expected no error, but got %s", err)
-	case <-stopCh:
+	case <-view.stopCh:
 		t.Errorf("poll received premature stop")
 	case <-time.After(50 * time.Millisecond):
 		// No data was received, test passes
 	}
 }
 
-func TestPoll_stopsStopCh(t *testing.T) {
+func TestPoll_stopsViewStopCh(t *testing.T) {
 	view, err := NewView(&api.Client{}, &test.FakeDependency{})
 	if err != nil {
 		t.Fatal(err)
@@ -108,17 +106,15 @@ func TestPoll_stopsStopCh(t *testing.T) {
 
 	viewCh := make(chan *View)
 	errCh := make(chan error)
-	stopCh := make(chan struct{})
 
-	go view.poll(true, viewCh, errCh, stopCh, testRetryFunc)
-	close(stopCh)
+	go view.poll(true, viewCh, errCh, testRetryFunc)
+	view.stop()
 
 	select {
 	case <-viewCh:
 		t.Errorf("expected no data, but received view data")
 	case err := <-errCh:
 		t.Errorf("error while polling: %s", err)
-	case <-stopCh:
 	case <-time.After(100 * time.Millisecond):
 		// No data was received, test passes
 	}
@@ -132,17 +128,16 @@ func TestPoll_once(t *testing.T) {
 
 	viewCh := make(chan *View)
 	errCh := make(chan error)
-	stopCh := make(chan struct{})
 
-	go view.poll(true, viewCh, errCh, stopCh, testRetryFunc)
-	defer close(stopCh)
+	go view.poll(true, viewCh, errCh, testRetryFunc)
+	defer view.stop()
 
 	select {
 	case <-viewCh:
 		// Got this far, so the test passes
 	case err := <-errCh:
 		t.Errorf("error while polling: %s", err)
-	case <-stopCh:
+	case <-view.stopCh:
 		t.Errorf("poll received premature stop")
 	}
 
@@ -151,7 +146,7 @@ func TestPoll_once(t *testing.T) {
 		t.Errorf("expected no data (should have stopped), but received view data")
 	case err := <-errCh:
 		t.Errorf("error while polling: %s", err)
-	case <-stopCh:
+	case <-view.stopCh:
 		t.Errorf("poll received premature stop")
 	case <-time.After(500 * time.Millisecond):
 		// No data in 0.5s, so the test passes
@@ -166,17 +161,16 @@ func TestPoll_retries(t *testing.T) {
 
 	viewCh := make(chan *View)
 	errCh := make(chan error)
-	stopCh := make(chan struct{})
 
-	go view.poll(false, viewCh, errCh, stopCh, testRetryFunc)
-	defer close(stopCh)
+	go view.poll(false, viewCh, errCh, testRetryFunc)
+	defer view.stop()
 
 	select {
 	case <-viewCh:
 		// Got this far, so the test passes
 	case err := <-errCh:
 		t.Errorf("error while polling: %s", err)
-	case <-stopCh:
+	case <-view.stopCh:
 		t.Errorf("poll received premature stop")
 	}
 }
@@ -222,5 +216,27 @@ func TestFetch_returnsErrCh(t *testing.T) {
 		if err.Error() != expected {
 			t.Fatalf("expected error %q to be %q", err.Error(), expected)
 		}
+	}
+}
+
+func TestStop_stopsPolling(t *testing.T) {
+	view, err := NewView(&api.Client{}, &test.FakeDependency{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	viewCh := make(chan *View)
+	errCh := make(chan error)
+
+	go view.poll(true, viewCh, errCh, testRetryFunc)
+	view.stop()
+
+	select {
+	case view := <-viewCh:
+		t.Errorf("got unexpected view: %#v", view)
+	case err := <-errCh:
+		t.Error(err)
+	case <-view.stopCh:
+		// Successfully stopped
 	}
 }
