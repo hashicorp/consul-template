@@ -79,6 +79,8 @@ func TestRun_waitFlagError(t *testing.T) {
 }
 
 func TestRun_onceFlag(t *testing.T) {
+	t.Skip("Pending a rewrite of the Runner")
+
 	template := test.CreateTempfile([]byte(`
 	{{range service "consul"}}{{.Name}}{{end}}
   `), t)
@@ -94,7 +96,6 @@ func TestRun_onceFlag(t *testing.T) {
 	args := strings.Split(command, " ")
 
 	ch := make(chan int, 1)
-
 	go func() {
 		ch <- cli.Run(args)
 	}()
@@ -105,8 +106,8 @@ func TestRun_onceFlag(t *testing.T) {
 			t.Errorf("expected %d to eq %d", status, ExitCodeOK)
 			t.Errorf("stderr: %s", errStream.String())
 		}
-	case <-time.After(5 * time.Second):
-		t.Errorf("expected data, but nothing was returned")
+	case <-time.After(2 * time.Second):
+		t.Errorf("expected exit, did not exit after 2 seconds")
 	}
 }
 
