@@ -74,6 +74,9 @@ func NewWatcher(c *api.Client, once bool) (*Watcher, error) {
 // creating the view, it will be returned here (but future errors returned by
 // the view will happen on the channel).
 func (w *Watcher) AddDependency(dep dependency.Dependency) (bool, error) {
+	w.Lock()
+	defer w.Unlock()
+
 	log.Printf("[INFO] (watcher) adding dependency %s", dep.Display())
 
 	if _, ok := w.depViewMap[dep.HashCode()]; ok {
@@ -102,6 +105,9 @@ func (w *Watcher) AddDependency(dep dependency.Dependency) (bool, error) {
 // function will return false. If the View does exist, this function will return
 // true upon successful deletion.
 func (w *Watcher) RemoveDependency(dep dependency.Dependency) bool {
+	w.Lock()
+	defer w.Unlock()
+
 	log.Printf("[INFO] (watcher) removing dependency %s", dep.Display())
 
 	if view, ok := w.depViewMap[dep.HashCode()]; ok {
