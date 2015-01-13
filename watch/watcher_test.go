@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul-template/dependency"
+	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul/api"
 )
 
 func TestNewWatcher_noClient(t *testing.T) {
-	_, err := NewWatcher(nil, make([]dependency.Dependency, 1))
+	_, err := NewWatcher(nil, false)
 	if err == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
@@ -22,16 +22,9 @@ func TestNewWatcher_noClient(t *testing.T) {
 	}
 }
 
-func TestNewWatcher_noDependencies(t *testing.T) {
-	_, err := NewWatcher(&api.Client{}, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
 func TestNewWatcher_setsClient(t *testing.T) {
 	client := &api.Client{}
-	w, err := NewWatcher(client, make([]dependency.Dependency, 1))
+	w, err := NewWatcher(client, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,23 +34,20 @@ func TestNewWatcher_setsClient(t *testing.T) {
 	}
 }
 
-func TestNewWatcher_setsDependencies(t *testing.T) {
-	dependencies := []dependency.Dependency{
-		&dependency.HealthServices{},
-		&dependency.HealthServices{},
-	}
-	w, err := NewWatcher(&api.Client{}, dependencies)
+func TestNewWatcher_setsOnce(t *testing.T) {
+	client := &api.Client{}
+	w, err := NewWatcher(client, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if !reflect.DeepEqual(w.dependencies, dependencies) {
-		t.Errorf("expected %q to equal %q", w.dependencies, dependencies)
+	if !w.once {
+		t.Errorf("expected once to be true")
 	}
 }
 
 func TestNewWatcher_makesDataCh(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, make([]dependency.Dependency, 1))
+	w, err := NewWatcher(&api.Client{}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +58,7 @@ func TestNewWatcher_makesDataCh(t *testing.T) {
 }
 
 func TestNewWatcher_makesErrCh(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, make([]dependency.Dependency, 1))
+	w, err := NewWatcher(&api.Client{}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +69,7 @@ func TestNewWatcher_makesErrCh(t *testing.T) {
 }
 
 func TestNewWatcher_makesFinishCh(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, make([]dependency.Dependency, 1))
+	w, err := NewWatcher(&api.Client{}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,19 +79,8 @@ func TestNewWatcher_makesFinishCh(t *testing.T) {
 	}
 }
 
-func TestNewWatcher_makesstopCh(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, make([]dependency.Dependency, 1))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if w.stopCh == nil {
-		t.Errorf("expected stopCh to exist")
-	}
-}
-
 func TestNewWatcher_setsRetry(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, make([]dependency.Dependency, 1))
+	w, err := NewWatcher(&api.Client{}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,8 +90,119 @@ func TestNewWatcher_setsRetry(t *testing.T) {
 	}
 }
 
+func TestNewWatcher_makesdepViewMap(t *testing.T) {
+	w, err := NewWatcher(&api.Client{}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if w.depViewMap == nil {
+		t.Errorf("expected depViewMap to exist")
+	}
+}
+
+func TestAddDependency_exists(t *testing.T) {
+	w, err := NewWatcher(&api.Client{}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dep := &test.FakeDependency{}
+	w.depViewMap[dep.HashCode()] = &View{}
+
+	added, err := w.AddDependency(dep)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if added != false {
+		t.Errorf("expected AddDependency to return false")
+	}
+}
+
+func TestAddDependency_error(t *testing.T) {
+	w, err := NewWatcher(&api.Client{}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Set the client to nil to force the view to return an error
+	w.client = nil
+
+	added, err := w.AddDependency(&test.FakeDependency{})
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "view: missing Consul API client"
+	if err.Error() != expected {
+		t.Errorf("expected %q to be %q", err.Error(), expected)
+	}
+
+	if added != false {
+		t.Errorf("expected AddDependency to return false")
+	}
+}
+
+func TestAddDependency_startsViewPoll(t *testing.T) {
+	w, err := NewWatcher(&api.Client{}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	added, err := w.AddDependency(&test.FakeDependency{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if added != true {
+		t.Errorf("expected AddDependency to return true")
+	}
+
+	select {
+	case err := <-w.ErrCh:
+		t.Fatal(err)
+	case <-w.DataCh:
+		// Got data, which means the poll was started
+	}
+}
+
+func TestRemoveDependency_exists(t *testing.T) {
+	w, err := NewWatcher(&api.Client{}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dep := &test.FakeDependency{}
+
+	if _, err := w.AddDependency(dep); err != nil {
+		t.Fatal(err)
+	}
+
+	removed := w.RemoveDependency(dep)
+	if removed == true {
+		t.Error("expected RemoveDependency to return true")
+	}
+
+	if _, ok := w.depViewMap[dep.HashCode()]; ok {
+		t.Error("expected dependency to be removed")
+	}
+}
+
+func TestRemoveDependency_doesNotExist(t *testing.T) {
+	w, err := NewWatcher(&api.Client{}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	removed := w.RemoveDependency(&test.FakeDependency{})
+	if removed != false {
+		t.Fatal("expected RemoveDependency to return false")
+	}
+}
+
 func TestSetRetry_setsRetryFunc(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, make([]dependency.Dependency, 1))
+	w, err := NewWatcher(&api.Client{}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +217,7 @@ func TestSetRetry_setsRetryFunc(t *testing.T) {
 }
 
 func TestSetRetryFunc_setsRetryFunc(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, make([]dependency.Dependency, 1))
+	w, err := NewWatcher(&api.Client{}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
