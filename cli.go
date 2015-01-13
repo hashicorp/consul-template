@@ -300,9 +300,6 @@ func bootstrap(config *Config, dry bool, once bool) (*Runner, *watch.Watcher, er
 		watcher.SetRetry(config.Retry)
 	}
 
-	// Start the watcher in the background
-	go watcher.Watch(once)
-
 	return runner, watcher, nil
 }
 

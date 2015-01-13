@@ -44,9 +44,6 @@ type Watcher struct {
 	// should occur.
 	retryFunc RetryFunc
 
-	// waitGroup is the WaitGroup to ensure all Go routines return when we stop
-	waitGroup sync.WaitGroup
-
 	// depViewMap is a map of Templates to Views. Templates are keyed by
 	// HashCode().
 	depViewMap map[string]*View
@@ -84,18 +81,14 @@ func (w *Watcher) AddDependency(dep dependency.Dependency) (bool, error) {
 		return false, nil
 	}
 
-	view, err := NewView(w.client, dep)
+	v, err := NewView(w.client, dep)
 	if err != nil {
 		return false, err
 	}
 
 	log.Printf("[DEBUG] (watcher) dependency %s starting", dep.Display())
 
-	w.waitGroup.Add(1)
-	go func(once bool, v *View) {
-		defer w.waitGroup.Done()
-		v.poll(once, w.DataCh, w.ErrCh, w.retryFunc)
-	}(w.once, view)
+	go v.poll(w.once, w.DataCh, w.ErrCh, w.retryFunc)
 
 	return true, nil
 }
@@ -136,26 +129,6 @@ func (w *Watcher) SetRetryFunc(f RetryFunc) {
 	w.Lock()
 	defer w.Unlock()
 	w.retryFunc = f
-}
-
-// Watch creates a series of Consul views which poll for data in parallel. If
-// the `once` flag is true, each view will return data (or an error) exactly
-// once and terminate. If the `once` flag is false, views will continue to poll
-// indefinitely unless they encounter an irrecoverable error.
-//
-// TODO: Refactor me!
-func (w *Watcher) Watch(once bool) {
-	log.Printf("[DEBUG] (watcher) starting watch")
-
-	// Wait for them to stop
-	log.Printf("[DEBUG] (watcher) all pollers have started, waiting for finish")
-	w.waitGroup.Wait()
-
-	// Close everything up
-	if once {
-		log.Printf("[DEBUG] (watcher) closing finish channel")
-		close(w.FinishCh)
-	}
 }
 
 // Stop halts this watcher and any currently polling views immediately. If a
