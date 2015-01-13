@@ -17,6 +17,11 @@ import (
 // The pattern to split the config template syntax on
 var configTemplateRe = regexp.MustCompile("([a-zA-Z]:)?([^:]+)")
 
+type HttpAuth struct {
+	Username string
+	Password string
+}
+
 // Config is used to configure Consul Template
 type Config struct {
 	// Path is the path to this configuration file on disk. This value is not
@@ -31,6 +36,8 @@ type Config struct {
 	// SSL indicates we should use a secure connection while talking to
 	// Consul. This requires Consul to be configured to serve HTTPS.
 	SSL bool `mapstructure:"ssl"`
+
+	HttpAuth HttpAuth `mapstructure:"HttpAuth"`
 
 	// SSLNoVerify determines if we should skip certificate warnings
 	SSLNoVerify bool `mapstructure:"ssl_no_verify"`
@@ -63,6 +70,10 @@ func (c *Config) Merge(config *Config) {
 
 	if config.SSLNoVerify {
 		c.SSLNoVerify = true
+	}
+
+	if (config.HttpAuth.Username != "") || (config.HttpAuth.Password != "") {
+		c.HttpAuth = config.HttpAuth
 	}
 
 	if len(config.ConfigTemplates) > 0 {
