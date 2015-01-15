@@ -18,7 +18,7 @@ type Dependency interface {
 // deepCopyAndSortTags deep copies the tags in the given string slice and then
 // sorts and returns the copied result.
 func deepCopyAndSortTags(tags []string) []string {
-	newTags := make([]string, len(tags))
+	newTags := make([]string, 0, len(tags))
 	for _, tag := range tags {
 		newTags = append(newTags, tag)
 	}
