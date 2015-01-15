@@ -86,36 +86,32 @@ func TestMerge_complexConfig(t *testing.T) {
 
 // Test that the flags for HTTPS are properly merged
 func TestMerge_HttpsOptions(t *testing.T) {
-	{
-		// True merges over false
-		config := &Config{
-			SSL:         false,
-			SSLNoVerify: false,
-		}
-		otherConfig := &Config{
-			SSL:         true,
-			SSLNoVerify: true,
-		}
-		config.Merge(otherConfig)
-		if !config.SSL || !config.SSLNoVerify {
-			t.Fatalf("bad: %#v", config)
-		}
+	config := &Config{
+		SSL:         false,
+		SSLNoVerify: false,
+	}
+	otherConfig := &Config{
+		SSL:         true,
+		SSLNoVerify: true,
+	}
+	config.Merge(otherConfig)
+
+	if !config.SSL || !config.SSLNoVerify {
+		t.Fatalf("bad: %#v", config)
 	}
 
-	{
-		// False does not merge over true
-		config := &Config{
-			SSL:         true,
-			SSLNoVerify: true,
-		}
-		otherConfig := &Config{
-			SSL:         false,
-			SSLNoVerify: false,
-		}
-		config.Merge(otherConfig)
-		if !config.SSL || !config.SSLNoVerify {
-			t.Fatalf("bad: %#v", config)
-		}
+	config = &Config{
+		SSL:         true,
+		SSLNoVerify: true,
+	}
+	otherConfig = &Config{
+		SSL:         false,
+		SSLNoVerify: false,
+	}
+	config.Merge(otherConfig)
+
+	if !config.SSL || !config.SSLNoVerify {
+		t.Fatalf("bad: %#v", config)
 	}
 }
 
