@@ -126,11 +126,11 @@ func (cli *CLI) Run(args []string) int {
 	case s := <-signalCh:
 		switch s {
 		case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
-			cli.say("Received interrupt, cleaning up...")
+			fmt.Fprintf(cli.errStream, "Received interrupt, cleaning up...\n")
 			runner.Stop()
 			return ExitCodeInterrupt
 		case syscall.SIGHUP:
-			cli.say("Received HUP, reloading configuration...")
+			fmt.Fprintf(cli.errStream, "Received HUP, reloading configuration...\n")
 			runner.Stop()
 			runner, err := NewRunner(config, dry, once)
 			if err != nil {
@@ -146,18 +146,8 @@ func (cli *CLI) Run(args []string) int {
 // handleError outputs the given error's Error() to the errStream and returns
 // the given exit status.
 func (cli *CLI) handleError(err error, status int) int {
-	cli.say(err)
+	fmt.Fprintf(cli.errStream, "Consul Template returned errors:\n%s", err)
 	return status
-}
-
-// say is a method for outputting information to the CLI's error stream.
-func (cli *CLI) say(s interface{}, data ...interface{}) {
-	l := make([]interface{}, len(data)+1)
-	l = append(l, s)
-	for _, d := range data {
-		l = append(l, d)
-	}
-	fmt.Fprintf(cli.errStream, fmt.Sprintf("%s\n", l...))
 }
 
 // initLogger gets the log level from the environment, falling back to DEBUG if
