@@ -23,6 +23,10 @@ import (
 
 // Runner responsible rendering Templates and invoking Commands.
 type Runner struct {
+	// ErrCh and DoneCh are channels where errors and finish notifications occur.
+	ErrCh  chan error
+	DoneCh chan struct{}
+
 	// config is the Config that created this Runner. It is used internally to
 	// construct other objects and pass data.
 	config *Config
@@ -50,6 +54,11 @@ type Runner struct {
 	// templates is the list of calculated templates.
 	templates []*Template
 
+	// renderedTemplates is a map of templates we have successfully rendered to
+	// disk. It is used for once mode and internal tracking. The key is the Path
+	// of the template.
+	renderedTemplates map[string]struct{}
+
 	// dependencies is the list of dependencies this runner is watching.
 	dependencies []dep.Dependency
 
@@ -58,9 +67,6 @@ type Runner struct {
 
 	// brain is the internal storage database of returned dependency data.
 	brain *Brain
-
-	// stopCh is the channel the runner listens on for stopping.
-	stopCh chan struct{}
 }
 
 // NewRunner accepts a slice of ConfigTemplates and returns a pointer to the new
@@ -80,21 +86,26 @@ func NewRunner(config *Config, dry, once bool) (*Runner, error) {
 }
 
 // Start begins the polling for this runner. Any errors that occur will cause
-// this function to push an item onto the given error channel and the halt
+// this function to push an item onto the runner's error channel and the halt
 // execution. This function is blocking and should be called as a goroutine.
-func (r *Runner) Start(errCh chan<- error) {
-	// Create the stopCh
-	r.stopCh = make(chan struct{})
-
+func (r *Runner) Start() {
 	// Fire an initial run to parse all the templates and setup the first-pass
 	// dependencies. This also forces any templates that have no dependencies to
 	// be rendered immediately (since they are already renderable).
 	if err := r.Run(); err != nil {
-		errCh <- err
+		r.ErrCh <- err
 		return
 	}
 
 	for {
+		// If we are running in once mode and all our templates have been rendered,
+		// then we should exit here.
+		if r.once && r.allTemplatesRendered() {
+			log.Printf("[INFO] once mode and all templates rendered")
+			r.Stop()
+			return
+		}
+
 		select {
 		case data := <-r.watcher.DataCh:
 			r.Receive(data.Dependency, data.Data)
@@ -114,7 +125,7 @@ func (r *Runner) Start(errCh chan<- error) {
 				continue
 			}
 		case err := <-r.watcher.ErrCh:
-			errCh <- err
+			r.ErrCh <- err
 			return
 		case <-r.minTimer:
 			log.Printf("[INFO] (runner) quiescence minTimer fired")
@@ -123,12 +134,12 @@ func (r *Runner) Start(errCh chan<- error) {
 			log.Printf("[INFO] (runner) quiescence maxTimer fired")
 			r.minTimer, r.maxTimer = nil, nil
 		case err := <-r.watcher.ErrCh:
-			errCh <- err
+			r.ErrCh <- err
 			return
 		case <-r.watcher.FinishCh:
 			log.Printf("[INFO] (runner) watcher reported finish")
 			return
-		case <-r.stopCh:
+		case <-r.DoneCh:
 			log.Printf("[INFO] (runner) received finish")
 			return
 		}
@@ -136,7 +147,7 @@ func (r *Runner) Start(errCh chan<- error) {
 		// If we got this far, that means we got new data or one of the timers fired,
 		// so attempt to re-render.
 		if err := r.Run(); err != nil {
-			errCh <- err
+			r.ErrCh <- err
 			return
 		}
 	}
@@ -145,7 +156,7 @@ func (r *Runner) Start(errCh chan<- error) {
 // Stop halts the execution of this runner and its subprocesses.
 func (r *Runner) Stop() {
 	r.watcher.Stop()
-	close(r.stopCh)
+	close(r.DoneCh)
 }
 
 // SetOutStream accepts an io.Writer and sets the internal outStream for this
@@ -183,8 +194,21 @@ func (r *Runner) Run() error {
 	depsMap := make(map[string]dep.Dependency)
 
 	for _, tmpl := range r.templates {
-		log.Printf("[DEBUG] (runner) checking template: %#v", tmpl)
+		log.Printf("[DEBUG] (runner) checking template %s", tmpl.Path)
 
+		// If we are in once mode and this template was already rendered, move
+		// onto the next one. We do not want to re-render the template if we are
+		// in once mode, and we certainly do not want to re-run any commands.
+		if r.once {
+			if _, rendered := r.renderedTemplates[tmpl.Path]; rendered {
+				log.Printf("[DEBUG] (runner) once mode and already rendered", tmpl.Path)
+				continue
+			}
+		}
+
+		// Attempt to render the template, returning any missing dependencies and
+		// the rendered contents. If there are any missing dependencies, the
+		// contents cannot be rendered or trusted!
 		missing, contents, err := tmpl.Execute(r.brain)
 		if err != nil {
 			return err
@@ -215,23 +239,36 @@ func (r *Runner) Run() error {
 		}
 
 		for _, ctemplate := range r.configTemplatesFor(tmpl) {
-			log.Printf("[DEBUG] (runner) checking ctemplate: %v", ctemplate.Command)
+			log.Printf("[DEBUG] (runner) checking ctemplate %+v", ctemplate)
 
 			// Render the template, taking dry mode into account
 			rendered, err := r.render(contents, ctemplate.Destination)
 			if err != nil {
-				log.Printf("[DEBUG] (runner) error rendering template: `%s`", tmpl.Path)
+				log.Printf("[DEBUG] (runner) error rendering %s", tmpl.Path)
 				return err
 			}
 
 			log.Printf("[DEBUG] (runner) rendered: %t", rendered)
 
-			// If the template was rendered (changed) and we are not in dry-run mode,
-			// aggregate commands, ignoring previously known commands
-			if rendered && !r.dry {
-				if ctemplate.Command != "" && !exists(ctemplate.Command, commands) {
-					log.Printf("[DEBUG] (runner) appending command: `%s`", ctemplate.Command)
-					commands = append(commands, ctemplate.Command)
+			if rendered {
+				// Make a note that we have rendered this template (required for once
+				// mode and just generally nice for debugging purposes).
+				r.renderedTemplates[tmpl.Path] = struct{}{}
+
+				if !r.dry {
+					// If the template was rendered (changed) and we are not in dry-run mode,
+					// aggregate commands, ignoring previously known commands
+					//
+					// Future-self Q&A: Why not use a map for the commands instead of an
+					// array with an expensive lookup option? Well I'm glad you asked that
+					// future-self! One of the API promises is that commands are executed
+					// in the order in which they are provided in the ConfigTemplate
+					// definitions. If we inserted commands into a map, we would lose that
+					// relative ordering and people would be unhappy.
+					if ctemplate.Command != "" && !exists(ctemplate.Command, commands) {
+						log.Printf("[DEBUG] (runner) appending command: %s", ctemplate.Command)
+						commands = append(commands, ctemplate.Command)
+					}
 				}
 			}
 		}
@@ -320,11 +357,15 @@ func (r *Runner) init() error {
 	}
 	r.templates = templates
 
+	r.renderedTemplates = make(map[string]struct{})
 	r.dependencies = make([]dep.Dependency, 0)
 
 	r.ctemplatesMap = ctemplatesMap
 	r.outStream = os.Stdout
 	r.brain = NewBrain()
+
+	r.ErrCh = make(chan error)
+	r.DoneCh = make(chan struct{})
 
 	return nil
 }
@@ -358,6 +399,17 @@ func (r *Runner) diffAndUpdateDeps(depsMap map[string]dep.Dependency) {
 // ConfigTemplateFor returns the ConfigTemplate for the given Template
 func (r *Runner) configTemplatesFor(tmpl *Template) []*ConfigTemplate {
 	return r.ctemplatesMap[tmpl.Path]
+}
+
+// allTemplatesRendered returns true if all the templates in this Runner have
+// been rendered at least one time.
+func (r *Runner) allTemplatesRendered() bool {
+	for _, t := range r.templates {
+		if _, ok := r.renderedTemplates[t.Path]; !ok {
+			return false
+		}
+	}
+	return true
 }
 
 // canRender accepts a template and returns true if and only if all of the

@@ -62,6 +62,10 @@ func TestNewRunner_initialize(t *testing.T) {
 		t.Errorf("expected %d to be %d", len(runner.templates), 3)
 	}
 
+	if runner.renderedTemplates == nil {
+		t.Errorf("expected %#v to be %#v", runner.renderedTemplates, nil)
+	}
+
 	if num := len(runner.ctemplatesMap); num != 3 {
 		t.Errorf("expected %d to be %d", len(runner.ctemplatesMap), 3)
 	}
@@ -78,6 +82,14 @@ func TestNewRunner_initialize(t *testing.T) {
 	brain := NewBrain()
 	if !reflect.DeepEqual(runner.brain, brain) {
 		t.Errorf("expected %#v to be %#v", runner.brain, brain)
+	}
+
+	if runner.ErrCh == nil {
+		t.Errorf("expected %#v to be %#v", runner.ErrCh, nil)
+	}
+
+	if runner.DoneCh == nil {
+		t.Errorf("expected %#v to be %#v", runner.DoneCh, nil)
 	}
 }
 
