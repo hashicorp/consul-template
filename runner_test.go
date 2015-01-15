@@ -5,26 +5,96 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul-template/dependency"
+	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul-template/test"
 )
 
-func TestNewRunner_noDependencies(t *testing.T) {
-	runner, err := NewRunner(nil)
+func TestNewRunner_initialize(t *testing.T) {
+	in1 := test.CreateTempfile(nil, t)
+	defer test.DeleteTempfile(in1, t)
+
+	in2 := test.CreateTempfile(nil, t)
+	defer test.DeleteTempfile(in2, t)
+
+	in3 := test.CreateTempfile(nil, t)
+	defer test.DeleteTempfile(in3, t)
+
+	dry, once := true, true
+	config := &Config{
+		ConfigTemplates: []*ConfigTemplate{
+			&ConfigTemplate{Source: in1.Name(), Command: "1"},
+			&ConfigTemplate{Source: in1.Name(), Command: "1.1"},
+			&ConfigTemplate{Source: in2.Name(), Command: "2"},
+			&ConfigTemplate{Source: in3.Name(), Command: "3"},
+		},
+	}
+
+	runner, err := NewRunner(config, dry, once)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if runner.configTemplates == nil {
-		t.Errorf("expected to be initialized")
+	if runner.config != config {
+		t.Errorf("expected %#v to be %#v", runner.config, config)
+	}
+
+	if runner.dry != dry {
+		t.Errorf("expected %#v to be %#v", runner.dry, dry)
+	}
+
+	if runner.once != once {
+		t.Errorf("expected %#v to be %#v", runner.once, once)
+	}
+
+	if runner.client == nil {
+		t.Errorf("expected %#v to be %#v", runner.client, nil)
+	}
+
+	if runner.watcher == nil {
+		t.Errorf("expected %#v to be %#v", runner.watcher, nil)
+	}
+
+	if num := len(runner.templates); num != 3 {
+		t.Errorf("expected %d to be %d", len(runner.templates), 3)
+	}
+
+	if num := len(runner.ctemplatesMap); num != 3 {
+		t.Errorf("expected %d to be %d", len(runner.ctemplatesMap), 3)
+	}
+
+	ctemplates := runner.ctemplatesMap[in1.Name()]
+	if num := len(ctemplates); num != 2 {
+		t.Errorf("expected %d to be %d", len(ctemplates), 2)
+	}
+
+	if runner.outStream != os.Stdout {
+		t.Errorf("expected %#v to be %#v", runner.outStream, os.Stdout)
+	}
+
+	brain := NewBrain()
+	if !reflect.DeepEqual(runner.brain, brain) {
+		t.Errorf("expected %#v to be %#v", runner.brain, brain)
+	}
+}
+
+func TestNewRunner_badTemplate(t *testing.T) {
+	config := &Config{
+		ConfigTemplates: []*ConfigTemplate{
+			&ConfigTemplate{Source: "/not/a/real/path"},
+		},
+	}
+
+	if _, err := NewRunner(config, false, false); err == nil {
+		t.Fatal("expected error, but nothing was returned")
 	}
 }
 
 func TestNewRunner_setsOutStream(t *testing.T) {
-	runner, err := NewRunner(nil)
+	runner, err := NewRunner(new(Config), false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,7 +108,7 @@ func TestNewRunner_setsOutStream(t *testing.T) {
 }
 
 func TestNewRunner_setsErrStream(t *testing.T) {
-	runner, err := NewRunner(nil)
+	runner, err := NewRunner(new(Config), false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,283 +121,53 @@ func TestNewRunner_setsErrStream(t *testing.T) {
 	}
 }
 
-func TestNewRunner_singleConfigTemplate(t *testing.T) {
-	inTemplate := test.CreateTempfile([]byte(`
-    {{ range service "consul@nyc1"}}{{end}}
-  `), t)
-	defer test.DeleteTempfile(inTemplate, t)
-
-	ctemplates := []*ConfigTemplate{
-		&ConfigTemplate{Source: inTemplate.Name()},
-	}
-
-	runner, err := NewRunner(ctemplates)
+func TestReceive_addsToBrain(t *testing.T) {
+	runner, err := NewRunner(new(Config), false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if len(runner.dependencies) != 1 {
-		t.Errorf("expected 1 Dependency, got %d", len(runner.dependencies))
-	}
-
-	if len(runner.templates) != 1 {
-		t.Errorf("expected 1 Template, got %d", len(runner.templates))
-	}
-
-	if len(runner.configTemplates) != 1 {
-		t.Errorf("expected 1 ConfigTemplate, got %d", len(runner.configTemplates))
-	}
-}
-
-func TestNewRunner_multipleConfigTemplate(t *testing.T) {
-	inTemplate1 := test.CreateTempfile([]byte(`
-    {{ range service "consul@nyc1"}}{{end}}
-  `), t)
-	defer test.DeleteTempfile(inTemplate1, t)
-
-	inTemplate2 := test.CreateTempfile([]byte(`
-    {{ range service "consul@nyc2"}}{{end}}
-  `), t)
-	defer test.DeleteTempfile(inTemplate2, t)
-
-	inTemplate3 := test.CreateTempfile([]byte(`
-    {{ range service "consul@nyc3"}}{{end}}
-  `), t)
-	defer test.DeleteTempfile(inTemplate3, t)
-
-	ctemplates := []*ConfigTemplate{
-		&ConfigTemplate{Source: inTemplate1.Name()},
-		&ConfigTemplate{Source: inTemplate2.Name()},
-		&ConfigTemplate{Source: inTemplate3.Name()},
-	}
-
-	runner, err := NewRunner(ctemplates)
+	d, err := dep.ParseStoreKey("foo")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if num := len(runner.dependencies); num != 3 {
-		t.Errorf("expected 3 Dependency, got %d", num)
-	}
+	data := "some value"
+	runner.Receive(d, data)
 
-	if num := len(runner.templates); num != 3 {
-		t.Errorf("expected 3 Template, got %d", num)
-	}
-
-	if num := len(runner.configTemplates); num != 3 {
-		t.Errorf("expected 3 ConfigTemplate, got %d", num)
+	value := runner.brain.storeKeys[d.HashCode()]
+	if data != value {
+		t.Errorf("expected %q to be %q", data, value)
 	}
 }
 
-func TestNewRunner_templateWithMultipleDependency(t *testing.T) {
-	inTemplate := test.CreateTempfile([]byte(`
-    {{ range service "consul@nyc1"}}{{end}}
-    {{ range service "consul@nyc2"}}{{end}}
-    {{ range service "consul@nyc3"}}{{end}}
-  `), t)
-	defer test.DeleteTempfile(inTemplate, t)
-
-	ctemplates := []*ConfigTemplate{
-		&ConfigTemplate{Source: inTemplate.Name()},
-	}
-
-	runner, err := NewRunner(ctemplates)
+func TestReceive_storesBrain(t *testing.T) {
+	runner, err := NewRunner(new(Config), false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if num := len(runner.dependencies); num != 3 {
-		t.Errorf("expected 3 Dependency, got %d", num)
-	}
+	d, data := &dep.File{}, "this is some data"
+	runner.Receive(d, data)
 
-	if num := len(runner.templates); num != 1 {
-		t.Errorf("expected 1 Template, got %d", num)
-	}
-
-	if num := len(runner.configTemplates); num != 1 {
-		t.Errorf("expected 1 ConfigTemplate, got %d", num)
+	if !runner.brain.Remembered(d) {
+		t.Errorf("expected brain to have data")
 	}
 }
 
-func TestNewRunner_templatesWithDuplicateDependency(t *testing.T) {
-	inTemplate := test.CreateTempfile([]byte(`
-    {{ range service "consul@nyc1"}}{{end}}
-    {{ range service "consul@nyc1"}}{{end}}
-    {{ range service "consul@nyc1"}}{{end}}
+func TestRun_noopIfMissingData(t *testing.T) {
+	in := test.CreateTempfile([]byte(`
+    {{ range service "consul@nyc1" }}{{ end }}
   `), t)
-	defer test.DeleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(in, t)
 
-	ctemplates := []*ConfigTemplate{
-		&ConfigTemplate{Source: inTemplate.Name()},
+	config := &Config{
+		ConfigTemplates: []*ConfigTemplate{
+			&ConfigTemplate{Source: in.Name()},
+		},
 	}
 
-	runner, err := NewRunner(ctemplates)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if num := len(runner.dependencies); num != 1 {
-		t.Errorf("expected 1 Dependency, got %d", num)
-	}
-
-	if num := len(runner.templates); num != 1 {
-		t.Errorf("expected 1 Template, got %d", num)
-	}
-
-	if num := len(runner.configTemplates); num != 1 {
-		t.Errorf("expected 1 ConfigTemplate, got %d", num)
-	}
-}
-
-func TestNewRunner_multipleTemplatesWithDuplicateDependency(t *testing.T) {
-	inTemplate1 := test.CreateTempfile([]byte(`
-    {{ range service "consul@nyc1"}}{{end}}
-  `), t)
-	defer test.DeleteTempfile(inTemplate1, t)
-	inTemplate2 := test.CreateTempfile([]byte(`
-    {{ range service "consul@nyc1"}}{{end}}
-  `), t)
-	defer test.DeleteTempfile(inTemplate2, t)
-
-	ctemplates := []*ConfigTemplate{
-		&ConfigTemplate{Source: inTemplate1.Name()},
-		&ConfigTemplate{Source: inTemplate2.Name()},
-	}
-
-	runner, err := NewRunner(ctemplates)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if num := len(runner.dependencies); num != 1 {
-		t.Errorf("expected 1 Dependency, got %d", num)
-	}
-
-	if num := len(runner.templates); num != 2 {
-		t.Errorf("expected 2 Template, got %d", num)
-	}
-
-	if num := len(runner.configTemplates); num != 2 {
-		t.Errorf("expected 2 ConfigTemplate, got %d", num)
-	}
-}
-
-func TestNewRunner_multipleTemplatesWithMultipleDependencies(t *testing.T) {
-	inTemplate1 := test.CreateTempfile([]byte(`
-    {{ range service "consul@nyc1"}}{{end}}
-    {{ range service "consul@nyc2"}}{{end}}
-  `), t)
-	defer test.DeleteTempfile(inTemplate1, t)
-	inTemplate2 := test.CreateTempfile([]byte(`
-    {{ range service "consul@nyc2"}}{{end}}
-    {{ range service "consul@nyc3"}}{{end}}
-  `), t)
-	defer test.DeleteTempfile(inTemplate2, t)
-	inTemplate3 := test.CreateTempfile([]byte(`
-    {{ range service "consul@nyc3"}}{{end}}
-    {{ range service "consul@nyc4"}}{{end}}
-  `), t)
-	defer test.DeleteTempfile(inTemplate3, t)
-
-	ctemplates := []*ConfigTemplate{
-		&ConfigTemplate{Source: inTemplate1.Name()},
-		&ConfigTemplate{Source: inTemplate2.Name()},
-		&ConfigTemplate{Source: inTemplate3.Name()},
-	}
-
-	runner, err := NewRunner(ctemplates)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if num := len(runner.dependencies); num != 4 {
-		t.Errorf("expected 4 Dependency, got %d", num)
-	}
-
-	if num := len(runner.templates); num != 3 {
-		t.Errorf("expected 3 Template, got %d", num)
-	}
-
-	if num := len(runner.configTemplates); num != 3 {
-		t.Errorf("expected 3 ConfigTemplate, got %d", num)
-	}
-}
-
-func TestNewRunner_multipleConfigTemplateSameTemplate(t *testing.T) {
-	inTemplate := test.CreateTempfile([]byte(`
-    {{ range service "consul@nyc1"}}{{end}}
-  `), t)
-	defer test.DeleteTempfile(inTemplate, t)
-
-	ctemplates := []*ConfigTemplate{
-		&ConfigTemplate{Source: inTemplate.Name()},
-		&ConfigTemplate{Source: inTemplate.Name()},
-	}
-
-	runner, err := NewRunner(ctemplates)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if num := len(runner.dependencies); num != 1 {
-		t.Errorf("expected 1 Dependency, got %d", num)
-	}
-
-	if num := len(runner.templates); num != 1 {
-		t.Errorf("expected 1 Template, got %d", num)
-	}
-
-	if num := len(runner.configTemplates); num != 2 {
-		t.Errorf("expected 2 ConfigTemplate, got %d", num)
-	}
-}
-
-func TestReceive_addsDependency(t *testing.T) {
-	runner, err := NewRunner(nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	dependency, data := &test.FakeDependency{}, "this is some data"
-	runner.Receive(dependency, data)
-
-	if !runner.receivedData(dependency) {
-		t.Errorf("expected dependency to be in received")
-	}
-	if data != runner.data(dependency) {
-		t.Errorf("expected %q to equal %q", data, runner.data(dependency))
-	}
-}
-
-func TestReceive_updatesDependency(t *testing.T) {
-	runner, err := NewRunner(nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	dependency, data := &test.FakeDependency{}, "this is new data"
-	runner.Receive(dependency, "first data")
-	runner.Receive(dependency, data)
-
-	if !runner.receivedData(dependency) {
-		t.Errorf("expected dependency to be in received")
-	}
-	if data != runner.data(dependency) {
-		t.Errorf("expected %q to equal %q", data, runner.data(dependency))
-	}
-}
-
-func TestRender_noopIfMissingData(t *testing.T) {
-	inTemplate := test.CreateTempfile([]byte(`
-    {{range service "consul@nyc1"}}{{end}}
-  `), t)
-	defer test.DeleteTempfile(inTemplate, t)
-
-	configTemplates := []*ConfigTemplate{
-		&ConfigTemplate{Source: inTemplate.Name()},
-	}
-
-	runner, err := NewRunner(configTemplates)
+	runner, err := NewRunner(config, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -335,7 +175,7 @@ func TestRender_noopIfMissingData(t *testing.T) {
 	buff := new(bytes.Buffer)
 	runner.SetOutStream(buff)
 
-	if err := runner.RunAll(true); err != nil {
+	if err := runner.Run(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -344,35 +184,40 @@ func TestRender_noopIfMissingData(t *testing.T) {
 	}
 }
 
-func TestRender_dryRender(t *testing.T) {
-	inTemplate := test.CreateTempfile([]byte(`
-    {{range service "consul@nyc1"}}{{.Node}}{{end}}
+func TestRun_dry(t *testing.T) {
+	in := test.CreateTempfile([]byte(`
+    {{ range service "consul@nyc1" }}{{.Node}}{{ end }}
   `), t)
-	defer test.DeleteTempfile(inTemplate, t)
+	defer test.DeleteTempfile(in, t)
 
-	configTemplates := []*ConfigTemplate{
-		&ConfigTemplate{
-			Source:      inTemplate.Name(),
-			Destination: "/out/file.txt",
+	config := &Config{
+		ConfigTemplates: []*ConfigTemplate{
+			&ConfigTemplate{
+				Source:      in.Name(),
+				Destination: "/out/file.txt",
+			},
 		},
 	}
 
-	runner, err := NewRunner(configTemplates)
+	runner, err := NewRunner(config, true, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	dep := runner.Dependencies()[0]
-	data := []*dependency.HealthService{
-		&dependency.HealthService{Node: "consul1"},
-		&dependency.HealthService{Node: "consul2"},
+	d, err := dep.ParseHealthServices("consul@nyc1")
+	if err != nil {
+		t.Fatal(err)
 	}
-	runner.Receive(dep, data)
+	data := []*dep.HealthService{
+		&dep.HealthService{Node: "consul1"},
+		&dep.HealthService{Node: "consul2"},
+	}
+	runner.Receive(d, data)
 
 	buff := new(bytes.Buffer)
 	runner.SetOutStream(buff)
 
-	if err := runner.RunAll(true); err != nil {
+	if err := runner.Run(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -387,22 +232,182 @@ func TestRender_dryRender(t *testing.T) {
 	}
 }
 
-func TestRender_multipleTemplatesRunsCommands(t *testing.T) {
-	inTemplate1 := test.CreateTempfile([]byte(`
-    {{range service "consul@nyc1"}}{{.Node}}{{end}}
+func TestRun_singlePass(t *testing.T) {
+	in := test.CreateTempfile([]byte(`
+    {{ range service "consul@nyc1"}}{{ end }}
+    {{ range service "consul@nyc2"}}{{ end }}
+    {{ range service "consul@nyc3"}}{{ end }}
   `), t)
-	defer test.DeleteTempfile(inTemplate1, t)
+	defer test.DeleteTempfile(in, t)
 
-	inTemplate2 := test.CreateTempfile([]byte(`
-    {{range service "consul@nyc2"}}{{.Node}}{{end}}
+	config := &Config{
+		ConfigTemplates: []*ConfigTemplate{
+			&ConfigTemplate{Source: in.Name()},
+		},
+	}
+
+	runner, err := NewRunner(config, true, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(runner.dependencies) != 0 {
+		t.Errorf("expected %d to be %d", len(runner.dependencies), 0)
+	}
+
+	if err := runner.Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(runner.dependencies) != 3 {
+		t.Errorf("expected %d to be %d", len(runner.dependencies), 3)
+	}
+}
+
+func TestRun_singlePassDuplicates(t *testing.T) {
+	in := test.CreateTempfile([]byte(`
+    {{ range service "consul@nyc1"}}{{ end }}
+    {{ range service "consul@nyc1"}}{{ end }}
+    {{ range service "consul@nyc1"}}{{ end }}
+    {{ range service "consul@nyc2"}}{{ end }}
+    {{ range service "consul@nyc2"}}{{ end }}
+    {{ range service "consul@nyc3"}}{{ end }}
+    {{ range service "consul@nyc3"}}{{ end }}
   `), t)
-	defer test.DeleteTempfile(inTemplate2, t)
+	defer test.DeleteTempfile(in, t)
 
-	outTemplate1 := test.CreateTempfile(nil, t)
-	test.DeleteTempfile(outTemplate1, t)
+	config := &Config{
+		ConfigTemplates: []*ConfigTemplate{
+			&ConfigTemplate{Source: in.Name()},
+		},
+	}
 
-	outTemplate2 := test.CreateTempfile(nil, t)
-	test.DeleteTempfile(outTemplate2, t)
+	runner, err := NewRunner(config, true, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(runner.dependencies) != 0 {
+		t.Errorf("expected %d to be %d", len(runner.dependencies), 0)
+	}
+
+	if err := runner.Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(runner.dependencies) != 3 {
+		t.Errorf("expected %d to be %d", len(runner.dependencies), 3)
+	}
+}
+
+func TestRun_doublePass(t *testing.T) {
+	in := test.CreateTempfile([]byte(`
+		{{ range ls "services" }}
+			{{ range service .Key }}
+				{{.Node}} {{.Address}}:{{.Port}}
+			{{ end }}
+		{{ end }}
+  `), t)
+	defer test.DeleteTempfile(in, t)
+
+	config := &Config{
+		ConfigTemplates: []*ConfigTemplate{
+			&ConfigTemplate{Source: in.Name()},
+		},
+	}
+
+	runner, err := NewRunner(config, true, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(runner.dependencies) != 0 {
+		t.Errorf("expected %d to be %d", len(runner.dependencies), 0)
+	}
+
+	if err := runner.Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(runner.dependencies) != 1 {
+		t.Errorf("expected %d to be %d", len(runner.dependencies), 1)
+	}
+
+	d, err := dep.ParseStoreKeyPrefix("services")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := []*dep.KeyPair{
+		&dep.KeyPair{Key: "service1"},
+		&dep.KeyPair{Key: "service2"},
+		&dep.KeyPair{Key: "service3"},
+	}
+	runner.Receive(d, data)
+
+	if err := runner.Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(runner.dependencies) != 4 {
+		t.Errorf("expected %d to be %d", len(runner.dependencies), 4)
+	}
+}
+
+func TestRun_removesUnusedDependencies(t *testing.T) {
+	in := test.CreateTempfile([]byte(nil), t)
+	defer test.DeleteTempfile(in, t)
+
+	config := &Config{
+		ConfigTemplates: []*ConfigTemplate{
+			&ConfigTemplate{Source: in.Name()},
+		},
+	}
+
+	runner, err := NewRunner(config, true, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	d, err := dep.ParseHealthServices("consul@nyc2")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	runner.dependencies = []dep.Dependency{d, d, d}
+
+	if err := runner.Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(runner.dependencies) != 0 {
+		t.Errorf("expected %d to be %d", len(runner.dependencies), 0)
+	}
+
+	if runner.watcher.Watching(d) {
+		t.Errorf("expected watcher to stop watching dependency")
+	}
+
+	if runner.brain.Remembered(d) {
+		t.Errorf("expected brain to forget dependency")
+	}
+}
+
+func TestRun_multipleTemplatesRunsCommands(t *testing.T) {
+	in1 := test.CreateTempfile([]byte(`
+    {{ range service "consul@nyc1" }}{{.Node}}{{ end }}
+  `), t)
+	defer test.DeleteTempfile(in1, t)
+
+	in2 := test.CreateTempfile([]byte(`
+    {{range service "consul@nyc2"}}{{.Node}}{{ end }}
+  `), t)
+	defer test.DeleteTempfile(in2, t)
+
+	out1 := test.CreateTempfile(nil, t)
+	test.DeleteTempfile(out1, t)
+
+	out2 := test.CreateTempfile(nil, t)
+	test.DeleteTempfile(out2, t)
 
 	touch1, err := ioutil.TempFile(os.TempDir(), "touch1-")
 	if err != nil {
@@ -418,39 +423,37 @@ func TestRender_multipleTemplatesRunsCommands(t *testing.T) {
 	os.Remove(touch2.Name())
 	defer os.Remove(touch2.Name())
 
-	configTemplates := []*ConfigTemplate{
-		&ConfigTemplate{
-			Source:      inTemplate1.Name(),
-			Destination: outTemplate1.Name(),
-			Command:     fmt.Sprintf("touch %s", touch1.Name()),
-		},
-		&ConfigTemplate{
-			Source:      inTemplate2.Name(),
-			Destination: outTemplate2.Name(),
-			Command:     fmt.Sprintf("touch %s", touch2.Name()),
+	config := &Config{
+		ConfigTemplates: []*ConfigTemplate{
+			&ConfigTemplate{
+				Source:      in1.Name(),
+				Destination: out1.Name(),
+				Command:     fmt.Sprintf("touch %s", touch1.Name()),
+			},
+			&ConfigTemplate{
+				Source:      in2.Name(),
+				Destination: out2.Name(),
+				Command:     fmt.Sprintf("touch %s", touch2.Name()),
+			},
 		},
 	}
 
-	runner, err := NewRunner(configTemplates)
+	runner, err := NewRunner(config, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	var dep dependency.Dependency
-	for _, d := range runner.Dependencies() {
-		if strings.Contains(d.Key(), "@nyc1") {
-			dep = d
-			break
-		}
+	d, err := dep.ParseHealthServices("consul@nyc1")
+	if err != nil {
+		t.Fatal(err)
 	}
-
-	data := []*dependency.HealthService{
-		&dependency.HealthService{Node: "consul1"},
-		&dependency.HealthService{Node: "consul2"},
+	data := []*dep.HealthService{
+		&dep.HealthService{Node: "consul1"},
+		&dep.HealthService{Node: "consul2"},
 	}
-	runner.Receive(dep, data)
+	runner.Receive(d, data)
 
-	if err := runner.RunAll(false); err != nil {
+	if err := runner.Run(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -463,53 +466,13 @@ func TestRender_multipleTemplatesRunsCommands(t *testing.T) {
 	}
 }
 
-func TestRender_sameContentsDoesNotRender(t *testing.T) {
-	inTemplate := test.CreateTempfile([]byte(`
-    {{range service "consul@nyc1"}}{{.Node}}{{end}}
-  `), t)
-	defer test.DeleteTempfile(inTemplate, t)
-
-	outTemplate := test.CreateTempfile([]byte(`
-    consul1consul2
-  `), t)
-	defer test.DeleteTempfile(outTemplate, t)
-
-	configTemplates := []*ConfigTemplate{
-		&ConfigTemplate{
-			Source:      inTemplate.Name(),
-			Destination: outTemplate.Name(),
-		},
-	}
-
-	runner, err := NewRunner(configTemplates)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	dep := runner.Dependencies()[0]
-	data := []*dependency.HealthService{
-		&dependency.HealthService{Node: "consul1"},
-		&dependency.HealthService{Node: "consul2"},
-	}
-	runner.Receive(dep, data)
-
-	rendered, err := runner.render(runner.templates[0], outTemplate.Name(), false)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if rendered {
-		t.Fatal("expected file to not be rendered")
-	}
-}
-
 func TestRender_sameContentsDoesNotExecuteCommand(t *testing.T) {
 	outFile := test.CreateTempfile(nil, t)
 	os.Remove(outFile.Name())
 	defer os.Remove(outFile.Name())
 
 	inTemplate := test.CreateTempfile([]byte(`
-    {{range service "consul@nyc1"}}{{.Node}}{{end}}
+    {{ range service "consul@nyc1" }}{{.Node}}{{ end }}
   `), t)
 	defer test.DeleteTempfile(inTemplate, t)
 
@@ -518,27 +481,32 @@ func TestRender_sameContentsDoesNotExecuteCommand(t *testing.T) {
   `), t)
 	defer test.DeleteTempfile(outTemplate, t)
 
-	configTemplates := []*ConfigTemplate{
-		&ConfigTemplate{
-			Source:      inTemplate.Name(),
-			Destination: outTemplate.Name(),
-			Command:     fmt.Sprintf("echo 'foo' > %s", outFile.Name()),
+	config := &Config{
+		ConfigTemplates: []*ConfigTemplate{
+			&ConfigTemplate{
+				Source:      inTemplate.Name(),
+				Destination: outTemplate.Name(),
+				Command:     fmt.Sprintf("echo 'foo' > %s", outFile.Name()),
+			},
 		},
 	}
 
-	runner, err := NewRunner(configTemplates)
+	runner, err := NewRunner(config, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	dep := runner.Dependencies()[0]
-	data := []*dependency.HealthService{
-		&dependency.HealthService{Node: "consul1"},
-		&dependency.HealthService{Node: "consul2"},
+	d, err := dep.ParseHealthServices("consul@nyc1")
+	if err != nil {
+		t.Fatal(err)
 	}
-	runner.Receive(dep, data)
+	data := []*dep.HealthService{
+		&dep.HealthService{Node: "consul1"},
+		&dep.HealthService{Node: "consul2"},
+	}
+	runner.Receive(d, data)
 
-	if err := runner.RunAll(false); err != nil {
+	if err := runner.Run(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -548,12 +516,7 @@ func TestRender_sameContentsDoesNotExecuteCommand(t *testing.T) {
 	}
 }
 
-func TestRender_containingFolderMissing(t *testing.T) {
-	inTemplate := test.CreateTempfile([]byte(`
-    {{range service "consul@nyc1"}}{{.Node}}{{end}}
-  `), t)
-	defer test.DeleteTempfile(inTemplate, t)
-
+func TestAtomicWrite_parentFolderMissing(t *testing.T) {
 	// Create a TempDir and a TempFile in that TempDir, then remove them to
 	// "simulate" a non-existent folder
 	outDir, err := ioutil.TempDir(os.TempDir(), "")
@@ -569,102 +532,16 @@ func TestRender_containingFolderMissing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	configTemplates := []*ConfigTemplate{
-		&ConfigTemplate{
-			Source:      inTemplate.Name(),
-			Destination: outFile.Name(),
-		},
-	}
-
-	runner, err := NewRunner(configTemplates)
-	if err != nil {
+	if err := atomicWrite(outFile.Name(), nil); err != nil {
 		t.Fatal(err)
 	}
 
-	dep := runner.Dependencies()[0]
-	data := []*dependency.HealthService{
-		&dependency.HealthService{Node: "consul1"},
-		&dependency.HealthService{Node: "consul2"},
-	}
-	runner.Receive(dep, data)
-
-	if err := runner.RunAll(false); err != nil {
+	if _, err := os.Stat(outFile.Name()); err != nil {
 		t.Fatal(err)
-	}
-
-	actual, err := ioutil.ReadFile(outFile.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
-	actual = bytes.TrimSpace(actual)
-	expected := []byte("consul1consul2")
-	if !bytes.Equal(actual, expected) {
-		t.Errorf("expected \n%q\n to equal \n%q\n", actual, expected)
 	}
 }
 
-func TestRender_outputFileMissing(t *testing.T) {
-	inTemplate := test.CreateTempfile([]byte(`
-    {{range service "consul@nyc1"}}{{.Node}}{{end}}
-  `), t)
-	defer test.DeleteTempfile(inTemplate, t)
-
-	// Create a TempDir and a TempFile in that TempDir, then remove the file to
-	// "simulate" a non-existent file
-	outDir, err := ioutil.TempDir(os.TempDir(), "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(outDir)
-	outFile, err := ioutil.TempFile(outDir, "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Remove(outFile.Name()); err != nil {
-		t.Fatal(err)
-	}
-
-	configTemplates := []*ConfigTemplate{
-		&ConfigTemplate{
-			Source:      inTemplate.Name(),
-			Destination: outFile.Name(),
-		},
-	}
-	runner, err := NewRunner(configTemplates)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	dep := runner.Dependencies()[0]
-	data := []*dependency.HealthService{
-		&dependency.HealthService{Node: "consul1"},
-		&dependency.HealthService{Node: "consul2"},
-	}
-	runner.Receive(dep, data)
-
-	if err := runner.RunAll(false); err != nil {
-		t.Fatal(err)
-	}
-
-	actual, err := ioutil.ReadFile(outFile.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
-	actual = bytes.TrimSpace(actual)
-	expected := []byte("consul1consul2")
-	if !bytes.Equal(actual, expected) {
-		t.Errorf("expected \n%q\n to equal \n%q\n", actual, expected)
-	}
-}
-
-func TestRender_outputFileRetainsPermissions(t *testing.T) {
-	inTemplate := test.CreateTempfile([]byte(`
-    {{range service "consul@nyc1"}}{{.Node}}{{end}}
-  `), t)
-	defer test.DeleteTempfile(inTemplate, t)
-
-	// Create a TempDir and a TempFile in that TempDir, then remove the file to
-	// "simulate" a non-existent file
+func TestAtomicWrite_retainsPermissions(t *testing.T) {
 	outDir, err := ioutil.TempDir(os.TempDir(), "")
 	if err != nil {
 		t.Fatal(err)
@@ -676,26 +553,7 @@ func TestRender_outputFileRetainsPermissions(t *testing.T) {
 	}
 	os.Chmod(outFile.Name(), 0644)
 
-	configTemplates := []*ConfigTemplate{
-		&ConfigTemplate{
-			Source:      inTemplate.Name(),
-			Destination: outFile.Name(),
-		},
-	}
-
-	runner, err := NewRunner(configTemplates)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	dep := runner.Dependencies()[0]
-	data := []*dependency.HealthService{
-		&dependency.HealthService{Node: "consul1"},
-		&dependency.HealthService{Node: "consul2"},
-	}
-	runner.Receive(dep, data)
-
-	if err := runner.RunAll(false); err != nil {
+	if err := atomicWrite(outFile.Name(), nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -710,33 +568,35 @@ func TestRender_outputFileRetainsPermissions(t *testing.T) {
 	}
 }
 
-func TestExecute_doesNotRunInDry(t *testing.T) {
+func TestRun_doesNotExecuteCommandMissingDependencies(t *testing.T) {
 	outFile := test.CreateTempfile(nil, t)
 	os.Remove(outFile.Name())
 	defer os.Remove(outFile.Name())
 
 	inTemplate := test.CreateTempfile([]byte(`
-    {{ range service "consul@nyc1"}}{{end}}
+    {{ range service "consul@nyc1"}}{{ end }}
   `), t)
 	defer test.DeleteTempfile(inTemplate, t)
 
 	outTemplate := test.CreateTempfile(nil, t)
 	defer test.DeleteTempfile(outTemplate, t)
 
-	ctemplates := []*ConfigTemplate{
-		&ConfigTemplate{
-			Source:      inTemplate.Name(),
-			Destination: outTemplate.Name(),
-			Command:     fmt.Sprintf("echo 'foo' > %s", outFile.Name()),
+	config := &Config{
+		ConfigTemplates: []*ConfigTemplate{
+			&ConfigTemplate{
+				Source:      inTemplate.Name(),
+				Destination: outTemplate.Name(),
+				Command:     fmt.Sprintf("echo 'foo' > %s", outFile.Name()),
+			},
 		},
 	}
 
-	runner, err := NewRunner(ctemplates)
+	runner, err := NewRunner(config, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if err := runner.RunAll(true); err != nil {
+	if err := runner.Run(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -746,85 +606,49 @@ func TestExecute_doesNotRunInDry(t *testing.T) {
 	}
 }
 
-func TestExecute_doesNotExecuteCommandMissingDependencies(t *testing.T) {
+func TestRun_executesCommand(t *testing.T) {
 	outFile := test.CreateTempfile(nil, t)
 	os.Remove(outFile.Name())
 	defer os.Remove(outFile.Name())
 
 	inTemplate := test.CreateTempfile([]byte(`
-    {{ range service "consul@nyc1"}}{{end}}
+    {{ range service "consul@nyc1"}}{{ end }}
   `), t)
 	defer test.DeleteTempfile(inTemplate, t)
 
 	outTemplate := test.CreateTempfile(nil, t)
 	defer test.DeleteTempfile(outTemplate, t)
 
-	ctemplates := []*ConfigTemplate{
-		&ConfigTemplate{
-			Source:      inTemplate.Name(),
-			Destination: outTemplate.Name(),
-			Command:     fmt.Sprintf("echo 'foo' > %s", outFile.Name()),
+	config := &Config{
+		ConfigTemplates: []*ConfigTemplate{
+			&ConfigTemplate{
+				Source:      inTemplate.Name(),
+				Destination: outTemplate.Name(),
+				Command:     fmt.Sprintf("echo 'foo' > %s", outFile.Name()),
+			},
 		},
 	}
 
-	runner, err := NewRunner(ctemplates)
+	runner, err := NewRunner(config, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if err := runner.RunAll(false); err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = os.Stat(outFile.Name())
-	if !os.IsNotExist(err) {
-		t.Fatalf("expected command to not be run")
-	}
-}
-
-func TestExecute_executesCommand(t *testing.T) {
-	outFile := test.CreateTempfile(nil, t)
-	os.Remove(outFile.Name())
-	defer os.Remove(outFile.Name())
-
-	inTemplate := test.CreateTempfile([]byte(`
-    {{ range service "consul@nyc1"}}{{end}}
-  `), t)
-	defer test.DeleteTempfile(inTemplate, t)
-
-	outTemplate := test.CreateTempfile(nil, t)
-	defer test.DeleteTempfile(outTemplate, t)
-
-	ctemplates := []*ConfigTemplate{
-		&ConfigTemplate{
-			Source:      inTemplate.Name(),
-			Destination: outTemplate.Name(),
-			Command:     fmt.Sprintf("echo 'foo' > %s", outFile.Name()),
-		},
-	}
-
-	runner, err := NewRunner(ctemplates)
+	d, err := dep.ParseHealthServices("consul@nyc1")
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	serviceDependency, err := dependency.ParseHealthServices("consul@nyc1")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	data := []*dependency.HealthService{
-		&dependency.HealthService{
+	data := []*dep.HealthService{
+		&dep.HealthService{
 			Node:    "consul",
 			Address: "1.2.3.4",
 			ID:      "consul@nyc1",
 			Name:    "consul",
 		},
 	}
+	runner.Receive(d, data)
 
-	runner.Receive(serviceDependency, data)
-
-	if err := runner.RunAll(false); err != nil {
+	if err := runner.Run(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -834,13 +658,13 @@ func TestExecute_executesCommand(t *testing.T) {
 	}
 }
 
-func TestExecute_doesNotExecuteCommandMoreThanOnce(t *testing.T) {
+func TestRun_doesNotExecuteCommandMoreThanOnce(t *testing.T) {
 	outFile := test.CreateTempfile(nil, t)
 	os.Remove(outFile.Name())
 	defer os.Remove(outFile.Name())
 
 	inTemplate := test.CreateTempfile([]byte(`
-    {{ range service "consul@nyc1"}}{{end}}
+    {{ range service "consul@nyc1"}}{{ end }}
   `), t)
 	defer test.DeleteTempfile(inTemplate, t)
 
@@ -850,41 +674,41 @@ func TestExecute_doesNotExecuteCommandMoreThanOnce(t *testing.T) {
 	outTemplateB := test.CreateTempfile(nil, t)
 	defer test.DeleteTempfile(outTemplateB, t)
 
-	ctemplates := []*ConfigTemplate{
-		&ConfigTemplate{
-			Source:      inTemplate.Name(),
-			Destination: outTemplateA.Name(),
-			Command:     fmt.Sprintf("echo 'foo' >> %s", outFile.Name()),
-		},
-		&ConfigTemplate{
-			Source:      inTemplate.Name(),
-			Destination: outTemplateB.Name(),
-			Command:     fmt.Sprintf("echo 'foo' >> %s", outFile.Name()),
+	config := &Config{
+		ConfigTemplates: []*ConfigTemplate{
+			&ConfigTemplate{
+				Source:      inTemplate.Name(),
+				Destination: outTemplateA.Name(),
+				Command:     fmt.Sprintf("echo 'foo' >> %s", outFile.Name()),
+			},
+			&ConfigTemplate{
+				Source:      inTemplate.Name(),
+				Destination: outTemplateB.Name(),
+				Command:     fmt.Sprintf("echo 'foo' >> %s", outFile.Name()),
+			},
 		},
 	}
 
-	runner, err := NewRunner(ctemplates)
+	runner, err := NewRunner(config, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	serviceDependency, err := dependency.ParseHealthServices("consul@nyc1")
+	d, err := dep.ParseHealthServices("consul@nyc1")
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	data := []*dependency.HealthService{
-		&dependency.HealthService{
+	data := []*dep.HealthService{
+		&dep.HealthService{
 			Node:    "consul",
 			Address: "1.2.3.4",
 			ID:      "consul@nyc1",
 			Name:    "consul",
 		},
 	}
+	runner.Receive(d, data)
 
-	runner.Receive(serviceDependency, data)
-
-	if err := runner.RunAll(false); err != nil {
+	if err := runner.Run(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -901,5 +725,4 @@ func TestExecute_doesNotExecuteCommandMoreThanOnce(t *testing.T) {
 	if strings.Count(string(output), "foo") > 1 {
 		t.Fatalf("expected command to be run once.")
 	}
-
 }

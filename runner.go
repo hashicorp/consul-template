@@ -2,51 +2,150 @@ package main
 
 import (
 	"bytes"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
-	"github.com/hashicorp/consul-template/dependency"
+	dep "github.com/hashicorp/consul-template/dependency"
+	"github.com/hashicorp/consul-template/watch"
+	"github.com/hashicorp/consul/api"
 	multierror "github.com/hashicorp/go-multierror"
 )
 
 // Runner responsible rendering Templates and invoking Commands.
 type Runner struct {
+	// config is the Config that created this Runner. It is used internally to
+	// construct other objects and pass data.
+	config *Config
+
+	// client is the consul/api client.
+	client *api.Client
+
+	// dry signals that output should be sent to stdout instead of committed to
+	// disk. once indicates the runner should execute each template exactly one
+	// time and then stop.
+	dry, once bool
+
+	// minTimer and maxTimer are used for quiescence.
+	minTimer, maxTimer <-chan time.Time
+
 	// outStream and errStream are the io.Writer streams where the runner will
 	// write information. These streams can be set using the SetOutStream()
 	// and SetErrStream() functions.
 	outStream, errStream io.Writer
 
-	// configTemplates, templates, and dependencies are internally calculated
-	// caches of all the data this Runner knows about.
-	configTemplates []*ConfigTemplate
-	templates       []*Template
-	dependencies    []dependency.Dependency
-
-	// templateConfigTemplateMap is a map of each template to the ConfigTemplates
+	// ctemplatesMap is a map of each template to the ConfigTemplates
 	// that made it.
-	templateConfigTemplateMap map[string][]*ConfigTemplate
+	ctemplatesMap map[string][]*ConfigTemplate
 
-	// dependencyDataMap is a map of each dependency to its data.
-	dependencyDataReceivedMap map[string]struct{}
-	dependencyDataMap         map[string]interface{}
+	// templates is the list of calculated templates.
+	templates []*Template
+
+	// dependencies is the list of dependencies this runner is watching.
+	dependencies []dep.Dependency
+
+	// watcher is the watcher this runner is using.
+	watcher *watch.Watcher
+
+	// brain is the internal storage database of returned dependency data.
+	brain *Brain
+
+	// stopCh is the channel the runner listens on for stopping.
+	stopCh chan struct{}
 }
 
 // NewRunner accepts a slice of ConfigTemplates and returns a pointer to the new
 // Runner and any error that occurred during creation.
-func NewRunner(configTemplates []*ConfigTemplate) (*Runner, error) {
-	runner := &Runner{configTemplates: configTemplates}
+func NewRunner(config *Config, dry, once bool) (*Runner, error) {
+	runner := &Runner{
+		config: config,
+		dry:    dry,
+		once:   once,
+	}
+
 	if err := runner.init(); err != nil {
 		return nil, err
 	}
 
 	return runner, nil
+}
+
+// Start begins the polling for this runner. Any errors that occur will cause
+// this function to push an item onto the given error channel and the halt
+// execution. This function is blocking and should be called as a goroutine.
+func (r *Runner) Start(errCh chan<- error) {
+	// Create the stopCh
+	r.stopCh = make(chan struct{})
+
+	// Fire an initial run to parse all the templates and setup the first-pass
+	// dependencies. This also forces any templates that have no dependencies to
+	// be rendered immediately (since they are already renderable).
+	if err := r.Run(); err != nil {
+		errCh <- err
+		return
+	}
+
+	for {
+		select {
+		case data := <-r.watcher.DataCh:
+			r.Receive(data.Dependency, data.Data)
+
+			// If we are waiting for quiescence, setup the timers
+			if r.config.Wait != nil {
+				log.Printf("[DEBUG] (runner) starting quiescence timers")
+
+				// Reset the minTimer and set the maxTimer if it does not already exist
+				r.minTimer = time.After(r.config.Wait.Min)
+				if r.maxTimer == nil {
+					r.maxTimer = time.After(r.config.Wait.Max)
+				}
+
+				// Since we are in quiescence mode, do not attempt to render and start
+				// the loop from the top again (thus avoiding a pre-mature render).
+				continue
+			}
+		case err := <-r.watcher.ErrCh:
+			errCh <- err
+			return
+		case <-r.minTimer:
+			log.Printf("[INFO] (runner) quiescence minTimer fired")
+			r.minTimer, r.maxTimer = nil, nil
+		case <-r.maxTimer:
+			log.Printf("[INFO] (runner) quiescence maxTimer fired")
+			r.minTimer, r.maxTimer = nil, nil
+		case err := <-r.watcher.ErrCh:
+			errCh <- err
+			return
+		case <-r.watcher.FinishCh:
+			log.Printf("[INFO] (runner) watcher reported finish")
+			return
+		case <-r.stopCh:
+			log.Printf("[INFO] (runner) received finish")
+			return
+		}
+	}
+
+	// If we got this far, that means we got new data or one of the timers fired,
+	// so attempt to re-render.
+	if err := r.Run(); err != nil {
+		errCh <- err
+		return
+	}
+}
+
+// Stop halts the execution of this runner and its subprocesses.
+func (r *Runner) Stop() {
+	r.watcher.Stop()
+	close(r.stopCh)
 }
 
 // SetOutStream accepts an io.Writer and sets the internal outStream for this
@@ -61,52 +160,67 @@ func (r *Runner) SetErrStream(s io.Writer) {
 	r.errStream = s
 }
 
-// Receive accepts a Dependency and data for that Dependency. This data is
+// Receive accepts a Dependency and data for that dep. This data is
 // cached on the Runner. This data is then used to determine if a Template
 // is "renderable" (i.e. all its Dependencies have been downloaded at least
 // once).
-func (r *Runner) Receive(dependency dependency.Dependency, data interface{}) {
-	log.Printf("[DEBUG] (runner) Receiving dependency %s", dependency.Display())
-	r.dependencyDataReceivedMap[dependency.HashCode()] = struct{}{}
-	r.dependencyDataMap[dependency.HashCode()] = data
+func (r *Runner) Receive(d dep.Dependency, data interface{}) {
+	log.Printf("[DEBUG] (runner) receiving dependency %s", d.Display())
+	r.brain.Remember(d, data)
 }
 
-// Dependencies returns the unique slice of Dependency in the Runner
-func (r *Runner) Dependencies() []dependency.Dependency {
-	return r.dependencies
-}
-
-// RunAll iterates over each template in this Runner and conditionally executes
+// Run iterates over each template in this Runner and conditionally executes
 // the template rendering and command execution.
 //
 // The template is rendered atomicly. If and only if the template render
 // completes successfully, the optional commands will be executed, if given.
 // Please note that all templates are rendered **and then** any commands are
 // executed.
-//
-// If the dry flag is given, the template will be rendered to the outStream,
-// which defaults to os.Stdout. In dry mode, commands are never executed.
-func (r *Runner) RunAll(dry bool) error {
-	log.Printf("[DEBUG] (runner) RunAll")
+func (r *Runner) Run() error {
+	log.Printf("[INFO] (runner) running")
 
 	var commands []string
+	depsMap := make(map[string]dep.Dependency)
 
-	for _, template := range r.templates {
-		log.Printf("[DEBUG] (runner) checking template: %#v", template)
+	for _, tmpl := range r.templates {
+		log.Printf("[DEBUG] (runner) checking template: %#v", tmpl)
 
-		// If the template is not ready to be rendered, move onto the next one
-		if !r.canRender(template) {
-			log.Printf("[DEBUG] (runner) cannot render template (not ready), continuing")
+		missing, contents, err := tmpl.Execute(r.brain)
+		if err != nil {
+			return err
+		}
+
+		// Add the dependency to the list of dependencies for this runner.
+		for _, d := range tmpl.Dependencies() {
+			if _, ok := depsMap[d.HashCode()]; !ok {
+				depsMap[d.HashCode()] = d
+			}
+		}
+
+		// If there are missing dependencies, start the watcher and move onto the
+		// next one.
+		if len(missing) > 0 {
+			log.Printf("[INFO] (runner) was missing %d dependencies", len(missing))
+			for _, dep := range missing {
+				r.watcher.Add(dep)
+			}
 			continue
 		}
 
-		for _, ctemplate := range r.configTemplatesFor(template) {
+		// If the template is missing data for some dependencies then we are not
+		// ready to render and need to move on to the next one.
+		if !r.canRender(tmpl) {
+			log.Printf("[DEBUG] (runner) cannot render (some dependencies do not have data yet)")
+			continue
+		}
+
+		for _, ctemplate := range r.configTemplatesFor(tmpl) {
 			log.Printf("[DEBUG] (runner) checking ctemplate: %v", ctemplate.Command)
 
 			// Render the template, taking dry mode into account
-			rendered, err := r.render(template, ctemplate.Destination, dry)
+			rendered, err := r.render(contents, ctemplate.Destination)
 			if err != nil {
-				log.Printf("[DEBUG] (runner) error rendering template: `%s`", template.Path)
+				log.Printf("[DEBUG] (runner) error rendering template: `%s`", tmpl.Path)
 				return err
 			}
 
@@ -114,7 +228,7 @@ func (r *Runner) RunAll(dry bool) error {
 
 			// If the template was rendered (changed) and we are not in dry-run mode,
 			// aggregate commands, ignoring previously known commands
-			if rendered && !dry {
+			if rendered && !r.dry {
 				if ctemplate.Command != "" && !exists(ctemplate.Command, commands) {
 					log.Printf("[DEBUG] (runner) appending command: `%s`", ctemplate.Command)
 					commands = append(commands, ctemplate.Command)
@@ -123,8 +237,11 @@ func (r *Runner) RunAll(dry bool) error {
 		}
 	}
 
+	// Perform the diff and update the known dependencies.
+	r.diffAndUpdateDeps(depsMap)
+
 	// Execute each command in sequence, collecting any errors that occur - this
-	// ensures all commands execute at least once
+	// ensures all commands execute at least once.
 	var errs []error
 	for _, command := range commands {
 		log.Printf("[DEBUG] (runner) running command: `%s`", command)
@@ -135,10 +252,9 @@ func (r *Runner) RunAll(dry bool) error {
 	}
 
 	// If any errors were returned, convert them to an ErrorList for human
-	// readability
+	// readability.
 	if len(errs) != 0 {
 		var result *multierror.Error
-
 		for _, err := range errs {
 			result = multierror.Append(result, err)
 		}
@@ -151,97 +267,122 @@ func (r *Runner) RunAll(dry bool) error {
 // init() creates the Runner's underlying data structures and returns an error
 // if any problems occur.
 func (r *Runner) init() error {
-	if len(r.configTemplates) == 0 {
-		r.configTemplates = make([]*ConfigTemplate, 0)
+	// Merge multiple configs if given
+	if r.config.Path != "" {
+		err := buildConfig(r.config, r.config.Path)
+		if err != nil {
+			return fmt.Errorf("runner: %s", err)
+		}
 	}
+
+	// Create the client
+	client, err := newAPIClient(r.config)
+	if err != nil {
+		return fmt.Errorf("runner: %s", err)
+	}
+	r.client = client
+
+	// Create the watcher
+	watcher, err := newWatcher(r.config, client, r.once)
+	if err != nil {
+		return fmt.Errorf("runner: %s", err)
+	}
+	r.watcher = watcher
 
 	templatesMap := make(map[string]*Template)
-	dependenciesMap := make(map[string]dependency.Dependency)
+	ctemplatesMap := make(map[string][]*ConfigTemplate)
 
-	r.templateConfigTemplateMap = make(map[string][]*ConfigTemplate)
-
-	// Process all Template first, so we can return errors
-	for _, configTemplate := range r.configTemplates {
-		template := &Template{Path: configTemplate.Source}
-		if _, ok := templatesMap[template.HashCode()]; !ok {
-			template, err := NewTemplate(configTemplate.Source)
-			if err != nil {
-				return err
-			}
-			templatesMap[template.HashCode()] = template
+	// Iterate over each ConfigTemplate, creating a new Template resource for each
+	// entry. Templates are parsed and saved, and a map of templates to their
+	// config templates is kept so templates can lookup their commands and output
+	// destinations.
+	for _, ctmpl := range r.config.ConfigTemplates {
+		tmpl, err := NewTemplate(ctmpl.Source)
+		if err != nil {
+			return err
 		}
 
-		if len(r.templateConfigTemplateMap[template.HashCode()]) == 0 {
-			r.templateConfigTemplateMap[template.HashCode()] = make([]*ConfigTemplate, 0, 1)
+		if _, ok := templatesMap[tmpl.Path]; !ok {
+			templatesMap[tmpl.Path] = tmpl
 		}
-		r.templateConfigTemplateMap[template.HashCode()] = append(r.templateConfigTemplateMap[template.HashCode()], configTemplate)
-	}
 
-	// For each Template, setup the mappings for O(1) lookups
-	for _, template := range templatesMap {
-		for _, dep := range template.Dependencies() {
-			if _, ok := dependenciesMap[dep.HashCode()]; !ok {
-				dependenciesMap[dep.HashCode()] = dep
-			}
+		if _, ok := ctemplatesMap[tmpl.Path]; !ok {
+			ctemplatesMap[tmpl.Path] = make([]*ConfigTemplate, 0, 1)
 		}
+		ctemplatesMap[tmpl.Path] = append(ctemplatesMap[tmpl.Path], ctmpl)
 	}
 
-	// Calculate the list of Templates
-	r.templates = make([]*Template, 0, len(templatesMap))
-	for _, template := range templatesMap {
-		r.templates = append(r.templates, template)
+	// Convert the map of templates (which was only used to ensure uniqueness)
+	// back into an array of templates.
+	templates := make([]*Template, 0, len(templatesMap))
+	for _, tmpl := range templatesMap {
+		templates = append(templates, tmpl)
 	}
+	r.templates = templates
 
-	// Calculate the list of Dependency
-	r.dependencies = make([]dependency.Dependency, 0, len(dependenciesMap))
-	for _, dependency := range dependenciesMap {
-		r.dependencies = append(r.dependencies, dependency)
-	}
+	r.dependencies = make([]dep.Dependency, 0)
 
-	r.dependencyDataReceivedMap = make(map[string]struct{})
-	r.dependencyDataMap = make(map[string]interface{})
+	r.ctemplatesMap = ctemplatesMap
 	r.outStream = os.Stdout
+	r.brain = NewBrain()
 
 	return nil
 }
 
-// canRender accepts a Template and returns true if and only if all of the
-// Dependencies of that template have data in the Runner.
-func (r *Runner) canRender(template *Template) bool {
-	for _, dependency := range template.Dependencies() {
-		if !r.receivedData(dependency) {
-			return false
+// diffAndUpdateDeps iterates through the current map of dependencies on this
+// runner and stops the watcher for any deps that are no longer required.
+//
+// At the end of this function, the given depsMap is converted to a slice and
+// stored on the runner.
+func (r *Runner) diffAndUpdateDeps(depsMap map[string]dep.Dependency) {
+	// Diff and up the list of dependencies, stopping any unneeded watchers.
+	log.Printf("[INFO] (runner) updating dependencies")
+	for _, d := range r.dependencies {
+		log.Printf("[DEBUG] (runner) checking if %s still needed", d.Display())
+		if _, ok := depsMap[d.HashCode()]; !ok {
+			log.Printf("[DEBUG] (runner) %s is no longer needed", d.Display())
+			r.watcher.Remove(d)
+			r.brain.Forget(d)
+		} else {
+			log.Printf("[DEBUG] (runner) %s is still needed", d.Display())
 		}
 	}
 
+	deps := make([]dep.Dependency, 0, len(depsMap))
+	for _, d := range depsMap {
+		deps = append(deps, d)
+	}
+	r.dependencies = deps
+}
+
+// ConfigTemplateFor returns the ConfigTemplate for the given Template
+func (r *Runner) configTemplatesFor(tmpl *Template) []*ConfigTemplate {
+	return r.ctemplatesMap[tmpl.Path]
+}
+
+// canRender accepts a template and returns true if and only if all of the
+// dependencies of that template have received data. This function assumes the
+// template has been completely compiled and all required dependencies exist
+// on the template.
+func (r *Runner) canRender(tmpl *Template) bool {
+	for _, d := range tmpl.Dependencies() {
+		if !r.brain.Remembered(d) {
+			log.Printf("[DEBUG] (runner) %q missing data for %s", tmpl.Path, d.Display())
+			return false
+		}
+	}
 	return true
 }
 
-// Render accepts a Template and a destinations. This will return an error if
-// the Template is not ready to be rendered. You can check if a Template is
-// renderable using canRender().
+// Render accepts a Template and a destinations.
 //
 // If the template has changed on disk, this method return true.
 //
 // If the template already exists and has the same contents as the "would-be"
 // template, no action is taken. In this scenario, the render function returns
 // false, indicating no template change has occurred.
-func (r *Runner) render(template *Template, destination string, dry bool) (bool, error) {
-	if !r.canRender(template) {
-		return false, fmt.Errorf("runner: template data not ready")
-	}
-
-	context, err := r.templateContextFor(template)
-	if err != nil {
-		return false, err
-	}
-
-	contents, err := template.Execute(context)
-	if err != nil {
-		return false, err
-	}
-
-	existingContents, err := ioutil.ReadFile(destination)
+func (r *Runner) render(contents []byte, dest string) (bool, error) {
+	existingContents, err := ioutil.ReadFile(dest)
 	if err != nil && !os.IsNotExist(err) {
 		return false, err
 	}
@@ -250,10 +391,10 @@ func (r *Runner) render(template *Template, destination string, dry bool) (bool,
 		return false, nil
 	}
 
-	if dry {
-		fmt.Fprintf(r.outStream, "> %s\n%s", destination, contents)
+	if r.dry {
+		fmt.Fprintf(r.outStream, "> %s\n%s", dest, contents)
 	} else {
-		if err := r.atomicWrite(destination, contents); err != nil {
+		if err := atomicWrite(dest, contents); err != nil {
 			return false, err
 		}
 	}
@@ -278,44 +419,6 @@ func (r *Runner) execute(command string) error {
 	return cmd.Run()
 }
 
-// receivedData returns true if the Runner has ever received data for the given
-// dependency and false otherwise.
-func (r *Runner) receivedData(dependency dependency.Dependency) bool {
-	_, ok := r.dependencyDataReceivedMap[dependency.HashCode()]
-	return ok
-}
-
-// data returns the data for the given dependency.
-func (r *Runner) data(dependency dependency.Dependency) interface{} {
-	return r.dependencyDataMap[dependency.HashCode()]
-}
-
-// ConfigTemplateFor returns the ConfigTemplate for the given Template
-func (r *Runner) configTemplatesFor(template *Template) []*ConfigTemplate {
-	return r.templateConfigTemplateMap[template.HashCode()]
-}
-
-// templateContextFor creates and returns a new TemplateContext for the given
-// Template, iterating through all the Template's Dependencies and appending
-// them where appropriate in the TemplateContext.
-//
-// If an unknown Dependency.(type) is encountered, an error is returned.
-func (r *Runner) templateContextFor(template *Template) (*TemplateContext, error) {
-	context, err := NewTemplateContext()
-	if err != nil {
-		return nil, fmt.Errorf("runner: %s", err)
-	}
-
-	for _, dependency := range template.Dependencies() {
-		data := r.data(dependency)
-		if err := dependency.addToContext(context, data); err != nil {
-			return nil, fmt.Errorf("runner: %s", err)
-		}
-	}
-
-	return context, nil
-}
-
 // atomicWrite accepts a destination path and the template contents. It writes
 // the template contents to a TempFile on disk, returning if any errors occur.
 //
@@ -331,7 +434,7 @@ func (r *Runner) templateContextFor(template *Template) (*TemplateContext, error
 //
 // If no errors occur, the Tempfile is "renamed" (moved) to the destination
 // path.
-func (r *Runner) atomicWrite(path string, contents []byte) error {
+func atomicWrite(path string, contents []byte) error {
 	var mode os.FileMode
 
 	// If the current file exists, get permissions so we can preserve them
@@ -404,4 +507,126 @@ func exists(needle string, haystack []string) bool {
 	}
 
 	return false
+}
+
+// newAPIClient creates a new API client from the given config and
+func newAPIClient(config *Config) (*api.Client, error) {
+	log.Printf("[INFO] (runner) creating consul/api client")
+
+	consulConfig := api.DefaultConfig()
+
+	if config.Consul != "" {
+		log.Printf("[DEBUG] (runner) setting address to %s", config.Consul)
+		consulConfig.Address = config.Consul
+	}
+
+	if config.Token != "" {
+		log.Printf("[DEBUG] (runner) setting token to %s", config.Token)
+		consulConfig.Token = config.Token
+	}
+
+	if config.SSL {
+		log.Printf("[DEBUG] (runner) enabling SSL")
+		consulConfig.Scheme = "https"
+	}
+
+	if config.SSLNoVerify {
+		log.Printf("[WARN] (runner) disabling SSL verification")
+		consulConfig.HttpClient.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		}
+	}
+
+	// TODO: Basic auth
+
+	client, err := api.NewClient(consulConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
+}
+
+// newWatcher creates a new watcher.
+func newWatcher(config *Config, client *api.Client, once bool) (*watch.Watcher, error) {
+	log.Printf("[INFO] (runner) creating Watcher")
+
+	watcher, err := watch.NewWatcher(client, once)
+	if err != nil {
+		return nil, err
+	}
+
+	if config.Retry != 0 {
+		watcher.SetRetry(config.Retry)
+	}
+
+	return watcher, err
+}
+
+// buildConfig iterates and merges all configuration files in a given directory.
+// The config parameter will be modified and merged with subsequent configs
+// found in the directory.
+func buildConfig(config *Config, path string) error {
+	log.Printf("[DEBUG] merging with config at %s", path)
+
+	// Ensure the given filepath exists
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return fmt.Errorf("config: missing file/folder: %s", path)
+	}
+
+	// Check if a file was given or a path to a directory
+	stat, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("config: error stating file: %s", err)
+	}
+
+	// Recursively parse directories, single load files
+	if stat.Mode().IsDir() {
+		// Ensure the given filepath has at least one config file
+		files, err := ioutil.ReadDir(path)
+		if err != nil {
+			return fmt.Errorf("config: error listing directory: %s", err)
+		}
+		if len(files) == 0 {
+			return fmt.Errorf("config: must contain at least one configuration file")
+		}
+
+		// Potential bug: Walk does not follow symlinks!
+		err = filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+			// If WalkFunc had an error, just return it
+			if err != nil {
+				return err
+			}
+
+			// Do nothing for directories
+			if info.IsDir() {
+				return nil
+			}
+
+			// Parse and merge the config
+			newConfig, err := ParseConfig(path)
+			if err != nil {
+				return err
+			}
+			config.Merge(newConfig)
+
+			return nil
+		})
+
+		if err != nil {
+			return fmt.Errorf("config: walk error: %s", err)
+		}
+	} else if stat.Mode().IsRegular() {
+		newConfig, err := ParseConfig(path)
+		if err != nil {
+			return err
+		}
+		config.Merge(newConfig)
+	} else {
+		return fmt.Errorf("config: unknown filetype: %s", stat.Mode().String())
+	}
+
+	return nil
 }
