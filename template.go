@@ -11,17 +11,16 @@ import (
 	dep "github.com/hashicorp/consul-template/dependency"
 )
 
-// Template is the Go representation of a Consul Template template on disk.
 type Template struct {
 	sync.Mutex
 
-	// The path to this Template on disk.
+	// Path is the path to this template on disk.
 	Path string
 
-	// The internal list of dependencies for this Template.
+	// dependencies is the internal list of dependencies,
 	dependencies []dep.Dependency
 
-	// contents is string contents for this file from disk
+	// contents is string contents for this file when read from disk.
 	contents string
 }
 
@@ -38,7 +37,13 @@ func NewTemplate(path string) (*Template, error) {
 	return template, nil
 }
 
-//
+// Execute evaluates this template in the context of the given brain. The first
+// return value is a slice of missing dependencies that were encountered
+// during evaluation. If there are any missing dependencies found, it should be
+// considered unsafe to write the resulting contents to disk. The second return
+// value is the contents of the template as-rendered. This value may not be the
+// final resulting template if there are any missing dependencies. The last
+// return value is any error that occurred while evaluating the template.
 func (t *Template) Execute(brain *Brain) ([]dep.Dependency, []byte, error) {
 	usedMap := make(map[string]dep.Dependency)
 	missingMap := make(map[string]dep.Dependency)
