@@ -120,6 +120,13 @@ func (t *Template) Execute(c *TemplateContext) ([]byte, error) {
 			}
 			return result
 		},
+		"datacenters": func() ([]string, error) {
+			d, err := dependency.ParseDatacenters()
+			if err != nil {
+				return nil, err
+			}
+			return c.datacenters[d.Key()], nil
+		},
 
 		// Helper functions
 		"byTag":           c.groupByTag,
@@ -165,6 +172,7 @@ func (t *Template) init() error {
 		"service":        serviceFunc(deps),
 		"services":       catalogServicesFunc(deps),
 		"tree":           storeKeyPrefixFunc(deps),
+		"datacenters":    datacentersFunc(deps),
 
 		// Helper functions
 		"byTag":           t.noop,
@@ -320,5 +328,22 @@ func serviceFunc(deps map[string]dependencyContextBridge) func(...string) (inter
 		}
 
 		return []*dependency.HealthService{}, nil
+	}
+}
+
+// datacentersFunc generates a dependency object for the set of Datacenters
+func datacentersFunc(deps map[string]dependencyContextBridge) func() (interface{}, error) {
+	return func() (interface{}, error) {
+		d, err := dependency.ParseDatacenters()
+		if err != nil {
+			return nil, err
+		}
+
+		if _, ok := deps[d.HashCode()]; !ok {
+			deps[d.HashCode()] = &datacentersDependencyBridge{d}
+		}
+
+		var result []string
+		return result, nil
 	}
 }
