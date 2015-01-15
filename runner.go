@@ -591,16 +591,11 @@ func newAPIClient(config *Config) (*api.Client, error) {
 		}
 	}
 
-	if httpAuthArg != "" {
-		passwordSeperator := ":"
-
-		if strings.Contains(httpAuthArg, passwordSeperator) {
-			credsTuple := strings.Split(httpAuthArg, passwordSeperator)
-
-			consulConfig.HttpAuth.Username = credsTuple[0]
-			consulConfig.HttpAuth.Password = credsTuple[1]
-		} else {
-			consulConfig.HttpAuth.Username = httpAuthArg
+	if config.Auth != nil {
+		log.Printf("[DEBUG] (runner) setting basic auth")
+		consulConfig.HttpAuth = &api.HttpBasicAuth{
+			Username: config.Auth.Username,
+			Password: config.Auth.Password,
 		}
 	}
 

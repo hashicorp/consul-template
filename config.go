@@ -17,11 +17,6 @@ import (
 // The pattern to split the config template syntax on
 var configTemplateRe = regexp.MustCompile("([a-zA-Z]:)?([^:]+)")
 
-type HttpAuth struct {
-	Username string
-	Password string
-}
-
 // Config is used to configure Consul Template
 type Config struct {
 	// Path is the path to this configuration file on disk. This value is not
@@ -37,7 +32,9 @@ type Config struct {
 	// Consul. This requires Consul to be configured to serve HTTPS.
 	SSL bool `mapstructure:"ssl"`
 
-	HttpAuth HttpAuth `mapstructure:"HttpAuth"`
+	// Authentication is the HTTP basic authentication to use when communicating
+	// with Consul.
+	Auth *Auth `mapstructure:"auth"`
 
 	// SSLNoVerify determines if we should skip certificate warnings
 	SSLNoVerify bool `mapstructure:"ssl_no_verify"`
@@ -72,8 +69,13 @@ func (c *Config) Merge(config *Config) {
 		c.SSLNoVerify = true
 	}
 
-	if (config.HttpAuth.Username != "") || (config.HttpAuth.Password != "") {
-		c.HttpAuth = config.HttpAuth
+	if config.Auth != nil {
+		if config.Auth.Username != "" || config.Auth.Password != "" {
+			c.Auth = &Auth{
+				Username: config.Auth.Username,
+				Password: config.Auth.Password,
+			}
+		}
 	}
 
 	if len(config.ConfigTemplates) > 0 {
@@ -160,6 +162,12 @@ func ParseConfig(path string) (*Config, error) {
 	}
 
 	return config, errs.ErrorOrNil()
+}
+
+// Auth is the HTTP basic authentication data.
+type Auth struct {
+	Username string `mapstructure:"username"`
+	Password string `mapstructure:"password"`
 }
 
 // ConfigTemplate is the representation of an input template, output location,

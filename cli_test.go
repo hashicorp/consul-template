@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"os"
-	"path/filepath"
 	"strings"
 	"syscall"
 	"testing"
@@ -109,10 +107,6 @@ func TestRun_onceFlag(t *testing.T) {
 	}
 }
 
-func TestQuiescence(t *testing.T) {
-	t.Skip("TODO")
-}
-
 func TestReload_sighup(t *testing.T) {
 	template := test.CreateTempfile([]byte("initial value"), t)
 	defer test.DeleteTempfile(template, t)
@@ -145,149 +139,5 @@ func TestReload_sighup(t *testing.T) {
 
 	if !bytes.Equal(contents, newValue) {
 		t.Errorf("expected %q to contain %q", contents, newValue)
-	}
-}
-
-func TestBuildConfig_singleFile(t *testing.T) {
-	configFile := test.CreateTempfile([]byte(`
-		consul = "127.0.0.1"
-	`), t)
-	defer test.DeleteTempfile(configFile, t)
-
-	config := new(Config)
-	if err := buildConfig(config, configFile.Name()); err != nil {
-		t.Fatal(err)
-	}
-
-	expected := "127.0.0.1"
-	if config.Consul != expected {
-		t.Errorf("expected %q to be %q", config.Consul, expected)
-	}
-}
-
-func TestBuildConfig_NonExistentDirectory(t *testing.T) {
-	// Create a directory and then delete it
-	configDir, err := ioutil.TempDir(os.TempDir(), "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.RemoveAll(configDir); err != nil {
-		t.Fatal(err)
-	}
-
-	config := new(Config)
-	err = buildConfig(config, configDir)
-	if err == nil {
-		t.Fatalf("expected error, but nothing was returned")
-	}
-
-	expected := "missing file/folder"
-	if !strings.Contains(err.Error(), expected) {
-		t.Fatalf("expected %q to contain %q", err.Error(), expected)
-	}
-}
-
-func TestBuildConfig_EmptyDirectory(t *testing.T) {
-	// Create a directory with no files
-	configDir, err := ioutil.TempDir(os.TempDir(), "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(configDir)
-
-	config := new(Config)
-	err = buildConfig(config, configDir)
-	if err == nil {
-		t.Fatalf("expected error, but nothing was returned")
-	}
-
-	expected := "must contain at least one configuration file"
-	if !strings.Contains(err.Error(), expected) {
-		t.Fatalf("expected %q to contain %q", err.Error(), expected)
-	}
-}
-
-func TestBuildConfig_BadConfigs(t *testing.T) {
-	configFile := test.CreateTempfile([]byte(`
-		totally not a vaild config
-	`), t)
-	defer test.DeleteTempfile(configFile, t)
-
-	configDir := filepath.Dir(configFile.Name())
-
-	config := new(Config)
-	err := buildConfig(config, configDir)
-	if err == nil {
-		t.Fatalf("expected error, but nothing was returned")
-	}
-
-	expected := "1 error(s) occurred"
-	if !strings.Contains(err.Error(), expected) {
-		t.Fatalf("expected %q to contain %q", err.Error(), expected)
-	}
-}
-
-func TestBuildConfig_configDir(t *testing.T) {
-	configDir, err := ioutil.TempDir(os.TempDir(), "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	configFile1, err := ioutil.TempFile(configDir, "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	config1 := []byte(`
-		consul = "127.0.0.1:8500"
-	`)
-	_, err = configFile1.Write(config1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	configFile2, err := ioutil.TempFile(configDir, "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	config2 := []byte(`
-		template {
-		  source = "/path/on/disk/to/template"
-		  destination = "/path/on/disk/where/template/will/render"
-		  command = "optional command to run when the template is updated"
-		}
-	`)
-	_, err = configFile2.Write(config2)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	config := new(Config)
-	if err := buildConfig(config, configDir); err != nil {
-		t.Fatal(err)
-	}
-
-	expectedConfig := Config{
-		Consul: "127.0.0.1:8500",
-		ConfigTemplates: []*ConfigTemplate{{
-			Source:      "/path/on/disk/to/template",
-			Destination: "/path/on/disk/where/template/will/render",
-			Command:     "optional command to run when the template is updated",
-		}},
-	}
-	if expectedConfig.Consul != config.Consul {
-		t.Fatalf("Config files failed to combine. Expected Consul to be %s but got %s", expectedConfig.Consul, config.Consul)
-	}
-	if len(config.ConfigTemplates) != len(expectedConfig.ConfigTemplates) {
-		t.Fatalf("Expected %d ConfigTemplate but got %d", len(expectedConfig.ConfigTemplates), len(config.ConfigTemplates))
-	}
-	for i, expectTemplate := range expectedConfig.ConfigTemplates {
-		actualTemplate := config.ConfigTemplates[i]
-		if actualTemplate.Source != expectTemplate.Source {
-			t.Fatalf("Expected template Source to be %s but got %s", expectTemplate.Source, actualTemplate.Source)
-		}
-		if actualTemplate.Destination != expectTemplate.Destination {
-			t.Fatalf("Expected template Destination to be %s but got %s", expectTemplate.Destination, actualTemplate.Destination)
-		}
-		if actualTemplate.Command != expectTemplate.Command {
-			t.Fatalf("Expected template Command to be %s but got %s", expectTemplate.Command, actualTemplate.Command)
-		}
 	}
 }
