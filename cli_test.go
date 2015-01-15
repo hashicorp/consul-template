@@ -79,8 +79,6 @@ func TestRun_waitFlagError(t *testing.T) {
 }
 
 func TestRun_onceFlag(t *testing.T) {
-	t.Skip("Pending a rewrite of the Runner")
-
 	template := test.CreateTempfile([]byte(`
 	{{range service "consul"}}{{.Name}}{{end}}
   `), t)

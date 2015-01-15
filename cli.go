@@ -101,15 +101,12 @@ func (cli *CLI) Run(args []string) int {
 		config.Wait = wait
 	}
 
-	// Setup the error channel for the runner
-	errCh := make(chan error)
-
 	// Initial runner
 	runner, err := NewRunner(config, dry, once)
 	if err != nil {
 		return cli.handleError(err, ExitCodeRunnerError)
 	}
-	go runner.Start(errCh)
+	go runner.Start()
 
 	// Listen for signals
 	signalCh := make(chan os.Signal, 1)
@@ -120,27 +117,29 @@ func (cli *CLI) Run(args []string) int {
 		syscall.SIGQUIT,
 	)
 
-	select {
-	case err := <-errCh:
-		return cli.handleError(err, ExitCodeRunnerError)
-	case s := <-signalCh:
-		switch s {
-		case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
-			fmt.Fprintf(cli.errStream, "Received interrupt, cleaning up...\n")
-			runner.Stop()
-			return ExitCodeInterrupt
-		case syscall.SIGHUP:
-			fmt.Fprintf(cli.errStream, "Received HUP, reloading configuration...\n")
-			runner.Stop()
-			runner, err := NewRunner(config, dry, once)
-			if err != nil {
-				return cli.handleError(err, ExitCodeRunnerError)
+	for {
+		select {
+		case err := <-runner.ErrCh:
+			return cli.handleError(err, ExitCodeRunnerError)
+		case <-runner.DoneCh:
+			return ExitCodeOK
+		case s := <-signalCh:
+			switch s {
+			case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
+				fmt.Fprintf(cli.errStream, "Received interrupt, cleaning up...\n")
+				runner.Stop()
+				return ExitCodeInterrupt
+			case syscall.SIGHUP:
+				fmt.Fprintf(cli.errStream, "Received HUP, reloading configuration...\n")
+				runner.Stop()
+				runner, err := NewRunner(config, dry, once)
+				if err != nil {
+					return cli.handleError(err, ExitCodeRunnerError)
+				}
+				go runner.Start()
 			}
-			go runner.Start(errCh)
 		}
 	}
-
-	return ExitCodeOK
 }
 
 // handleError outputs the given error's Error() to the errStream and returns
