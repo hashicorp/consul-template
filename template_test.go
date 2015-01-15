@@ -224,7 +224,11 @@ func TestExecute_renders(t *testing.T) {
 			{{$tag}}:{{ range $services }}
 				{{.Address}}{{ end }}{{ end }}
 		env: {{ env "foo" }}
-		parseJSON:{{ range $key, $value := "{\"foo\": \"bar\"}" | parseJSON }}
+		parseJSON (string):{{ range $key, $value := "{\"foo\": \"bar\"}" | parseJSON }}
+			{{$key}}={{$value}}{{ end }}
+		parseJSON (file):{{ range $key, $value := file "/path/to/json/file" | parseJSON }}
+			{{$key}}={{$value}}{{ end }}
+		parseJSON (env):{{ range $key, $value := env "json" | parseJSON }}
 			{{$key}}={{$value}}{{ end }}
 		regexReplaceAll: {{ file "/path/to/file" | regexReplaceAll "\\w" "x" }}
 		replaceAll: {{ file "/path/to/file" | replaceAll "some" "this" }}
@@ -319,6 +323,16 @@ func TestExecute_renders(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	d, err = dep.ParseFile("/path/to/json/file")
+	if err != nil {
+		t.Fatal(err)
+	}
+	brain.Remember(d, `{"foo": "bar"}`)
+
+	if err := os.Setenv("json", `{"foo": "bar"}`); err != nil {
+		t.Fatal(err)
+	}
+
 	_, result, err := tmpl.Execute(brain)
 	if err != nil {
 		t.Fatal(err)
@@ -363,7 +377,11 @@ func TestExecute_renders(t *testing.T) {
 				1.2.3.4
 				5.6.7.8
 		env: bar
-		parseJSON:
+		parseJSON (string):
+			foo=bar
+		parseJSON (file):
+			foo=bar
+		parseJSON (env):
 			foo=bar
 		regexReplaceAll: xxxx xxxxxxx
 		replaceAll: this content
