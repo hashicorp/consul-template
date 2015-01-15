@@ -475,11 +475,3 @@ func TestExecute_multipass(t *testing.T) {
 		t.Errorf("expected \n%q\n to be \n%q\n", result, expected)
 	}
 }
-
-func TestHashCode_returnsValue(t *testing.T) {
-	tmpl := &Template{Path: "/foo/bar/blitz.ctmpl"}
-	expected := "Template|/foo/bar/blitz.ctmpl"
-	if tmpl.HashCode() != expected {
-		t.Errorf("expected %q to equal %q", tmpl.HashCode(), expected)
-	}
-}

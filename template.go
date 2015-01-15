@@ -86,11 +86,6 @@ func (t *Template) Dependencies() []dep.Dependency {
 	return t.dependencies
 }
 
-// HashCode returns the map value for this Template
-func (t *Template) HashCode() string {
-	return fmt.Sprintf("Template|%s", t.Path)
-}
-
 // init reads the template file and initializes required variables.
 func (t *Template) init() error {
 	// Render the template
