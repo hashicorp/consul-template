@@ -132,13 +132,13 @@ func (r *Runner) Start(errCh chan<- error) {
 			log.Printf("[INFO] (runner) received finish")
 			return
 		}
-	}
 
-	// If we got this far, that means we got new data or one of the timers fired,
-	// so attempt to re-render.
-	if err := r.Run(); err != nil {
-		errCh <- err
-		return
+		// If we got this far, that means we got new data or one of the timers fired,
+		// so attempt to re-render.
+		if err := r.Run(); err != nil {
+			errCh <- err
+			return
+		}
 	}
 }
 
