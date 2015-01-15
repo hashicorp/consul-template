@@ -129,7 +129,6 @@ func TestReload_sighup(t *testing.T) {
 	args := strings.Split(command, " ")
 
 	go cli.Run(args)
-	defer cli.shutdown()
 
 	// Sleep to let the Runner run
 	time.Sleep(100 * time.Millisecond)

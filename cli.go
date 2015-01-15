@@ -2,22 +2,16 @@ package main
 
 import (
 	"bytes"
-	"crypto/tls"
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/hashicorp/consul-template/watch"
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/logutils"
 )
 
@@ -45,10 +39,6 @@ type CLI struct {
 	// outSteam and errStream are the standard out and standard error streams to
 	// write messages from the CLI.
 	outStream, errStream io.Writer
-
-	// shutdownCh is an internal channel that can be used to terminate the CLI's
-	// watcher.
-	shutdownCh chan struct{}
 }
 
 // Run accepts a slice of arguments and returns an int representing the exit
@@ -111,13 +101,15 @@ func (cli *CLI) Run(args []string) int {
 		config.Wait = wait
 	}
 
-	// Initial bootstrap
-	runner, watcher, err := bootstrap(config, dry, once)
-	if err != nil {
-		return cli.handleError(err, 1)
-	}
+	// Setup the error channel for the runner
+	errCh := make(chan error)
 
-	var minTimer, maxTimer <-chan time.Time
+	// Initial runner
+	runner, err := NewRunner(config, dry, once)
+	if err != nil {
+		return cli.handleError(err, ExitCodeRunnerError)
+	}
+	go runner.Start(errCh)
 
 	// Listen for signals
 	signalCh := make(chan os.Signal, 1)
@@ -128,74 +120,23 @@ func (cli *CLI) Run(args []string) int {
 		syscall.SIGQUIT,
 	)
 
-	// Create the shutdown channel
-	cli.shutdownCh = make(chan struct{}, 1)
-
-	for {
-		log.Printf("[DEBUG] (cli) looping for data")
-
-		select {
-		case data := <-watcher.DataCh:
-			log.Printf("[INFO] (cli) received data from Watcher for %s",
-				data.Dependency.Display())
-
-			// Tell the Runner about the data
-			runner.Receive(data.Dependency, data.Data)
-
-			// If we are waiting for quiescence, setup the timers
-			if config.Wait != nil {
-				log.Printf("[DEBUG] (cli) detected quiescence, starting timers")
-
-				// Reset the min timer
-				minTimer = time.After(config.Wait.Min)
-
-				// Set the max timer if it does not already exist
-				if maxTimer == nil {
-					maxTimer = time.After(config.Wait.Max)
-				}
-			} else {
-				log.Printf("[INFO] (cli) invoking Runner")
-				if err := runner.RunAll(dry); err != nil {
-					return cli.handleError(err, ExitCodeRunnerError)
-				}
-			}
-		case <-minTimer:
-			log.Printf("[DEBUG] (cli) quiescence minTimer fired, invoking Runner")
-
-			minTimer, maxTimer = nil, nil
-
-			if err := runner.RunAll(dry); err != nil {
+	select {
+	case err := <-errCh:
+		return cli.handleError(err, ExitCodeRunnerError)
+	case s := <-signalCh:
+		switch s {
+		case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
+			cli.say("Received interrupt, cleaning up...")
+			runner.Stop()
+			return ExitCodeInterrupt
+		case syscall.SIGHUP:
+			cli.say("Received HUP, reloading configuration...")
+			runner.Stop()
+			runner, err := NewRunner(config, dry, once)
+			if err != nil {
 				return cli.handleError(err, ExitCodeRunnerError)
 			}
-		case <-maxTimer:
-			log.Printf("[DEBUG] (cli) quiescence maxTimer fired, invoking Runner")
-
-			minTimer, maxTimer = nil, nil
-
-			if err := runner.RunAll(dry); err != nil {
-				return cli.handleError(err, ExitCodeRunnerError)
-			}
-		case err := <-watcher.ErrCh:
-			return cli.handleError(err, ExitCodeError)
-		case <-watcher.FinishCh:
-			log.Printf("[INFO] (cli) received finished signal, exiting now")
-			return ExitCodeOK
-		case s := <-signalCh:
-			switch s {
-			case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
-				fmt.Fprintf(cli.errStream, "Received interrupt, cleaning up...\n")
-				watcher.Stop()
-				return ExitCodeInterrupt
-			case syscall.SIGHUP:
-				fmt.Fprintf(cli.errStream, "Received HUP, reloading configuration...\n")
-				watcher.Stop()
-				runner, watcher, err = bootstrap(config, dry, once)
-				if err != nil {
-					return cli.handleError(err, 1)
-				}
-			}
-		case <-cli.shutdownCh:
-			return ExitCodeOK
+			go runner.Start(errCh)
 		}
 	}
 
@@ -205,14 +146,18 @@ func (cli *CLI) Run(args []string) int {
 // handleError outputs the given error's Error() to the errStream and returns
 // the given exit status.
 func (cli *CLI) handleError(err error, status int) int {
-	log.Printf("[ERR] %s", err.Error())
+	cli.say(err)
 	return status
 }
 
-// shutdown will stop the CLI from running by closing the shutdownCh. This is
-// only used for testing purposes and should never be called outside of tests!
-func (cli *CLI) shutdown() {
-	close(cli.shutdownCh)
+// say is a method for outputting information to the CLI's error stream.
+func (cli *CLI) say(s interface{}, data ...interface{}) {
+	l := make([]interface{}, len(data)+1)
+	l = append(l, s)
+	for _, d := range data {
+		l = append(l, d)
+	}
+	fmt.Fprintf(cli.errStream, fmt.Sprintf("%s\n", l...))
 }
 
 // initLogger gets the log level from the environment, falling back to DEBUG if
@@ -231,142 +176,6 @@ func (cli *CLI) initLogger() {
 	levelFilter.SetMinLevel(logutils.LogLevel(minLevel))
 
 	log.SetOutput(levelFilter)
-}
-
-// bootstrap accepts the configuration, a dry flag, and a once flag and creates
-// all the required components to make a new watcher object. This function
-// returns the created Runner and Watcher. If an error occurs, it is returned as
-// the final parameter.
-func bootstrap(config *Config, dry bool, once bool) (*Runner, *watch.Watcher, error) {
-	// Merge a path config with the command line options. Command line options
-	// take precedence over config file options for easy overriding.
-	if config.Path != "" {
-		log.Printf("[DEBUG] (cli) detected -config, merging")
-		err := buildConfig(config, config.Path)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
-	log.Printf("[DEBUG] (cli) creating Runner")
-	runner, err := NewRunner(config.ConfigTemplates)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// Run all templates now. There are currently no dependencies because the
-	// watcher has not been started. As a result, this will render all templates
-	// that have no dependencies (once), before we even begin watching.
-	if err := runner.RunAll(dry); err != nil {
-		return nil, nil, err
-	}
-
-	log.Printf("[DEBUG] (cli) creating Consul API client")
-	consulConfig := api.DefaultConfig()
-	if config.Consul != "" {
-		consulConfig.Address = config.Consul
-	}
-	if config.Token != "" {
-		consulConfig.Token = config.Token
-	}
-	if config.SSL {
-		consulConfig.Scheme = "https"
-	}
-	if config.SSLNoVerify {
-		consulConfig.HttpClient.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
-		}
-	}
-	client, err := api.NewClient(consulConfig)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	log.Printf("[DEBUG] (cli) creating Watcher")
-	watcher, err := watch.NewWatcher(client, once)
-	if err != nil {
-		return nil, nil, err
-	}
-	for _, dep := range runner.Dependencies() {
-		if _, err := watcher.AddDependency(dep); err != nil {
-			return nil, nil, err
-		}
-	}
-
-	// Set the retry timeout on the watcher if one was given
-	if config.Retry != 0 {
-		watcher.SetRetry(config.Retry)
-	}
-
-	return runner, watcher, nil
-}
-
-// buildConfig iterates and merges all configuration files in a given directory.
-// The config parameter will be modified and merged with subsequent configs
-// found in the directory.
-func buildConfig(config *Config, path string) error {
-	log.Printf("[DEBUG] merging with config at %s", path)
-
-	// Ensure the given filepath exists
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return fmt.Errorf("config: missing file/folder: %s", path)
-	}
-
-	// Check if a file was given or a path to a directory
-	stat, err := os.Stat(path)
-	if err != nil {
-		return fmt.Errorf("config: error stating file: %s", err)
-	}
-
-	// Recursively parse directories, single load files
-	if stat.Mode().IsDir() {
-		// Ensure the given filepath has at least one config file
-		files, err := ioutil.ReadDir(path)
-		if err != nil {
-			return fmt.Errorf("config: error listing directory: %s", err)
-		}
-		if len(files) == 0 {
-			return fmt.Errorf("config: must contain at least one configuration file")
-		}
-
-		// Potential bug: Walk does not follow symlinks!
-		err = filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
-			// If WalkFunc had an error, just return it
-			if err != nil {
-				return err
-			}
-
-			// Do nothing for directories
-			if info.IsDir() {
-				return nil
-			}
-
-			// Parse and merge the config
-			newConfig, err := ParseConfig(path)
-			if err != nil {
-				return err
-			}
-			config.Merge(newConfig)
-
-			return nil
-		})
-
-		if err != nil {
-			return fmt.Errorf("config: walk error: %s", err)
-		}
-	} else if stat.Mode().IsRegular() {
-		newConfig, err := ParseConfig(path)
-		if err != nil {
-			return err
-		}
-		config.Merge(newConfig)
-	} else {
-		return fmt.Errorf("config: unknown filetype: %s", stat.Mode().String())
-	}
-
-	return nil
 }
 
 const usage = `
