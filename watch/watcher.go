@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/consul-template/dependency"
+	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul/api"
 )
 
@@ -62,7 +62,7 @@ func NewWatcher(c *api.Client, once bool) (*Watcher, error) {
 	return watcher, nil
 }
 
-// AddDependency adds the given dependency to the list of monitored depedencies
+// Add adds the given dependency to the list of monitored depedencies
 // and start the associated view. If the dependency already exists, no action is
 // taken.
 //
@@ -70,47 +70,57 @@ func NewWatcher(c *api.Client, once bool) (*Watcher, error) {
 // view was successfully created, it will return true. If an error occurs while
 // creating the view, it will be returned here (but future errors returned by
 // the view will happen on the channel).
-func (w *Watcher) AddDependency(dep dependency.Dependency) (bool, error) {
+func (w *Watcher) Add(d dep.Dependency) (bool, error) {
 	w.Lock()
 	defer w.Unlock()
 
-	log.Printf("[INFO] (watcher) adding dependency %s", dep.Display())
+	log.Printf("[INFO] (watcher) adding %s", d.Display())
 
-	if _, ok := w.depViewMap[dep.HashCode()]; ok {
-		log.Printf("[DEBUG] (watcher) dependency %s already exists, skipping", dep.Display())
+	if _, ok := w.depViewMap[d.HashCode()]; ok {
+		log.Printf("[DEBUG] (watcher) %s already exists, skipping", d.Display())
 		return false, nil
 	}
 
-	v, err := NewView(w.client, dep)
+	v, err := NewView(w.client, d)
 	if err != nil {
 		return false, err
 	}
 
-	log.Printf("[DEBUG] (watcher) dependency %s starting", dep.Display())
+	log.Printf("[DEBUG] (watcher) %s starting", d.Display())
 
+	w.depViewMap[d.HashCode()] = v
 	go v.poll(w.once, w.DataCh, w.ErrCh, w.retryFunc)
 
 	return true, nil
 }
 
-// RemoveDependency removes the given dependency from the list and stops the
-// associated View. If a View for the given dependency does not exist, this
-// function will return false. If the View does exist, this function will return
-// true upon successful deletion.
-func (w *Watcher) RemoveDependency(dep dependency.Dependency) bool {
+// Watching determines if the given dependency is being watched.
+func (w *Watcher) Watching(d dep.Dependency) bool {
 	w.Lock()
 	defer w.Unlock()
 
-	log.Printf("[INFO] (watcher) removing dependency %s", dep.Display())
+	_, ok := w.depViewMap[d.HashCode()]
+	return ok
+}
 
-	if view, ok := w.depViewMap[dep.HashCode()]; ok {
-		log.Printf("[DEBUG] (watcher) actually removing dependency %s", dep.Display())
+// Remove removes the given dependency from the list and stops the
+// associated View. If a View for the given dependency does not exist, this
+// function will return false. If the View does exist, this function will return
+// true upon successful deletion.
+func (w *Watcher) Remove(d dep.Dependency) bool {
+	w.Lock()
+	defer w.Unlock()
+
+	log.Printf("[INFO] (watcher) removing %s", d.Display())
+
+	if view, ok := w.depViewMap[d.HashCode()]; ok {
+		log.Printf("[DEBUG] (watcher) actually removing %s", d.Display())
 		view.stop()
-		delete(w.depViewMap, dep.HashCode())
+		delete(w.depViewMap, d.HashCode())
 		return true
 	}
 
-	log.Printf("[DEBUG] (watcher) dependency %s did not exist, skipping", dep.Display())
+	log.Printf("[DEBUG] (watcher) %s did not exist, skipping", d.Display())
 	return false
 }
 
