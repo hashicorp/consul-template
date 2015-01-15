@@ -31,7 +31,7 @@ func TestFileFunc_hasData(t *testing.T) {
 	}
 
 	brain := NewBrain()
-	brain.Store(d, "contents")
+	brain.Remember(d, "contents")
 
 	used := make(map[string]dep.Dependency)
 	missing := make(map[string]dep.Dependency)
@@ -108,7 +108,7 @@ func TestKeyFunc_hasData(t *testing.T) {
 	}
 
 	brain := NewBrain()
-	brain.Store(d, "contents")
+	brain.Remember(d, "contents")
 
 	used := make(map[string]dep.Dependency)
 	missing := make(map[string]dep.Dependency)
@@ -193,7 +193,7 @@ func TestLsFunc_hasData(t *testing.T) {
 	}
 
 	brain := NewBrain()
-	brain.Store(d, data)
+	brain.Remember(d, data)
 
 	used := make(map[string]dep.Dependency)
 	missing := make(map[string]dep.Dependency)
@@ -283,7 +283,7 @@ func TestNodesFunc_hasData(t *testing.T) {
 	}
 
 	brain := NewBrain()
-	brain.Store(d, data)
+	brain.Remember(d, data)
 
 	used := make(map[string]dep.Dependency)
 	missing := make(map[string]dep.Dependency)
@@ -368,7 +368,7 @@ func TestServiceFunc_hasData(t *testing.T) {
 	}
 
 	brain := NewBrain()
-	brain.Store(d, data)
+	brain.Remember(d, data)
 
 	used := make(map[string]dep.Dependency)
 	missing := make(map[string]dep.Dependency)
@@ -453,7 +453,7 @@ func TestServicesFunc_hasData(t *testing.T) {
 	}
 
 	brain := NewBrain()
-	brain.Store(d, data)
+	brain.Remember(d, data)
 
 	used := make(map[string]dep.Dependency)
 	missing := make(map[string]dep.Dependency)
@@ -540,7 +540,7 @@ func TestTreeFunc_hasData(t *testing.T) {
 	}
 
 	brain := NewBrain()
-	brain.Store(d, data)
+	brain.Remember(d, data)
 
 	used := make(map[string]dep.Dependency)
 	missing := make(map[string]dep.Dependency)

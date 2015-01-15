@@ -39,11 +39,11 @@ func NewBrain() *Brain {
 	}
 }
 
-// Store accepts a dependency and the data to store associated with that
+// Remember accepts a dependency and the data to store associated with that
 // dep. This function converts the given data to a proper type and stores
 // it interally.
-func (b *Brain) Store(d dep.Dependency, data interface{}) error {
-	log.Printf("[INFO] (brain) storing %s", d.Display())
+func (b *Brain) Remember(d dep.Dependency, data interface{}) {
+	log.Printf("[INFO] (brain) remembering %s", d.Display())
 
 	b.Lock()
 	defer b.Unlock()
@@ -62,16 +62,14 @@ func (b *Brain) Store(d dep.Dependency, data interface{}) error {
 	case *dep.StoreKeyPrefix:
 		b.storeKeyPrefixes[d.HashCode()] = data.([]*dep.KeyPair)
 	default:
-		return fmt.Errorf("brain: unknown dependency type %T", t)
+		panic(fmt.Sprintf("brain: unknown dependency type %T", t))
 	}
 
 	b.receivedData[d.HashCode()] = struct{}{}
-
-	return nil
 }
 
-// HasData returns true if the given dependency has received data at least once.
-func (b *Brain) HasData(d dep.Dependency) bool {
+// Remembered returns true if the given dependency has received data at least once.
+func (b *Brain) Remembered(d dep.Dependency) bool {
 	log.Printf("[INFO] (brain) checking if %s has data", d.Display())
 
 	b.Lock()
@@ -84,4 +82,32 @@ func (b *Brain) HasData(d dep.Dependency) bool {
 
 	log.Printf("[DEBUG] (brain) %s did not have data", d.Display())
 	return false
+}
+
+// Forget accepts a dependency and removes all associated data with this
+// dependency. It also resets the "receivedData" internal map.
+func (b *Brain) Forget(d dep.Dependency) {
+	log.Printf("[INFO] (brain) forgetting %s", d.Display())
+
+	b.Lock()
+	defer b.Unlock()
+
+	switch t := d.(type) {
+	case *dep.CatalogNodes:
+		delete(b.catalogNodes, d.HashCode())
+	case *dep.CatalogServices:
+		delete(b.catalogServices, d.HashCode())
+	case *dep.File:
+		delete(b.files, d.HashCode())
+	case *dep.HealthServices:
+		delete(b.healthServices, d.HashCode())
+	case *dep.StoreKey:
+		delete(b.storeKeys, d.HashCode())
+	case *dep.StoreKeyPrefix:
+		delete(b.storeKeyPrefixes, d.HashCode())
+	default:
+		panic(fmt.Sprintf("brain: unknown dependency type %T", t))
+	}
+
+	delete(b.receivedData, d.HashCode())
 }

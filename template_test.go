@@ -247,19 +247,19 @@ func TestExecute_renders(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	brain.Store(d, "some content")
+	brain.Remember(d, "some content")
 
 	d, err = dep.ParseStoreKey("config/redis/maxconns")
 	if err != nil {
 		t.Fatal(err)
 	}
-	brain.Store(d, "5")
+	brain.Remember(d, "5")
 
 	d, err = dep.ParseStoreKeyPrefix("config/redis")
 	if err != nil {
 		t.Fatal(err)
 	}
-	brain.Store(d, []*dep.KeyPair{
+	brain.Remember(d, []*dep.KeyPair{
 		&dep.KeyPair{Key: "", Value: ""},
 		&dep.KeyPair{Key: "admin/port", Value: "1134"},
 		&dep.KeyPair{Key: "maxconns", Value: "5"},
@@ -270,7 +270,7 @@ func TestExecute_renders(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	brain.Store(d, []*dep.Node{
+	brain.Remember(d, []*dep.Node{
 		&dep.Node{Node: "node1"},
 		&dep.Node{Node: "node2"},
 	})
@@ -279,7 +279,7 @@ func TestExecute_renders(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	brain.Store(d, []*dep.HealthService{
+	brain.Remember(d, []*dep.HealthService{
 		&dep.HealthService{
 			Node:    "node1",
 			Address: "1.2.3.4",
@@ -301,7 +301,7 @@ func TestExecute_renders(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	brain.Store(d, []*dep.HealthService{
+	brain.Remember(d, []*dep.HealthService{
 		&dep.HealthService{Node: "node1", Address: "1.2.3.4"},
 		&dep.HealthService{Node: "node2", Address: "5.6.7.8"},
 	})
@@ -310,7 +310,7 @@ func TestExecute_renders(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	brain.Store(d, []*dep.CatalogService{
+	brain.Remember(d, []*dep.CatalogService{
 		&dep.CatalogService{Name: "service1"},
 		&dep.CatalogService{Name: "service2"},
 	})
@@ -413,7 +413,7 @@ func TestExecute_multipass(t *testing.T) {
 
 	// Receive data for the key prefix dependency
 	d1, err := dep.ParseStoreKeyPrefix("services")
-	brain.Store(d1, []*dep.KeyPair{
+	brain.Remember(d1, []*dep.KeyPair{
 		&dep.KeyPair{Key: "webapp", Value: "1"},
 		&dep.KeyPair{Key: "database", Value: "1"},
 	})
@@ -442,12 +442,12 @@ func TestExecute_multipass(t *testing.T) {
 
 	// Receive data for the services
 	d2, err := dep.ParseHealthServices("webapp")
-	brain.Store(d2, []*dep.HealthService{
+	brain.Remember(d2, []*dep.HealthService{
 		&dep.HealthService{Node: "web01", Address: "1.2.3.4", Port: 1234},
 	})
 
 	d3, err := dep.ParseHealthServices("database")
-	brain.Store(d3, []*dep.HealthService{
+	brain.Remember(d3, []*dep.HealthService{
 		&dep.HealthService{Node: "db01", Address: "5.6.7.8", Port: 5678},
 	})
 
