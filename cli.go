@@ -95,6 +95,7 @@ func (cli *CLI) Run(args []string) int {
 
 	// Setup authentication
 	if auth != "" {
+		log.Printf("[DEBUG] (cli) detected -auth, parsing")
 		config.Auth = new(Auth)
 		if strings.Contains(auth, ":") {
 			split := strings.SplitN(auth, ":", 2)
