@@ -101,26 +101,43 @@ func TestNewWatcher_makesdepViewMap(t *testing.T) {
 	}
 }
 
-func TestAddDependency_exists(t *testing.T) {
+func TestAdd_updatesMap(t *testing.T) {
 	w, err := NewWatcher(&api.Client{}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	dep := &test.FakeDependency{}
-	w.depViewMap[dep.HashCode()] = &View{}
+	d := &test.FakeDependency{}
+	if _, err := w.Add(d); err != nil {
+		t.Fatal(err)
+	}
 
-	added, err := w.AddDependency(dep)
+	_, exists := w.depViewMap[d.HashCode()]
+	if !exists {
+		t.Errorf("expected Add to append to map")
+	}
+}
+
+func TestAdd_exists(t *testing.T) {
+	w, err := NewWatcher(&api.Client{}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	d := &test.FakeDependency{}
+	w.depViewMap[d.HashCode()] = &View{}
+
+	added, err := w.Add(d)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if added != false {
-		t.Errorf("expected AddDependency to return false")
+		t.Errorf("expected Add to return false")
 	}
 }
 
-func TestAddDependency_error(t *testing.T) {
+func TestAdd_error(t *testing.T) {
 	w, err := NewWatcher(&api.Client{}, false)
 	if err != nil {
 		t.Fatal(err)
@@ -129,7 +146,7 @@ func TestAddDependency_error(t *testing.T) {
 	// Set the client to nil to force the view to return an error
 	w.client = nil
 
-	added, err := w.AddDependency(&test.FakeDependency{})
+	added, err := w.Add(&test.FakeDependency{})
 	if err == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
@@ -140,23 +157,23 @@ func TestAddDependency_error(t *testing.T) {
 	}
 
 	if added != false {
-		t.Errorf("expected AddDependency to return false")
+		t.Errorf("expected Add to return false")
 	}
 }
 
-func TestAddDependency_startsViewPoll(t *testing.T) {
+func TestAdd_startsViewPoll(t *testing.T) {
 	w, err := NewWatcher(&api.Client{}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	added, err := w.AddDependency(&test.FakeDependency{})
+	added, err := w.Add(&test.FakeDependency{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if added != true {
-		t.Errorf("expected AddDependency to return true")
+		t.Errorf("expected Add to return true")
 	}
 
 	select {
@@ -167,37 +184,64 @@ func TestAddDependency_startsViewPoll(t *testing.T) {
 	}
 }
 
-func TestRemoveDependency_exists(t *testing.T) {
+func TestWatching_notExists(t *testing.T) {
 	w, err := NewWatcher(&api.Client{}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	dep := &test.FakeDependency{}
+	d := &test.FakeDependency{}
+	if w.Watching(d) == true {
+		t.Errorf("expected to not be watching")
+	}
+}
 
-	if _, err := w.AddDependency(dep); err != nil {
+func TestWatching_exists(t *testing.T) {
+	w, err := NewWatcher(&api.Client{}, false)
+	if err != nil {
 		t.Fatal(err)
 	}
 
-	removed := w.RemoveDependency(dep)
-	if removed == true {
-		t.Error("expected RemoveDependency to return true")
+	d := &test.FakeDependency{}
+	if _, err := w.Add(d); err != nil {
+		t.Fatal(err)
 	}
 
-	if _, ok := w.depViewMap[dep.HashCode()]; ok {
+	if w.Watching(d) == false {
+		t.Errorf("expected to be watching")
+	}
+}
+
+func TestRemove_exists(t *testing.T) {
+	w, err := NewWatcher(&api.Client{}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	d := &test.FakeDependency{}
+	if _, err := w.Add(d); err != nil {
+		t.Fatal(err)
+	}
+
+	removed := w.Remove(d)
+	if removed != true {
+		t.Error("expected Remove to return true")
+	}
+
+	if _, ok := w.depViewMap[d.HashCode()]; ok {
 		t.Error("expected dependency to be removed")
 	}
 }
 
-func TestRemoveDependency_doesNotExist(t *testing.T) {
+func TestRemove_doesNotExist(t *testing.T) {
 	w, err := NewWatcher(&api.Client{}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	removed := w.RemoveDependency(&test.FakeDependency{})
+	removed := w.Remove(&test.FakeDependency{})
 	if removed != false {
-		t.Fatal("expected RemoveDependency to return false")
+		t.Fatal("expected Remove to return false")
 	}
 }
 
