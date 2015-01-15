@@ -1,0 +1,1 @@
+- Quiescence should be per-template, not global

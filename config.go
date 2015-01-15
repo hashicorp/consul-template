@@ -32,6 +32,10 @@ type Config struct {
 	// Consul. This requires Consul to be configured to serve HTTPS.
 	SSL bool `mapstructure:"ssl"`
 
+	// Authentication is the HTTP basic authentication to use when communicating
+	// with Consul.
+	Auth *Auth `mapstructure:"auth"`
+
 	// SSLNoVerify determines if we should skip certificate warnings
 	SSLNoVerify bool `mapstructure:"ssl_no_verify"`
 
@@ -63,6 +67,15 @@ func (c *Config) Merge(config *Config) {
 
 	if config.SSLNoVerify {
 		c.SSLNoVerify = true
+	}
+
+	if config.Auth != nil {
+		if config.Auth.Username != "" || config.Auth.Password != "" {
+			c.Auth = &Auth{
+				Username: config.Auth.Username,
+				Password: config.Auth.Password,
+			}
+		}
 	}
 
 	if len(config.ConfigTemplates) > 0 {
@@ -149,6 +162,12 @@ func ParseConfig(path string) (*Config, error) {
 	}
 
 	return config, errs.ErrorOrNil()
+}
+
+// Auth is the HTTP basic authentication data.
+type Auth struct {
+	Username string `mapstructure:"username"`
+	Password string `mapstructure:"password"`
 }
 
 // ConfigTemplate is the representation of an input template, output location,

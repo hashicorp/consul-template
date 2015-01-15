@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"io"
@@ -47,6 +46,7 @@ func (cli *CLI) Run(args []string) int {
 	cli.initLogger()
 
 	var version, dry, once bool
+	var auth string
 	var config = new(Config)
 
 	// Parse the flags and options
@@ -61,6 +61,8 @@ func (cli *CLI) Run(args []string) int {
 		"use https while talking to consul")
 	flags.BoolVar(&config.SSLNoVerify, "ssl-no-verify", false,
 		"ignore certificate warnings under https")
+	flags.StringVar(&auth, "auth", "",
+		"set basic auth username[:password]")
 	flags.Var((*configTemplateVar)(&config.ConfigTemplates), "template",
 		"new template declaration")
 	flags.StringVar(&config.Token, "token", "",
@@ -89,6 +91,18 @@ func (cli *CLI) Run(args []string) int {
 		log.Printf("[DEBUG] (cli) version flag was given, exiting now")
 		fmt.Fprintf(cli.errStream, "%s v%s\n", Name, Version)
 		return ExitCodeOK
+	}
+
+	// Setup authentication
+	if auth != "" {
+		config.Auth = new(Auth)
+		if strings.Contains(auth, ":") {
+			split := strings.SplitN(auth, ":", 2)
+			config.Auth.Username = split[0]
+			config.Auth.Password = split[1]
+		} else {
+			config.Auth.Username = auth
+		}
 	}
 
 	// Parse the raw wait value into a Wait object
@@ -176,54 +190,22 @@ Usage: %s [options]
 
 Options:
 
+  -auth=<user[:pass]>      Set the basic authentication username (and password)
   -consul=<address>        Sets the address of the Consul instance
+  -ssl                     Use SSL when connecting to Consul
+  -ssl-no-verify           Ignore certificate warnings when connecting via SSL
   -token=<token>           Sets the Consul API token
+
   -template=<template>     Adds a new template to watch on disk in the format
                            'templatePath:outputPath(:command)'.
   -wait=<duration>         Sets the 'minumum(:maximum)' amount of time to wait
                            before writing a template (and triggering a command)
   -retry=<duration>        The amount of time to wait if Consul returns an
                            error when communicating with the API.
+
   -config=<path>           Sets the path to a configuration file on disk
 
   -dry                     Dump generated templates to stdout
   -once                    Do not run the process as a daemon
   -version                 Print the version of this daemon
 `
-
-/// ------------------------- ///
-
-// configTemplateVar implements the Flag.Value interface and allows the user
-// to specify multiple -template keys in the CLI where each option is parsed
-// as a template.
-type configTemplateVar []*ConfigTemplate
-
-func (ctv configTemplateVar) String() string {
-	buff := new(bytes.Buffer)
-	for _, template := range ctv {
-		fmt.Fprintf(buff, "%s", template.Source)
-		if template.Destination != "" {
-			fmt.Fprintf(buff, ":%s", template.Destination)
-
-			if template.Command != "" {
-				fmt.Fprintf(buff, ":%s", template.Command)
-			}
-		}
-	}
-
-	return buff.String()
-}
-
-func (ctv *configTemplateVar) Set(value string) error {
-	template, err := ParseConfigTemplate(value)
-	if err != nil {
-		return err
-	}
-
-	if *ctv == nil {
-		*ctv = make([]*ConfigTemplate, 0, 1)
-	}
-	*ctv = append(*ctv, template)
-
-	return nil
-}

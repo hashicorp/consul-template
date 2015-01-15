@@ -591,7 +591,13 @@ func newAPIClient(config *Config) (*api.Client, error) {
 		}
 	}
 
-	// TODO: Basic auth
+	if config.Auth != nil {
+		log.Printf("[DEBUG] (runner) setting basic auth")
+		consulConfig.HttpAuth = &api.HttpBasicAuth{
+			Username: config.Auth.Username,
+			Password: config.Auth.Password,
+		}
+	}
 
 	client, err := api.NewClient(consulConfig)
 	if err != nil {
