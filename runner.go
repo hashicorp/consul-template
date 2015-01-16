@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	dep "github.com/hashicorp/consul-template/dependency"
@@ -67,6 +68,12 @@ type Runner struct {
 
 	// brain is the internal storage database of returned dependency data.
 	brain *Brain
+
+	// quiescenceMap is the map of templates to their quiescence timers.
+	// quiescenceCh is the channel where templates report returns from quiescence
+	// fires.
+	quiescenceMap map[string]*quiescence
+	quiescenceCh  chan *Template
 }
 
 // NewRunner accepts a slice of ConfigTemplates and returns a pointer to the new
@@ -98,6 +105,16 @@ func (r *Runner) Start() {
 	}
 
 	for {
+		// Enable quiescence for all templates if we have specified wait intervals.
+		if r.config.Wait != nil {
+			for _, t := range r.templates {
+				if _, ok := r.quiescenceMap[t.Path]; !ok {
+					r.quiescenceMap[t.Path] = newQuiescence(
+						r.quiescenceCh, r.config.Wait.Min, r.config.Wait.Max, t)
+				}
+			}
+		}
+
 		// If we are running in once mode and all our templates have been rendered,
 		// then we should exit here.
 		if r.once && r.allTemplatesRendered() {
@@ -109,24 +126,13 @@ func (r *Runner) Start() {
 		select {
 		case data := <-r.watcher.DataCh:
 			r.Receive(data.Dependency, data.Data)
-
-			// If we are waiting for quiescence, setup the timers
-			if r.config.Wait != nil {
-				log.Printf("[DEBUG] (runner) starting quiescence timers")
-
-				// Reset the minTimer and set the maxTimer if it does not already exist
-				r.minTimer = time.After(r.config.Wait.Min)
-				if r.maxTimer == nil {
-					r.maxTimer = time.After(r.config.Wait.Max)
-				}
-
-				// Since we are in quiescence mode, do not attempt to render and start
-				// the loop from the top again (thus avoiding a pre-mature render).
-				continue
-			}
 		case err := <-r.watcher.ErrCh:
 			r.ErrCh <- err
 			return
+		case tmpl := <-r.quiescenceCh:
+			// Remove the quiescence for this template from the map. This will force
+			// the upcoming Run call to actually evaluate and render the template.
+			delete(r.quiescenceMap, tmpl.Path)
 		case <-r.minTimer:
 			log.Printf("[INFO] (runner) quiescence minTimer fired")
 			r.minTimer, r.maxTimer = nil, nil
@@ -238,6 +244,15 @@ func (r *Runner) Run() error {
 			continue
 		}
 
+		// If quiescence is activated, start/update the timers and loop back around.
+		// We do not want to render the templates yet.
+		if q, ok := r.quiescenceMap[tmpl.Path]; ok {
+			q.tick()
+			continue
+		}
+
+		// For each configuration template that is tied to this template, attempt to
+		// render it to disk and accumulate commands for later use.
 		for _, ctemplate := range r.configTemplatesFor(tmpl) {
 			log.Printf("[DEBUG] (runner) checking ctemplate %+v", ctemplate)
 
@@ -367,6 +382,9 @@ func (r *Runner) init() error {
 	r.ErrCh = make(chan error)
 	r.DoneCh = make(chan struct{})
 
+	r.quiescenceMap = make(map[string]*quiescence)
+	r.quiescenceCh = make(chan *Template)
+
 	return nil
 }
 
@@ -469,6 +487,60 @@ func (r *Runner) execute(command string) error {
 	cmd.Stdout = r.outStream
 	cmd.Stderr = r.errStream
 	return cmd.Run()
+}
+
+// quiescence is an internal representation of a single template's quiescence
+// state.
+type quiescence struct {
+	sync.Mutex
+
+	template           *Template
+	min                time.Duration
+	minTimer, maxTimer <-chan time.Time
+	ch                 chan *Template
+	stopCh             chan struct{}
+}
+
+// newQuiescence creates a new quiescence timer for the given template.
+func newQuiescence(ch chan *Template, min, max time.Duration, t *Template) *quiescence {
+	return &quiescence{
+		template: t,
+		min:      min,
+		minTimer: time.After(min),
+		maxTimer: time.After(max),
+		ch:       ch,
+		stopCh:   make(chan struct{}),
+	}
+}
+
+// start begins the quiescence timer for this quiescence.
+func (q *quiescence) start() {
+	select {
+	case <-q.minTimer:
+		log.Printf("[INFO] (runner) quiescence minTimer fired for %s", q.template.Path)
+		q.minTimer, q.maxTimer = nil, nil
+		q.ch <- q.template
+	case <-q.maxTimer:
+		log.Printf("[INFO] (runner) quiescence maxTimer fired for %s", q.template.Path)
+		q.minTimer, q.maxTimer = nil, nil
+		q.ch <- q.template
+	case <-q.stopCh:
+		return
+	}
+}
+
+// tick updates the minimum quiescence timer.
+func (q *quiescence) tick() {
+	q.Lock()
+	defer q.Unlock()
+
+	// Stop an existing poll so we can reset the minTimer and restart.
+	close(q.stopCh)
+	q.stopCh = make(chan struct{})
+
+	// Update the timer value and start a new poller
+	q.minTimer = time.After(q.min)
+	go q.start()
 }
 
 // atomicWrite accepts a destination path and the template contents. It writes
