@@ -17,7 +17,7 @@ type Template struct {
 	// Path is the path to this template on disk.
 	Path string
 
-	// dependencies is the internal list of dependencies,
+	// dependencies is the internal list of dependencies.
 	dependencies []dep.Dependency
 
 	// contents is string contents for this file when read from disk.
