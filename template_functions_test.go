@@ -668,6 +668,18 @@ func TestParseJSON(t *testing.T) {
 	}
 }
 
+func TestParseJSON_empty(t *testing.T) {
+	result, err := parseJSON("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := make([]interface{}, 0)
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("expected %#v to be %#v", result, expected)
+	}
+}
+
 func TestToLower(t *testing.T) {
 	result, err := toLower("FOO")
 	if err != nil {
