@@ -15,6 +15,7 @@ type Brain struct {
 
 	catalogNodes     map[string][]*dep.Node
 	catalogServices  map[string][]*dep.CatalogService
+	datacenters      map[string][]string
 	files            map[string]string
 	healthServices   map[string][]*dep.HealthService
 	storeKeys        map[string]string
@@ -31,6 +32,7 @@ func NewBrain() *Brain {
 	return &Brain{
 		catalogNodes:     make(map[string][]*dep.Node),
 		catalogServices:  make(map[string][]*dep.CatalogService),
+		datacenters:      make(map[string][]string),
 		files:            make(map[string]string),
 		healthServices:   make(map[string][]*dep.HealthService),
 		storeKeys:        make(map[string]string),
@@ -53,6 +55,8 @@ func (b *Brain) Remember(d dep.Dependency, data interface{}) {
 		b.catalogNodes[d.HashCode()] = data.([]*dep.Node)
 	case *dep.CatalogServices:
 		b.catalogServices[d.HashCode()] = data.([]*dep.CatalogService)
+	case *dep.Datacenters:
+		b.datacenters[d.HashCode()] = data.([]string)
 	case *dep.File:
 		b.files[d.HashCode()] = data.(string)
 	case *dep.HealthServices:
@@ -97,6 +101,8 @@ func (b *Brain) Forget(d dep.Dependency) {
 		delete(b.catalogNodes, d.HashCode())
 	case *dep.CatalogServices:
 		delete(b.catalogServices, d.HashCode())
+	case *dep.Datacenters:
+		delete(b.datacenters, d.HashCode())
 	case *dep.File:
 		delete(b.files, d.HashCode())
 	case *dep.HealthServices:

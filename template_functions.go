@@ -9,6 +9,29 @@ import (
 	dep "github.com/hashicorp/consul-template/dependency"
 )
 
+// datacentersFunc returns or accumulates datacenter dependencies.
+func datacentersFunc(brain *Brain,
+	used, missing map[string]dep.Dependency) func(...string) ([]string, error) {
+	return func(s ...string) ([]string, error) {
+		result := make([]string, 0)
+
+		d, err := dep.ParseDatacenters(s...)
+		if err != nil {
+			return result, err
+		}
+
+		addDependency(used, d)
+
+		if result, ok := brain.datacenters[d.HashCode()]; ok {
+			return result, nil
+		}
+
+		addDependency(missing, d)
+
+		return result, nil
+	}
+}
+
 // fileFunc returns or accumulates file dependencies.
 func fileFunc(brain *Brain,
 	used, missing map[string]dep.Dependency) func(string) (string, error) {

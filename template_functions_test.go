@@ -8,6 +8,88 @@ import (
 	dep "github.com/hashicorp/consul-template/dependency"
 )
 
+func TestDatacentersFunc_emptyString(t *testing.T) {
+	brain := NewBrain()
+	used := make(map[string]dep.Dependency)
+	missing := make(map[string]dep.Dependency)
+
+	f := datacentersFunc(brain, used, missing)
+	result, err := f()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []string{}
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+}
+
+func TestDatacentersFunc_hasData(t *testing.T) {
+	d, err := dep.ParseDatacenters()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dcs := []string{"dc1", "dc2"}
+
+	brain := NewBrain()
+	brain.Remember(d, dcs)
+
+	used := make(map[string]dep.Dependency)
+	missing := make(map[string]dep.Dependency)
+
+	f := datacentersFunc(brain, used, missing)
+	result, err := f()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := dcs
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+
+	if len(missing) != 0 {
+		t.Errorf("expected missing to have 0 elements, but had %d", len(missing))
+	}
+
+	if _, ok := used[d.HashCode()]; !ok {
+		t.Errorf("expected dep to be used")
+	}
+}
+
+func TestDatacentersFunc_missingData(t *testing.T) {
+	d, err := dep.ParseDatacenters()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	brain := NewBrain()
+
+	used := make(map[string]dep.Dependency)
+	missing := make(map[string]dep.Dependency)
+
+	f := datacentersFunc(brain, used, missing)
+	result, err := f()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []string{}
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+
+	if _, ok := used[d.HashCode()]; !ok {
+		t.Errorf("expected dep to be used")
+	}
+
+	if _, ok := missing[d.HashCode()]; !ok {
+		t.Errorf("expected dep to be missing")
+	}
+}
+
 func TestFileFunc_emptyString(t *testing.T) {
 	brain := NewBrain()
 	used := make(map[string]dep.Dependency)
@@ -254,13 +336,13 @@ func TestLsFunc_missingData(t *testing.T) {
 	}
 }
 
-func TestNodesFunc_emptyString(t *testing.T) {
+func TestNodesFunc_noArgs(t *testing.T) {
 	brain := NewBrain()
 	used := make(map[string]dep.Dependency)
 	missing := make(map[string]dep.Dependency)
 
 	f := nodesFunc(brain, used, missing)
-	result, err := f("")
+	result, err := f()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -424,13 +506,13 @@ func TestServiceFunc_missingData(t *testing.T) {
 	}
 }
 
-func TestServicesFunc_emptyString(t *testing.T) {
+func TestServicesFunc_noArgs(t *testing.T) {
 	brain := NewBrain()
 	used := make(map[string]dep.Dependency)
 	missing := make(map[string]dep.Dependency)
 
 	f := servicesFunc(brain, used, missing)
-	result, err := f("")
+	result, err := f()
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -126,6 +126,13 @@ In addition to the [Go-provided template functions][Go Template], Consul Templat
 
 #### API Functions
 
+##### `datacenters`
+Query Consul for all datacenters in the catalog. Datacenters are queried using the following syntax:
+
+```liquid
+{{datacenters}}
+```
+
 ##### `file`
 Read and render the contents of a local file on disk. If the file cannot be read, an error will occur. Files are read using the following syntax:
 
