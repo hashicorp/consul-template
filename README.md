@@ -13,6 +13,8 @@ This project provides a convenient way to populate values from [Consul][] into t
 The daemon `consul-template` queries a [Consul][] instance and updates any number of specified templates on the filesystem. As an added bonus, `consul-template` can optionally run arbitrary commands when the update process completes. See the [Examples](#examples) section for some scenarios were this functionality might prove useful.
 
 
+**The documentation in this README corresponds to the master branch of Consul Template. It may contain unreleased features or different APIs than the most recently released version. Please see the Git tag that corresponds to your version of Consul Template for the proper documentation.**
+
 Installation
 ------------
 You can download a released `consul-template` artifact from [the Consul Template release page][Releases] on GitHub. If you wish to compile from source, you will need to have buildtools and [Go][] installed:
