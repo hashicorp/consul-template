@@ -224,6 +224,10 @@ func env(s string) (string, error) {
 
 // parseJSON returns a structure for valid JSON
 func parseJSON(s string) (interface{}, error) {
+	if s == "" {
+		return make([]interface{}, 0), nil
+	}
+
 	var data interface{}
 	if err := json.Unmarshal([]byte(s), &data); err != nil {
 		return nil, err
