@@ -201,6 +201,8 @@ func TestExecute_renders(t *testing.T) {
 	in := test.CreateTempfile([]byte(`
 		API Functions
 		-------------
+		datacenters:{{ range datacenters }}
+			{{.}}{{ end }}
 		file: {{ file "/path/to/file" }}
 		key: {{ key "config/redis/maxconns" }}
 		ls:{{ range ls "config/redis" }}
@@ -246,6 +248,12 @@ func TestExecute_renders(t *testing.T) {
 	brain := NewBrain()
 
 	var d dep.Dependency
+
+	d, err = dep.ParseDatacenters()
+	if err != nil {
+		t.Fatal(err)
+	}
+	brain.Remember(d, []string{"dc1", "dc2"})
 
 	d, err = dep.ParseFile("/path/to/file")
 	if err != nil {
@@ -341,6 +349,9 @@ func TestExecute_renders(t *testing.T) {
 	expected := []byte(`
 		API Functions
 		-------------
+		datacenters:
+			dc1
+			dc2
 		file: some content
 		key: 5
 		ls:
