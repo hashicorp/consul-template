@@ -164,11 +164,16 @@ func (cli *CLI) Run(args []string) int {
 					return cli.handleError(err, ExitCodeRunnerError)
 				}
 				go runner.Start()
-			case cli.stopCh:
-				return ExitCodeOK
 			}
+		case <-cli.stopCh:
+			return ExitCodeOK
 		}
 	}
+}
+
+// stop is used internally to shutdown a running CLI
+func (cli *CLI) stop() {
+	close(cli.stopCh)
 }
 
 // handleError outputs the given error's Error() to the errStream and returns

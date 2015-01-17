@@ -120,24 +120,19 @@ func TestReload_sighup(t *testing.T) {
 	command := fmt.Sprintf("consul-template -template %s:%s", template.Name(), out.Name())
 	args := strings.Split(command, " ")
 
-	go cli.Run(args)
+	go func(args []string) {
+		if exit := cli.Run(args); exit != 0 {
+			t.Fatal("bad exit code: %d", exit)
+		}
+	}(args)
+	defer cli.stop()
 
-	// Sleep to let the Runner run
-	time.Sleep(100 * time.Millisecond)
+	// Ensure we have run at least once
+	test.WaitForFileContents(out.Name(), []byte("initial value"), t)
 
 	newValue := []byte("new value")
 	ioutil.WriteFile(template.Name(), newValue, 0644)
 	syscall.Kill(syscall.Getpid(), syscall.SIGHUP)
 
-	// Sleep to give the file time to write
-	time.Sleep(100 * time.Millisecond)
-
-	contents, err := ioutil.ReadFile(out.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !bytes.Equal(contents, newValue) {
-		t.Errorf("expected %q to contain %q", contents, newValue)
-	}
+	test.WaitForFileContents(out.Name(), []byte("new value"), t)
 }
