@@ -1,12 +1,34 @@
 Consul Template Changelog
 =========================
 
-## vx.y.z (Unreleased)
+## v0.6.0 (Unreleased)
+
+FEATURES:
+
+  * Implement n-pass evaluation (GH-64) - templates are now evaluated N+1 times
+    to properly accumulate dependencies and build the graph properly
+
+BREAKING CHANGES:
+
+  * Removed `storeKeyPrefix` template function - it has been replaced with `ls`
+    and/or `tree` and was deprecated in 0.2.0
 
 IMPROVEMENTS:
 
   * Switch to using `hashicorp/consul/api` instead of `armon/consul-api`
-  * Add support for talking to Consul via HTTPS/SSL (GH-143)
+  * Add support for communicating with Consul via HTTPS/SSL (GH-143)
+  * Add support for communicating with Consul via BasicAuth (GH-147)
+  * Quiesce on a per-template basis
+
+BUG FIXES:
+
+  * Reduce memory footprint when running with a large number of templates by
+    using a single context instead of separate template contexts for each
+    template
+  * Improve test coverage
+  * Improve debugging output
+  * Correct tag deep copy that could result in 2N-1 tags (GH-155)
+  * Return an empty slice when parsing an empty JSON file
 
 ## v0.5.1 (December 25, 2014)
 
