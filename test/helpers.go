@@ -132,6 +132,7 @@ func WaitForFileContents(path string, contents []byte, t *testing.T) {
 			data, err := ioutil.ReadFile(path)
 			if err != nil && !os.IsNotExist(err) {
 				t.Fatal(err)
+				return
 			}
 
 			if bytes.Equal(data, contents) {
