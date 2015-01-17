@@ -11,6 +11,6 @@ const Name = "consul-template"
 const Version = "0.5.1"
 
 func main() {
-	cli := &CLI{outStream: os.Stdout, errStream: os.Stderr}
+	cli := NewCLI(os.Stdout, os.Stderr)
 	os.Exit(cli.Run(os.Args))
 }

@@ -144,12 +144,18 @@ func (w *Watcher) SetRetryFunc(f RetryFunc) {
 // Stop halts this watcher and any currently polling views immediately. If a
 // view was in the middle of a poll, no data will be returned.
 func (w *Watcher) Stop() {
+	w.Lock()
+	defer w.Unlock()
+
 	log.Printf("[INFO] (watcher) stopping all views")
 
 	for _, view := range w.depViewMap {
 		log.Printf("[DEBUG] (watcher) stopping %+v", view)
 		view.stop()
 	}
+
+	// Reset the map to have no views
+	w.depViewMap = make(map[string]*View)
 }
 
 // init sets up the initial values for the watcher.

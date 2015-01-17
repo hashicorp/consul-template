@@ -14,7 +14,7 @@ import (
 
 func TestRun_printsErrors(t *testing.T) {
 	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
-	cli := &CLI{outStream: outStream, errStream: errStream}
+	cli := NewCLI(outStream, errStream)
 	args := strings.Split("consul-template -bacon delicious", " ")
 
 	status := cli.Run(args)
@@ -30,7 +30,7 @@ func TestRun_printsErrors(t *testing.T) {
 
 func TestRun_versionFlag(t *testing.T) {
 	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
-	cli := &CLI{outStream: outStream, errStream: errStream}
+	cli := NewCLI(outStream, errStream)
 	args := strings.Split("consul-template -version", " ")
 
 	status := cli.Run(args)
@@ -46,7 +46,7 @@ func TestRun_versionFlag(t *testing.T) {
 
 func TestRun_parseError(t *testing.T) {
 	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
-	cli := &CLI{outStream: outStream, errStream: errStream}
+	cli := NewCLI(outStream, errStream)
 	args := strings.Split("consul-template -bacon delicious", " ")
 
 	status := cli.Run(args)
@@ -62,7 +62,7 @@ func TestRun_parseError(t *testing.T) {
 
 func TestRun_waitFlagError(t *testing.T) {
 	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
-	cli := &CLI{outStream: outStream, errStream: errStream}
+	cli := NewCLI(outStream, errStream)
 	args := strings.Split("consul-template -wait=watermelon:bacon", " ")
 
 	status := cli.Run(args)
@@ -86,7 +86,7 @@ func TestRun_onceFlag(t *testing.T) {
 	defer test.DeleteTempfile(out, t)
 
 	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
-	cli := &CLI{outStream: outStream, errStream: errStream}
+	cli := NewCLI(outStream, errStream)
 
 	command := fmt.Sprintf("consul-template -consul demo.consul.io -template %s:%s -once", template.Name(), out.Name())
 	args := strings.Split(command, " ")
@@ -115,29 +115,24 @@ func TestReload_sighup(t *testing.T) {
 	defer test.DeleteTempfile(out, t)
 
 	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
-	cli := &CLI{outStream: outStream, errStream: errStream}
+	cli := NewCLI(outStream, errStream)
 
 	command := fmt.Sprintf("consul-template -template %s:%s", template.Name(), out.Name())
 	args := strings.Split(command, " ")
 
-	go cli.Run(args)
+	go func(args []string) {
+		if exit := cli.Run(args); exit != 0 {
+			t.Fatal("bad exit code: %d", exit)
+		}
+	}(args)
+	defer cli.stop()
 
-	// Sleep to let the Runner run
-	time.Sleep(100 * time.Millisecond)
+	// Ensure we have run at least once
+	test.WaitForFileContents(out.Name(), []byte("initial value"), t)
 
 	newValue := []byte("new value")
 	ioutil.WriteFile(template.Name(), newValue, 0644)
 	syscall.Kill(syscall.Getpid(), syscall.SIGHUP)
 
-	// Sleep to give the file time to write
-	time.Sleep(100 * time.Millisecond)
-
-	contents, err := ioutil.ReadFile(out.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !bytes.Equal(contents, newValue) {
-		t.Errorf("expected %q to contain %q", contents, newValue)
-	}
+	test.WaitForFileContents(out.Name(), []byte("new value"), t)
 }

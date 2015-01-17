@@ -45,10 +45,10 @@ func NewBrain() *Brain {
 // dep. This function converts the given data to a proper type and stores
 // it interally.
 func (b *Brain) Remember(d dep.Dependency, data interface{}) {
-	log.Printf("[INFO] (brain) remembering %s", d.Display())
-
 	b.Lock()
 	defer b.Unlock()
+
+	log.Printf("[INFO] (brain) remembering %s", d.Display())
 
 	switch t := d.(type) {
 	case *dep.CatalogNodes:
@@ -74,10 +74,10 @@ func (b *Brain) Remember(d dep.Dependency, data interface{}) {
 
 // Remembered returns true if the given dependency has received data at least once.
 func (b *Brain) Remembered(d dep.Dependency) bool {
-	log.Printf("[INFO] (brain) checking if %s has data", d.Display())
-
 	b.Lock()
 	defer b.Unlock()
+
+	log.Printf("[INFO] (brain) checking if %s has data", d.Display())
 
 	if _, ok := b.receivedData[d.HashCode()]; ok {
 		log.Printf("[DEBUG] (brain) %s had data", d.Display())
@@ -91,10 +91,10 @@ func (b *Brain) Remembered(d dep.Dependency) bool {
 // Forget accepts a dependency and removes all associated data with this
 // dependency. It also resets the "receivedData" internal map.
 func (b *Brain) Forget(d dep.Dependency) {
-	log.Printf("[INFO] (brain) forgetting %s", d.Display())
-
 	b.Lock()
 	defer b.Unlock()
+
+	log.Printf("[INFO] (brain) forgetting %s", d.Display())
 
 	switch t := d.(type) {
 	case *dep.CatalogNodes:
