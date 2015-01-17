@@ -50,7 +50,7 @@ func NewView(client *api.Client, dep dependency.Dependency) (*View, error) {
 	return &View{
 		Dependency: dep,
 		client:     client,
-		stopCh:     make(chan struct{}, 1),
+		stopCh:     make(chan struct{}),
 	}, nil
 }
 
