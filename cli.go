@@ -29,7 +29,6 @@ const (
 	ExitCodeParseFlagsError
 	ExitCodeParseWaitError
 	ExitCodeRunnerError
-	ExitCodeWatcherError
 )
 
 /// ------------------------- ///
