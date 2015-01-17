@@ -11,7 +11,6 @@ import (
 type Dependency interface {
 	Fetch(*api.Client, *api.QueryOptions) (interface{}, *api.QueryMeta, error)
 	HashCode() string
-	Key() string
 	Display() string
 }
 

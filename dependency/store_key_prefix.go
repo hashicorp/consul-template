@@ -58,11 +58,7 @@ func (d *StoreKeyPrefix) Fetch(client *api.Client, options *api.QueryOptions) (i
 }
 
 func (d *StoreKeyPrefix) HashCode() string {
-	return fmt.Sprintf("StoreKeyPrefix|%s", d.Key())
-}
-
-func (d *StoreKeyPrefix) Key() string {
-	return d.rawKey
+	return fmt.Sprintf("StoreKeyPrefix|%s", d.rawKey)
 }
 
 func (d *StoreKeyPrefix) Display() string {

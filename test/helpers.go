@@ -24,10 +24,6 @@ func (d *FakeDependencyFetchError) HashCode() string {
 	return fmt.Sprintf("FakeDependencyFetchError|%s", d.Name)
 }
 
-func (d *FakeDependencyFetchError) Key() string {
-	return d.Name
-}
-
 func (d *FakeDependencyFetchError) Display() string {
 	return "fakedep"
 }
@@ -54,10 +50,6 @@ func (d *FakeDependencyFetchRetry) HashCode() string {
 	return fmt.Sprintf("FakeDependencyFetchRetry|%s", d.Name)
 }
 
-func (d *FakeDependencyFetchRetry) Key() string {
-	return d.Name
-}
-
 func (d *FakeDependencyFetchRetry) Display() string {
 	return "fakedep"
 }
@@ -75,10 +67,6 @@ func (d *FakeDependency) Fetch(client *api.Client, options *api.QueryOptions) (i
 
 func (d *FakeDependency) HashCode() string {
 	return fmt.Sprintf("FakeDependency|%s", d.Name)
-}
-
-func (d *FakeDependency) Key() string {
-	return d.Name
 }
 
 func (d *FakeDependency) Display() string {

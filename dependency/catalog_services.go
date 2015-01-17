@@ -58,12 +58,7 @@ func (d *CatalogServices) Fetch(client *api.Client, options *api.QueryOptions) (
 
 // HashCode returns the hash code for this dependency.
 func (d *CatalogServices) HashCode() string {
-	return fmt.Sprintf("CatalogServices|%s", d.Key())
-}
-
-// Key returns the key given by the user in the template.
-func (d *CatalogServices) Key() string {
-	return d.rawKey
+	return fmt.Sprintf("CatalogServices|%s", d.rawKey)
 }
 
 // Display returns a string that should be displayed to the user in output (for

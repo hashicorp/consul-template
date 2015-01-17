@@ -49,11 +49,7 @@ func (d *CatalogNodes) Fetch(client *api.Client, options *api.QueryOptions) (int
 }
 
 func (d *CatalogNodes) HashCode() string {
-	return fmt.Sprintf("CatalogNodes|%s", d.Key())
-}
-
-func (d *CatalogNodes) Key() string {
-	return d.rawKey
+	return fmt.Sprintf("CatalogNodes|%s", d.rawKey)
 }
 
 func (d *CatalogNodes) Display() string {

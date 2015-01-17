@@ -85,11 +85,7 @@ func (d *HealthServices) Fetch(client *api.Client, options *api.QueryOptions) (i
 }
 
 func (d *HealthServices) HashCode() string {
-	return fmt.Sprintf("HealthServices|%s", d.Key())
-}
-
-func (d *HealthServices) Key() string {
-	return d.rawKey
+	return fmt.Sprintf("HealthServices|%s", d.rawKey)
 }
 
 func (d *HealthServices) Display() string {
