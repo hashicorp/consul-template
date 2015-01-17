@@ -19,7 +19,7 @@ import (
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul-template/watch"
 	"github.com/hashicorp/consul/api"
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 )
 
 // Runner responsible rendering Templates and invoking Commands.
@@ -79,6 +79,8 @@ type Runner struct {
 // NewRunner accepts a slice of ConfigTemplates and returns a pointer to the new
 // Runner and any error that occurred during creation.
 func NewRunner(config *Config, dry, once bool) (*Runner, error) {
+	log.Printf("[INFO] (runner) creating new runner (dry: %b, once: %b)", dry, once)
+
 	runner := &Runner{
 		config: config,
 		dry:    dry,
@@ -96,9 +98,12 @@ func NewRunner(config *Config, dry, once bool) (*Runner, error) {
 // this function to push an item onto the runner's error channel and the halt
 // execution. This function is blocking and should be called as a goroutine.
 func (r *Runner) Start() {
+	log.Printf("[INFO] (runner) starting")
+
 	// Fire an initial run to parse all the templates and setup the first-pass
 	// dependencies. This also forces any templates that have no dependencies to
 	// be rendered immediately (since they are already renderable).
+	log.Printf("[DEBUG] (runner) running initial templates")
 	if err := r.Run(); err != nil {
 		r.ErrCh <- err
 		return
@@ -109,6 +114,7 @@ func (r *Runner) Start() {
 		if r.config.Wait != nil {
 			for _, t := range r.templates {
 				if _, ok := r.quiescenceMap[t.Path]; !ok {
+					log.Printf("[DEBUG] (runner) enabling quiescence for %q", t.Path)
 					r.quiescenceMap[t.Path] = newQuiescence(
 						r.quiescenceCh, r.config.Wait.Min, r.config.Wait.Max, t)
 				}
@@ -118,7 +124,7 @@ func (r *Runner) Start() {
 		// If we are running in once mode and all our templates have been rendered,
 		// then we should exit here.
 		if r.once && r.allTemplatesRendered() {
-			log.Printf("[INFO] once mode and all templates rendered")
+			log.Printf("[INFO] (runner) once mode and all templates rendered")
 			r.Stop()
 			return
 		}
@@ -161,6 +167,7 @@ func (r *Runner) Start() {
 
 // Stop halts the execution of this runner and its subprocesses.
 func (r *Runner) Stop() {
+	log.Printf("[INFO] (runner) stopping")
 	r.watcher.Stop()
 	close(r.DoneCh)
 }
