@@ -29,6 +29,7 @@ const (
 	ExitCodeParseFlagsError
 	ExitCodeParseWaitError
 	ExitCodeRunnerError
+	ExitCodeWatcherError
 )
 
 /// ------------------------- ///
@@ -38,6 +39,17 @@ type CLI struct {
 	// outSteam and errStream are the standard out and standard error streams to
 	// write messages from the CLI.
 	outStream, errStream io.Writer
+
+	// stopCh is an internal channel used to trigger a shutdown of the CLI.
+	stopCh chan struct{}
+}
+
+func NewCLI(out, err io.Writer) *CLI {
+	return &CLI{
+		outStream: out,
+		errStream: err,
+		stopCh:    make(chan struct{}),
+	}
 }
 
 // Run accepts a slice of arguments and returns an int representing the exit
@@ -152,6 +164,8 @@ func (cli *CLI) Run(args []string) int {
 					return cli.handleError(err, ExitCodeRunnerError)
 				}
 				go runner.Start()
+			case cli.stopCh:
+				return ExitCodeOK
 			}
 		}
 	}
