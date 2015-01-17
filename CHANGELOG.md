@@ -10,8 +10,9 @@ FEATURES:
 
 BREAKING CHANGES:
 
-  * Removed `storeKeyPrefix` template function - it has been replaced with `ls`
+  * Remove `storeKeyPrefix` template function - it has been replaced with `ls`
     and/or `tree` and was deprecated in 0.2.0
+  * Remove `Key()` from dependency interface
 
 IMPROVEMENTS:
 
