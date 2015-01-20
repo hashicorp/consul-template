@@ -1,7 +1,7 @@
 Consul Template Changelog
 =========================
 
-## v0.6.0 (Unreleased)
+## v0.6.0 (January 20, 2015)
 
 FEATURES:
 
@@ -30,6 +30,7 @@ BUG FIXES:
   * Improve debugging output
   * Correct tag deep copy that could result in 2N-1 tags (GH-155)
   * Return an empty slice when parsing an empty JSON file
+  * Update README documentation
 
 ## v0.5.1 (December 25, 2014)
 
