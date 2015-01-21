@@ -535,6 +535,41 @@ ProxyPass /api/api/ balancer://api/
 ProxyPassReverse /api/api/ balancer://api/
 ```
 
+### Querying all services
+As of Consul Template 0.6.0, it is possible to have a complex dependency graph with dependent services. As such, it is possible to query and watch all services in Consul:
+
+```liquid
+{{range services}}# {{.Name}}{{range service .Name}}
+{{.Address}}{{end}}
+
+{{end}}
+```
+
+Just like the previous examples, save this file to disk and run the `consul-template` daemon:
+
+```shell
+$ consul-template \
+  -consul demo.consul.io \
+  -template everything.ctmpl:/tmp/inventory
+```
+
+You should see output similar to the following:
+
+```text
+# consul
+104.131.121.232
+
+# redis
+104.131.86.92
+104.131.109.224
+104.131.59.59
+
+# web
+104.131.86.92
+104.131.109.224
+104.131.59.59
+```
+
 Debugging
 ---------
 Consul Template can print verbose debugging output. To set the log level for Consul Template, use the `CONSUL_TEMPLATE_LOG` environment variable:
