@@ -1,6 +1,12 @@
 Consul Template Changelog
 =========================
 
+## v0.6.1 (Unreleased)
+
+BUG FIXES:
+
+  * Return errors to the template when parsing a key fails (GH-170)
+
 ## v0.6.0 (January 20, 2015)
 
 FEATURES:
