@@ -8,6 +8,9 @@ BUG FIXES:
   * Return errors to the template when parsing a key fails (GH-170)
   * Expand the list of possible values for keys to non-ASCII fields (the `@` is
     still a restricted character because it denotes the datacenter) (GH-170)
+  * Diff missing dependencies during the template render to avoid creating
+    extra watchers (GH-169)
+  * Improve debugging output (GH-169)
 
 ## v0.6.0 (January 20, 2015)
 
