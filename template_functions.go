@@ -67,7 +67,7 @@ func keyFunc(brain *Brain,
 
 		d, err := dep.ParseStoreKey(s)
 		if err != nil {
-			return "", nil
+			return "", err
 		}
 
 		addDependency(used, d)
