@@ -79,7 +79,7 @@ type Runner struct {
 // NewRunner accepts a slice of ConfigTemplates and returns a pointer to the new
 // Runner and any error that occurred during creation.
 func NewRunner(config *Config, dry, once bool) (*Runner, error) {
-	log.Printf("[INFO] (runner) creating new runner (dry: %b, once: %b)", dry, once)
+	log.Printf("[INFO] (runner) creating new runner (dry: %s, once: %s)", dry, once)
 
 	runner := &Runner{
 		config: config,
@@ -234,11 +234,20 @@ func (r *Runner) Run() error {
 			}
 		}
 
-		// If there are missing dependencies, start the watcher and move onto the
+		// Diff any missing dependencies the template reported with dependencies
+		// the watcher is watching.
+		var unwatched []dep.Dependency
+		for _, d := range missing {
+			if !r.watcher.Watching(d) {
+				unwatched = append(unwatched, d)
+			}
+		}
+
+		// If there are unwatched dependencies, start the watcher and move onto the
 		// next one.
-		if len(missing) > 0 {
-			log.Printf("[INFO] (runner) was missing %d dependencies", len(missing))
-			for _, dep := range missing {
+		if len(unwatched) > 0 {
+			log.Printf("[INFO] (runner) was not watching %d dependencies", len(unwatched))
+			for _, dep := range unwatched {
 				r.watcher.Add(dep)
 			}
 			continue
