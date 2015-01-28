@@ -57,8 +57,8 @@ func ParseStoreKey(s string) (*StoreKey, error) {
 	}
 
 	re := regexp.MustCompile(`\A` +
-		`(?P<key>[[:word:]\.\:\-\/]+)` +
-		`(@(?P<datacenter>[[:word:]\.\-]+))?` +
+		`(?P<key>[^@]+)` +
+		`(@(?P<datacenter>.+))?` +
 		`\z`)
 	names := re.SubexpNames()
 	match := re.FindAllStringSubmatch(s, -1)

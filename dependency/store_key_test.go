@@ -61,15 +61,16 @@ func TestParseStoreKey_name(t *testing.T) {
 	}
 }
 
-func TestParseStoreKey_nameColon(t *testing.T) {
-	sd, err := ParseStoreKey("config/redis:magic:80/maxconns")
+func TestParseStoreKey_nameSpecialCharacters(t *testing.T) {
+	sd, err := ParseStoreKey("config/facet:größe-lf-si@nyc1")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	expected := &StoreKey{
-		rawKey: "config/redis:magic:80/maxconns",
-		Path:   "config/redis:magic:80/maxconns",
+		rawKey:     "config/facet:größe-lf-si@nyc1",
+		Path:       "config/facet:größe-lf-si",
+		DataCenter: "nyc1",
 	}
 	if !reflect.DeepEqual(sd, expected) {
 		t.Errorf("expected %+v to equal %+v", sd, expected)
