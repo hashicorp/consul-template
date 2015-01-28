@@ -150,7 +150,7 @@ func (w *Watcher) Stop() {
 	log.Printf("[INFO] (watcher) stopping all views")
 
 	for _, view := range w.depViewMap {
-		log.Printf("[DEBUG] (watcher) stopping %+v", view)
+		log.Printf("[DEBUG] (watcher) stopping %s", view.Dependency.Display())
 		view.stop()
 	}
 
