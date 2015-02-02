@@ -148,6 +148,7 @@ func (r *Runner) Start() {
 					receivedData = time.After(200 * time.Millisecond)
 					r.Receive(data.Dependency, data.Data)
 				case <-receivedData:
+					close(internalDataCh)
 					return
 				case <-internalStopCh:
 					return
