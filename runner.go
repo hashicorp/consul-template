@@ -141,19 +141,16 @@ func (r *Runner) Start() {
 		internalDataCh := make(chan struct{})
 		internalStopCh := make(chan struct{})
 		go func() {
-			receivedData := false
+			var receivedData <-chan time.Time
 			for {
 				select {
 				case data := <-r.watcher.DataCh:
-					receivedData = true
+					receivedData = time.After(200 * time.Millisecond)
 					r.Receive(data.Dependency, data.Data)
+				case <-receivedData:
+					return
 				case <-internalStopCh:
 					return
-				default:
-					if receivedData {
-						close(internalDataCh)
-						return
-					}
 				}
 			}
 		}()
@@ -163,6 +160,7 @@ func (r *Runner) Start() {
 			// Let the loop go and try to render the template
 		case err := <-r.watcher.ErrCh:
 			r.ErrCh <- err
+			close(internalStopCh)
 			return
 		case tmpl := <-r.quiescenceCh:
 			// Remove the quiescence for this template from the map. This will force
@@ -176,9 +174,11 @@ func (r *Runner) Start() {
 			r.minTimer, r.maxTimer = nil, nil
 		case <-r.watcher.FinishCh:
 			log.Printf("[INFO] (runner) watcher reported finish")
+			close(internalStopCh)
 			return
 		case <-r.DoneCh:
 			log.Printf("[INFO] (runner) received finish")
+			close(internalStopCh)
 			return
 		}
 
