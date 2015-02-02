@@ -515,8 +515,8 @@ func TestRunner_quiescence(t *testing.T) {
 	go runner.Start()
 	defer runner.Stop()
 
-	min := time.After(400 * time.Millisecond)
-	max := time.After(1 * time.Second)
+	min := time.After(500 * time.Millisecond)
+	max := time.After(2 * time.Second)
 	for {
 		select {
 		case <-min:
