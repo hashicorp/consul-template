@@ -3,8 +3,17 @@ Consul Template Changelog
 
 ## v0.6.1 (Unreleased)
 
+IMPROVEMENTS:
+
+  * Allow watcher to use buffered channels so we do not block when multiple
+    dependencies return data (GH-176)
+  * Buffer results from the watcher to reduce the number of CPU cycles (GH-168
+    and GH-178)
+
 BUG FIXES:
 
+  * Handle the case where reloading via SIGHUP would cause an error (GH-175 and
+    GH-177)
   * Return errors to the template when parsing a key fails (GH-170)
   * Expand the list of possible values for keys to non-ASCII fields (the `@` is
     still a restricted character because it denotes the datacenter) (GH-170)
