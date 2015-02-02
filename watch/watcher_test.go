@@ -55,6 +55,11 @@ func TestNewWatcher_makesDataCh(t *testing.T) {
 	if w.DataCh == nil {
 		t.Errorf("expected DataCh to exist")
 	}
+
+	expectedSize := 24
+	if size := cap(w.DataCh); size != expectedSize {
+		t.Errorf("expected DataCh to have %d buffer, but was %d", expectedSize, size)
+	}
 }
 
 func TestNewWatcher_makesErrCh(t *testing.T) {
@@ -98,6 +103,44 @@ func TestNewWatcher_makesdepViewMap(t *testing.T) {
 
 	if w.depViewMap == nil {
 		t.Errorf("expected depViewMap to exist")
+	}
+}
+
+func TestSetBatchSize_setsBuffer(t *testing.T) {
+	w, err := NewWatcher(&api.Client{}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := w.SetBatchSize(50); err != nil {
+		t.Fatal(err)
+	}
+
+	expectedSize := 50
+	if size := w.batchSize; size != expectedSize {
+		t.Errorf("expected batchSize %d to be %d", size, expectedSize)
+	}
+	if size := cap(w.DataCh); size != expectedSize {
+		t.Errorf("expected DataCh size %d to be %d", size, expectedSize)
+	}
+}
+
+func TestSetBatchSize_errorIfRunning(t *testing.T) {
+	w, err := NewWatcher(&api.Client{}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	w.Add(&test.FakeDependency{})
+
+	err = w.SetBatchSize(50)
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "watcher: 1 views are running, must be empty"
+	if err.Error() != expected {
+		t.Errorf("expected %q to be %q", err.Error(), expected)
 	}
 }
 

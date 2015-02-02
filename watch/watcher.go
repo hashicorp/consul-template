@@ -47,6 +47,10 @@ type Watcher struct {
 	// depViewMap is a map of Templates to Views. Templates are keyed by
 	// HashCode().
 	depViewMap map[string]*View
+
+	// batchSize is the size of the internal DataCh to batch requests before
+	// blocking. The default value is 24.
+	batchSize int
 }
 
 // NewWatcher creates a new watcher using the given API client.
@@ -60,6 +64,36 @@ func NewWatcher(c *api.Client, once bool) (*Watcher, error) {
 	}
 
 	return watcher, nil
+}
+
+// SetBatchSize sets the buffer for the DataCh for this watcher. By default, the
+// batch size is 24, but larger systems may wish to increase this value.
+//
+// This function will return an error if the watcher is currently running. The
+// batch size can only be changed when there are exactly 0 views for this
+// watcher.
+func (w *Watcher) SetBatchSize(size int) error {
+	w.Lock()
+	defer w.Unlock()
+
+	log.Printf("[INFO] (watcher) setting batch size to %d", size)
+
+	if views := len(w.depViewMap); views != 0 {
+		return fmt.Errorf("watcher: %d views are running, must be empty", views)
+	}
+
+	w.batchSize = size
+	w.DataCh = make(chan *View, w.batchSize)
+
+	return nil
+}
+
+// BatchSize returns the current batch size for this watcher.
+func (w *Watcher) BatchSize() int {
+	w.Lock()
+	defer w.Unlock()
+
+	return w.batchSize
 }
 
 // Add adds the given dependency to the list of monitored depedencies
@@ -164,8 +198,10 @@ func (w *Watcher) init() error {
 		return fmt.Errorf("watcher: missing Consul API client")
 	}
 
+	// Setup the data batching
+	w.SetBatchSize(24)
+
 	// Setup the channels
-	w.DataCh = make(chan *View)
 	w.ErrCh = make(chan error)
 	w.FinishCh = make(chan struct{})
 
