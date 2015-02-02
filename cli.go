@@ -158,7 +158,7 @@ func (cli *CLI) Run(args []string) int {
 			case syscall.SIGHUP:
 				fmt.Fprintf(cli.errStream, "Received HUP, reloading configuration...\n")
 				runner.Stop()
-				runner, err := NewRunner(config, dry, once)
+				runner, err = NewRunner(config, dry, once)
 				if err != nil {
 					return cli.handleError(err, ExitCodeRunnerError)
 				}
