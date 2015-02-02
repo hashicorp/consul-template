@@ -79,7 +79,7 @@ type Runner struct {
 // NewRunner accepts a slice of ConfigTemplates and returns a pointer to the new
 // Runner and any error that occurred during creation.
 func NewRunner(config *Config, dry, once bool) (*Runner, error) {
-	log.Printf("[INFO] (runner) creating new runner (dry: %s, once: %s)", dry, once)
+	log.Printf("[INFO] (runner) creating new runner (dry: %v, once: %v)", dry, once)
 
 	runner := &Runner{
 		config: config,
