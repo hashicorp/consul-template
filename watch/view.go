@@ -71,7 +71,7 @@ func (v *View) poll(once bool, viewCh chan<- *View, errCh chan<- error, retryFun
 			// have some successful requests
 			currentRetry = defaultRetry
 
-			log.Printf("[INFO] (%s) received data from consul", v.display())
+			log.Printf("[INFO] (view) %s received data from consul", v.display())
 			viewCh <- v
 
 			// If we are operating in once mode, do not loop - we received data at
@@ -80,7 +80,7 @@ func (v *View) poll(once bool, viewCh chan<- *View, errCh chan<- error, retryFun
 				return
 			}
 		case err := <-fetchErrCh:
-			log.Printf("[ERR] (%s) %s", v.display(), err)
+			log.Printf("[ERR] (view) %s %s", v.display(), err)
 
 			// Intentionally do not send the error back up to the watcher and just
 			// retry. Eventually, once Consul API implements errwrap and multierror,
@@ -95,7 +95,7 @@ func (v *View) poll(once bool, viewCh chan<- *View, errCh chan<- error, retryFun
 			time.Sleep(currentRetry)
 			continue
 		case <-v.stopCh:
-			log.Printf("[DEBUG] (%s) stopping poll (received on view stopCh)", v.display())
+			log.Printf("[DEBUG] (view) %s stopping poll (received on view stopCh)", v.display())
 			return
 		}
 	}
@@ -107,7 +107,7 @@ func (v *View) poll(once bool, viewCh chan<- *View, errCh chan<- error, retryFun
 // result of doneCh and errCh. It is assumed that only one instance of fetch
 // is running per View and therefore no locking or mutexes are used.
 func (v *View) fetch(doneCh chan<- struct{}, errCh chan<- error) {
-	log.Printf("[DEBUG] (%s) starting fetch", v.display())
+	log.Printf("[DEBUG] (view) %s starting fetch", v.display())
 
 	for {
 		options := &api.QueryOptions{
@@ -127,14 +127,14 @@ func (v *View) fetch(doneCh chan<- struct{}, errCh chan<- error) {
 		}
 
 		if qm.LastIndex == v.lastIndex {
-			log.Printf("[DEBUG] (%s) no new data (index was the same)", v.display())
+			log.Printf("[DEBUG] (view) %s no new data (index was the same)", v.display())
 			continue
 		}
 
 		v.lastIndex = qm.LastIndex
 
 		if v.receivedData && reflect.DeepEqual(data, v.Data) {
-			log.Printf("[DEBUG] (%s) no new data (contents were the same)", v.display())
+			log.Printf("[DEBUG] (view) %s no new data (contents were the same)", v.display())
 			continue
 		}
 
