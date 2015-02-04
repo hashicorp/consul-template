@@ -150,7 +150,10 @@ func TestReceive_addsToBrain(t *testing.T) {
 	data := "some value"
 	runner.Receive(d, data)
 
-	value := runner.brain.storeKeys[d.HashCode()]
+	value, ok := runner.brain.Recall(d)
+	if !ok {
+		t.Fatalf("expected brain to have data")
+	}
 	if data != value {
 		t.Errorf("expected %q to be %q", data, value)
 	}

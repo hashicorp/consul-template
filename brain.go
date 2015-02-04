@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"sync"
 
@@ -13,16 +12,12 @@ import (
 type Brain struct {
 	sync.Mutex
 
-	catalogNodes     map[string][]*dep.Node
-	catalogServices  map[string][]*dep.CatalogService
-	datacenters      map[string][]string
-	files            map[string]string
-	healthServices   map[string][]*dep.HealthService
-	storeKeys        map[string]string
-	storeKeyPrefixes map[string][]*dep.KeyPair
+	// data is the map of individual dependencies (by HashCode()) and the most
+	// recent data for that dependency.
+	data map[string]interface{}
 
 	// receivedData is an internal tracker of which dependencies have stored data
-	// in the brain
+	// in the brain.
 	receivedData map[string]struct{}
 }
 
@@ -30,14 +25,8 @@ type Brain struct {
 // of the key structs.
 func NewBrain() *Brain {
 	return &Brain{
-		catalogNodes:     make(map[string][]*dep.Node),
-		catalogServices:  make(map[string][]*dep.CatalogService),
-		datacenters:      make(map[string][]string),
-		files:            make(map[string]string),
-		healthServices:   make(map[string][]*dep.HealthService),
-		storeKeys:        make(map[string]string),
-		storeKeyPrefixes: make(map[string][]*dep.KeyPair),
-		receivedData:     make(map[string]struct{}),
+		data:         make(map[string]interface{}),
+		receivedData: make(map[string]struct{}),
 	}
 }
 
@@ -50,26 +39,23 @@ func (b *Brain) Remember(d dep.Dependency, data interface{}) {
 
 	log.Printf("[INFO] (brain) remembering %s", d.Display())
 
-	switch t := d.(type) {
-	case *dep.CatalogNodes:
-		b.catalogNodes[d.HashCode()] = data.([]*dep.Node)
-	case *dep.CatalogServices:
-		b.catalogServices[d.HashCode()] = data.([]*dep.CatalogService)
-	case *dep.Datacenters:
-		b.datacenters[d.HashCode()] = data.([]string)
-	case *dep.File:
-		b.files[d.HashCode()] = data.(string)
-	case *dep.HealthServices:
-		b.healthServices[d.HashCode()] = data.([]*dep.HealthService)
-	case *dep.StoreKey:
-		b.storeKeys[d.HashCode()] = data.(string)
-	case *dep.StoreKeyPrefix:
-		b.storeKeyPrefixes[d.HashCode()] = data.([]*dep.KeyPair)
-	default:
-		panic(fmt.Sprintf("brain: unknown dependency type %T", t))
+	b.data[d.HashCode()] = data
+	b.receivedData[d.HashCode()] = struct{}{}
+}
+
+// Recall gets the current value for the given dependency in the Brain.
+func (b *Brain) Recall(d dep.Dependency) (interface{}, bool) {
+	b.Lock()
+	defer b.Unlock()
+
+	log.Printf("[INFO] (brain) getting data for %s", d.Display())
+
+	// If we have not received data for this dependency, return now.
+	if _, ok := b.receivedData[d.HashCode()]; !ok {
+		return nil, false
 	}
 
-	b.receivedData[d.HashCode()] = struct{}{}
+	return b.data[d.HashCode()], true
 }
 
 // Remembered returns true if the given dependency has received data at least once.
@@ -96,24 +82,6 @@ func (b *Brain) Forget(d dep.Dependency) {
 
 	log.Printf("[INFO] (brain) forgetting %s", d.Display())
 
-	switch t := d.(type) {
-	case *dep.CatalogNodes:
-		delete(b.catalogNodes, d.HashCode())
-	case *dep.CatalogServices:
-		delete(b.catalogServices, d.HashCode())
-	case *dep.Datacenters:
-		delete(b.datacenters, d.HashCode())
-	case *dep.File:
-		delete(b.files, d.HashCode())
-	case *dep.HealthServices:
-		delete(b.healthServices, d.HashCode())
-	case *dep.StoreKey:
-		delete(b.storeKeys, d.HashCode())
-	case *dep.StoreKeyPrefix:
-		delete(b.storeKeyPrefixes, d.HashCode())
-	default:
-		panic(fmt.Sprintf("brain: unknown dependency type %T", t))
-	}
-
+	delete(b.data, d.HashCode())
 	delete(b.receivedData, d.HashCode())
 }

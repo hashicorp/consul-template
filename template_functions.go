@@ -22,8 +22,8 @@ func datacentersFunc(brain *Brain,
 
 		addDependency(used, d)
 
-		if result, ok := brain.datacenters[d.HashCode()]; ok {
-			return result, nil
+		if value, ok := brain.Recall(d); ok {
+			return value.([]string), nil
 		}
 
 		addDependency(missing, d)
@@ -47,8 +47,12 @@ func fileFunc(brain *Brain,
 
 		addDependency(used, d)
 
-		if contents, ok := brain.files[d.HashCode()]; ok {
-			return contents, nil
+		if value, ok := brain.Recall(d); ok {
+			if value == nil {
+				return "", nil
+			} else {
+				return value.(string), nil
+			}
 		}
 
 		addDependency(missing, d)
@@ -72,8 +76,12 @@ func keyFunc(brain *Brain,
 
 		addDependency(used, d)
 
-		if value, ok := brain.storeKeys[d.HashCode()]; ok {
-			return value, nil
+		if value, ok := brain.Recall(d); ok {
+			if value == nil {
+				return "", nil
+			} else {
+				return value.(string), nil
+			}
 		}
 
 		addDependency(missing, d)
@@ -100,13 +108,12 @@ func lsFunc(brain *Brain,
 		addDependency(used, d)
 
 		// Only return non-empty top-level keys
-		if pairs, ok := brain.storeKeyPrefixes[d.HashCode()]; ok {
-			for _, pair := range pairs {
+		if value, ok := brain.Recall(d); ok {
+			for _, pair := range value.([]*dep.KeyPair) {
 				if pair.Key != "" && !strings.Contains(pair.Key, "/") {
 					result = append(result, pair)
 				}
 			}
-
 			return result, nil
 		}
 
@@ -129,8 +136,8 @@ func nodesFunc(brain *Brain,
 
 		addDependency(used, d)
 
-		if nodes, ok := brain.catalogNodes[d.HashCode()]; ok {
-			return nodes, nil
+		if value, ok := brain.Recall(d); ok {
+			return value.([]*dep.Node), nil
 		}
 
 		addDependency(missing, d)
@@ -156,8 +163,8 @@ func serviceFunc(brain *Brain,
 
 		addDependency(used, d)
 
-		if services, ok := brain.healthServices[d.HashCode()]; ok {
-			return services, nil
+		if value, ok := brain.Recall(d); ok {
+			return value.([]*dep.HealthService), nil
 		}
 
 		addDependency(missing, d)
@@ -179,8 +186,8 @@ func servicesFunc(brain *Brain,
 
 		addDependency(used, d)
 
-		if services, ok := brain.catalogServices[d.HashCode()]; ok {
-			return services, nil
+		if value, ok := brain.Recall(d); ok {
+			return value.([]*dep.CatalogService), nil
 		}
 
 		addDependency(missing, d)
@@ -207,14 +214,13 @@ func treeFunc(brain *Brain,
 		addDependency(used, d)
 
 		// Only return non-empty top-level keys
-		if pairs, ok := brain.storeKeyPrefixes[d.HashCode()]; ok {
-			for _, pair := range pairs {
+		if value, ok := brain.Recall(d); ok {
+			for _, pair := range value.([]*dep.KeyPair) {
 				parts := strings.Split(pair.Key, "/")
 				if parts[len(parts)-1] != "" {
 					result = append(result, pair)
 				}
 			}
-
 			return result, nil
 		}
 
