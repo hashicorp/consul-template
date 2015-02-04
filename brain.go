@@ -72,6 +72,33 @@ func (b *Brain) Remember(d dep.Dependency, data interface{}) {
 	b.receivedData[d.HashCode()] = struct{}{}
 }
 
+// Recall gets the current value for the given dependency in the Brain.
+func (b *Brain) Recall(d dep.Dependency) interface{} {
+	b.Lock()
+	defer b.Unlock()
+
+	log.Printf("[INFO] (brain) getting data for %s", d.Display())
+
+	switch t := d.(type) {
+	case *dep.CatalogNodes:
+		return b.catalogNodes[d.HashCode()]
+	case *dep.CatalogServices:
+		return b.catalogServices[d.HashCode()]
+	case *dep.Datacenters:
+		return b.datacenters[d.HashCode()]
+	case *dep.File:
+		return b.files[d.HashCode()]
+	case *dep.HealthServices:
+		return b.healthServices[d.HashCode()]
+	case *dep.StoreKey:
+		return b.storeKeys[d.HashCode()]
+	case *dep.StoreKeyPrefix:
+		return b.storeKeyPrefixes[d.HashCode()]
+	default:
+		panic(fmt.Sprintf("brain: unknown dependency type %T", t))
+	}
+}
+
 // Remembered returns true if the given dependency has received data at least once.
 func (b *Brain) Remembered(d dep.Dependency) bool {
 	b.Lock()

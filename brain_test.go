@@ -1,6 +1,7 @@
 package main
 
 import (
+	"reflect"
 	"testing"
 
 	dep "github.com/hashicorp/consul-template/dependency"
@@ -55,6 +56,19 @@ func TestRemember(t *testing.T) {
 		if !b.Remembered(d) {
 			t.Errorf("expected %#v to be remembered", d)
 		}
+	}
+}
+
+func TestRecall(t *testing.T) {
+	b := NewBrain()
+
+	d := &dep.CatalogNodes{}
+	nodes := []*dep.Node{&dep.Node{Node: "node", Address: "address"}}
+
+	b.Remember(d, nodes)
+	result := b.Recall(d).([]*dep.Node)
+	if !reflect.DeepEqual(result, nodes) {
+		t.Errorf("expected %#v to be %#v", result, nodes)
 	}
 }
 
