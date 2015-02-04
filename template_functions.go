@@ -22,8 +22,8 @@ func datacentersFunc(brain *Brain,
 
 		addDependency(used, d)
 
-		if brain.Remembered(d) {
-			return brain.Recall(d).([]string), nil
+		if value, ok := brain.Recall(d); ok {
+			return value.([]string), nil
 		}
 
 		addDependency(missing, d)
@@ -47,8 +47,12 @@ func fileFunc(brain *Brain,
 
 		addDependency(used, d)
 
-		if brain.Remembered(d) {
-			return brain.Recall(d).(string), nil
+		if value, ok := brain.Recall(d); ok {
+			if value == nil {
+				return "", nil
+			} else {
+				return value.(string), nil
+			}
 		}
 
 		addDependency(missing, d)
@@ -72,8 +76,12 @@ func keyFunc(brain *Brain,
 
 		addDependency(used, d)
 
-		if brain.Remembered(d) {
-			return brain.Recall(d).(string), nil
+		if value, ok := brain.Recall(d); ok {
+			if value == nil {
+				return "", nil
+			} else {
+				return value.(string), nil
+			}
 		}
 
 		addDependency(missing, d)
@@ -100,8 +108,8 @@ func lsFunc(brain *Brain,
 		addDependency(used, d)
 
 		// Only return non-empty top-level keys
-		if brain.Remembered(d) {
-			for _, pair := range brain.Recall(d).([]*dep.KeyPair) {
+		if value, ok := brain.Recall(d); ok {
+			for _, pair := range value.([]*dep.KeyPair) {
 				if pair.Key != "" && !strings.Contains(pair.Key, "/") {
 					result = append(result, pair)
 				}
@@ -128,8 +136,8 @@ func nodesFunc(brain *Brain,
 
 		addDependency(used, d)
 
-		if brain.Remembered(d) {
-			return brain.Recall(d).([]*dep.Node), nil
+		if value, ok := brain.Recall(d); ok {
+			return value.([]*dep.Node), nil
 		}
 
 		addDependency(missing, d)
@@ -155,8 +163,8 @@ func serviceFunc(brain *Brain,
 
 		addDependency(used, d)
 
-		if brain.Remembered(d) {
-			return brain.Recall(d).([]*dep.HealthService), nil
+		if value, ok := brain.Recall(d); ok {
+			return value.([]*dep.HealthService), nil
 		}
 
 		addDependency(missing, d)
@@ -178,8 +186,8 @@ func servicesFunc(brain *Brain,
 
 		addDependency(used, d)
 
-		if brain.Remembered(d) {
-			return brain.Recall(d).([]*dep.CatalogService), nil
+		if value, ok := brain.Recall(d); ok {
+			return value.([]*dep.CatalogService), nil
 		}
 
 		addDependency(missing, d)
@@ -206,8 +214,8 @@ func treeFunc(brain *Brain,
 		addDependency(used, d)
 
 		// Only return non-empty top-level keys
-		if brain.Remembered(d) {
-			for _, pair := range brain.Recall(d).([]*dep.KeyPair) {
+		if value, ok := brain.Recall(d); ok {
+			for _, pair := range value.([]*dep.KeyPair) {
 				parts := strings.Split(pair.Key, "/")
 				if parts[len(parts)-1] != "" {
 					result = append(result, pair)

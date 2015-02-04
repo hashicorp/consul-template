@@ -73,27 +73,32 @@ func (b *Brain) Remember(d dep.Dependency, data interface{}) {
 }
 
 // Recall gets the current value for the given dependency in the Brain.
-func (b *Brain) Recall(d dep.Dependency) interface{} {
+func (b *Brain) Recall(d dep.Dependency) (interface{}, bool) {
 	b.Lock()
 	defer b.Unlock()
 
 	log.Printf("[INFO] (brain) getting data for %s", d.Display())
 
+	// If we have not received data for this dependency, return now.
+	if _, ok := b.receivedData[d.HashCode()]; !ok {
+		return nil, false
+	}
+
 	switch t := d.(type) {
 	case *dep.CatalogNodes:
-		return b.catalogNodes[d.HashCode()]
+		return b.catalogNodes[d.HashCode()], true
 	case *dep.CatalogServices:
-		return b.catalogServices[d.HashCode()]
+		return b.catalogServices[d.HashCode()], true
 	case *dep.Datacenters:
-		return b.datacenters[d.HashCode()]
+		return b.datacenters[d.HashCode()], true
 	case *dep.File:
-		return b.files[d.HashCode()]
+		return b.files[d.HashCode()], true
 	case *dep.HealthServices:
-		return b.healthServices[d.HashCode()]
+		return b.healthServices[d.HashCode()], true
 	case *dep.StoreKey:
-		return b.storeKeys[d.HashCode()]
+		return b.storeKeys[d.HashCode()], true
 	case *dep.StoreKeyPrefix:
-		return b.storeKeyPrefixes[d.HashCode()]
+		return b.storeKeyPrefixes[d.HashCode()], true
 	default:
 		panic(fmt.Sprintf("brain: unknown dependency type %T", t))
 	}

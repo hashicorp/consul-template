@@ -66,7 +66,13 @@ func TestRecall(t *testing.T) {
 	nodes := []*dep.Node{&dep.Node{Node: "node", Address: "address"}}
 
 	b.Remember(d, nodes)
-	result := b.Recall(d).([]*dep.Node)
+	data, ok := b.Recall(d)
+
+	if !ok {
+		t.Fatal("expected data from brain")
+	}
+
+	result := data.([]*dep.Node)
 	if !reflect.DeepEqual(result, nodes) {
 		t.Errorf("expected %#v to be %#v", result, nodes)
 	}
