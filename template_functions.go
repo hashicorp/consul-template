@@ -22,6 +22,9 @@ func datacentersFunc(brain *Brain,
 
 		addDependency(used, d)
 
+		brain.Lock()
+		defer brain.Unlock()
+
 		if result, ok := brain.datacenters[d.HashCode()]; ok {
 			return result, nil
 		}
@@ -47,6 +50,9 @@ func fileFunc(brain *Brain,
 
 		addDependency(used, d)
 
+		brain.Lock()
+		defer brain.Unlock()
+
 		if contents, ok := brain.files[d.HashCode()]; ok {
 			return contents, nil
 		}
@@ -71,6 +77,9 @@ func keyFunc(brain *Brain,
 		}
 
 		addDependency(used, d)
+
+		brain.Lock()
+		defer brain.Unlock()
 
 		if value, ok := brain.storeKeys[d.HashCode()]; ok {
 			return value, nil
@@ -98,6 +107,9 @@ func lsFunc(brain *Brain,
 		}
 
 		addDependency(used, d)
+
+		brain.Lock()
+		defer brain.Unlock()
 
 		// Only return non-empty top-level keys
 		if pairs, ok := brain.storeKeyPrefixes[d.HashCode()]; ok {
@@ -129,6 +141,9 @@ func nodesFunc(brain *Brain,
 
 		addDependency(used, d)
 
+		brain.Lock()
+		defer brain.Unlock()
+
 		if nodes, ok := brain.catalogNodes[d.HashCode()]; ok {
 			return nodes, nil
 		}
@@ -156,6 +171,9 @@ func serviceFunc(brain *Brain,
 
 		addDependency(used, d)
 
+		brain.Lock()
+		defer brain.Unlock()
+
 		if services, ok := brain.healthServices[d.HashCode()]; ok {
 			return services, nil
 		}
@@ -178,6 +196,9 @@ func servicesFunc(brain *Brain,
 		}
 
 		addDependency(used, d)
+
+		brain.Lock()
+		defer brain.Unlock()
 
 		if services, ok := brain.catalogServices[d.HashCode()]; ok {
 			return services, nil
@@ -205,6 +226,9 @@ func treeFunc(brain *Brain,
 		}
 
 		addDependency(used, d)
+
+		brain.Lock()
+		defer brain.Unlock()
 
 		// Only return non-empty top-level keys
 		if pairs, ok := brain.storeKeyPrefixes[d.HashCode()]; ok {
