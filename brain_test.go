@@ -10,28 +10,8 @@ import (
 func TestNewBrain(t *testing.T) {
 	b := NewBrain()
 
-	if b.catalogNodes == nil {
-		t.Errorf("expected catalogNodes to not be nil")
-	}
-
-	if b.catalogServices == nil {
-		t.Errorf("expected catalogServices to not be nil")
-	}
-
-	if b.files == nil {
-		t.Errorf("expected files to not be nil")
-	}
-
-	if b.healthServices == nil {
-		t.Errorf("expected healthServices to not be nil")
-	}
-
-	if b.storeKeys == nil {
-		t.Errorf("expected storeKeys to not be nil")
-	}
-
-	if b.storeKeyPrefixes == nil {
-		t.Errorf("expected storeKeyPrefixes to not be nil")
+	if b.data == nil {
+		t.Errorf("expected data to not be nil")
 	}
 
 	if b.receivedData == nil {
