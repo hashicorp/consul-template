@@ -1,6 +1,9 @@
 Consul Template Changelog
 =========================
 
+## 0.6.6.dev (Unreleased)
+
+
 ## 0.6.5 (February 5, 2015)
 
 FEATURES:
