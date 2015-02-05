@@ -74,6 +74,8 @@ func (cli *CLI) Run(args []string) int {
 		"ignore certificate warnings under https")
 	flags.StringVar(&auth, "auth", "",
 		"set basic auth username[:password]")
+	flags.DurationVar(&config.MaxStale, "max-stale", 0,
+		"the maximum time to wait for stale queries")
 	flags.Var((*configTemplateVar)(&config.ConfigTemplates), "template",
 		"new template declaration")
 	flags.StringVar(&config.Token, "token", "",
@@ -211,6 +213,9 @@ Options:
 
   -auth=<user[:pass]>      Set the basic authentication username (and password)
   -consul=<address>        Sets the address of the Consul instance
+  -max-stale=<duration>    Set the maximum staleness and allow stale queries to
+                           Consul which will distribute work among all servers
+                           instead of just the leader
   -ssl                     Use SSL when connecting to Consul
   -ssl-no-verify           Ignore certificate warnings when connecting via SSL
   -token=<token>           Sets the Consul API token

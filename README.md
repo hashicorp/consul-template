@@ -35,6 +35,7 @@ Usage
 | --------------- | ------------ |------------ |
 | `auth`         | | Specify a username (and password) for basic authentication. |
 | `consul`        | _(required)_ | The location of the Consul instance to query (may be an IP address or FQDN) with port. |
+| `max_stale`     | | The maximum staleness of a query. If specified, Consul will distribute work among all servers instead of just the leader. |
 | `ssl`           | | Use HTTPS while talking to Consul. Requires the Consul server to be configured to serve secure connections.
 | `ssl_no_verify` | | Ignore certificate warnings. Only used if `ssl` is enabled. |
 | `token`         | | The [Consul API token][Consul ACLs]. |

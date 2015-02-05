@@ -61,6 +61,7 @@ func TestMerge_complexConfig(t *testing.T) {
 		ConfigTemplates: templates[:2],
 		Retry:           5 * time.Second,
 		Token:           "abc123",
+		MaxStale:        3 * time.Second,
 		Wait:            &watch.Wait{Min: 5 * time.Second, Max: 10 * time.Second},
 	}
 	otherConfig := &Config{
@@ -76,6 +77,7 @@ func TestMerge_complexConfig(t *testing.T) {
 		ConfigTemplates: templates,
 		Retry:           15 * time.Second,
 		Token:           "def456",
+		MaxStale:        3 * time.Second,
 		Wait:            &watch.Wait{Min: 25 * time.Second, Max: 50 * time.Second},
 	}
 
@@ -182,6 +184,7 @@ func TestParseConfig_mapstructureError(t *testing.T) {
 func TestParseConfig_correctValues(t *testing.T) {
 	configFile := test.CreateTempfile([]byte(`
     consul = "nyc1.demo.consul.io"
+    max_stale = "5s"
     ssl = true
     ssl_no_verify = true
     token = "abcd1234"
@@ -209,6 +212,8 @@ func TestParseConfig_correctValues(t *testing.T) {
 	expected := &Config{
 		Path:        configFile.Name(),
 		Consul:      "nyc1.demo.consul.io",
+		MaxStale:    time.Second * 5,
+		MaxStaleRaw: "5s",
 		SSL:         true,
 		SSLNoVerify: true,
 		Token:       "abcd1234",
