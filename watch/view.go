@@ -74,7 +74,10 @@ func (v *View) poll(viewCh chan<- *View, errCh chan<- error) {
 			currentRetry = defaultRetry
 
 			log.Printf("[INFO] (view) %s received data from consul", v.display())
-			viewCh <- v
+			select {
+			case viewCh <- v:
+			case <-v.stopCh:
+			}
 
 			// If we are operating in once mode, do not loop - we received data at
 			// least once which is the API promise here.
