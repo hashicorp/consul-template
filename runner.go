@@ -730,13 +730,17 @@ func newAPIClient(config *Config) (*api.Client, error) {
 func newWatcher(config *Config, client *api.Client, once bool) (*watch.Watcher, error) {
 	log.Printf("[INFO] (runner) creating Watcher")
 
-	watcher, err := watch.NewWatcher(client, once)
+	watcher, err := watch.NewWatcher(&watch.WatcherConfig{
+		Client:   client,
+		Once:     once,
+		MaxStale: 0,
+		RetryFunc: func(current time.Duration) time.Duration {
+			return config.Retry
+		},
+		BatchSize: 24, // todo
+	})
 	if err != nil {
 		return nil, err
-	}
-
-	if config.Retry != 0 {
-		watcher.SetRetry(config.Retry)
 	}
 
 	return watcher, err

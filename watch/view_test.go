@@ -6,45 +6,44 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul-template/test"
-	"github.com/hashicorp/consul/api"
 )
 
 // testRetryFunc is a function specifically for tests that has a 0-time retry.
 var testRetryFunc = func(time.Duration) time.Duration { return 0 }
 
-func TestNewView_noClient(t *testing.T) {
+func TestNewView_noConfig(t *testing.T) {
 	_, err := NewView(nil, &test.FakeDependency{})
 	if err == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
 
-	expected := "view: missing Consul API client"
+	expected := "view: missing config"
 	if err.Error() != expected {
 		t.Errorf("expected %q to eq %q", err.Error(), expected)
 	}
 }
 
 func TestNewView_noDependency(t *testing.T) {
-	_, err := NewView(&api.Client{}, nil)
+	_, err := NewView(defaultWatcherConfig, nil)
 	if err == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
 
-	expected := "view: missing Dependency"
+	expected := "view: missing dependency"
 	if err.Error() != expected {
 		t.Errorf("expected %q to eq %q", err.Error(), expected)
 	}
 }
 
 func TestNewView_setsValues(t *testing.T) {
-	client, dep := &api.Client{}, &test.FakeDependency{}
-	view, err := NewView(client, dep)
+	config, dep := defaultWatcherConfig, &test.FakeDependency{}
+	view, err := NewView(config, dep)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if view.client != client {
-		t.Errorf("expected %+v to be %+v", view.client, client)
+	if view.config != config {
+		t.Errorf("expected %+v to be %+v", view.config, config)
 	}
 
 	if view.Dependency != dep {
@@ -53,7 +52,7 @@ func TestNewView_setsValues(t *testing.T) {
 }
 
 func TestPoll_returnsViewCh(t *testing.T) {
-	view, err := NewView(&api.Client{}, &test.FakeDependency{})
+	view, err := NewView(defaultWatcherConfig, &test.FakeDependency{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +60,7 @@ func TestPoll_returnsViewCh(t *testing.T) {
 	viewCh := make(chan *View)
 	errCh := make(chan error)
 
-	go view.poll(true, viewCh, errCh, testRetryFunc)
+	go view.poll(viewCh, errCh)
 	defer view.stop()
 
 	select {
@@ -75,7 +74,7 @@ func TestPoll_returnsViewCh(t *testing.T) {
 }
 
 func TestPoll_noReturnErrCh(t *testing.T) {
-	view, err := NewView(&api.Client{}, &test.FakeDependencyFetchError{})
+	view, err := NewView(defaultWatcherConfig, &test.FakeDependencyFetchError{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +82,7 @@ func TestPoll_noReturnErrCh(t *testing.T) {
 	viewCh := make(chan *View)
 	errCh := make(chan error)
 
-	go view.poll(true, viewCh, errCh, testRetryFunc)
+	go view.poll(viewCh, errCh)
 	defer view.stop()
 
 	select {
@@ -93,13 +92,13 @@ func TestPoll_noReturnErrCh(t *testing.T) {
 		t.Errorf("expected no error, but got %s", err)
 	case <-view.stopCh:
 		t.Errorf("poll received premature stop")
-	case <-time.After(50 * time.Millisecond):
+	case <-time.After(20 * time.Millisecond):
 		// No data was received, test passes
 	}
 }
 
 func TestPoll_stopsViewStopCh(t *testing.T) {
-	view, err := NewView(&api.Client{}, &test.FakeDependency{})
+	view, err := NewView(defaultWatcherConfig, &test.FakeDependency{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +106,7 @@ func TestPoll_stopsViewStopCh(t *testing.T) {
 	viewCh := make(chan *View)
 	errCh := make(chan error)
 
-	go view.poll(true, viewCh, errCh, testRetryFunc)
+	go view.poll(viewCh, errCh)
 	view.stop()
 
 	select {
@@ -115,13 +114,13 @@ func TestPoll_stopsViewStopCh(t *testing.T) {
 		t.Errorf("expected no data, but received view data")
 	case err := <-errCh:
 		t.Errorf("error while polling: %s", err)
-	case <-time.After(100 * time.Millisecond):
+	case <-time.After(20 * time.Millisecond):
 		// No data was received, test passes
 	}
 }
 
 func TestPoll_once(t *testing.T) {
-	view, err := NewView(&api.Client{}, &test.FakeDependency{})
+	view, err := NewView(defaultWatcherConfig, &test.FakeDependency{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +128,7 @@ func TestPoll_once(t *testing.T) {
 	viewCh := make(chan *View)
 	errCh := make(chan error)
 
-	go view.poll(true, viewCh, errCh, testRetryFunc)
+	go view.poll(viewCh, errCh)
 	defer view.stop()
 
 	select {
@@ -148,13 +147,13 @@ func TestPoll_once(t *testing.T) {
 		t.Errorf("error while polling: %s", err)
 	case <-view.stopCh:
 		t.Errorf("poll received premature stop")
-	case <-time.After(500 * time.Millisecond):
-		// No data in 0.5s, so the test passes
+	case <-time.After(20 * time.Millisecond):
+		// No data in 0.2s, so the test passes
 	}
 }
 
 func TestPoll_retries(t *testing.T) {
-	view, err := NewView(&api.Client{}, &test.FakeDependencyFetchRetry{})
+	view, err := NewView(defaultWatcherConfig, &test.FakeDependencyFetchRetry{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -162,7 +161,7 @@ func TestPoll_retries(t *testing.T) {
 	viewCh := make(chan *View)
 	errCh := make(chan error)
 
-	go view.poll(false, viewCh, errCh, testRetryFunc)
+	go view.poll(viewCh, errCh)
 	defer view.stop()
 
 	select {
@@ -175,8 +174,33 @@ func TestPoll_retries(t *testing.T) {
 	}
 }
 
+func TestFetch_maxStale(t *testing.T) {
+	config := defaultWatcherConfig
+	config.MaxStale = 10 * time.Millisecond
+
+	view, err := NewView(config, &test.FakeDependencyStale{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	doneCh := make(chan struct{})
+	errCh := make(chan error)
+
+	go view.fetch(doneCh, errCh)
+
+	select {
+	case <-doneCh:
+		expected := "this is some fresh data"
+		if !reflect.DeepEqual(view.Data, expected) {
+			t.Errorf("expected %q to be %q", view.Data, expected)
+		}
+	case err := <-errCh:
+		t.Errorf("error while fetching: %s", err)
+	}
+}
+
 func TestFetch_savesView(t *testing.T) {
-	view, err := NewView(&api.Client{}, &test.FakeDependency{})
+	view, err := NewView(defaultWatcherConfig, &test.FakeDependency{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -198,7 +222,7 @@ func TestFetch_savesView(t *testing.T) {
 }
 
 func TestFetch_returnsErrCh(t *testing.T) {
-	view, err := NewView(&api.Client{}, &test.FakeDependencyFetchError{})
+	view, err := NewView(defaultWatcherConfig, &test.FakeDependencyFetchError{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -220,7 +244,7 @@ func TestFetch_returnsErrCh(t *testing.T) {
 }
 
 func TestStop_stopsPolling(t *testing.T) {
-	view, err := NewView(&api.Client{}, &test.FakeDependency{})
+	view, err := NewView(defaultWatcherConfig, &test.FakeDependency{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -228,7 +252,7 @@ func TestStop_stopsPolling(t *testing.T) {
 	viewCh := make(chan *View)
 	errCh := make(chan error)
 
-	go view.poll(true, viewCh, errCh, testRetryFunc)
+	go view.poll(viewCh, errCh)
 	view.stop()
 
 	select {

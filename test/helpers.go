@@ -5,18 +5,45 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/api"
 )
 
+type FakeDependencyStale struct {
+	Name string
+}
+
+func (d *FakeDependencyStale) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
+	time.Sleep(10 * time.Millisecond)
+
+	if options.AllowStale {
+		data := "this is some stale data"
+		qm := &api.QueryMeta{LastIndex: 1, LastContact: 50 * time.Millisecond}
+		return data, qm, nil
+	} else {
+		data := "this is some fresh data"
+		qm := &api.QueryMeta{LastIndex: 1}
+		return data, qm, nil
+	}
+}
+
+func (d *FakeDependencyStale) HashCode() string {
+	return fmt.Sprintf("FakeDependencyStale|%s", d.Name)
+}
+
+func (d *FakeDependencyStale) Display() string {
+	return "fakedep"
+}
+
 type FakeDependencyFetchError struct {
 	Name string
 }
 
 func (d *FakeDependencyFetchError) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 	return nil, nil, fmt.Errorf("failed to contact server")
 }
 
@@ -29,12 +56,16 @@ func (d *FakeDependencyFetchError) Display() string {
 }
 
 type FakeDependencyFetchRetry struct {
+	sync.Mutex
 	Name    string
 	retried bool
 }
 
 func (d *FakeDependencyFetchRetry) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
-	time.Sleep(50 * time.Millisecond)
+	d.Lock()
+	defer d.Unlock()
+
+	time.Sleep(10 * time.Millisecond)
 
 	if d.retried {
 		data := "this is some data"
@@ -59,7 +90,7 @@ type FakeDependency struct {
 }
 
 func (d *FakeDependency) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
-	time.Sleep(50 * time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 	data := "this is some data"
 	qm := &api.QueryMeta{LastIndex: 1}
 	return data, qm, nil
@@ -134,7 +165,7 @@ func WaitForFileContents(path string, contents []byte, t *testing.T) {
 
 	select {
 	case <-readCh:
-	case <-time.After(60 * time.Second):
+	case <-time.After(2 * time.Second):
 		t.Fatal("file contents not present after 2 seconds")
 	}
 }
