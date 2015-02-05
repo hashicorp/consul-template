@@ -499,8 +499,8 @@ func TestRunner_quiescence(t *testing.T) {
 	config := &Config{
 		Consul: "demo.consul.io",
 		Wait: &watch.Wait{
-			Min: 500 * time.Millisecond,
-			Max: 1 * time.Second,
+			Min: 50 * time.Millisecond,
+			Max: 500 * time.Second,
 		},
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{
@@ -518,8 +518,8 @@ func TestRunner_quiescence(t *testing.T) {
 	go runner.Start()
 	defer runner.Stop()
 
-	min := time.After(500 * time.Millisecond)
-	max := time.After(2 * time.Second)
+	min := time.After(100 * time.Millisecond)
+	max := time.After(1 * time.Second)
 	for {
 		select {
 		case <-min:

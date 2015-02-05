@@ -10,90 +10,73 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-// defaultRetryFunc is the default return function, which just echos whatever
-// duration it was given.
-var defaultRetryFunc RetryFunc = func(t time.Duration) time.Duration {
-	return t
-}
-
 // RetryFunc is a function that defines the retry for a given watcher. The
 // function parameter is the current retry (which might be nil), and the
 // return value is the new retry. In this way, you can build complex retry
 // functions that are based off the previous values.
 type RetryFunc func(time.Duration) time.Duration
 
+// DefaultRetryFunc is the default return function, which just echos whatever
+// duration it was given.
+var DefaultRetryFunc RetryFunc = func(t time.Duration) time.Duration {
+	return t
+}
+
+// DefaultBatchSize is the default number of views to process in a batch to
+// reduce CPU usage.
+const DefaultBatchSize = 24
+
+// Watcher is a top-level manager for views that poll Consul for data.
 type Watcher struct {
 	sync.Mutex
 
-	// once is used to determine if the views should poll for data exactly once
-	once bool
-
-	// DataCh is the chan where Views will be published
+	// DataCh is the chan where Views will be published.
 	DataCh chan *View
 
-	// ErrCh is the chan where any errors will be published
+	// ErrCh is the chan where any errors will be published.
 	ErrCh chan error
 
-	// FinishCh is the chan where the watcher reports it is "done"
+	// FinishCh is the chan where the watcher reports it is "done".
 	FinishCh chan struct{}
 
-	// client is the mechanism for communicating with the Consul API
-	client *api.Client
-
-	// retryFunc is a RetryFunc that represents the way retrys and backoffs
-	// should occur.
-	retryFunc RetryFunc
+	// config is the internal configuration of this watcher.
+	config *WatcherConfig
 
 	// depViewMap is a map of Templates to Views. Templates are keyed by
 	// HashCode().
 	depViewMap map[string]*View
+}
 
-	// batchSize is the size of the internal DataCh to batch requests before
+// WatcherConfig is the configuration for a particular Watcher.
+type WatcherConfig struct {
+	// Client is the mechanism for communicating with the Consul API.
+	Client *api.Client
+
+	// Once is used to determine if the views should poll for data exactly once.
+	Once bool
+
+	// MaxStale is the maximum staleness of a query. If specified, Consul will
+	// distribute work among all servers instead of just the leader. Specifying
+	// this option assumes the use of AllowStale.
+	MaxStale time.Duration
+
+	// RetryFunc is a RetryFunc that represents the way retrys and backoffs
+	// should occur.
+	RetryFunc RetryFunc
+
+	// BatchSize is the size of the internal DataCh to batch requests before
 	// blocking. The default value is 24.
-	batchSize int
+	BatchSize int
 }
 
 // NewWatcher creates a new watcher using the given API client.
-func NewWatcher(c *api.Client, once bool) (*Watcher, error) {
-	watcher := &Watcher{
-		client: c,
-		once:   once,
-	}
+func NewWatcher(config *WatcherConfig) (*Watcher, error) {
+	watcher := &Watcher{config: config}
 	if err := watcher.init(); err != nil {
 		return nil, err
 	}
 
 	return watcher, nil
-}
-
-// SetBatchSize sets the buffer for the DataCh for this watcher. By default, the
-// batch size is 24, but larger systems may wish to increase this value.
-//
-// This function will return an error if the watcher is currently running. The
-// batch size can only be changed when there are exactly 0 views for this
-// watcher.
-func (w *Watcher) SetBatchSize(size int) error {
-	w.Lock()
-	defer w.Unlock()
-
-	log.Printf("[INFO] (watcher) setting batch size to %d", size)
-
-	if views := len(w.depViewMap); views != 0 {
-		return fmt.Errorf("watcher: %d views are running, must be empty", views)
-	}
-
-	w.batchSize = size
-	w.DataCh = make(chan *View, w.batchSize)
-
-	return nil
-}
-
-// BatchSize returns the current batch size for this watcher.
-func (w *Watcher) BatchSize() int {
-	w.Lock()
-	defer w.Unlock()
-
-	return w.batchSize
 }
 
 // Add adds the given dependency to the list of monitored depedencies
@@ -115,7 +98,7 @@ func (w *Watcher) Add(d dep.Dependency) (bool, error) {
 		return false, nil
 	}
 
-	v, err := NewView(w.client, d)
+	v, err := NewView(w.config, d)
 	if err != nil {
 		return false, err
 	}
@@ -123,7 +106,7 @@ func (w *Watcher) Add(d dep.Dependency) (bool, error) {
 	log.Printf("[DEBUG] (watcher) %s starting", d.Display())
 
 	w.depViewMap[d.HashCode()] = v
-	go v.poll(w.once, w.DataCh, w.ErrCh, w.retryFunc)
+	go v.poll(w.DataCh, w.ErrCh)
 
 	return true, nil
 }
@@ -158,23 +141,6 @@ func (w *Watcher) Remove(d dep.Dependency) bool {
 	return false
 }
 
-// SetRetry is used to set the retry to a static value. See SetRetryFunc for
-// more informatoin.
-func (w *Watcher) SetRetry(duration time.Duration) {
-	w.SetRetryFunc(func(current time.Duration) time.Duration {
-		return duration
-	})
-}
-
-// SetRetryFunc is used to set a dynamic retry function. Only new views created
-// after this function has been set will inherit the new retry functionality.
-// Existing views will use the retry functionality with which they were created.
-func (w *Watcher) SetRetryFunc(f RetryFunc) {
-	w.Lock()
-	defer w.Unlock()
-	w.retryFunc = f
-}
-
 // Stop halts this watcher and any currently polling views immediately. If a
 // view was in the middle of a poll, no data will be returned.
 func (w *Watcher) Stop() {
@@ -194,19 +160,22 @@ func (w *Watcher) Stop() {
 
 // init sets up the initial values for the watcher.
 func (w *Watcher) init() error {
-	if w.client == nil {
-		return fmt.Errorf("watcher: missing Consul API client")
+	if w.config == nil {
+		return fmt.Errorf("watcher: missing config")
 	}
 
-	// Setup the data batching
-	w.SetBatchSize(24)
+	if w.config.RetryFunc == nil {
+		w.config.RetryFunc = DefaultRetryFunc
+	}
+
+	if w.config.BatchSize == 0 {
+		w.config.BatchSize = DefaultBatchSize
+	}
 
 	// Setup the channels
+	w.DataCh = make(chan *View, w.config.BatchSize)
 	w.ErrCh = make(chan error)
 	w.FinishCh = make(chan struct{})
-
-	// Setup the default retry
-	w.SetRetryFunc(defaultRetryFunc)
 
 	// Setup our map of dependencies to views
 	w.depViewMap = make(map[string]*View)

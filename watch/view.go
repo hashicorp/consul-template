@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/hashicorp/consul-template/dependency"
+	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul/api"
 )
 
@@ -22,15 +22,17 @@ const (
 // received from Consul.
 type View struct {
 	// Dependency is the dependency that is associated with this View
-	Dependency dependency.Dependency
+	Dependency dep.Dependency
+
+	// config is the configuration for the watcher that created this view and
+	// contains important information about how this view should behave when
+	// polling including retry functions and handling stale queries.
+	config *WatcherConfig
 
 	// Data is the most-recently-received data from Consul for this View
 	Data         interface{}
 	receivedData bool
 	lastIndex    uint64
-
-	// client is the Consul API client
-	client *api.Client
 
 	// stopCh is used to stop polling on this View
 	stopCh chan struct{}
@@ -38,18 +40,18 @@ type View struct {
 
 // NewView creates a new view object from the given Consul API client and
 // Dependency. If an error occurs, it will be returned.
-func NewView(client *api.Client, dep dependency.Dependency) (*View, error) {
-	if client == nil {
-		return nil, fmt.Errorf("view: missing Consul API client")
+func NewView(config *WatcherConfig, d dep.Dependency) (*View, error) {
+	if config == nil {
+		return nil, fmt.Errorf("view: missing config")
 	}
 
-	if dep == nil {
-		return nil, fmt.Errorf("view: missing Dependency")
+	if d == nil {
+		return nil, fmt.Errorf("view: missing dependency")
 	}
 
 	return &View{
-		Dependency: dep,
-		client:     client,
+		Dependency: d,
+		config:     config,
 		stopCh:     make(chan struct{}),
 	}, nil
 }
@@ -58,7 +60,7 @@ func NewView(client *api.Client, dep dependency.Dependency) (*View, error) {
 // accounts for interrupts on the interrupt channel. This allows the poll
 // function to be fired in a goroutine, but then halted even if the fetch
 // function is in the middle of a blocking query.
-func (v *View) poll(once bool, viewCh chan<- *View, errCh chan<- error, retryFunc RetryFunc) {
+func (v *View) poll(viewCh chan<- *View, errCh chan<- error) {
 	currentRetry := defaultRetry
 
 	for {
@@ -72,11 +74,14 @@ func (v *View) poll(once bool, viewCh chan<- *View, errCh chan<- error, retryFun
 			currentRetry = defaultRetry
 
 			log.Printf("[INFO] (view) %s received data from consul", v.display())
-			viewCh <- v
+			select {
+			case viewCh <- v:
+			case <-v.stopCh:
+			}
 
 			// If we are operating in once mode, do not loop - we received data at
 			// least once which is the API promise here.
-			if once {
+			if v.config.Once {
 				return
 			}
 		case err := <-fetchErrCh:
@@ -91,7 +96,9 @@ func (v *View) poll(once bool, viewCh chan<- *View, errCh chan<- error, retryFun
 			// }
 
 			// Sleep and retry
-			currentRetry = retryFunc(currentRetry)
+			if v.config.RetryFunc != nil {
+				currentRetry = v.config.RetryFunc(currentRetry)
+			}
 			time.Sleep(currentRetry)
 			continue
 		case <-v.stopCh:
@@ -109,12 +116,18 @@ func (v *View) poll(once bool, viewCh chan<- *View, errCh chan<- error, retryFun
 func (v *View) fetch(doneCh chan<- struct{}, errCh chan<- error) {
 	log.Printf("[DEBUG] (view) %s starting fetch", v.display())
 
+	var allowStale bool
+	if v.config.MaxStale != 0 {
+		allowStale = true
+	}
+
 	for {
 		options := &api.QueryOptions{
-			WaitTime:  defaultWaitTime,
-			WaitIndex: v.lastIndex,
+			AllowStale: allowStale,
+			WaitTime:   defaultWaitTime,
+			WaitIndex:  v.lastIndex,
 		}
-		data, qm, err := v.Dependency.Fetch(v.client, options)
+		data, qm, err := v.Dependency.Fetch(v.config.Client, options)
 		if err != nil {
 			errCh <- err
 			return
@@ -124,6 +137,16 @@ func (v *View) fetch(doneCh chan<- struct{}, errCh chan<- error) {
 			errCh <- fmt.Errorf("consul returned nil qm; this should never happen" +
 				"and is probably a bug in consul-template or consulapi")
 			return
+		}
+
+		if allowStale && qm.LastContact > v.config.MaxStale {
+			allowStale = false
+			log.Printf("[DEBUG] (view) %s stale data (last contact exceeded max_stale)", v.display())
+			continue
+		}
+
+		if v.config.MaxStale != 0 {
+			allowStale = true
 		}
 
 		if qm.LastIndex == v.lastIndex {

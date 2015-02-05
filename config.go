@@ -36,11 +36,20 @@ type Config struct {
 	// with Consul.
 	Auth *Auth `mapstructure:"auth"`
 
+	// MaxStale is the maximum amount of time for staleness from Consul as given
+	// by LastContact. If supplied, Consul Template will query all servers instead
+	// of just the leader.
+	MaxStale    time.Duration `mapstructure:"-"`
+	MaxStaleRaw string        `mapstructure:"max_stale"`
+
 	// SSLNoVerify determines if we should skip certificate warnings
 	SSLNoVerify bool `mapstructure:"ssl_no_verify"`
 
 	// ConfigTemplates is a slice of the ConfigTemplate objects in the config.
 	ConfigTemplates []*ConfigTemplate `mapstructure:"template"`
+
+	// BatchSize is the size of the batch when polling multiple dependencies.
+	BatchSize int `mapstructure:"batch_size"`
 
 	// Retry is the duration of time to wait between Consul failures.
 	Retry    time.Duration `mapstructure:"-"`
@@ -78,6 +87,11 @@ func (c *Config) Merge(config *Config) {
 		}
 	}
 
+	if config.MaxStale != 0 {
+		c.MaxStale = config.MaxStale
+		c.MaxStaleRaw = config.MaxStaleRaw
+	}
+
 	if len(config.ConfigTemplates) > 0 {
 		if c.ConfigTemplates == nil {
 			c.ConfigTemplates = make([]*ConfigTemplate, 0, 1)
@@ -91,8 +105,13 @@ func (c *Config) Merge(config *Config) {
 		}
 	}
 
+	if config.BatchSize != 0 {
+		c.BatchSize = config.BatchSize
+	}
+
 	if config.Retry != 0 {
 		c.Retry = config.Retry
+		c.RetryRaw = config.RetryRaw
 	}
 
 	if config.Token != "" {
@@ -138,6 +157,17 @@ func ParseConfig(path string) (*Config, error) {
 
 	// Store a reference to the path where this config was read from
 	config.Path = path
+
+	// Parse the MaxStale component
+	if raw := config.MaxStaleRaw; raw != "" {
+		stale, err := time.ParseDuration(raw)
+
+		if err == nil {
+			config.MaxStale = stale
+		} else {
+			errs = multierror.Append(errs, fmt.Errorf("max_stale invalid: %v", err))
+		}
+	}
 
 	// Parse the Retry component
 	if raw := config.RetryRaw; raw != "" {

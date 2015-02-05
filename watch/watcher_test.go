@@ -10,95 +10,53 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-func TestNewWatcher_noClient(t *testing.T) {
-	_, err := NewWatcher(nil, false)
+var defaultWatcherConfig = &WatcherConfig{
+	Client:    &api.Client{},
+	Once:      true,
+	BatchSize: 1,
+	RetryFunc: func(time.Duration) time.Duration { return 0 },
+}
+
+func TestNewWatcher_noConfig(t *testing.T) {
+	_, err := NewWatcher(nil)
 	if err == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
 
-	expected := "watcher: missing Consul API client"
+	expected := "watcher: missing config"
 	if !strings.Contains(err.Error(), expected) {
 		t.Errorf("expected %q to contain %q", err.Error(), expected)
 	}
 }
 
-func TestNewWatcher_setsClient(t *testing.T) {
-	client := &api.Client{}
-	w, err := NewWatcher(client, false)
+func TestNewWatcher_defaultValues(t *testing.T) {
+	w, err := NewWatcher(&WatcherConfig{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if !reflect.DeepEqual(w.client, client) {
-		t.Errorf("expected %+v to equal %+v", w.client, client)
-	}
-}
-
-func TestNewWatcher_setsOnce(t *testing.T) {
-	client := &api.Client{}
-	w, err := NewWatcher(client, true)
-	if err != nil {
-		t.Fatal(err)
+	if w.config.RetryFunc == nil {
+		t.Errorf("expected RetryFunc to not be nil")
 	}
 
-	if !w.once {
-		t.Errorf("expected once to be true")
-	}
-}
-
-func TestNewWatcher_makesDataCh(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, false)
-	if err != nil {
-		t.Fatal(err)
+	if w.config.BatchSize != DefaultBatchSize {
+		t.Errorf("expected %q to be %q", w.config.BatchSize, DefaultBatchSize)
 	}
 
 	if w.DataCh == nil {
 		t.Errorf("expected DataCh to exist")
 	}
 
-	expectedSize := 24
-	if size := cap(w.DataCh); size != expectedSize {
-		t.Errorf("expected DataCh to have %d buffer, but was %d", expectedSize, size)
-	}
-}
-
-func TestNewWatcher_makesErrCh(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, false)
-	if err != nil {
-		t.Fatal(err)
+	if size := cap(w.DataCh); size != DefaultBatchSize {
+		t.Errorf("expected DataCh to have %d buffer, but was %d", DefaultBatchSize, size)
 	}
 
 	if w.ErrCh == nil {
 		t.Errorf("expected ErrCh to exist")
 	}
-}
-
-func TestNewWatcher_makesFinishCh(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, false)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	if w.FinishCh == nil {
 		t.Errorf("expected FinishCh to exist")
-	}
-}
-
-func TestNewWatcher_setsRetry(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if w.retryFunc == nil {
-		t.Errorf("expected retryFunc to exist")
-	}
-}
-
-func TestNewWatcher_makesdepViewMap(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, false)
-	if err != nil {
-		t.Fatal(err)
 	}
 
 	if w.depViewMap == nil {
@@ -106,46 +64,38 @@ func TestNewWatcher_makesdepViewMap(t *testing.T) {
 	}
 }
 
-func TestSetBatchSize_setsBuffer(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, false)
+func TestNewWatcher_values(t *testing.T) {
+	client := &api.Client{}
+	batchSize := 10
+
+	w, err := NewWatcher(&WatcherConfig{
+		Client:    client,
+		Once:      true,
+		BatchSize: batchSize,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if err := w.SetBatchSize(50); err != nil {
-		t.Fatal(err)
+	if !reflect.DeepEqual(w.config.Client, client) {
+		t.Errorf("expected %#v to be %#v", w.config.Client, client)
 	}
 
-	expectedSize := 50
-	if size := w.batchSize; size != expectedSize {
-		t.Errorf("expected batchSize %d to be %d", size, expectedSize)
-	}
-	if size := cap(w.DataCh); size != expectedSize {
-		t.Errorf("expected DataCh size %d to be %d", size, expectedSize)
-	}
-}
-
-func TestSetBatchSize_errorIfRunning(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, false)
-	if err != nil {
-		t.Fatal(err)
+	if w.config.Once != true {
+		t.Errorf("expected w.config.Once to be true")
 	}
 
-	w.Add(&test.FakeDependency{})
-
-	err = w.SetBatchSize(50)
-	if err == nil {
-		t.Fatal("expected error, but nothing was returned")
+	if w.config.BatchSize != batchSize {
+		t.Errorf("expected %q to be %q", w.config.BatchSize, batchSize)
 	}
 
-	expected := "watcher: 1 views are running, must be empty"
-	if err.Error() != expected {
-		t.Errorf("expected %q to be %q", err.Error(), expected)
+	if size := cap(w.DataCh); size != batchSize {
+		t.Errorf("expected DataCh to have %d buffer, but was %d", batchSize, size)
 	}
 }
 
 func TestAdd_updatesMap(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, false)
+	w, err := NewWatcher(defaultWatcherConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -162,7 +112,7 @@ func TestAdd_updatesMap(t *testing.T) {
 }
 
 func TestAdd_exists(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, false)
+	w, err := NewWatcher(defaultWatcherConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -181,20 +131,20 @@ func TestAdd_exists(t *testing.T) {
 }
 
 func TestAdd_error(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, false)
+	w, err := NewWatcher(defaultWatcherConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Set the client to nil to force the view to return an error
-	w.client = nil
+	w.config = nil
 
 	added, err := w.Add(&test.FakeDependency{})
 	if err == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
 
-	expected := "view: missing Consul API client"
+	expected := "view: missing config"
 	if err.Error() != expected {
 		t.Errorf("expected %q to be %q", err.Error(), expected)
 	}
@@ -205,7 +155,7 @@ func TestAdd_error(t *testing.T) {
 }
 
 func TestAdd_startsViewPoll(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, false)
+	w, err := NewWatcher(defaultWatcherConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -228,7 +178,7 @@ func TestAdd_startsViewPoll(t *testing.T) {
 }
 
 func TestWatching_notExists(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, false)
+	w, err := NewWatcher(defaultWatcherConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -240,7 +190,7 @@ func TestWatching_notExists(t *testing.T) {
 }
 
 func TestWatching_exists(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, false)
+	w, err := NewWatcher(defaultWatcherConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -256,7 +206,7 @@ func TestWatching_exists(t *testing.T) {
 }
 
 func TestRemove_exists(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, false)
+	w, err := NewWatcher(defaultWatcherConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -277,7 +227,7 @@ func TestRemove_exists(t *testing.T) {
 }
 
 func TestRemove_doesNotExist(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, false)
+	w, err := NewWatcher(defaultWatcherConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -285,45 +235,5 @@ func TestRemove_doesNotExist(t *testing.T) {
 	removed := w.Remove(&test.FakeDependency{})
 	if removed != false {
 		t.Fatal("expected Remove to return false")
-	}
-}
-
-func TestSetRetry_setsRetryFunc(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	retry := 10 * time.Second
-	w.SetRetry(retry)
-	result := w.retryFunc(0 * time.Second)
-
-	if result != retry {
-		t.Errorf("expected %q to be %q", result, retry)
-	}
-}
-
-func TestSetRetryFunc_setsRetryFunc(t *testing.T) {
-	w, err := NewWatcher(&api.Client{}, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	w.SetRetryFunc(func(current time.Duration) time.Duration {
-		return 2 * current
-	})
-
-	data := map[time.Duration]time.Duration{
-		0 * time.Second: 0 * time.Second,
-		1 * time.Second: 2 * time.Second,
-		2 * time.Second: 4 * time.Second,
-		9 * time.Second: 18 * time.Second,
-	}
-
-	for current, expected := range data {
-		result := w.retryFunc(current)
-		if result != expected {
-			t.Errorf("expected %q to be %q", result, expected)
-		}
 	}
 }

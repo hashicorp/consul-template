@@ -40,7 +40,7 @@ func TestDatacentersFetch_blocks(t *testing.T) {
 	select {
 	case <-dataCh:
 		t.Errorf("expected query to block")
-	case <-time.After(500 * time.Millisecond):
+	case <-time.After(50 * time.Millisecond):
 		// Test pases
 	}
 }

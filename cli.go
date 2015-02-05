@@ -74,10 +74,14 @@ func (cli *CLI) Run(args []string) int {
 		"ignore certificate warnings under https")
 	flags.StringVar(&auth, "auth", "",
 		"set basic auth username[:password]")
+	flags.DurationVar(&config.MaxStale, "max-stale", 0,
+		"the maximum time to wait for stale queries")
 	flags.Var((*configTemplateVar)(&config.ConfigTemplates), "template",
 		"new template declaration")
 	flags.StringVar(&config.Token, "token", "",
 		"a consul API token")
+	flags.IntVar(&config.BatchSize, "batch-size", 0,
+		"the size of the batch of dependencies")
 	flags.StringVar(&config.WaitRaw, "wait", "",
 		"the minimum(:maximum) to wait before rendering a new template")
 	flags.StringVar(&config.Path, "config", "",
@@ -211,16 +215,21 @@ Options:
 
   -auth=<user[:pass]>      Set the basic authentication username (and password)
   -consul=<address>        Sets the address of the Consul instance
+  -max-stale=<duration>    Set the maximum staleness and allow stale queries to
+                           Consul which will distribute work among all servers
+                           instead of just the leader
   -ssl                     Use SSL when connecting to Consul
   -ssl-no-verify           Ignore certificate warnings when connecting via SSL
   -token=<token>           Sets the Consul API token
 
   -template=<template>     Adds a new template to watch on disk in the format
-                           'templatePath:outputPath(:command)'.
+                           'templatePath:outputPath(:command)'
+  -batch-size=<size>       Set the size of the batch when polling multiple
+                           dependencies
   -wait=<duration>         Sets the 'minumum(:maximum)' amount of time to wait
                            before writing a template (and triggering a command)
   -retry=<duration>        The amount of time to wait if Consul returns an
-                           error when communicating with the API.
+                           error when communicating with the API
 
   -config=<path>           Sets the path to a configuration file on disk
 
