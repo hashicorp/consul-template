@@ -1,10 +1,18 @@
 Consul Template Changelog
 =========================
 
-## 0.6.1.dev (unreleased)
+## 0.6.5 (February 5, 2015)
+
+FEATURES:
+
+  * Add `-max-stale` to specify Consul Template may talk to non-leader Consul
+    nodes if they are less than the maximum stale value (GH-183)
 
 BUG FIXES:
 
+  * Fix a concurrency bug in the Brain (GH-180)
+  * Add a better queue-draining mechanism for templates that have a large number
+    of dependencies (GH-184)
 
 ## v0.6.1 (February 2, 2015)
 
