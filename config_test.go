@@ -62,6 +62,7 @@ func TestMerge_complexConfig(t *testing.T) {
 		Retry:           5 * time.Second,
 		Token:           "abc123",
 		MaxStale:        3 * time.Second,
+		BatchSize:       100,
 		Wait:            &watch.Wait{Min: 5 * time.Second, Max: 10 * time.Second},
 	}
 	otherConfig := &Config{
@@ -78,6 +79,7 @@ func TestMerge_complexConfig(t *testing.T) {
 		Retry:           15 * time.Second,
 		Token:           "def456",
 		MaxStale:        3 * time.Second,
+		BatchSize:       100,
 		Wait:            &watch.Wait{Min: 25 * time.Second, Max: 50 * time.Second},
 	}
 
@@ -188,6 +190,7 @@ func TestParseConfig_correctValues(t *testing.T) {
     ssl = true
     ssl_no_verify = true
     token = "abcd1234"
+    batch_size = 100
     wait = "5s:10s"
     retry = "10s"
 
@@ -217,6 +220,7 @@ func TestParseConfig_correctValues(t *testing.T) {
 		SSL:         true,
 		SSLNoVerify: true,
 		Token:       "abcd1234",
+		BatchSize:   100,
 		Wait: &watch.Wait{
 			Min: time.Second * 5,
 			Max: time.Second * 10,
