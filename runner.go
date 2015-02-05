@@ -733,11 +733,11 @@ func newWatcher(config *Config, client *api.Client, once bool) (*watch.Watcher, 
 	watcher, err := watch.NewWatcher(&watch.WatcherConfig{
 		Client:   client,
 		Once:     once,
-		MaxStale: 0,
+		MaxStale: config.MaxStale,
 		RetryFunc: func(current time.Duration) time.Duration {
 			return config.Retry
 		},
-		BatchSize: 24, // todo
+		BatchSize: config.BatchSize,
 	})
 	if err != nil {
 		return nil, err
