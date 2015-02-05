@@ -48,9 +48,6 @@ type Config struct {
 	// ConfigTemplates is a slice of the ConfigTemplate objects in the config.
 	ConfigTemplates []*ConfigTemplate `mapstructure:"template"`
 
-	// BatchSize is the size of the batch when polling multiple dependencies.
-	BatchSize int `mapstructure:"batch_size"`
-
 	// Retry is the duration of time to wait between Consul failures.
 	Retry    time.Duration `mapstructure:"-"`
 	RetryRaw string        `mapstructure:"retry" json:""`
@@ -103,10 +100,6 @@ func (c *Config) Merge(config *Config) {
 				Command:     template.Command,
 			})
 		}
-	}
-
-	if config.BatchSize != 0 {
-		c.BatchSize = config.BatchSize
 	}
 
 	if config.Retry != 0 {
