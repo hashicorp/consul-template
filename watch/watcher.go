@@ -22,9 +22,8 @@ var DefaultRetryFunc RetryFunc = func(t time.Duration) time.Duration {
 	return t
 }
 
-// DefaultBatchSize is the default number of views to process in a batch to
-// reduce CPU usage.
-const DefaultBatchSize = 24
+// dataBufferSize is the default number of views to process in a batch.
+const dataBufferSize = 2048
 
 // Watcher is a top-level manager for views that poll Consul for data.
 type Watcher struct {
@@ -63,10 +62,6 @@ type WatcherConfig struct {
 	// RetryFunc is a RetryFunc that represents the way retrys and backoffs
 	// should occur.
 	RetryFunc RetryFunc
-
-	// BatchSize is the size of the internal DataCh to batch requests before
-	// blocking. The default value is 24.
-	BatchSize int
 }
 
 // NewWatcher creates a new watcher using the given API client.
@@ -168,12 +163,8 @@ func (w *Watcher) init() error {
 		w.config.RetryFunc = DefaultRetryFunc
 	}
 
-	if w.config.BatchSize == 0 {
-		w.config.BatchSize = DefaultBatchSize
-	}
-
 	// Setup the channels
-	w.DataCh = make(chan *View, w.config.BatchSize)
+	w.DataCh = make(chan *View, dataBufferSize)
 	w.ErrCh = make(chan error)
 	w.FinishCh = make(chan struct{})
 

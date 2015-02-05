@@ -80,8 +80,6 @@ func (cli *CLI) Run(args []string) int {
 		"new template declaration")
 	flags.StringVar(&config.Token, "token", "",
 		"a consul API token")
-	flags.IntVar(&config.BatchSize, "batch-size", 0,
-		"the size of the batch of dependencies")
 	flags.StringVar(&config.WaitRaw, "wait", "",
 		"the minimum(:maximum) to wait before rendering a new template")
 	flags.StringVar(&config.Path, "config", "",

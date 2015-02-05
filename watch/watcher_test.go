@@ -13,7 +13,6 @@ import (
 var defaultWatcherConfig = &WatcherConfig{
 	Client:    &api.Client{},
 	Once:      true,
-	BatchSize: 1,
 	RetryFunc: func(time.Duration) time.Duration { return 0 },
 }
 
@@ -39,16 +38,12 @@ func TestNewWatcher_defaultValues(t *testing.T) {
 		t.Errorf("expected RetryFunc to not be nil")
 	}
 
-	if w.config.BatchSize != DefaultBatchSize {
-		t.Errorf("expected %q to be %q", w.config.BatchSize, DefaultBatchSize)
-	}
-
 	if w.DataCh == nil {
 		t.Errorf("expected DataCh to exist")
 	}
 
-	if size := cap(w.DataCh); size != DefaultBatchSize {
-		t.Errorf("expected DataCh to have %d buffer, but was %d", DefaultBatchSize, size)
+	if size := cap(w.DataCh); size != dataBufferSize {
+		t.Errorf("expected DataCh to have %d buffer, but was %d", dataBufferSize, size)
 	}
 
 	if w.ErrCh == nil {
@@ -66,12 +61,10 @@ func TestNewWatcher_defaultValues(t *testing.T) {
 
 func TestNewWatcher_values(t *testing.T) {
 	client := &api.Client{}
-	batchSize := 10
 
 	w, err := NewWatcher(&WatcherConfig{
-		Client:    client,
-		Once:      true,
-		BatchSize: batchSize,
+		Client: client,
+		Once:   true,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -83,14 +76,6 @@ func TestNewWatcher_values(t *testing.T) {
 
 	if w.config.Once != true {
 		t.Errorf("expected w.config.Once to be true")
-	}
-
-	if w.config.BatchSize != batchSize {
-		t.Errorf("expected %q to be %q", w.config.BatchSize, batchSize)
-	}
-
-	if size := cap(w.DataCh); size != batchSize {
-		t.Errorf("expected DataCh to have %d buffer, but was %d", batchSize, size)
 	}
 }
 

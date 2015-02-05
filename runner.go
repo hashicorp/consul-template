@@ -129,39 +129,31 @@ func (r *Runner) Start() {
 			return
 		}
 
-		// Drain all dependency data. Given a large number of dependencies, it is
-		// feasible that we have data for more than one of them. Instead of wasting
-		// CPU cycles rendering templates when we have more dependencies waiting
-		// to be added to the brain, we start a goroutine that "drains" the entire
-		// buffered channel on the watcher and then reports when it is done
-		// receiving new data which the parent select listens for.
-		//
-		// Please see https://github.com/hashicorp/consul-template/issues/168 for
-		// more information about this optimization and the entire backstory.
-		internalDataCh := make(chan struct{})
-		internalStopCh := make(chan struct{})
-		go func() {
-			var receivedData <-chan time.Time
+	OUTER:
+		select {
+		case data := <-r.watcher.DataCh:
+			// Receive this update
+			r.Receive(data.Dependency, data.Data)
+
+			// Drain all dependency data. Given a large number of dependencies, it is
+			// feasible that we have data for more than one of them. Instead of
+			// wasting CPU cycles rendering templates when we have more dependencies
+			// waiting to be added to the brain, we drain the entire buffered channel
+			// on the watcher and then reports when it is done receiving new data
+			// which the parent select listens for.
+			//
+			// Please see https://github.com/hashicorp/consul-template/issues/168 for
+			// more information about this optimization and the entire backstory.
 			for {
 				select {
 				case data := <-r.watcher.DataCh:
-					receivedData = time.After(200 * time.Millisecond)
 					r.Receive(data.Dependency, data.Data)
-				case <-receivedData:
-					close(internalDataCh)
-					return
-				case <-internalStopCh:
-					return
+				default:
+					break OUTER
 				}
 			}
-		}()
-
-		select {
-		case <-internalDataCh:
-			// Let the loop go and try to render the template
 		case err := <-r.watcher.ErrCh:
 			r.ErrCh <- err
-			close(internalStopCh)
 			return
 		case tmpl := <-r.quiescenceCh:
 			// Remove the quiescence for this template from the map. This will force
@@ -175,17 +167,11 @@ func (r *Runner) Start() {
 			r.minTimer, r.maxTimer = nil, nil
 		case <-r.watcher.FinishCh:
 			log.Printf("[INFO] (runner) watcher reported finish")
-			close(internalStopCh)
 			return
 		case <-r.DoneCh:
 			log.Printf("[INFO] (runner) received finish")
-			close(internalStopCh)
 			return
 		}
-
-		// Stop our "internal" goroutine that is waiting for data (since we are
-		// about to loop).
-		close(internalStopCh)
 
 		// If we got this far, that means we got new data or one of the timers fired,
 		// so attempt to re-render.
@@ -737,7 +723,6 @@ func newWatcher(config *Config, client *api.Client, once bool) (*watch.Watcher, 
 		RetryFunc: func(current time.Duration) time.Duration {
 			return config.Retry
 		},
-		BatchSize: config.BatchSize,
 	})
 	if err != nil {
 		return nil, err
