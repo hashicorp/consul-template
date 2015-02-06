@@ -67,9 +67,15 @@ func (d *HealthServices) Fetch(client *api.Client, options *api.QueryOptions) (i
 
 		tags := deepCopyAndSortTags(entry.Service.Tags)
 
+		address := entry.Node.Address
+
+		if entry.Service.Address != "" {
+			address = entry.Service.Address
+		}
+
 		services = append(services, &HealthService{
 			Node:    entry.Node.Node,
-			Address: entry.Node.Address,
+			Address: address,
 			ID:      entry.Service.ID,
 			Name:    entry.Service.Service,
 			Tags:    tags,
