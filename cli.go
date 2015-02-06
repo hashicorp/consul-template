@@ -222,8 +222,6 @@ Options:
 
   -template=<template>     Adds a new template to watch on disk in the format
                            'templatePath:outputPath(:command)'
-  -batch-size=<size>       Set the size of the batch when polling multiple
-                           dependencies
   -wait=<duration>         Sets the 'minumum(:maximum)' amount of time to wait
                            before writing a template (and triggering a command)
   -retry=<duration>        The amount of time to wait if Consul returns an
