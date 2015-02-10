@@ -23,12 +23,13 @@ const (
 
 // HealthService is a service entry in Consul
 type HealthService struct {
-	Node    string
-	Address string
-	ID      string
-	Name    string
-	Tags    ServiceTags
-	Port    uint64
+	Node        string
+	NodeAddress string
+	Address     string
+	ID          string
+	Name        string
+	Tags        ServiceTags
+	Port        uint64
 }
 
 // from inside a template.
@@ -67,19 +68,22 @@ func (d *HealthServices) Fetch(client *api.Client, options *api.QueryOptions) (i
 
 		tags := deepCopyAndSortTags(entry.Service.Tags)
 
-		address := entry.Node.Address
-
+		// Get the address of the service, falling back to the address of the node.
+		var address string
 		if entry.Service.Address != "" {
 			address = entry.Service.Address
+		} else {
+			address = entry.Node.Address
 		}
 
 		services = append(services, &HealthService{
-			Node:    entry.Node.Node,
-			Address: address,
-			ID:      entry.Service.ID,
-			Name:    entry.Service.Service,
-			Tags:    tags,
-			Port:    uint64(entry.Service.Port),
+			Node:        entry.Node.Node,
+			NodeAddress: entry.Node.Address,
+			Address:     address,
+			ID:          entry.Service.ID,
+			Name:        entry.Service.Service,
+			Tags:        tags,
+			Port:        uint64(entry.Service.Port),
 		})
 	}
 
