@@ -3,6 +3,11 @@ Consul Template Changelog
 
 ## 0.6.6.dev (Unreleased)
 
+IMPROVEMENTS:
+
+  * Use a service's reported address if given (GH-185, GH-186)
+  * Add new `NodeAddress` field to health services to always include the node's
+    address
 
 ## 0.6.5 (February 5, 2015)
 
