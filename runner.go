@@ -290,19 +290,28 @@ func (r *Runner) Run() error {
 			log.Printf("[DEBUG] (runner) checking ctemplate %+v", ctemplate)
 
 			// Render the template, taking dry mode into account
-			rendered, err := r.render(contents, ctemplate.Destination)
+			wouldRender, didRender, err := r.render(contents, ctemplate.Destination)
 			if err != nil {
 				log.Printf("[DEBUG] (runner) error rendering %s", tmpl.Path)
 				return err
 			}
 
-			log.Printf("[DEBUG] (runner) rendered: %t", rendered)
+			log.Printf("[DEBUG] (runner) wouldRender: %t, didRender: %t", wouldRender, didRender)
 
-			if rendered {
+			// If we would have rendered this template (but we did not because the
+			// contents were the same or something), we should consider this template
+			// rendered even though the contents on disk have not been updated. We
+			// will not fire commands unless the template was _actually_ rendered to
+			// disk though.
+			if wouldRender {
 				// Make a note that we have rendered this template (required for once
 				// mode and just generally nice for debugging purposes).
 				r.renderedTemplates[tmpl.Path] = struct{}{}
+			}
 
+			// If we _actually_ rendered the template to disk, we want to run the
+			// appropriate commands.
+			if didRender {
 				if !r.dry {
 					// If the template was rendered (changed) and we are not in dry-run mode,
 					// aggregate commands, ignoring previously known commands
@@ -480,32 +489,41 @@ func (r *Runner) canRender(tmpl *Template) bool {
 	return true
 }
 
-// Render accepts a Template and a destinations.
+// Render accepts a Template and a destination on disk. The first return
+// parameter is a boolean that indicates if the template would have been
+// rendered. Since this function is idempotent (meaning it does not write the
+// template if the contents are the same), it is possible that a template is
+// renderable, but never actually rendered because the contents are already
+// present on disk in the correct state. In this situation, we want to inform
+// the parent that the template would have been rendered, but was not. The
+// second return value indicates if the template was actually committed to disk.
+// By the associative property, if the second return value is true, the first
+// return value must also be true (but not necessarily the other direction). The
+// second return value indicates whether the caller should take action given a
+// template on disk has changed.
 //
-// If the template has changed on disk, this method return true.
-//
-// If the template already exists and has the same contents as the "would-be"
-// template, no action is taken. In this scenario, the render function returns
-// false, indicating no template change has occurred.
-func (r *Runner) render(contents []byte, dest string) (bool, error) {
+// No template exists on disk: true, true, nil
+// Template exists, but contents are different: true, true, nil
+// Template exists, but contents are the same: true, false, nil
+func (r *Runner) render(contents []byte, dest string) (bool, bool, error) {
 	existingContents, err := ioutil.ReadFile(dest)
 	if err != nil && !os.IsNotExist(err) {
-		return false, err
+		return false, false, err
 	}
 
 	if bytes.Equal(contents, existingContents) {
-		return false, nil
+		return true, false, nil
 	}
 
 	if r.dry {
 		fmt.Fprintf(r.outStream, "> %s\n%s", dest, contents)
 	} else {
 		if err := atomicWrite(dest, contents); err != nil {
-			return false, err
+			return false, false, err
 		}
 	}
 
-	return true, nil
+	return true, true, nil
 }
 
 // execute accepts a command string and runs that command string on the current
