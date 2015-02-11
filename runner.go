@@ -360,6 +360,9 @@ func (r *Runner) init() error {
 		}
 	}
 
+	// Add default values for the config
+	r.config.Merge(DefaultConfig())
+
 	// Create the client
 	client, err := newAPIClient(r.config)
 	if err != nil {

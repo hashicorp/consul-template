@@ -13,9 +13,6 @@ import (
 const (
 	// The amount of time to do a blocking query for
 	defaultWaitTime = 60 * time.Second
-
-	// The amount of time to wait when Consul returns an error
-	defaultRetry = 1 * time.Second
 )
 
 // View is a representation of a Dependency and the most recent data it has
@@ -61,6 +58,7 @@ func NewView(config *WatcherConfig, d dep.Dependency) (*View, error) {
 // function to be fired in a goroutine, but then halted even if the fetch
 // function is in the middle of a blocking query.
 func (v *View) poll(viewCh chan<- *View, errCh chan<- error) {
+	defaultRetry := v.config.RetryFunc(1 * time.Second)
 	currentRetry := defaultRetry
 
 	for {
@@ -99,6 +97,7 @@ func (v *View) poll(viewCh chan<- *View, errCh chan<- error) {
 			if v.config.RetryFunc != nil {
 				currentRetry = v.config.RetryFunc(currentRetry)
 			}
+			log.Printf("[INFO] (view) %s errored, retrying in %s", v.display(), currentRetry)
 			time.Sleep(currentRetry)
 			continue
 		case <-v.stopCh:
