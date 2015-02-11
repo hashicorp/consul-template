@@ -73,7 +73,7 @@ func TestPoll_returnsViewCh(t *testing.T) {
 	}
 }
 
-func TestPoll_noReturnErrCh(t *testing.T) {
+func TestPoll_returnsErrCh(t *testing.T) {
 	view, err := NewView(defaultWatcherConfig, &test.FakeDependencyFetchError{})
 	if err != nil {
 		t.Fatal(err)
@@ -89,11 +89,12 @@ func TestPoll_noReturnErrCh(t *testing.T) {
 	case data := <-viewCh:
 		t.Errorf("expected no data, but got %+v", data)
 	case err := <-errCh:
-		t.Errorf("expected no error, but got %s", err)
+		expected := "failed to contact server"
+		if err.Error() != expected {
+			t.Errorf("expected %q to be %q", err.Error(), expected)
+		}
 	case <-view.stopCh:
 		t.Errorf("poll received premature stop")
-	case <-time.After(20 * time.Millisecond):
-		// No data was received, test passes
 	}
 }
 
@@ -163,6 +164,15 @@ func TestPoll_retries(t *testing.T) {
 
 	go view.poll(viewCh, errCh)
 	defer view.stop()
+
+	select {
+	case <-viewCh:
+		t.Errorf("expected no data from view")
+	case <-errCh:
+		// Got the error, good so far
+	case <-view.stopCh:
+		t.Errorf("poll received premature stop")
+	}
 
 	select {
 	case <-viewCh:
