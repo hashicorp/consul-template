@@ -5,6 +5,9 @@ Consul Template Changelog
 
 IMPROVEMENTS:
 
+  * Use a default retry interval of 5s (GH-190) - this value has been (and will
+    remain) configurable since v0.5.0, but the default value has changed from 0
+    to 5s
   * Use a service's reported address if given (GH-185, GH-186)
   * Add new `NodeAddress` field to health services to always include the node's
     address
