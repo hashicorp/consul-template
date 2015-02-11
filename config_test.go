@@ -131,6 +131,24 @@ func TestMerge_BasicAuthOptions(t *testing.T) {
 	}
 }
 
+func TestMerge_SyslogOptions(t *testing.T) {
+	config := &Config{
+		Syslog: &Syslog{Enabled: false, Facility: "LOCAL0"},
+	}
+	otherConfig := &Config{
+		Syslog: &Syslog{Enabled: true, Facility: "LOCAL1"},
+	}
+	config.Merge(otherConfig)
+
+	if config.Syslog.Enabled != true {
+		t.Errorf("expected %q to be %q", config.Syslog.Enabled, true)
+	}
+
+	if config.Syslog.Facility != "LOCAL1" {
+		t.Errorf("expected %q to be %q", config.Syslog.Facility, "LOCAL1")
+	}
+}
+
 // Test that file read errors are propagated up
 func TestParseConfig_readFileError(t *testing.T) {
 	_, err := ParseConfig(path.Join(os.TempDir(), "config.json"))
@@ -209,6 +227,11 @@ func TestParseConfig_correctValues(t *testing.T) {
     wait = "5s:10s"
     retry = "10s"
 
+    syslog {
+    	enabled = true
+    	facility = "LOCAL1"
+    }
+
     template {
       source = "nginx.conf.ctmpl"
       destination  = "/etc/nginx/nginx.conf"
@@ -242,6 +265,10 @@ func TestParseConfig_correctValues(t *testing.T) {
 		WaitRaw:  "5s:10s",
 		Retry:    10 * time.Second,
 		RetryRaw: "10s",
+		Syslog: &Syslog{
+			Enabled:  true,
+			Facility: "LOCAL1",
+		},
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{
 				Source:      "nginx.conf.ctmpl",

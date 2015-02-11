@@ -30,20 +30,22 @@ type Config struct {
 
 	// SSL indicates we should use a secure connection while talking to
 	// Consul. This requires Consul to be configured to serve HTTPS.
-	SSL bool `mapstructure:"ssl"`
+	//
+	// SSLNoVerify determines if we should skip certificate warnings
+	SSL         bool `mapstructure:"ssl"`
+	SSLNoVerify bool `mapstructure:"ssl_no_verify"`
 
-	// Authentication is the HTTP basic authentication to use when communicating
-	// with Consul.
+	// Auth is the HTTP basic authentication for communicating with Consul.
 	Auth *Auth `mapstructure:"auth"`
+
+	// Syslog is the configuration for syslog.
+	Syslog *Syslog `mapstructure:"syslog"`
 
 	// MaxStale is the maximum amount of time for staleness from Consul as given
 	// by LastContact. If supplied, Consul Template will query all servers instead
 	// of just the leader.
 	MaxStale    time.Duration `mapstructure:"-"`
 	MaxStaleRaw string        `mapstructure:"max_stale"`
-
-	// SSLNoVerify determines if we should skip certificate warnings
-	SSLNoVerify bool `mapstructure:"ssl_no_verify"`
 
 	// ConfigTemplates is a slice of the ConfigTemplate objects in the config.
 	ConfigTemplates []*ConfigTemplate `mapstructure:"template"`
@@ -81,6 +83,13 @@ func (c *Config) Merge(config *Config) {
 				Username: config.Auth.Username,
 				Password: config.Auth.Password,
 			}
+		}
+	}
+
+	if config.Syslog != nil {
+		c.Syslog = &Syslog{
+			Enabled:  config.Syslog.Enabled,
+			Facility: config.Syslog.Facility,
 		}
 	}
 
@@ -200,7 +209,15 @@ func ParseConfig(path string) (*Config, error) {
 // DefaultConfig returns the default configuration struct.
 func DefaultConfig() *Config {
 	return &Config{
-		Retry: 5 * time.Second,
+		SSL:             false,
+		SSLNoVerify:     false,
+		ConfigTemplates: []*ConfigTemplate{},
+		Retry:           5 * time.Second,
+		Auth:            &Auth{},
+		Syslog: &Syslog{
+			Enabled:  false,
+			Facility: "LOCAL0",
+		},
 	}
 }
 
@@ -208,6 +225,12 @@ func DefaultConfig() *Config {
 type Auth struct {
 	Username string `mapstructure:"username"`
 	Password string `mapstructure:"password"`
+}
+
+// Syslog is the configuration for syslog.
+type Syslog struct {
+	Enabled  bool   `mapstructure:"enabled"`
+	Facility string `mapstructure:"facility"`
 }
 
 // ConfigTemplate is the representation of an input template, output location,
