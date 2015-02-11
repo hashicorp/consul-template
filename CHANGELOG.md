@@ -12,6 +12,11 @@ IMPROVEMENTS:
   * Add new `NodeAddress` field to health services to always include the node's
     address
 
+BUG FIXES:
+
+  * Return errors instead of nil in catalog nodes and key prefix dependencies
+    (GH-192)
+
 ## 0.6.5 (February 5, 2015)
 
 FEATURES:
