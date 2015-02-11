@@ -187,6 +187,13 @@ func ParseConfig(path string) (*Config, error) {
 	return config, errs.ErrorOrNil()
 }
 
+// DefaultConfig returns the default configuration struct.
+func DefaultConfig() *Config {
+	return &Config{
+		Retry: 5 * time.Second,
+	}
+}
+
 // Auth is the HTTP basic authentication data.
 type Auth struct {
 	Username string `mapstructure:"username"`
