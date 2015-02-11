@@ -58,7 +58,7 @@ func (cli *CLI) Run(args []string) int {
 
 	var version, dry, once bool
 	var auth string
-	var config = new(Config)
+	var config = DefaultConfig()
 
 	// Parse the flags and options
 	flags := flag.NewFlagSet(Name, flag.ContinueOnError)
@@ -80,6 +80,8 @@ func (cli *CLI) Run(args []string) int {
 		"new template declaration")
 	flags.StringVar(&config.Token, "token", "",
 		"a consul API token")
+	flags.BoolVar(&config.Syslog.Enabled, "syslog", false,
+		"enable syslog logging")
 	flags.StringVar(&config.WaitRaw, "wait", "",
 		"the minimum(:maximum) to wait before rendering a new template")
 	flags.StringVar(&config.Path, "config", "",
@@ -219,6 +221,10 @@ Options:
   -ssl                     Use SSL when connecting to Consul
   -ssl-no-verify           Ignore certificate warnings when connecting via SSL
   -token=<token>           Sets the Consul API token
+
+  -syslog                  Send the output to syslog instead of standard error
+                           and standard out. The syslog facility defaults to
+                           LOCAL0 and can be changed using a configuration file
 
   -template=<template>     Adds a new template to watch on disk in the format
                            'templatePath:outputPath(:command)'
