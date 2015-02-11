@@ -32,7 +32,7 @@ func (d *CatalogNodes) Fetch(client *api.Client, options *api.QueryOptions) (int
 	catalog := client.Catalog()
 	n, qm, err := catalog.Nodes(options)
 	if err != nil {
-		return err, qm, nil
+		return nil, qm, err
 	}
 
 	log.Printf("[DEBUG] (%s) Consul returned %d nodes", d.Display(), len(n))

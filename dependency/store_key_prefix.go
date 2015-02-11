@@ -37,7 +37,7 @@ func (d *StoreKeyPrefix) Fetch(client *api.Client, options *api.QueryOptions) (i
 	store := client.KV()
 	prefixes, qm, err := store.List(d.Prefix, options)
 	if err != nil {
-		return err, qm, nil
+		return nil, qm, err
 	}
 
 	log.Printf("[DEBUG] (%s) Consul returned %d key pairs", d.Display(), len(prefixes))
