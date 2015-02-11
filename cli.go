@@ -57,7 +57,6 @@ func (cli *CLI) Run(args []string) int {
 	cli.initLogger()
 
 	var version, dry, once bool
-	var auth string
 	var config = DefaultConfig()
 
 	// Parse the flags and options
@@ -72,7 +71,7 @@ func (cli *CLI) Run(args []string) int {
 		"use https while talking to consul")
 	flags.BoolVar(&config.SSLNoVerify, "ssl-no-verify", false,
 		"ignore certificate warnings under https")
-	flags.StringVar(&auth, "auth", "",
+	flags.Var((*authVar)(&config.Auth), "auth",
 		"set basic auth username[:password]")
 	flags.DurationVar(&config.MaxStale, "max-stale", 0,
 		"the maximum time to wait for stale queries")
@@ -106,19 +105,6 @@ func (cli *CLI) Run(args []string) int {
 		log.Printf("[DEBUG] (cli) version flag was given, exiting now")
 		fmt.Fprintf(cli.errStream, "%s v%s\n", Name, Version)
 		return ExitCodeOK
-	}
-
-	// Setup authentication
-	if auth != "" {
-		log.Printf("[DEBUG] (cli) detected -auth, parsing")
-		config.Auth = new(Auth)
-		if strings.Contains(auth, ":") {
-			split := strings.SplitN(auth, ":", 2)
-			config.Auth.Username = split[0]
-			config.Auth.Password = split[1]
-		} else {
-			config.Auth.Username = auth
-		}
 	}
 
 	// Parse the raw wait value into a Wait object

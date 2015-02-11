@@ -1,5 +1,7 @@
 package main
 
+import "strings"
+
 // configTemplateVar implements the Flag.Value interface and allows the user
 // to specify multiple -template keys in the CLI where each option is parsed
 // as a template.
@@ -21,4 +23,23 @@ func (ctv *configTemplateVar) Set(value string) error {
 
 func (ctv *configTemplateVar) String() string {
 	return ""
+}
+
+//
+type authVar *Auth
+
+func (a *authVar) Set(value string) error {
+	if *a == nil {
+		*a = new(Auth)
+	}
+
+	if strings.Contains(value, ":") {
+		split := strings.SplitN(value, ":", 2)
+		a.Username = split[0]
+		a.Password = split[1]
+	} else {
+		a.Username = value
+	}
+
+	return nil
 }
