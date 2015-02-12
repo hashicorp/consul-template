@@ -20,6 +20,8 @@ BUG FIXES:
     (GH-192)
   * Allow Consul Template to exit when running in `once` mode and templates have
     not changed (GH-188)
+  * Raise an error when specifying a non-existent option in the configuration
+    file (GH-197)
 
 ## 0.6.5 (February 5, 2015)
 
