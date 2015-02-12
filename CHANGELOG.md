@@ -16,6 +16,8 @@ BUG FIXES:
 
   * Return errors instead of nil in catalog nodes and key prefix dependencies
     (GH-192)
+  * Allow Consul Template to exit when running in `once` mode and templates have
+    not changed (GH-188)
 
 ## 0.6.5 (February 5, 2015)
 
