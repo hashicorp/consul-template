@@ -797,6 +797,62 @@ func TestRun_doesNotExecuteCommandMoreThanOnce(t *testing.T) {
 	}
 }
 
+func TestRunner_onceAlreadyRenderedDoesNotHangOrRunCommands(t *testing.T) {
+	outFile := test.CreateTempfile(nil, t)
+	os.Remove(outFile.Name())
+	defer os.Remove(outFile.Name())
+
+	out := test.CreateTempfile([]byte("redis"), t)
+	defer os.Remove(out.Name())
+
+	in := test.CreateTempfile([]byte(`{{ key "service_name"}}`), t)
+	defer test.DeleteTempfile(in, t)
+
+	outTemplateA := test.CreateTempfile(nil, t)
+	defer test.DeleteTempfile(outTemplateA, t)
+
+	config := &Config{
+		ConfigTemplates: []*ConfigTemplate{
+			&ConfigTemplate{
+				Source:      in.Name(),
+				Destination: out.Name(),
+				Command:     fmt.Sprintf("echo 'foo' >> %s", outFile.Name()),
+			},
+		},
+	}
+
+	runner, err := NewRunner(config, false, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	d, err := dep.ParseStoreKey("service_name")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data := "redis"
+	runner.Receive(d, data)
+
+	go runner.Start()
+
+	select {
+	case err := <-runner.ErrCh:
+		t.Fatal(err)
+	case <-runner.DoneCh:
+	case <-time.After(5 * time.Millisecond):
+		t.Fatal("runner should have stopped")
+		runner.Stop()
+	}
+
+	_, err = os.Stat(outFile.Name())
+	if err == nil {
+		t.Fatal("expected command to not be run")
+	}
+	if !os.IsNotExist(err) {
+		t.Fatal(err)
+	}
+}
+
 func TestBuildConfig_singleFile(t *testing.T) {
 	configFile := test.CreateTempfile([]byte(`
 		consul = "127.0.0.1"
