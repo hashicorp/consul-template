@@ -11,6 +11,8 @@ IMPROVEMENTS:
   * Use a service's reported address if given (GH-185, GH-186)
   * Add new `NodeAddress` field to health services to always include the node's
     address
+  * Return errors up the watcher's error channel so other libraries can
+    determine what to do with the error instead of swallowing it (GH-196)
 
 BUG FIXES:
 
