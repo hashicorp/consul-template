@@ -86,7 +86,10 @@ func (v *View) poll(viewCh chan<- *View, errCh chan<- error) {
 			log.Printf("[ERR] (view) %s %s", v.display(), err)
 
 			// Push the error back up to the watcher
-			errCh <- err
+			select {
+			case errCh <- err:
+			case <-v.stopCh:
+			}
 
 			// Sleep and retry
 			if v.config.RetryFunc != nil {
