@@ -153,8 +153,14 @@ func (r *Runner) Start() {
 				}
 			}
 		case err := <-r.watcher.ErrCh:
-			r.ErrCh <- err
-			return
+			// Intentionally do not send the error back up to the runner. Eventually,
+			// once Consul API implements errwrap and multierror, we can check the
+			// "type" of error and conditionally alert back.
+			//
+			// if err.Contains(Something) {
+			//   errCh <- err
+			// }
+			log.Printf("[ERR] (runner) watcher reported error: %s", err)
 		case tmpl := <-r.quiescenceCh:
 			// Remove the quiescence for this template from the map. This will force
 			// the upcoming Run call to actually evaluate and render the template.
