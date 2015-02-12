@@ -143,7 +143,17 @@ func ParseConfig(path string) (*Config, error) {
 	config := &Config{}
 
 	// Use mapstructure to populate the basic config fields
-	if err := mapstructure.Decode(parsed, config); err != nil {
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		ErrorUnused: true,
+		Metadata:    nil,
+		Result:      config,
+	})
+	if err != nil {
+		errs = multierror.Append(errs, err)
+		return nil, errs.ErrorOrNil()
+	}
+
+	if err := decoder.Decode(parsed); err != nil {
 		errs = multierror.Append(errs, err)
 		return nil, errs.ErrorOrNil()
 	}
