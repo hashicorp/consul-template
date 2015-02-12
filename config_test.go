@@ -180,6 +180,24 @@ func TestParseConfig_mapstructureError(t *testing.T) {
 	}
 }
 
+func TestParseConfig_extraKeys(t *testing.T) {
+	configFile := test.CreateTempfile([]byte(`
+		fake_key = "nope"
+		another_fake_key = "never"
+	`), t)
+	defer test.DeleteTempfile(configFile, t)
+
+	_, err := ParseConfig(configFile.Name())
+	if err == nil {
+		t.Fatal("expected error")
+	}
+
+	expected := "invalid keys: another_fake_key, fake_key"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to be %q", err.Error(), expected)
+	}
+}
+
 // Test that the config is parsed correctly
 func TestParseConfig_correctValues(t *testing.T) {
 	configFile := test.CreateTempfile([]byte(`
@@ -188,7 +206,6 @@ func TestParseConfig_correctValues(t *testing.T) {
     ssl = true
     ssl_no_verify = true
     token = "abcd1234"
-    batch_size = 100
     wait = "5s:10s"
     retry = "10s"
 
