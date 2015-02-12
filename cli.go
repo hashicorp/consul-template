@@ -71,7 +71,7 @@ func (cli *CLI) Run(args []string) int {
 		"use https while talking to consul")
 	flags.BoolVar(&config.SSLNoVerify, "ssl-no-verify", false,
 		"ignore certificate warnings under https")
-	flags.Var((*authVar)(&config.Auth), "auth",
+	flags.Var((*authVar)(config.Auth), "auth",
 		"set basic auth username[:password]")
 	flags.DurationVar(&config.MaxStale, "max-stale", 0,
 		"the maximum time to wait for stale queries")

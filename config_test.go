@@ -226,11 +226,8 @@ func TestParseConfig_correctValues(t *testing.T) {
     token = "abcd1234"
     wait = "5s:10s"
     retry = "10s"
-
-    syslog {
-    	enabled = true
-    	facility = "LOCAL1"
-    }
+    syslog = true
+    syslog_facility = "LOCAL1"
 
     template {
       source = "nginx.conf.ctmpl"

@@ -26,13 +26,9 @@ func (ctv *configTemplateVar) String() string {
 }
 
 //
-type authVar *Auth
+type authVar Auth
 
 func (a *authVar) Set(value string) error {
-	if *a == nil {
-		*a = new(Auth)
-	}
-
 	if strings.Contains(value, ":") {
 		split := strings.SplitN(value, ":", 2)
 		a.Username = split[0]
@@ -42,4 +38,8 @@ func (a *authVar) Set(value string) error {
 	}
 
 	return nil
+}
+
+func (a *authVar) String() string {
+	return ""
 }
