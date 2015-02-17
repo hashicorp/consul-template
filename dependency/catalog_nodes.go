@@ -54,10 +54,10 @@ func (d *CatalogNodes) HashCode() string {
 
 func (d *CatalogNodes) Display() string {
 	if d.rawKey == "" {
-		return fmt.Sprintf("nodes")
+		return fmt.Sprintf(`"nodes"`)
 	}
 
-	return fmt.Sprintf(`nodes "%s"`, d.rawKey)
+	return fmt.Sprintf(`"nodes(%s)"`, d.rawKey)
 }
 
 // ParseCatalogNodes parses a string of the format @dc.

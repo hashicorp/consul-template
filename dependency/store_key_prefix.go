@@ -62,7 +62,7 @@ func (d *StoreKeyPrefix) HashCode() string {
 }
 
 func (d *StoreKeyPrefix) Display() string {
-	return fmt.Sprintf(`storeKeyPrefix "%s"`, d.rawKey)
+	return fmt.Sprintf(`"storeKeyPrefix(%s)"`, d.rawKey)
 }
 
 // ParseStoreKeyPrefix parses a string of the format a(/b(/c...))

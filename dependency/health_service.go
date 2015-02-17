@@ -99,7 +99,7 @@ func (d *HealthServices) HashCode() string {
 }
 
 func (d *HealthServices) Display() string {
-	return fmt.Sprintf(`service "%s"`, d.rawKey)
+	return fmt.Sprintf(`"service(%s)"`, d.rawKey)
 }
 
 // ParseHealthServices processes the incoming strings to build a service dependency.

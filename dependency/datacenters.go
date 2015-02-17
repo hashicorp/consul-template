@@ -58,10 +58,10 @@ func (d *Datacenters) HashCode() string {
 // example).
 func (d *Datacenters) Display() string {
 	if d.rawKey == "" {
-		return fmt.Sprintf("datacenters")
+		return fmt.Sprintf(`"datacenters"`)
 	}
 
-	return fmt.Sprintf(`datacenters "%s"`, d.rawKey)
+	return fmt.Sprintf(`"datacenters(%s)"`, d.rawKey)
 }
 
 // ParseDatacenters creates a new datacenter dependency.

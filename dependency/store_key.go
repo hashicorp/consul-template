@@ -47,7 +47,7 @@ func (d *StoreKey) HashCode() string {
 }
 
 func (d *StoreKey) Display() string {
-	return fmt.Sprintf(`key "%s"`, d.rawKey)
+	return fmt.Sprintf(`"key(%s)"`, d.rawKey)
 }
 
 // ParseStoreKey parses a string of the format a(/b(/c...))

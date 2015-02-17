@@ -46,7 +46,7 @@ func (d *File) HashCode() string {
 }
 
 func (d *File) Display() string {
-	return fmt.Sprintf(`file "%s"`, d.rawKey)
+	return fmt.Sprintf(`"file(%s)"`, d.rawKey)
 }
 
 // watch watchers the file for changes

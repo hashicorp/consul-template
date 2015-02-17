@@ -65,10 +65,10 @@ func (d *CatalogServices) HashCode() string {
 // example).
 func (d *CatalogServices) Display() string {
 	if d.rawKey == "" {
-		return fmt.Sprintf("catalog services")
+		return fmt.Sprintf(`"services"`)
 	}
 
-	return fmt.Sprintf(`catalog services "%s"`, d.rawKey)
+	return fmt.Sprintf(`"services(%s)"`, d.rawKey)
 }
 
 // ParseCatalogServices parses a string of the format @dc.
