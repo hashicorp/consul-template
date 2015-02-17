@@ -22,6 +22,9 @@ BUG FIXES:
     not changed (GH-188)
   * Raise an error when specifying a non-existent option in the configuration
     file (GH-197)
+  * Improve debugging output and consistency
+  * Remove unused Brain functions
+  * Remove unused documentation items
 
 ## 0.6.5 (February 5, 2015)
 
