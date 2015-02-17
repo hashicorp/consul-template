@@ -48,15 +48,13 @@ func (b *Brain) Recall(d dep.Dependency) (interface{}, bool) {
 	b.Lock()
 	defer b.Unlock()
 
-	log.Printf("[INFO] (brain) recalling data for %s", d.Display())
-
 	// If we have not received data for this dependency, return now.
 	if _, ok := b.receivedData[d.HashCode()]; !ok {
-		log.Printf("[DEBUG] (brain) %s did not have data", d.Display())
+		log.Printf("[DEBUG] (brain) does not have data for %s", d.Display())
 		return nil, false
 	}
 
-	log.Printf("[DEBUG] (brain) %s had data", d.Display())
+	log.Printf("[INFO] (brain) recalling data for %s", d.Display())
 	return b.data[d.HashCode()], true
 }
 
