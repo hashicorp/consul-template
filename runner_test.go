@@ -168,7 +168,7 @@ func TestReceive_storesBrain(t *testing.T) {
 	d, data := &dep.File{}, "this is some data"
 	runner.Receive(d, data)
 
-	if !runner.brain.Remembered(d) {
+	if _, ok := runner.brain.Recall(d); !ok {
 		t.Errorf("expected brain to have data")
 	}
 }
@@ -405,7 +405,7 @@ func TestRun_removesUnusedDependencies(t *testing.T) {
 		t.Errorf("expected watcher to stop watching dependency")
 	}
 
-	if runner.brain.Remembered(d) {
+	if _, ok := runner.brain.Recall(d); ok {
 		t.Errorf("expected brain to forget dependency")
 	}
 }

@@ -52,26 +52,12 @@ func (b *Brain) Recall(d dep.Dependency) (interface{}, bool) {
 
 	// If we have not received data for this dependency, return now.
 	if _, ok := b.receivedData[d.HashCode()]; !ok {
+		log.Printf("[DEBUG] (brain) %s did not have data", d.Display())
 		return nil, false
 	}
 
+	log.Printf("[DEBUG] (brain) %s had data", d.Display())
 	return b.data[d.HashCode()], true
-}
-
-// Remembered returns true if the given dependency has received data at least once.
-func (b *Brain) Remembered(d dep.Dependency) bool {
-	b.Lock()
-	defer b.Unlock()
-
-	log.Printf("[INFO] (brain) checking if %s has data", d.Display())
-
-	if _, ok := b.receivedData[d.HashCode()]; ok {
-		log.Printf("[DEBUG] (brain) %s had data", d.Display())
-		return true
-	}
-
-	log.Printf("[DEBUG] (brain) %s did not have data", d.Display())
-	return false
 }
 
 // Forget accepts a dependency and removes all associated data with this

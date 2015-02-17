@@ -19,26 +19,6 @@ func TestNewBrain(t *testing.T) {
 	}
 }
 
-func TestRemember(t *testing.T) {
-	b := NewBrain()
-
-	list := map[dep.Dependency]interface{}{
-		&dep.CatalogNodes{}:    []*dep.Node{},
-		&dep.CatalogServices{}: []*dep.CatalogService{},
-		&dep.File{}:            "",
-		&dep.HealthServices{}:  []*dep.HealthService{},
-		&dep.StoreKey{}:        "",
-		&dep.StoreKeyPrefix{}:  []*dep.KeyPair{},
-	}
-
-	for d, data := range list {
-		b.Remember(d, data)
-		if !b.Remembered(d) {
-			t.Errorf("expected %#v to be remembered", d)
-		}
-	}
-}
-
 func TestRecall(t *testing.T) {
 	b := NewBrain()
 
@@ -76,7 +56,7 @@ func TestForget(t *testing.T) {
 
 	for d, _ := range list {
 		b.Forget(d)
-		if b.Remembered(d) {
+		if _, ok := b.Recall(d); ok {
 			t.Errorf("expected %#v to not be forgotten", d)
 		}
 	}

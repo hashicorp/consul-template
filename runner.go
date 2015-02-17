@@ -487,7 +487,7 @@ func (r *Runner) allTemplatesRendered() bool {
 // on the template.
 func (r *Runner) canRender(tmpl *Template) bool {
 	for _, d := range tmpl.Dependencies() {
-		if !r.brain.Remembered(d) {
+		if _, ok := r.brain.Recall(d); !ok {
 			log.Printf("[DEBUG] (runner) %q missing data for %s", tmpl.Path, d.Display())
 			return false
 		}
