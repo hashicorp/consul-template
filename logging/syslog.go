@@ -1,37 +1,11 @@
-package main
+package logging
 
 import (
 	"bytes"
-	"io/ioutil"
 
 	"github.com/hashicorp/go-syslog"
 	"github.com/hashicorp/logutils"
 )
-
-// Levels are the log levels we respond to=o.
-var Levels = []logutils.LogLevel{"DEBUG", "INFO", "WARN", "ERR"}
-
-// NewLogFilter returns a LevelFilter that is configured with the log levels that
-// we use.
-func NewLogFilter() *logutils.LevelFilter {
-	return &logutils.LevelFilter{
-		Levels:   Levels,
-		MinLevel: "WARN",
-		Writer:   ioutil.Discard,
-	}
-}
-
-// ValidateLevelFilter verifies that the log levels within the filter are valid.
-func ValidateLevelFilter(min logutils.LogLevel, filter *logutils.LevelFilter) bool {
-	for _, level := range filter.Levels {
-		if level == min {
-			return true
-		}
-	}
-	return false
-}
-
-/// ------------------------- ///
 
 // syslogPriorityMap is used to map a log level to a syslog priority level.
 var syslogPriorityMap = map[string]gsyslog.Priority{
