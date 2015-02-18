@@ -1,6 +1,9 @@
 package main
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 // configTemplateVar implements the Flag.Value interface and allows the user
 // to specify multiple -template keys in the CLI where each option is parsed
@@ -25,10 +28,14 @@ func (ctv *configTemplateVar) String() string {
 	return ""
 }
 
-//
+// authVar implements the Flag.Value interface and allows the user to specify
+// authentication in the username[:password] form.
 type authVar Auth
 
+// Set sets the value for this authentication.
 func (a *authVar) Set(value string) error {
+	a.Enabled = true
+
 	if strings.Contains(value, ":") {
 		split := strings.SplitN(value, ":", 2)
 		a.Username = split[0]
@@ -40,6 +47,11 @@ func (a *authVar) Set(value string) error {
 	return nil
 }
 
+// String returns the string representation of this authentication.
 func (a *authVar) String() string {
-	return ""
+	if a.Password == "" {
+		return a.Username
+	}
+
+	return fmt.Sprintf("%s:%s", a.Username, a.Password)
 }
