@@ -4,12 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/hashicorp/consul-template/watch"
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/mapstructure"
 )
@@ -28,22 +29,29 @@ type Config struct {
 	// address or FQDN) with port.
 	Consul string `mapstructure:"consul"`
 
+	// Token is the Consul API token.
+	Token string `mapstructure:"token"`
+
+	// Auth is the HTTP basic authentication for communicating with Consul.
+	Auth    *Auth   `mapstructure:"-"`
+	AuthRaw []*Auth `mapstructure:"auth"`
+
 	// SSL indicates we should use a secure connection while talking to
 	// Consul. This requires Consul to be configured to serve HTTPS.
-	SSL bool `mapstructure:"ssl"`
+	//
+	// SSLNoVerify determines if we should skip certificate warnings
+	SSL    *SSL   `mapstructure:"-"`
+	SSLRaw []*SSL `mapstructure:"ssl"`
 
-	// Authentication is the HTTP basic authentication to use when communicating
-	// with Consul.
-	Auth *Auth `mapstructure:"auth"`
+	// Syslog is the configuration for syslog.
+	Syslog    *Syslog   `mapstructure:"-"`
+	SyslogRaw []*Syslog `mapstructure:"syslog"`
 
 	// MaxStale is the maximum amount of time for staleness from Consul as given
 	// by LastContact. If supplied, Consul Template will query all servers instead
 	// of just the leader.
 	MaxStale    time.Duration `mapstructure:"-"`
 	MaxStaleRaw string        `mapstructure:"max_stale"`
-
-	// SSLNoVerify determines if we should skip certificate warnings
-	SSLNoVerify bool `mapstructure:"ssl_no_verify"`
 
 	// ConfigTemplates is a slice of the ConfigTemplate objects in the config.
 	ConfigTemplates []*ConfigTemplate `mapstructure:"template"`
@@ -52,12 +60,12 @@ type Config struct {
 	Retry    time.Duration `mapstructure:"-"`
 	RetryRaw string        `mapstructure:"retry" json:""`
 
-	// Token is the Consul API token.
-	Token string `mapstructure:"token"`
-
-	// Wait
+	// Wait is the quiescence timers.
 	Wait    *watch.Wait `mapstructure:"-"`
 	WaitRaw string      `mapstructure:"wait" json:""`
+
+	// LogLevel is the level with which to log for this config.
+	LogLevel string `mapstructure:"log_level"`
 }
 
 // Merge merges the values in config into this config object. Values in the
@@ -67,20 +75,29 @@ func (c *Config) Merge(config *Config) {
 		c.Consul = config.Consul
 	}
 
-	if config.SSL {
-		c.SSL = true
-	}
-
-	if config.SSLNoVerify {
-		c.SSLNoVerify = true
+	if config.Token != "" {
+		c.Token = config.Token
 	}
 
 	if config.Auth != nil {
-		if config.Auth.Username != "" || config.Auth.Password != "" {
-			c.Auth = &Auth{
-				Username: config.Auth.Username,
-				Password: config.Auth.Password,
-			}
+		c.Auth = &Auth{
+			Enabled:  config.Auth.Enabled,
+			Username: config.Auth.Username,
+			Password: config.Auth.Password,
+		}
+	}
+
+	if config.SSL != nil {
+		c.SSL = &SSL{
+			Enabled: config.SSL.Enabled,
+			Verify:  config.SSL.Verify,
+		}
+	}
+
+	if config.Syslog != nil {
+		c.Syslog = &Syslog{
+			Enabled:  config.Syslog.Enabled,
+			Facility: config.Syslog.Facility,
 		}
 	}
 
@@ -107,16 +124,16 @@ func (c *Config) Merge(config *Config) {
 		c.RetryRaw = config.RetryRaw
 	}
 
-	if config.Token != "" {
-		c.Token = config.Token
-	}
-
 	if config.Wait != nil {
 		c.Wait = &watch.Wait{
 			Min: config.Wait.Min,
 			Max: config.Wait.Max,
 		}
 		c.WaitRaw = config.WaitRaw
+	}
+
+	if config.LogLevel != "" {
+		c.LogLevel = config.LogLevel
 	}
 }
 
@@ -172,6 +189,21 @@ func ParseConfig(path string) (*Config, error) {
 		}
 	}
 
+	// Extract the last Auth block
+	if len(config.AuthRaw) > 0 {
+		config.Auth = config.AuthRaw[len(config.AuthRaw)-1]
+	}
+
+	// Extract the last SSL block
+	if len(config.SSLRaw) > 0 {
+		config.SSL = config.SSLRaw[len(config.SSLRaw)-1]
+	}
+
+	// Extract the last Syslog block
+	if len(config.SyslogRaw) > 0 {
+		config.Syslog = config.SyslogRaw[len(config.SyslogRaw)-1]
+	}
+
 	// Parse the Retry component
 	if raw := config.RetryRaw; raw != "" {
 		retry, err := time.ParseDuration(raw)
@@ -199,15 +231,47 @@ func ParseConfig(path string) (*Config, error) {
 
 // DefaultConfig returns the default configuration struct.
 func DefaultConfig() *Config {
+	logLevel := os.Getenv("CONSUL_TEMPLATE_LOG")
+	if logLevel == "" {
+		logLevel = "WARN"
+	}
+
 	return &Config{
-		Retry: 5 * time.Second,
+		Auth: &Auth{
+			Enabled: false,
+		},
+		SSL: &SSL{
+			Enabled: false,
+			Verify:  true,
+		},
+		Syslog: &Syslog{
+			Enabled:  false,
+			Facility: "LOCAL0",
+		},
+		ConfigTemplates: []*ConfigTemplate{},
+		Retry:           5 * time.Second,
+		Wait:            &watch.Wait{},
+		LogLevel:        logLevel,
 	}
 }
 
 // Auth is the HTTP basic authentication data.
 type Auth struct {
+	Enabled  bool   `mapstructure:"enabled"`
 	Username string `mapstructure:"username"`
 	Password string `mapstructure:"password"`
+}
+
+// SSL is the configuration for SSL.
+type SSL struct {
+	Enabled bool `mapstructure:"enabled"`
+	Verify  bool `mapstructure:"verify"`
+}
+
+// Syslog is the configuration for syslog.
+type Syslog struct {
+	Enabled  bool   `mapstructure:"enabled"`
+	Facility string `mapstructure:"facility"`
 }
 
 // ConfigTemplate is the representation of an input template, output location,

@@ -63,12 +63,14 @@ func TestMerge_complexConfig(t *testing.T) {
 		Token:           "abc123",
 		MaxStale:        3 * time.Second,
 		Wait:            &watch.Wait{Min: 5 * time.Second, Max: 10 * time.Second},
+		LogLevel:        "WARN",
 	}
 	otherConfig := &Config{
 		ConfigTemplates: templates[2:],
 		Retry:           15 * time.Second,
 		Token:           "def456",
 		Wait:            &watch.Wait{Min: 25 * time.Second, Max: 50 * time.Second},
+		LogLevel:        "ERR",
 	}
 
 	config.Merge(otherConfig)
@@ -79,6 +81,7 @@ func TestMerge_complexConfig(t *testing.T) {
 		Token:           "def456",
 		MaxStale:        3 * time.Second,
 		Wait:            &watch.Wait{Min: 25 * time.Second, Max: 50 * time.Second},
+		LogLevel:        "ERR",
 	}
 
 	if !reflect.DeepEqual(config, expected) {
@@ -89,35 +92,51 @@ func TestMerge_complexConfig(t *testing.T) {
 // Test that the flags for HTTPS are properly merged
 func TestMerge_HttpsOptions(t *testing.T) {
 	config := &Config{
-		SSL:         false,
-		SSLNoVerify: false,
+		SSL: &SSL{
+			Enabled: false,
+			Verify:  false,
+		},
 	}
 	otherConfig := &Config{
-		SSL:         true,
-		SSLNoVerify: true,
+		SSL: &SSL{
+			Enabled: true,
+			Verify:  true,
+		},
 	}
 	config.Merge(otherConfig)
 
-	if !config.SSL || !config.SSLNoVerify {
-		t.Fatalf("bad: %#v", config)
+	if config.SSL.Enabled != true {
+		t.Errorf("expected enabled to be true")
+	}
+
+	if config.SSL.Verify != true {
+		t.Errorf("expected SSL verify to be true")
 	}
 
 	config = &Config{
-		SSL:         true,
-		SSLNoVerify: true,
+		SSL: &SSL{
+			Enabled: true,
+			Verify:  true,
+		},
 	}
 	otherConfig = &Config{
-		SSL:         false,
-		SSLNoVerify: false,
+		SSL: &SSL{
+			Enabled: false,
+			Verify:  false,
+		},
 	}
 	config.Merge(otherConfig)
 
-	if !config.SSL || !config.SSLNoVerify {
-		t.Fatalf("bad: %#v", config)
+	if config.SSL.Enabled != false {
+		t.Errorf("expected enabled to be false")
+	}
+
+	if config.SSL.Verify != false {
+		t.Errorf("expected SSL verify to be false")
 	}
 }
 
-func TestMerge_BasicAuthOptions(t *testing.T) {
+func TestMerge_AuthOptions(t *testing.T) {
 	config := &Config{
 		Auth: &Auth{Username: "user", Password: "pass"},
 	}
@@ -128,6 +147,24 @@ func TestMerge_BasicAuthOptions(t *testing.T) {
 
 	if config.Auth.Username != "newUser" {
 		t.Errorf("expected %q to be %q", config.Auth.Username, "newUser")
+	}
+}
+
+func TestMerge_SyslogOptions(t *testing.T) {
+	config := &Config{
+		Syslog: &Syslog{Enabled: false, Facility: "LOCAL0"},
+	}
+	otherConfig := &Config{
+		Syslog: &Syslog{Enabled: true, Facility: "LOCAL1"},
+	}
+	config.Merge(otherConfig)
+
+	if config.Syslog.Enabled != true {
+		t.Errorf("expected %q to be %q", config.Syslog.Enabled, true)
+	}
+
+	if config.Syslog.Facility != "LOCAL1" {
+		t.Errorf("expected %q to be %q", config.Syslog.Facility, "LOCAL1")
 	}
 }
 
@@ -180,6 +217,7 @@ func TestParseConfig_mapstructureError(t *testing.T) {
 	}
 }
 
+// Test that mapstructure errors on extra kes
 func TestParseConfig_extraKeys(t *testing.T) {
 	configFile := test.CreateTempfile([]byte(`
 		fake_key = "nope"
@@ -203,11 +241,26 @@ func TestParseConfig_correctValues(t *testing.T) {
 	configFile := test.CreateTempfile([]byte(`
     consul = "nyc1.demo.consul.io"
     max_stale = "5s"
-    ssl = true
-    ssl_no_verify = true
     token = "abcd1234"
     wait = "5s:10s"
     retry = "10s"
+    log_level = "warn"
+
+    auth {
+    	enabled = true
+    	username = "test"
+    	password = "test"
+    }
+
+    ssl {
+    	enabled = true
+    	verify = false
+    }
+
+    syslog {
+    	enabled = true
+    	facility = "LOCAL5"
+    }
 
     template {
       source = "nginx.conf.ctmpl"
@@ -232,9 +285,39 @@ func TestParseConfig_correctValues(t *testing.T) {
 		Consul:      "nyc1.demo.consul.io",
 		MaxStale:    time.Second * 5,
 		MaxStaleRaw: "5s",
-		SSL:         true,
-		SSLNoVerify: true,
-		Token:       "abcd1234",
+		Auth: &Auth{
+			Enabled:  true,
+			Username: "test",
+			Password: "test",
+		},
+		AuthRaw: []*Auth{
+			&Auth{
+				Enabled:  true,
+				Username: "test",
+				Password: "test",
+			},
+		},
+		SSL: &SSL{
+			Enabled: true,
+			Verify:  false,
+		},
+		SSLRaw: []*SSL{
+			&SSL{
+				Enabled: true,
+				Verify:  false,
+			},
+		},
+		Syslog: &Syslog{
+			Enabled:  true,
+			Facility: "LOCAL5",
+		},
+		SyslogRaw: []*Syslog{
+			&Syslog{
+				Enabled:  true,
+				Facility: "LOCAL5",
+			},
+		},
+		Token: "abcd1234",
 		Wait: &watch.Wait{
 			Min: time.Second * 5,
 			Max: time.Second * 10,
@@ -242,6 +325,7 @@ func TestParseConfig_correctValues(t *testing.T) {
 		WaitRaw:  "5s:10s",
 		Retry:    10 * time.Second,
 		RetryRaw: "10s",
+		LogLevel: "warn",
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{
 				Source:      "nginx.conf.ctmpl",
@@ -254,8 +338,9 @@ func TestParseConfig_correctValues(t *testing.T) {
 			},
 		},
 	}
+
 	if !reflect.DeepEqual(config, expected) {
-		t.Fatalf("expected %+v to be %+v", config, expected)
+		t.Fatalf("expected %#v to be %#v", config, expected)
 	}
 }
 

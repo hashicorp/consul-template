@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/hashicorp/consul-template/watch"
+	"github.com/hashicorp/go-syslog"
 	"github.com/hashicorp/logutils"
 )
 
@@ -26,8 +27,8 @@ const (
 
 	ExitCodeError = 10 + iota
 	ExitCodeInterrupt
+	ExitCodeLoggingError
 	ExitCodeParseFlagsError
-	ExitCodeParseWaitError
 	ExitCodeRunnerError
 )
 
@@ -54,47 +55,15 @@ func NewCLI(out, err io.Writer) *CLI {
 // Run accepts a slice of arguments and returns an int representing the exit
 // status from the command.
 func (cli *CLI) Run(args []string) int {
-	cli.initLogger()
-
-	var version, dry, once bool
-	var auth string
-	var config = new(Config)
-
-	// Parse the flags and options
-	flags := flag.NewFlagSet(Name, flag.ContinueOnError)
-	flags.SetOutput(cli.errStream)
-	flags.Usage = func() {
-		fmt.Fprintf(cli.errStream, usage, Name)
-	}
-	flags.StringVar(&config.Consul, "consul", "",
-		"address of the Consul instance")
-	flags.BoolVar(&config.SSL, "ssl", false,
-		"use https while talking to consul")
-	flags.BoolVar(&config.SSLNoVerify, "ssl-no-verify", false,
-		"ignore certificate warnings under https")
-	flags.StringVar(&auth, "auth", "",
-		"set basic auth username[:password]")
-	flags.DurationVar(&config.MaxStale, "max-stale", 0,
-		"the maximum time to wait for stale queries")
-	flags.Var((*configTemplateVar)(&config.ConfigTemplates), "template",
-		"new template declaration")
-	flags.StringVar(&config.Token, "token", "",
-		"a consul API token")
-	flags.StringVar(&config.WaitRaw, "wait", "",
-		"the minimum(:maximum) to wait before rendering a new template")
-	flags.StringVar(&config.Path, "config", "",
-		"the path to a config file on disk")
-	flags.DurationVar(&config.Retry, "retry", 0,
-		"the duration to wait when Consul is not available")
-	flags.BoolVar(&once, "once", false,
-		"do not run as a daemon")
-	flags.BoolVar(&dry, "dry", false,
-		"write generated templates to stdout")
-	flags.BoolVar(&version, "version", false, "display the version")
-
-	// If there was a parser error, stop
-	if err := flags.Parse(args[1:]); err != nil {
+	// Parse the flags
+	config, once, dry, version, err := cli.parseFlags(args[1:])
+	if err != nil {
 		return cli.handleError(err, ExitCodeParseFlagsError)
+	}
+
+	// Setup the logging
+	if err := cli.setupLogging(config); err != nil {
+		return cli.handleError(err, ExitCodeLoggingError)
 	}
 
 	// If the version was requested, return an "error" containing the version
@@ -104,29 +73,6 @@ func (cli *CLI) Run(args []string) int {
 		log.Printf("[DEBUG] (cli) version flag was given, exiting now")
 		fmt.Fprintf(cli.errStream, "%s v%s\n", Name, Version)
 		return ExitCodeOK
-	}
-
-	// Setup authentication
-	if auth != "" {
-		log.Printf("[DEBUG] (cli) detected -auth, parsing")
-		config.Auth = new(Auth)
-		if strings.Contains(auth, ":") {
-			split := strings.SplitN(auth, ":", 2)
-			config.Auth.Username = split[0]
-			config.Auth.Password = split[1]
-		} else {
-			config.Auth.Username = auth
-		}
-	}
-
-	// Parse the raw wait value into a Wait object
-	if config.WaitRaw != "" {
-		log.Printf("[DEBUG] (cli) detected -wait, parsing")
-		wait, err := watch.ParseWait(config.WaitRaw)
-		if err != nil {
-			return cli.handleError(err, ExitCodeParseWaitError)
-		}
-		config.Wait = wait
 	}
 
 	// Initial runner
@@ -177,6 +123,56 @@ func (cli *CLI) stop() {
 	close(cli.stopCh)
 }
 
+// parseFlags is a helper function for parsing command line flags using Go's
+// Flag library. This is extracted into a helper to keep the main function
+// small, but it also makes writing tests for parsing command line arguments
+// much easier and cleaner.
+func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
+	var dry, once, version bool
+	var config = DefaultConfig()
+
+	// Parse the flags and options
+	flags := flag.NewFlagSet(Name, flag.ContinueOnError)
+	flags.SetOutput(cli.errStream)
+	flags.Usage = func() {
+		fmt.Fprintf(cli.errStream, usage, Name)
+	}
+	flags.StringVar(&config.Consul, "consul", config.Consul, "")
+	flags.StringVar(&config.Token, "token", config.Token, "")
+	flags.Var((*authVar)(config.Auth), "auth", "")
+	flags.BoolVar(&config.SSL.Enabled, "ssl", config.SSL.Enabled, "")
+	flags.BoolVar(&config.SSL.Verify, "ssl-verify", config.SSL.Verify, "")
+	flags.DurationVar(&config.MaxStale, "max-stale", config.MaxStale, "")
+	flags.Var((*configTemplateVar)(&config.ConfigTemplates), "template", "")
+	flags.BoolVar(&config.Syslog.Enabled, "syslog", config.Syslog.Enabled, "")
+	flags.StringVar(&config.Syslog.Facility, "syslog-facility", config.Syslog.Facility, "")
+	flags.Var((*watch.WaitVar)(config.Wait), "wait", "")
+	flags.DurationVar(&config.Retry, "retry", config.Retry, "")
+	flags.StringVar(&config.Path, "config", config.Path, "")
+	flags.StringVar(&config.LogLevel, "log-level", config.LogLevel, "")
+	flags.BoolVar(&once, "once", false, "")
+	flags.BoolVar(&dry, "dry", false, "")
+	flags.BoolVar(&version, "version", false, "")
+
+	// Deprecated options
+	var deprecatedSSLNoVerify bool
+	flags.BoolVar(&deprecatedSSLNoVerify, "ssl-no-verify", !config.SSL.Verify, "")
+
+	// If there was a parser error, stop
+	if err := flags.Parse(args); err != nil {
+		return nil, false, false, false, err
+	}
+
+	// Handle deprecations
+	if deprecatedSSLNoVerify {
+		log.Printf("[WARN] -ssl-no-verify is deprecated - please use " +
+			"-ssl-verify=false instead")
+		config.SSL.Verify = false
+	}
+
+	return config, once, dry, version, nil
+}
+
 // handleError outputs the given error's Error() to the errStream and returns
 // the given exit status.
 func (cli *CLI) handleError(err error, status int) int {
@@ -184,22 +180,39 @@ func (cli *CLI) handleError(err error, status int) int {
 	return status
 }
 
-// initLogger gets the log level from the environment, falling back to DEBUG if
+// setupLogging gets the log level from the environment, falling back to DEBUG if
 // nothing was given.
-func (cli *CLI) initLogger() {
-	minLevel := strings.ToUpper(strings.TrimSpace(os.Getenv("CONSUL_TEMPLATE_LOG")))
-	if minLevel == "" {
-		minLevel = "WARN"
+func (cli *CLI) setupLogging(config *Config) error {
+	var logOutput io.Writer
+
+	// Setup the default logging
+	logFilter := NewLogFilter()
+	logFilter.MinLevel = logutils.LogLevel(strings.ToUpper(config.LogLevel))
+	logFilter.Writer = cli.errStream
+	if !ValidateLevelFilter(logFilter.MinLevel, logFilter) {
+		levels := make([]string, 0, len(logFilter.Levels))
+		for _, level := range logFilter.Levels {
+			levels = append(levels, string(level))
+		}
+		return fmt.Errorf("invalid log level %q, valid log levels are %s",
+			config.LogLevel, strings.Join(levels, ", "))
 	}
 
-	levelFilter := &logutils.LevelFilter{
-		Levels: []logutils.LogLevel{"DEBUG", "INFO", "WARN", "ERR"},
-		Writer: cli.errStream,
+	// Check if syslog is enabled
+	if config.Syslog.Enabled {
+		l, err := gsyslog.NewLogger(gsyslog.LOG_NOTICE, config.Syslog.Facility, "consul-template")
+		if err != nil {
+			return fmt.Errorf("error setting up syslog logger: %s", err)
+		}
+		syslog := &SyslogWrapper{l, logFilter}
+		logOutput = io.MultiWriter(logFilter, syslog)
+	} else {
+		logOutput = io.MultiWriter(logFilter)
 	}
 
-	levelFilter.SetMinLevel(logutils.LogLevel(minLevel))
+	log.SetOutput(logOutput)
 
-	log.SetOutput(levelFilter)
+	return nil
 }
 
 const usage = `
@@ -217,8 +230,15 @@ Options:
                            Consul which will distribute work among all servers
                            instead of just the leader
   -ssl                     Use SSL when connecting to Consul
-  -ssl-no-verify           Ignore certificate warnings when connecting via SSL
+  -ssl-verify              Verify certificates when connecting via SSL
   -token=<token>           Sets the Consul API token
+
+  -syslog                  Send the output to syslog instead of standard error
+                           and standard out. The syslog facility defaults to
+                           LOCAL0 and can be changed using a configuration file
+  -syslog-facility=<f>     Set the facility where syslog should log. If this
+                           attribute is supplied, the -syslog flag must also be
+                           supplied.
 
   -template=<template>     Adds a new template to watch on disk in the format
                            'templatePath:outputPath(:command)'
@@ -228,6 +248,9 @@ Options:
                            error when communicating with the API
 
   -config=<path>           Sets the path to a configuration file on disk
+
+  -log-level=<level>       Set the logging level - valid values are "debug",
+                           "info", "warn" (default), and "err"
 
   -dry                     Dump generated templates to stdout
   -once                    Do not run the process as a daemon
