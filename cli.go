@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"github.com/hashicorp/consul-template/logging"
@@ -32,12 +33,15 @@ const (
 
 // CLI is the main entry point for Consul Template.
 type CLI struct {
+	sync.Mutex
+
 	// outSteam and errStream are the standard out and standard error streams to
 	// write messages from the CLI.
 	outStream, errStream io.Writer
 
 	// stopCh is an internal channel used to trigger a shutdown of the CLI.
-	stopCh chan struct{}
+	stopCh  chan struct{}
+	stopped bool
 }
 
 func NewCLI(out, err io.Writer) *CLI {
@@ -122,7 +126,15 @@ func (cli *CLI) Run(args []string) int {
 
 // stop is used internally to shutdown a running CLI
 func (cli *CLI) stop() {
+	cli.Lock()
+	defer cli.Unlock()
+
+	if cli.stopped {
+		return
+	}
+
 	close(cli.stopCh)
+	cli.stopped = true
 }
 
 // parseFlags is a helper function for parsing command line flags using Go's
