@@ -27,7 +27,6 @@ const (
 	ExitCodeError = 10 + iota
 	ExitCodeInterrupt
 	ExitCodeParseFlagsError
-	ExitCodeParseWaitError
 	ExitCodeRunnerError
 )
 
@@ -56,45 +55,9 @@ func NewCLI(out, err io.Writer) *CLI {
 func (cli *CLI) Run(args []string) int {
 	cli.initLogger()
 
-	var version, dry, once bool
-	var config = DefaultConfig()
-
-	// Parse the flags and options
-	flags := flag.NewFlagSet(Name, flag.ContinueOnError)
-	flags.SetOutput(cli.errStream)
-	flags.Usage = func() {
-		fmt.Fprintf(cli.errStream, usage, Name)
-	}
-	flags.StringVar(&config.Consul, "consul", "",
-		"address of the Consul instance")
-	flags.BoolVar(&config.SSL, "ssl", false,
-		"use https while talking to consul")
-	flags.BoolVar(&config.SSLNoVerify, "ssl-no-verify", false,
-		"ignore certificate warnings under https")
-	flags.Var((*authVar)(config.Auth), "auth",
-		"set basic auth username[:password]")
-	flags.DurationVar(&config.MaxStale, "max-stale", 0,
-		"the maximum time to wait for stale queries")
-	flags.Var((*configTemplateVar)(&config.ConfigTemplates), "template",
-		"new template declaration")
-	flags.StringVar(&config.Token, "token", "",
-		"a consul API token")
-	flags.BoolVar(&config.Syslog.Enabled, "syslog", false,
-		"enable syslog logging")
-	flags.StringVar(&config.WaitRaw, "wait", "",
-		"the minimum(:maximum) to wait before rendering a new template")
-	flags.StringVar(&config.Path, "config", "",
-		"the path to a config file on disk")
-	flags.DurationVar(&config.Retry, "retry", 0,
-		"the duration to wait when Consul is not available")
-	flags.BoolVar(&once, "once", false,
-		"do not run as a daemon")
-	flags.BoolVar(&dry, "dry", false,
-		"write generated templates to stdout")
-	flags.BoolVar(&version, "version", false, "display the version")
-
-	// If there was a parser error, stop
-	if err := flags.Parse(args[1:]); err != nil {
+	// Parse the flags
+	config, once, dry, version, err := cli.parseFlags(args[1:])
+	if err != nil {
 		return cli.handleError(err, ExitCodeParseFlagsError)
 	}
 
@@ -105,16 +68,6 @@ func (cli *CLI) Run(args []string) int {
 		log.Printf("[DEBUG] (cli) version flag was given, exiting now")
 		fmt.Fprintf(cli.errStream, "%s v%s\n", Name, Version)
 		return ExitCodeOK
-	}
-
-	// Parse the raw wait value into a Wait object
-	if config.WaitRaw != "" {
-		log.Printf("[DEBUG] (cli) detected -wait, parsing")
-		wait, err := watch.ParseWait(config.WaitRaw)
-		if err != nil {
-			return cli.handleError(err, ExitCodeParseWaitError)
-		}
-		config.Wait = wait
 	}
 
 	// Initial runner
@@ -165,6 +118,44 @@ func (cli *CLI) stop() {
 	close(cli.stopCh)
 }
 
+// parseFlags is a helper function for parsing command line flags using Go's
+// Flag library. This is extracted into a helper to keep the main function
+// small, but it also makes writing tests for parsing command line arguments
+// much easier and cleaner.
+func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
+	var dry, once, version bool
+	var config = DefaultConfig()
+
+	// Parse the flags and options
+	flags := flag.NewFlagSet(Name, flag.ContinueOnError)
+	flags.SetOutput(cli.errStream)
+	flags.Usage = func() {
+		fmt.Fprintf(cli.errStream, usage, Name)
+	}
+	flags.StringVar(&config.Consul, "consul", "", "")
+	flags.StringVar(&config.Token, "token", "", "")
+	flags.Var((*authVar)(config.Auth), "auth", "")
+	flags.BoolVar(&config.SSL.Enabled, "ssl", true, "")
+	flags.BoolVar(&config.SSL.Verify, "ssl-verify", true, "")
+	flags.DurationVar(&config.MaxStale, "max-stale", 0, "")
+	flags.Var((*configTemplateVar)(&config.ConfigTemplates), "template", "")
+	flags.BoolVar(&config.Syslog.Enabled, "syslog", false, "")
+	flags.StringVar(&config.Syslog.Facility, "syslog-facility", "", "")
+	flags.Var((*watch.WaitVar)(config.Wait), "wait", "")
+	flags.StringVar(&config.Path, "config", "", "")
+	flags.DurationVar(&config.Retry, "retry", 0, "")
+	flags.BoolVar(&once, "once", false, "")
+	flags.BoolVar(&dry, "dry", false, "")
+	flags.BoolVar(&version, "version", false, "")
+
+	// If there was a parser error, stop
+	if err := flags.Parse(args); err != nil {
+		return nil, false, false, false, err
+	}
+
+	return config, once, dry, version, nil
+}
+
 // handleError outputs the given error's Error() to the errStream and returns
 // the given exit status.
 func (cli *CLI) handleError(err error, status int) int {
@@ -205,12 +196,15 @@ Options:
                            Consul which will distribute work among all servers
                            instead of just the leader
   -ssl                     Use SSL when connecting to Consul
-  -ssl-no-verify           Ignore certificate warnings when connecting via SSL
+  -ssl-verify              Ignore certificate warnings when connecting via SSL
   -token=<token>           Sets the Consul API token
 
   -syslog                  Send the output to syslog instead of standard error
                            and standard out. The syslog facility defaults to
                            LOCAL0 and can be changed using a configuration file
+  -syslog-facility=<f>     Set the facility where syslog should log. If this
+                           attribute is supplied, the -syslog flag must also be
+                           supplied.
 
   -template=<template>     Adds a new template to watch on disk in the format
                            'templatePath:outputPath(:command)'
