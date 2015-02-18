@@ -149,9 +149,20 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	flags.BoolVar(&dry, "dry", false, "")
 	flags.BoolVar(&version, "version", false, "")
 
+	// Deprecated options
+	var deprecatedSSLNoVerify bool
+	flags.BoolVar(&deprecatedSSLNoVerify, "ssl-no-verify", false, "")
+
 	// If there was a parser error, stop
 	if err := flags.Parse(args); err != nil {
 		return nil, false, false, false, err
+	}
+
+	// Handle deprecations
+	if deprecatedSSLNoVerify {
+		log.Printf("[WARN] -ssl-no-verify is deprecated - please use " +
+			"-ssl-verify=false instead")
+		config.SSL.Verify = false
 	}
 
 	return config, once, dry, version, nil
