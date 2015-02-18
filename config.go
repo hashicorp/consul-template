@@ -60,7 +60,7 @@ type Config struct {
 	Retry    time.Duration `mapstructure:"-"`
 	RetryRaw string        `mapstructure:"retry" json:""`
 
-	// Wait
+	// Wait is the quiescence timers.
 	Wait    *watch.Wait `mapstructure:"-"`
 	WaitRaw string      `mapstructure:"wait" json:""`
 
