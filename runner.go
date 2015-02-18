@@ -709,12 +709,12 @@ func newAPIClient(config *Config) (*api.Client, error) {
 		consulConfig.Token = config.Token
 	}
 
-	if config.SSL {
+	if config.SSL.Enabled {
 		log.Printf("[DEBUG] (runner) enabling SSL")
 		consulConfig.Scheme = "https"
 	}
 
-	if config.SSLNoVerify {
+	if !config.SSL.Verify {
 		log.Printf("[WARN] (runner) disabling SSL verification")
 		consulConfig.HttpClient.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
