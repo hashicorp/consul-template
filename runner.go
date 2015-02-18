@@ -447,8 +447,8 @@ func (r *Runner) init() error {
 func (r *Runner) diffAndUpdateDeps(depsMap map[string]dep.Dependency) {
 	// Diff and up the list of dependencies, stopping any unneeded watchers.
 	log.Printf("[INFO] (runner) diffing and updating dependencies")
+
 	for _, d := range r.dependencies {
-		log.Printf("[DEBUG] (runner) checking if %s is still needed", d.Display())
 		if _, ok := depsMap[d.HashCode()]; !ok {
 			log.Printf("[DEBUG] (runner) %s is no longer needed", d.Display())
 			r.watcher.Remove(d)
