@@ -85,7 +85,7 @@ func TestMerge_complexConfig(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(config, expected) {
-		t.Fatalf("expected %q to equal %q", config, expected)
+		t.Fatalf("expected %#v to equal %#v", config, expected)
 	}
 }
 
@@ -160,7 +160,7 @@ func TestMerge_SyslogOptions(t *testing.T) {
 	config.Merge(otherConfig)
 
 	if config.Syslog.Enabled != true {
-		t.Errorf("expected %q to be %q", config.Syslog.Enabled, true)
+		t.Errorf("expected %t to be %t", config.Syslog.Enabled, true)
 	}
 
 	if config.Syslog.Facility != "LOCAL1" {

@@ -438,7 +438,7 @@ func TestReload_sighup(t *testing.T) {
 
 	go func(args []string) {
 		if exit := cli.Run(args); exit != 0 {
-			t.Fatal("bad exit code: %d", exit)
+			t.Fatalf("bad exit code: %d", exit)
 		}
 	}(args)
 	defer cli.stop()

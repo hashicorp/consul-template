@@ -237,7 +237,7 @@ func (r *Runner) Run() error {
 		// in once mode, and we certainly do not want to re-run any commands.
 		if r.once {
 			if _, rendered := r.renderedTemplates[tmpl.Path]; rendered {
-				log.Printf("[DEBUG] (runner) once mode and already rendered", tmpl.Path)
+				log.Printf("[DEBUG] (runner) once mode and already rendered")
 				continue
 			}
 		}
