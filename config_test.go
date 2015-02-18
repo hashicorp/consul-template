@@ -63,12 +63,14 @@ func TestMerge_complexConfig(t *testing.T) {
 		Token:           "abc123",
 		MaxStale:        3 * time.Second,
 		Wait:            &watch.Wait{Min: 5 * time.Second, Max: 10 * time.Second},
+		LogLevel:        "WARN",
 	}
 	otherConfig := &Config{
 		ConfigTemplates: templates[2:],
 		Retry:           15 * time.Second,
 		Token:           "def456",
 		Wait:            &watch.Wait{Min: 25 * time.Second, Max: 50 * time.Second},
+		LogLevel:        "ERR",
 	}
 
 	config.Merge(otherConfig)
@@ -79,6 +81,7 @@ func TestMerge_complexConfig(t *testing.T) {
 		Token:           "def456",
 		MaxStale:        3 * time.Second,
 		Wait:            &watch.Wait{Min: 25 * time.Second, Max: 50 * time.Second},
+		LogLevel:        "ERR",
 	}
 
 	if !reflect.DeepEqual(config, expected) {
@@ -241,6 +244,7 @@ func TestParseConfig_correctValues(t *testing.T) {
     token = "abcd1234"
     wait = "5s:10s"
     retry = "10s"
+    log_level = "warn"
 
     auth {
     	enabled = true
@@ -321,6 +325,7 @@ func TestParseConfig_correctValues(t *testing.T) {
 		WaitRaw:  "5s:10s",
 		Retry:    10 * time.Second,
 		RetryRaw: "10s",
+		LogLevel: "warn",
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{
 				Source:      "nginx.conf.ctmpl",

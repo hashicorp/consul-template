@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -62,6 +63,9 @@ type Config struct {
 	// Wait
 	Wait    *watch.Wait `mapstructure:"-"`
 	WaitRaw string      `mapstructure:"wait" json:""`
+
+	// LogLevel is the level with which to log for this config.
+	LogLevel string `mapstructure:"log_level"`
 }
 
 // Merge merges the values in config into this config object. Values in the
@@ -126,6 +130,10 @@ func (c *Config) Merge(config *Config) {
 			Max: config.Wait.Max,
 		}
 		c.WaitRaw = config.WaitRaw
+	}
+
+	if config.LogLevel != "" {
+		c.LogLevel = config.LogLevel
 	}
 }
 
@@ -223,6 +231,11 @@ func ParseConfig(path string) (*Config, error) {
 
 // DefaultConfig returns the default configuration struct.
 func DefaultConfig() *Config {
+	logLevel := os.Getenv("CONSUL_TEMPLATE_LOG")
+	if logLevel == "" {
+		logLevel = "WARN"
+	}
+
 	return &Config{
 		Auth: &Auth{
 			Enabled: false,
@@ -238,6 +251,7 @@ func DefaultConfig() *Config {
 		ConfigTemplates: []*ConfigTemplate{},
 		Retry:           5 * time.Second,
 		Wait:            &watch.Wait{},
+		LogLevel:        logLevel,
 	}
 }
 
