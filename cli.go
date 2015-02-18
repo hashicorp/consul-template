@@ -7,15 +7,11 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
+	"github.com/hashicorp/consul-template/logging"
 	"github.com/hashicorp/consul-template/watch"
-	"github.com/hashicorp/go-syslog"
-	"github.com/hashicorp/logutils"
 )
-
-/// ------------------------- ///
 
 // Exit codes are int values that represent an exit code for a particular error.
 // Sub-systems may check this unique error to determine the cause of an error
@@ -62,7 +58,13 @@ func (cli *CLI) Run(args []string) int {
 	}
 
 	// Setup the logging
-	if err := cli.setupLogging(config); err != nil {
+	if err := logging.Setup(&logging.Config{
+		Name:           Name,
+		Level:          config.LogLevel,
+		Syslog:         config.Syslog.Enabled,
+		SyslogFacility: config.Syslog.Facility,
+		Writer:         cli.errStream,
+	}); err != nil {
 		return cli.handleError(err, ExitCodeLoggingError)
 	}
 
@@ -178,41 +180,6 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 func (cli *CLI) handleError(err error, status int) int {
 	fmt.Fprintf(cli.errStream, "Consul Template returned errors:\n%s", err)
 	return status
-}
-
-// setupLogging gets the log level from the environment, falling back to DEBUG if
-// nothing was given.
-func (cli *CLI) setupLogging(config *Config) error {
-	var logOutput io.Writer
-
-	// Setup the default logging
-	logFilter := NewLogFilter()
-	logFilter.MinLevel = logutils.LogLevel(strings.ToUpper(config.LogLevel))
-	logFilter.Writer = cli.errStream
-	if !ValidateLevelFilter(logFilter.MinLevel, logFilter) {
-		levels := make([]string, 0, len(logFilter.Levels))
-		for _, level := range logFilter.Levels {
-			levels = append(levels, string(level))
-		}
-		return fmt.Errorf("invalid log level %q, valid log levels are %s",
-			config.LogLevel, strings.Join(levels, ", "))
-	}
-
-	// Check if syslog is enabled
-	if config.Syslog.Enabled {
-		l, err := gsyslog.NewLogger(gsyslog.LOG_NOTICE, config.Syslog.Facility, "consul-template")
-		if err != nil {
-			return fmt.Errorf("error setting up syslog logger: %s", err)
-		}
-		syslog := &SyslogWrapper{l, logFilter}
-		logOutput = io.MultiWriter(logFilter, syslog)
-	} else {
-		logOutput = io.MultiWriter(logFilter)
-	}
-
-	log.SetOutput(logOutput)
-
-	return nil
 }
 
 const usage = `
