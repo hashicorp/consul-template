@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/hashicorp/consul-template/watch"
 	"github.com/hashicorp/logutils"
@@ -133,25 +132,25 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	flags.Usage = func() {
 		fmt.Fprintf(cli.errStream, usage, Name)
 	}
-	flags.StringVar(&config.Consul, "consul", "", "")
-	flags.StringVar(&config.Token, "token", "", "")
+	flags.StringVar(&config.Consul, "consul", config.Consul, "")
+	flags.StringVar(&config.Token, "token", config.Token, "")
 	flags.Var((*authVar)(config.Auth), "auth", "")
-	flags.BoolVar(&config.SSL.Enabled, "ssl", false, "")
-	flags.BoolVar(&config.SSL.Verify, "ssl-verify", true, "")
-	flags.DurationVar(&config.MaxStale, "max-stale", 0, "")
+	flags.BoolVar(&config.SSL.Enabled, "ssl", config.SSL.Enabled, "")
+	flags.BoolVar(&config.SSL.Verify, "ssl-verify", config.SSL.Verify, "")
+	flags.DurationVar(&config.MaxStale, "max-stale", config.MaxStale, "")
 	flags.Var((*configTemplateVar)(&config.ConfigTemplates), "template", "")
-	flags.BoolVar(&config.Syslog.Enabled, "syslog", false, "")
-	flags.StringVar(&config.Syslog.Facility, "syslog-facility", "", "")
+	flags.BoolVar(&config.Syslog.Enabled, "syslog", config.Syslog.Enabled, "")
+	flags.StringVar(&config.Syslog.Facility, "syslog-facility", config.Syslog.Facility, "")
 	flags.Var((*watch.WaitVar)(config.Wait), "wait", "")
-	flags.StringVar(&config.Path, "config", "", "")
-	flags.DurationVar(&config.Retry, "retry", 5*time.Second, "")
+	flags.DurationVar(&config.Retry, "retry", config.Retry, "")
+	flags.StringVar(&config.Path, "config", config.Path, "")
 	flags.BoolVar(&once, "once", false, "")
 	flags.BoolVar(&dry, "dry", false, "")
 	flags.BoolVar(&version, "version", false, "")
 
 	// Deprecated options
 	var deprecatedSSLNoVerify bool
-	flags.BoolVar(&deprecatedSSLNoVerify, "ssl-no-verify", false, "")
+	flags.BoolVar(&deprecatedSSLNoVerify, "ssl-no-verify", !config.SSL.Verify, "")
 
 	// If there was a parser error, stop
 	if err := flags.Parse(args); err != nil {
