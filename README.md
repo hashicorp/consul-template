@@ -96,6 +96,22 @@ consul = "127.0.0.1:8500"
 token = "abcd1234"
 retry = "10s"
 
+auth {
+  enabled = true
+  username = "test"
+  password = "test"
+}
+
+ssl {
+  enabled = true
+  verify = false
+}
+
+syslog {
+  enabled = true
+  facility = "LOCAL5"
+}
+
 template {
   source = "/path/on/disk/to/template"
   destination = "/path/on/disk/where/template/will/render"
@@ -103,7 +119,7 @@ template {
 }
 
 template {
-  // Multiple definitions are supported
+  // Multiple template definitions are supported
 }
 ```
 
