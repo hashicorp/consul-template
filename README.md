@@ -12,8 +12,8 @@ This project provides a convenient way to populate values from [Consul][] into t
 
 The daemon `consul-template` queries a [Consul][] instance and updates any number of specified templates on the filesystem. As an added bonus, `consul-template` can optionally run arbitrary commands when the update process completes. See the [Examples](#examples) section for some scenarios were this functionality might prove useful.
 
-
 **The documentation in this README corresponds to the master branch of Consul Template. It may contain unreleased features or different APIs than the most recently released version. Please see the Git tag that corresponds to your version of Consul Template for the proper documentation.**
+
 
 Installation
 ------------
@@ -31,20 +31,26 @@ This process will create `bin/consul-template` which make be invoked as a binary
 Usage
 -----
 ### Options
-|      Option     |   Required   | Description |
-| --------------- | ------------ |------------ |
-| `auth`          | | Specify a username (and password) for basic authentication. |
-| `consul`        | _(required)_ | The location of the Consul instance to query (may be an IP address or FQDN) with port. |
-| `max_stale`     | | The maximum staleness of a query. If specified, Consul will distribute work among all servers instead of just the leader. |
-| `ssl`           | | Use HTTPS while talking to Consul. Requires the Consul server to be configured to serve secure connections.
-| `ssl_no_verify` | | Ignore certificate warnings. Only used if `ssl` is enabled. |
-| `token`         | | The [Consul API token][Consul ACLs]. |
-| `template`      | _(required)_ | The input template, output path, and optional command separated by a colon (`:`). This option is additive and may be specified multiple times for multiple templates. |
-| `wait`          | | The `minimum(:maximum)` to wait before rendering a new template to disk and triggering a command, separated by a colon (`:`). If the optional maximum value is omitted, it is assumed to be 4x the required minimum value. |
-| `retry`         | | The amount of time to wait if Consul returns an error when communicating with the API. |
-| `config`        | | The path to a configuration file or directory on disk, relative to the current working directory. Values specified on the CLI take precedence over values specified in the configuration file |
-| `dry`           | | Dump generated templates to the console. If specified, generated templates are not committed to disk and commands are not invoked. _(CLI-only)_ |
-| `once`          | | Run Consul Template once and exit (as opposed to the default behavior of daemon). _(CLI-only)_ |
+|       Option      | Description |
+| ----------------- |------------ |
+| `auth`            | The basic authentication username (and optional password), separated by a colon. There is no default value.
+| `consul`*         | The location of the Consul instance to query (may be an IP address or FQDN) with port.
+| `max-stale`       | The maximum staleness of a query. If specified, Consul will distribute work among all servers instead of just the leader. The default value is 0 (none).
+| `ssl`             | Use HTTPS while talking to Consul. Requires the Consul server to be configured to serve secure connections. The default value is false.
+| `ssl-verify`      | Verify certificates when connecting via SSL. This requires the use of `-ssl`. The default value is true.
+| `syslog`          | Send log output to syslog (in addition to stdout and stderr). The default value is false.
+| `syslog-facility` | The facility to use when sending to syslog. This requires the use of `-syslog`. The default value is `LOCAL0`.
+| `token`           | The [Consul API token][Consul ACLs]. There is no default value.
+| `template`*       | The input template, output path, and optional command separated by a colon (`:`). This option is additive and may be specified multiple times for multiple templates.
+| `wait`            | The `minimum(:maximum)` to wait before rendering a new template to disk and triggering a command, separated by a colon (`:`). If the optional maximum value is omitted, it is assumed to be 4x the required minimum value. There is no default value.
+| `retry`           | The amount of time to wait if Consul returns an error when communicating with the API. The default value is 5 seconds.
+| `config`          | The path to a configuration file or directory of configuration files on disk, relative to the current working directory. Values specified on the CLI take precedence over values specified in the configuration file. There is no default value.
+| `log-level`       | The log level for output. This applies to the stdout/stderr logging as well as syslog logging (if enabled). Valid values are "debug", "info", "warn", and "err". The default value is "warn".
+| `dry`             | Dump generated templates to the console. If specified, generated templates are not committed to disk and commands are not invoked. _(CLI-only)_
+| `once`            | Run Consul Template once and exit (as opposed to the default behavior of daemon). _(CLI-only)_
+| `version`         | Output version information and quit. _(CLI-only)_
+
+\* = Required parameter
 
 ### Command Line
 The CLI interface supports all of the options detailed above.
@@ -95,6 +101,7 @@ The Configuration file syntax interface supports all of the options detailed abo
 consul = "127.0.0.1:8500"
 token = "abcd1234"
 retry = "10s"
+max_stale = "10m"
 
 auth {
   enabled = true
@@ -374,6 +381,7 @@ Takes the argument as a string and converts it to uppercase.
 
 See Go's [strings.ToUpper()](http://golang.org/pkg/strings/#ToUpper) for more information.
 
+
 Caveats
 -------
 ### Termination on Error
@@ -589,10 +597,10 @@ You should see output similar to the following:
 
 Debugging
 ---------
-Consul Template can print verbose debugging output. To set the log level for Consul Template, use the `CONSUL_TEMPLATE_LOG` environment variable:
+Consul Template can print verbose debugging output. To set the log level for Consul Template, use the `-log-level` flag:
 
 ```shell
-$ CONSUL_TEMPLATE_LOG=info consul-template ...
+$ consul-template -log-level info ...
 ```
 
 ```text
@@ -604,7 +612,7 @@ $ CONSUL_TEMPLATE_LOG=info consul-template ...
 You can also specify the level as debug:
 
 ```shell
-$ CONSUL_TEMPLATE_LOG=debug consul-template ...
+$ consul-template -log-level debug ...
 ```
 
 ```text
@@ -625,18 +633,14 @@ $ CONSUL_TEMPLATE_LOG=debug consul-template ...
 # ...
 ```
 
+
 FAQ
 ---
 **Q: How is this different than confd?**<br>
-A: The answer is simple: Service Discovery as a first class citizen. You are
-also encouraged to read [this Pull Request](https://github.com/kelseyhightower/confd/pull/102) on the project for more background information. We think confd is a
-great project, but Consul Template fills a missing gap.
+A: The answer is simple: Service Discovery as a first class citizen. You are also encouraged to read [this Pull Request](https://github.com/kelseyhightower/confd/pull/102) on the project for more background information. We think confd is a great project, but Consul Template fills a missing gap.
 
 **Q: How is this different than Puppet/Chef/Ansible/Salt?**<br>
-A: Configuration management tools are designed to be used in unison with Consul
-Template. Instead of rendering a stale configuration file, use your
-configuration management software to render a dynamic template that will be
-populated by [Consul][].
+A: Configuration management tools are designed to be used in unison with Consul Template. Instead of rendering a stale configuration file, use your configuration management software to render a dynamic template that will be populated by [Consul][].
 
 
 Contributing

@@ -230,7 +230,7 @@ Options:
                            Consul which will distribute work among all servers
                            instead of just the leader
   -ssl                     Use SSL when connecting to Consul
-  -ssl-verify              Ignore certificate warnings when connecting via SSL
+  -ssl-verify              Verify certificates when connecting via SSL
   -token=<token>           Sets the Consul API token
 
   -syslog                  Send the output to syslog instead of standard error
