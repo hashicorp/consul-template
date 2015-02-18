@@ -10,7 +10,7 @@ import (
 // Brain is what Template uses to determine the values that are
 // available for template parsing.
 type Brain struct {
-	sync.Mutex
+	sync.RWMutex
 
 	// data is the map of individual dependencies (by HashCode()) and the most
 	// recent data for that dependency.
@@ -45,8 +45,8 @@ func (b *Brain) Remember(d dep.Dependency, data interface{}) {
 
 // Recall gets the current value for the given dependency in the Brain.
 func (b *Brain) Recall(d dep.Dependency) (interface{}, bool) {
-	b.Lock()
-	defer b.Unlock()
+	b.RLock()
+	defer b.RUnlock()
 
 	// If we have not received data for this dependency, return now.
 	if _, ok := b.receivedData[d.HashCode()]; !ok {
