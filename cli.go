@@ -135,7 +135,7 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	flags.StringVar(&config.Consul, "consul", "", "")
 	flags.StringVar(&config.Token, "token", "", "")
 	flags.Var((*authVar)(config.Auth), "auth", "")
-	flags.BoolVar(&config.SSL.Enabled, "ssl", true, "")
+	flags.BoolVar(&config.SSL.Enabled, "ssl", false, "")
 	flags.BoolVar(&config.SSL.Verify, "ssl-verify", true, "")
 	flags.DurationVar(&config.MaxStale, "max-stale", 0, "")
 	flags.Var((*configTemplateVar)(&config.ConfigTemplates), "template", "")
