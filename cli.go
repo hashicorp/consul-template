@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/hashicorp/consul-template/watch"
+	"github.com/hashicorp/go-syslog"
 	"github.com/hashicorp/logutils"
 )
 
@@ -26,6 +27,7 @@ const (
 
 	ExitCodeError = 10 + iota
 	ExitCodeInterrupt
+	ExitCodeLoggingError
 	ExitCodeParseFlagsError
 	ExitCodeRunnerError
 )
@@ -53,12 +55,15 @@ func NewCLI(out, err io.Writer) *CLI {
 // Run accepts a slice of arguments and returns an int representing the exit
 // status from the command.
 func (cli *CLI) Run(args []string) int {
-	cli.initLogger()
-
 	// Parse the flags
 	config, once, dry, version, err := cli.parseFlags(args[1:])
 	if err != nil {
 		return cli.handleError(err, ExitCodeParseFlagsError)
+	}
+
+	// Setup the logging
+	if err := cli.setupLogging(config); err != nil {
+		return cli.handleError(err, ExitCodeLoggingError)
 	}
 
 	// If the version was requested, return an "error" containing the version
@@ -175,22 +180,39 @@ func (cli *CLI) handleError(err error, status int) int {
 	return status
 }
 
-// initLogger gets the log level from the environment, falling back to DEBUG if
+// setupLogging gets the log level from the environment, falling back to DEBUG if
 // nothing was given.
-func (cli *CLI) initLogger() {
-	minLevel := strings.ToUpper(strings.TrimSpace(os.Getenv("CONSUL_TEMPLATE_LOG")))
-	if minLevel == "" {
-		minLevel = "WARN"
+func (cli *CLI) setupLogging(config *Config) error {
+	var logOutput io.Writer
+
+	// Setup the default logging
+	logFilter := NewLogFilter()
+	logFilter.MinLevel = logutils.LogLevel(strings.ToUpper(config.LogLevel))
+	logFilter.Writer = cli.errStream
+	if !ValidateLevelFilter(logFilter.MinLevel, logFilter) {
+		levels := make([]string, 0, len(logFilter.Levels))
+		for _, level := range logFilter.Levels {
+			levels = append(levels, string(level))
+		}
+		return fmt.Errorf("invalid log level %q, valid log levels are %s",
+			config.LogLevel, strings.Join(levels, ", "))
 	}
 
-	levelFilter := &logutils.LevelFilter{
-		Levels: []logutils.LogLevel{"DEBUG", "INFO", "WARN", "ERR"},
-		Writer: cli.errStream,
+	// Check if syslog is enabled
+	if config.Syslog.Enabled {
+		l, err := gsyslog.NewLogger(gsyslog.LOG_NOTICE, config.Syslog.Facility, "consul-template")
+		if err != nil {
+			return fmt.Errorf("error setting up syslog logger: %s", err)
+		}
+		syslog := &SyslogWrapper{l, logFilter}
+		logOutput = io.MultiWriter(logFilter, syslog)
+	} else {
+		logOutput = io.MultiWriter(logFilter)
 	}
 
-	levelFilter.SetMinLevel(logutils.LogLevel(minLevel))
+	log.SetOutput(logOutput)
 
-	log.SetOutput(levelFilter)
+	return nil
 }
 
 const usage = `
