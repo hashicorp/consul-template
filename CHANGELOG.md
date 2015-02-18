@@ -3,6 +3,18 @@ Consul Template Changelog
 
 ## 0.6.6.dev (Unreleased)
 
+BREAKING CHANGES:
+
+  * Remove `ssl` configuration option from templates - use an `ssl`
+    configuration block with `enabled = true` instead
+  * Remove `ssl_no_verify` configuration option from templates - use an `ssl`
+    configuration block with `verify = false` instead
+  * Restructure CLI `-ssl-no-verify` to `-ssl-verify` - to disable SSL
+    certification validation on the command line, use `-ssl-verify=false`
+  * Remove `auth` configuration option from templates - use an `auth`
+    configuration block with `enabled = true` combined with `username = ...` and
+    `password = ...` inside the block instead
+
 IMPROVEMENTS:
 
   * Use a default retry interval of 5s (GH-190) - this value has been (and will
@@ -11,8 +23,15 @@ IMPROVEMENTS:
   * Use a service's reported address if given (GH-185, GH-186)
   * Add new `NodeAddress` field to health services to always include the node's
     address
+  * Add support for logging to syslog (GH-163)
   * Return errors up the watcher's error channel so other libraries can
     determine what to do with the error instead of swallowing it (GH-196)
+  * Move SSL and authentication options into their own configuration blocks in
+    the HCL
+  * Add `log_level` as a configuration file option
+  * Add `-log-level` as a CLI option
+  * Add new `watch.WaitVar` for parsing Wait structs via Go's flag parsing
+    library.
 
 BUG FIXES:
 
@@ -22,9 +41,11 @@ BUG FIXES:
     not changed (GH-188)
   * Raise an error when specifying a non-existent option in the configuration
     file (GH-197)
+  * Use an RWLock when accessing information in the Brain to improve performance
   * Improve debugging output and consistency
   * Remove unused Brain functions
   * Remove unused documentation items
+  * Use the correct default values for `-ssl` and `-retry` on the CLI
 
 ## 0.6.5 (February 5, 2015)
 
