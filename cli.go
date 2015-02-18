@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/hashicorp/consul-template/watch"
 	"github.com/hashicorp/logutils"
@@ -143,7 +144,7 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	flags.StringVar(&config.Syslog.Facility, "syslog-facility", "", "")
 	flags.Var((*watch.WaitVar)(config.Wait), "wait", "")
 	flags.StringVar(&config.Path, "config", "", "")
-	flags.DurationVar(&config.Retry, "retry", 0, "")
+	flags.DurationVar(&config.Retry, "retry", 5*time.Second, "")
 	flags.BoolVar(&once, "once", false, "")
 	flags.BoolVar(&dry, "dry", false, "")
 	flags.BoolVar(&version, "version", false, "")
