@@ -144,6 +144,7 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	flags.Var((*watch.WaitVar)(config.Wait), "wait", "")
 	flags.DurationVar(&config.Retry, "retry", config.Retry, "")
 	flags.StringVar(&config.Path, "config", config.Path, "")
+	flags.StringVar(&config.LogLevel, "log-level", config.LogLevel, "")
 	flags.BoolVar(&once, "once", false, "")
 	flags.BoolVar(&dry, "dry", false, "")
 	flags.BoolVar(&version, "version", false, "")
@@ -225,6 +226,9 @@ Options:
                            error when communicating with the API
 
   -config=<path>           Sets the path to a configuration file on disk
+
+  -log-level=<level>       Set the logging level - valid values are "debug",
+                           "info", "warn" (default), and "err"
 
   -dry                     Dump generated templates to stdout
   -once                    Do not run the process as a daemon

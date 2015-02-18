@@ -318,6 +318,21 @@ func TestParseFlags_version(t *testing.T) {
 	}
 }
 
+func TestParseFlags_logLevel(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-log-level", "debug",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "debug"
+	if config.LogLevel != expected {
+		t.Errorf("expected %v to be %v", config.LogLevel, expected)
+	}
+}
+
 func TestParseFlags_errors(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
 	_, _, _, _, err := cli.parseFlags([]string{
