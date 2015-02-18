@@ -32,6 +32,7 @@ IMPROVEMENTS:
   * Add `-log-level` as a CLI option
   * Add new `watch.WaitVar` for parsing Wait structs via Go's flag parsing
     library.
+  * Extract logging components into their own library for sharing (GH-199)
 
 BUG FIXES:
 
