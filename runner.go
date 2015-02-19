@@ -111,7 +111,7 @@ func (r *Runner) Start() {
 
 	for {
 		// Enable quiescence for all templates if we have specified wait intervals.
-		if r.config.Wait != nil {
+		if r.config.Wait.Min != 0 && r.config.Wait.Max != 0 {
 			for _, t := range r.templates {
 				if _, ok := r.quiescenceMap[t.Path]; !ok {
 					log.Printf("[DEBUG] (runner) enabling quiescence for %q", t.Path)
