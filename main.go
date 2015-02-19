@@ -8,7 +8,7 @@ import (
 const Name = "consul-template"
 
 // Version is the current version of this application.
-const Version = "0.6.6.dev"
+const Version = "0.7.0"
 
 func main() {
 	cli := NewCLI(os.Stdout, os.Stderr)
