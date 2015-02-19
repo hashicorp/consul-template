@@ -15,6 +15,12 @@ BREAKING CHANGES:
     configuration block with `enabled = true` combined with `username = ...` and
     `password = ...` inside the block instead
 
+FEATURES:
+
+  * Add support for logging to syslog (GH-163)
+  * Add `log_level` as a configuration file option
+  * Add `-log-level` as a CLI option
+
 IMPROVEMENTS:
 
   * Use a default retry interval of 5s (GH-190) - this value has been (and will
@@ -23,13 +29,10 @@ IMPROVEMENTS:
   * Use a service's reported address if given (GH-185, GH-186)
   * Add new `NodeAddress` field to health services to always include the node's
     address
-  * Add support for logging to syslog (GH-163)
   * Return errors up the watcher's error channel so other libraries can
     determine what to do with the error instead of swallowing it (GH-196)
   * Move SSL and authentication options into their own configuration blocks in
     the HCL
-  * Add `log_level` as a configuration file option
-  * Add `-log-level` as a CLI option
   * Add new `watch.WaitVar` for parsing Wait structs via Go's flag parsing
     library.
   * Extract logging components into their own library for sharing (GH-199)
