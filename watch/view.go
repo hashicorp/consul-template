@@ -28,8 +28,8 @@ type View struct {
 
 	// Data is the most-recently-received data from Consul for this View
 	Data         interface{}
-	receivedData bool
-	lastIndex    uint64
+	ReceivedData bool
+	LastIndex    uint64
 
 	// stopCh is used to stop polling on this View
 	stopCh chan struct{}
@@ -122,7 +122,7 @@ func (v *View) fetch(doneCh chan<- struct{}, errCh chan<- error) {
 		options := &api.QueryOptions{
 			AllowStale: allowStale,
 			WaitTime:   defaultWaitTime,
-			WaitIndex:  v.lastIndex,
+			WaitIndex:  v.LastIndex,
 		}
 		data, qm, err := v.Dependency.Fetch(v.config.Client, options)
 		if err != nil {
@@ -146,20 +146,20 @@ func (v *View) fetch(doneCh chan<- struct{}, errCh chan<- error) {
 			allowStale = true
 		}
 
-		if qm.LastIndex == v.lastIndex {
+		if qm.LastIndex == v.LastIndex {
 			log.Printf("[DEBUG] (view) %s no new data (index was the same)", v.display())
 			continue
 		}
 
-		v.lastIndex = qm.LastIndex
+		v.LastIndex = qm.LastIndex
 
-		if v.receivedData && reflect.DeepEqual(data, v.Data) {
+		if v.ReceivedData && reflect.DeepEqual(data, v.Data) {
 			log.Printf("[DEBUG] (view) %s no new data (contents were the same)", v.display())
 			continue
 		}
 
 		v.Data = data
-		v.receivedData = true
+		v.ReceivedData = true
 		close(doneCh)
 		return
 	}
