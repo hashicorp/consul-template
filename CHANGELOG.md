@@ -1,9 +1,9 @@
 Consul Template Changelog
 =========================
 
-## 0.7.1.dev (Unreleased)
+## v0.7.1.dev (Unreleased)
 
-## 0.7.0 (February 19, 2015)
+## v0.7.0 (February 19, 2015)
 
 BREAKING CHANGES:
 
@@ -53,7 +53,7 @@ BUG FIXES:
   * Remove unused documentation items
   * Use the correct default values for `-ssl` and `-retry` on the CLI
 
-## 0.6.5 (February 5, 2015)
+## v0.6.5 (February 5, 2015)
 
 FEATURES:
 
