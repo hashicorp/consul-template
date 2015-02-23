@@ -15,6 +15,13 @@ type KeyPair struct {
 	Path  string
 	Key   string
 	Value string
+
+	// Lesser-used, but still valuable keys from api.KV
+	CreateIndex uint64
+	ModifyIndex uint64
+	LockIndex   uint64
+	Flags       uint64
+	Session     string
 }
 
 // StoreKeyPrefix is the representation of a requested key dependency
@@ -48,9 +55,14 @@ func (d *StoreKeyPrefix) Fetch(client *api.Client, options *api.QueryOptions) (i
 		key = strings.TrimLeft(key, "/")
 
 		keyPairs = append(keyPairs, &KeyPair{
-			Path:  pair.Key,
-			Key:   key,
-			Value: string(pair.Value),
+			Path:        pair.Key,
+			Key:         key,
+			Value:       string(pair.Value),
+			CreateIndex: pair.CreateIndex,
+			ModifyIndex: pair.ModifyIndex,
+			LockIndex:   pair.LockIndex,
+			Flags:       pair.Flags,
+			Session:     pair.Session,
 		})
 	}
 
