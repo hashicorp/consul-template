@@ -3,6 +3,11 @@ Consul Template Changelog
 
 ## v0.7.1.dev (Unreleased)
 
+IMPROVEMENTS:
+
+  * Expose `LastIndex` and `ReceivedData` from the Watcher
+  * Add unimplemented KV fields (GH-203)
+
 ## v0.7.0 (February 19, 2015)
 
 BREAKING CHANGES:
