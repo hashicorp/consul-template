@@ -140,9 +140,6 @@ func (w *Watcher) Remove(d dep.Dependency) bool {
 func (w *Watcher) Size() int {
 	w.Lock()
 	defer w.Unlock()
-
-	log.Printf("[INFO] (watcher) getting size")
-
 	return len(w.depViewMap)
 }
 
