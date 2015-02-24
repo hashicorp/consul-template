@@ -3,10 +3,15 @@ Consul Template Changelog
 
 ## v0.7.1.dev (Unreleased)
 
+FEATURES:
+
+  * Add `.Size()` so the watcher can report its size (GH-206)
+
 IMPROVEMENTS:
 
   * Expose `LastIndex` and `ReceivedData` from the Watcher
   * Add unimplemented KV fields (GH-203)
+  * Warn the user if there are a large number of dependencies (GH-205)
 
 ## v0.7.0 (February 19, 2015)
 
