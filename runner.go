@@ -22,6 +22,12 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
+const (
+	// saneViewLimit is the number of views that we consider "sane" before we
+	// warn the user that they might be DDoSing their Consul cluster.
+	saneViewLimit = 128
+)
+
 // Runner responsible rendering Templates and invoking Commands.
 type Runner struct {
 	// ErrCh and DoneCh are channels where errors and finish notifications occur.
@@ -119,6 +125,14 @@ func (r *Runner) Start() {
 						r.quiescenceCh, r.config.Wait.Min, r.config.Wait.Max, t)
 				}
 			}
+		}
+
+		// Warn the user if they are watching too many dependencies.
+		if r.watcher.Size() > saneViewLimit {
+			log.Printf("[WARN] (runner) watching %d dependencies - watching this "+
+				"many dependencies could DDoS your consul cluster", r.watcher.Size())
+		} else {
+			log.Printf("[INFO] (runner) watching %d dependencies", r.watcher.Size())
 		}
 
 		// If we are running in once mode and all our templates have been rendered,

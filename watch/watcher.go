@@ -136,6 +136,13 @@ func (w *Watcher) Remove(d dep.Dependency) bool {
 	return false
 }
 
+// Size returns the number of views this watcher is watching.
+func (w *Watcher) Size() int {
+	w.Lock()
+	defer w.Unlock()
+	return len(w.depViewMap)
+}
+
 // Stop halts this watcher and any currently polling views immediately. If a
 // view was in the middle of a poll, no data will be returned.
 func (w *Watcher) Stop() {
