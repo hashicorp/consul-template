@@ -127,20 +127,20 @@ func (r *Runner) Start() {
 			}
 		}
 
-		// If we are running in once mode and all our templates have been rendered,
-		// then we should exit here.
-		if r.once && r.allTemplatesRendered() {
-			log.Printf("[INFO] (runner) once mode and all templates rendered")
-			r.Stop()
-			return
-		}
-
 		// Warn the user if they are watching too many dependencies.
 		if r.watcher.Size() > saneViewLimit {
 			log.Printf("[WARN] (runner) watching %d dependencies - watching this "+
 				"many dependencies could DDoS your consul cluster", r.watcher.Size())
 		} else {
 			log.Printf("[INFO] (runner) watching %d dependencies", r.watcher.Size())
+		}
+
+		// If we are running in once mode and all our templates have been rendered,
+		// then we should exit here.
+		if r.once && r.allTemplatesRendered() {
+			log.Printf("[INFO] (runner) once mode and all templates rendered")
+			r.Stop()
+			return
 		}
 
 	OUTER:
