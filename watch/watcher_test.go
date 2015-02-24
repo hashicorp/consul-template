@@ -1,6 +1,7 @@
 package watch
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -220,5 +221,34 @@ func TestRemove_doesNotExist(t *testing.T) {
 	removed := w.Remove(&test.FakeDependency{})
 	if removed != false {
 		t.Fatal("expected Remove to return false")
+	}
+}
+
+func TestSize_empty(t *testing.T) {
+	w, err := NewWatcher(defaultWatcherConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if w.Size() != 0 {
+		t.Errorf("expected %d to be %d", w.Size(), 0)
+	}
+}
+
+func TestSize_returnsNumViews(t *testing.T) {
+	w, err := NewWatcher(defaultWatcherConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i := 0; i < 10; i++ {
+		d := &test.FakeDependency{Name: fmt.Sprintf("%d", i)}
+		if _, err := w.Add(d); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if w.Size() != 10 {
+		t.Errorf("expected %d to be %d", w.Size(), 10)
 	}
 }
