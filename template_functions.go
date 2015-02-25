@@ -231,6 +231,43 @@ func treeFunc(brain *Brain,
 
 }
 
+// byKey accepts a slice of KV pairs and returns a map of the top-level
+// key to all its subkeys. For example:
+//
+//		elasticsearch/a //=> "1"
+//		elasticsearch/b //=> "2"
+//		redis/a/b //=> "3"
+//
+// Passing the result from Consul through byTag would yield:
+//
+// 		map[string]map[string]string{
+//	  	"elasticsearch": &dep.KeyPair{"a": "1"}, &dep.KeyPair{"b": "2"},
+//			"redis": &dep.KeyPair{"a/b": "3"}
+//		}
+//
+// Note that the top-most key is stripped from the Key value. Keys that have no
+// prefix after stripping are removed from the list.
+func byKey(pairs []*dep.KeyPair) (map[string][]*dep.KeyPair, error) {
+	m := make(map[string][]*dep.KeyPair)
+	for _, pair := range pairs {
+		parts := strings.Split(pair.Key, "/")
+		top := parts[0]
+		key := strings.Join(parts[1:], "/")
+
+		if key == "" {
+			// Do not add a key if it has no prefix after stripping.
+			continue
+		}
+
+		if _, ok := m[top]; !ok {
+			m[top] = make([]*dep.KeyPair, 0, 1)
+		}
+		pair.Key = key
+		m[top] = append(m[top], pair)
+	}
+	return m, nil
+}
+
 // byTag is a template func that takes the provided services and
 // produces a map based on Service tags.
 //

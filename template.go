@@ -117,6 +117,7 @@ func funcMap(brain *Brain, used, missing map[string]dep.Dependency) template.Fun
 		"tree":        treeFunc(brain, used, missing),
 
 		// Helper functions
+		"byKey":           byKey,
 		"byTag":           byTag,
 		"env":             env,
 		"parseJSON":       parseJSON,
