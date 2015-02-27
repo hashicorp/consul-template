@@ -6,6 +6,8 @@ Consul Template Changelog
 FEATURES:
 
   * Add `.Size()` so the watcher can report its size (GH-206)
+  * Add `byKey` template helper to group the results of a `tree` function by
+    their containing directory (GH-207, GH-209)
 
 IMPROVEMENTS:
 
