@@ -299,6 +299,35 @@ If you omit the datacenter attribute on `tree`, the local Consul datacenter will
 
 #### Helper Functions
 
+##### `byKey`
+Takes the list of key pairs returned from a [`tree`](#tree) function and creates a map that groups pairs by their top-level directory. For example, if the Consul KV store contained the following structure:
+
+```text
+configs/elasticsearch/a //=> "1"
+configs/elasticsearch/b //=> "2"
+configs/redis/a/b //=> "3"
+```
+
+With the following template:
+
+```liquid
+{{range $key, $pairs := tree "configs" | byKey}}{{$key}}:
+{{range $pairs}}  {{.Key}}={{.Value}}
+{{end}}{{end}}
+```
+
+The result would be:
+
+```text
+elasticsearch:
+  a=1
+  b=2
+redis
+  a/b=3
+```
+
+Note that the top-most key is stripped from the Key value. Keys that have no prefix after stripping are removed from the list.
+
 ##### `byTag`
 Takes the list of services returned by the [`service`](#service) function and creates a map that groups services by tag.
 

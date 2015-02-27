@@ -723,6 +723,42 @@ func TestByTag_GroupsList(t *testing.T) {
 	}
 }
 
+func TestByKey_emptyList(t *testing.T) {
+	result, err := byKey(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := map[string][]*dep.KeyPair{}
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("expected %#v to be %#v", result, expected)
+	}
+}
+
+func TestByKey_topLevel(t *testing.T) {
+	result, err := byKey([]*dep.KeyPair{
+		&dep.KeyPair{Key: "elasticsearch/a", Value: "1"},
+		&dep.KeyPair{Key: "elasticsearch/b", Value: "2"},
+		&dep.KeyPair{Key: "redis/a/b", Value: "3"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := map[string][]*dep.KeyPair{
+		"elasticsearch": []*dep.KeyPair{
+			&dep.KeyPair{Key: "a", Value: "1"},
+			&dep.KeyPair{Key: "b", Value: "2"},
+		},
+		"redis": []*dep.KeyPair{
+			&dep.KeyPair{Key: "a/b", Value: "3"},
+		},
+	}
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("expected %#v to be %#v", result, expected)
+	}
+}
+
 func TestEnv(t *testing.T) {
 	if err := os.Setenv("foo", "bar"); err != nil {
 		t.Fatal(err)

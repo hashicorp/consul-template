@@ -222,6 +222,9 @@ func TestExecute_renders(t *testing.T) {
 
 		Helper Functions
 		----------------
+		byKey:{{ range $key, $pairs := tree "config/redis" | byKey }}
+			{{$key}}:{{ range $pairs }}
+				{{.Key}}={{.Value}}{{ end }}{{ end }}
 		byTag:{{ range $tag, $services := service "webapp" | byTag }}
 			{{$tag}}:{{ range $services }}
 				{{.Address}}{{ end }}{{ end }}
@@ -380,6 +383,9 @@ func TestExecute_renders(t *testing.T) {
 
 		Helper Functions
 		----------------
+		byKey:
+			admin:
+				port=1134
 		byTag:
 			production:
 				5.6.7.8
