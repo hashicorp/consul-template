@@ -22,7 +22,7 @@ const (
 	HealthCritical = "critical"
 )
 
-// HealthService is a service entry in Consul
+// HealthService is a service entry in Consul.
 type HealthService struct {
 	Node        string
 	NodeAddress string
@@ -33,7 +33,8 @@ type HealthService struct {
 	Port        uint64
 }
 
-// from inside a template.
+// HealthServices is the struct that is formed from the dependency inside a
+// template.
 type HealthServices struct {
 	rawKey     string
 	Name       string
