@@ -14,6 +14,12 @@ IMPROVEMENTS:
   * Expose `LastIndex` and `ReceivedData` from the Watcher
   * Add unimplemented KV fields (GH-203)
   * Warn the user if there are a large number of dependencies (GH-205)
+  * Extend documentation on how health service dependencies are downloaded from
+    Consul (GH-212)
+
+BUG FIXES:
+
+  * Properly filter services by their type (GH-210, GH-212)
 
 ## v0.7.0 (February 19, 2015)
 
