@@ -242,15 +242,29 @@ server nyc_web_01 123.456.789.10:8080
 server nyc_web_02 456.789.101.213:8080
 ```
 
-By default only healthy services are returned.
-If you want to get all services, in specific healths, then you can specify a comma-separated list of health check statuses.
-Currently supported are `"any"`, `"passing"`, `"warning"` and `"critical"`.
+By default only healthy services are returned. If you want to get all services, you can pass the "any" option:
 
 ```liquid
 {{service "webapp" "any"}}
-{{service "webapp" "passing"}}
+```
+
+This will return all services registered to the agent, regardless of their status.
+
+If you want to filter services by a specific health, you can specify a comma-separated list of health check statuses:
+
+```liquid
 {{service "webapp" "passing, warning, critical"}}
 ```
+
+Specifying more than one status filter while "any" is used will return an error, since "any" is the superset of all status filters.
+
+The comma should be read as "or", not "and". For example:
+
+```liquid
+{{service "webapp" "critical, unknown"}}
+```
+
+should be read as "all webpp services that are either critical or unknown".
 
 ##### `services`
 Query Consul for all services in the catalog. Services are queried using the following syntax:
