@@ -253,14 +253,9 @@ func (t ServiceTags) Contains(s string) bool {
 // HealthServiceList is a sortable slice of Service
 type HealthServiceList []*HealthService
 
-func (s HealthServiceList) Len() int {
-	return len(s)
-}
-
-func (s HealthServiceList) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
+// Len, Swap, and Less are used to implement the sort.Sort interface.
+func (s HealthServiceList) Len() int      { return len(s) }
+func (s HealthServiceList) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 func (s HealthServiceList) Less(i, j int) bool {
 	if s[i].Node < s[j].Node {
 		return true
