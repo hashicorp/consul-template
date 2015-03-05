@@ -1,6 +1,7 @@
 package dependency
 
 import (
+	"fmt"
 	"reflect"
 	"sort"
 	"strings"
@@ -68,79 +69,6 @@ func TestHealthServiceList_sorts(t *testing.T) {
 	}
 }
 
-func TestServiceStatusFilter_onlyAllowPassing(t *testing.T) {
-	var f ServiceStatusFilter
-	f = ServiceStatusFilter{}
-	if f.onlyAllowPassing() {
-		t.Fatal("Expecting and empty status filter to return false for onlyAllowPassing.")
-	}
-	f = ServiceStatusFilter{HealthPassing}
-	if !f.onlyAllowPassing() {
-		t.Fatal("Expecting and empty status filter to return true for onlyAllowPassing.")
-	}
-	f = ServiceStatusFilter{HealthPassing, HealthWarning}
-	if f.onlyAllowPassing() {
-		t.Fatal("Expecting passing and warning status filter to return false for onlyAllowPassing.")
-	}
-	f = ServiceStatusFilter{HealthWarning}
-	if f.onlyAllowPassing() {
-		t.Fatal("Expecting warning status filter to return false for onlyAllowPassing.")
-	}
-}
-
-func TestServiceStatusFilter_acceptWithEmptyFilterReturnsTrue(t *testing.T) {
-	f := &ServiceStatusFilter{}
-	c0 := []*api.HealthCheck{
-		&api.HealthCheck{
-			Status: HealthUnknown,
-		},
-		&api.HealthCheck{
-			Status: HealthPassing,
-		},
-		&api.HealthCheck{
-			Status: HealthWarning,
-		},
-		&api.HealthCheck{
-			Status: HealthCritical,
-		},
-	}
-	c1 := []*api.HealthCheck{
-		&api.HealthCheck{
-			Status: HealthUnknown,
-		},
-	}
-	c2 := []*api.HealthCheck{
-		&api.HealthCheck{
-			Status: HealthPassing,
-		},
-	}
-	c3 := []*api.HealthCheck{
-		&api.HealthCheck{
-			Status: HealthWarning,
-		},
-	}
-	c4 := []*api.HealthCheck{
-		&api.HealthCheck{
-			Status: HealthCritical,
-		},
-	}
-	if !f.accept(c0) {
-		t.Fatal("Expecting empty filter to accept c0.")
-	}
-	if !f.accept(c1) {
-		t.Fatal("Expecting empty filter to accept c1.")
-	}
-	if !f.accept(c2) {
-		t.Fatal("Expecting empty filter to accept c2.")
-	}
-	if !f.accept(c3) {
-		t.Fatal("Expecting empty filter to accept c3.")
-	}
-	if !f.accept(c4) {
-		t.Fatal("Expecting empty filter to accept c4.")
-	}
-}
-
 func TestServiceStatusFilter_acceptOnlyReturnsTrueForItemsInFilter(t *testing.T) {
 	f1 := &ServiceStatusFilter{HealthPassing}
 	f2 := &ServiceStatusFilter{HealthPassing, HealthWarning}
@@ -167,28 +95,28 @@ func TestServiceStatusFilter_acceptOnlyReturnsTrueForItemsInFilter(t *testing.T)
 			Status: HealthCritical,
 		},
 	}
-	if !f1.accept(c1) {
+	if !f1.Accept(c1) {
 		t.Fatal("Expecting f1 to accept c1.")
 	}
-	if f1.accept(c2) {
+	if f1.Accept(c2) {
 		t.Fatal("Expecting f1 to not accept c2.")
 	}
-	if f1.accept(c3) {
+	if f1.Accept(c3) {
 		t.Fatal("Expecting f1 to not accept c3.")
 	}
-	if f1.accept(c4) {
+	if f1.Accept(c4) {
 		t.Fatal("Expecting f1 to not accept c4.")
 	}
-	if !f2.accept(c1) {
+	if !f2.Accept(c1) {
 		t.Fatal("Expecting f2 to accept c1.")
 	}
-	if !f2.accept(c2) {
+	if !f2.Accept(c2) {
 		t.Fatal("Expecting f2 to accept c2.")
 	}
-	if !f2.accept(c3) {
+	if !f2.Accept(c3) {
 		t.Fatal("Expecting f2 to accept c3.")
 	}
-	if f2.accept(c4) {
+	if f2.Accept(c4) {
 		t.Fatal("Expecting f2 to not accept c4.")
 	}
 }
@@ -225,27 +153,11 @@ func TestParseHealthServices_name(t *testing.T) {
 		Status: ServiceStatusFilter{HealthPassing},
 	}
 	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %+v to equal %+v", sd, expected)
+		t.Errorf("expected %#v to equal %#v", sd, expected)
 	}
 }
 
 func TestParseHealthServices_nameAndAnyStatus(t *testing.T) {
-	sd, err := ParseHealthServices("webapp", "any")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected := &HealthServices{
-		rawKey: "webapp [any]",
-		Name:   "webapp",
-		Status: ServiceStatusFilter{},
-	}
-	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %+v to equal %+v", sd, expected)
-	}
-}
-
-func TestParseHealthServices_nameAndPassingStatus(t *testing.T) {
 	sd, err := ParseHealthServices("webapp", "passing")
 	if err != nil {
 		t.Fatal(err)
@@ -257,67 +169,7 @@ func TestParseHealthServices_nameAndPassingStatus(t *testing.T) {
 		Status: ServiceStatusFilter{HealthPassing},
 	}
 	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %+v to equal %+v", sd, expected)
-	}
-}
-
-func TestParseHealthServices_nameAndMultipleStatuses(t *testing.T) {
-	sd, err := ParseHealthServices("webapp", "passing,warning,critical")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected := &HealthServices{
-		rawKey: "webapp [passing,warning,critical]",
-		Name:   "webapp",
-		Status: ServiceStatusFilter{HealthPassing, HealthWarning, HealthCritical},
-	}
-	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %+v to equal %+v", sd, expected)
-	}
-}
-
-func TestParseHealthServices_nameAndMultipleStatusesIncludingAny(t *testing.T) {
-	sd, err := ParseHealthServices("webapp", "passing,any,warning")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected := &HealthServices{
-		rawKey: "webapp [any]",
-		Name:   "webapp",
-		Status: ServiceStatusFilter{},
-	}
-	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %+v to equal %+v", sd, expected)
-	}
-}
-
-func TestParseHealthServices_nameAndInvalidStatus(t *testing.T) {
-	_, err := ParseHealthServices("webapp", "passing,invalid")
-	if err == nil {
-		t.Fatal("expected error, but nothing was returned")
-	}
-
-	expected := "expected some of \"any, passing, warning, critical\" as health status"
-	if !strings.Contains(err.Error(), expected) {
-		t.Errorf("expected error %q to contain %q", err.Error(), expected)
-	}
-}
-
-func TestParseHealthServices_nameAndMultipleStatusesWithWeirdWhitespace(t *testing.T) {
-	sd, err := ParseHealthServices("webapp", "  passing,\nwarning  ,critical     \t ")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected := &HealthServices{
-		rawKey: "webapp [passing,warning,critical]",
-		Name:   "webapp",
-		Status: ServiceStatusFilter{HealthPassing, HealthWarning, HealthCritical},
-	}
-	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %+v to equal %+v", sd, expected)
+		t.Errorf("expected %#v to equal %#v", sd, expected)
 	}
 }
 
@@ -333,7 +185,7 @@ func TestParseHealthServices_slashName(t *testing.T) {
 		Status: ServiceStatusFilter{HealthPassing},
 	}
 	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %+v to equal %+v", sd, expected)
+		t.Errorf("expected %#v to equal %#v", sd, expected)
 	}
 }
 
@@ -349,7 +201,7 @@ func TestParseHealthServices_underscoreName(t *testing.T) {
 		Status: ServiceStatusFilter{HealthPassing},
 	}
 	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %+v to equal %+v", sd, expected)
+		t.Errorf("expected %#v to equal %#v", sd, expected)
 	}
 }
 
@@ -366,7 +218,7 @@ func TestParseHealthServices_dotTag(t *testing.T) {
 		Status: ServiceStatusFilter{HealthPassing},
 	}
 	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %+v to equal %+v", sd, expected)
+		t.Errorf("expected %#v to equal %#v", sd, expected)
 	}
 }
 
@@ -384,7 +236,7 @@ func TestParseHealthServices_nameTag(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %+v to equal %+v", sd, expected)
+		t.Errorf("expected %#v to equal %#v", sd, expected)
 	}
 }
 
@@ -403,7 +255,7 @@ func TestParseHealthServices_nameTagDataCenter(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %+v to equal %+v", sd, expected)
+		t.Errorf("expected %#v to equal %#v", sd, expected)
 	}
 }
 
@@ -423,7 +275,7 @@ func TestParseHealthServices_nameTagDataCenterPort(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %+v to equal %+v", sd, expected)
+		t.Errorf("expected %#v to equal %#v", sd, expected)
 	}
 }
 
@@ -453,7 +305,7 @@ func TestParseHealthServices_nameAndPort(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %+v to equal %+v", sd, expected)
+		t.Errorf("expected %#v to equal %#v", sd, expected)
 	}
 }
 
@@ -471,7 +323,7 @@ func TestParseHealthServices_nameAndDataCenter(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %+v to equal %+v", sd, expected)
+		t.Errorf("expected %#v to equal %#v", sd, expected)
 	}
 }
 
@@ -492,5 +344,151 @@ func TestServiceTagsContains(t *testing.T) {
 	}
 	if !s.Tags.Contains("baz") {
 		t.Error("expected Contains to return true for baz.")
+	}
+}
+
+// Tests specifically relating to health service filtering
+// -------------------------
+
+func TestNewServiceStatusFilter_emptyString(t *testing.T) {
+	filter, err := NewServiceStatusFilter("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := ServiceStatusFilter{HealthPassing}
+	if !reflect.DeepEqual(filter, expected) {
+		t.Errorf("expected %#v to be %#v", filter, expected)
+	}
+}
+
+func TestNewServiceStatusFilter_statuses(t *testing.T) {
+	statuses := []string{
+		HealthAny,
+		HealthUnknown,
+		HealthPassing,
+		HealthWarning,
+		HealthCritical,
+	}
+	for _, status := range statuses {
+		filter, err := NewServiceStatusFilter(status)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		expected := ServiceStatusFilter{status}
+		if !reflect.DeepEqual(filter, expected) {
+			t.Errorf("expected %#v to be %#v", filter, expected)
+		}
+	}
+}
+
+func TestNewServiceStatusFilter_any(t *testing.T) {
+	filter, err := NewServiceStatusFilter("any")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := ServiceStatusFilter{HealthAny}
+	if !reflect.DeepEqual(filter, expected) {
+		t.Errorf("expected %#v to be %#v", filter, expected)
+	}
+}
+
+func TestNewServiceStatusFilter_anyWithMore(t *testing.T) {
+	_, err := NewServiceStatusFilter("any, passing")
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := fmt.Sprintf("cannot specify extra keys when using %q", "any")
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestNewServiceStatusFilter_statusWithSpaces(t *testing.T) {
+	filter, err := NewServiceStatusFilter("passing,     critical, , unknown")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := ServiceStatusFilter{HealthPassing, HealthCritical, HealthUnknown}
+	if !reflect.DeepEqual(filter, expected) {
+		t.Errorf("expected %#v to be %#v", filter, expected)
+	}
+}
+
+func TestNewServiceStatusFilter_invalidStatus(t *testing.T) {
+	_, err := NewServiceStatusFilter("not_a_valid_status")
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := fmt.Sprintf("invalid filter %q", "not_a_valid_status")
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to be %q", err.Error(), expected)
+	}
+}
+
+func TestAccept_any(t *testing.T) {
+	filter, err := NewServiceStatusFilter("any")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	checks := []*api.HealthCheck{
+		&api.HealthCheck{Status: "passing"},
+		&api.HealthCheck{Status: "warning"},
+		&api.HealthCheck{Status: "critical"},
+	}
+	if !filter.Accept(checks) {
+		t.Fatal("expected all checks to be accepted")
+	}
+}
+
+func TestAccept_passing(t *testing.T) {
+	filter, err := NewServiceStatusFilter("passing")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	checks := []*api.HealthCheck{
+		&api.HealthCheck{Status: "passing"},
+		&api.HealthCheck{Status: "warning"},
+		&api.HealthCheck{Status: "critical"},
+	}
+	if filter.Accept(checks) {
+		t.Fatal("expected filter to not accept non-passing checks")
+	}
+
+	for _, check := range checks {
+		check.Status = "passing"
+	}
+	if !filter.Accept(checks) {
+		t.Fatal("expected all passing checks to be accepted")
+	}
+}
+
+func TestAccept_multiple(t *testing.T) {
+	filter, err := NewServiceStatusFilter("passing, critical")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	checks := []*api.HealthCheck{
+		&api.HealthCheck{Status: "passing"},
+		&api.HealthCheck{Status: "warning"},
+		&api.HealthCheck{Status: "critical"},
+	}
+	if !filter.Accept(checks) {
+		t.Fatal("expected all passing or critical checks to be accepted")
+	}
+
+	for _, check := range checks {
+		check.Status = "warning"
+	}
+	if filter.Accept(checks) {
+		t.Fatal("expected filter to not accept non-passing or non-critical checks")
 	}
 }
