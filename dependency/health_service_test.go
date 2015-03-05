@@ -69,58 +69,6 @@ func TestHealthServiceList_sorts(t *testing.T) {
 	}
 }
 
-func TestServiceStatusFilter_acceptOnlyReturnsTrueForItemsInFilter(t *testing.T) {
-	f1 := &ServiceStatusFilter{HealthPassing}
-	f2 := &ServiceStatusFilter{HealthPassing, HealthWarning}
-	c1 := []*api.HealthCheck{
-		&api.HealthCheck{
-			Status: HealthPassing,
-		},
-	}
-	c2 := []*api.HealthCheck{
-		&api.HealthCheck{
-			Status: HealthWarning,
-		},
-	}
-	c3 := []*api.HealthCheck{
-		&api.HealthCheck{
-			Status: HealthPassing,
-		},
-		&api.HealthCheck{
-			Status: HealthWarning,
-		},
-	}
-	c4 := []*api.HealthCheck{
-		&api.HealthCheck{
-			Status: HealthCritical,
-		},
-	}
-	if !f1.Accept(c1) {
-		t.Fatal("Expecting f1 to accept c1.")
-	}
-	if f1.Accept(c2) {
-		t.Fatal("Expecting f1 to not accept c2.")
-	}
-	if f1.Accept(c3) {
-		t.Fatal("Expecting f1 to not accept c3.")
-	}
-	if f1.Accept(c4) {
-		t.Fatal("Expecting f1 to not accept c4.")
-	}
-	if !f2.Accept(c1) {
-		t.Fatal("Expecting f2 to accept c1.")
-	}
-	if !f2.Accept(c2) {
-		t.Fatal("Expecting f2 to accept c2.")
-	}
-	if !f2.Accept(c3) {
-		t.Fatal("Expecting f2 to accept c3.")
-	}
-	if f2.Accept(c4) {
-		t.Fatal("Expecting f2 to not accept c4.")
-	}
-}
-
 func TestServiceDependencyHashCode_isUnique(t *testing.T) {
 	dep1 := &HealthServices{rawKey: "redis@nyc1"}
 	dep2 := &HealthServices{rawKey: "redis@nyc2"}
@@ -148,9 +96,9 @@ func TestParseHealthServices_name(t *testing.T) {
 	}
 
 	expected := &HealthServices{
-		rawKey: "webapp [passing]",
+		rawKey: "webapp [healthy]",
 		Name:   "webapp",
-		Status: ServiceStatusFilter{HealthPassing},
+		Status: ServiceStatusFilter{Healthy},
 	}
 	if !reflect.DeepEqual(sd, expected) {
 		t.Errorf("expected %#v to equal %#v", sd, expected)
@@ -180,9 +128,9 @@ func TestParseHealthServices_slashName(t *testing.T) {
 	}
 
 	expected := &HealthServices{
-		rawKey: "web/app [passing]",
+		rawKey: "web/app [healthy]",
 		Name:   "web/app",
-		Status: ServiceStatusFilter{HealthPassing},
+		Status: ServiceStatusFilter{Healthy},
 	}
 	if !reflect.DeepEqual(sd, expected) {
 		t.Errorf("expected %#v to equal %#v", sd, expected)
@@ -196,9 +144,9 @@ func TestParseHealthServices_underscoreName(t *testing.T) {
 	}
 
 	expected := &HealthServices{
-		rawKey: "web_app [passing]",
+		rawKey: "web_app [healthy]",
 		Name:   "web_app",
-		Status: ServiceStatusFilter{HealthPassing},
+		Status: ServiceStatusFilter{Healthy},
 	}
 	if !reflect.DeepEqual(sd, expected) {
 		t.Errorf("expected %#v to equal %#v", sd, expected)
@@ -212,10 +160,10 @@ func TestParseHealthServices_dotTag(t *testing.T) {
 	}
 
 	expected := &HealthServices{
-		rawKey: "first.release.webapp [passing]",
+		rawKey: "first.release.webapp [healthy]",
 		Name:   "webapp",
 		Tag:    "first.release",
-		Status: ServiceStatusFilter{HealthPassing},
+		Status: ServiceStatusFilter{Healthy},
 	}
 	if !reflect.DeepEqual(sd, expected) {
 		t.Errorf("expected %#v to equal %#v", sd, expected)
@@ -229,10 +177,10 @@ func TestParseHealthServices_nameTag(t *testing.T) {
 	}
 
 	expected := &HealthServices{
-		rawKey: "release.webapp [passing]",
+		rawKey: "release.webapp [healthy]",
 		Name:   "webapp",
 		Tag:    "release",
-		Status: ServiceStatusFilter{HealthPassing},
+		Status: ServiceStatusFilter{Healthy},
 	}
 
 	if !reflect.DeepEqual(sd, expected) {
@@ -247,11 +195,11 @@ func TestParseHealthServices_nameTagDataCenter(t *testing.T) {
 	}
 
 	expected := &HealthServices{
-		rawKey:     "release.webapp@nyc1 [passing]",
+		rawKey:     "release.webapp@nyc1 [healthy]",
 		Name:       "webapp",
 		Tag:        "release",
 		DataCenter: "nyc1",
-		Status:     ServiceStatusFilter{HealthPassing},
+		Status:     ServiceStatusFilter{Healthy},
 	}
 
 	if !reflect.DeepEqual(sd, expected) {
@@ -266,12 +214,12 @@ func TestParseHealthServices_nameTagDataCenterPort(t *testing.T) {
 	}
 
 	expected := &HealthServices{
-		rawKey:     "release.webapp@nyc1:8500 [passing]",
+		rawKey:     "release.webapp@nyc1:8500 [healthy]",
 		Name:       "webapp",
 		Tag:        "release",
 		DataCenter: "nyc1",
 		Port:       8500,
-		Status:     ServiceStatusFilter{HealthPassing},
+		Status:     ServiceStatusFilter{Healthy},
 	}
 
 	if !reflect.DeepEqual(sd, expected) {
@@ -298,10 +246,10 @@ func TestParseHealthServices_nameAndPort(t *testing.T) {
 	}
 
 	expected := &HealthServices{
-		rawKey: "webapp:8500 [passing]",
+		rawKey: "webapp:8500 [healthy]",
 		Name:   "webapp",
 		Port:   8500,
-		Status: ServiceStatusFilter{HealthPassing},
+		Status: ServiceStatusFilter{Healthy},
 	}
 
 	if !reflect.DeepEqual(sd, expected) {
@@ -316,10 +264,10 @@ func TestParseHealthServices_nameAndDataCenter(t *testing.T) {
 	}
 
 	expected := &HealthServices{
-		rawKey:     "webapp@nyc1 [passing]",
+		rawKey:     "webapp@nyc1 [healthy]",
 		Name:       "webapp",
 		DataCenter: "nyc1",
-		Status:     ServiceStatusFilter{HealthPassing},
+		Status:     ServiceStatusFilter{Healthy},
 	}
 
 	if !reflect.DeepEqual(sd, expected) {
@@ -356,7 +304,7 @@ func TestNewServiceStatusFilter_emptyString(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := ServiceStatusFilter{HealthPassing}
+	expected := ServiceStatusFilter{Healthy}
 	if !reflect.DeepEqual(filter, expected) {
 		t.Errorf("expected %#v to be %#v", filter, expected)
 	}
@@ -380,6 +328,18 @@ func TestNewServiceStatusFilter_statuses(t *testing.T) {
 		if !reflect.DeepEqual(filter, expected) {
 			t.Errorf("expected %#v to be %#v", filter, expected)
 		}
+	}
+
+	// The user should not be able to specify "healthy" themselves as that is an
+	// internal state.
+	_, err := NewServiceStatusFilter(Healthy)
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := fmt.Sprintf("invalid filter %q", "healthy")
+	if !strings.Contains(err.Error(), expected) {
+		t.Fatalf("expected %q to include %q", err.Error(), expected)
 	}
 }
 
@@ -444,29 +404,6 @@ func TestAccept_any(t *testing.T) {
 	}
 	if !filter.Accept(checks) {
 		t.Fatal("expected all checks to be accepted")
-	}
-}
-
-func TestAccept_passing(t *testing.T) {
-	filter, err := NewServiceStatusFilter("passing")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	checks := []*api.HealthCheck{
-		&api.HealthCheck{Status: "passing"},
-		&api.HealthCheck{Status: "warning"},
-		&api.HealthCheck{Status: "critical"},
-	}
-	if filter.Accept(checks) {
-		t.Fatal("expected filter to not accept non-passing checks")
-	}
-
-	for _, check := range checks {
-		check.Status = "passing"
-	}
-	if !filter.Accept(checks) {
-		t.Fatal("expected all passing checks to be accepted")
 	}
 }
 

@@ -15,6 +15,7 @@ import (
 
 // Ripped from https://github.com/hashicorp/consul/blob/master/consul/structs/structs.go#L31
 const (
+	Healthy        = "healthy"
 	HealthAny      = "any"
 	HealthUnknown  = "unknown"
 	HealthPassing  = "passing"
@@ -54,7 +55,7 @@ func (d *HealthServices) Fetch(client *api.Client, options *api.QueryOptions) (i
 	log.Printf("[DEBUG] (%s) querying Consul with %+v", d.Display(), options)
 
 	health := client.Health()
-	entries, qm, err := health.Service(d.Name, d.Tag, d.Status.passingOnly(), options)
+	entries, qm, err := health.Service(d.Name, d.Tag, d.Status.onlyHealthy(), options)
 	if err != nil {
 		return nil, qm, err
 	}
@@ -64,7 +65,9 @@ func (d *HealthServices) Fetch(client *api.Client, options *api.QueryOptions) (i
 	services := make([]*HealthService, 0, len(entries))
 
 	for _, entry := range entries {
-		if !d.Status.Accept(entry.Checks) {
+		// If we are not checking only healthy services, filter out services that do
+		// not match the given filter.
+		if !d.Status.onlyHealthy() && !d.Status.Accept(entry.Checks) {
 			continue
 		}
 
@@ -204,9 +207,9 @@ func (f ServiceStatusFilter) String() string {
 //
 // If the user specifies "any" with other keys, an error will be returned.
 func NewServiceStatusFilter(s string) (ServiceStatusFilter, error) {
-	// If no statuses were given, use the default status of "passing".
+	// If no statuses were given, use the default status of "all passing".
 	if len(s) == 0 {
-		return ServiceStatusFilter{HealthPassing}, nil
+		return ServiceStatusFilter{Healthy}, nil
 	}
 
 	var errs *multierror.Error
@@ -229,6 +232,8 @@ func NewServiceStatusFilter(s string) (ServiceStatusFilter, error) {
 
 		// Validate that the service is actually a valid name.
 		switch trim {
+		// Note that we intentionally do not att Healthy here because that is not
+		// something the user should specify.
 		case HealthAny, HealthUnknown, HealthPassing, HealthWarning, HealthCritical:
 			trimmed = append(trimmed, trim)
 		default:
@@ -248,18 +253,6 @@ func NewServiceStatusFilter(s string) (ServiceStatusFilter, error) {
 func (f ServiceStatusFilter) Accept(checks []*api.HealthCheck) bool {
 	// If the any filter is activated, pass everything.
 	if f.any() {
-		return true
-	}
-
-	// If ONLY the passing filter is activated, ensure all checks are passing and
-	// return. If more than one filter is given (like "passing, unknown"), then
-	// this conditional will not fire.
-	if f.passingOnly() {
-		for _, check := range checks {
-			if check.Status != HealthPassing {
-				return false
-			}
-		}
 		return true
 	}
 
@@ -285,10 +278,10 @@ func (f ServiceStatusFilter) any() bool {
 // status filter.
 //
 // NOTE: If there is more than one filter, this will return false, even if one
-// of the filters is "passing". This is because "passingOnly" is used to alter
+// of the filters is "passing". This is because "onlyHealthy" is used to alter
 // the type of query made to Consul.
-func (f ServiceStatusFilter) passingOnly() bool {
-	return len(f) == 1 && f[0] == HealthPassing
+func (f ServiceStatusFilter) onlyHealthy() bool {
+	return len(f) == 1 && f[0] == Healthy
 }
 
 // ServiceTags is a slice of tags assigned to a Service

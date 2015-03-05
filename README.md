@@ -266,6 +266,15 @@ The comma should be read as "or", not "and". For example:
 
 should be read as "all webpp services that are either critical or unknown".
 
+There is fundamental difference between the following:
+
+```liquid
+{{service "webapp"}}
+{{service "webapp" "passing"}}
+```
+
+The former will return all services which Consul considers "healthy" and passing. The latter will return all services registered with the Consul agent that have _at least_ one passing check. As a general rule, you should not use the "passing" argument if you want only healthy services - simply omit the second argument instead.
+
 ##### `services`
 Query Consul for all services in the catalog. Services are queried using the following syntax:
 
