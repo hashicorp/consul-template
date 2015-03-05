@@ -228,14 +228,12 @@ func NewServiceStatusFilter(s string) (ServiceStatusFilter, error) {
 		}
 
 		// Validate that the service is actually a valid name.
-		if trim != HealthAny &&
-			trim != HealthUnknown &&
-			trim != HealthPassing &&
-			trim != HealthWarning &&
-			trim != HealthCritical {
+		switch trim {
+		case HealthAny, HealthUnknown, HealthPassing, HealthWarning, HealthCritical:
+			trimmed = append(trimmed, trim)
+		default:
 			errs = multierror.Append(errs, fmt.Errorf("service filter: invalid filter %q", trim))
 		}
-		trimmed = append(trimmed, trim)
 	}
 
 	// If the user specified "any" with additional keys, that is invalid.
