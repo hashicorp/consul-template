@@ -792,12 +792,9 @@ func buildConfig(config *Config, path string) error {
 	// Recursively parse directories, single load files
 	if stat.Mode().IsDir() {
 		// Ensure the given filepath has at least one config file
-		files, err := ioutil.ReadDir(path)
+		_, err := ioutil.ReadDir(path)
 		if err != nil {
 			return fmt.Errorf("config: error listing directory: %s", err)
-		}
-		if len(files) == 0 {
-			return fmt.Errorf("config: must contain at least one configuration file")
 		}
 
 		// Potential bug: Walk does not follow symlinks!

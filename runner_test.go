@@ -902,13 +902,8 @@ func TestBuildConfig_EmptyDirectory(t *testing.T) {
 
 	config := new(Config)
 	err = buildConfig(config, configDir)
-	if err == nil {
-		t.Fatalf("expected error, but nothing was returned")
-	}
-
-	expected := "must contain at least one configuration file"
-	if !strings.Contains(err.Error(), expected) {
-		t.Fatalf("expected %q to contain %q", err.Error(), expected)
+	if err != nil {
+		t.Fatalf("empty directories are allowed")
 	}
 }
 
