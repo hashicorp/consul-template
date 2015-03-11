@@ -388,6 +388,8 @@ Takes the given input (usually the value from a key) and parses the result as JS
 {{with $d := key "user/info" | parseJSON}}{{$d.name}}{{end}}
 ```
 
+Note: consul-template evaluates the template multiple times, and on the first evaluation the value of the key will be empty (because consul template had no chance to preload the value yet). This means that you have to be prepared empty response from parseJSON. It just works for simple keys. But fails if you want to iterate over keys or use `index` function. Wrapping code that access object with `{{ if $d }}...{{end}}` is good enough.
+
 Alternatively you can read data from a local JSON file:
 
 ```liquid
