@@ -344,6 +344,17 @@ func TestParseFlags_errors(t *testing.T) {
 	}
 }
 
+func TestParseFlags_badArgs(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	_, _, _, _, err := cli.parseFlags([]string{
+		"foo", "bar",
+	})
+
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+}
+
 func TestRun_printsErrors(t *testing.T) {
 	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
 	cli := NewCLI(outStream, errStream)
