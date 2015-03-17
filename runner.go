@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -389,8 +390,17 @@ func (r *Runner) init() error {
 		}
 	}
 
-	// Add default values for the config
-	r.config.Merge(DefaultConfig())
+	// Merge in default values for the config
+	config := DefaultConfig()
+	config.Merge(r.config)
+	r.config = config
+
+	// Print the final config for debugging
+	result, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] runner: final config:\n\n%s\n\n", result)
 
 	// Create the client
 	client, err := newAPIClient(r.config)
@@ -737,7 +747,7 @@ func newAPIClient(config *Config) (*api.Client, error) {
 		}
 	}
 
-	if config.Auth != nil {
+	if config.Auth.Enabled {
 		log.Printf("[DEBUG] (runner) setting basic auth")
 		consulConfig.HttpAuth = &api.HttpBasicAuth{
 			Username: config.Auth.Username,
