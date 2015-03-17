@@ -22,6 +22,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * Properly filter services by their type (GH-210, GH-212)
+  * Return an error if extra arguments are given on the command line (GH-227)
 
 ## v0.7.0 (February 19, 2015)
 
