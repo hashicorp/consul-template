@@ -2,12 +2,18 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	dep "github.com/hashicorp/consul-template/dependency"
 )
+
+// now is function that represents the current time in UTC. This is here
+// primarily for the tests to override times.
+var now = func() time.Time { return time.Now().UTC() }
 
 // datacentersFunc returns or accumulates datacenter dependencies.
 func datacentersFunc(brain *Brain,
@@ -301,21 +307,6 @@ func parseJSON(s string) (interface{}, error) {
 	return data, nil
 }
 
-// toLower converts the given string (usually by a pipe) to lowercase.
-func toLower(s string) (string, error) {
-	return strings.ToLower(s), nil
-}
-
-// toTitle converts the given string (usually by a pipe) to titlecase.
-func toTitle(s string) (string, error) {
-	return strings.Title(s), nil
-}
-
-// toUpper converts the given string (usually by a pipe) to uppercase.
-func toUpper(s string) (string, error) {
-	return strings.ToUpper(s), nil
-}
-
 // replaceAll replaces all occurrences of a value in a string with the given
 // replacement value.
 func replaceAll(f, t, s string) (string, error) {
@@ -330,6 +321,35 @@ func regexReplaceAll(re, pl, s string) (string, error) {
 		return "", err
 	}
 	return compiled.ReplaceAllString(s, pl), nil
+}
+
+// timestamp returns the current UNIX timestamp in UTC. If an argument is
+// specified, it will be used to format the timestamp.
+func timestamp(s ...string) (string, error) {
+	switch len(s) {
+	case 0:
+		return now().Format(time.RFC3339), nil
+	case 1:
+		return now().Format(s[0]), nil
+	default:
+		return "", fmt.Errorf("timestamp: too many arguments, expected 0 or 1"+
+			", but got %d", len(s))
+	}
+}
+
+// toLower converts the given string (usually by a pipe) to lowercase.
+func toLower(s string) (string, error) {
+	return strings.ToLower(s), nil
+}
+
+// toTitle converts the given string (usually by a pipe) to titlecase.
+func toTitle(s string) (string, error) {
+	return strings.Title(s), nil
+}
+
+// toUpper converts the given string (usually by a pipe) to uppercase.
+func toUpper(s string) (string, error) {
+	return strings.ToUpper(s), nil
 }
 
 // addDependency adds the given Dependency to the map.

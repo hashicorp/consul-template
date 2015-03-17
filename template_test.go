@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul-template/test"
@@ -198,6 +199,9 @@ func TestExecute_duplicateFuncs(t *testing.T) {
 }
 
 func TestExecute_renders(t *testing.T) {
+	// Stub out the time.
+	now = func() time.Time { return time.Unix(0, 0).UTC() }
+
 	in := test.CreateTempfile([]byte(`
 		API Functions
 		-------------
@@ -235,6 +239,8 @@ func TestExecute_renders(t *testing.T) {
 			{{$key}}={{$value}}{{ end }}
 		parseJSON (env):{{ range $key, $value := env "json" | parseJSON }}
 			{{$key}}={{$value}}{{ end }}
+		timestamp: {{ timestamp }}
+		timestamp (formatted): {{ timestamp "2006-01-02" }}
 		regexReplaceAll: {{ file "/path/to/file" | regexReplaceAll "\\w" "x" }}
 		replaceAll: {{ file "/path/to/file" | replaceAll "some" "this" }}
 		toLower: {{ file "/path/to/file" | toLower }}
@@ -400,6 +406,8 @@ func TestExecute_renders(t *testing.T) {
 			foo=bar
 		parseJSON (env):
 			foo=bar
+		timestamp: 1970-01-01T00:00:00Z
+		timestamp (formatted): 1970-01-01
 		regexReplaceAll: xxxx xxxxxxx
 		replaceAll: this content
 		toLower: some content
