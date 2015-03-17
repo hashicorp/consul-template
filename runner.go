@@ -747,7 +747,7 @@ func newAPIClient(config *Config) (*api.Client, error) {
 		}
 	}
 
-	if config.Auth != nil {
+	if config.Auth.Enabled {
 		log.Printf("[DEBUG] (runner) setting basic auth")
 		consulConfig.HttpAuth = &api.HttpBasicAuth{
 			Username: config.Auth.Username,
