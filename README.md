@@ -426,6 +426,21 @@ This function can be chained with other functions as well:
 {{service "webapp"}}{{.Name | replaceAll ":" "_"}}{{end}}
 ```
 
+##### `timestamp`
+Returns the current timestamp as a string (UTC). If no arguments are given, the result is the current RFC3339 timestamp:
+
+```liquid
+{{timestamp}} // e.g. 1970-01-01T00:00:00Z
+```
+
+If the optional parameter is given, it is used to format the timestamp using the magic reference date **Mon Jan 2 15:04:05 -0700 MST 2006**:
+
+```liquid
+{{timestamp "2006-01-02"}} // e.g. 1970-01-01
+```
+
+See Go's [time.Format()](http://golang.org/pkg/time/#Time.Format) for more information.
+
 ##### `toLower`
 Takes the argument as a string and converts it to lowercase.
 

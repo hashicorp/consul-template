@@ -4,6 +4,7 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
 	dep "github.com/hashicorp/consul-template/dependency"
 )
@@ -795,6 +796,46 @@ func TestParseJSON_empty(t *testing.T) {
 	expected := make([]interface{}, 0)
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("expected %#v to be %#v", result, expected)
+	}
+}
+
+func TestTimestamp_noArgs(t *testing.T) {
+	now = func() time.Time { return time.Unix(0, 0).UTC() }
+
+	result, err := timestamp()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "1970-01-01T00:00:00Z"
+	if result != expected {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+}
+
+func TestTimestamp_format(t *testing.T) {
+	now = func() time.Time { return time.Unix(0, 0).UTC() }
+
+	result, err := timestamp("2006-01-02")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "1970-01-01"
+	if result != expected {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+}
+
+func TestTimestamp_tooManyArgs(t *testing.T) {
+	_, err := timestamp("a", "b")
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "timestamp: too many arguments, expected 0 or 1, but got 2"
+	if err.Error() != expected {
+		t.Errorf("expected %q to be %q", err.Error(), expected)
 	}
 }
 
