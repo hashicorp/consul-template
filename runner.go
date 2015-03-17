@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -393,6 +394,13 @@ func (r *Runner) init() error {
 	config := DefaultConfig()
 	config.Merge(r.config)
 	r.config = config
+
+	// Print the final config for debugging
+	result, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] runner: final config:\n\n%s\n\n", result)
 
 	// Create the client
 	client, err := newAPIClient(r.config)
