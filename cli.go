@@ -177,6 +177,13 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 		return nil, false, false, false, err
 	}
 
+	// Error if extra arguments are present
+	args = flags.Args()
+	if len(args) > 0 {
+		return nil, false, false, false, fmt.Errorf("cli: extra argument(s): %q",
+			args)
+	}
+
 	// Handle deprecations
 	if deprecatedSSLNoVerify {
 		log.Printf("[WARN] -ssl-no-verify is deprecated - please use " +
