@@ -20,11 +20,14 @@ IMPROVEMENTS:
     Consul (GH-212)
   * Allow empty configuration directories (GH-217)
   * Document caveats around using `parseJSON` during multi-evaluation
+  * Print the final configuration as JSON in debug mode (GH-231)
 
 BUG FIXES:
 
   * Properly filter services by their type (GH-210, GH-212)
   * Return an error if extra arguments are given on the command line (GH-227)
+  * Do not overwrite given configuration with the default options (GH-228, GH-219)
+  * Check for the correct conditions when using basic authentication (GH-220)
 
 ## v0.7.0 (February 19, 2015)
 
