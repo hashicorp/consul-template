@@ -389,8 +389,10 @@ func (r *Runner) init() error {
 		}
 	}
 
-	// Add default values for the config
-	r.config.Merge(DefaultConfig())
+	// Merge in default values for the config
+	config := DefaultConfig()
+	config.Merge(r.config)
+	r.config = config
 
 	// Create the client
 	client, err := newAPIClient(r.config)

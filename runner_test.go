@@ -41,10 +41,6 @@ func TestNewRunner_initialize(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if runner.config != config {
-		t.Errorf("expected %#v to be %#v", runner.config, config)
-	}
-
 	if runner.dry != dry {
 		t.Errorf("expected %#v to be %#v", runner.dry, dry)
 	}
