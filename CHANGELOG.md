@@ -8,6 +8,8 @@ FEATURES:
   * Add `.Size()` so the watcher can report its size (GH-206)
   * Add `byKey` template helper to group the results of a `tree` function by
     their containing directory (GH-207, GH-209)
+  * Add `timestamp` template function for returning the current timestamp with
+    the ability to add custom formatting (GH-225, GH-230)
 
 IMPROVEMENTS:
 
