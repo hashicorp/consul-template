@@ -16,6 +16,8 @@ IMPROVEMENTS:
   * Warn the user if there are a large number of dependencies (GH-205)
   * Extend documentation on how health service dependencies are downloaded from
     Consul (GH-212)
+  * Allow empty configuration directories (GH-217)
+  * Document caveats around using `parseJSON` during multi-evaluation
 
 BUG FIXES:
 
