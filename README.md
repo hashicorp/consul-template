@@ -283,6 +283,26 @@ The service's status is also exposed if you need to do additional filtering:
 // Ok{{end}}
 ```
 
+To put a service into maintenance mode in Consul around executing the command, simply wrap your command in a `consul maint` call:
+
+```shell
+#!/bin/sh
+set -e
+consul maint -enable -service webapp -reason "Consul Template updated"
+service nginx reload
+consul maint -disable -service webapp
+```
+
+Alternatively, if you do not have the Consul agent installed, you can make the API requests directly (advanced):
+
+```shell
+#!/bin/sh
+set -e
+curl -X PUT "http://$CONSUL_HTTP_ADDR/v1/agent/service/maintenance/webapp?enable=true&reason=Consul+Template+Updated"
+service nginx reload
+curl -X PUT "http://$CONSUL_HTTP_ADDR/v1/agent/service/maintenance/webapp?enable=false"
+```
+
 ##### `services`
 Query Consul for all services in the catalog. Services are queried using the following syntax:
 
