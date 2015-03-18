@@ -519,6 +519,17 @@ template {
 }
 ```
 
+### Command Environment
+The current processes environemnt is used when executing commands with the following additional environment variables:
+
+- `CONSUL_HTTP_ADDR`
+- `CONSUL_HTTP_TOKEN`
+- `CONSUL_HTTP_AUTH`
+- `CONSUL_HTTP_SSL`
+- `CONSUL_HTTP_SSL_VERIFY`
+
+These environment variables are exported with their current values when the command executes. Other Consul tooling reads these environment variables, providing smooth integration with other Consul tools (like `consul maint` or `consul lock`). Additionally, exposing these environment variables gives power users the ability to further customize their command script.
+
 
 Examples
 --------
