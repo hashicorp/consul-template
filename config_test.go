@@ -168,6 +168,30 @@ func TestMerge_SyslogOptions(t *testing.T) {
 	}
 }
 
+func TestAuthString_disabled(t *testing.T) {
+	a := &Auth{Enabled: false}
+	expected := ""
+	if a.String() != expected {
+		t.Errorf("expected %q to be %q", a.String(), expected)
+	}
+}
+
+func TestAuthString_enabledNoPassword(t *testing.T) {
+	a := &Auth{Enabled: true, Username: "username"}
+	expected := "username"
+	if a.String() != expected {
+		t.Errorf("expected %q to be %q", a.String(), expected)
+	}
+}
+
+func TestAuthString_enabled(t *testing.T) {
+	a := &Auth{Enabled: true, Username: "username", Password: "password"}
+	expected := "username:password"
+	if a.String() != expected {
+		t.Errorf("expected %q to be %q", a.String(), expected)
+	}
+}
+
 // Test that file read errors are propagated up
 func TestParseConfig_readFileError(t *testing.T) {
 	_, err := ParseConfig(path.Join(os.TempDir(), "config.json"))

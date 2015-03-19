@@ -849,6 +849,60 @@ func TestRunner_onceAlreadyRenderedDoesNotHangOrRunCommands(t *testing.T) {
 	}
 }
 
+func TestExecute_setsEnv(t *testing.T) {
+	tmpfile := test.CreateTempfile(nil, t)
+	defer test.DeleteTempfile(tmpfile, t)
+
+	config := &Config{
+		Consul: "1.2.3.4:5678",
+		Token:  "abcd1243",
+		Auth: &Auth{
+			Enabled:  true,
+			Username: "username",
+			Password: "password",
+		},
+		SSL: &SSL{
+			Enabled: true,
+			Verify:  false,
+		},
+	}
+
+	runner, err := NewRunner(config, false, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := runner.execute(fmt.Sprintf("env > %s", tmpfile.Name())); err != nil {
+		t.Fatal(err)
+	}
+
+	bytes, err := ioutil.ReadFile(tmpfile.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	contents := string(bytes)
+
+	if !strings.Contains(contents, "CONSUL_HTTP_ADDR=1.2.3.4:5678") {
+		t.Errorf("expected env to contain CONSUL_HTTP_ADDR")
+	}
+
+	if !strings.Contains(contents, "CONSUL_HTTP_TOKEN=abcd1243") {
+		t.Errorf("expected env to contain CONSUL_HTTP_TOKEN")
+	}
+
+	if !strings.Contains(contents, "CONSUL_HTTP_AUTH=username:password") {
+		t.Errorf("expected env to contain CONSUL_HTTP_AUTH")
+	}
+
+	if !strings.Contains(contents, "CONSUL_HTTP_SSL=true") {
+		t.Errorf("expected env to contain CONSUL_HTTP_SSL")
+	}
+
+	if !strings.Contains(contents, "CONSUL_HTTP_SSL_VERIFY=false") {
+		t.Errorf("expected env to contain CONSUL_HTTP_SSL_VERIFY")
+	}
+}
+
 func TestBuildConfig_singleFile(t *testing.T) {
 	configFile := test.CreateTempfile([]byte(`
 		consul = "127.0.0.1"

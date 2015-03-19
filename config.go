@@ -262,6 +262,21 @@ type Auth struct {
 	Password string `mapstructure:"password"`
 }
 
+// String is the string representation of this authentication. If authentication
+// is not enabled, this returns the empty string. The username and password will
+// be separated by a colon.
+func (a *Auth) String() string {
+	if !a.Enabled {
+		return ""
+	}
+
+	if a.Password != "" {
+		return fmt.Sprintf("%s:%s", a.Username, a.Password)
+	}
+
+	return a.Username
+}
+
 // SSL is the configuration for SSL.
 type SSL struct {
 	Enabled bool `mapstructure:"enabled"`

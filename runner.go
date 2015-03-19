@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -566,10 +567,29 @@ func (r *Runner) execute(command string) error {
 		shell, flag = "/bin/sh", "-c"
 	}
 
+	// Copy the current environment as well as some custom environment variables
+	// that are read by other Consul tools (like Consul's HTTP address). This
+	// allows the user to specify these values once (in the Consul Template config
+	// or command line), instead of in multiple places.
+	customEnv := map[string]string{
+		"CONSUL_HTTP_ADDR":       r.config.Consul,
+		"CONSUL_HTTP_TOKEN":      r.config.Token,
+		"CONSUL_HTTP_AUTH":       r.config.Auth.String(),
+		"CONSUL_HTTP_SSL":        strconv.FormatBool(r.config.SSL.Enabled),
+		"CONSUL_HTTP_SSL_VERIFY": strconv.FormatBool(r.config.SSL.Verify),
+	}
+	currentEnv := os.Environ()
+	cmdEnv := make([]string, len(currentEnv), len(currentEnv)+len(customEnv))
+	copy(cmdEnv, currentEnv)
+	for k, v := range customEnv {
+		cmdEnv = append(cmdEnv, fmt.Sprintf("%s=%s", k, v))
+	}
+
 	// Create an invoke the command
 	cmd := exec.Command(shell, flag, command)
 	cmd.Stdout = r.outStream
 	cmd.Stderr = r.errStream
+	cmd.Env = cmdEnv
 	return cmd.Run()
 }
 

@@ -283,6 +283,26 @@ The service's status is also exposed if you need to do additional filtering:
 // Ok{{end}}
 ```
 
+To put a service into maintenance mode in Consul around executing the command, simply wrap your command in a `consul maint` call:
+
+```shell
+#!/bin/sh
+set -e
+consul maint -enable -service webapp -reason "Consul Template updated"
+service nginx reload
+consul maint -disable -service webapp
+```
+
+Alternatively, if you do not have the Consul agent installed, you can make the API requests directly (advanced):
+
+```shell
+#!/bin/sh
+set -e
+curl -X PUT "http://$CONSUL_HTTP_ADDR/v1/agent/service/maintenance/webapp?enable=true&reason=Consul+Template+Updated"
+service nginx reload
+curl -X PUT "http://$CONSUL_HTTP_ADDR/v1/agent/service/maintenance/webapp?enable=false"
+```
+
 ##### `services`
 Query Consul for all services in the catalog. Services are queried using the following syntax:
 
@@ -498,6 +518,17 @@ template {
   command = "chmod 644 /var/nginx/nginx.conf && sudo restart nginx"
 }
 ```
+
+### Command Environment
+The current processes environment is used when executing commands with the following additional environment variables:
+
+- `CONSUL_HTTP_ADDR`
+- `CONSUL_HTTP_TOKEN`
+- `CONSUL_HTTP_AUTH`
+- `CONSUL_HTTP_SSL`
+- `CONSUL_HTTP_SSL_VERIFY`
+
+These environment variables are exported with their current values when the command executes. Other Consul tooling reads these environment variables, providing smooth integration with other Consul tools (like `consul maint` or `consul lock`). Additionally, exposing these environment variables gives power users the ability to further customize their command script.
 
 
 Examples
