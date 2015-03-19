@@ -520,7 +520,7 @@ template {
 ```
 
 ### Command Environment
-The current processes environemnt is used when executing commands with the following additional environment variables:
+The current processes environment is used when executing commands with the following additional environment variables:
 
 - `CONSUL_HTTP_ADDR`
 - `CONSUL_HTTP_TOKEN`
