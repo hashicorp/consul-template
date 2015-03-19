@@ -21,6 +21,9 @@ IMPROVEMENTS:
   * Allow empty configuration directories (GH-217)
   * Document caveats around using `parseJSON` during multi-evaluation
   * Print the final configuration as JSON in debug mode (GH-231)
+  * Export certain environment variables when executing commands that are read
+    by other Consul tooling or in your scripts (GH-232) - see the README for
+    more information
 
 BUG FIXES:
 
