@@ -10,6 +10,7 @@ FEATURES:
     their containing directory (GH-207, GH-209)
   * Add `timestamp` template function for returning the current timestamp with
     the ability to add custom formatting (GH-225, GH-230)
+  * Add `loop` template function for iteration (GH-238, GH-221)
 
 IMPROVEMENTS:
 
