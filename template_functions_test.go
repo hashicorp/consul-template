@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -775,6 +776,51 @@ func TestEnv(t *testing.T) {
 	}
 }
 
+func TestLoop_noArgs(t *testing.T) {
+	_, err := loop()
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "loop: wrong number of arguments"
+	if !strings.Contains(err.Error(), expected) {
+		t.Fatalf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestLoop_oneArg(t *testing.T) {
+	result, err := loop(5)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	times := 0
+	for range result {
+		times++
+	}
+
+	if times != 5 {
+		t.Fatalf("expected %q to be %q", times, 5)
+	}
+}
+
+func TestLoop_twoArgs(t *testing.T) {
+	result, err := loop(3, 7)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []int{3, 4, 5, 6}
+	actual := make([]int, 0, 4)
+	for val := range result {
+		actual = append(actual, val)
+	}
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("expected %#v to be %#v", actual, expected)
+	}
+}
+
 func TestParseJSON(t *testing.T) {
 	result, err := parseJSON(`{"foo": "bar"}`)
 	if err != nil {
@@ -833,8 +879,8 @@ func TestTimestamp_tooManyArgs(t *testing.T) {
 		t.Fatal("expected error, but nothing was returned")
 	}
 
-	expected := "timestamp: too many arguments, expected 0 or 1, but got 2"
-	if err.Error() != expected {
+	expected := "timestamp: wrong number of arguments"
+	if !strings.Contains(err.Error(), expected) {
 		t.Errorf("expected %q to be %q", err.Error(), expected)
 	}
 }

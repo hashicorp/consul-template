@@ -233,6 +233,10 @@ func TestExecute_renders(t *testing.T) {
 			{{$tag}}:{{ range $services }}
 				{{.Address}}{{ end }}{{ end }}
 		env: {{ env "foo" }}
+		loop:{{range loop 3}}
+			test{{end}}
+		loop(i):{{range $i := loop 5 8}}
+			test{{$i}}{{end}}
 		parseJSON (string):{{ range $key, $value := "{\"foo\": \"bar\"}" | parseJSON }}
 			{{$key}}={{$value}}{{ end }}
 		parseJSON (file):{{ range $key, $value := file "/path/to/json/file" | parseJSON }}
@@ -400,6 +404,14 @@ func TestExecute_renders(t *testing.T) {
 				1.2.3.4
 				5.6.7.8
 		env: bar
+		loop:
+			test
+			test
+			test
+		loop(i):
+			test5
+			test6
+			test7
 		parseJSON (string):
 			foo=bar
 		parseJSON (file):

@@ -120,6 +120,7 @@ func funcMap(brain *Brain, used, missing map[string]dep.Dependency) template.Fun
 		"byKey":           byKey,
 		"byTag":           byTag,
 		"env":             env,
+		"loop":            loop,
 		"parseJSON":       parseJSON,
 		"regexReplaceAll": regexReplaceAll,
 		"replaceAll":      replaceAll,

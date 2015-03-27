@@ -289,9 +289,49 @@ func byTag(in []*dep.HealthService) (map[string][]*dep.HealthService, error) {
 	return m, nil
 }
 
-// returns the value of the environment variable set
+// env returns the value of the environment variable set
 func env(s string) (string, error) {
 	return os.Getenv(s), nil
+}
+
+// loop accepts varying parameters and differs its behavior. If given one
+// parameter, loop will return a goroutine that begins at 0 and loops until the
+// given int, increasing the index by 1 each iteration. If given two parameters,
+// loop will return a goroutine that begins at the first parameter and loops
+// up to but not including the second parameter.
+//
+//    // Prints 0 1 2 3 4
+// 		for _, i := range loop(5) {
+// 			print(i)
+// 		}
+//
+//    // Prints 5 6 7
+// 		for _, i := range loop(5, 8) {
+// 			print(i)
+// 		}
+//
+func loop(ints ...int) (<-chan int, error) {
+	var start, stop int
+	switch len(ints) {
+	case 1:
+		start, stop = 0, ints[0]
+	case 2:
+		start, stop = ints[0], ints[1]
+	default:
+		return nil, fmt.Errorf("loop: wrong number of arguments, expected 1 or 2"+
+			", but got %d", len(ints))
+	}
+
+	ch := make(chan int)
+
+	go func() {
+		for i := start; i < stop; i++ {
+			ch <- i
+		}
+		close(ch)
+	}()
+
+	return ch, nil
 }
 
 // parseJSON returns a structure for valid JSON
@@ -332,7 +372,7 @@ func timestamp(s ...string) (string, error) {
 	case 1:
 		return now().Format(s[0]), nil
 	default:
-		return "", fmt.Errorf("timestamp: too many arguments, expected 0 or 1"+
+		return "", fmt.Errorf("timestamp: wrong number of arguments, expected 0 or 1"+
 			", but got %d", len(s))
 	}
 }

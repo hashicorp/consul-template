@@ -401,6 +401,42 @@ This function can be chained to manipulate the output:
 {{env "CLUSTER_ID" | toLower}}
 ```
 
+##### `loop`
+Accepts varying parameters and differs its behavior based on those parameters.
+
+If `loop` is given one integer, it will return a goroutine that begins at zero
+and loops up to but not including the given integer:
+
+```liquid
+{{range loop 5}}
+# Comment{{end}}
+```
+
+If given two integers, this function will return a goroutine that begins at
+the first integer and loops up to but not including the second integer:
+
+```liquid
+{{range $i := loop 5 8}}
+stanza-{{$i}}{{end}}
+```
+
+which would render:
+
+```text
+stanza-5
+stanza-6
+stanza-7
+```
+
+Note: It is not possible to get the index and the element since the function
+returns a goroutine, not a slice. In other words, the following is **not valid**:
+
+```liquid
+# Will NOT work!
+{{range $i, $e := loop 5 8}}
+# ...{{end}}
+```
+
 ##### `parseJSON`
 Takes the given input (usually the value from a key) and parses the result as JSON:
 
