@@ -977,6 +977,31 @@ func TestBuildConfig_BadConfigs(t *testing.T) {
 	}
 }
 
+func TestBuildConfig_configTakesPrecedence(t *testing.T) {
+	configFile := test.CreateTempfile([]byte(`
+		ssl {
+			enabled = false
+		}
+	`), t)
+	defer test.DeleteTempfile(configFile, t)
+
+	config := &Config{
+		Path: configFile.Name(),
+		SSL: &SSL{
+			Enabled: true,
+		},
+	}
+
+	runner, err := NewRunner(config, true, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if runner.config.SSL.Enabled != true {
+		t.Error("expected config.SSL.Enabled to be true")
+	}
+}
+
 func TestBuildConfig_configDir(t *testing.T) {
 	configDir, err := ioutil.TempDir(os.TempDir(), "")
 	if err != nil {

@@ -23,49 +23,49 @@ type Config struct {
 	// Path is the path to this configuration file on disk. This value is not
 	// read from disk by rather dynamically populated by the code so the Config
 	// has a reference to the path to the file on disk that created it.
-	Path string `mapstructure:"-"`
+	Path string `json:"path" mapstructure:"-"`
 
 	// Consul is the location of the Consul instance to query (may be an IP
 	// address or FQDN) with port.
-	Consul string `mapstructure:"consul"`
+	Consul string `json:"consul" mapstructure:"consul"`
 
 	// Token is the Consul API token.
-	Token string `mapstructure:"token"`
+	Token string `json:"token" mapstructure:"token"`
 
 	// Auth is the HTTP basic authentication for communicating with Consul.
-	Auth    *Auth   `mapstructure:"-"`
-	AuthRaw []*Auth `mapstructure:"auth"`
+	Auth    *Auth   `json:"auth" mapstructure:"-"`
+	AuthRaw []*Auth `json:"-" mapstructure:"auth"`
 
 	// SSL indicates we should use a secure connection while talking to
 	// Consul. This requires Consul to be configured to serve HTTPS.
 	//
 	// SSLNoVerify determines if we should skip certificate warnings
-	SSL    *SSL   `mapstructure:"-"`
-	SSLRaw []*SSL `mapstructure:"ssl"`
+	SSL    *SSL   `json:"ssl" mapstructure:"-"`
+	SSLRaw []*SSL `json:"-" mapstructure:"ssl"`
 
 	// Syslog is the configuration for syslog.
-	Syslog    *Syslog   `mapstructure:"-"`
-	SyslogRaw []*Syslog `mapstructure:"syslog"`
+	Syslog    *Syslog   `json:"syslog" mapstructure:"-"`
+	SyslogRaw []*Syslog `json:"-" mapstructure:"syslog"`
 
 	// MaxStale is the maximum amount of time for staleness from Consul as given
 	// by LastContact. If supplied, Consul Template will query all servers instead
 	// of just the leader.
-	MaxStale    time.Duration `mapstructure:"-"`
-	MaxStaleRaw string        `mapstructure:"max_stale"`
+	MaxStale    time.Duration `json:"max_stale" mapstructure:"-"`
+	MaxStaleRaw string        `json:"-" mapstructure:"max_stale"`
 
 	// ConfigTemplates is a slice of the ConfigTemplate objects in the config.
-	ConfigTemplates []*ConfigTemplate `mapstructure:"template"`
+	ConfigTemplates []*ConfigTemplate `json:"templates" mapstructure:"template"`
 
 	// Retry is the duration of time to wait between Consul failures.
-	Retry    time.Duration `mapstructure:"-"`
-	RetryRaw string        `mapstructure:"retry" json:""`
+	Retry    time.Duration `json:"retry" mapstructure:"-"`
+	RetryRaw string        `json:"-" mapstructure:"retry" json:""`
 
 	// Wait is the quiescence timers.
-	Wait    *watch.Wait `mapstructure:"-"`
-	WaitRaw string      `mapstructure:"wait" json:""`
+	Wait    *watch.Wait `json:"wait" mapstructure:"-"`
+	WaitRaw string      `json:"-" mapstructure:"wait" json:""`
 
 	// LogLevel is the level with which to log for this config.
-	LogLevel string `mapstructure:"log_level"`
+	LogLevel string `json:"log_level" mapstructure:"log_level"`
 }
 
 // Merge merges the values in config into this config object. Values in the
@@ -257,9 +257,9 @@ func DefaultConfig() *Config {
 
 // Auth is the HTTP basic authentication data.
 type Auth struct {
-	Enabled  bool   `mapstructure:"enabled"`
-	Username string `mapstructure:"username"`
-	Password string `mapstructure:"password"`
+	Enabled  bool   `json:"enabled" mapstructure:"enabled"`
+	Username string `json:"username" mapstructure:"username"`
+	Password string `json:"password" mapstructure:"password"`
 }
 
 // String is the string representation of this authentication. If authentication
@@ -279,22 +279,22 @@ func (a *Auth) String() string {
 
 // SSL is the configuration for SSL.
 type SSL struct {
-	Enabled bool `mapstructure:"enabled"`
-	Verify  bool `mapstructure:"verify"`
+	Enabled bool `json:"enabled" mapstructure:"enabled"`
+	Verify  bool `json:"verify" mapstructure:"verify"`
 }
 
 // Syslog is the configuration for syslog.
 type Syslog struct {
-	Enabled  bool   `mapstructure:"enabled"`
-	Facility string `mapstructure:"facility"`
+	Enabled  bool   `json:"enabled" mapstructure:"enabled"`
+	Facility string `json:"facility" mapstructure:"facility"`
 }
 
 // ConfigTemplate is the representation of an input template, output location,
 // and optional command to execute when rendered
 type ConfigTemplate struct {
-	Source      string `mapstructure:"source"`
-	Destination string `mapstructure:"destination"`
-	Command     string `mapstructure:"command"`
+	Source      string `json:"source" mapstructure:"source"`
+	Destination string `json:"destination" mapstructure:"destination"`
+	Command     string `json:"command" mapstructure:"command"`
 }
 
 // ParseConfigTemplate parses a string into a ConfigTemplate struct
