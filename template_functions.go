@@ -9,6 +9,7 @@ import (
 	"time"
 
 	dep "github.com/hashicorp/consul-template/dependency"
+	"github.com/mitchellh/copystructure"
 )
 
 // now is function that represents the current time in UTC. This is here
@@ -268,9 +269,76 @@ func byKey(pairs []*dep.KeyPair) (map[string][]*dep.KeyPair, error) {
 		if _, ok := m[top]; !ok {
 			m[top] = make([]*dep.KeyPair, 0, 1)
 		}
-		pair.Key = key
-		m[top] = append(m[top], pair)
+
+		dup, err := copystructure.Copy(pair)
+		if err != nil {
+			return nil, err
+		}
+		newPair := dup.(*dep.KeyPair)
+
+		newPair.Key = key
+		m[top] = append(m[top], newPair)
 	}
+
+	return m, nil
+}
+
+//
+//		elasticsearch/a => "1"
+//		elasticsearch/b => "2"
+//		elasticsearch/c => "2"
+//		redis/a/b => "3"
+//		redis/a/c => "3"
+//
+//
+// {
+// 	"elasticsearch": {
+// 		"a": 1,
+// 		"b": 2,
+// 		"c": 3,
+// 	},
+// 	"redis": {
+// 		"a": {
+// 			"b": 3
+// 			"c": 3
+// 		}
+// 	}
+// }
+//
+
+func by(pairs []*dep.KeyPair) (map[string]interface{}, error) {
+	m := make(map[string]interface{})
+
+	for _, pair := range pairs {
+		parts := strings.Split(pair.Key, "/")
+
+		// Create the deep map
+		var ref interface{}
+		// ref := m
+		for i := 0; i < len(parts)-1; i++ {
+			typed := ref.(map[string]interface{})
+			part := parts[i]
+			if _, ok := typed[part]; !ok {
+				typed[part] = make(map[string]interface{})
+			}
+			ref = typed[part]
+		}
+
+		part := parts[len(parts)-1]
+		ref.(map[string]interface{})[part] = &dep.KeyPair{
+			Path:        pair.Path,
+			Key:         part,
+			Value:       pair.Value,
+			CreateIndex: pair.CreateIndex,
+			ModifyIndex: pair.ModifyIndex,
+			LockIndex:   pair.LockIndex,
+			Flags:       pair.Flags,
+			Session:     pair.Session,
+		}
+	}
+
+	println(fmt.Sprintf("%#v", m))
+
 	return m, nil
 }
 
