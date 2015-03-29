@@ -383,16 +383,18 @@ func (r *Runner) Run() error {
 // init() creates the Runner's underlying data structures and returns an error
 // if any problems occur.
 func (r *Runner) init() error {
+	// Start with the default config
+	config := DefaultConfig()
+
 	// Merge multiple configs if given
 	if r.config.Path != "" {
-		err := buildConfig(r.config, r.config.Path)
+		err := buildConfig(config, r.config.Path)
 		if err != nil {
 			return fmt.Errorf("runner: %s", err)
 		}
 	}
 
 	// Merge in default values for the config
-	config := DefaultConfig()
 	config.Merge(r.config)
 	r.config = config
 
