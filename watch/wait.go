@@ -11,7 +11,8 @@ import (
 type Wait struct {
 	// Min and Max are the minimum and maximum time, respectively, to wait for
 	// data changes before rendering a new template to disk.
-	Min, Max time.Duration
+	Min time.Duration `json:"min" mapstructure:"min"`
+	Max time.Duration `json:"max" mapstructure:"max"`
 }
 
 // ParseWait parses a string of the format `minimum(:maximum)` into a Wait
