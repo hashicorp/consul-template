@@ -354,16 +354,18 @@ If you omit the datacenter attribute on `tree`, the local Consul datacenter will
 Takes the list of key pairs returned from a [`tree`](#tree) function and creates a map that groups pairs by their top-level directory. For example, if the Consul KV store contained the following structure:
 
 ```text
-configs/elasticsearch/a //=> "1"
-configs/elasticsearch/b //=> "2"
-configs/redis/a/b //=> "3"
+groups/elasticsearch/es1
+groups/elasticsearch/es2
+groups/elasticsearch/es3
+services/elasticsearch/check_elasticsearch
+services/elasticsearch/check_indexes
 ```
 
 With the following template:
 
 ```liquid
-{{range $key, $pairs := tree "configs" | byKey}}{{$key}}:
-{{range $pairs}}  {{.Key}}={{.Value}}
+{{range $key, $pairs := tree "groups" | byKey}}{{$key}}:
+{{range $pair := $pairs}}  {{.Key}}={{.Value}}
 {{end}}{{end}}
 ```
 
@@ -371,13 +373,21 @@ The result would be:
 
 ```text
 elasticsearch:
-  a=1
-  b=2
-redis
-  a/b=3
+  es1=1
+  es2=1
+  es3=1
 ```
 
 Note that the top-most key is stripped from the Key value. Keys that have no prefix after stripping are removed from the list.
+
+The resulting pairs are keyed as a map, so it is possible to look up a single value by key:
+
+```liquid
+{{$weights := tree "weights"}}
+{{range service "release.webapp"}}
+  {{$weight := or (index $weights .Node) 100}}
+  server {{.Node}} {{.Address}}:{{.Port}} weight {{$weight}}{{end}}
+```
 
 ##### `byTag`
 Takes the list of services returned by the [`service`](#service) function and creates a map that groups services by tag.
