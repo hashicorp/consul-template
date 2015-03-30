@@ -151,6 +151,12 @@ func (v *View) fetch(doneCh chan<- struct{}, errCh chan<- error) {
 			continue
 		}
 
+		if qm.LastIndex < v.LastIndex {
+			log.Printf("[DEBUG] (view) %s had a lower index, resetting", v.display())
+			v.LastIndex = 0
+			continue
+		}
+
 		v.LastIndex = qm.LastIndex
 
 		if v.ReceivedData && reflect.DeepEqual(data, v.Data) {
