@@ -253,8 +253,8 @@ func treeFunc(brain *Brain,
 //
 // Note that the top-most key is stripped from the Key value. Keys that have no
 // prefix after stripping are removed from the list.
-func byKey(pairs []*dep.KeyPair) (map[string][]*dep.KeyPair, error) {
-	m := make(map[string][]*dep.KeyPair)
+func byKey(pairs []*dep.KeyPair) (map[string]map[string]*dep.KeyPair, error) {
+	m := make(map[string]map[string]*dep.KeyPair)
 	for _, pair := range pairs {
 		parts := strings.Split(pair.Key, "/")
 		top := parts[0]
@@ -266,11 +266,14 @@ func byKey(pairs []*dep.KeyPair) (map[string][]*dep.KeyPair, error) {
 		}
 
 		if _, ok := m[top]; !ok {
-			m[top] = make([]*dep.KeyPair, 0, 1)
+			m[top] = make(map[string]*dep.KeyPair)
 		}
-		pair.Key = key
-		m[top] = append(m[top], pair)
+
+		newPair := *pair
+		newPair.Key = key
+		m[top][key] = &newPair
 	}
+
 	return m, nil
 }
 

@@ -731,7 +731,7 @@ func TestByKey_emptyList(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := map[string][]*dep.KeyPair{}
+	expected := map[string]map[string]*dep.KeyPair{}
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("expected %#v to be %#v", result, expected)
 	}
@@ -747,15 +747,16 @@ func TestByKey_topLevel(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := map[string][]*dep.KeyPair{
-		"elasticsearch": []*dep.KeyPair{
-			&dep.KeyPair{Key: "a", Value: "1"},
-			&dep.KeyPair{Key: "b", Value: "2"},
+	expected := map[string]map[string]*dep.KeyPair{
+		"elasticsearch": map[string]*dep.KeyPair{
+			"a": &dep.KeyPair{Key: "a", Value: "1"},
+			"b": &dep.KeyPair{Key: "b", Value: "2"},
 		},
-		"redis": []*dep.KeyPair{
-			&dep.KeyPair{Key: "a/b", Value: "3"},
+		"redis": map[string]*dep.KeyPair{
+			"a/b": &dep.KeyPair{Key: "a/b", Value: "3"},
 		},
 	}
+
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("expected %#v to be %#v", result, expected)
 	}
