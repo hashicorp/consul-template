@@ -286,11 +286,9 @@ func (r *Runner) Run() error {
 
 		// If the template is missing data for some dependencies then we are not
 		// ready to render and need to move on to the next one.
-		for _, d := range used {
-			if _, ok := r.brain.Recall(d); !ok {
-				log.Printf("[DEBUG] (runner) %q missing data for %s", tmpl.Path, d.Display())
-				continue
-			}
+		if len(missing) > 0 {
+			log.Printf("[INFO] (runner) missing data for %d dependencies", len(missing))
+			continue
 		}
 
 		// If quiescence is activated, start/update the timers and loop back around.
