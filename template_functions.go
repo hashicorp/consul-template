@@ -269,16 +269,9 @@ func byKey(pairs []*dep.KeyPair) (map[string]map[string]*dep.KeyPair, error) {
 			m[top] = make(map[string]*dep.KeyPair)
 		}
 
-		m[top][key] = &dep.KeyPair{
-			Path:        pair.Path,
-			Key:         key,
-			Value:       pair.Value,
-			CreateIndex: pair.CreateIndex,
-			ModifyIndex: pair.ModifyIndex,
-			LockIndex:   pair.LockIndex,
-			Flags:       pair.Flags,
-			Session:     pair.Session,
-		}
+		newPair := *pair
+		newPair.Key = key
+		m[top][key] = &newPair
 	}
 
 	return m, nil
