@@ -73,8 +73,8 @@ func (v *View) poll(viewCh chan<- *View, errCh chan<- error) {
 
 			log.Printf("[INFO] (view) %s received data from consul", v.display())
 			select {
-			case viewCh <- v:
 			case <-v.stopCh:
+			case viewCh <- v:
 			}
 
 			// If we are operating in once mode, do not loop - we received data at
@@ -87,8 +87,8 @@ func (v *View) poll(viewCh chan<- *View, errCh chan<- error) {
 
 			// Push the error back up to the watcher
 			select {
-			case errCh <- err:
 			case <-v.stopCh:
+			case errCh <- err:
 			}
 
 			// Sleep and retry
