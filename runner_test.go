@@ -170,6 +170,20 @@ func TestReceive_storesBrain(t *testing.T) {
 	}
 }
 
+func TestReceive_doesNotStoreIfNotWatching(t *testing.T) {
+	runner, err := NewRunner(new(Config), false, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	d, data := &dep.File{}, "this is some data"
+	runner.Receive(d, data)
+
+	if _, ok := runner.brain.Recall(d); ok {
+		t.Errorf("expected brain to not have data")
+	}
+}
+
 func TestRun_noopIfMissingData(t *testing.T) {
 	in := test.CreateTempfile([]byte(`
     {{ range service "consul@nyc1" }}{{ end }}

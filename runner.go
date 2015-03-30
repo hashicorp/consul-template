@@ -220,8 +220,23 @@ func (r *Runner) SetErrStream(s io.Writer) {
 // is "renderable" (i.e. all its Dependencies have been downloaded at least
 // once).
 func (r *Runner) Receive(d dep.Dependency, data interface{}) {
-	log.Printf("[DEBUG] (runner) receiving dependency %s", d.Display())
-	r.brain.Remember(d, data)
+	// Just because we received data, it does not mean that we are actually
+	// watching for that data. How is that possible you may ask? Well, this
+	// Runner's data channel is pooled, meaning it accepts multiple data views
+	// before actually blocking. Whilest this runner is performing a Run() and
+	// executing diffs, it may be possible that more data was pushed onto the
+	// data channel pool for a dependency that we no longer care about.
+	//
+	// Accepting this dependency would introduce stale data into the brain, and
+	// that is simply unacceptable. In fact, it is a fun little bug:
+	//
+	//     https://github.com/hashicorp/consul-template/issues/198
+	//
+	// and by "little" bug, I mean really big bug.
+	if _, ok := r.dependencies[d.HashCode()]; ok {
+		log.Printf("[DEBUG] (runner) receiving dependency %s", d.Display())
+		r.brain.Remember(d, data)
+	}
 }
 
 // Run iterates over each template in this Runner and conditionally executes
