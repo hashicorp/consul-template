@@ -48,9 +48,6 @@ type Runner struct {
 	// time and then stop.
 	dry, once bool
 
-	// minTimer and maxTimer are used for quiescence.
-	minTimer, maxTimer <-chan time.Time
-
 	// outStream and errStream are the io.Writer streams where the runner will
 	// write information. These streams can be set using the SetOutStream()
 	// and SetErrStream() functions.
@@ -180,13 +177,8 @@ func (r *Runner) Start() {
 		case tmpl := <-r.quiescenceCh:
 			// Remove the quiescence for this template from the map. This will force
 			// the upcoming Run call to actually evaluate and render the template.
+			log.Printf("[INFO] (runner) received template %q from quiescence", tmpl.Path)
 			delete(r.quiescenceMap, tmpl.Path)
-		case <-r.minTimer:
-			log.Printf("[INFO] (runner) quiescence minTimer fired")
-			r.minTimer, r.maxTimer = nil, nil
-		case <-r.maxTimer:
-			log.Printf("[INFO] (runner) quiescence maxTimer fired")
-			r.minTimer, r.maxTimer = nil, nil
 		case <-r.watcher.FinishCh:
 			log.Printf("[INFO] (runner) watcher reported finish")
 			return
