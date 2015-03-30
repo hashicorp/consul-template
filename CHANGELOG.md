@@ -7,7 +7,7 @@ FEATURES:
 
   * Add `.Size()` so the watcher can report its size (GH-206)
   * Add `byKey` template helper to group the results of a `tree` function by
-    their containing directory (GH-207, GH-209)
+    their containing directory (GH-207, GH-209, GH-241)
   * Add `timestamp` template function for returning the current timestamp with
     the ability to add custom formatting (GH-225, GH-230)
   * Add `loop` template function for iteration (GH-238, GH-221)
@@ -25,6 +25,7 @@ IMPROVEMENTS:
   * Export certain environment variables when executing commands that are read
     by other Consul tooling or in your scripts (GH-232) - see the README for
     more information
+  * Adjust logging to be less noisy without compromising information (GH-242)
 
 BUG FIXES:
 
@@ -32,6 +33,12 @@ BUG FIXES:
   * Return an error if extra arguments are given on the command line (GH-227)
   * Do not overwrite given configuration with the default options (GH-228, GH-219)
   * Check for the correct conditions when using basic authentication (GH-220)
+  * Remove unused code paths for clarity (GH-242)
+  * Remove race condition in templates when called concurrently (GH-242)
+  * Remove race condition in test suite (GH-242)
+  * Force a refresh if Consul's WaitIndex is less than our current value (GH-242)
+  * Avoid pushing data onto the watcher when the view has been stopped (GH-242)
+  * Do not accept data in the runner for an unwatched dependency (GH-198, GH-242)
 
 ## v0.7.0 (February 19, 2015)
 
