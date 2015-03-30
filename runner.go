@@ -66,7 +66,7 @@ type Runner struct {
 	renderedTemplates map[string]struct{}
 
 	// dependencies is the list of dependencies this runner is watching.
-	dependencies []dep.Dependency
+	dependencies map[string]dep.Dependency
 
 	// watcher is the watcher this runner is using.
 	watcher *watch.Watcher
@@ -443,7 +443,7 @@ func (r *Runner) init() error {
 	r.templates = templates
 
 	r.renderedTemplates = make(map[string]struct{})
-	r.dependencies = make([]dep.Dependency, 0)
+	r.dependencies = make(map[string]dep.Dependency)
 
 	r.ctemplatesMap = ctemplatesMap
 	r.outStream = os.Stdout
@@ -467,8 +467,8 @@ func (r *Runner) diffAndUpdateDeps(depsMap map[string]dep.Dependency) {
 	// Diff and up the list of dependencies, stopping any unneeded watchers.
 	log.Printf("[INFO] (runner) diffing and updating dependencies")
 
-	for _, d := range r.dependencies {
-		if _, ok := depsMap[d.HashCode()]; !ok {
+	for key, d := range r.dependencies {
+		if _, ok := depsMap[key]; !ok {
 			log.Printf("[DEBUG] (runner) %s is no longer needed", d.Display())
 			r.watcher.Remove(d)
 			r.brain.Forget(d)
@@ -477,11 +477,7 @@ func (r *Runner) diffAndUpdateDeps(depsMap map[string]dep.Dependency) {
 		}
 	}
 
-	deps := make([]dep.Dependency, 0, len(depsMap))
-	for _, d := range depsMap {
-		deps = append(deps, d)
-	}
-	r.dependencies = deps
+	r.dependencies = depsMap
 }
 
 // ConfigTemplateFor returns the ConfigTemplate for the given Template

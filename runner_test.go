@@ -142,8 +142,8 @@ func TestReceive_addsToBrain(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	data := "some value"
+	runner.dependencies[d.HashCode()] = d
 	runner.Receive(d, data)
 
 	value, ok := runner.brain.Recall(d)
@@ -162,6 +162,7 @@ func TestReceive_storesBrain(t *testing.T) {
 	}
 
 	d, data := &dep.File{}, "this is some data"
+	runner.dependencies[d.HashCode()] = d
 	runner.Receive(d, data)
 
 	if _, ok := runner.brain.Recall(d); !ok {
@@ -226,6 +227,7 @@ func TestRun_dry(t *testing.T) {
 		&dep.HealthService{Node: "consul1"},
 		&dep.HealthService{Node: "consul2"},
 	}
+	runner.dependencies[d.HashCode()] = d
 	runner.Receive(d, data)
 
 	buff := new(bytes.Buffer)
@@ -387,7 +389,7 @@ func TestRun_removesUnusedDependencies(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	runner.dependencies = []dep.Dependency{d, d, d}
+	runner.dependencies = map[string]dep.Dependency{"consul@nyc2": d}
 
 	if err := runner.Run(); err != nil {
 		t.Fatal(err)
@@ -465,6 +467,7 @@ func TestRun_multipleTemplatesRunsCommands(t *testing.T) {
 		&dep.HealthService{Node: "consul1"},
 		&dep.HealthService{Node: "consul2"},
 	}
+	runner.dependencies[d.HashCode()] = d
 	runner.Receive(d, data)
 
 	if err := runner.Run(); err != nil {
@@ -712,6 +715,7 @@ func TestRun_executesCommand(t *testing.T) {
 			Name:    "consul",
 		},
 	}
+	runner.dependencies[d.HashCode()] = d
 	runner.Receive(d, data)
 
 	if err := runner.Run(); err != nil {
@@ -772,6 +776,7 @@ func TestRun_doesNotExecuteCommandMoreThanOnce(t *testing.T) {
 			Name:    "consul",
 		},
 	}
+	runner.dependencies[d.HashCode()] = d
 	runner.Receive(d, data)
 
 	if err := runner.Run(); err != nil {
@@ -827,6 +832,7 @@ func TestRunner_onceAlreadyRenderedDoesNotHangOrRunCommands(t *testing.T) {
 		t.Fatal(err)
 	}
 	data := "redis"
+	runner.dependencies[d.HashCode()] = d
 	runner.Receive(d, data)
 
 	go runner.Start()
