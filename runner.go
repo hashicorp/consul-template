@@ -253,13 +253,13 @@ func (r *Runner) Run() error {
 		// Attempt to render the template, returning any missing dependencies and
 		// the rendered contents. If there are any missing dependencies, the
 		// contents cannot be rendered or trusted!
-		missing, contents, err := tmpl.Execute(r.brain)
+		used, missing, contents, err := tmpl.Execute(r.brain)
 		if err != nil {
 			return err
 		}
 
 		// Add the dependency to the list of dependencies for this runner.
-		for _, d := range tmpl.Dependencies() {
+		for _, d := range used {
 			if _, ok := depsMap[d.HashCode()]; !ok {
 				depsMap[d.HashCode()] = d
 			}
@@ -286,9 +286,11 @@ func (r *Runner) Run() error {
 
 		// If the template is missing data for some dependencies then we are not
 		// ready to render and need to move on to the next one.
-		if !r.canRender(tmpl) {
-			log.Printf("[DEBUG] (runner) cannot render (some dependencies do not have data yet)")
-			continue
+		for _, d := range used {
+			if _, ok := r.brain.Recall(d); !ok {
+				log.Printf("[DEBUG] (runner) %q missing data for %s", tmpl.Path, d.Display())
+				continue
+			}
 		}
 
 		// If quiescence is activated, start/update the timers and loop back around.
@@ -494,20 +496,6 @@ func (r *Runner) configTemplatesFor(tmpl *Template) []*ConfigTemplate {
 func (r *Runner) allTemplatesRendered() bool {
 	for _, t := range r.templates {
 		if _, ok := r.renderedTemplates[t.Path]; !ok {
-			return false
-		}
-	}
-	return true
-}
-
-// canRender accepts a template and returns true if and only if all of the
-// dependencies of that template have received data. This function assumes the
-// template has been completely compiled and all required dependencies exist
-// on the template.
-func (r *Runner) canRender(tmpl *Template) bool {
-	for _, d := range tmpl.Dependencies() {
-		if _, ok := r.brain.Recall(d); !ok {
-			log.Printf("[DEBUG] (runner) %q missing data for %s", tmpl.Path, d.Display())
 			return false
 		}
 	}
