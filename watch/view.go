@@ -73,8 +73,8 @@ func (v *View) poll(viewCh chan<- *View, errCh chan<- error) {
 
 			log.Printf("[INFO] (view) %s received data from consul", v.display())
 			select {
-			case viewCh <- v:
 			case <-v.stopCh:
+			case viewCh <- v:
 			}
 
 			// If we are operating in once mode, do not loop - we received data at
@@ -87,8 +87,8 @@ func (v *View) poll(viewCh chan<- *View, errCh chan<- error) {
 
 			// Push the error back up to the watcher
 			select {
-			case errCh <- err:
 			case <-v.stopCh:
+			case errCh <- err:
 			}
 
 			// Sleep and retry
@@ -132,7 +132,7 @@ func (v *View) fetch(doneCh chan<- struct{}, errCh chan<- error) {
 
 		if qm == nil {
 			errCh <- fmt.Errorf("consul returned nil qm; this should never happen" +
-				"and is probably a bug in consul-template or consulapi")
+				"and is probably a bug in consul-template or consul/api")
 			return
 		}
 
@@ -148,6 +148,12 @@ func (v *View) fetch(doneCh chan<- struct{}, errCh chan<- error) {
 
 		if qm.LastIndex == v.LastIndex {
 			log.Printf("[DEBUG] (view) %s no new data (index was the same)", v.display())
+			continue
+		}
+
+		if qm.LastIndex < v.LastIndex {
+			log.Printf("[DEBUG] (view) %s had a lower index, resetting", v.display())
+			v.LastIndex = 0
 			continue
 		}
 

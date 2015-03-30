@@ -185,10 +185,10 @@ func TestPoll_retries(t *testing.T) {
 }
 
 func TestFetch_maxStale(t *testing.T) {
-	config := defaultWatcherConfig
+	config := *defaultWatcherConfig
 	config.MaxStale = 10 * time.Millisecond
 
-	view, err := NewView(config, &test.FakeDependencyStale{})
+	view, err := NewView(&config, &test.FakeDependencyStale{})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -5,20 +5,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
-	"sync"
 	"text/template"
 
 	dep "github.com/hashicorp/consul-template/dependency"
 )
 
 type Template struct {
-	sync.Mutex
-
 	// Path is the path to this template on disk.
 	Path string
-
-	// dependencies is the internal list of dependencies.
-	dependencies []dep.Dependency
 
 	// contents is string contents for this file when read from disk.
 	contents string
@@ -37,14 +31,13 @@ func NewTemplate(path string) (*Template, error) {
 	return template, nil
 }
 
-// Execute evaluates this template in the context of the given brain. The first
-// return value is a slice of missing dependencies that were encountered
-// during evaluation. If there are any missing dependencies found, it should be
-// considered unsafe to write the resulting contents to disk. The second return
-// value is the contents of the template as-rendered. This value may not be the
-// final resulting template if there are any missing dependencies. The last
-// return value is any error that occurred while evaluating the template.
-func (t *Template) Execute(brain *Brain) ([]dep.Dependency, []byte, error) {
+// Execute evaluates this template in the context of the given brain.
+//
+// The first return value is the list of used dependencies.
+// The second return value is the list of missing dependencies.
+// The third return value is the rendered text.
+// The fourth return value any error that occurs.
+func (t *Template) Execute(brain *Brain) ([]dep.Dependency, []dep.Dependency, []byte, error) {
 	usedMap := make(map[string]dep.Dependency)
 	missingMap := make(map[string]dep.Dependency)
 	name := filepath.Base(t.Path)
@@ -52,26 +45,20 @@ func (t *Template) Execute(brain *Brain) ([]dep.Dependency, []byte, error) {
 
 	tmpl, err := template.New(name).Funcs(funcs).Parse(t.contents)
 	if err != nil {
-		return nil, nil, fmt.Errorf("template: %s", err)
+		return nil, nil, nil, fmt.Errorf("template: %s", err)
 	}
 
 	// TODO: accept an io.Writer instead
 	buff := new(bytes.Buffer)
 	if err := tmpl.Execute(buff, nil); err != nil {
-		return nil, nil, fmt.Errorf("template: %s", err)
+		return nil, nil, nil, fmt.Errorf("template: %s", err)
 	}
-
-	// Lock because we are about to update the internal state of this template,
-	// which could be happening concurrently...
-	t.Lock()
-	defer t.Unlock()
 
 	// Update this list of this template's dependencies
 	var used []dep.Dependency
 	for _, dep := range usedMap {
 		used = append(used, dep)
 	}
-	t.dependencies = used
 
 	// Compile the list of missing dependencies
 	var missing []dep.Dependency
@@ -79,16 +66,7 @@ func (t *Template) Execute(brain *Brain) ([]dep.Dependency, []byte, error) {
 		missing = append(missing, dep)
 	}
 
-	return missing, buff.Bytes(), nil
-}
-
-// Dependencies returns the dependencies that this template currently has
-// recorded to require.
-func (t *Template) Dependencies() []dep.Dependency {
-	t.Lock()
-	defer t.Unlock()
-
-	return t.dependencies
+	return used, missing, buff.Bytes(), nil
 }
 
 // init reads the template file and initializes required variables.

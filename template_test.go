@@ -56,9 +56,13 @@ func TestExecute_noDependencies(t *testing.T) {
 	}
 
 	brain := NewBrain()
-	missing, result, err := tmpl.Execute(brain)
+	used, missing, result, err := tmpl.Execute(brain)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	if num := len(used); num != 0 {
+		t.Errorf("expected 0 missing, got: %d", num)
 	}
 
 	if num := len(missing); num != 0 {
@@ -82,9 +86,13 @@ func TestExecute_missingDependencies(t *testing.T) {
 	}
 
 	brain := NewBrain()
-	missing, result, err := tmpl.Execute(brain)
+	used, missing, result, err := tmpl.Execute(brain)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	if num := len(used); num != 1 {
+		t.Fatalf("expected 1 used, got: %d", num)
 	}
 
 	if num := len(missing); num != 1 {
@@ -99,12 +107,12 @@ func TestExecute_missingDependencies(t *testing.T) {
 		t.Errorf("expected %q to be %q", missing[0], expected)
 	}
 
-	if num := len(tmpl.dependencies); num != 1 {
+	if num := len(used); num != 1 {
 		t.Fatalf("expected 1 used, got %d", num)
 	}
 
-	if !reflect.DeepEqual(tmpl.dependencies[0], expected) {
-		t.Errorf("expected %q to be %q", tmpl.dependencies[0], expected)
+	if !reflect.DeepEqual(used[0], expected) {
+		t.Errorf("expected %q to be %q", used[0], expected)
 	}
 
 	expectedResult := []byte("")
@@ -123,7 +131,7 @@ func TestExecte_badFuncs(t *testing.T) {
 	}
 
 	brain := NewBrain()
-	missing, result, err := tmpl.Execute(brain)
+	used, missing, result, err := tmpl.Execute(brain)
 	if err == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
@@ -131,6 +139,10 @@ func TestExecte_badFuncs(t *testing.T) {
 	expected := `function "tickle_me_pink" not defined`
 	if !strings.Contains(err.Error(), expected) {
 		t.Errorf("expected %q to contain %q", err.Error(), expected)
+	}
+
+	if used != nil {
+		t.Errorf("expected used to be nil")
 	}
 
 	if missing != nil {
@@ -156,7 +168,7 @@ func TestExecute_funcs(t *testing.T) {
 	}
 
 	brain := NewBrain()
-	missing, _, err := tmpl.Execute(brain)
+	used, missing, _, err := tmpl.Execute(brain)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -165,7 +177,7 @@ func TestExecute_funcs(t *testing.T) {
 		t.Fatalf("expected 3 missing, got: %d", num)
 	}
 
-	if num := len(tmpl.dependencies); num != 3 {
+	if num := len(used); num != 3 {
 		t.Fatalf("expected 3 used, got: %d", num)
 	}
 }
@@ -184,7 +196,7 @@ func TestExecute_duplicateFuncs(t *testing.T) {
 	}
 
 	brain := NewBrain()
-	missing, _, err := tmpl.Execute(brain)
+	used, missing, _, err := tmpl.Execute(brain)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -193,7 +205,7 @@ func TestExecute_duplicateFuncs(t *testing.T) {
 		t.Fatalf("expected 1 missing, got: %d", num)
 	}
 
-	if num := len(tmpl.dependencies); num != 1 {
+	if num := len(used); num != 1 {
 		t.Fatalf("expected 1 used, got: %d", num)
 	}
 }
@@ -354,7 +366,7 @@ func TestExecute_renders(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, result, err := tmpl.Execute(brain)
+	_, _, result, err := tmpl.Execute(brain)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -447,7 +459,7 @@ func TestExecute_multipass(t *testing.T) {
 
 	brain := NewBrain()
 
-	missing, result, err := tmpl.Execute(brain)
+	used, missing, result, err := tmpl.Execute(brain)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -456,7 +468,7 @@ func TestExecute_multipass(t *testing.T) {
 		t.Errorf("expected 1 missing, got: %d", num)
 	}
 
-	if num := len(tmpl.dependencies); num != 1 {
+	if num := len(used); num != 1 {
 		t.Errorf("expected 1 used, got: %d", num)
 	}
 
@@ -473,7 +485,7 @@ func TestExecute_multipass(t *testing.T) {
 		&dep.KeyPair{Key: "database", Value: "1"},
 	})
 
-	missing, result, err = tmpl.Execute(brain)
+	used, missing, result, err = tmpl.Execute(brain)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -482,7 +494,7 @@ func TestExecute_multipass(t *testing.T) {
 		t.Errorf("expected 2 missing, got: %d", num)
 	}
 
-	if num := len(tmpl.dependencies); num != 3 {
+	if num := len(used); num != 3 {
 		t.Errorf("expected 3 used, got: %d", num)
 	}
 
@@ -506,7 +518,7 @@ func TestExecute_multipass(t *testing.T) {
 		&dep.HealthService{Node: "db01", Address: "5.6.7.8", Port: 5678},
 	})
 
-	missing, result, err = tmpl.Execute(brain)
+	used, missing, result, err = tmpl.Execute(brain)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -515,7 +527,7 @@ func TestExecute_multipass(t *testing.T) {
 		t.Errorf("expected 0 missing, got: %d", num)
 	}
 
-	if num := len(tmpl.dependencies); num != 3 {
+	if num := len(used); num != 3 {
 		t.Errorf("expected 3 used, got: %d", num)
 	}
 

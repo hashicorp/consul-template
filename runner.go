@@ -48,9 +48,6 @@ type Runner struct {
 	// time and then stop.
 	dry, once bool
 
-	// minTimer and maxTimer are used for quiescence.
-	minTimer, maxTimer <-chan time.Time
-
 	// outStream and errStream are the io.Writer streams where the runner will
 	// write information. These streams can be set using the SetOutStream()
 	// and SetErrStream() functions.
@@ -69,7 +66,7 @@ type Runner struct {
 	renderedTemplates map[string]struct{}
 
 	// dependencies is the list of dependencies this runner is watching.
-	dependencies []dep.Dependency
+	dependencies map[string]dep.Dependency
 
 	// watcher is the watcher this runner is using.
 	watcher *watch.Watcher
@@ -180,13 +177,8 @@ func (r *Runner) Start() {
 		case tmpl := <-r.quiescenceCh:
 			// Remove the quiescence for this template from the map. This will force
 			// the upcoming Run call to actually evaluate and render the template.
+			log.Printf("[INFO] (runner) received template %q from quiescence", tmpl.Path)
 			delete(r.quiescenceMap, tmpl.Path)
-		case <-r.minTimer:
-			log.Printf("[INFO] (runner) quiescence minTimer fired")
-			r.minTimer, r.maxTimer = nil, nil
-		case <-r.maxTimer:
-			log.Printf("[INFO] (runner) quiescence maxTimer fired")
-			r.minTimer, r.maxTimer = nil, nil
 		case <-r.watcher.FinishCh:
 			log.Printf("[INFO] (runner) watcher reported finish")
 			return
@@ -228,8 +220,23 @@ func (r *Runner) SetErrStream(s io.Writer) {
 // is "renderable" (i.e. all its Dependencies have been downloaded at least
 // once).
 func (r *Runner) Receive(d dep.Dependency, data interface{}) {
-	log.Printf("[DEBUG] (runner) receiving dependency %s", d.Display())
-	r.brain.Remember(d, data)
+	// Just because we received data, it does not mean that we are actually
+	// watching for that data. How is that possible you may ask? Well, this
+	// Runner's data channel is pooled, meaning it accepts multiple data views
+	// before actually blocking. Whilest this runner is performing a Run() and
+	// executing diffs, it may be possible that more data was pushed onto the
+	// data channel pool for a dependency that we no longer care about.
+	//
+	// Accepting this dependency would introduce stale data into the brain, and
+	// that is simply unacceptable. In fact, it is a fun little bug:
+	//
+	//     https://github.com/hashicorp/consul-template/issues/198
+	//
+	// and by "little" bug, I mean really big bug.
+	if _, ok := r.dependencies[d.HashCode()]; ok {
+		log.Printf("[DEBUG] (runner) receiving dependency %s", d.Display())
+		r.brain.Remember(d, data)
+	}
 }
 
 // Run iterates over each template in this Runner and conditionally executes
@@ -261,13 +268,13 @@ func (r *Runner) Run() error {
 		// Attempt to render the template, returning any missing dependencies and
 		// the rendered contents. If there are any missing dependencies, the
 		// contents cannot be rendered or trusted!
-		missing, contents, err := tmpl.Execute(r.brain)
+		used, missing, contents, err := tmpl.Execute(r.brain)
 		if err != nil {
 			return err
 		}
 
 		// Add the dependency to the list of dependencies for this runner.
-		for _, d := range tmpl.Dependencies() {
+		for _, d := range used {
 			if _, ok := depsMap[d.HashCode()]; !ok {
 				depsMap[d.HashCode()] = d
 			}
@@ -294,8 +301,8 @@ func (r *Runner) Run() error {
 
 		// If the template is missing data for some dependencies then we are not
 		// ready to render and need to move on to the next one.
-		if !r.canRender(tmpl) {
-			log.Printf("[DEBUG] (runner) cannot render (some dependencies do not have data yet)")
+		if len(missing) > 0 {
+			log.Printf("[INFO] (runner) missing data for %d dependencies", len(missing))
 			continue
 		}
 
@@ -451,7 +458,7 @@ func (r *Runner) init() error {
 	r.templates = templates
 
 	r.renderedTemplates = make(map[string]struct{})
-	r.dependencies = make([]dep.Dependency, 0)
+	r.dependencies = make(map[string]dep.Dependency)
 
 	r.ctemplatesMap = ctemplatesMap
 	r.outStream = os.Stdout
@@ -475,8 +482,8 @@ func (r *Runner) diffAndUpdateDeps(depsMap map[string]dep.Dependency) {
 	// Diff and up the list of dependencies, stopping any unneeded watchers.
 	log.Printf("[INFO] (runner) diffing and updating dependencies")
 
-	for _, d := range r.dependencies {
-		if _, ok := depsMap[d.HashCode()]; !ok {
+	for key, d := range r.dependencies {
+		if _, ok := depsMap[key]; !ok {
 			log.Printf("[DEBUG] (runner) %s is no longer needed", d.Display())
 			r.watcher.Remove(d)
 			r.brain.Forget(d)
@@ -485,11 +492,7 @@ func (r *Runner) diffAndUpdateDeps(depsMap map[string]dep.Dependency) {
 		}
 	}
 
-	deps := make([]dep.Dependency, 0, len(depsMap))
-	for _, d := range depsMap {
-		deps = append(deps, d)
-	}
-	r.dependencies = deps
+	r.dependencies = depsMap
 }
 
 // ConfigTemplateFor returns the ConfigTemplate for the given Template
@@ -502,20 +505,6 @@ func (r *Runner) configTemplatesFor(tmpl *Template) []*ConfigTemplate {
 func (r *Runner) allTemplatesRendered() bool {
 	for _, t := range r.templates {
 		if _, ok := r.renderedTemplates[t.Path]; !ok {
-			return false
-		}
-	}
-	return true
-}
-
-// canRender accepts a template and returns true if and only if all of the
-// dependencies of that template have received data. This function assumes the
-// template has been completely compiled and all required dependencies exist
-// on the template.
-func (r *Runner) canRender(tmpl *Template) bool {
-	for _, d := range tmpl.Dependencies() {
-		if _, ok := r.brain.Recall(d); !ok {
-			log.Printf("[DEBUG] (runner) %q missing data for %s", tmpl.Path, d.Display())
 			return false
 		}
 	}
