@@ -5,15 +5,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
-	"sync"
 	"text/template"
 
 	dep "github.com/hashicorp/consul-template/dependency"
 )
 
 type Template struct {
-	sync.Mutex
-
 	// Path is the path to this template on disk.
 	Path string
 
@@ -56,11 +53,6 @@ func (t *Template) Execute(brain *Brain) ([]dep.Dependency, []dep.Dependency, []
 	if err := tmpl.Execute(buff, nil); err != nil {
 		return nil, nil, nil, fmt.Errorf("template: %s", err)
 	}
-
-	// Lock because we are about to update the internal state of this template,
-	// which could be happening concurrently...
-	t.Lock()
-	defer t.Unlock()
 
 	// Update this list of this template's dependencies
 	var used []dep.Dependency
