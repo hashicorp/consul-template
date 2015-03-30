@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"sync"
 
 	dep "github.com/hashicorp/consul-template/dependency"
@@ -37,8 +36,6 @@ func (b *Brain) Remember(d dep.Dependency, data interface{}) {
 	b.Lock()
 	defer b.Unlock()
 
-	log.Printf("[INFO] (brain) remembering %s", d.Display())
-
 	b.data[d.HashCode()] = data
 	b.receivedData[d.HashCode()] = struct{}{}
 }
@@ -50,11 +47,9 @@ func (b *Brain) Recall(d dep.Dependency) (interface{}, bool) {
 
 	// If we have not received data for this dependency, return now.
 	if _, ok := b.receivedData[d.HashCode()]; !ok {
-		log.Printf("[DEBUG] (brain) does not have data for %s", d.Display())
 		return nil, false
 	}
 
-	log.Printf("[INFO] (brain) recalling data for %s", d.Display())
 	return b.data[d.HashCode()], true
 }
 
@@ -63,8 +58,6 @@ func (b *Brain) Recall(d dep.Dependency) (interface{}, bool) {
 func (b *Brain) Forget(d dep.Dependency) {
 	b.Lock()
 	defer b.Unlock()
-
-	log.Printf("[INFO] (brain) forgetting %s", d.Display())
 
 	delete(b.data, d.HashCode())
 	delete(b.receivedData, d.HashCode())
