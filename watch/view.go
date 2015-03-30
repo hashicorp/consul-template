@@ -132,7 +132,7 @@ func (v *View) fetch(doneCh chan<- struct{}, errCh chan<- error) {
 
 		if qm == nil {
 			errCh <- fmt.Errorf("consul returned nil qm; this should never happen" +
-				"and is probably a bug in consul-template or consulapi")
+				"and is probably a bug in consul-template or consul/api")
 			return
 		}
 
