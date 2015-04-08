@@ -366,6 +366,16 @@ func regexReplaceAll(re, pl, s string) (string, error) {
 	return compiled.ReplaceAllString(s, pl), nil
 }
 
+// regexMatch returns true or false if the string matches
+// the given regular expression
+func regexMatch(re, s string) (bool, error) {
+        compiled, err := regexp.Compile(re)
+        if err != nil {
+                return false, err
+        }
+	return compiled.MatchString(s), nil
+}
+
 // timestamp returns the current UNIX timestamp in UTC. If an argument is
 // specified, it will be used to format the timestamp.
 func timestamp(s ...string) (string, error) {

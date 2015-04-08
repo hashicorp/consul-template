@@ -472,6 +472,13 @@ Alternatively you can read data from a local JSON file:
 {{with $d := file "/path/to/local/data.json" | parseJSON}}{{$d.some_key}}{{end}}
 ```
 
+##### `regexMatch`
+Takes the argument as a regular expression and will return true or false if it matches on the given string.
+
+```liquid
+{{"foo.bar" | regexMatch "foo([.a-z]+)"}}
+```
+
 ##### `regexReplaceAll`
 Takes the argument as a regular expression and replaces all occurences of the regex with the given string. As in go, you can use variables like $1 to refer to subexpressions in the replacement string.
 
