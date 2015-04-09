@@ -257,6 +257,8 @@ func TestExecute_renders(t *testing.T) {
 			{{$key}}={{$value}}{{ end }}
 		timestamp: {{ timestamp }}
 		timestamp (formatted): {{ timestamp "2006-01-02" }}
+		regexMatch: {{ file "/path/to/file"  | regexMatch ".*[cont][a-z]+" }}
+		regexMatch: {{ file "/path/to/file"  | regexMatch "v[0-9]*" }}
 		regexReplaceAll: {{ file "/path/to/file" | regexReplaceAll "\\w" "x" }}
 		replaceAll: {{ file "/path/to/file" | replaceAll "some" "this" }}
 		toLower: {{ file "/path/to/file" | toLower }}
@@ -432,6 +434,8 @@ func TestExecute_renders(t *testing.T) {
 			foo=bar
 		timestamp: 1970-01-01T00:00:00Z
 		timestamp (formatted): 1970-01-01
+		regexMatch: true
+		regexMatch: false
 		regexReplaceAll: xxxx xxxxxxx
 		replaceAll: this content
 		toLower: some content

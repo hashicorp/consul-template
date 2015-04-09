@@ -945,3 +945,15 @@ func TestRegexReplaceAll(t *testing.T) {
 		t.Errorf("expected %q to be %q", result, expected)
 	}
 }
+
+func TestRegexMatch(t *testing.T) {
+        result, err := regexMatch(`v[0-9]*`, "v3")
+        if err != nil {
+                t.Fatal(err)
+        }
+
+        expected := true
+        if result != expected {
+                t.Errorf("expected %t to be %t", result, expected)
+        }
+}
