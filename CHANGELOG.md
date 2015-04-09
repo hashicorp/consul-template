@@ -3,6 +3,11 @@ Consul Template Changelog
 
 ## v0.8.1.dev (Unreleased)
 
+FEATURES:
+
+  * Add `regexMatch` template helper to determine if a result matches the given
+    regular expressions (GH-246)
+
 ## v0.8.0 (March 30, 2015)
 
 FEATURES:
