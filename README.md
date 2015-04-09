@@ -473,7 +473,7 @@ Alternatively you can read data from a local JSON file:
 ```
 
 ##### `regexMatch`
-Takes the argument as a regular expression and will return true or false if it matches on the given string.
+Takes the argument as a regular expression and will return `true` if it matches on the given string, or `false` otherwise.
 
 ```liquid
 {{"foo.bar" | regexMatch "foo([.a-z]+)"}}
