@@ -8,6 +8,10 @@ FEATURES:
   * Add `regexMatch` template helper to determine if a result matches the given
     regular expressions (GH-246)
 
+IMPROVEMENTS:
+
+  * Expand `byTag` to accept catalog services as well (GH-249, GH-250)
+
 ## v0.8.0 (March 30, 2015)
 
 FEATURES:

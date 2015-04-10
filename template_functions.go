@@ -282,13 +282,27 @@ func byKey(pairs []*dep.KeyPair) (map[string]map[string]*dep.KeyPair, error) {
 //
 // The map key is a string representing the service tag. The map value is a
 // slice of Services which have the tag assigned.
-func byTag(in []*dep.HealthService) (map[string][]*dep.HealthService, error) {
-	m := make(map[string][]*dep.HealthService)
-	for _, s := range in {
-		for _, t := range s.Tags {
-			m[t] = append(m[t], s)
+func byTag(in interface{}) (map[string][]interface{}, error) {
+	m := make(map[string][]interface{})
+
+	switch typed := in.(type) {
+	case nil:
+	case []*dep.CatalogService:
+		for _, s := range typed {
+			for _, t := range s.Tags {
+				m[t] = append(m[t], s)
+			}
 		}
+	case []*dep.HealthService:
+		for _, s := range typed {
+			for _, t := range s.Tags {
+				m[t] = append(m[t], s)
+			}
+		}
+	default:
+		return nil, fmt.Errorf("byTag: wrong argument type %T", in)
 	}
+
 	return m, nil
 }
 
@@ -369,10 +383,10 @@ func regexReplaceAll(re, pl, s string) (string, error) {
 // regexMatch returns true or false if the string matches
 // the given regular expression
 func regexMatch(re, s string) (bool, error) {
-        compiled, err := regexp.Compile(re)
-        if err != nil {
-                return false, err
-        }
+	compiled, err := regexp.Compile(re)
+	if err != nil {
+		return false, err
+	}
 	return compiled.MatchString(s), nil
 }
 

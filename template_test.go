@@ -241,9 +241,12 @@ func TestExecute_renders(t *testing.T) {
 		byKey:{{ range $key, $pairs := tree "config/redis" | byKey }}
 			{{$key}}:{{ range $pairs }}
 				{{.Key}}={{.Value}}{{ end }}{{ end }}
-		byTag:{{ range $tag, $services := service "webapp" | byTag }}
+		byTag (health service):{{ range $tag, $services := service "webapp" | byTag }}
 			{{$tag}}:{{ range $services }}
 				{{.Address}}{{ end }}{{ end }}
+		byTag (catalog services):{{ range $tag, $services := services | byTag }}
+			{{$tag}}:{{ range $services }}
+				{{.Name}}{{ end }}{{ end }}
 		env: {{ env "foo" }}
 		loop:{{range loop 3}}
 			test{{end}}
@@ -350,8 +353,14 @@ func TestExecute_renders(t *testing.T) {
 		t.Fatal(err)
 	}
 	brain.Remember(d, []*dep.CatalogService{
-		&dep.CatalogService{Name: "service1"},
-		&dep.CatalogService{Name: "service2"},
+		&dep.CatalogService{
+			Name: "service1",
+			Tags: []string{"production"},
+		},
+		&dep.CatalogService{
+			Name: "service2",
+			Tags: []string{"release", "production"},
+		},
 	})
 
 	if err := os.Setenv("foo", "bar"); err != nil {
@@ -410,13 +419,19 @@ func TestExecute_renders(t *testing.T) {
 		byKey:
 			admin:
 				port=1134
-		byTag:
+		byTag (health service):
 			production:
 				5.6.7.8
 				9.10.11.12
 			release:
 				1.2.3.4
 				5.6.7.8
+		byTag (catalog services):
+			production:
+				service1
+				service2
+			release:
+				service2
 		env: bar
 		loop:
 			test
