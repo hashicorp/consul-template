@@ -692,7 +692,7 @@ func TestByTag_emptyList(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := map[string][]*dep.HealthService{}
+	expected := map[string][]interface{}{}
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("expected %q to be %q", result, expected)
 	}
@@ -708,14 +708,14 @@ func TestByTag_GroupsList(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := map[string][]*dep.HealthService{
-		"auth": []*dep.HealthService{
+	expected := map[string][]interface{}{
+		"auth": []interface{}{
 			&dep.HealthService{Name: "web1", Tags: []string{"auth", "search"}},
 		},
-		"metric": []*dep.HealthService{
+		"metric": []interface{}{
 			&dep.HealthService{Name: "web3", Tags: []string{"metric"}},
 		},
-		"search": []*dep.HealthService{
+		"search": []interface{}{
 			&dep.HealthService{Name: "web2", Tags: []string{"search"}},
 			&dep.HealthService{Name: "web1", Tags: []string{"auth", "search"}},
 		},
@@ -947,13 +947,13 @@ func TestRegexReplaceAll(t *testing.T) {
 }
 
 func TestRegexMatch(t *testing.T) {
-        result, err := regexMatch(`v[0-9]*`, "v3")
-        if err != nil {
-                t.Fatal(err)
-        }
+	result, err := regexMatch(`v[0-9]*`, "v3")
+	if err != nil {
+		t.Fatal(err)
+	}
 
-        expected := true
-        if result != expected {
-                t.Errorf("expected %t to be %t", result, expected)
-        }
+	expected := true
+	if result != expected {
+		t.Errorf("expected %t to be %t", result, expected)
+	}
 }
