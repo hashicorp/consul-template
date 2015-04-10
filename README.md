@@ -390,7 +390,7 @@ The resulting pairs are keyed as a map, so it is possible to look up a single va
 ```
 
 ##### `byTag`
-Takes the list of services returned by the [`service`](#service) function and creates a map that groups services by tag.
+Takes the list of services returned by the [`service`](#service) or [`services`](#services) function and creates a map that groups services by tag.
 
 ```liquid
 {{range $tag, $services := service "webapp" | byTag}}{{$tag}}
