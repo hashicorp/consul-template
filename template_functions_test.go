@@ -698,7 +698,7 @@ func TestByTag_emptyList(t *testing.T) {
 	}
 }
 
-func TestByTag_GroupsList(t *testing.T) {
+func TestByTag_HealthServiceGroupsList(t *testing.T) {
 	result, err := byTag([]*dep.HealthService{
 		&dep.HealthService{Name: "web3", Tags: []string{"metric"}},
 		&dep.HealthService{Name: "web2", Tags: []string{"search"}},
@@ -718,6 +718,33 @@ func TestByTag_GroupsList(t *testing.T) {
 		"search": []interface{}{
 			&dep.HealthService{Name: "web2", Tags: []string{"search"}},
 			&dep.HealthService{Name: "web1", Tags: []string{"auth", "search"}},
+		},
+	}
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+}
+
+func TestByTag_CatalogServiceGroupsList(t *testing.T) {
+	result, err := byTag([]*dep.CatalogService{
+		&dep.CatalogService{Name: "web3", Tags: []string{"metric"}},
+		&dep.CatalogService{Name: "web2", Tags: []string{"search"}},
+		&dep.CatalogService{Name: "web1", Tags: []string{"auth", "search"}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := map[string][]interface{}{
+		"auth": []interface{}{
+			&dep.CatalogService{Name: "web1", Tags: []string{"auth", "search"}},
+		},
+		"metric": []interface{}{
+			&dep.CatalogService{Name: "web3", Tags: []string{"metric"}},
+		},
+		"search": []interface{}{
+			&dep.CatalogService{Name: "web2", Tags: []string{"search"}},
+			&dep.CatalogService{Name: "web1", Tags: []string{"auth", "search"}},
 		},
 	}
 	if !reflect.DeepEqual(result, expected) {
