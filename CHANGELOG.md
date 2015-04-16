@@ -7,6 +7,7 @@ FEATURES:
 
   * Add `regexMatch` template helper to determine if a result matches the given
     regular expressions (GH-246)
+  * Add support for `ssl-cert` and `ss-ca-cert` options (GH-255)
 
 IMPROVEMENTS:
 
