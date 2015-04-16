@@ -203,18 +203,6 @@ func (r *Runner) Stop() {
 	close(r.DoneCh)
 }
 
-// SetOutStream accepts an io.Writer and sets the internal outStream for this
-// Runner.
-func (r *Runner) SetOutStream(s io.Writer) {
-	r.outStream = s
-}
-
-// SetErrStream accepts an io.Writer and sets the internal outStream for this
-// Runner.
-func (r *Runner) SetErrStream(s io.Writer) {
-	r.errStream = s
-}
-
 // Receive accepts a Dependency and data for that dep. This data is
 // cached on the Runner. This data is then used to determine if a Template
 // is "renderable" (i.e. all its Dependencies have been downloaded at least
