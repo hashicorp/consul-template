@@ -12,6 +12,11 @@ IMPROVEMENTS:
 
   * Expand `byTag` to accept catalog services as well (GH-249, GH-250)
 
+BUG FIXES:
+
+  * Send the standard error of commands back over the standard error of
+    Consul Template (GH-253, GH-254)
+
 ## v0.8.0 (March 30, 2015)
 
 FEATURES:
