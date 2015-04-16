@@ -145,6 +145,36 @@ func TestParseFlags_noSSLVerify(t *testing.T) {
 	}
 }
 
+func TestParseFlags_SSLCert(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-ssl-cert", "/path/to/c1.pem",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "/path/to/c1.pem"
+	if config.SSL.Cert != expected {
+		t.Errorf("expected %v to be %v", config.SSL.Cert, expected)
+	}
+}
+
+func TestParseFlags_SSLCaCert(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-ssl-ca-cert", "/path/to/c2.pem",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "/path/to/c2.pem"
+	if config.SSL.CaCert != expected {
+		t.Errorf("expected %v to be %v", config.SSL.CaCert, expected)
+	}
+}
+
 func TestParseFlags_maxStale(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
 	config, _, _, _, err := cli.parseFlags([]string{
