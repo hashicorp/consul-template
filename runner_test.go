@@ -78,6 +78,10 @@ func TestNewRunner_initialize(t *testing.T) {
 		t.Errorf("expected %#v to be %#v", runner.outStream, os.Stdout)
 	}
 
+	if runner.errStream != os.Stderr {
+		t.Errorf("expected %#v to be %#v", runner.errStream, os.Stderr)
+	}
+
 	brain := NewBrain()
 	if !reflect.DeepEqual(runner.brain, brain) {
 		t.Errorf("expected %#v to be %#v", runner.brain, brain)
@@ -101,34 +105,6 @@ func TestNewRunner_badTemplate(t *testing.T) {
 
 	if _, err := NewRunner(config, false, false); err == nil {
 		t.Fatal("expected error, but nothing was returned")
-	}
-}
-
-func TestNewRunner_setsOutStream(t *testing.T) {
-	runner, err := NewRunner(new(Config), false, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	buff := new(bytes.Buffer)
-	runner.SetOutStream(buff)
-
-	if runner.outStream != buff {
-		t.Errorf("expected %q to equal %q", runner.outStream, buff)
-	}
-}
-
-func TestNewRunner_setsErrStream(t *testing.T) {
-	runner, err := NewRunner(new(Config), false, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	buff := new(bytes.Buffer)
-	runner.SetErrStream(buff)
-
-	if runner.errStream != buff {
-		t.Errorf("expected %q to equal %q", runner.errStream, buff)
 	}
 }
 
@@ -202,7 +178,7 @@ func TestRun_noopIfMissingData(t *testing.T) {
 	}
 
 	buff := new(bytes.Buffer)
-	runner.SetOutStream(buff)
+	runner.outStream, runner.errStream = buff, buff
 
 	if err := runner.Run(); err != nil {
 		t.Fatal(err)
@@ -245,7 +221,7 @@ func TestRun_dry(t *testing.T) {
 	runner.Receive(d, data)
 
 	buff := new(bytes.Buffer)
-	runner.SetOutStream(buff)
+	runner.outStream, runner.errStream = buff, buff
 
 	if err := runner.Run(); err != nil {
 		t.Fatal(err)
