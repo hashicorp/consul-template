@@ -126,6 +126,8 @@ auth {
 ssl {
   enabled = true
   verify = false
+  cert = "/path/to/client/cert.pem"
+  ca_cert = "/path/to/ca/cert.pem"
 }
 
 syslog {
