@@ -94,7 +94,8 @@ $ consul-template \
   -dry
 ```
 
-Query a Consul that uses SSL:-
+Query a Consul that uses custom SSL certificates:
+
 ```shell
 $ consul-template \
   -consul 127.0.0.1:8543 \
