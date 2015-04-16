@@ -450,6 +450,7 @@ func (r *Runner) init() error {
 
 	r.ctemplatesMap = ctemplatesMap
 	r.outStream = os.Stdout
+	r.errStream = os.Stderr
 	r.brain = NewBrain()
 
 	r.ErrCh = make(chan error)

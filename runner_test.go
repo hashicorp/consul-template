@@ -78,6 +78,10 @@ func TestNewRunner_initialize(t *testing.T) {
 		t.Errorf("expected %#v to be %#v", runner.outStream, os.Stdout)
 	}
 
+	if runner.errStream != os.Stderr {
+		t.Errorf("expected %#v to be %#v", runner.errStream, os.Stderr)
+	}
+
 	brain := NewBrain()
 	if !reflect.DeepEqual(runner.brain, brain) {
 		t.Errorf("expected %#v to be %#v", runner.brain, brain)
