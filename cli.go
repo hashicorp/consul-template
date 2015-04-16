@@ -156,6 +156,8 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	flags.Var((*authVar)(config.Auth), "auth", "")
 	flags.BoolVar(&config.SSL.Enabled, "ssl", config.SSL.Enabled, "")
 	flags.BoolVar(&config.SSL.Verify, "ssl-verify", config.SSL.Verify, "")
+	flags.StringVar(&config.SSL.Cert, "ssl-cert", config.SSL.Cert, "")
+	flags.StringVar(&config.SSL.CaCert, "ssl-ca-cert", config.SSL.CaCert, "")
 	flags.DurationVar(&config.MaxStale, "max-stale", config.MaxStale, "")
 	flags.Var((*configTemplateVar)(&config.ConfigTemplates), "template", "")
 	flags.BoolVar(&config.Syslog.Enabled, "syslog", config.Syslog.Enabled, "")
@@ -217,6 +219,9 @@ Options:
                            instead of just the leader
   -ssl                     Use SSL when connecting to Consul
   -ssl-verify              Verify certificates when connecting via SSL
+  -ssl-cert                SSL client certificate to send to server
+  -ssl-ca-cert             Validate server certificate against this CA
+                           certificate file list
   -token=<token>           Sets the Consul API token
 
   -syslog                  Send the output to syslog instead of standard error

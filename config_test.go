@@ -101,6 +101,8 @@ func TestMerge_HttpsOptions(t *testing.T) {
 		SSL: &SSL{
 			Enabled: true,
 			Verify:  true,
+			Cert: "c1.pem",
+			CaCert: "c2.pem",
 		},
 	}
 	config.Merge(otherConfig)
@@ -113,10 +115,20 @@ func TestMerge_HttpsOptions(t *testing.T) {
 		t.Errorf("expected SSL verify to be true")
 	}
 
+	if config.SSL.Cert != "c1.pem" {
+		t.Errorf("expected SSL cert to be c1.pem")
+	}
+
+	if config.SSL.CaCert != "c2.pem" {
+		t.Errorf("expected SSL ca cert to be c2.pem")
+	}
+
 	config = &Config{
 		SSL: &SSL{
 			Enabled: true,
 			Verify:  true,
+			Cert: "c1.pem",
+			CaCert: "c2.pem",
 		},
 	}
 	otherConfig = &Config{
@@ -133,6 +145,14 @@ func TestMerge_HttpsOptions(t *testing.T) {
 
 	if config.SSL.Verify != false {
 		t.Errorf("expected SSL verify to be false")
+	}
+
+	if config.SSL.Cert != "" {
+		t.Errorf("expected SSL cert to be empty string")
+	}
+
+	if config.SSL.CaCert != "" {
+		t.Errorf("expected SSL ca cert to be empty string")
 	}
 }
 
@@ -279,6 +299,8 @@ func TestParseConfig_correctValues(t *testing.T) {
     ssl {
     	enabled = true
     	verify = false
+        cert = "c1.pem"
+        ca_cert = "c2.pem"
     }
 
     syslog {
@@ -324,11 +346,15 @@ func TestParseConfig_correctValues(t *testing.T) {
 		SSL: &SSL{
 			Enabled: true,
 			Verify:  false,
+			Cert: "c1.pem",
+			CaCert: "c2.pem",
 		},
 		SSLRaw: []*SSL{
 			&SSL{
 				Enabled: true,
 				Verify:  false,
+				Cert: "c1.pem",
+				CaCert: "c2.pem",
 			},
 		},
 		Syslog: &Syslog{

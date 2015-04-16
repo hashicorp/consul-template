@@ -91,6 +91,8 @@ func (c *Config) Merge(config *Config) {
 		c.SSL = &SSL{
 			Enabled: config.SSL.Enabled,
 			Verify:  config.SSL.Verify,
+			Cert: config.SSL.Cert,
+			CaCert: config.SSL.CaCert,
 		}
 	}
 
@@ -279,8 +281,10 @@ func (a *Auth) String() string {
 
 // SSL is the configuration for SSL.
 type SSL struct {
-	Enabled bool `json:"enabled" mapstructure:"enabled"`
-	Verify  bool `json:"verify" mapstructure:"verify"`
+	Enabled bool   `json:"enabled" mapstructure:"enabled"`
+	Verify  bool   `json:"verify" mapstructure:"verify"`
+	Cert    string `json:"cert" mapstructure:"cert"`
+	CaCert  string `json:"ca_cert" mapstructure:"ca_cert"`
 }
 
 // Syslog is the configuration for syslog.

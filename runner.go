@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -736,14 +737,34 @@ func newAPIClient(config *Config) (*api.Client, error) {
 	if config.SSL.Enabled {
 		log.Printf("[DEBUG] (runner) enabling SSL")
 		consulConfig.Scheme = "https"
-	}
 
-	if !config.SSL.Verify {
-		log.Printf("[WARN] (runner) disabling SSL verification")
+		tlsConfig := &tls.Config{}
+
+		if config.SSL.Cert != "" {
+			cert, err := tls.LoadX509KeyPair(config.SSL.Cert, config.SSL.Cert)
+			if err != nil {
+				return nil, err
+			}
+			tlsConfig.Certificates = []tls.Certificate{cert}
+		}
+		if config.SSL.CaCert != "" {
+			cacert, err := ioutil.ReadFile(config.SSL.CaCert)
+			if err != nil {
+				return nil, err
+			}
+			caCertPool := x509.NewCertPool()
+			caCertPool.AppendCertsFromPEM(cacert)
+
+			tlsConfig.RootCAs = caCertPool
+		}
+		tlsConfig.BuildNameToCertificate()
+
+		if !config.SSL.Verify {
+			log.Printf("[WARN] (runner) disabling SSL verification")
+			tlsConfig.InsecureSkipVerify = true
+		}
 		consulConfig.HttpClient.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
+			TLSClientConfig: tlsConfig,
 		}
 	}
 
