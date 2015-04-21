@@ -92,17 +92,17 @@ func TestMerge_complexConfig(t *testing.T) {
 // Test that the flags for HTTPS are properly merged
 func TestMerge_HttpsOptions(t *testing.T) {
 	config := &Config{
-		SSL: &SSL{
+		SSL: &SSLConfig{
 			Enabled: false,
 			Verify:  false,
 		},
 	}
 	otherConfig := &Config{
-		SSL: &SSL{
+		SSL: &SSLConfig{
 			Enabled: true,
 			Verify:  true,
-			Cert: "c1.pem",
-			CaCert: "c2.pem",
+			Cert:    "c1.pem",
+			CaCert:  "c2.pem",
 		},
 	}
 	config.Merge(otherConfig)
@@ -124,15 +124,15 @@ func TestMerge_HttpsOptions(t *testing.T) {
 	}
 
 	config = &Config{
-		SSL: &SSL{
+		SSL: &SSLConfig{
 			Enabled: true,
 			Verify:  true,
-			Cert: "c1.pem",
-			CaCert: "c2.pem",
+			Cert:    "c1.pem",
+			CaCert:  "c2.pem",
 		},
 	}
 	otherConfig = &Config{
-		SSL: &SSL{
+		SSL: &SSLConfig{
 			Enabled: false,
 			Verify:  false,
 		},
@@ -158,10 +158,10 @@ func TestMerge_HttpsOptions(t *testing.T) {
 
 func TestMerge_AuthOptions(t *testing.T) {
 	config := &Config{
-		Auth: &Auth{Username: "user", Password: "pass"},
+		Auth: &AuthConfig{Username: "user", Password: "pass"},
 	}
 	otherConfig := &Config{
-		Auth: &Auth{Username: "newUser", Password: ""},
+		Auth: &AuthConfig{Username: "newUser", Password: ""},
 	}
 	config.Merge(otherConfig)
 
@@ -172,10 +172,10 @@ func TestMerge_AuthOptions(t *testing.T) {
 
 func TestMerge_SyslogOptions(t *testing.T) {
 	config := &Config{
-		Syslog: &Syslog{Enabled: false, Facility: "LOCAL0"},
+		Syslog: &SyslogConfig{Enabled: false, Facility: "LOCAL0"},
 	}
 	otherConfig := &Config{
-		Syslog: &Syslog{Enabled: true, Facility: "LOCAL1"},
+		Syslog: &SyslogConfig{Enabled: true, Facility: "LOCAL1"},
 	}
 	config.Merge(otherConfig)
 
@@ -189,7 +189,7 @@ func TestMerge_SyslogOptions(t *testing.T) {
 }
 
 func TestAuthString_disabled(t *testing.T) {
-	a := &Auth{Enabled: false}
+	a := &AuthConfig{Enabled: false}
 	expected := ""
 	if a.String() != expected {
 		t.Errorf("expected %q to be %q", a.String(), expected)
@@ -197,7 +197,7 @@ func TestAuthString_disabled(t *testing.T) {
 }
 
 func TestAuthString_enabledNoPassword(t *testing.T) {
-	a := &Auth{Enabled: true, Username: "username"}
+	a := &AuthConfig{Enabled: true, Username: "username"}
 	expected := "username"
 	if a.String() != expected {
 		t.Errorf("expected %q to be %q", a.String(), expected)
@@ -205,7 +205,7 @@ func TestAuthString_enabledNoPassword(t *testing.T) {
 }
 
 func TestAuthString_enabled(t *testing.T) {
-	a := &Auth{Enabled: true, Username: "username", Password: "password"}
+	a := &AuthConfig{Enabled: true, Username: "username", Password: "password"}
 	expected := "username:password"
 	if a.String() != expected {
 		t.Errorf("expected %q to be %q", a.String(), expected)
@@ -331,38 +331,38 @@ func TestParseConfig_correctValues(t *testing.T) {
 		Consul:      "nyc1.demo.consul.io",
 		MaxStale:    time.Second * 5,
 		MaxStaleRaw: "5s",
-		Auth: &Auth{
+		Auth: &AuthConfig{
 			Enabled:  true,
 			Username: "test",
 			Password: "test",
 		},
-		AuthRaw: []*Auth{
-			&Auth{
+		AuthRaw: []*AuthConfig{
+			&AuthConfig{
 				Enabled:  true,
 				Username: "test",
 				Password: "test",
 			},
 		},
-		SSL: &SSL{
+		SSL: &SSLConfig{
 			Enabled: true,
 			Verify:  false,
-			Cert: "c1.pem",
-			CaCert: "c2.pem",
+			Cert:    "c1.pem",
+			CaCert:  "c2.pem",
 		},
-		SSLRaw: []*SSL{
-			&SSL{
+		SSLRaw: []*SSLConfig{
+			&SSLConfig{
 				Enabled: true,
 				Verify:  false,
-				Cert: "c1.pem",
-				CaCert: "c2.pem",
+				Cert:    "c1.pem",
+				CaCert:  "c2.pem",
 			},
 		},
-		Syslog: &Syslog{
+		Syslog: &SyslogConfig{
 			Enabled:  true,
 			Facility: "LOCAL5",
 		},
-		SyslogRaw: []*Syslog{
-			&Syslog{
+		SyslogRaw: []*SyslogConfig{
+			&SyslogConfig{
 				Enabled:  true,
 				Facility: "LOCAL5",
 			},

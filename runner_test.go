@@ -852,12 +852,12 @@ func TestExecute_setsEnv(t *testing.T) {
 	config := &Config{
 		Consul: "1.2.3.4:5678",
 		Token:  "abcd1243",
-		Auth: &Auth{
+		Auth: &AuthConfig{
 			Enabled:  true,
 			Username: "username",
 			Password: "password",
 		},
-		SSL: &SSL{
+		SSL: &SSLConfig{
 			Enabled: true,
 			Verify:  false,
 		},
@@ -983,7 +983,7 @@ func TestBuildConfig_configTakesPrecedence(t *testing.T) {
 
 	config := &Config{
 		Path: configFile.Name(),
-		SSL: &SSL{
+		SSL: &SSLConfig{
 			Enabled: true,
 		},
 	}

@@ -28,12 +28,12 @@ func (ctv *configTemplateVar) String() string {
 	return ""
 }
 
-// authVar implements the Flag.Value interface and allows the user to specify
+// authConfigVar implements the Flag.Value interface and allows the user to specify
 // authentication in the username[:password] form.
-type authVar Auth
+type authConfigVar AuthConfig
 
 // Set sets the value for this authentication.
-func (a *authVar) Set(value string) error {
+func (a *authConfigVar) Set(value string) error {
 	a.Enabled = true
 
 	if strings.Contains(value, ":") {
@@ -48,7 +48,7 @@ func (a *authVar) Set(value string) error {
 }
 
 // String returns the string representation of this authentication.
-func (a *authVar) String() string {
+func (a *authConfigVar) String() string {
 	if a.Password == "" {
 		return a.Username
 	}

@@ -33,19 +33,17 @@ type Config struct {
 	Token string `json:"token" mapstructure:"token"`
 
 	// Auth is the HTTP basic authentication for communicating with Consul.
-	Auth    *Auth   `json:"auth" mapstructure:"-"`
-	AuthRaw []*Auth `json:"-" mapstructure:"auth"`
+	Auth    *AuthConfig   `json:"auth" mapstructure:"-"`
+	AuthRaw []*AuthConfig `json:"-" mapstructure:"auth"`
 
 	// SSL indicates we should use a secure connection while talking to
 	// Consul. This requires Consul to be configured to serve HTTPS.
-	//
-	// SSLNoVerify determines if we should skip certificate warnings
-	SSL    *SSL   `json:"ssl" mapstructure:"-"`
-	SSLRaw []*SSL `json:"-" mapstructure:"ssl"`
+	SSL    *SSLConfig   `json:"ssl" mapstructure:"-"`
+	SSLRaw []*SSLConfig `json:"-" mapstructure:"ssl"`
 
 	// Syslog is the configuration for syslog.
-	Syslog    *Syslog   `json:"syslog" mapstructure:"-"`
-	SyslogRaw []*Syslog `json:"-" mapstructure:"syslog"`
+	Syslog    *SyslogConfig   `json:"syslog" mapstructure:"-"`
+	SyslogRaw []*SyslogConfig `json:"-" mapstructure:"syslog"`
 
 	// MaxStale is the maximum amount of time for staleness from Consul as given
 	// by LastContact. If supplied, Consul Template will query all servers instead
@@ -80,7 +78,7 @@ func (c *Config) Merge(config *Config) {
 	}
 
 	if config.Auth != nil {
-		c.Auth = &Auth{
+		c.Auth = &AuthConfig{
 			Enabled:  config.Auth.Enabled,
 			Username: config.Auth.Username,
 			Password: config.Auth.Password,
@@ -88,16 +86,16 @@ func (c *Config) Merge(config *Config) {
 	}
 
 	if config.SSL != nil {
-		c.SSL = &SSL{
+		c.SSL = &SSLConfig{
 			Enabled: config.SSL.Enabled,
 			Verify:  config.SSL.Verify,
-			Cert: config.SSL.Cert,
-			CaCert: config.SSL.CaCert,
+			Cert:    config.SSL.Cert,
+			CaCert:  config.SSL.CaCert,
 		}
 	}
 
 	if config.Syslog != nil {
-		c.Syslog = &Syslog{
+		c.Syslog = &SyslogConfig{
 			Enabled:  config.Syslog.Enabled,
 			Facility: config.Syslog.Facility,
 		}
@@ -239,14 +237,14 @@ func DefaultConfig() *Config {
 	}
 
 	return &Config{
-		Auth: &Auth{
+		Auth: &AuthConfig{
 			Enabled: false,
 		},
-		SSL: &SSL{
+		SSL: &SSLConfig{
 			Enabled: false,
 			Verify:  true,
 		},
-		Syslog: &Syslog{
+		Syslog: &SyslogConfig{
 			Enabled:  false,
 			Facility: "LOCAL0",
 		},
@@ -257,8 +255,8 @@ func DefaultConfig() *Config {
 	}
 }
 
-// Auth is the HTTP basic authentication data.
-type Auth struct {
+// AuthConfig is the HTTP basic authentication data.
+type AuthConfig struct {
 	Enabled  bool   `json:"enabled" mapstructure:"enabled"`
 	Username string `json:"username" mapstructure:"username"`
 	Password string `json:"password" mapstructure:"password"`
@@ -267,7 +265,7 @@ type Auth struct {
 // String is the string representation of this authentication. If authentication
 // is not enabled, this returns the empty string. The username and password will
 // be separated by a colon.
-func (a *Auth) String() string {
+func (a *AuthConfig) String() string {
 	if !a.Enabled {
 		return ""
 	}
@@ -279,16 +277,16 @@ func (a *Auth) String() string {
 	return a.Username
 }
 
-// SSL is the configuration for SSL.
-type SSL struct {
+// SSLConfig is the configuration for SSL.
+type SSLConfig struct {
 	Enabled bool   `json:"enabled" mapstructure:"enabled"`
 	Verify  bool   `json:"verify" mapstructure:"verify"`
 	Cert    string `json:"cert" mapstructure:"cert"`
 	CaCert  string `json:"ca_cert" mapstructure:"ca_cert"`
 }
 
-// Syslog is the configuration for syslog.
-type Syslog struct {
+// SyslogConfig is the configuration for syslog.
+type SyslogConfig struct {
 	Enabled  bool   `json:"enabled" mapstructure:"enabled"`
 	Facility string `json:"facility" mapstructure:"facility"`
 }

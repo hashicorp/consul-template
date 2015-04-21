@@ -153,7 +153,7 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	}
 	flags.StringVar(&config.Consul, "consul", config.Consul, "")
 	flags.StringVar(&config.Token, "token", config.Token, "")
-	flags.Var((*authVar)(config.Auth), "auth", "")
+	flags.Var((*authConfigVar)(config.Auth), "auth", "")
 	flags.BoolVar(&config.SSL.Enabled, "ssl", config.SSL.Enabled, "")
 	flags.BoolVar(&config.SSL.Verify, "ssl-verify", config.SSL.Verify, "")
 	flags.StringVar(&config.SSL.Cert, "ssl-cert", config.SSL.Cert, "")
