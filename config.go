@@ -32,6 +32,10 @@ type Config struct {
 	// Token is the Consul API token.
 	Token string `json:"token" mapstructure:"token"`
 
+	// Vault is the configuration for connecting to a vault server.
+	Vault    *VaultConfig   `json:"vault" mapstructure:"-"`
+	VaultRaw []*VaultConfig `json:"-" mapstructure:"vault"`
+
 	// Auth is the HTTP basic authentication for communicating with Consul.
 	Auth    *AuthConfig   `json:"auth" mapstructure:"-"`
 	AuthRaw []*AuthConfig `json:"-" mapstructure:"auth"`
@@ -75,6 +79,22 @@ func (c *Config) Merge(config *Config) {
 
 	if config.Token != "" {
 		c.Token = config.Token
+	}
+
+	if config.Vault != nil {
+		c.Vault = &VaultConfig{
+			Address: config.Vault.Address,
+			Token:   config.Vault.Token,
+		}
+
+		if config.Vault.SSL != nil {
+			c.Vault.SSL = &SSLConfig{
+				Enabled: config.Vault.SSL.Enabled,
+				Verify:  config.Vault.SSL.Verify,
+				Cert:    config.Vault.SSL.Cert,
+				CaCert:  config.Vault.SSL.CaCert,
+			}
+		}
 	}
 
 	if config.Auth != nil {
@@ -189,6 +209,17 @@ func ParseConfig(path string) (*Config, error) {
 		}
 	}
 
+	// Extract the last Vault block
+	if len(config.VaultRaw) > 0 {
+		config.Vault = config.VaultRaw[len(config.VaultRaw)-1]
+
+		// Extract the last Vault SSL block
+		if len(config.Vault.SSLRaw) > 0 {
+			config.Vault.SSL = config.Vault.SSLRaw[len(config.SSLRaw)-1]
+		}
+
+	}
+
 	// Extract the last Auth block
 	if len(config.AuthRaw) > 0 {
 		config.Auth = config.AuthRaw[len(config.AuthRaw)-1]
@@ -237,6 +268,12 @@ func DefaultConfig() *Config {
 	}
 
 	return &Config{
+		Vault: &VaultConfig{
+			SSL: &SSLConfig{
+				Enabled: true,
+				Verify:  true,
+			},
+		},
 		Auth: &AuthConfig{
 			Enabled: false,
 		},
@@ -297,6 +334,16 @@ type ConfigTemplate struct {
 	Source      string `json:"source" mapstructure:"source"`
 	Destination string `json:"destination" mapstructure:"destination"`
 	Command     string `json:"command" mapstructure:"command"`
+}
+
+// VaultConfig is the configuration for connecting to a vault server.
+type VaultConfig struct {
+	Address string `json:"address" mapstructure:"address"`
+	Token   string `json:"token" mapstructure:"token"`
+
+	// SSL indicates we should use a secure connection while talking to Vault.
+	SSL    *SSLConfig   `json:"ssl" mapstructure:"-"`
+	SSLRaw []*SSLConfig `json:"-" mapstructure:"ssl"`
 }
 
 // ParseConfigTemplate parses a string into a ConfigTemplate struct
