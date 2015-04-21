@@ -57,7 +57,7 @@ Usage
 ### Command Line
 The CLI interface supports all of the options detailed above.
 
-Query the nyc1 demo Consul instance, rendering the template on disk at `/tmp/template.ctmpl` to `/tmp/result`, running Consul Template as a service until stopped:
+Query the nyc3 demo Consul instance, rendering the template on disk at `/tmp/template.ctmpl` to `/tmp/result`, running Consul Template as a service until stopped:
 
 ```shell
 $ consul-template \
@@ -147,10 +147,10 @@ template {
 }
 ```
 
-Query the nyc1 demo Consul instance, rendering the template on disk at `/tmp/template.ctmpl` to `/tmp/result`, running Consul Template as a service until stopped:
+Query the nyc3 demo Consul instance, rendering the template on disk at `/tmp/template.ctmpl` to `/tmp/result`, running Consul Template as a service until stopped:
 
 ```javascript
-consul = "nyc1.demo.consul.io"
+consul = "nyc3.demo.consul.io"
 
 template {
   source = "/tmp/template.ctmpl"
@@ -236,19 +236,19 @@ This will query Consul for all nodes in the east-aws datacenter.
 Query Consul for the service group(s) matching the given pattern. Services are queried using the following syntax:
 
 ```liquid
-{{service "release.webapp@east-aws:8000"}}
+{{service "release.web@east-aws:8000"}}
 ```
 
-The example above is querying Consul for healthy "webapp" services, with the "release" tag, in the "east-aws" datacenter, using port "8000". The tag, datacenter and port attributes are optional. To query all nodes of the "webapp" service (regardless of tag and port) for the current datacenter:
+The example above is querying Consul for healthy "web" services, in the "east-aws" datacenter, using port "8000". The tag, datacenter and port attributes are optional. To query all nodes of the "web" service (regardless of tag and port) for the current datacenter:
 
 ```liquid
-{{service "webapp"}}
+{{service "web"}}
 ```
 
 The function returns a `[]*Service` struct which can be used for ranging in a template:
 
 ```liquid
-{{range service "webapp@datacenter"}}
+{{range service "web@datacenter"}}
 server {{.Name}} {{.Address}}:{{.Port}}{{end}}
 ```
 
@@ -262,7 +262,7 @@ server nyc_web_02 456.789.101.213:8080
 By default only healthy services are returned. If you want to get all services, you can pass the "any" option:
 
 ```liquid
-{{service "webapp" "any"}}
+{{service "web" "any"}}
 ```
 
 This will return all services registered to the agent, regardless of their status.
@@ -270,7 +270,7 @@ This will return all services registered to the agent, regardless of their statu
 If you want to filter services by a specific health or health(s), you can specify a comma-separated list of health check statuses:
 
 ```liquid
-{{service "webapp" "passing, warning"}}
+{{service "web" "passing, warning"}}
 ```
 
 This will returns services which are deemed "passing" or "warning" according to their node and service-level checks defined in Consul. Please note that the comma implies an "or", not an "and".
@@ -280,20 +280,20 @@ Specifying more than one status filter while "any" is used will return an error,
 There is an architectural difference between the following:
 
 ```liquid
-{{service "webapp"}}
-{{service "webapp" "passing"}}
+{{service "web"}}
+{{service "web" "passing"}}
 ```
 
 The former will return all services which Consul considers "healthy" and passing. The latter will return all services registered with the Consul agent and perform client-side filtering. As a general rule, you should not use the "passing" argument alone if you want only healthy services - simply omit the second argument instead. However, the extra argument is useful if you want "passing or warning" services like:
 
 ```liquid
-{{service "webapp" "passing, warning"}}
+{{service "web" "passing, warning"}}
 ```
 
 The service's status is also exposed if you need to do additional filtering:
 
 ```liquid
-{{range service "webapp" "any"}}
+{{range service "web" "any"}}
 {{if eq .Status "critical"}}
 // Critical state!{{end}}
 {{if eq .Status "passing"}}
@@ -305,9 +305,9 @@ To put a service into maintenance mode in Consul around executing the command, s
 ```shell
 #!/bin/sh
 set -e
-consul maint -enable -service webapp -reason "Consul Template updated"
+consul maint -enable -service web -reason "Consul Template updated"
 service nginx reload
-consul maint -disable -service webapp
+consul maint -disable -service web
 ```
 
 Alternatively, if you do not have the Consul agent installed, you can make the API requests directly (advanced):
@@ -315,9 +315,9 @@ Alternatively, if you do not have the Consul agent installed, you can make the A
 ```shell
 #!/bin/sh
 set -e
-curl -X PUT "http://$CONSUL_HTTP_ADDR/v1/agent/service/maintenance/webapp?enable=true&reason=Consul+Template+Updated"
+curl -X PUT "http://$CONSUL_HTTP_ADDR/v1/agent/service/maintenance/web?enable=true&reason=Consul+Template+Updated"
 service nginx reload
-curl -X PUT "http://$CONSUL_HTTP_ADDR/v1/agent/service/maintenance/webapp?enable=false"
+curl -X PUT "http://$CONSUL_HTTP_ADDR/v1/agent/service/maintenance/web?enable=false"
 ```
 
 ##### `services`
@@ -401,7 +401,7 @@ The resulting pairs are keyed as a map, so it is possible to look up a single va
 
 ```liquid
 {{$weights := tree "weights"}}
-{{range service "release.webapp"}}
+{{range service "release.web"}}
   {{$weight := or (index $weights .Node) 100}}
   server {{.Node}} {{.Address}}:{{.Port}} weight {{$weight}}{{end}}
 ```
@@ -410,7 +410,7 @@ The resulting pairs are keyed as a map, so it is possible to look up a single va
 Takes the list of services returned by the [`service`](#service) or [`services`](#services) function and creates a map that groups services by tag.
 
 ```liquid
-{{range $tag, $services := service "webapp" | byTag}}{{$tag}}
+{{range $tag, $services := service "web" | byTag}}{{$tag}}
 {{range $services}} server {{.Name}} {{.Address}}:{{.Port}}
 {{end}}{{end}}
 ```
@@ -513,7 +513,7 @@ Takes the argument as a string and replaces all occurences of the given string w
 This function can be chained with other functions as well:
 
 ```liquid
-{{service "webapp"}}{{.Name | replaceAll ":" "_"}}{{end}}
+{{service "web"}}{{.Name | replaceAll ":" "_"}}{{end}}
 ```
 
 ##### `timestamp`
@@ -616,7 +616,7 @@ defaults
     timeout {{.Key}} {{.Value}}{{end}}
 
 listen http-in
-    bind *:8000{{range service "release.webapp"}}
+    bind *:8000{{range service "release.web"}}
     server {{.Node}} {{.Address}}:{{.Port}}{{end}}
 ```
 
