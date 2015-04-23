@@ -13,7 +13,7 @@ import (
 // CatalogService is a catalog entry in Consul.
 type CatalogService struct {
 	Name string
-	Tags []string
+	Tags ServiceTags
 }
 
 // CatalogServices is the representation of a requested catalog service
@@ -47,7 +47,7 @@ func (d *CatalogServices) Fetch(client *api.Client, options *api.QueryOptions) (
 		tags = deepCopyAndSortTags(tags)
 		catalogServices = append(catalogServices, &CatalogService{
 			Name: name,
-			Tags: tags,
+			Tags: ServiceTags(tags),
 		})
 	}
 

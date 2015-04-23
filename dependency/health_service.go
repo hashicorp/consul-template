@@ -331,19 +331,6 @@ func (f ServiceStatusFilter) any() bool {
 	return len(f) == 1 && f[0] == HealthAny
 }
 
-// ServiceTags is a slice of tags assigned to a Service
-type ServiceTags []string
-
-// Contains returns true if the tags exists in the ServiceTags slice.
-func (t ServiceTags) Contains(s string) bool {
-	for _, v := range t {
-		if v == s {
-			return true
-		}
-	}
-	return false
-}
-
 // HealthServiceList is a sortable slice of Service
 type HealthServiceList []*HealthService
 
