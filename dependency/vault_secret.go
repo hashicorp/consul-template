@@ -5,71 +5,95 @@ import (
 	"log"
 	"sync"
 	"time"
-
-	"github.com/hashicorp/consul/api"
 )
+
+// Secret is a vault secret.
+type Secret struct {
+	LeaseID       string
+	LeaseDuration int
+	Renewable     bool
+
+	// Data is the actual contents of the secret. The format of the data
+	// is arbitrary and up to the secret backend.
+	Data map[string]interface{}
+}
 
 // VaultSecret is the dependency to Vault for a secret
 type VaultSecret struct {
 	sync.Mutex
-	rawKey        string
+
+	secretPath    string
 	leaseDuration int
 }
 
 // Fetch queries the Vault API
-func (d *VaultSecret) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
-	log.Printf("[DEBUG] (%s) querying vault with %+v", d.Display(), options)
+func (d *VaultSecret) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
+	if opts == nil {
+		opts = &QueryOptions{}
+	}
+
+	log.Printf("[DEBUG] (%s) querying vault with %+v", d.Display(), opts)
 
 	// If this is not the first query and we have a lease duration, sleep until we
 	// try to renew.
-	if options.WaitIndex != 0 && d.leaseDuration != 0 {
+	if opts.WaitIndex != 0 && d.leaseDuration != 0 {
 		log.Printf("[DEBUG] (%s) pretending to long-poll", d.Display())
-		time.Sleep(d.leaseDuration / 2)
+		time.Sleep(time.Duration(d.leaseDuration / 2))
 	}
 
-	// TODO - this is not the correct "client" - we need a vault client here, not
-	// a consul client - we are going to need to update the dependency format a
-	// bit to make this work...
-	secret, err := client.Logical().Read(path)
+	// Grab the vault client
+	vault, err := clients.Vault()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("vault secret: %s", err)
 	}
 
-	if !secret.Renewable {
-		// TODO: Return an error if the secret is not renewable?
+	// Attempt to read the secret
+	vaultSecret, err := vault.Logical().Read(d.secretPath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error reading from vault: %s", err)
 	}
 
-	if secret.Auth == nil {
-		// TODO: Return an error if there is no auth (we can't check the lease duration)
+	// Create our cloned secret
+	secret := &Secret{
+		LeaseID:       vaultSecret.LeaseID,
+		LeaseDuration: vaultSecret.LeaseDuration,
+		Renewable:     vaultSecret.Renewable,
+		Data:          vaultSecret.Data,
+	}
+
+	leaseDuration := secret.LeaseDuration
+	if leaseDuration == 0 {
+		log.Printf("[WARN] (%s) lease duration is 0, setting to 5m", d.Display())
+		leaseDuration = 5 * 60
 	}
 
 	d.Lock()
-	d.leaseDuration = secret.Auth.LeaseDuration
+	d.leaseDuration = leaseDuration
 	d.Unlock()
 
 	log.Printf("[DEBUG] (%s) Consul returned the secret", d.Display())
 
-	qm := &api.QueryMeta{LastIndex: uint64(time.Now().Unix())}
+	ts := time.Now().Unix()
+	rm := &ResponseMetadata{
+		LastContact: time.Duration(ts),
+		LastIndex:   uint64(ts),
+	}
 
-	return secret, qm, nil
+	return secret, rm, nil
 }
 
 // HashCode returns the hash code for this dependency.
 func (d *VaultSecret) HashCode() string {
-	return fmt.Sprintf("VaultSecret|%s", d.rawKey)
+	return fmt.Sprintf("VaultSecret|%s", d.secretPath)
 }
 
 // Display returns a string that should be displayed to the user in output (for
 // example).
 func (d *VaultSecret) Display() string {
-	if d.rawKey == "" {
-		return fmt.Sprintf(`"vault"`)
-	}
-
-	return fmt.Sprintf(`"vault(%s)"`, d.rawKey)
+	return fmt.Sprintf(`"vault(%s)"`, d.secretPath)
 }
 
 // ParseVaultSecret creates a new datacenter dependency.
 func ParseVaultSecret(s string) (*VaultSecret, error) {
-	return &VaultSecret{rawKey: ""}, nil
+	return &VaultSecret{secretPath: s}, nil
 }
