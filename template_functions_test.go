@@ -761,7 +761,7 @@ func TestVaultFunc_missingData(t *testing.T) {
 	expected := &dep.Secret{}
 
 	if !reflect.DeepEqual(result, expected) {
-		t.Errorf("expected %q to be %q", result, expected)
+		t.Errorf("expected %#v to be %#v", result, expected)
 	}
 
 	if _, ok := used[d.HashCode()]; !ok {
