@@ -21,8 +21,9 @@ import (
 
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul-template/watch"
-	"github.com/hashicorp/consul/api"
+	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-multierror"
+	vaultapi "github.com/hashicorp/vault/api"
 )
 
 const (
@@ -40,9 +41,6 @@ type Runner struct {
 	// config is the Config that created this Runner. It is used internally to
 	// construct other objects and pass data.
 	config *Config
-
-	// client is the consul/api client.
-	client *api.Client
 
 	// dry signals that output should be sent to stdout instead of committed to
 	// disk. once indicates the runner should execute each template exactly one
@@ -402,15 +400,14 @@ func (r *Runner) init() error {
 	log.Printf("[DEBUG] runner: final config (tokens suppressed):\n\n%s\n\n",
 		result)
 
-	// Create the client
-	client, err := newAPIClient(r.config)
+	// Create the clientset
+	clients, err := newClientSet(r.config)
 	if err != nil {
 		return fmt.Errorf("runner: %s", err)
 	}
-	r.client = client
 
 	// Create the watcher
-	watcher, err := newWatcher(r.config, client, r.once)
+	watcher, err := newWatcher(r.config, clients, r.once)
 	if err != nil {
 		return fmt.Errorf("runner: %s", err)
 	}
@@ -719,24 +716,47 @@ func exists(needle string, haystack []string) bool {
 	return false
 }
 
-// newAPIClient creates a new API client from the given config and
-func newAPIClient(config *Config) (*api.Client, error) {
+// newClientSet creates a new client set from the given config.
+func newClientSet(config *Config) (*dep.ClientSet, error) {
+	clients := dep.NewClientSet()
+
+	consul, err := newConsulClient(config)
+	if err != nil {
+		return nil, err
+	}
+	if err := clients.Add(consul); err != nil {
+		return nil, err
+	}
+
+	vault, err := newVaultClient(config)
+	if err != nil {
+		return nil, err
+	}
+	if err := clients.Add(vault); err != nil {
+		return nil, err
+	}
+
+	return clients, nil
+}
+
+// newConsulClient creates a new API client from the given config and
+func newConsulClient(config *Config) (*consulapi.Client, error) {
 	log.Printf("[INFO] (runner) creating consul/api client")
 
-	consulConfig := api.DefaultConfig()
+	consulConfig := consulapi.DefaultConfig()
 
 	if config.Consul != "" {
-		log.Printf("[DEBUG] (runner) setting address to %s", config.Consul)
+		log.Printf("[DEBUG] (runner) setting consul address to %s", config.Consul)
 		consulConfig.Address = config.Consul
 	}
 
 	if config.Token != "" {
-		log.Printf("[DEBUG] (runner) setting token to %s", config.Token)
+		log.Printf("[DEBUG] (runner) setting consul token")
 		consulConfig.Token = config.Token
 	}
 
 	if config.SSL.Enabled {
-		log.Printf("[DEBUG] (runner) enabling SSL")
+		log.Printf("[DEBUG] (runner) enabling consul SSL")
 		consulConfig.Scheme = "https"
 
 		tlsConfig := &tls.Config{}
@@ -761,7 +781,7 @@ func newAPIClient(config *Config) (*api.Client, error) {
 		tlsConfig.BuildNameToCertificate()
 
 		if !config.SSL.Verify {
-			log.Printf("[WARN] (runner) disabling SSL verification")
+			log.Printf("[WARN] (runner) disabling consul SSL verification")
 			tlsConfig.InsecureSkipVerify = true
 		}
 		consulConfig.HttpClient.Transport = &http.Transport{
@@ -771,13 +791,13 @@ func newAPIClient(config *Config) (*api.Client, error) {
 
 	if config.Auth.Enabled {
 		log.Printf("[DEBUG] (runner) setting basic auth")
-		consulConfig.HttpAuth = &api.HttpBasicAuth{
+		consulConfig.HttpAuth = &consulapi.HttpBasicAuth{
 			Username: config.Auth.Username,
 			Password: config.Auth.Password,
 		}
 	}
 
-	client, err := api.NewClient(consulConfig)
+	client, err := consulapi.NewClient(consulConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -785,12 +805,70 @@ func newAPIClient(config *Config) (*api.Client, error) {
 	return client, nil
 }
 
+// newVaultClient creates a new client for connecting to vault.
+func newVaultClient(config *Config) (*vaultapi.Client, error) {
+	log.Printf("[INFO] (runner) creating vault/api client")
+
+	vaultConfig := vaultapi.DefaultConfig()
+
+	if config.Vault.Address != "" {
+		log.Printf("[DEBUG] (runner) setting vault address to %s", config.Vault.Address)
+		vaultConfig.Address = config.Vault.Address
+	}
+
+	if config.Vault.SSL.Enabled {
+		log.Printf("[DEBUG] (runner) enabling vault SSL")
+		tlsConfig := &tls.Config{}
+
+		if config.Vault.SSL.Cert != "" {
+			cert, err := tls.LoadX509KeyPair(config.Vault.SSL.Cert, config.Vault.SSL.Cert)
+			if err != nil {
+				return nil, err
+			}
+			tlsConfig.Certificates = []tls.Certificate{cert}
+		}
+
+		if config.Vault.SSL.CaCert != "" {
+			cacert, err := ioutil.ReadFile(config.Vault.SSL.CaCert)
+			if err != nil {
+				return nil, err
+			}
+			caCertPool := x509.NewCertPool()
+			caCertPool.AppendCertsFromPEM(cacert)
+
+			tlsConfig.RootCAs = caCertPool
+		}
+		tlsConfig.BuildNameToCertificate()
+
+		if !config.Vault.SSL.Verify {
+			log.Printf("[WARN] (runner) disabling vault SSL verification")
+			tlsConfig.InsecureSkipVerify = true
+		}
+
+		vaultConfig.HttpClient.Transport = &http.Transport{
+			TLSClientConfig: tlsConfig,
+		}
+	}
+
+	client, err := vaultapi.NewClient(vaultConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	if config.Vault.Token != "" {
+		log.Printf("[DEBUG] (runner) setting vault token")
+		client.SetToken(config.Vault.Token)
+	}
+
+	return client, nil
+}
+
 // newWatcher creates a new watcher.
-func newWatcher(config *Config, client *api.Client, once bool) (*watch.Watcher, error) {
+func newWatcher(config *Config, clients *dep.ClientSet, once bool) (*watch.Watcher, error) {
 	log.Printf("[INFO] (runner) creating Watcher")
 
 	watcher, err := watch.NewWatcher(&watch.WatcherConfig{
-		Client:   client,
+		Clients:  clients,
 		Once:     once,
 		MaxStale: config.MaxStale,
 		RetryFunc: func(current time.Duration) time.Duration {
