@@ -7,12 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul-template/test"
-	"github.com/hashicorp/consul/api"
+	dep "github.com/hashicorp/consul-template/dependency"
 )
 
 var defaultWatcherConfig = &WatcherConfig{
-	Client:    &api.Client{},
+	Clients:   dep.NewClientSet(),
 	Once:      true,
 	RetryFunc: func(time.Duration) time.Duration { return 0 },
 }
@@ -61,18 +60,18 @@ func TestNewWatcher_defaultValues(t *testing.T) {
 }
 
 func TestNewWatcher_values(t *testing.T) {
-	client := &api.Client{}
+	clients := dep.NewClientSet()
 
 	w, err := NewWatcher(&WatcherConfig{
-		Client: client,
-		Once:   true,
+		Clients: clients,
+		Once:    true,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if !reflect.DeepEqual(w.config.Client, client) {
-		t.Errorf("expected %#v to be %#v", w.config.Client, client)
+	if !reflect.DeepEqual(w.config.Clients, clients) {
+		t.Errorf("expected %#v to be %#v", w.config.Clients, clients)
 	}
 
 	if w.config.Once != true {

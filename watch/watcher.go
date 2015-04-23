@@ -7,7 +7,6 @@ import (
 	"time"
 
 	dep "github.com/hashicorp/consul-template/dependency"
-	"github.com/hashicorp/consul/api"
 )
 
 // RetryFunc is a function that defines the retry for a given watcher. The
@@ -49,7 +48,7 @@ type Watcher struct {
 // WatcherConfig is the configuration for a particular Watcher.
 type WatcherConfig struct {
 	// Client is the mechanism for communicating with the Consul API.
-	Client *api.Client
+	Clients *dep.ClientSet
 
 	// Once is used to determine if the views should poll for data exactly once.
 	Once bool
