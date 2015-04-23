@@ -168,6 +168,7 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	flags.StringVar(&config.LogLevel, "log-level", config.LogLevel, "")
 	flags.BoolVar(&once, "once", false, "")
 	flags.BoolVar(&dry, "dry", false, "")
+	flags.BoolVar(&version, "v", false, "")
 	flags.BoolVar(&version, "version", false, "")
 
 	// Deprecated options
@@ -245,5 +246,5 @@ Options:
 
   -dry                     Dump generated templates to stdout
   -once                    Do not run the process as a daemon
-  -version                 Print the version of this daemon
+  -v, -version             Print the version of this daemon
 `

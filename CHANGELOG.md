@@ -18,6 +18,7 @@ BUG FIXES:
 
   * Send the standard error of commands back over the standard error of
     Consul Template (GH-253, GH-254)
+  * Allow specifying `-v` in addition to `-version` to get the version output
 
 ## v0.8.0 (March 30, 2015)
 
