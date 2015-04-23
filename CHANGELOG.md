@@ -12,6 +12,7 @@ FEATURES:
 IMPROVEMENTS:
 
   * Expand `byTag` to accept catalog services as well (GH-249, GH-250)
+  * Allow catalog service tags to use the `.Contains` function (GH-261)
 
 BUG FIXES:
 
