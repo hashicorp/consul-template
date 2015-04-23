@@ -30,7 +30,7 @@ type Config struct {
 	Consul string `json:"consul" mapstructure:"consul"`
 
 	// Token is the Consul API token.
-	Token string `json:"token" mapstructure:"token"`
+	Token string `json:"-" mapstructure:"token"`
 
 	// Vault is the configuration for connecting to a vault server.
 	Vault    *VaultConfig   `json:"vault" mapstructure:"-"`
@@ -339,7 +339,7 @@ type ConfigTemplate struct {
 // VaultConfig is the configuration for connecting to a vault server.
 type VaultConfig struct {
 	Address string `json:"address" mapstructure:"address"`
-	Token   string `json:"token" mapstructure:"token"`
+	Token   string `json:"-" mapstructure:"token"`
 
 	// SSL indicates we should use a secure connection while talking to Vault.
 	SSL    *SSLConfig   `json:"ssl" mapstructure:"-"`

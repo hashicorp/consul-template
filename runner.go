@@ -399,7 +399,8 @@ func (r *Runner) init() error {
 	if err != nil {
 		return err
 	}
-	log.Printf("[DEBUG] runner: final config:\n\n%s\n\n", result)
+	log.Printf("[DEBUG] runner: final config (tokens suppressed):\n\n%s\n\n",
+		result)
 
 	// Create the client
 	client, err := newAPIClient(r.config)
