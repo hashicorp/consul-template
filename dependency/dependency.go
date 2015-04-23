@@ -14,6 +14,19 @@ type Dependency interface {
 	Display() string
 }
 
+// ServiceTags is a slice of tags assigned to a Service
+type ServiceTags []string
+
+// Contains returns true if the tags exists in the ServiceTags slice.
+func (t ServiceTags) Contains(s string) bool {
+	for _, v := range t {
+		if v == s {
+			return true
+		}
+	}
+	return false
+}
+
 // deepCopyAndSortTags deep copies the tags in the given string slice and then
 // sorts and returns the copied result.
 func deepCopyAndSortTags(tags []string) []string {
