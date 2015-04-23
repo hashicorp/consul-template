@@ -3,25 +3,32 @@ package dependency
 import (
 	"reflect"
 	"testing"
-
-	"github.com/hashicorp/consul-template/test"
 )
 
 func TestStoreKeyPrefixFetch(t *testing.T) {
-	client, options := test.DemoConsulClient(t)
-	dep := &StoreKeyPrefix{
-		rawKey: "global",
-		Prefix: "global",
-	}
+	clients, consul := testConsulServer(t)
+	defer consul.Stop()
 
-	results, _, err := dep.Fetch(client, options)
+	consul.SetKV("foo/bar", []byte("zip"))
+	consul.SetKV("foo/zip", []byte("zap"))
+
+	dep := &StoreKeyPrefix{rawKey: "foo", Prefix: "foo"}
+	results, _, err := dep.Fetch(clients, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, ok := results.([]*KeyPair)
+	typed, ok := results.([]*KeyPair)
 	if !ok {
 		t.Fatal("could not convert result to []*KeyPair")
+	}
+
+	if typed[0].Value != "zip" {
+		t.Errorf("expected %q to be %q", typed[0].Value, "zip")
+	}
+
+	if typed[1].Value != "zap" {
+		t.Errorf("expected %q to be %q", typed[0].Value, "zap")
 	}
 }
 

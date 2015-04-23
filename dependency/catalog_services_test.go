@@ -3,24 +3,27 @@ package dependency
 import (
 	"reflect"
 	"testing"
-
-	"github.com/hashicorp/consul-template/test"
 )
 
 func TestCatalogServicesFetch(t *testing.T) {
-	client, options := test.DemoConsulClient(t)
-	dep := &CatalogServices{
-		rawKey: "global",
-	}
+	clients, consul := testConsulServer(t)
+	defer consul.Stop()
 
-	results, _, err := dep.Fetch(client, options)
+	consul.AddService("redis", "passing", []string{"master"})
+
+	dep := &CatalogServices{rawKey: "redis"}
+	results, _, err := dep.Fetch(clients, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, ok := results.([]*CatalogService)
+	typed, ok := results.([]*CatalogService)
 	if !ok {
 		t.Fatal("could not convert result to []*CatalogService")
+	}
+
+	if typed[1].Name != "redis" {
+		t.Errorf("expected %q to be %q", typed[1].Name, "redis")
 	}
 }
 

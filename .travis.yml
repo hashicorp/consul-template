@@ -9,4 +9,8 @@ branches:
   only:
     - master
 
+before_script: |-
+  wget -O consul.zip -q https://dl.bintray.com/mitchellh/consul/0.5.0_linux_amd64.zip
+  unzip -d ~/bin consul.zip
+
 script: make test
