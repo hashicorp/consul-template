@@ -114,9 +114,20 @@ The Configuration file syntax interface supports all of the options detailed abo
 
 ```javascript
 consul = "127.0.0.1:8500"
-token = "abcd1234"
+token = "abcd1234" // May also be specified via the envvar CONSUL_TOKEN
 retry = "10s"
 max_stale = "10m"
+
+vault {
+  address = "https://vault.service.consul:8200"
+  token = "abcd1234" // May also be specified via the envvar VAULT_TOKEN
+  ssl {
+    enabled = true
+    verify = true
+    cert = "/path/to/client/cert.pem"
+    ca_cert = "/path/to/ca/cert.pem"
+  }
+}
 
 auth {
   enabled = true
@@ -146,6 +157,10 @@ template {
   // Multiple template definitions are supported
 }
 ```
+
+Note: Not all fields are required. For example, if you are not using Vault secrets, you do not need to specify a vault configuration. Similarly, if you are not logging to syslog, you do not need to specify a syslog configuration.
+
+For additional security, token may also be read from the environment using the `CONSUL_TOKEN` or `VAULT_TOKEN` environment variables respectively. It is highly recommended that you do not put your tokens in plain-text in a configuration file.
 
 Query the nyc3 demo Consul instance, rendering the template on disk at `/tmp/template.ctmpl` to `/tmp/result`, running Consul Template as a service until stopped:
 
@@ -362,6 +377,22 @@ nested/config/value "value"
 Unlike `ls`, `tree` returns **all** keys under the prefix, just like the Unix `tree` command.
 
 If you omit the datacenter attribute on `tree`, the local Consul datacenter will be queried.
+
+##### `vault`
+Query [Vault](https://vaultproject.io) for the secret data at the given path. If the path does not exist or if the configured vault token does not have permission to read the path, an error will be returned:
+
+```liquid
+{{with secret "secret/passwords"}}{{.Data.password}}{{end}}
+```
+
+The following fields are available:
+
+- `LeaseID` - the unique lease identifier
+- `LeaseDuration` - the number of seconds the lease is valid
+- `Renewable` - if the secret is renewable
+- `Data` - the raw data - this is a `map[string]interface{}`, so it can be queried using Go's templating "dot notation"
+
+Please always consider the security implications of having the contents of a secret in plain-text on disk. If an attacker is able to get access to the file, they will have access to plain-text secrets.
 
 - - -
 

@@ -93,6 +93,7 @@ func funcMap(brain *Brain, used, missing map[string]dep.Dependency) template.Fun
 		"service":     serviceFunc(brain, used, missing),
 		"services":    servicesFunc(brain, used, missing),
 		"tree":        treeFunc(brain, used, missing),
+		"vault":       vaultFunc(brain, used, missing),
 
 		// Helper functions
 		"byKey":           byKey,
