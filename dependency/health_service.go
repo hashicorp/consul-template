@@ -47,22 +47,32 @@ type HealthServices struct {
 
 // Fetch queries the Consul API defined by the given client and returns a slice
 // of HealthService objects.
-func (d *HealthServices) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
-	if d.DataCenter != "" {
-		options.Datacenter = d.DataCenter
+func (d *HealthServices) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
+	if opts == nil {
+		opts = &QueryOptions{}
 	}
 
-	log.Printf("[DEBUG] (%s) querying Consul with %+v", d.Display(), options)
+	consulOpts := opts.consulQueryOptions()
+	if d.DataCenter != "" {
+		consulOpts.Datacenter = d.DataCenter
+	}
+
+	log.Printf("[DEBUG] (%s) querying Consul with %+v", d.Display(), consulOpts)
 
 	onlyHealthy := false
 	if d.StatusFilter == nil {
 		onlyHealthy = true
 	}
 
-	health := client.Health()
-	entries, qm, err := health.Service(d.Name, d.Tag, onlyHealthy, options)
+	consul, err := clients.Consul()
 	if err != nil {
-		return nil, qm, err
+		return nil, nil, fmt.Errorf("health services: error getting client: %s", err)
+	}
+
+	health := consul.Health()
+	entries, qm, err := health.Service(d.Name, d.Tag, onlyHealthy, consulOpts)
+	if err != nil {
+		return nil, nil, fmt.Errorf("health services: error fetching: %s", err)
 	}
 
 	log.Printf("[DEBUG] (%s) Consul returned %d services", d.Display(), len(entries))
@@ -73,7 +83,8 @@ func (d *HealthServices) Fetch(client *api.Client, options *api.QueryOptions) (i
 		// Get the status of this service from its checks.
 		status, err := statusFromChecks(entry.Checks)
 		if err != nil {
-			return nil, qm, err
+			return nil, nil, fmt.Errorf("health services: "+
+				"error getting status from checks: %s", err)
 		}
 
 		// If we are not checking only healthy services, filter out services that do
@@ -109,7 +120,12 @@ func (d *HealthServices) Fetch(client *api.Client, options *api.QueryOptions) (i
 
 	sort.Stable(HealthServiceList(services))
 
-	return services, qm, nil
+	rm := &ResponseMetadata{
+		LastIndex:   qm.LastIndex,
+		LastContact: qm.LastContact,
+	}
+
+	return services, rm, nil
 }
 
 func (d *HealthServices) HashCode() string {

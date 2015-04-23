@@ -5,8 +5,6 @@ import (
 	"log"
 	"sort"
 	"time"
-
-	"github.com/hashicorp/consul/api"
 )
 
 var sleepTime = 15 * time.Second
@@ -18,8 +16,12 @@ type Datacenters struct {
 
 // Fetch queries the Consul API defined by the given client and returns a slice
 // of strings representing the datacenters
-func (d *Datacenters) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
-	log.Printf("[DEBUG] (%s) querying Consul with %+v", d.Display(), options)
+func (d *Datacenters) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
+	if opts == nil {
+		opts = &QueryOptions{}
+	}
+
+	log.Printf("[DEBUG] (%s) querying Consul with %+v", d.Display(), opts)
 
 	// This is pretty ghetto, but the datacenters endpoint does not support
 	// blocking queries, so we are going to "fake it until we make it". When we
@@ -30,23 +32,32 @@ func (d *Datacenters) Fetch(client *api.Client, options *api.QueryOptions) (inte
 	//
 	// This is probably okay given the frequency in which datacenters actually
 	// change, but is technically not edge-triggering.
-	if options.WaitIndex != 0 {
+	if opts.WaitIndex != 0 {
 		log.Printf("[DEBUG] (%s) pretending to long-poll", d.Display())
 		time.Sleep(sleepTime)
 	}
 
-	catalog := client.Catalog()
+	consul, err := clients.Consul()
+	if err != nil {
+		return nil, nil, fmt.Errorf("datacenters: error getting client: %s", err)
+	}
+
+	catalog := consul.Catalog()
 	result, err := catalog.Datacenters()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("datacenters: error fetching: %s", err)
 	}
 
 	log.Printf("[DEBUG] (%s) Consul returned %d datacenters", d.Display(), len(result))
 	sort.Strings(result)
 
-	qm := &api.QueryMeta{LastIndex: uint64(time.Now().Unix())}
+	ts := time.Now().Unix()
+	rm := &ResponseMetadata{
+		LastContact: time.Duration(ts),
+		LastIndex:   uint64(ts),
+	}
 
-	return result, qm, nil
+	return result, rm, nil
 }
 
 // HashCode returns the hash code for this dependency.

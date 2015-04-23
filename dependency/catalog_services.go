@@ -6,8 +6,6 @@ import (
 	"log"
 	"regexp"
 	"sort"
-
-	"github.com/hashicorp/consul/api"
 )
 
 // CatalogService is a catalog entry in Consul.
@@ -27,17 +25,27 @@ type CatalogServices struct {
 
 // Fetch queries the Consul API defined by the given client and returns a slice
 // of CatalogService objects.
-func (d *CatalogServices) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
-	if d.DataCenter != "" {
-		options.Datacenter = d.DataCenter
+func (d *CatalogServices) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
+	if opts == nil {
+		opts = &QueryOptions{}
 	}
 
-	log.Printf("[DEBUG] (%s) querying Consul with %+v", d.Display(), options)
+	consulOpts := opts.consulQueryOptions()
+	if d.DataCenter != "" {
+		consulOpts.Datacenter = d.DataCenter
+	}
 
-	catalog := client.Catalog()
-	entries, qm, err := catalog.Services(options)
+	log.Printf("[DEBUG] (%s) querying Consul with %+v", d.Display(), consulOpts)
+
+	consul, err := clients.Consul()
 	if err != nil {
-		return nil, qm, err
+		return nil, nil, fmt.Errorf("catalog services: error getting client: %s", err)
+	}
+
+	catalog := consul.Catalog()
+	entries, qm, err := catalog.Services(consulOpts)
+	if err != nil {
+		return nil, nil, fmt.Errorf("catalog services: error fetching: %s", err)
 	}
 
 	log.Printf("[DEBUG] (%s) Consul returned %d catalog services", d.Display(), len(entries))
@@ -53,7 +61,12 @@ func (d *CatalogServices) Fetch(client *api.Client, options *api.QueryOptions) (
 
 	sort.Stable(CatalogServicesList(catalogServices))
 
-	return catalogServices, qm, nil
+	rm := &ResponseMetadata{
+		LastIndex:   qm.LastIndex,
+		LastContact: qm.LastContact,
+	}
+
+	return catalogServices, rm, nil
 }
 
 // HashCode returns the hash code for this dependency.
