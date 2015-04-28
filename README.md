@@ -657,7 +657,7 @@ import directors;
 {{range service "consul"}}
 backend {{.Name}}_{{.ID}} {
     .host = "{{.Address}}";
-    .port = "{{.Port}}";"
+    .port = "{{.Port}}";
 }{{end}}
 
 sub vcl_init {
