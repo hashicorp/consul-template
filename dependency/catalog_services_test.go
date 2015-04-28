@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/consul-template/test"
+	"github.com/marouenj/consul-template/test"
 )
 
 func TestCatalogServicesFetch(t *testing.T) {

@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul-template/test"
-	"github.com/hashicorp/consul-template/watch"
+	"github.com/marouenj/consul-template/test"
+	"github.com/marouenj/consul-template/watch"
 )
 
 func TestParseFlags_consul(t *testing.T) {

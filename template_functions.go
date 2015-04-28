@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	dep "github.com/hashicorp/consul-template/dependency"
+	dep "github.com/marouenj/consul-template/dependency"
 )
 
 // now is function that represents the current time in UTC. This is here

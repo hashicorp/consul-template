@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	dep "github.com/hashicorp/consul-template/dependency"
+	dep "github.com/marouenj/consul-template/dependency"
 )
 
 func TestDatacentersFunc_emptyString(t *testing.T) {

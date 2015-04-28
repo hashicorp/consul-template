@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	dep "github.com/hashicorp/consul-template/dependency"
-	"github.com/hashicorp/consul-template/test"
-	"github.com/hashicorp/consul-template/watch"
+	dep "github.com/marouenj/consul-template/dependency"
+	"github.com/marouenj/consul-template/test"
+	"github.com/marouenj/consul-template/watch"
 )
 
 func TestNewRunner_initialize(t *testing.T) {

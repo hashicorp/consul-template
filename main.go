@@ -1,4 +1,4 @@
-package main // import "github.com/hashicorp/consul-template"
+package main // import "github.com/marouenj/consul-template"
 
 import (
 	"os"
