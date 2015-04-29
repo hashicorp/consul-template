@@ -1,10 +1,11 @@
 Consul Template Changelog
 =========================
 
-## v0.8.1.dev (Unreleased)
+## v0.9.0 (April 29, 2015)
 
 FEATURES:
 
+  * Add Vault functionality for querying secrets from Vault (GH-264)
   * Add `regexMatch` template helper to determine if a result matches the given
     regular expressions (GH-246)
   * Add support for `ssl-cert` and `ss-ca-cert` options (GH-255)
