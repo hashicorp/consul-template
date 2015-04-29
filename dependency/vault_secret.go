@@ -5,6 +5,8 @@ import (
 	"log"
 	"sync"
 	"time"
+
+	vaultapi "github.com/hashicorp/vault/api"
 )
 
 // Secret is a vault secret.
@@ -23,7 +25,9 @@ type VaultSecret struct {
 	sync.Mutex
 
 	secretPath    string
+	leaseID       string
 	leaseDuration int
+	renewable     bool
 }
 
 // Fetch queries the Vault API
@@ -49,10 +53,26 @@ func (d *VaultSecret) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 		return nil, nil, fmt.Errorf("vault secret: %s", err)
 	}
 
-	// Attempt to read the secret
-	vaultSecret, err := vault.Logical().Read(d.secretPath)
-	if err != nil {
-		return nil, nil, fmt.Errorf("error reading from vault: %s", err)
+	// Attempt to renew the secret
+	var vaultSecret *vaultapi.Secret
+	if d.renewable && d.leaseID != "" {
+		vaultSecret, err = vault.Sys().Renew(d.leaseID, 1)
+		if err != nil {
+			log.Printf("[WARN] (%s) failed to renew, re-reading", d.Display())
+		}
+	}
+
+	// If we did not renew, attempt a fresh read
+	if vaultSecret == nil {
+		vaultSecret, err = vault.Logical().Read(d.secretPath)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error reading from vault: %s", err)
+		}
+	}
+
+	// The secret could be nil (maybe it does not exist yet)
+	if vaultSecret == nil {
+		return nil, nil, fmt.Errorf("no secret exists at path %q", d.Display())
 	}
 
 	// Create our cloned secret
@@ -70,7 +90,9 @@ func (d *VaultSecret) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 	}
 
 	d.Lock()
-	d.leaseDuration = leaseDuration
+	d.leaseID = secret.LeaseID
+	d.leaseDuration = secret.LeaseDuration
+	d.renewable = secret.Renewable
 	d.Unlock()
 
 	log.Printf("[DEBUG] (%s) Consul returned the secret", d.Display())
