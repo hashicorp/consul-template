@@ -156,6 +156,43 @@ func TestMerge_HttpsOptions(t *testing.T) {
 	}
 }
 
+func TestMerge_VaultOptions(t *testing.T) {
+	config := &Config{
+		Vault: &VaultConfig{
+			Address: "initial.address",
+			Token:   "abcd1234",
+			SSL: &SSLConfig{
+				Enabled: true,
+				Verify:  true,
+				CaCert:  "foo.pem",
+				Cert:    "bar.pem",
+			},
+		},
+	}
+	otherConfig := &Config{
+		Vault: &VaultConfig{
+			Address: "final.address",
+			Token:   "efgh5678",
+			SSL: &SSLConfig{
+				Enabled: false,
+			},
+		},
+	}
+	config.Merge(otherConfig)
+
+	if config.Vault.Address != "final.address" {
+		t.Errorf("expected %q to be %q", config.Vault.Address, "final.address")
+	}
+
+	if config.Vault.Token != "efgh5678" {
+		t.Errorf("expected %q to be %q", config.Vault.Token, "efgh5678")
+	}
+
+	if config.Vault.SSL.Enabled != false {
+		t.Errorf("expected SSL to be disabled")
+	}
+}
+
 func TestMerge_AuthOptions(t *testing.T) {
 	config := &Config{
 		Auth: &AuthConfig{Username: "user", Password: "pass"},
@@ -290,6 +327,14 @@ func TestParseConfig_correctValues(t *testing.T) {
     retry = "10s"
     log_level = "warn"
 
+    vault {
+	address = "vault.service.consul"
+	token = "efgh5678"
+	ssl {
+		enabled = false
+	}
+    }
+
     auth {
     	enabled = true
     	username = "test"
@@ -299,8 +344,8 @@ func TestParseConfig_correctValues(t *testing.T) {
     ssl {
     	enabled = true
     	verify = false
-        cert = "c1.pem"
-        ca_cert = "c2.pem"
+	cert = "c1.pem"
+	ca_cert = "c2.pem"
     }
 
     syslog {
@@ -331,6 +376,44 @@ func TestParseConfig_correctValues(t *testing.T) {
 		Consul:      "nyc1.demo.consul.io",
 		MaxStale:    time.Second * 5,
 		MaxStaleRaw: "5s",
+		Vault: &VaultConfig{
+			Address: "vault.service.consul",
+			Token:   "efgh5678",
+			SSL: &SSLConfig{
+				Enabled: false,
+				Verify:  false,
+				Cert:    "",
+				CaCert:  "",
+			},
+			SSLRaw: []*SSLConfig{
+				&SSLConfig{
+					Enabled: false,
+					Verify:  false,
+					Cert:    "",
+					CaCert:  "",
+				},
+			},
+		},
+		VaultRaw: []*VaultConfig{
+			&VaultConfig{
+				Address: "vault.service.consul",
+				Token:   "efgh5678",
+				SSL: &SSLConfig{
+					Enabled: false,
+					Verify:  false,
+					Cert:    "",
+					CaCert:  "",
+				},
+				SSLRaw: []*SSLConfig{
+					&SSLConfig{
+						Enabled: false,
+						Verify:  false,
+						Cert:    "",
+						CaCert:  "",
+					},
+				},
+			},
+		},
 		Auth: &AuthConfig{
 			Enabled:  true,
 			Username: "test",
@@ -390,7 +473,7 @@ func TestParseConfig_correctValues(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(config, expected) {
-		t.Fatalf("expected %#v to be %#v", config, expected)
+		t.Fatalf("expected \n%#v\n to be \n%#v\n", config, expected)
 	}
 }
 

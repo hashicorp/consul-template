@@ -235,6 +235,7 @@ func TestExecute_renders(t *testing.T) {
 			{{.Name}}{{ end }}
 		tree:{{ range tree "config/redis" }}
 			{{.Key}}={{.Value}}{{ end }}
+		vault: {{ with vault "secret/foo/bar" }}{{.Data.zip}}{{ end }}
 
 		Helper Functions
 		----------------
@@ -363,6 +364,17 @@ func TestExecute_renders(t *testing.T) {
 		},
 	})
 
+	d, err = dep.ParseVaultSecret("secret/foo/bar")
+	if err != nil {
+		t.Fatal(err)
+	}
+	brain.Remember(d, &dep.Secret{
+		LeaseID:       "abcd1234",
+		LeaseDuration: 120,
+		Renewable:     true,
+		Data:          map[string]interface{}{"zip": "zap"},
+	})
+
 	if err := os.Setenv("foo", "bar"); err != nil {
 		t.Fatal(err)
 	}
@@ -413,6 +425,7 @@ func TestExecute_renders(t *testing.T) {
 			admin/port=1134
 			maxconns=5
 			minconns=2
+		vault: zap
 
 		Helper Functions
 		----------------

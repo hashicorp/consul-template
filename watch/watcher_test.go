@@ -7,12 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul-template/test"
-	"github.com/hashicorp/consul/api"
+	dep "github.com/hashicorp/consul-template/dependency"
 )
 
 var defaultWatcherConfig = &WatcherConfig{
-	Client:    &api.Client{},
+	Clients:   dep.NewClientSet(),
 	Once:      true,
 	RetryFunc: func(time.Duration) time.Duration { return 0 },
 }
@@ -61,18 +60,18 @@ func TestNewWatcher_defaultValues(t *testing.T) {
 }
 
 func TestNewWatcher_values(t *testing.T) {
-	client := &api.Client{}
+	clients := dep.NewClientSet()
 
 	w, err := NewWatcher(&WatcherConfig{
-		Client: client,
-		Once:   true,
+		Clients: clients,
+		Once:    true,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if !reflect.DeepEqual(w.config.Client, client) {
-		t.Errorf("expected %#v to be %#v", w.config.Client, client)
+	if !reflect.DeepEqual(w.config.Clients, clients) {
+		t.Errorf("expected %#v to be %#v", w.config.Clients, clients)
 	}
 
 	if w.config.Once != true {
@@ -86,7 +85,7 @@ func TestAdd_updatesMap(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	d := &test.FakeDependency{}
+	d := &dep.Test{}
 	if _, err := w.Add(d); err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +102,7 @@ func TestAdd_exists(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	d := &test.FakeDependency{}
+	d := &dep.Test{}
 	w.depViewMap[d.HashCode()] = &View{}
 
 	added, err := w.Add(d)
@@ -125,7 +124,7 @@ func TestAdd_error(t *testing.T) {
 	// Set the client to nil to force the view to return an error
 	w.config = nil
 
-	added, err := w.Add(&test.FakeDependency{})
+	added, err := w.Add(&dep.Test{})
 	if err == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
@@ -146,7 +145,7 @@ func TestAdd_startsViewPoll(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	added, err := w.Add(&test.FakeDependency{})
+	added, err := w.Add(&dep.Test{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -169,7 +168,7 @@ func TestWatching_notExists(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	d := &test.FakeDependency{}
+	d := &dep.Test{}
 	if w.Watching(d) == true {
 		t.Errorf("expected to not be watching")
 	}
@@ -181,7 +180,7 @@ func TestWatching_exists(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	d := &test.FakeDependency{}
+	d := &dep.Test{}
 	if _, err := w.Add(d); err != nil {
 		t.Fatal(err)
 	}
@@ -197,7 +196,7 @@ func TestRemove_exists(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	d := &test.FakeDependency{}
+	d := &dep.Test{}
 	if _, err := w.Add(d); err != nil {
 		t.Fatal(err)
 	}
@@ -218,7 +217,7 @@ func TestRemove_doesNotExist(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	removed := w.Remove(&test.FakeDependency{})
+	removed := w.Remove(&dep.Test{})
 	if removed != false {
 		t.Fatal("expected Remove to return false")
 	}
@@ -242,7 +241,7 @@ func TestSize_returnsNumViews(t *testing.T) {
 	}
 
 	for i := 0; i < 10; i++ {
-		d := &test.FakeDependency{Name: fmt.Sprintf("%d", i)}
+		d := &dep.Test{Name: fmt.Sprintf("%d", i)}
 		if _, err := w.Add(d); err != nil {
 			t.Fatal(err)
 		}

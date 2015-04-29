@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-
-	"github.com/hashicorp/consul/api"
 )
 
 // from inside a template.
@@ -18,28 +16,43 @@ type StoreKey struct {
 
 // Fetch queries the Consul API defined by the given client and returns string
 // of the value to Path.
-func (d *StoreKey) Fetch(client *api.Client, options *api.QueryOptions) (interface{}, *api.QueryMeta, error) {
-	if d.DataCenter != "" {
-		options.Datacenter = d.DataCenter
+func (d *StoreKey) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
+	if opts == nil {
+		opts = &QueryOptions{}
 	}
 
-	log.Printf("[DEBUG] (%s) querying consul with %+v", d.Display(), options)
+	consulOpts := opts.consulQueryOptions()
+	if d.DataCenter != "" {
+		consulOpts.Datacenter = d.DataCenter
+	}
 
-	store := client.KV()
-	pair, qm, err := store.Get(d.Path, options)
+	log.Printf("[DEBUG] (%s) querying consul with %+v", d.Display(), consulOpts)
+
+	consul, err := clients.Consul()
 	if err != nil {
-		return "", qm, err
+		return nil, nil, fmt.Errorf("store key: error getting client: %s", err)
+	}
+
+	store := consul.KV()
+	pair, qm, err := store.Get(d.Path, consulOpts)
+	if err != nil {
+		return "", nil, fmt.Errorf("store key: error fetching: %s", err)
+	}
+
+	rm := &ResponseMetadata{
+		LastIndex:   qm.LastIndex,
+		LastContact: qm.LastContact,
 	}
 
 	if pair == nil {
-		log.Printf("[DEBUG] (%s) Consul returned nothing (does the path exist?)",
+		log.Printf("[WARN] (%s) Consul returned no data (does the path exist?)",
 			d.Display())
-		return "", qm, nil
+		return "", rm, nil
 	}
 
 	log.Printf("[DEBUG] (%s) Consul returned %s", d.Display(), pair.Value)
 
-	return string(pair.Value), qm, nil
+	return string(pair.Value), rm, nil
 }
 
 func (d *StoreKey) HashCode() string {

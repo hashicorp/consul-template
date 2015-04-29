@@ -4,18 +4,16 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-
-	"github.com/hashicorp/consul-template/test"
 )
 
 func TestStoreKeyFetch(t *testing.T) {
-	client, options := test.DemoConsulClient(t)
-	dep := &StoreKey{
-		rawKey: "global/time",
-		Path:   "global/time",
-	}
+	clients, consul := testConsulServer(t)
+	defer consul.Stop()
 
-	results, _, err := dep.Fetch(client, options)
+	consul.SetKV("foo", []byte("bar"))
+
+	dep := &StoreKey{rawKey: "foo", Path: "foo"}
+	results, _, err := dep.Fetch(clients, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

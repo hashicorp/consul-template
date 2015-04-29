@@ -686,6 +686,93 @@ func TestTreeFunc_missingData(t *testing.T) {
 	}
 }
 
+func TestVaultFunc_emptyString(t *testing.T) {
+	brain := NewBrain()
+	used := make(map[string]dep.Dependency)
+	missing := make(map[string]dep.Dependency)
+
+	f := vaultFunc(brain, used, missing)
+	result, err := f("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := &dep.Secret{}
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("expected %#v to be %#v", result, expected)
+	}
+}
+
+func TestVaultFunc_hasData(t *testing.T) {
+	d, err := dep.ParseVaultSecret("secret/foo/bar")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data := &dep.Secret{
+		LeaseID:       "abcd1234",
+		LeaseDuration: 120,
+		Renewable:     true,
+		Data:          map[string]interface{}{"zip": "zap"},
+	}
+
+	brain := NewBrain()
+	brain.Remember(d, data)
+
+	used := make(map[string]dep.Dependency)
+	missing := make(map[string]dep.Dependency)
+
+	f := vaultFunc(brain, used, missing)
+	result, err := f("secret/foo/bar")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(result, data) {
+		t.Errorf("expected %#v to be %#v", result, data)
+	}
+
+	if len(missing) != 0 {
+		t.Errorf("expected missing to have 0 elements, but had %d", len(missing))
+	}
+
+	if _, ok := used[d.HashCode()]; !ok {
+		t.Errorf("expected dep to be used")
+	}
+}
+
+func TestVaultFunc_missingData(t *testing.T) {
+	d, err := dep.ParseVaultSecret("secret/foo/bar")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	brain := NewBrain()
+
+	used := make(map[string]dep.Dependency)
+	missing := make(map[string]dep.Dependency)
+
+	f := vaultFunc(brain, used, missing)
+	result, err := f("secret/foo/bar")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := &dep.Secret{}
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("expected %#v to be %#v", result, expected)
+	}
+
+	if _, ok := used[d.HashCode()]; !ok {
+		t.Errorf("expected dep to be used")
+	}
+
+	if _, ok := missing[d.HashCode()]; !ok {
+		t.Errorf("expected dep to be missing")
+	}
+}
+
 func TestByTag_emptyList(t *testing.T) {
 	result, err := byTag(nil)
 	if err != nil {

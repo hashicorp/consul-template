@@ -234,7 +234,34 @@ func treeFunc(brain *Brain,
 
 		return result, nil
 	}
+}
 
+// vaultFunc returns or accumulates secret dependencies.
+func vaultFunc(brain *Brain,
+	used, missing map[string]dep.Dependency) func(string) (*dep.Secret, error) {
+	return func(s string) (*dep.Secret, error) {
+		result := &dep.Secret{}
+
+		if len(s) == 0 {
+			return result, nil
+		}
+
+		d, err := dep.ParseVaultSecret(s)
+		if err != nil {
+			return result, nil
+		}
+
+		addDependency(used, d)
+
+		if value, ok := brain.Recall(d); ok {
+			result = value.(*dep.Secret)
+			return result, nil
+		}
+
+		addDependency(missing, d)
+
+		return result, nil
+	}
 }
 
 // byKey accepts a slice of KV pairs and returns a map of the top-level

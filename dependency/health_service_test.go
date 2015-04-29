@@ -7,25 +7,26 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul/api"
 )
 
 func TestServiceDependencyFetch(t *testing.T) {
-	client, options := test.DemoConsulClient(t)
-	dep := &HealthServices{
-		rawKey: "consul",
-		Name:   "consul",
-	}
+	clients, consul := testConsulServer(t)
+	defer consul.Stop()
 
-	results, _, err := dep.Fetch(client, options)
+	dep := &HealthServices{rawKey: "consul", Name: "consul"}
+	results, _, err := dep.Fetch(clients, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, ok := results.([]*HealthService)
+	typed, ok := results.([]*HealthService)
 	if !ok {
 		t.Fatal("could not convert result to []*HealthService")
+	}
+
+	if typed[0].ID != "consul" {
+		t.Errorf("expected %q to be %q", typed[0].ID, "consul")
 	}
 }
 

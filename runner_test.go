@@ -49,10 +49,6 @@ func TestNewRunner_initialize(t *testing.T) {
 		t.Errorf("expected %#v to be %#v", runner.once, once)
 	}
 
-	if runner.client == nil {
-		t.Errorf("expected %#v to be %#v", runner.client, nil)
-	}
-
 	if runner.watcher == nil {
 		t.Errorf("expected %#v to be %#v", runner.watcher, nil)
 	}

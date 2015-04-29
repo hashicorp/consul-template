@@ -7,7 +7,6 @@ import (
 	"time"
 
 	dep "github.com/hashicorp/consul-template/dependency"
-	"github.com/hashicorp/consul/api"
 )
 
 const (
@@ -119,24 +118,24 @@ func (v *View) fetch(doneCh chan<- struct{}, errCh chan<- error) {
 	}
 
 	for {
-		options := &api.QueryOptions{
+		opts := &dep.QueryOptions{
 			AllowStale: allowStale,
 			WaitTime:   defaultWaitTime,
 			WaitIndex:  v.LastIndex,
 		}
-		data, qm, err := v.Dependency.Fetch(v.config.Client, options)
+		data, rm, err := v.Dependency.Fetch(v.config.Clients, opts)
 		if err != nil {
 			errCh <- err
 			return
 		}
 
-		if qm == nil {
-			errCh <- fmt.Errorf("consul returned nil qm; this should never happen" +
-				"and is probably a bug in consul-template or consul/api")
+		if rm == nil {
+			errCh <- fmt.Errorf("consul returned nil response metadata; this " +
+				"should never happen and is probably a bug in consul-template")
 			return
 		}
 
-		if allowStale && qm.LastContact > v.config.MaxStale {
+		if allowStale && rm.LastContact > v.config.MaxStale {
 			allowStale = false
 			log.Printf("[DEBUG] (view) %s stale data (last contact exceeded max_stale)", v.display())
 			continue
@@ -146,18 +145,18 @@ func (v *View) fetch(doneCh chan<- struct{}, errCh chan<- error) {
 			allowStale = true
 		}
 
-		if qm.LastIndex == v.LastIndex {
+		if rm.LastIndex == v.LastIndex {
 			log.Printf("[DEBUG] (view) %s no new data (index was the same)", v.display())
 			continue
 		}
 
-		if qm.LastIndex < v.LastIndex {
+		if rm.LastIndex < v.LastIndex {
 			log.Printf("[DEBUG] (view) %s had a lower index, resetting", v.display())
 			v.LastIndex = 0
 			continue
 		}
 
-		v.LastIndex = qm.LastIndex
+		v.LastIndex = rm.LastIndex
 
 		if v.ReceivedData && reflect.DeepEqual(data, v.Data) {
 			log.Printf("[DEBUG] (view) %s no new data (contents were the same)", v.display())

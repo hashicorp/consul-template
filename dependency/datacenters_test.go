@@ -4,15 +4,14 @@ import (
 	"reflect"
 	"testing"
 	"time"
-
-	"github.com/hashicorp/consul-template/test"
 )
 
 func TestDatacentersFetch(t *testing.T) {
-	client, options := test.DemoConsulClient(t)
-	dep := &Datacenters{rawKey: ""}
+	clients, consul := testConsulServer(t)
+	defer consul.Stop()
 
-	results, _, err := dep.Fetch(client, options)
+	dep := &Datacenters{rawKey: ""}
+	results, _, err := dep.Fetch(clients, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -24,17 +23,18 @@ func TestDatacentersFetch(t *testing.T) {
 }
 
 func TestDatacentersFetch_blocks(t *testing.T) {
-	client, options := test.DemoConsulClient(t)
-	dep := &Datacenters{rawKey: ""}
+	clients, consul := testConsulServer(t)
+	defer consul.Stop()
 
-	_, _, err := dep.Fetch(client, options)
+	dep := &Datacenters{rawKey: ""}
+	_, _, err := dep.Fetch(clients, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	dataCh := make(chan struct{})
 	go func() {
-		dep.Fetch(client, options)
+		dep.Fetch(clients, nil)
 	}()
 
 	select {

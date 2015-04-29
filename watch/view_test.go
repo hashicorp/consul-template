@@ -5,14 +5,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul-template/test"
+	dep "github.com/hashicorp/consul-template/dependency"
 )
 
 // testRetryFunc is a function specifically for tests that has a 0-time retry.
 var testRetryFunc = func(time.Duration) time.Duration { return 0 }
 
 func TestNewView_noConfig(t *testing.T) {
-	_, err := NewView(nil, &test.FakeDependency{})
+	_, err := NewView(nil, &dep.Test{})
 	if err == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
@@ -36,7 +36,7 @@ func TestNewView_noDependency(t *testing.T) {
 }
 
 func TestNewView_setsValues(t *testing.T) {
-	config, dep := defaultWatcherConfig, &test.FakeDependency{}
+	config, dep := defaultWatcherConfig, &dep.Test{}
 	view, err := NewView(config, dep)
 	if err != nil {
 		t.Fatal(err)
@@ -52,7 +52,7 @@ func TestNewView_setsValues(t *testing.T) {
 }
 
 func TestPoll_returnsViewCh(t *testing.T) {
-	view, err := NewView(defaultWatcherConfig, &test.FakeDependency{})
+	view, err := NewView(defaultWatcherConfig, &dep.Test{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestPoll_returnsViewCh(t *testing.T) {
 }
 
 func TestPoll_returnsErrCh(t *testing.T) {
-	view, err := NewView(defaultWatcherConfig, &test.FakeDependencyFetchError{})
+	view, err := NewView(defaultWatcherConfig, &dep.TestFetchError{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +99,7 @@ func TestPoll_returnsErrCh(t *testing.T) {
 }
 
 func TestPoll_stopsViewStopCh(t *testing.T) {
-	view, err := NewView(defaultWatcherConfig, &test.FakeDependency{})
+	view, err := NewView(defaultWatcherConfig, &dep.Test{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -121,7 +121,7 @@ func TestPoll_stopsViewStopCh(t *testing.T) {
 }
 
 func TestPoll_once(t *testing.T) {
-	view, err := NewView(defaultWatcherConfig, &test.FakeDependency{})
+	view, err := NewView(defaultWatcherConfig, &dep.Test{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -154,7 +154,7 @@ func TestPoll_once(t *testing.T) {
 }
 
 func TestPoll_retries(t *testing.T) {
-	view, err := NewView(defaultWatcherConfig, &test.FakeDependencyFetchRetry{})
+	view, err := NewView(defaultWatcherConfig, &dep.TestRetry{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -188,7 +188,7 @@ func TestFetch_maxStale(t *testing.T) {
 	config := *defaultWatcherConfig
 	config.MaxStale = 10 * time.Millisecond
 
-	view, err := NewView(&config, &test.FakeDependencyStale{})
+	view, err := NewView(&config, &dep.TestStale{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -210,7 +210,7 @@ func TestFetch_maxStale(t *testing.T) {
 }
 
 func TestFetch_savesView(t *testing.T) {
-	view, err := NewView(defaultWatcherConfig, &test.FakeDependency{})
+	view, err := NewView(defaultWatcherConfig, &dep.Test{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -232,7 +232,7 @@ func TestFetch_savesView(t *testing.T) {
 }
 
 func TestFetch_returnsErrCh(t *testing.T) {
-	view, err := NewView(defaultWatcherConfig, &test.FakeDependencyFetchError{})
+	view, err := NewView(defaultWatcherConfig, &dep.TestFetchError{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -254,7 +254,7 @@ func TestFetch_returnsErrCh(t *testing.T) {
 }
 
 func TestStop_stopsPolling(t *testing.T) {
-	view, err := NewView(defaultWatcherConfig, &test.FakeDependency{})
+	view, err := NewView(defaultWatcherConfig, &dep.Test{})
 	if err != nil {
 		t.Fatal(err)
 	}
