@@ -477,6 +477,35 @@ func TestParseConfig_correctValues(t *testing.T) {
 	}
 }
 
+func TestParseConfig_vaultSSL(t *testing.T) {
+	configFile := test.CreateTempfile([]byte(`
+		vault {
+			ssl {
+				enabled = true
+				verify = false
+			}
+		}
+	`), t)
+	defer test.DeleteTempfile(configFile, t)
+
+	config, err := ParseConfig(configFile.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if config.Vault.SSL == nil {
+		t.Fatal("expected SSL to be set")
+	}
+
+	if config.Vault.SSL.Enabled == false {
+		t.Error("expected SSL to be enabled")
+	}
+
+	if config.Vault.SSL.Verify == true {
+		t.Error("expected SSL to not verify")
+	}
+}
+
 func TestParseConfig_parseRetryError(t *testing.T) {
 	configFile := test.CreateTempfile([]byte(`
     retry = "bacon pants"

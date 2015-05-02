@@ -215,7 +215,7 @@ func ParseConfig(path string) (*Config, error) {
 
 		// Extract the last Vault SSL block
 		if len(config.Vault.SSLRaw) > 0 {
-			config.Vault.SSL = config.Vault.SSLRaw[len(config.SSLRaw)-1]
+			config.Vault.SSL = config.Vault.SSLRaw[len(config.Vault.SSLRaw)-1]
 		}
 
 	}
