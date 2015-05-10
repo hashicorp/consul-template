@@ -13,256 +13,266 @@ import (
 	"github.com/hashicorp/consul-template/watch"
 )
 
-// Test that an empty config does nothing
 func TestMerge_emptyConfig(t *testing.T) {
-	consul := "consul.io:8500"
-	config := &Config{Consul: consul}
+	config := DefaultConfig()
 	config.Merge(&Config{})
 
-	if config.Consul != consul {
-		t.Fatalf("expected %q to equal %q", config.Consul, consul)
+	expected := DefaultConfig()
+	if !reflect.DeepEqual(config, expected) {
+		t.Errorf("expected \b\b%#v\n\n to be \n\n%#v\n\n", config, expected)
 	}
 }
 
-// Test that simple values are merged
-func TestMerge_simpleConfig(t *testing.T) {
-	config, newConsul := &Config{Consul: "consul.io:8500"}, "packer.io:7300"
-	config.Merge(&Config{Consul: newConsul})
+func TestMerge_ignoresPath(t *testing.T) {
+	config := &Config{Path: "/path/1"}
+	config.Merge(&Config{Path: "/path/2"})
 
-	if config.Consul != newConsul {
-		t.Fatalf("expected %q to equal %q", config.Consul, newConsul)
+	expected := "/path/1"
+	if config.Path != expected {
+		t.Errorf("expected %q to be %q", config.Path, expected)
 	}
 }
 
-// Test that complex values are merged, and that ConfigTemplates are additive
-func TestMerge_complexConfig(t *testing.T) {
-	templates := []*ConfigTemplate{
-		&ConfigTemplate{
-			Source:      "a",
-			Destination: "b",
-		},
-		&ConfigTemplate{
-			Source:      "c",
-			Destination: "d",
-			Command:     "e",
-		},
-		&ConfigTemplate{
-			Source:      "f",
-			Destination: "g",
-			Command:     "h",
-		},
-		&ConfigTemplate{
-			Source:      "i",
-			Destination: "j",
-		},
+func TestMerge_topLevel(t *testing.T) {
+	config1 := &Config{
+		Consul:   "consul-1",
+		Token:    "token-1",
+		MaxStale: 1 * time.Second,
+		Retry:    1 * time.Second,
+		LogLevel: "log_level-1",
 	}
+	config2 := &Config{
+		Consul:   "consul-2",
+		Token:    "token-2",
+		MaxStale: 2 * time.Second,
+		Retry:    2 * time.Second,
+		LogLevel: "log_level-2",
+	}
+	config1.Merge(config2)
 
+	if !reflect.DeepEqual(config1, config2) {
+		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config1, config2)
+	}
+}
+
+func TestMerge_vault(t *testing.T) {
 	config := &Config{
-		ConfigTemplates: templates[:2],
-		Retry:           5 * time.Second,
-		Token:           "abc123",
-		MaxStale:        3 * time.Second,
-		Wait:            &watch.Wait{Min: 5 * time.Second, Max: 10 * time.Second},
-		LogLevel:        "WARN",
+		Vault: &VaultConfig{
+			Address: "1.1.1.1",
+			Token:   "1",
+		},
 	}
-	otherConfig := &Config{
-		ConfigTemplates: templates[2:],
-		Retry:           15 * time.Second,
-		Token:           "def456",
-		Wait:            &watch.Wait{Min: 25 * time.Second, Max: 50 * time.Second},
-		LogLevel:        "ERR",
-	}
-
-	config.Merge(otherConfig)
+	config.Merge(&Config{
+		Vault: &VaultConfig{
+			Address: "2.2.2.2",
+		},
+	})
 
 	expected := &Config{
-		ConfigTemplates: templates,
-		Retry:           15 * time.Second,
-		Token:           "def456",
-		MaxStale:        3 * time.Second,
-		Wait:            &watch.Wait{Min: 25 * time.Second, Max: 50 * time.Second},
-		LogLevel:        "ERR",
+		Vault: &VaultConfig{
+			Address: "2.2.2.2",
+			Token:   "1",
+		},
 	}
 
 	if !reflect.DeepEqual(config, expected) {
-		t.Fatalf("expected %#v to equal %#v", config, expected)
+		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config, expected)
 	}
 }
 
-// Test that the flags for HTTPS are properly merged
-func TestMerge_HttpsOptions(t *testing.T) {
-	config := &Config{
-		SSL: &SSLConfig{
-			Enabled: false,
-			Verify:  false,
-		},
-	}
-	otherConfig := &Config{
-		SSL: &SSLConfig{
-			Enabled: true,
-			Verify:  true,
-			Cert:    "c1.pem",
-			CaCert:  "c2.pem",
-		},
-	}
-	config.Merge(otherConfig)
-
-	if config.SSL.Enabled != true {
-		t.Errorf("expected enabled to be true")
-	}
-
-	if config.SSL.Verify != true {
-		t.Errorf("expected SSL verify to be true")
-	}
-
-	if config.SSL.Cert != "c1.pem" {
-		t.Errorf("expected SSL cert to be c1.pem")
-	}
-
-	if config.SSL.CaCert != "c2.pem" {
-		t.Errorf("expected SSL ca cert to be c2.pem")
-	}
-
-	config = &Config{
-		SSL: &SSLConfig{
-			Enabled: true,
-			Verify:  true,
-			Cert:    "c1.pem",
-			CaCert:  "c2.pem",
-		},
-	}
-	otherConfig = &Config{
-		SSL: &SSLConfig{
-			Enabled: false,
-			Verify:  false,
-		},
-	}
-	config.Merge(otherConfig)
-
-	if config.SSL.Enabled != false {
-		t.Errorf("expected enabled to be false")
-	}
-
-	if config.SSL.Verify != false {
-		t.Errorf("expected SSL verify to be false")
-	}
-
-	if config.SSL.Cert != "" {
-		t.Errorf("expected SSL cert to be empty string")
-	}
-
-	if config.SSL.CaCert != "" {
-		t.Errorf("expected SSL ca cert to be empty string")
-	}
-}
-
-func TestMerge_VaultOptions(t *testing.T) {
+func TestMerge_vaultSSL(t *testing.T) {
 	config := &Config{
 		Vault: &VaultConfig{
-			Address: "initial.address",
-			Token:   "abcd1234",
 			SSL: &SSLConfig{
-				Enabled: true,
-				Verify:  true,
-				CaCert:  "foo.pem",
-				Cert:    "bar.pem",
+				Enabled: BoolTrue,
+				Verify:  BoolTrue,
+				Cert:    "1.pem",
+				CaCert:  "ca-1.pem",
 			},
 		},
 	}
-	otherConfig := &Config{
+	config.Merge(&Config{
 		Vault: &VaultConfig{
-			Address: "final.address",
-			Token:   "efgh5678",
 			SSL: &SSLConfig{
-				Enabled: false,
+				Enabled: BoolFalse,
+			},
+		},
+	})
+
+	expected := &Config{
+		Vault: &VaultConfig{
+			SSL: &SSLConfig{
+				Enabled: BoolFalse,
+				Verify:  BoolTrue,
+				Cert:    "1.pem",
+				CaCert:  "ca-1.pem",
 			},
 		},
 	}
-	config.Merge(otherConfig)
 
-	if config.Vault.Address != "final.address" {
-		t.Errorf("expected %q to be %q", config.Vault.Address, "final.address")
-	}
-
-	if config.Vault.Token != "efgh5678" {
-		t.Errorf("expected %q to be %q", config.Vault.Token, "efgh5678")
-	}
-
-	if config.Vault.SSL.Enabled != false {
-		t.Errorf("expected SSL to be disabled")
+	if !reflect.DeepEqual(config, expected) {
+		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config, expected)
 	}
 }
 
-func TestMerge_AuthOptions(t *testing.T) {
+func TestMerge_auth(t *testing.T) {
 	config := &Config{
-		Auth: &AuthConfig{Username: "user", Password: "pass"},
+		Auth: &AuthConfig{
+			Enabled:  BoolTrue,
+			Username: "1",
+			Password: "1",
+		},
 	}
-	otherConfig := &Config{
-		Auth: &AuthConfig{Username: "newUser", Password: ""},
-	}
-	config.Merge(otherConfig)
+	config.Merge(&Config{
+		Auth: &AuthConfig{
+			Password: "2",
+		},
+	})
 
-	if config.Auth.Username != "newUser" {
-		t.Errorf("expected %q to be %q", config.Auth.Username, "newUser")
+	expected := &Config{
+		Auth: &AuthConfig{
+			Enabled:  BoolTrue,
+			Username: "1",
+			Password: "2",
+		},
+	}
+
+	if !reflect.DeepEqual(config, expected) {
+		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config, expected)
 	}
 }
 
-func TestMerge_SyslogOptions(t *testing.T) {
+func TestMerge_SSL(t *testing.T) {
 	config := &Config{
-		Syslog: &SyslogConfig{Enabled: false, Facility: "LOCAL0"},
+		SSL: &SSLConfig{
+			Enabled: BoolTrue,
+			Verify:  BoolTrue,
+			Cert:    "1.pem",
+			CaCert:  "ca-1.pem",
+		},
 	}
-	otherConfig := &Config{
-		Syslog: &SyslogConfig{Enabled: true, Facility: "LOCAL1"},
-	}
-	config.Merge(otherConfig)
+	config.Merge(&Config{
+		SSL: &SSLConfig{
+			Enabled: BoolFalse,
+		},
+	})
 
-	if config.Syslog.Enabled != true {
-		t.Errorf("expected %t to be %t", config.Syslog.Enabled, true)
+	expected := &Config{
+		SSL: &SSLConfig{
+			Enabled: BoolFalse,
+			Verify:  BoolTrue,
+			Cert:    "1.pem",
+			CaCert:  "ca-1.pem",
+		},
 	}
 
-	if config.Syslog.Facility != "LOCAL1" {
-		t.Errorf("expected %q to be %q", config.Syslog.Facility, "LOCAL1")
+	if !reflect.DeepEqual(config, expected) {
+		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config, expected)
 	}
 }
 
-func TestAuthString_disabled(t *testing.T) {
-	a := &AuthConfig{Enabled: false}
-	expected := ""
-	if a.String() != expected {
-		t.Errorf("expected %q to be %q", a.String(), expected)
+func TestMerge_syslog(t *testing.T) {
+	config := &Config{
+		Syslog: &SyslogConfig{
+			Enabled:  BoolTrue,
+			Facility: "1",
+		},
+	}
+	config.Merge(&Config{
+		Syslog: &SyslogConfig{
+			Facility: "2",
+		},
+	})
+
+	expected := &Config{
+		Syslog: &SyslogConfig{
+			Enabled:  BoolTrue,
+			Facility: "2",
+		},
+	}
+
+	if !reflect.DeepEqual(config, expected) {
+		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config, expected)
 	}
 }
 
-func TestAuthString_enabledNoPassword(t *testing.T) {
-	a := &AuthConfig{Enabled: true, Username: "username"}
-	expected := "username"
-	if a.String() != expected {
-		t.Errorf("expected %q to be %q", a.String(), expected)
+func TestMerge_configTemplates(t *testing.T) {
+	config := &Config{
+		ConfigTemplates: []*ConfigTemplate{
+			&ConfigTemplate{
+				Source:      "1",
+				Destination: "1",
+				Command:     "1",
+			},
+		},
+	}
+	config.Merge(&Config{
+		ConfigTemplates: []*ConfigTemplate{
+			&ConfigTemplate{
+				Source:      "2",
+				Destination: "2",
+				Command:     "2",
+			},
+		},
+	})
+
+	expected := &Config{
+		ConfigTemplates: []*ConfigTemplate{
+			&ConfigTemplate{
+				Source:      "1",
+				Destination: "1",
+				Command:     "1",
+			},
+			&ConfigTemplate{
+				Source:      "2",
+				Destination: "2",
+				Command:     "2",
+			},
+		},
+	}
+
+	if !reflect.DeepEqual(config, expected) {
+		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config, expected)
 	}
 }
 
-func TestAuthString_enabled(t *testing.T) {
-	a := &AuthConfig{Enabled: true, Username: "username", Password: "password"}
-	expected := "username:password"
-	if a.String() != expected {
-		t.Errorf("expected %q to be %q", a.String(), expected)
+func TestMerge_wait(t *testing.T) {
+	config := &Config{
+		Wait: &watch.Wait{
+			Min: 10 * time.Second,
+			Max: 20 * time.Second,
+		},
+	}
+	config.Merge(&Config{
+		Wait: &watch.Wait{
+			Min: 40 * time.Second,
+		},
+	})
+
+	expected := &Config{
+		Wait: &watch.Wait{
+			Min: 40 * time.Second,
+			Max: 0 * time.Second, // Verify a full overwrite
+		},
+	}
+
+	if !reflect.DeepEqual(config, expected) {
+		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config, expected)
 	}
 }
 
-// Test that file read errors are propagated up
 func TestParseConfig_readFileError(t *testing.T) {
 	_, err := ParseConfig(path.Join(os.TempDir(), "config.json"))
 	if err == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
 
-	expectedErr := "no such file or directory"
-	if !strings.Contains(err.Error(), expectedErr) {
-		t.Fatalf("expected error %q to contain %q", err.Error(), expectedErr)
+	expected := "no such file or directory"
+	if !strings.Contains(err.Error(), expected) {
+		t.Fatalf("expected %q to include %q", err.Error(), expected)
 	}
 }
 
-// Test that parser errors are propagated up
 func TestParseConfig_parseFileError(t *testing.T) {
 	configFile := test.CreateTempfile([]byte(`
     invalid file in here
@@ -274,16 +284,407 @@ func TestParseConfig_parseFileError(t *testing.T) {
 		t.Fatal("expected error, but nothing was returned")
 	}
 
-	expectedErr := "syntax error"
-	if !strings.Contains(err.Error(), expectedErr) {
-		t.Fatalf("expected error %q to contain %q", err.Error(), expectedErr)
+	expected := "syntax error"
+	if !strings.Contains(err.Error(), expected) {
+		t.Fatalf("expected %q to contain %q", err.Error(), expected)
 	}
 }
 
-// Test that mapstructure errors are propagated up
-func TestParseConfig_mapstructureError(t *testing.T) {
+func TestParseConfig_consul(t *testing.T) {
+	file := test.CreateTempfile([]byte(`
+		consul = "testing"
+	`), t)
+	defer test.DeleteTempfile(file, t)
+
+	config, err := ParseConfig(file.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "testing"
+	if config.Consul != expected {
+		t.Errorf("expected %q to be %q", config.Consul, expected)
+	}
+}
+
+func TestParseConfig_consulBadType(t *testing.T) {
+	file := test.CreateTempfile([]byte(`
+		consul = true
+	`), t)
+	defer test.DeleteTempfile(file, t)
+
+	_, err := ParseConfig(file.Name())
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "consul: cannot convert bool to string"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestParseConfig_token(t *testing.T) {
+	file := test.CreateTempfile([]byte(`
+		token = "testing"
+	`), t)
+	defer test.DeleteTempfile(file, t)
+
+	config, err := ParseConfig(file.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "testing"
+	if config.Token != expected {
+		t.Errorf("expected %q to be %q", config.Token, expected)
+	}
+}
+
+func TestParseConfig_tokenBadType(t *testing.T) {
+	file := test.CreateTempfile([]byte(`
+		token = true
+	`), t)
+	defer test.DeleteTempfile(file, t)
+
+	_, err := ParseConfig(file.Name())
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "token: cannot convert bool to string"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestParseConfig_vault(t *testing.T) {
+	file := test.CreateTempfile([]byte(`
+		vault {
+			address = "testing"
+		}
+	`), t)
+	defer test.DeleteTempfile(file, t)
+
+	config, err := ParseConfig(file.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "testing"
+	if config.Vault.Address != expected {
+		t.Errorf("expected %q to be %q", config.Vault.Address, expected)
+	}
+}
+
+func TestParseConfig_vaultMultiple(t *testing.T) {
+	file := test.CreateTempfile([]byte(`
+		vault {
+			address = "one"
+		}
+
+		vault {
+			address = "two"
+		}
+	`), t)
+	defer test.DeleteTempfile(file, t)
+
+	config, err := ParseConfig(file.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "two"
+	if config.Vault.Address != expected {
+		t.Errorf("expected %q to be %q", config.Vault.Address, expected)
+	}
+}
+
+func TestParseConfig_vaultSSL(t *testing.T) {
+	file := test.CreateTempfile([]byte(`
+		vault {
+			address = "testing"
+
+			ssl {
+				enabled = true
+				cert = "custom.pem"
+			}
+		}
+	`), t)
+	defer test.DeleteTempfile(file, t)
+
+	config, err := ParseConfig(file.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "testing"
+	if config.Vault.Address != expected {
+		t.Errorf("expected %q to be %q", config.Vault.Address, expected)
+	}
+
+	if config.Vault.SSL.Enabled != BoolTrue {
+		t.Errorf("expected vault ssl to be enabled")
+	}
+
+	expected = "custom.pem"
+	if config.Vault.SSL.Cert != expected {
+		t.Errorf("expected %q to be %q", config.Vault.SSL.Cert, expected)
+	}
+}
+
+func TestParseConfig_vaultSSLMultiple(t *testing.T) {
+	file := test.CreateTempfile([]byte(`
+		vault {
+			address = "testing"
+
+			ssl {
+				enabled = false
+				cert = "one.pem"
+			}
+
+			ssl {
+				enabled = true
+				cert = "two.pem"
+			}
+		}
+	`), t)
+	defer test.DeleteTempfile(file, t)
+
+	config, err := ParseConfig(file.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "testing"
+	if config.Vault.Address != expected {
+		t.Errorf("expected %q to be %q", config.Vault.Address, expected)
+	}
+
+	if config.Vault.SSL.Enabled != BoolTrue {
+		t.Errorf("expected vault ssl to be enabled")
+	}
+
+	expected = "two.pem"
+	if config.Vault.SSL.Cert != expected {
+		t.Errorf("expected %q to be %q", config.Vault.SSL.Cert, expected)
+	}
+}
+
+func TestParseConfig_vaultSSLBadType(t *testing.T) {
+	file := test.CreateTempfile([]byte(`
+		vault {
+			ssl = true
+		}
+	`), t)
+	defer test.DeleteTempfile(file, t)
+
+	_, err := ParseConfig(file.Name())
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "vault: ssl: cannot convert bool to []map[string]interface{}"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestParseConfig_vaultBadType(t *testing.T) {
+	file := test.CreateTempfile([]byte(`
+		vault = true
+	`), t)
+	defer test.DeleteTempfile(file, t)
+
+	_, err := ParseConfig(file.Name())
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "vault: cannot convert bool to map[string]interface{}"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestParseConfig_auth(t *testing.T) {
+	file := test.CreateTempfile([]byte(`
+		auth {
+			username = "testing"
+		}
+	`), t)
+	defer test.DeleteTempfile(file, t)
+
+	config, err := ParseConfig(file.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "testing"
+	if config.Auth.Username != expected {
+		t.Errorf("expected %q to be %q", config.Auth.Username, expected)
+	}
+}
+
+func TestParseConfig_authBadType(t *testing.T) {
+	file := test.CreateTempfile([]byte(`
+		auth = true
+	`), t)
+	defer test.DeleteTempfile(file, t)
+
+	_, err := ParseConfig(file.Name())
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "auth: cannot convert bool to map[string]interface{}"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestParseConfig_ssl(t *testing.T) {
+	file := test.CreateTempfile([]byte(`
+		ssl {
+			enabled = true
+		}
+	`), t)
+	defer test.DeleteTempfile(file, t)
+
+	config, err := ParseConfig(file.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if config.SSL.Enabled != BoolTrue {
+		t.Errorf("expected ssl to be enabled")
+	}
+}
+
+func TestParseConfig_sslBadType(t *testing.T) {
+	file := test.CreateTempfile([]byte(`
+		ssl = true
+	`), t)
+	defer test.DeleteTempfile(file, t)
+
+	_, err := ParseConfig(file.Name())
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "ssl: cannot convert bool to map[string]interface{}"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestParseConfig_syslog(t *testing.T) {
+	file := test.CreateTempfile([]byte(`
+		syslog {
+			facility = "testing"
+		}
+	`), t)
+	defer test.DeleteTempfile(file, t)
+
+	config, err := ParseConfig(file.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "testing"
+	if config.Syslog.Facility != expected {
+		t.Errorf("expected %q to be %q", config.Syslog.Facility, expected)
+	}
+}
+
+func TestParseConfig_syslogBadType(t *testing.T) {
+	file := test.CreateTempfile([]byte(`
+		syslog = true
+	`), t)
+	defer test.DeleteTempfile(file, t)
+
+	_, err := ParseConfig(file.Name())
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "syslog: cannot convert bool to map[string]interface{}"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestParseConfig_maxstale(t *testing.T) {
+	file := test.CreateTempfile([]byte(`
+		max_stale = "10s"
+	`), t)
+	defer test.DeleteTempfile(file, t)
+
+	config, err := ParseConfig(file.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := 10 * time.Second
+	if config.MaxStale != expected {
+		t.Errorf("expected %q to be %q", config.MaxStale, expected)
+	}
+}
+
+func TestParseConfig_maxstaleBadType(t *testing.T) {
+	file := test.CreateTempfile([]byte(`
+		max_stale = true
+	`), t)
+	defer test.DeleteTempfile(file, t)
+
+	_, err := ParseConfig(file.Name())
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "max_stale: cannot covnert bool to string"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestParseConfig_retry(t *testing.T) {
+	file := test.CreateTempfile([]byte(`
+		retry = "10s"
+	`), t)
+	defer test.DeleteTempfile(file, t)
+
+	config, err := ParseConfig(file.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := 10 * time.Second
+	if config.Retry != expected {
+		t.Errorf("expected %q to be %q", config.Retry, expected)
+	}
+}
+
+func TestParseConfig_retryBadType(t *testing.T) {
+	file := test.CreateTempfile([]byte(`
+		retry = true
+	`), t)
+	defer test.DeleteTempfile(file, t)
+
+	_, err := ParseConfig(file.Name())
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "retry: cannot covnert bool to string"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestParseConfig_retryParseError(t *testing.T) {
 	configFile := test.CreateTempfile([]byte(`
-    consul = true
+    retry = "bacon pants"
   `), t)
 	defer test.DeleteTempfile(configFile, t)
 
@@ -292,17 +693,137 @@ func TestParseConfig_mapstructureError(t *testing.T) {
 		t.Fatal("expected error, but nothing was returned")
 	}
 
-	expectedErr := "nconvertible type 'bool'"
-	if !strings.Contains(err.Error(), expectedErr) {
-		t.Fatalf("expected error %q to contain %q", err.Error(), expectedErr)
+	expected := "retry invalid"
+	if !strings.Contains(err.Error(), expected) {
+		t.Fatalf("expected error %q to contain %q", err.Error(), expected)
 	}
 }
 
-// Test that mapstructure errors on extra kes
+func TestParseConfig_wait(t *testing.T) {
+	file := test.CreateTempfile([]byte(`
+		wait = "10s:20s"
+	`), t)
+	defer test.DeleteTempfile(file, t)
+
+	config, err := ParseConfig(file.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := &watch.Wait{Min: 10 * time.Second, Max: 20 * time.Second}
+	if !reflect.DeepEqual(config.Wait, expected) {
+		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config.Wait, expected)
+	}
+}
+
+func TestParseConfig_waitBadType(t *testing.T) {
+	file := test.CreateTempfile([]byte(`
+		wait = true
+	`), t)
+	defer test.DeleteTempfile(file, t)
+
+	_, err := ParseConfig(file.Name())
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "wait: cannot covnert bool to string"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestParseConfig_waitParseError(t *testing.T) {
+	configFile := test.CreateTempfile([]byte(`
+    wait = "not_valid:duration"
+  `), t)
+	defer test.DeleteTempfile(configFile, t)
+
+	_, err := ParseConfig(configFile.Name())
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "wait invalid"
+	if !strings.Contains(err.Error(), expected) {
+		t.Fatalf("expected error %q to contain %q", err.Error(), expected)
+	}
+}
+
+func TestParseConfig_loglevel(t *testing.T) {
+	file := test.CreateTempfile([]byte(`
+		log_level = "testing"
+	`), t)
+	defer test.DeleteTempfile(file, t)
+
+	config, err := ParseConfig(file.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "testing"
+	if config.LogLevel != expected {
+		t.Errorf("expected %q to be %q", config.LogLevel, expected)
+	}
+}
+
+func TestParseConfig_loglevelBadType(t *testing.T) {
+	file := test.CreateTempfile([]byte(`
+		log_level = true
+	`), t)
+	defer test.DeleteTempfile(file, t)
+
+	_, err := ParseConfig(file.Name())
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "log_level: cannot convert bool to string"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestParseConfig_template(t *testing.T) {
+	file := test.CreateTempfile([]byte(`
+		template {
+			source = "testing"
+		}
+	`), t)
+	defer test.DeleteTempfile(file, t)
+
+	config, err := ParseConfig(file.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "testing"
+	if config.ConfigTemplates[0].Source != expected {
+		t.Errorf("expected %q to be %q", config.ConfigTemplates[0].Source, expected)
+	}
+}
+
+func TestParseConfig_templateBadType(t *testing.T) {
+	file := test.CreateTempfile([]byte(`
+		template = true
+	`), t)
+	defer test.DeleteTempfile(file, t)
+
+	_, err := ParseConfig(file.Name())
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "template: cannot convert bool to []map[string]interface{}"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
 func TestParseConfig_extraKeys(t *testing.T) {
 	configFile := test.CreateTempfile([]byte(`
-		fake_key = "nope"
-		another_fake_key = "never"
+		foo = "nope"
+		bar = "never"
 	`), t)
 	defer test.DeleteTempfile(configFile, t)
 
@@ -311,13 +832,12 @@ func TestParseConfig_extraKeys(t *testing.T) {
 		t.Fatal("expected error")
 	}
 
-	expected := "invalid keys: another_fake_key, fake_key"
+	expected := `config: unknown field(s): "bar", "foo"`
 	if !strings.Contains(err.Error(), expected) {
 		t.Errorf("expected %q to be %q", err.Error(), expected)
 	}
 }
 
-// Test that the config is parsed correctly
 func TestParseConfig_correctValues(t *testing.T) {
 	configFile := test.CreateTempfile([]byte(`
     consul = "nyc1.demo.consul.io"
@@ -328,11 +848,11 @@ func TestParseConfig_correctValues(t *testing.T) {
     log_level = "warn"
 
     vault {
-	address = "vault.service.consul"
-	token = "efgh5678"
-	ssl {
-		enabled = false
-	}
+			address = "vault.service.consul"
+			token = "efgh5678"
+			ssl {
+				enabled = false
+			}
     }
 
     auth {
@@ -342,10 +862,10 @@ func TestParseConfig_correctValues(t *testing.T) {
     }
 
     ssl {
-    	enabled = true
-    	verify = false
-	cert = "c1.pem"
-	ca_cert = "c2.pem"
+			enabled = true
+			verify = false
+			cert = "c1.pem"
+			ca_cert = "c2.pem"
     }
 
     syslog {
@@ -372,92 +892,40 @@ func TestParseConfig_correctValues(t *testing.T) {
 	}
 
 	expected := &Config{
-		Path:        configFile.Name(),
-		Consul:      "nyc1.demo.consul.io",
-		MaxStale:    time.Second * 5,
-		MaxStaleRaw: "5s",
+		Path:     configFile.Name(),
+		Consul:   "nyc1.demo.consul.io",
+		MaxStale: time.Second * 5,
 		Vault: &VaultConfig{
 			Address: "vault.service.consul",
 			Token:   "efgh5678",
 			SSL: &SSLConfig{
-				Enabled: false,
-				Verify:  false,
+				Enabled: BoolFalse,
+				Verify:  BoolUnset,
 				Cert:    "",
 				CaCert:  "",
 			},
-			SSLRaw: []*SSLConfig{
-				&SSLConfig{
-					Enabled: false,
-					Verify:  false,
-					Cert:    "",
-					CaCert:  "",
-				},
-			},
-		},
-		VaultRaw: []*VaultConfig{
-			&VaultConfig{
-				Address: "vault.service.consul",
-				Token:   "efgh5678",
-				SSL: &SSLConfig{
-					Enabled: false,
-					Verify:  false,
-					Cert:    "",
-					CaCert:  "",
-				},
-				SSLRaw: []*SSLConfig{
-					&SSLConfig{
-						Enabled: false,
-						Verify:  false,
-						Cert:    "",
-						CaCert:  "",
-					},
-				},
-			},
 		},
 		Auth: &AuthConfig{
-			Enabled:  true,
+			Enabled:  BoolTrue,
 			Username: "test",
 			Password: "test",
 		},
-		AuthRaw: []*AuthConfig{
-			&AuthConfig{
-				Enabled:  true,
-				Username: "test",
-				Password: "test",
-			},
-		},
 		SSL: &SSLConfig{
-			Enabled: true,
-			Verify:  false,
+			Enabled: BoolTrue,
+			Verify:  BoolFalse,
 			Cert:    "c1.pem",
 			CaCert:  "c2.pem",
 		},
-		SSLRaw: []*SSLConfig{
-			&SSLConfig{
-				Enabled: true,
-				Verify:  false,
-				Cert:    "c1.pem",
-				CaCert:  "c2.pem",
-			},
-		},
 		Syslog: &SyslogConfig{
-			Enabled:  true,
+			Enabled:  BoolTrue,
 			Facility: "LOCAL5",
-		},
-		SyslogRaw: []*SyslogConfig{
-			&SyslogConfig{
-				Enabled:  true,
-				Facility: "LOCAL5",
-			},
 		},
 		Token: "abcd1234",
 		Wait: &watch.Wait{
 			Min: time.Second * 5,
 			Max: time.Second * 10,
 		},
-		WaitRaw:  "5s:10s",
 		Retry:    10 * time.Second,
-		RetryRaw: "10s",
 		LogLevel: "warn",
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{
@@ -477,70 +945,693 @@ func TestParseConfig_correctValues(t *testing.T) {
 	}
 }
 
-func TestParseConfig_vaultSSL(t *testing.T) {
-	configFile := test.CreateTempfile([]byte(`
-		vault {
-			ssl {
-				enabled = true
-				verify = false
-			}
-		}
-	`), t)
-	defer test.DeleteTempfile(configFile, t)
-
-	config, err := ParseConfig(configFile.Name())
+func TestDecodeAuthConfig_nil(t *testing.T) {
+	config, err := DecodeAuthConfig(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if config.Vault.SSL == nil {
-		t.Fatal("expected SSL to be set")
+	expected := &AuthConfig{
+		Enabled:  BoolUnset,
+		Username: "",
+		Password: "",
 	}
-
-	if config.Vault.SSL.Enabled == false {
-		t.Error("expected SSL to be enabled")
-	}
-
-	if config.Vault.SSL.Verify == true {
-		t.Error("expected SSL to not verify")
+	if !reflect.DeepEqual(config, expected) {
+		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config, expected)
 	}
 }
 
-func TestParseConfig_parseRetryError(t *testing.T) {
-	configFile := test.CreateTempfile([]byte(`
-    retry = "bacon pants"
-  `), t)
-	defer test.DeleteTempfile(configFile, t)
+func TestDecodeAuthConfig_username(t *testing.T) {
+	config, err := DecodeAuthConfig(map[string]interface{}{
+		"username": "testing",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	_, err := ParseConfig(configFile.Name())
+	expected := "testing"
+	if config.Username != expected {
+		t.Errorf("expected %q to be %q", config.Username, expected)
+	}
+
+	if config.Enabled != BoolTrue {
+		t.Errorf("expected auth to be enabled")
+	}
+}
+
+func TestDecodeAuthConfig_usernameBadType(t *testing.T) {
+	_, err := DecodeAuthConfig(map[string]interface{}{
+		"username": true,
+	})
+	if err == nil {
+		t.Fatal(err)
+	}
+
+	expected := "auth: username: cannot convert bool to string"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestDecodeAuthConfig_password(t *testing.T) {
+	config, err := DecodeAuthConfig(map[string]interface{}{
+		"password": "testing",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "testing"
+	if config.Password != expected {
+		t.Errorf("expected %q to be %q", config.Password, expected)
+	}
+
+	if config.Enabled != BoolTrue {
+		t.Errorf("expected auth to be enabled")
+	}
+}
+
+func TestDecodeAuthConfig_passwordBadType(t *testing.T) {
+	_, err := DecodeAuthConfig(map[string]interface{}{
+		"password": true,
+	})
+	if err == nil {
+		t.Fatal(err)
+	}
+
+	expected := "auth: password: cannot convert bool to string"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestDecodeAuthConfig_enabledTrue(t *testing.T) {
+	config, err := DecodeAuthConfig(map[string]interface{}{
+		"enabled": true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if config.Enabled != BoolTrue {
+		t.Errorf("expected auth to be enabled")
+	}
+}
+
+func TestDecodeAuthConfig_enabledFalse(t *testing.T) {
+	config, err := DecodeAuthConfig(map[string]interface{}{
+		"enabled": false,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if config.Enabled != BoolFalse {
+		t.Errorf("expected auth to be disabled")
+	}
+}
+
+func TestDecodeAuthConfig_enabledBadType(t *testing.T) {
+	_, err := DecodeAuthConfig(map[string]interface{}{
+		"enabled": 1,
+	})
+	if err == nil {
+		t.Fatal(err)
+	}
+
+	expected := "auth: enabled: cannot convert int to bool"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestDecodeAuthConfig_extraFields(t *testing.T) {
+	_, err := DecodeAuthConfig(map[string]interface{}{
+		"username": "",
+		"foo":      "",
+		"bar":      "",
+	})
 	if err == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
 
-	expectedErr := "retry invalid"
-	if !strings.Contains(err.Error(), expectedErr) {
-		t.Fatalf("expected error %q to contain %q", err.Error(), expectedErr)
+	expected := `auth: unknown field(s): "bar", "foo"`
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
 	}
 }
 
-func TestParseConfig_parseWaitError(t *testing.T) {
-	configFile := test.CreateTempfile([]byte(`
-    wait = "not_valid:duration"
-  `), t)
-	defer test.DeleteTempfile(configFile, t)
+func TestAuthString_disabled(t *testing.T) {
+	a := &AuthConfig{Enabled: BoolFalse}
+	expected := ""
+	if a.String() != expected {
+		t.Errorf("expected %q to be %q", a.String(), expected)
+	}
+}
 
-	_, err := ParseConfig(configFile.Name())
+func TestAuthString_enabledNoPassword(t *testing.T) {
+	a := &AuthConfig{Enabled: BoolTrue, Username: "username"}
+	expected := "username"
+	if a.String() != expected {
+		t.Errorf("expected %q to be %q", a.String(), expected)
+	}
+}
+
+func TestAuthString_enabled(t *testing.T) {
+	a := &AuthConfig{Enabled: BoolTrue, Username: "username", Password: "password"}
+	expected := "username:password"
+	if a.String() != expected {
+		t.Errorf("expected %q to be %q", a.String(), expected)
+	}
+}
+
+func TestDecodeSSLConfig_nil(t *testing.T) {
+	config, err := DecodeSSLConfig(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := &SSLConfig{
+		Enabled: BoolUnset,
+		Verify:  BoolUnset,
+		Cert:    "",
+		CaCert:  "",
+	}
+	if !reflect.DeepEqual(config, expected) {
+		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config, expected)
+	}
+}
+
+func TestDecodeSSLConfig_cert(t *testing.T) {
+	config, err := DecodeSSLConfig(map[string]interface{}{
+		"cert": "testing",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "testing"
+	if config.Cert != expected {
+		t.Errorf("expected %q to be %q", config.Cert, expected)
+	}
+
+	if config.Enabled != BoolTrue {
+		t.Errorf("expected auth to be enabled")
+	}
+}
+
+func TestDecodeSSLConfig_certBadType(t *testing.T) {
+	_, err := DecodeSSLConfig(map[string]interface{}{
+		"cert": true,
+	})
+	if err == nil {
+		t.Fatal(err)
+	}
+
+	expected := "ssl: cert: cannot convert bool to string"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestDecodeSSLConfig_ca_cert(t *testing.T) {
+	config, err := DecodeSSLConfig(map[string]interface{}{
+		"ca_cert": "testing",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "testing"
+	if config.CaCert != expected {
+		t.Errorf("expected %q to be %q", config.CaCert, expected)
+	}
+
+	if config.Enabled != BoolTrue {
+		t.Errorf("expected auth to be enabled")
+	}
+}
+
+func TestDecodeSSLConfig_ca_certBadType(t *testing.T) {
+	_, err := DecodeSSLConfig(map[string]interface{}{
+		"ca_cert": true,
+	})
+	if err == nil {
+		t.Fatal(err)
+	}
+
+	expected := "ssl: ca_cert: cannot convert bool to string"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestDecodeSSLConfig_verifyTrue(t *testing.T) {
+	config, err := DecodeSSLConfig(map[string]interface{}{
+		"verify": true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if config.Verify != BoolTrue {
+		t.Errorf("expected ssl to verify")
+	}
+
+	if config.Enabled != BoolTrue {
+		t.Errorf("expected auth to be enabled")
+	}
+}
+
+func TestDecodeSSLConfig_verifyFalse(t *testing.T) {
+	config, err := DecodeSSLConfig(map[string]interface{}{
+		"verify": false,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if config.Verify != BoolFalse {
+		t.Errorf("expected ssl to not verify")
+	}
+
+	if config.Enabled != BoolTrue {
+		t.Errorf("expected auth to be enabled")
+	}
+}
+
+func TestDecodeSSLConfig_verifyBadType(t *testing.T) {
+	_, err := DecodeSSLConfig(map[string]interface{}{
+		"verify": "testing",
+	})
+	if err == nil {
+		t.Fatal(err)
+	}
+
+	expected := "ssl: verify: cannot convert string to bool"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestDecodeSSLConfig_enabledTrue(t *testing.T) {
+	config, err := DecodeSSLConfig(map[string]interface{}{
+		"enabled": true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if config.Enabled != BoolTrue {
+		t.Errorf("expected auth to be enabled")
+	}
+}
+
+func TestDecodeSSLConfig_enabledFalse(t *testing.T) {
+	config, err := DecodeSSLConfig(map[string]interface{}{
+		"enabled": false,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if config.Enabled != BoolFalse {
+		t.Errorf("expected auth to be enabled")
+	}
+}
+
+func TestDecodeSSLConfig_enabledBadType(t *testing.T) {
+	_, err := DecodeSSLConfig(map[string]interface{}{
+		"enabled": "testing",
+	})
+	if err == nil {
+		t.Fatal(err)
+	}
+
+	expected := "ssl: enabled: cannot convert string to bool"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestDecodeSSLConfig_extraFields(t *testing.T) {
+	_, err := DecodeSSLConfig(map[string]interface{}{
+		"cert": "",
+		"foo":  "",
+		"bar":  "",
+	})
 	if err == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
 
-	expectedErr := "wait invalid"
-	if !strings.Contains(err.Error(), expectedErr) {
-		t.Fatalf("expected error %q to contain %q", err.Error(), expectedErr)
+	expected := `ssl: unknown field(s): "bar", "foo"`
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
 	}
 }
 
-// Test that an error is returned when the empty string is given
+func TestDecodeSyslogConfig_nil(t *testing.T) {
+	config, err := DecodeSyslogConfig(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := &SyslogConfig{
+		Enabled:  BoolUnset,
+		Facility: "",
+	}
+	if !reflect.DeepEqual(config, expected) {
+		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config, expected)
+	}
+}
+
+func TestDecodeSyslogConfig_facility(t *testing.T) {
+	config, err := DecodeSyslogConfig(map[string]interface{}{
+		"facility": "testing",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "testing"
+	if config.Facility != expected {
+		t.Errorf("expected %q to be %q", config.Facility, expected)
+	}
+
+	if config.Enabled != BoolTrue {
+		t.Errorf("expected auth to be enabled")
+	}
+}
+
+func TestDecodeSyslogConfig_facilityBadType(t *testing.T) {
+	_, err := DecodeSyslogConfig(map[string]interface{}{
+		"facility": true,
+	})
+	if err == nil {
+		t.Fatal(err)
+	}
+
+	expected := "syslog: facility: cannot convert bool to string"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestDecodeSyslogConfig_enabledTrue(t *testing.T) {
+	config, err := DecodeSyslogConfig(map[string]interface{}{
+		"enabled": true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if config.Enabled != BoolTrue {
+		t.Errorf("expected auth to be enabled")
+	}
+}
+
+func TestDecodeSyslogConfig_enabledFalse(t *testing.T) {
+	config, err := DecodeSyslogConfig(map[string]interface{}{
+		"enabled": false,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if config.Enabled != BoolFalse {
+		t.Errorf("expected auth to be enabled")
+	}
+}
+
+func TestDecodeSyslogConfig_enabledBadType(t *testing.T) {
+	_, err := DecodeSyslogConfig(map[string]interface{}{
+		"enabled": "testing",
+	})
+	if err == nil {
+		t.Fatal(err)
+	}
+
+	expected := "syslog: enabled: cannot convert string to bool"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestDecodeSyslogConfig_extraFields(t *testing.T) {
+	_, err := DecodeSyslogConfig(map[string]interface{}{
+		"facility": "",
+		"foo":      "",
+		"bar":      "",
+	})
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := `syslog: unknown field(s): "bar", "foo"`
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestDecodeConfigTemplate_nil(t *testing.T) {
+	_, err := DecodeConfigTemplate(nil)
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "template: missing source"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestDecodeConfigTemplate_source(t *testing.T) {
+	config, err := DecodeConfigTemplate(map[string]interface{}{
+		"source": "testing",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "testing"
+	if config.Source != expected {
+		t.Errorf("expected %q to be %q", config.Source, expected)
+	}
+}
+
+func TestDecodeConfigTemplate_sourceBadType(t *testing.T) {
+	_, err := DecodeConfigTemplate(map[string]interface{}{
+		"source": true,
+	})
+	if err == nil {
+		t.Fatal(err)
+	}
+
+	expected := "template: source: cannot convert bool to string"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestDecodeConfigTemplate_destination(t *testing.T) {
+	config, err := DecodeConfigTemplate(map[string]interface{}{
+		"source":      "_",
+		"destination": "testing",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "testing"
+	if config.Destination != expected {
+		t.Errorf("expected %q to be %q", config.Destination, expected)
+	}
+}
+
+func TestDecodeConfigTemplate_destinationBadType(t *testing.T) {
+	_, err := DecodeConfigTemplate(map[string]interface{}{
+		"source":      "_",
+		"destination": true,
+	})
+	if err == nil {
+		t.Fatal(err)
+	}
+
+	expected := "template: destination: cannot convert bool to string"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestDecodeConfigTemplate_command(t *testing.T) {
+	config, err := DecodeConfigTemplate(map[string]interface{}{
+		"source":  "_",
+		"command": "testing",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "testing"
+	if config.Command != expected {
+		t.Errorf("expected %q to be %q", config.Command, expected)
+	}
+}
+
+func TestDecodeConfigTemplate_commandBadType(t *testing.T) {
+	_, err := DecodeConfigTemplate(map[string]interface{}{
+		"source":  "_",
+		"command": true,
+	})
+	if err == nil {
+		t.Fatal(err)
+	}
+
+	expected := "template: command: cannot convert bool to string"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestDecodeConfigTemplate_extraFields(t *testing.T) {
+	_, err := DecodeConfigTemplate(map[string]interface{}{
+		"source": "",
+		"foo":    "",
+		"bar":    "",
+	})
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := `template: unknown field(s): "bar", "foo"`
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestDecodeVaultConfig_nil(t *testing.T) {
+	config, err := DecodeVaultConfig(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := &VaultConfig{
+		Address: "",
+		Token:   "",
+		SSL:     nil,
+	}
+	if !reflect.DeepEqual(config, expected) {
+		t.Errorf("expected \n\n%v\n\n to be \n\n%v\n\n", config, expected)
+	}
+}
+
+func TestDecodeVaultConfig_address(t *testing.T) {
+	config, err := DecodeVaultConfig(map[string]interface{}{
+		"address": "testing",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "testing"
+	if config.Address != expected {
+		t.Errorf("expected %q to be %q", config.Address, expected)
+	}
+}
+
+func TestDecodeVaultConfig_addressBadType(t *testing.T) {
+	_, err := DecodeVaultConfig(map[string]interface{}{
+		"address": true,
+	})
+	if err == nil {
+		t.Fatal(err)
+	}
+
+	expected := "vault: address: cannot convert bool to string"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestDecodeVaultConfig_token(t *testing.T) {
+	config, err := DecodeVaultConfig(map[string]interface{}{
+		"token": "testing",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "testing"
+	if config.Token != expected {
+		t.Errorf("expected %q to be %q", config.Token, expected)
+	}
+}
+
+func TestDecodeVaultConfig_tokenBadType(t *testing.T) {
+	_, err := DecodeVaultConfig(map[string]interface{}{
+		"token": true,
+	})
+	if err == nil {
+		t.Fatal(err)
+	}
+
+	expected := "vault: token: cannot convert bool to string"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestDecodeVaultConfig_ssl(t *testing.T) {
+	config, err := DecodeVaultConfig(map[string]interface{}{
+		"ssl": []map[string]interface{}{
+			map[string]interface{}{"enabled": true},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := &SSLConfig{
+		Enabled: BoolTrue,
+		Verify:  BoolUnset,
+		Cert:    "",
+		CaCert:  "",
+	}
+	if !reflect.DeepEqual(config.SSL, expected) {
+		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config.SSL, expected)
+	}
+}
+
+func TestDecodeVaultConfig_sslBadType(t *testing.T) {
+	_, err := DecodeVaultConfig(map[string]interface{}{
+		"ssl": true,
+	})
+	if err == nil {
+		t.Fatal(err)
+	}
+
+	expected := "vault: ssl: cannot convert bool to []map[string]interface{}"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
+func TestDecodeVaultConfig_extraFields(t *testing.T) {
+	_, err := DecodeVaultConfig(map[string]interface{}{
+		"address": "",
+		"foo":     "",
+		"bar":     "",
+	})
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := `vault: unknown field(s): "bar", "foo"`
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
+	}
+}
+
 func TestParseConfigTemplate_emptyStringArgs(t *testing.T) {
 	_, err := ParseConfigTemplate("")
 	if err == nil {
@@ -553,7 +1644,6 @@ func TestParseConfigTemplate_emptyStringArgs(t *testing.T) {
 	}
 }
 
-// Test that an error is returned when a string with spaces is given
 func TestParseConfigTemplate_stringWithSpacesArgs(t *testing.T) {
 	_, err := ParseConfigTemplate("  ")
 	if err == nil {
@@ -566,8 +1656,7 @@ func TestParseConfigTemplate_stringWithSpacesArgs(t *testing.T) {
 	}
 }
 
-// Test that an error is returned when there are too many arguments
-func TestParseConfigurationTemplate_tooManyArgs(t *testing.T) {
+func TestParseConfigTemplate_tooManyArgs(t *testing.T) {
 	_, err := ParseConfigTemplate("foo:bar:blitz:baz")
 	if err == nil {
 		t.Fatal("expected error, but nothing was returned")
@@ -579,8 +1668,7 @@ func TestParseConfigurationTemplate_tooManyArgs(t *testing.T) {
 	}
 }
 
-// Test that we properly parse Windows drive paths
-func TestParseConfigurationTemplate_windowsDrives(t *testing.T) {
+func TestParseConfigTemplate_windowsDrives(t *testing.T) {
 	ct, err := ParseConfigTemplate(`C:\abc\123:D:\xyz\789:some command`)
 	if err != nil {
 		t.Fatalf("failed parsing windows drive letters: %s", err)
@@ -597,8 +1685,7 @@ func TestParseConfigurationTemplate_windowsDrives(t *testing.T) {
 	}
 }
 
-// Test that a source value is correctly used
-func TestParseConfigurationTemplate_source(t *testing.T) {
+func TestParseConfigTemplate_source(t *testing.T) {
 	source := "/tmp/config.ctmpl"
 	template, err := ParseConfigTemplate(source)
 	if err != nil {
@@ -610,8 +1697,7 @@ func TestParseConfigurationTemplate_source(t *testing.T) {
 	}
 }
 
-// Test that a destination wait value is correctly used
-func TestParseConfigurationTemplate_destination(t *testing.T) {
+func TestParseConfigTemplate_destination(t *testing.T) {
 	source, destination := "/tmp/config.ctmpl", "/tmp/out"
 	template, err := ParseConfigTemplate(fmt.Sprintf("%s:%s", source, destination))
 	if err != nil {
@@ -627,8 +1713,7 @@ func TestParseConfigurationTemplate_destination(t *testing.T) {
 	}
 }
 
-// Test that a command wait value is correctly used
-func TestParseConfigurationTemplate_command(t *testing.T) {
+func TestParseConfigTemplate_command(t *testing.T) {
 	source, destination, command := "/tmp/config.ctmpl", "/tmp/out", "reboot"
 	template, err := ParseConfigTemplate(fmt.Sprintf("%s:%s:%s", source, destination, command))
 	if err != nil {

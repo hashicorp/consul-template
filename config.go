@@ -6,13 +6,13 @@ import (
 	"io/ioutil"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/hashicorp/consul-template/watch"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
-	"github.com/mitchellh/mapstructure"
 )
 
 // The pattern to split the config template syntax on
@@ -23,51 +23,44 @@ type Config struct {
 	// Path is the path to this configuration file on disk. This value is not
 	// read from disk by rather dynamically populated by the code so the Config
 	// has a reference to the path to the file on disk that created it.
-	Path string `json:"path" mapstructure:"-"`
+	Path string `json:"path"`
 
 	// Consul is the location of the Consul instance to query (may be an IP
 	// address or FQDN) with port.
-	Consul string `json:"consul" mapstructure:"consul"`
+	Consul string `json:"consul"`
 
 	// Token is the Consul API token.
-	Token string `json:"-" mapstructure:"token"`
+	Token string `json:"-"`
 
 	// Vault is the configuration for connecting to a vault server.
-	Vault    *VaultConfig   `json:"vault" mapstructure:"-"`
-	VaultRaw []*VaultConfig `json:"-" mapstructure:"vault"`
+	Vault *VaultConfig `json:"vault"`
 
 	// Auth is the HTTP basic authentication for communicating with Consul.
-	Auth    *AuthConfig   `json:"auth" mapstructure:"-"`
-	AuthRaw []*AuthConfig `json:"-" mapstructure:"auth"`
+	Auth *AuthConfig `json:"auth"`
 
 	// SSL indicates we should use a secure connection while talking to
 	// Consul. This requires Consul to be configured to serve HTTPS.
-	SSL    *SSLConfig   `json:"ssl" mapstructure:"-"`
-	SSLRaw []*SSLConfig `json:"-" mapstructure:"ssl"`
+	SSL *SSLConfig `json:"ssl"`
 
 	// Syslog is the configuration for syslog.
-	Syslog    *SyslogConfig   `json:"syslog" mapstructure:"-"`
-	SyslogRaw []*SyslogConfig `json:"-" mapstructure:"syslog"`
+	Syslog *SyslogConfig `json:"syslog"`
 
 	// MaxStale is the maximum amount of time for staleness from Consul as given
 	// by LastContact. If supplied, Consul Template will query all servers instead
 	// of just the leader.
-	MaxStale    time.Duration `json:"max_stale" mapstructure:"-"`
-	MaxStaleRaw string        `json:"-" mapstructure:"max_stale"`
-
-	// ConfigTemplates is a slice of the ConfigTemplate objects in the config.
-	ConfigTemplates []*ConfigTemplate `json:"templates" mapstructure:"template"`
+	MaxStale time.Duration `json:"max_stale"`
 
 	// Retry is the duration of time to wait between Consul failures.
-	Retry    time.Duration `json:"retry" mapstructure:"-"`
-	RetryRaw string        `json:"-" mapstructure:"retry" json:""`
+	Retry time.Duration `json:"retry"`
 
 	// Wait is the quiescence timers.
-	Wait    *watch.Wait `json:"wait" mapstructure:"-"`
-	WaitRaw string      `json:"-" mapstructure:"wait" json:""`
+	Wait *watch.Wait `json:"wait"`
 
 	// LogLevel is the level with which to log for this config.
-	LogLevel string `json:"log_level" mapstructure:"log_level"`
+	LogLevel string `json:"log_level"`
+
+	// ConfigTemplates is a slice of the ConfigTemplate objects in the config.
+	ConfigTemplates []*ConfigTemplate `json:"templates"`
 }
 
 // Merge merges the values in config into this config object. Values in the
@@ -82,48 +75,97 @@ func (c *Config) Merge(config *Config) {
 	}
 
 	if config.Vault != nil {
-		c.Vault = &VaultConfig{
-			Address: config.Vault.Address,
-			Token:   config.Vault.Token,
+		if c.Vault == nil {
+			c.Vault = &VaultConfig{}
+		}
+
+		if config.Vault.Address != "" {
+			c.Vault.Address = config.Vault.Address
+		}
+
+		if config.Vault.Token != "" {
+			c.Vault.Token = config.Vault.Token
 		}
 
 		if config.Vault.SSL != nil {
-			c.Vault.SSL = &SSLConfig{
-				Enabled: config.Vault.SSL.Enabled,
-				Verify:  config.Vault.SSL.Verify,
-				Cert:    config.Vault.SSL.Cert,
-				CaCert:  config.Vault.SSL.CaCert,
+			if c.Vault.SSL == nil {
+				c.Vault.SSL = &SSLConfig{}
+			}
+
+			if config.Vault.SSL.Enabled != BoolUnset {
+				c.Vault.SSL.Enabled = config.Vault.SSL.Enabled
+			}
+
+			if config.Vault.SSL.Verify != BoolUnset {
+				c.Vault.SSL.Verify = config.Vault.SSL.Verify
+			}
+
+			if config.Vault.SSL.Cert != "" {
+				c.Vault.SSL.Cert = config.Vault.SSL.Cert
+			}
+
+			if config.Vault.SSL.CaCert != "" {
+				c.Vault.SSL.CaCert = config.Vault.SSL.CaCert
 			}
 		}
 	}
 
 	if config.Auth != nil {
-		c.Auth = &AuthConfig{
-			Enabled:  config.Auth.Enabled,
-			Username: config.Auth.Username,
-			Password: config.Auth.Password,
+		if c.Auth == nil {
+			c.Auth = &AuthConfig{}
+		}
+
+		if config.Auth.Enabled != BoolUnset {
+			c.Auth.Enabled = config.Auth.Enabled
+		}
+
+		if config.Auth.Username != "" {
+			c.Auth.Username = config.Auth.Username
+		}
+
+		if config.Auth.Password != "" {
+			c.Auth.Password = config.Auth.Password
 		}
 	}
 
 	if config.SSL != nil {
-		c.SSL = &SSLConfig{
-			Enabled: config.SSL.Enabled,
-			Verify:  config.SSL.Verify,
-			Cert:    config.SSL.Cert,
-			CaCert:  config.SSL.CaCert,
+		if c.SSL == nil {
+			c.SSL = &SSLConfig{}
+		}
+
+		if config.SSL.Enabled != BoolUnset {
+			c.SSL.Enabled = config.SSL.Enabled
+		}
+
+		if config.SSL.Verify != BoolUnset {
+			c.SSL.Verify = config.SSL.Verify
+		}
+
+		if config.SSL.Cert != "" {
+			c.SSL.Cert = config.SSL.Cert
+		}
+
+		if config.SSL.CaCert != "" {
+			c.SSL.CaCert = config.SSL.CaCert
 		}
 	}
 
 	if config.Syslog != nil {
-		c.Syslog = &SyslogConfig{
-			Enabled:  config.Syslog.Enabled,
-			Facility: config.Syslog.Facility,
+		if c.Syslog == nil {
+			c.Syslog = &SyslogConfig{}
+		}
+
+		if config.Syslog.Enabled != BoolUnset {
+			c.Syslog.Enabled = config.Syslog.Enabled
+		}
+
+		if config.Syslog.Facility != "" {
+			c.Syslog.Facility = config.Syslog.Facility
 		}
 	}
 
 	if config.MaxStale != 0 {
 		c.MaxStale = config.MaxStale
-		c.MaxStaleRaw = config.MaxStaleRaw
 	}
 
 	if len(config.ConfigTemplates) > 0 {
@@ -141,7 +183,6 @@ func (c *Config) Merge(config *Config) {
 
 	if config.Retry != 0 {
 		c.Retry = config.Retry
-		c.RetryRaw = config.RetryRaw
 	}
 
 	if config.Wait != nil {
@@ -149,7 +190,6 @@ func (c *Config) Merge(config *Config) {
 			Min: config.Wait.Min,
 			Max: config.Wait.Max,
 		}
-		c.WaitRaw = config.WaitRaw
 	}
 
 	if config.LogLevel != "" {
@@ -160,85 +200,141 @@ func (c *Config) Merge(config *Config) {
 // ParseConfig reads the configuration file at the given path and returns a new
 // Config struct with the data populated.
 func ParseConfig(path string) (*Config, error) {
-	var errs *multierror.Error
-
-	// Read the contents of the file
 	contents, err := ioutil.ReadFile(path)
 	if err != nil {
-		errs = multierror.Append(errs, err)
-		return nil, errs.ErrorOrNil()
+		return nil, fmt.Errorf("config: error opening %q: %s", path, err)
 	}
 
-	// Parse the file (could be HCL or JSON)
-	var parsed interface{}
-	if err := hcl.Decode(&parsed, string(contents)); err != nil {
-		errs = multierror.Append(errs, err)
-		return nil, errs.ErrorOrNil()
+	var shadow interface{}
+	if err := hcl.Decode(&shadow, string(contents)); err != nil {
+		return nil, fmt.Errorf("config: error decoding %q: %s", path, err)
 	}
 
-	// Create a new, empty config
-	config := &Config{}
-
-	// Use mapstructure to populate the basic config fields
-	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		ErrorUnused: true,
-		Metadata:    nil,
-		Result:      config,
-	})
-	if err != nil {
-		errs = multierror.Append(errs, err)
-		return nil, errs.ErrorOrNil()
+	parsed, ok := shadow.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("config: invalid format")
 	}
 
-	if err := decoder.Decode(parsed); err != nil {
-		errs = multierror.Append(errs, err)
-		return nil, errs.ErrorOrNil()
+	config := &Config{Path: path}
+	var errs *multierror.Error
+
+	if raw, ok := parsed["consul"]; ok {
+		delete(parsed, "consul")
+		config.Consul, ok = raw.(string)
+		if !ok {
+			err := fmt.Errorf("consul: cannot convert %T to string", raw)
+			errs = multierror.Append(errs, err)
+		}
 	}
 
-	// Store a reference to the path where this config was read from
-	config.Path = path
+	if raw, ok := parsed["token"]; ok {
+		delete(parsed, "token")
+		config.Token, ok = raw.(string)
+		if !ok {
+			err := fmt.Errorf("token: cannot convert %T to string", raw)
+			errs = multierror.Append(errs, err)
+		}
+	}
 
-	// Parse the MaxStale component
-	if raw := config.MaxStaleRaw; raw != "" {
-		stale, err := time.ParseDuration(raw)
+	if raw, ok := parsed["vault"]; ok {
+		delete(parsed, "vault")
 
+		typed, ok := raw.([]map[string]interface{})
+		if !ok {
+			err := fmt.Errorf("vault: cannot convert %T to map[string]interface{}", raw)
+			errs = multierror.Append(errs, err)
+		}
+
+		if last := lastConfig(typed); last != nil {
+			if vault, err := DecodeVaultConfig(last); err == nil {
+				config.Vault = vault
+			} else {
+				errs = multierror.Append(errs, err.(*multierror.Error).Errors...)
+			}
+		}
+	}
+
+	if raw, ok := parsed["auth"]; ok {
+		delete(parsed, "auth")
+
+		typed, ok := raw.([]map[string]interface{})
+		if !ok {
+			err := fmt.Errorf("auth: cannot convert %T to map[string]interface{}", raw)
+			errs = multierror.Append(errs, err)
+		}
+
+		if last := lastConfig(typed); last != nil {
+			if auth, err := DecodeAuthConfig(last); err == nil {
+				config.Auth = auth
+			} else {
+				errs = multierror.Append(errs, err.(*multierror.Error).Errors...)
+			}
+		}
+	}
+
+	if raw, ok := parsed["ssl"]; ok {
+		delete(parsed, "ssl")
+
+		typed, ok := raw.([]map[string]interface{})
+		if !ok {
+			err := fmt.Errorf("ssl: cannot convert %T to map[string]interface{}", raw)
+			errs = multierror.Append(errs, err)
+		}
+
+		if last := lastConfig(typed); last != nil {
+			if ssl, err := DecodeSSLConfig(last); err == nil {
+				config.SSL = ssl
+			} else {
+				errs = multierror.Append(errs, err.(*multierror.Error).Errors...)
+			}
+		}
+	}
+
+	if raw, ok := parsed["syslog"]; ok {
+		delete(parsed, "syslog")
+
+		typed, ok := raw.([]map[string]interface{})
+		if !ok {
+			err := fmt.Errorf("syslog: cannot convert %T to map[string]interface{}", raw)
+			errs = multierror.Append(errs, err)
+		}
+
+		if last := lastConfig(typed); last != nil {
+			if syslog, err := DecodeSyslogConfig(last); err == nil {
+				config.Syslog = syslog
+			} else {
+				errs = multierror.Append(errs, err.(*multierror.Error).Errors...)
+			}
+		}
+	}
+
+	if raw, ok := parsed["max_stale"]; ok {
+		delete(parsed, "max_stale")
+
+		typed, ok := raw.(string)
+		if !ok {
+			err := fmt.Errorf("max_stale: cannot covnert %T to string", raw)
+			errs = multierror.Append(errs, err)
+		}
+
+		stale, err := time.ParseDuration(typed)
 		if err == nil {
 			config.MaxStale = stale
 		} else {
-			errs = multierror.Append(errs, fmt.Errorf("max_stale invalid: %v", err))
+			errs = multierror.Append(errs, fmt.Errorf("max_stale invalid: %s", err))
 		}
 	}
 
-	// Extract the last Vault block
-	if len(config.VaultRaw) > 0 {
-		config.Vault = config.VaultRaw[len(config.VaultRaw)-1]
+	if raw, ok := parsed["retry"]; ok {
+		delete(parsed, "retry")
 
-		// Extract the last Vault SSL block
-		if len(config.Vault.SSLRaw) > 0 {
-			config.Vault.SSL = config.Vault.SSLRaw[len(config.Vault.SSLRaw)-1]
+		typed, ok := raw.(string)
+		if !ok {
+			err := fmt.Errorf("retry: cannot covnert %T to string", raw)
+			errs = multierror.Append(errs, err)
 		}
 
-	}
-
-	// Extract the last Auth block
-	if len(config.AuthRaw) > 0 {
-		config.Auth = config.AuthRaw[len(config.AuthRaw)-1]
-	}
-
-	// Extract the last SSL block
-	if len(config.SSLRaw) > 0 {
-		config.SSL = config.SSLRaw[len(config.SSLRaw)-1]
-	}
-
-	// Extract the last Syslog block
-	if len(config.SyslogRaw) > 0 {
-		config.Syslog = config.SyslogRaw[len(config.SyslogRaw)-1]
-	}
-
-	// Parse the Retry component
-	if raw := config.RetryRaw; raw != "" {
-		retry, err := time.ParseDuration(raw)
-
+		retry, err := time.ParseDuration(typed)
 		if err == nil {
 			config.Retry = retry
 		} else {
@@ -246,15 +342,56 @@ func ParseConfig(path string) (*Config, error) {
 		}
 	}
 
-	// Parse the Wait component
-	if raw := config.WaitRaw; raw != "" {
-		wait, err := watch.ParseWait(raw)
+	if raw, ok := parsed["wait"]; ok {
+		delete(parsed, "wait")
 
+		typed, ok := raw.(string)
+		if !ok {
+			err := fmt.Errorf("wait: cannot covnert %T to string", raw)
+			errs = multierror.Append(errs, err)
+		}
+
+		wait, err := watch.ParseWait(typed)
 		if err == nil {
 			config.Wait = wait
 		} else {
-			errs = multierror.Append(errs, fmt.Errorf("wait invalid: %v", err))
+			errs = multierror.Append(errs, fmt.Errorf("wait invalid: %s", err))
 		}
+	}
+
+	if raw, ok := parsed["log_level"]; ok {
+		delete(parsed, "log_level")
+		config.LogLevel, ok = raw.(string)
+		if !ok {
+			err := fmt.Errorf("log_level: cannot convert %T to string", raw)
+			errs = multierror.Append(errs, err)
+		}
+	}
+
+	if raw, ok := parsed["template"]; ok {
+		delete(parsed, "template")
+		typed, ok := raw.([]map[string]interface{})
+		if !ok {
+			err := fmt.Errorf("template: cannot convert %T to []map[string]interface{}", raw)
+			errs = multierror.Append(errs, err)
+		}
+
+		if len(config.ConfigTemplates) == 0 {
+			config.ConfigTemplates = make([]*ConfigTemplate, 0, len(typed))
+		}
+
+		for _, data := range typed {
+			if template, err := DecodeConfigTemplate(data); err == nil {
+				config.ConfigTemplates = append(config.ConfigTemplates, template)
+			} else {
+				errs = multierror.Append(errs, err.(*multierror.Error).Errors...)
+			}
+		}
+	}
+
+	if len(parsed) > 0 {
+		err := fmt.Errorf("config: unknown field(s): %s", keysToList(parsed))
+		errs = multierror.Append(errs, err)
 	}
 
 	return config, errs.ErrorOrNil()
@@ -270,19 +407,19 @@ func DefaultConfig() *Config {
 	return &Config{
 		Vault: &VaultConfig{
 			SSL: &SSLConfig{
-				Enabled: true,
-				Verify:  true,
+				Enabled: BoolTrue,
+				Verify:  BoolTrue,
 			},
 		},
 		Auth: &AuthConfig{
-			Enabled: false,
+			Enabled: BoolFalse,
 		},
 		SSL: &SSLConfig{
-			Enabled: false,
-			Verify:  true,
+			Enabled: BoolFalse,
+			Verify:  BoolTrue,
 		},
 		Syslog: &SyslogConfig{
-			Enabled:  false,
+			Enabled:  BoolFalse,
 			Facility: "LOCAL0",
 		},
 		ConfigTemplates: []*ConfigTemplate{},
@@ -294,16 +431,65 @@ func DefaultConfig() *Config {
 
 // AuthConfig is the HTTP basic authentication data.
 type AuthConfig struct {
-	Enabled  bool   `json:"enabled" mapstructure:"enabled"`
-	Username string `json:"username" mapstructure:"username"`
-	Password string `json:"password" mapstructure:"password"`
+	Enabled  Bool   `json:"enabled"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+// DecodeAuthConfig decodes the given map into an AuthConfig.
+func DecodeAuthConfig(data map[string]interface{}) (*AuthConfig, error) {
+	auth := &AuthConfig{}
+	var errs *multierror.Error
+
+	if raw, ok := data["username"]; ok {
+		delete(data, "username")
+		if typed, ok := raw.(string); ok {
+			auth.Enabled = BoolTrue
+			auth.Username = typed
+		} else {
+			err := fmt.Errorf("auth: username: cannot convert %T to string", raw)
+			errs = multierror.Append(errs, err)
+		}
+	}
+
+	if raw, ok := data["password"]; ok {
+		delete(data, "password")
+		if typed, ok := raw.(string); ok {
+			auth.Enabled = BoolTrue
+			auth.Password = typed
+		} else {
+			err := fmt.Errorf("auth: password: cannot convert %T to string", raw)
+			errs = multierror.Append(errs, err)
+		}
+	}
+
+	if raw, ok := data["enabled"]; ok {
+		delete(data, "enabled")
+		if typed, ok := raw.(bool); ok {
+			if typed == true {
+				auth.Enabled = BoolTrue
+			} else {
+				auth.Enabled = BoolFalse
+			}
+		} else {
+			err := fmt.Errorf("auth: enabled: cannot convert %T to bool", raw)
+			errs = multierror.Append(errs, err)
+		}
+	}
+
+	if len(data) > 0 {
+		err := fmt.Errorf("auth: unknown field(s): %s", keysToList(data))
+		errs = multierror.Append(errs, err)
+	}
+
+	return auth, errs.ErrorOrNil()
 }
 
 // String is the string representation of this authentication. If authentication
 // is not enabled, this returns the empty string. The username and password will
 // be separated by a colon.
 func (a *AuthConfig) String() string {
-	if !a.Enabled {
+	if a.Enabled != BoolTrue {
 		return ""
 	}
 
@@ -316,34 +502,235 @@ func (a *AuthConfig) String() string {
 
 // SSLConfig is the configuration for SSL.
 type SSLConfig struct {
-	Enabled bool   `json:"enabled" mapstructure:"enabled"`
-	Verify  bool   `json:"verify" mapstructure:"verify"`
-	Cert    string `json:"cert" mapstructure:"cert"`
-	CaCert  string `json:"ca_cert" mapstructure:"ca_cert"`
+	Enabled Bool   `json:"enabled"`
+	Verify  Bool   `json:"verify"`
+	Cert    string `json:"cert"`
+	CaCert  string `json:"ca_cert"`
+}
+
+// DecodeSSLConfig decodes the given map into an SSLConfig.
+func DecodeSSLConfig(data map[string]interface{}) (*SSLConfig, error) {
+	ssl := &SSLConfig{}
+	var errs *multierror.Error
+
+	if raw, ok := data["cert"]; ok {
+		delete(data, "cert")
+		if typed, ok := raw.(string); ok {
+			ssl.Cert = typed
+			ssl.Enabled = BoolTrue
+		} else {
+			err := fmt.Errorf("ssl: cert: cannot convert %T to string", raw)
+			errs = multierror.Append(errs, err)
+		}
+	}
+
+	if raw, ok := data["ca_cert"]; ok {
+		delete(data, "ca_cert")
+		if typed, ok := raw.(string); ok {
+			ssl.CaCert = typed
+			ssl.Enabled = BoolTrue
+		} else {
+			err := fmt.Errorf("ssl: ca_cert: cannot convert %T to string", raw)
+			errs = multierror.Append(errs, err)
+		}
+	}
+
+	if raw, ok := data["verify"]; ok {
+		delete(data, "verify")
+		if typed, ok := raw.(bool); ok {
+			if typed == true {
+				ssl.Verify = BoolTrue
+				ssl.Enabled = BoolTrue
+			} else {
+				ssl.Verify = BoolFalse
+				ssl.Enabled = BoolTrue
+			}
+		} else {
+			err := fmt.Errorf("ssl: verify: cannot convert %T to bool", raw)
+			errs = multierror.Append(err)
+		}
+	}
+
+	if raw, ok := data["enabled"]; ok {
+		delete(data, "enabled")
+		if typed, ok := raw.(bool); ok {
+			if typed == true {
+				ssl.Enabled = BoolTrue
+			} else {
+				ssl.Enabled = BoolFalse
+			}
+		} else {
+			err := fmt.Errorf("ssl: enabled: cannot convert %T to bool", raw)
+			errs = multierror.Append(errs, err)
+		}
+	}
+
+	if len(data) > 0 {
+		err := fmt.Errorf("ssl: unknown field(s): %s", keysToList(data))
+		errs = multierror.Append(err)
+	}
+
+	return ssl, errs.ErrorOrNil()
 }
 
 // SyslogConfig is the configuration for syslog.
 type SyslogConfig struct {
-	Enabled  bool   `json:"enabled" mapstructure:"enabled"`
-	Facility string `json:"facility" mapstructure:"facility"`
+	Enabled  Bool   `json:"enabled"`
+	Facility string `json:"facility"`
+}
+
+// DecodeSyslogConfig decodes the given map into an SyslogConfig.
+func DecodeSyslogConfig(data map[string]interface{}) (*SyslogConfig, error) {
+	syslog := &SyslogConfig{}
+	var errs *multierror.Error
+
+	if raw, ok := data["facility"]; ok {
+		delete(data, "facility")
+		if typed, ok := raw.(string); ok {
+			syslog.Enabled = BoolTrue
+			syslog.Facility = typed
+		} else {
+			err := fmt.Errorf("syslog: facility: cannot convert %T to string", raw)
+			errs = multierror.Append(errs, err)
+		}
+	}
+
+	if raw, ok := data["enabled"]; ok {
+		delete(data, "enabled")
+		if typed, ok := raw.(bool); ok {
+			if typed == true {
+				syslog.Enabled = BoolTrue
+			} else {
+				syslog.Enabled = BoolFalse
+			}
+		} else {
+			err := fmt.Errorf("syslog: enabled: cannot convert %T to bool", raw)
+			errs = multierror.Append(errs, err)
+		}
+	}
+
+	if len(data) > 0 {
+		err := fmt.Errorf("syslog: unknown field(s): %s", keysToList(data))
+		errs = multierror.Append(errs, err)
+	}
+
+	return syslog, errs.ErrorOrNil()
 }
 
 // ConfigTemplate is the representation of an input template, output location,
 // and optional command to execute when rendered
 type ConfigTemplate struct {
-	Source      string `json:"source" mapstructure:"source"`
-	Destination string `json:"destination" mapstructure:"destination"`
-	Command     string `json:"command" mapstructure:"command"`
+	Source      string `json:"source"`
+	Destination string `json:"destination"`
+	Command     string `json:"command"`
+}
+
+// DecodeConfigTemplate decodes the given map into an ConfigTemplate.
+func DecodeConfigTemplate(data map[string]interface{}) (*ConfigTemplate, error) {
+	template := &ConfigTemplate{}
+	var errs *multierror.Error
+
+	if raw, ok := data["source"]; ok {
+		delete(data, "source")
+		if typed, ok := raw.(string); ok {
+			template.Source = typed
+		} else {
+			err := fmt.Errorf("template: source: cannot convert %T to string", raw)
+			errs = multierror.Append(errs, err)
+		}
+	}
+
+	if raw, ok := data["destination"]; ok {
+		delete(data, "destination")
+		if typed, ok := raw.(string); ok {
+			template.Destination = typed
+		} else {
+			err := fmt.Errorf("template: destination: cannot convert %T to string", raw)
+			errs = multierror.Append(errs, err)
+		}
+	}
+
+	if raw, ok := data["command"]; ok {
+		delete(data, "command")
+		if typed, ok := raw.(string); ok {
+			template.Command = typed
+		} else {
+			err := fmt.Errorf("template: command: cannot convert %T to string", raw)
+			errs = multierror.Append(errs, err)
+		}
+	}
+
+	if template.Source == "" {
+		err := fmt.Errorf("template: missing source")
+		errs = multierror.Append(errs, err)
+	}
+
+	if len(data) > 0 {
+		err := fmt.Errorf("template: unknown field(s): %s", keysToList(data))
+		errs = multierror.Append(errs, err)
+	}
+
+	return template, errs.ErrorOrNil()
 }
 
 // VaultConfig is the configuration for connecting to a vault server.
 type VaultConfig struct {
-	Address string `json:"address" mapstructure:"address"`
-	Token   string `json:"-" mapstructure:"token"`
+	Address string `json:"address"`
+	Token   string `json:"-"`
 
 	// SSL indicates we should use a secure connection while talking to Vault.
-	SSL    *SSLConfig   `json:"ssl" mapstructure:"-"`
-	SSLRaw []*SSLConfig `json:"-" mapstructure:"ssl"`
+	SSL *SSLConfig `json:"ssl"`
+}
+
+// DecodeVaultConfig decodes the given map into an VaultConfig.
+func DecodeVaultConfig(data map[string]interface{}) (*VaultConfig, error) {
+	vault := &VaultConfig{}
+	var errs *multierror.Error
+
+	if raw, ok := data["address"]; ok {
+		delete(data, "address")
+		if typed, ok := raw.(string); ok {
+			vault.Address = typed
+		} else {
+			err := fmt.Errorf("vault: address: cannot convert %T to string", raw)
+			errs = multierror.Append(errs, err)
+		}
+	}
+
+	if raw, ok := data["token"]; ok {
+		delete(data, "token")
+		if typed, ok := raw.(string); ok {
+			vault.Token = typed
+		} else {
+			err := fmt.Errorf("vault: token: cannot convert %T to string", raw)
+			errs = multierror.Append(errs, err)
+		}
+	}
+
+	if raw, ok := data["ssl"]; ok {
+		delete(data, "ssl")
+		if typed, ok := raw.([]map[string]interface{}); ok {
+			if last := lastConfig(typed); last != nil {
+				if ssl, err := DecodeSSLConfig(last); err == nil {
+					vault.SSL = ssl
+				} else {
+					for _, e := range err.(*multierror.Error).Errors {
+						errs = multierror.Append(errs, fmt.Errorf("vault: %s", e))
+					}
+				}
+			}
+		} else {
+			err := fmt.Errorf("vault: ssl: cannot convert %T to []map[string]interface{}", raw)
+			errs = multierror.Append(errs, err)
+		}
+	}
+
+	if len(data) > 0 {
+		err := fmt.Errorf("vault: unknown field(s): %s", keysToList(data))
+		errs = multierror.Append(errs, err)
+	}
+
+	return vault, errs.ErrorOrNil()
 }
 
 // ParseConfigTemplate parses a string into a ConfigTemplate struct
@@ -367,4 +754,24 @@ func ParseConfigTemplate(s string) (*ConfigTemplate, error) {
 	}
 
 	return &ConfigTemplate{source, destination, command}, nil
+}
+
+// lastConfig gets the last item in the map for config purposes. If the map is
+// empty or nil, nil is returned.
+func lastConfig(list []map[string]interface{}) map[string]interface{} {
+	if len(list) == 0 {
+		return nil
+	}
+	return list[len(list)-1]
+}
+
+// keysToList gets the list of keys from the given map and converts them to a
+// comma-separated list.
+func keysToList(data map[string]interface{}) string {
+	list := make([]string, 0, len(data))
+	for k, _ := range data {
+		list = append(list, fmt.Sprintf("%q", k))
+	}
+	sort.Strings(list)
+	return strings.Join(list, ", ")
 }
