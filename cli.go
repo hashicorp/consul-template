@@ -156,13 +156,13 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	flags.StringVar(&config.Consul, "consul", config.Consul, "")
 	flags.StringVar(&config.Token, "token", config.Token, "")
 	flags.Var((*authConfigVar)(config.Auth), "auth", "")
-	flags.BoolVar(&sslEnabled, "ssl", true, "")
-	flags.BoolVar(&sslVerify, "ssl-verify", false, "")
+	flags.BoolVar(&sslEnabled, "ssl", false, "")
+	flags.BoolVar(&sslVerify, "ssl-verify", true, "")
 	flags.StringVar(&config.SSL.Cert, "ssl-cert", config.SSL.Cert, "")
 	flags.StringVar(&config.SSL.CaCert, "ssl-ca-cert", config.SSL.CaCert, "")
 	flags.DurationVar(&config.MaxStale, "max-stale", config.MaxStale, "")
 	flags.Var((*configTemplateVar)(&config.ConfigTemplates), "template", "")
-	flags.BoolVar(&syslogEnabled, "syslog", true, "")
+	flags.BoolVar(&syslogEnabled, "syslog", false, "")
 	flags.StringVar(&config.Syslog.Facility, "syslog-facility", config.Syslog.Facility, "")
 	flags.Var((*watch.WaitVar)(config.Wait), "wait", "")
 	flags.DurationVar(&config.Retry, "retry", config.Retry, "")
@@ -194,9 +194,7 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 		config.SSL.Enabled = BoolTrue
 	}
 
-	if sslVerify {
-		config.SSL.Verify = BoolTrue
-	} else {
+	if !sslVerify {
 		config.SSL.Verify = BoolFalse
 	}
 
