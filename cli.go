@@ -153,6 +153,7 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	config.Vault.SSL.Verify = BoolUnset
 
 	var sslEnabled, sslVerify, syslogEnabled bool
+	var sslEnabledProvided, sslVerifyProvided, syslogEnabledProvided bool
 
 	// Parse the flags and options
 	flags := flag.NewFlagSet(Name, flag.ContinueOnError)
@@ -184,6 +185,20 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	var deprecatedSSLNoVerify bool
 	flags.BoolVar(&deprecatedSSLNoVerify, "ssl-no-verify", false, "")
 
+	// Because Go's default value for booleans are false, we need to track
+	// auxillary values to see if they were actually provided. It has a pretty
+	// high degree of sadness.
+	for _, arg := range args {
+		switch arg {
+		case "-ssl", "-ssl=", "-ssl=true", "-ssl=false":
+			sslEnabledProvided = true
+		case "-ssl-verify", "-ssl-verify=", "-ssl-verify=true", "-ssl-verify=false":
+			sslVerifyProvided = true
+		case "-syslog", "-syslog=", "-syslog=true", "-syslog=false":
+			syslogEnabledProvided = true
+		}
+	}
+
 	// If there was a parser error, stop
 	if err := flags.Parse(args); err != nil {
 		return nil, false, false, false, err
@@ -197,16 +212,28 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	}
 
 	// Handle Go's terrible default boolean values
-	if sslEnabled {
-		config.SSL.Enabled = BoolTrue
+	if sslEnabledProvided {
+		if sslEnabled {
+			config.SSL.Enabled = BoolTrue
+		} else {
+			config.SSL.Enabled = BoolFalse
+		}
 	}
 
-	if !sslVerify {
-		config.SSL.Verify = BoolFalse
+	if sslVerifyProvided {
+		if sslVerify {
+			config.SSL.Verify = BoolTrue
+		} else {
+			config.SSL.Verify = BoolFalse
+		}
 	}
 
-	if syslogEnabled {
-		config.Syslog.Enabled = BoolTrue
+	if syslogEnabledProvided {
+		if syslogEnabled {
+			config.Syslog.Enabled = BoolTrue
+		} else {
+			config.Syslog.Enabled = BoolFalse
+		}
 	}
 
 	// Handle deprecations
