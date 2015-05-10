@@ -14,6 +14,7 @@ import (
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul-template/watch"
+	"github.com/hashicorp/consul/testutil"
 )
 
 func TestNewRunner_initialize(t *testing.T) {
@@ -473,8 +474,13 @@ func TestRun_multipleTemplatesRunsCommands(t *testing.T) {
 // check the demo Consul cluster and your own sanity before you assume your
 // code broke something...
 func TestRunner_quiescence(t *testing.T) {
+	consul := testutil.NewTestServer(t)
+	defer consul.Stop()
+
+	consul.SetKV("foo", []byte("bar"))
+
 	in := test.CreateTempfile([]byte(`
-    {{ range service "consul" "any" }}{{.Node}}{{ end }}
+    {{ key "foo" }}
   `), t)
 	defer test.DeleteTempfile(in, t)
 
@@ -482,7 +488,7 @@ func TestRunner_quiescence(t *testing.T) {
 	test.DeleteTempfile(out, t)
 
 	config := &Config{
-		Consul: "demo.consul.io",
+		Consul: consul.HTTPAddr,
 		Wait: &watch.Wait{
 			Min: 50 * time.Millisecond,
 			Max: 200 * time.Second,
