@@ -53,7 +53,7 @@ func TestParseFlags_authUsername(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if config.Auth.Enabled != true {
+	if config.Auth.Enabled != BoolTrue {
 		t.Errorf("expected auth to be enabled")
 	}
 
@@ -72,7 +72,7 @@ func TestParseFlags_authUsernamePassword(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if config.Auth.Enabled != true {
+	if config.Auth.Enabled != BoolTrue {
 		t.Errorf("expected auth to be enabled")
 	}
 
@@ -94,9 +94,8 @@ func TestParseFlags_SSL(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := true
-	if config.SSL.Enabled != expected {
-		t.Errorf("expected %v to be %v", config.SSL.Enabled, expected)
+	if config.SSL.Enabled != BoolTrue {
+		t.Errorf("expected %v to be %v", config.SSL.Enabled, BoolTrue)
 	}
 }
 
@@ -109,9 +108,8 @@ func TestParseFlags_noSSL(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := false
-	if config.SSL.Enabled != expected {
-		t.Errorf("expected %v to be %v", config.SSL.Enabled, expected)
+	if config.SSL.Enabled != BoolFalse {
+		t.Errorf("expected %v to be %v", config.SSL.Enabled, BoolFalse)
 	}
 }
 
@@ -124,9 +122,8 @@ func TestParseFlags_SSLVerify(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := true
-	if config.SSL.Verify != expected {
-		t.Errorf("expected %v to be %v", config.SSL.Verify, expected)
+	if config.SSL.Verify != BoolTrue {
+		t.Errorf("expected %v to be %v", config.SSL.Verify, BoolTrue)
 	}
 }
 
@@ -139,9 +136,8 @@ func TestParseFlags_noSSLVerify(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := false
-	if config.SSL.Verify != expected {
-		t.Errorf("expected %v to be %v", config.SSL.Verify, expected)
+	if config.SSL.Verify != BoolFalse {
+		t.Errorf("expected %v to be %v", config.SSL.Verify, BoolFalse)
 	}
 }
 
@@ -222,9 +218,8 @@ func TestParseFlags_syslog(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := true
-	if config.Syslog.Enabled != expected {
-		t.Errorf("expected %v to be %v", config.Syslog.Enabled, expected)
+	if config.Syslog.Enabled != BoolTrue {
+		t.Errorf("expected %v to be %v", config.Syslog.Enabled, BoolTrue)
 	}
 }
 

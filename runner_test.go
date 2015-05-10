@@ -849,13 +849,13 @@ func TestExecute_setsEnv(t *testing.T) {
 		Consul: "1.2.3.4:5678",
 		Token:  "abcd1243",
 		Auth: &AuthConfig{
-			Enabled:  true,
+			Enabled:  BoolTrue,
 			Username: "username",
 			Password: "password",
 		},
 		SSL: &SSLConfig{
-			Enabled: true,
-			Verify:  false,
+			Enabled: BoolTrue,
+			Verify:  BoolFalse,
 		},
 	}
 
@@ -963,7 +963,7 @@ func TestBuildConfig_BadConfigs(t *testing.T) {
 		t.Fatalf("expected error, but nothing was returned")
 	}
 
-	expected := "1 error(s) occurred"
+	expected := "syntax error"
 	if !strings.Contains(err.Error(), expected) {
 		t.Fatalf("expected %q to contain %q", err.Error(), expected)
 	}
@@ -980,7 +980,7 @@ func TestBuildConfig_configTakesPrecedence(t *testing.T) {
 	config := &Config{
 		Path: configFile.Name(),
 		SSL: &SSLConfig{
-			Enabled: true,
+			Enabled: BoolTrue,
 		},
 	}
 
@@ -989,7 +989,7 @@ func TestBuildConfig_configTakesPrecedence(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if runner.config.SSL.Enabled != true {
+	if runner.config.SSL.Enabled != BoolTrue {
 		t.Error("expected config.SSL.Enabled to be true")
 	}
 }

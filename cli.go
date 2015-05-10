@@ -65,7 +65,7 @@ func (cli *CLI) Run(args []string) int {
 	if err := logging.Setup(&logging.Config{
 		Name:           Name,
 		Level:          config.LogLevel,
-		Syslog:         config.Syslog.Enabled,
+		Syslog:         config.Syslog.Enabled == BoolTrue,
 		SyslogFacility: config.Syslog.Facility,
 		Writer:         cli.errStream,
 	}); err != nil {
@@ -191,7 +191,7 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	if deprecatedSSLNoVerify {
 		log.Printf("[WARN] -ssl-no-verify is deprecated - please use " +
 			"-ssl-verify=false instead")
-		config.SSL.Verify = false
+		config.SSL.Verify = BoolFalse
 	}
 
 	return config, once, dry, version, nil

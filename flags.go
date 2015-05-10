@@ -34,7 +34,7 @@ type authConfigVar AuthConfig
 
 // Set sets the value for this authentication.
 func (a *authConfigVar) Set(value string) error {
-	a.Enabled = true
+	a.Enabled = BoolTrue
 
 	if strings.Contains(value, ":") {
 		split := strings.SplitN(value, ":", 2)
