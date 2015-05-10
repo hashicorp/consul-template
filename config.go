@@ -429,6 +429,26 @@ func DefaultConfig() *Config {
 	}
 }
 
+// EmptyConfig is a blank config that has all the associations setup.
+func EmptyConfig() *Config {
+	logLevel := os.Getenv("CONSUL_TEMPLATE_LOG")
+	if logLevel == "" {
+		logLevel = "WARN"
+	}
+
+	return &Config{
+		Vault: &VaultConfig{
+			SSL: &SSLConfig{},
+		},
+		Auth:            &AuthConfig{},
+		SSL:             &SSLConfig{},
+		Syslog:          &SyslogConfig{},
+		ConfigTemplates: []*ConfigTemplate{},
+		Retry:           0 * time.Second,
+		Wait:            &watch.Wait{},
+	}
+}
+
 // AuthConfig is the HTTP basic authentication data.
 type AuthConfig struct {
 	Enabled  Bool   `json:"enabled"`

@@ -143,14 +143,7 @@ func (cli *CLI) stop() {
 // much easier and cleaner.
 func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	var dry, once, version bool
-	var config = DefaultConfig()
-
-	// Unset default boolean values - since CLI takes precedence during a merge,
-	// we must reset these to the unset values
-	config.SSL.Enabled = BoolUnset
-	config.SSL.Verify = BoolUnset
-	config.Vault.SSL.Enabled = BoolUnset
-	config.Vault.SSL.Verify = BoolUnset
+	var config = EmptyConfig()
 
 	var sslEnabled, sslVerify, syslogEnabled bool
 	var sslEnabledProvided, sslVerifyProvided, syslogEnabledProvided bool
@@ -175,7 +168,7 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	flags.Var((*watch.WaitVar)(config.Wait), "wait", "")
 	flags.DurationVar(&config.Retry, "retry", config.Retry, "")
 	flags.StringVar(&config.Path, "config", config.Path, "")
-	flags.StringVar(&config.LogLevel, "log-level", config.LogLevel, "")
+	flags.StringVar(&config.LogLevel, "log-level", "warn", "")
 	flags.BoolVar(&once, "once", false, "")
 	flags.BoolVar(&dry, "dry", false, "")
 	flags.BoolVar(&version, "v", false, "")
