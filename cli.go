@@ -145,6 +145,13 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	var dry, once, version bool
 	var config = DefaultConfig()
 
+	// Unset default boolean values - since CLI takes precedence during a merge,
+	// we must reset these to the unset values
+	config.SSL.Enabled = BoolUnset
+	config.SSL.Verify = BoolUnset
+	config.Vault.SSL.Enabled = BoolUnset
+	config.Vault.SSL.Verify = BoolUnset
+
 	var sslEnabled, sslVerify, syslogEnabled bool
 
 	// Parse the flags and options
