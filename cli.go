@@ -145,6 +145,8 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	var dry, once, version bool
 	var config = DefaultConfig()
 
+	var sslEnabled, sslVerify, syslogEnabled bool
+
 	// Parse the flags and options
 	flags := flag.NewFlagSet(Name, flag.ContinueOnError)
 	flags.SetOutput(cli.errStream)
@@ -154,13 +156,13 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	flags.StringVar(&config.Consul, "consul", config.Consul, "")
 	flags.StringVar(&config.Token, "token", config.Token, "")
 	flags.Var((*authConfigVar)(config.Auth), "auth", "")
-	flags.BoolVar(&config.SSL.Enabled, "ssl", config.SSL.Enabled, "")
-	flags.BoolVar(&config.SSL.Verify, "ssl-verify", config.SSL.Verify, "")
+	flags.BoolVar(&sslEnabled, "ssl", true, "")
+	flags.BoolVar(&sslVerify, "ssl-verify", false, "")
 	flags.StringVar(&config.SSL.Cert, "ssl-cert", config.SSL.Cert, "")
 	flags.StringVar(&config.SSL.CaCert, "ssl-ca-cert", config.SSL.CaCert, "")
 	flags.DurationVar(&config.MaxStale, "max-stale", config.MaxStale, "")
 	flags.Var((*configTemplateVar)(&config.ConfigTemplates), "template", "")
-	flags.BoolVar(&config.Syslog.Enabled, "syslog", config.Syslog.Enabled, "")
+	flags.BoolVar(&syslogEnabled, "syslog", true, "")
 	flags.StringVar(&config.Syslog.Facility, "syslog-facility", config.Syslog.Facility, "")
 	flags.Var((*watch.WaitVar)(config.Wait), "wait", "")
 	flags.DurationVar(&config.Retry, "retry", config.Retry, "")
@@ -173,7 +175,7 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 
 	// Deprecated options
 	var deprecatedSSLNoVerify bool
-	flags.BoolVar(&deprecatedSSLNoVerify, "ssl-no-verify", !config.SSL.Verify, "")
+	flags.BoolVar(&deprecatedSSLNoVerify, "ssl-no-verify", false, "")
 
 	// If there was a parser error, stop
 	if err := flags.Parse(args); err != nil {
@@ -185,6 +187,21 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	if len(args) > 0 {
 		return nil, false, false, false, fmt.Errorf("cli: extra argument(s): %q",
 			args)
+	}
+
+	// Handle Go's terrible default boolean values
+	if sslEnabled {
+		config.SSL.Enabled = BoolTrue
+	}
+
+	if sslVerify {
+		config.SSL.Verify = BoolTrue
+	} else {
+		config.SSL.Verify = BoolFalse
+	}
+
+	if syslogEnabled {
+		config.Syslog.Enabled = BoolTrue
 	}
 
 	// Handle deprecations
