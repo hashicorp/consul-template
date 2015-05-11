@@ -554,8 +554,8 @@ func (r *Runner) execute(command string) error {
 		"CONSUL_HTTP_ADDR":       r.config.Consul,
 		"CONSUL_HTTP_TOKEN":      r.config.Token,
 		"CONSUL_HTTP_AUTH":       r.config.Auth.String(),
-		"CONSUL_HTTP_SSL":        strconv.FormatBool(r.config.SSL.Enabled),
-		"CONSUL_HTTP_SSL_VERIFY": strconv.FormatBool(r.config.SSL.Verify),
+		"CONSUL_HTTP_SSL":        strconv.FormatBool(r.config.SSL.Enabled == BoolTrue),
+		"CONSUL_HTTP_SSL_VERIFY": strconv.FormatBool(r.config.SSL.Verify == BoolTrue),
 	}
 	currentEnv := os.Environ()
 	cmdEnv := make([]string, len(currentEnv), len(currentEnv)+len(customEnv))
@@ -755,7 +755,7 @@ func newConsulClient(config *Config) (*consulapi.Client, error) {
 		consulConfig.Token = config.Token
 	}
 
-	if config.SSL.Enabled {
+	if config.SSL.Enabled == BoolTrue {
 		log.Printf("[DEBUG] (runner) enabling consul SSL")
 		consulConfig.Scheme = "https"
 
@@ -780,7 +780,7 @@ func newConsulClient(config *Config) (*consulapi.Client, error) {
 		}
 		tlsConfig.BuildNameToCertificate()
 
-		if !config.SSL.Verify {
+		if config.SSL.Verify == BoolFalse {
 			log.Printf("[WARN] (runner) disabling consul SSL verification")
 			tlsConfig.InsecureSkipVerify = true
 		}
@@ -789,7 +789,7 @@ func newConsulClient(config *Config) (*consulapi.Client, error) {
 		}
 	}
 
-	if config.Auth.Enabled {
+	if config.Auth.Enabled == BoolTrue {
 		log.Printf("[DEBUG] (runner) setting basic auth")
 		consulConfig.HttpAuth = &consulapi.HttpBasicAuth{
 			Username: config.Auth.Username,
@@ -816,7 +816,7 @@ func newVaultClient(config *Config) (*vaultapi.Client, error) {
 		vaultConfig.Address = config.Vault.Address
 	}
 
-	if config.Vault.SSL.Enabled {
+	if config.Vault.SSL.Enabled == BoolTrue {
 		log.Printf("[DEBUG] (runner) enabling vault SSL")
 		tlsConfig := &tls.Config{}
 
@@ -840,7 +840,7 @@ func newVaultClient(config *Config) (*vaultapi.Client, error) {
 		}
 		tlsConfig.BuildNameToCertificate()
 
-		if !config.Vault.SSL.Verify {
+		if config.Vault.SSL.Verify == BoolFalse {
 			log.Printf("[WARN] (runner) disabling vault SSL verification")
 			tlsConfig.InsecureSkipVerify = true
 		}

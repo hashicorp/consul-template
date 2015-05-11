@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul-template/watch"
+	"github.com/hashicorp/consul/testutil"
 )
 
 func TestParseFlags_consul(t *testing.T) {
@@ -53,7 +54,7 @@ func TestParseFlags_authUsername(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if config.Auth.Enabled != true {
+	if config.Auth.Enabled != BoolTrue {
 		t.Errorf("expected auth to be enabled")
 	}
 
@@ -72,7 +73,7 @@ func TestParseFlags_authUsernamePassword(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if config.Auth.Enabled != true {
+	if config.Auth.Enabled != BoolTrue {
 		t.Errorf("expected auth to be enabled")
 	}
 
@@ -94,9 +95,8 @@ func TestParseFlags_SSL(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := true
-	if config.SSL.Enabled != expected {
-		t.Errorf("expected %v to be %v", config.SSL.Enabled, expected)
+	if config.SSL.Enabled != BoolTrue {
+		t.Errorf("expected %v to be %v", config.SSL.Enabled, BoolTrue)
 	}
 }
 
@@ -109,9 +109,8 @@ func TestParseFlags_noSSL(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := false
-	if config.SSL.Enabled != expected {
-		t.Errorf("expected %v to be %v", config.SSL.Enabled, expected)
+	if config.SSL.Enabled != BoolFalse {
+		t.Errorf("expected %v to be %v", config.SSL.Enabled, BoolFalse)
 	}
 }
 
@@ -124,9 +123,8 @@ func TestParseFlags_SSLVerify(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := true
-	if config.SSL.Verify != expected {
-		t.Errorf("expected %v to be %v", config.SSL.Verify, expected)
+	if config.SSL.Verify != BoolTrue {
+		t.Errorf("expected %v to be %v", config.SSL.Verify, BoolTrue)
 	}
 }
 
@@ -139,9 +137,8 @@ func TestParseFlags_noSSLVerify(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := false
-	if config.SSL.Verify != expected {
-		t.Errorf("expected %v to be %v", config.SSL.Verify, expected)
+	if config.SSL.Verify != BoolFalse {
+		t.Errorf("expected %v to be %v", config.SSL.Verify, BoolFalse)
 	}
 }
 
@@ -222,9 +219,8 @@ func TestParseFlags_syslog(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := true
-	if config.Syslog.Enabled != expected {
-		t.Errorf("expected %v to be %v", config.Syslog.Enabled, expected)
+	if config.Syslog.Enabled != BoolTrue {
+		t.Errorf("expected %v to be %v", config.Syslog.Enabled, BoolTrue)
 	}
 }
 
@@ -448,18 +444,24 @@ func TestRun_parseError(t *testing.T) {
 }
 
 func TestRun_onceFlag(t *testing.T) {
+	consul := testutil.NewTestServer(t)
+	defer consul.Stop()
+
+	consul.SetKV("foo", []byte("bar"))
+
 	template := test.CreateTempfile([]byte(`
-	{{range service "consul"}}{{.Name}}{{end}}
+	{{key "foo"}}
   `), t)
 	defer test.DeleteTempfile(template, t)
 
 	out := test.CreateTempfile(nil, t)
 	defer test.DeleteTempfile(out, t)
 
-	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
-	cli := NewCLI(outStream, errStream)
+	outStream := new(bytes.Buffer)
+	cli := NewCLI(outStream, outStream)
 
-	command := fmt.Sprintf("consul-template -consul demo.consul.io -template %s:%s -once", template.Name(), out.Name())
+	command := fmt.Sprintf("consul-template -consul %s -template %s:%s -once -log-level debug",
+		consul.HTTPAddr, template.Name(), out.Name())
 	args := strings.Split(command, " ")
 
 	ch := make(chan int, 1)
@@ -471,10 +473,11 @@ func TestRun_onceFlag(t *testing.T) {
 	case status := <-ch:
 		if status != ExitCodeOK {
 			t.Errorf("expected %d to eq %d", status, ExitCodeOK)
-			t.Errorf("stderr: %s", errStream.String())
+			t.Errorf("out: %s", outStream.String())
 		}
-	case <-time.After(2 * time.Second):
-		t.Errorf("expected exit, did not exit after 2 seconds")
+	case <-time.After(500 * time.Millisecond):
+		t.Errorf("expected exit, did not exit after 500ms")
+		t.Errorf("out: %s", outStream.String())
 	}
 }
 

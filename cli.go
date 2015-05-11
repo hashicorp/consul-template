@@ -65,7 +65,7 @@ func (cli *CLI) Run(args []string) int {
 	if err := logging.Setup(&logging.Config{
 		Name:           Name,
 		Level:          config.LogLevel,
-		Syslog:         config.Syslog.Enabled,
+		Syslog:         config.Syslog.Enabled == BoolTrue,
 		SyslogFacility: config.Syslog.Facility,
 		Writer:         cli.errStream,
 	}); err != nil {
@@ -143,7 +143,10 @@ func (cli *CLI) stop() {
 // much easier and cleaner.
 func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	var dry, once, version bool
-	var config = DefaultConfig()
+	var config = EmptyConfig()
+
+	var sslEnabled, sslVerify, syslogEnabled bool
+	var sslEnabledProvided, sslVerifyProvided, syslogEnabledProvided bool
 
 	// Parse the flags and options
 	flags := flag.NewFlagSet(Name, flag.ContinueOnError)
@@ -154,18 +157,18 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	flags.StringVar(&config.Consul, "consul", config.Consul, "")
 	flags.StringVar(&config.Token, "token", config.Token, "")
 	flags.Var((*authConfigVar)(config.Auth), "auth", "")
-	flags.BoolVar(&config.SSL.Enabled, "ssl", config.SSL.Enabled, "")
-	flags.BoolVar(&config.SSL.Verify, "ssl-verify", config.SSL.Verify, "")
+	flags.BoolVar(&sslEnabled, "ssl", false, "")
+	flags.BoolVar(&sslVerify, "ssl-verify", true, "")
 	flags.StringVar(&config.SSL.Cert, "ssl-cert", config.SSL.Cert, "")
 	flags.StringVar(&config.SSL.CaCert, "ssl-ca-cert", config.SSL.CaCert, "")
 	flags.DurationVar(&config.MaxStale, "max-stale", config.MaxStale, "")
 	flags.Var((*configTemplateVar)(&config.ConfigTemplates), "template", "")
-	flags.BoolVar(&config.Syslog.Enabled, "syslog", config.Syslog.Enabled, "")
+	flags.BoolVar(&syslogEnabled, "syslog", false, "")
 	flags.StringVar(&config.Syslog.Facility, "syslog-facility", config.Syslog.Facility, "")
 	flags.Var((*watch.WaitVar)(config.Wait), "wait", "")
 	flags.DurationVar(&config.Retry, "retry", config.Retry, "")
 	flags.StringVar(&config.Path, "config", config.Path, "")
-	flags.StringVar(&config.LogLevel, "log-level", config.LogLevel, "")
+	flags.StringVar(&config.LogLevel, "log-level", "warn", "")
 	flags.BoolVar(&once, "once", false, "")
 	flags.BoolVar(&dry, "dry", false, "")
 	flags.BoolVar(&version, "v", false, "")
@@ -173,7 +176,21 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 
 	// Deprecated options
 	var deprecatedSSLNoVerify bool
-	flags.BoolVar(&deprecatedSSLNoVerify, "ssl-no-verify", !config.SSL.Verify, "")
+	flags.BoolVar(&deprecatedSSLNoVerify, "ssl-no-verify", false, "")
+
+	// Because Go's default value for booleans are false, we need to track
+	// auxillary values to see if they were actually provided. It has a pretty
+	// high degree of sadness.
+	for _, arg := range args {
+		switch arg {
+		case "-ssl", "-ssl=", "-ssl=true", "-ssl=false":
+			sslEnabledProvided = true
+		case "-ssl-verify", "-ssl-verify=", "-ssl-verify=true", "-ssl-verify=false":
+			sslVerifyProvided = true
+		case "-syslog", "-syslog=", "-syslog=true", "-syslog=false":
+			syslogEnabledProvided = true
+		}
+	}
 
 	// If there was a parser error, stop
 	if err := flags.Parse(args); err != nil {
@@ -187,11 +204,36 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 			args)
 	}
 
+	// Handle Go's terrible default boolean values
+	if sslEnabledProvided {
+		if sslEnabled {
+			config.SSL.Enabled = BoolTrue
+		} else {
+			config.SSL.Enabled = BoolFalse
+		}
+	}
+
+	if sslVerifyProvided {
+		if sslVerify {
+			config.SSL.Verify = BoolTrue
+		} else {
+			config.SSL.Verify = BoolFalse
+		}
+	}
+
+	if syslogEnabledProvided {
+		if syslogEnabled {
+			config.Syslog.Enabled = BoolTrue
+		} else {
+			config.Syslog.Enabled = BoolFalse
+		}
+	}
+
 	// Handle deprecations
 	if deprecatedSSLNoVerify {
 		log.Printf("[WARN] -ssl-no-verify is deprecated - please use " +
 			"-ssl-verify=false instead")
-		config.SSL.Verify = false
+		config.SSL.Verify = BoolFalse
 	}
 
 	return config, once, dry, version, nil

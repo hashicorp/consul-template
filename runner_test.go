@@ -14,6 +14,7 @@ import (
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul-template/watch"
+	"github.com/hashicorp/consul/testutil"
 )
 
 func TestNewRunner_initialize(t *testing.T) {
@@ -473,8 +474,13 @@ func TestRun_multipleTemplatesRunsCommands(t *testing.T) {
 // check the demo Consul cluster and your own sanity before you assume your
 // code broke something...
 func TestRunner_quiescence(t *testing.T) {
+	consul := testutil.NewTestServer(t)
+	defer consul.Stop()
+
+	consul.SetKV("foo", []byte("bar"))
+
 	in := test.CreateTempfile([]byte(`
-    {{ range service "consul" "any" }}{{.Node}}{{ end }}
+    {{ key "foo" }}
   `), t)
 	defer test.DeleteTempfile(in, t)
 
@@ -482,7 +488,7 @@ func TestRunner_quiescence(t *testing.T) {
 	test.DeleteTempfile(out, t)
 
 	config := &Config{
-		Consul: "demo.consul.io",
+		Consul: consul.HTTPAddr,
 		Wait: &watch.Wait{
 			Min: 50 * time.Millisecond,
 			Max: 200 * time.Second,
@@ -849,13 +855,13 @@ func TestExecute_setsEnv(t *testing.T) {
 		Consul: "1.2.3.4:5678",
 		Token:  "abcd1243",
 		Auth: &AuthConfig{
-			Enabled:  true,
+			Enabled:  BoolTrue,
 			Username: "username",
 			Password: "password",
 		},
 		SSL: &SSLConfig{
-			Enabled: true,
-			Verify:  false,
+			Enabled: BoolTrue,
+			Verify:  BoolFalse,
 		},
 	}
 
@@ -963,7 +969,7 @@ func TestBuildConfig_BadConfigs(t *testing.T) {
 		t.Fatalf("expected error, but nothing was returned")
 	}
 
-	expected := "1 error(s) occurred"
+	expected := "syntax error"
 	if !strings.Contains(err.Error(), expected) {
 		t.Fatalf("expected %q to contain %q", err.Error(), expected)
 	}
@@ -980,7 +986,7 @@ func TestBuildConfig_configTakesPrecedence(t *testing.T) {
 	config := &Config{
 		Path: configFile.Name(),
 		SSL: &SSLConfig{
-			Enabled: true,
+			Enabled: BoolTrue,
 		},
 	}
 
@@ -989,7 +995,7 @@ func TestBuildConfig_configTakesPrecedence(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if runner.config.SSL.Enabled != true {
+	if runner.config.SSL.Enabled != BoolTrue {
 		t.Error("expected config.SSL.Enabled to be true")
 	}
 }
