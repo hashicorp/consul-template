@@ -382,7 +382,7 @@ If you omit the datacenter attribute on `tree`, the local Consul datacenter will
 Query [Vault](https://vaultproject.io) for the secret data at the given path. If the path does not exist or if the configured vault token does not have permission to read the path, an error will be returned:
 
 ```liquid
-{{with secret "secret/passwords"}}{{.Data.password}}{{end}}
+{{with vault "secret/passwords"}}{{.Data.password}}{{end}}
 ```
 
 The following fields are available:
