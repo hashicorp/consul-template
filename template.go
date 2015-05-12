@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"strings"
 	"text/template"
 
 	dep "github.com/hashicorp/consul-template/dependency"
@@ -108,5 +109,9 @@ func funcMap(brain *Brain, used, missing map[string]dep.Dependency) template.Fun
 		"toLower":         toLower,
 		"toTitle":         toTitle,
 		"toUpper":         toUpper,
+		"split":           strings.Split,
+		"splitWith":       splitWith,
+		"join":            strings.Join,
+		"joinWith":        joinWith,
 	}
 }
