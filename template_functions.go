@@ -452,3 +452,13 @@ func addDependency(m map[string]dep.Dependency, d dep.Dependency) {
 		m[d.HashCode()] = d
 	}
 }
+
+// splitWith is a version of strings.Split that can be piped
+func splitWith(sep, s string) ([]string, error) {
+	return strings.Split(s, sep), nil
+}
+
+// joinWith is a version of strings.Join that can be piped
+func joinWith(sep string, a []string) (string, error) {
+	return strings.Join(a, sep), nil
+}
