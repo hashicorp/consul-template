@@ -1071,3 +1071,32 @@ func TestRegexMatch(t *testing.T) {
 		t.Errorf("expected %t to be %t", result, expected)
 	}
 }
+
+func TestSplitWith(t *testing.T) {
+	result, err := splitWith("\n", "foo bar\nbaz")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := make([]string, 2)
+	expected[0] = "foo bar"
+	expected[1] = "baz"
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("Expected %q to be %q", result, expected)
+	}
+}
+
+func TestJoinWith(t *testing.T) {
+	src := make([]string, 2)
+	src[0] = "foo bar"
+	src[1] = "baz"
+	result, err := joinWith("_", src)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "foo bar_baz"
+	if result != expected {
+		t.Errorf("Expected %q to be %q", result, expected)
+	}
+}
