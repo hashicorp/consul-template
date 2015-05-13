@@ -3,21 +3,23 @@ package main
 import (
 	"fmt"
 	"strings"
+
+	"github.com/marouenj/consul-template/core"
 )
 
 // configTemplateVar implements the Flag.Value interface and allows the user
 // to specify multiple -template keys in the CLI where each option is parsed
 // as a template.
-type configTemplateVar []*ConfigTemplate
+type configTemplateVar []*core.ConfigTemplate
 
 func (ctv *configTemplateVar) Set(value string) error {
-	template, err := ParseConfigTemplate(value)
+	template, err := core.ParseConfigTemplate(value)
 	if err != nil {
 		return err
 	}
 
 	if *ctv == nil {
-		*ctv = make([]*ConfigTemplate, 0, 1)
+		*ctv = make([]*core.ConfigTemplate, 0, 1)
 	}
 	*ctv = append(*ctv, template)
 
@@ -30,7 +32,7 @@ func (ctv *configTemplateVar) String() string {
 
 // authConfigVar implements the Flag.Value interface and allows the user to specify
 // authentication in the username[:password] form.
-type authConfigVar AuthConfig
+type authConfigVar core.AuthConfig
 
 // Set sets the value for this authentication.
 func (a *authConfigVar) Set(value string) error {

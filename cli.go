@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"github.com/marouenj/consul-template/logging"
+	"github.com/marouenj/consul-template/core"
 	"github.com/marouenj/consul-template/watch"
 )
 
@@ -82,7 +83,7 @@ func (cli *CLI) Run(args []string) int {
 	}
 
 	// Initial runner
-	runner, err := NewRunner(config, dry, once)
+	runner, err := core.NewRunner(config, dry, once)
 	if err != nil {
 		return cli.handleError(err, ExitCodeRunnerError)
 	}
@@ -112,7 +113,7 @@ func (cli *CLI) Run(args []string) int {
 			case syscall.SIGHUP:
 				fmt.Fprintf(cli.errStream, "Received HUP, reloading configuration...\n")
 				runner.Stop()
-				runner, err = NewRunner(config, dry, once)
+				runner, err = core.NewRunner(config, dry, once)
 				if err != nil {
 					return cli.handleError(err, ExitCodeRunnerError)
 				}
@@ -141,9 +142,9 @@ func (cli *CLI) stop() {
 // Flag library. This is extracted into a helper to keep the main function
 // small, but it also makes writing tests for parsing command line arguments
 // much easier and cleaner.
-func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
+func (cli *CLI) parseFlags(args []string) (*core.Config, bool, bool, bool, error) {
 	var dry, once, version bool
-	var config = DefaultConfig()
+	var config = core.DefaultConfig()
 
 	// Parse the flags and options
 	flags := flag.NewFlagSet(Name, flag.ContinueOnError)
