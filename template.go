@@ -100,6 +100,7 @@ func funcMap(brain *Brain, used, missing map[string]dep.Dependency) template.Fun
 		"byTag":           byTag,
 		"env":             env,
 		"loop":            loop,
+		"join":            join,
 		"parseJSON":       parseJSON,
 		"regexReplaceAll": regexReplaceAll,
 		"regexMatch":      regexMatch,
@@ -108,5 +109,6 @@ func funcMap(brain *Brain, used, missing map[string]dep.Dependency) template.Fun
 		"toLower":         toLower,
 		"toTitle":         toTitle,
 		"toUpper":         toUpper,
+		"split":           split,
 	}
 }

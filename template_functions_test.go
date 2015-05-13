@@ -936,6 +936,21 @@ func TestLoop_twoArgs(t *testing.T) {
 	}
 }
 
+func TestJoin(t *testing.T) {
+	src := make([]string, 2)
+	src[0] = "foo bar"
+	src[1] = "baz"
+	result, err := join("_", src)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "foo bar_baz"
+	if result != expected {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+}
+
 func TestParseJSON(t *testing.T) {
 	result, err := parseJSON(`{"foo": "bar"}`)
 	if err != nil {
@@ -957,6 +972,56 @@ func TestParseJSON_empty(t *testing.T) {
 	expected := make([]interface{}, 0)
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("expected %#v to be %#v", result, expected)
+	}
+}
+
+func TestReplaceAll(t *testing.T) {
+	result, err := replaceAll("bar", "foo", "foobarzipbar")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "foofoozipfoo"
+	if result != expected {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+}
+
+func TestRegexReplaceAll(t *testing.T) {
+	result, err := regexReplaceAll(`[a-z]`, "x", "foobarzipbar")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "xxxxxxxxxxxx"
+	if result != expected {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+}
+
+func TestRegexMatch(t *testing.T) {
+	result, err := regexMatch(`v[0-9]*`, "v3")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := true
+	if result != expected {
+		t.Errorf("expected %t to be %t", result, expected)
+	}
+}
+
+func TestSplit(t *testing.T) {
+	result, err := split("\n", "foo bar\nbaz")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := make([]string, 2)
+	expected[0] = "foo bar"
+	expected[1] = "baz"
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("expected %q to be %q", result, expected)
 	}
 }
 
@@ -1033,41 +1098,5 @@ func TestToUpper(t *testing.T) {
 	expected := "FOO"
 	if result != expected {
 		t.Errorf("expected %q to be %q", result, expected)
-	}
-}
-
-func TestReplaceAll(t *testing.T) {
-	result, err := replaceAll("bar", "foo", "foobarzipbar")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected := "foofoozipfoo"
-	if result != expected {
-		t.Errorf("expected %q to be %q", result, expected)
-	}
-}
-
-func TestRegexReplaceAll(t *testing.T) {
-	result, err := regexReplaceAll(`[a-z]`, "x", "foobarzipbar")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected := "xxxxxxxxxxxx"
-	if result != expected {
-		t.Errorf("expected %q to be %q", result, expected)
-	}
-}
-
-func TestRegexMatch(t *testing.T) {
-	result, err := regexMatch(`v[0-9]*`, "v3")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected := true
-	if result != expected {
-		t.Errorf("expected %t to be %t", result, expected)
 	}
 }
