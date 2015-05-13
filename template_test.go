@@ -253,6 +253,7 @@ func TestExecute_renders(t *testing.T) {
 			test{{end}}
 		loop(i):{{range $i := loop 5 8}}
 			test{{$i}}{{end}}
+		join: {{ "a,b,c" | split "," | join ";" }}
 		parseJSON (string):{{ range $key, $value := "{\"foo\": \"bar\"}" | parseJSON }}
 			{{$key}}={{$value}}{{ end }}
 		parseJSON (file):{{ range $key, $value := file "/path/to/json/file" | parseJSON }}
@@ -265,6 +266,8 @@ func TestExecute_renders(t *testing.T) {
 		regexMatch: {{ file "/path/to/file"  | regexMatch "v[0-9]*" }}
 		regexReplaceAll: {{ file "/path/to/file" | regexReplaceAll "\\w" "x" }}
 		replaceAll: {{ file "/path/to/file" | replaceAll "some" "this" }}
+		split:{{ range "a,b,c" | split "," }}
+			{{.}}{{end}}
 		toLower: {{ file "/path/to/file" | toLower }}
 		toTitle: {{ file "/path/to/file" | toTitle }}
 		toUpper: {{ file "/path/to/file" | toUpper }}
@@ -454,6 +457,7 @@ func TestExecute_renders(t *testing.T) {
 			test5
 			test6
 			test7
+		join: a;b;c
 		parseJSON (string):
 			foo=bar
 		parseJSON (file):
@@ -466,6 +470,10 @@ func TestExecute_renders(t *testing.T) {
 		regexMatch: false
 		regexReplaceAll: xxxx xxxxxxx
 		replaceAll: this content
+		split:
+			a
+			b
+			c
 		toLower: some content
 		toTitle: Some Content
 		toUpper: SOME CONTENT

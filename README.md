@@ -495,6 +495,13 @@ returns a goroutine, not a slice. In other words, the following is **not valid**
 # ...{{end}}
 ```
 
+##### `join`
+Takes the given list of strings as a pipe and joins them on the provided string:
+
+```liquid
+{{$items | join ","}}
+```
+
 ##### `parseJSON`
 Takes the given input (usually the value from a key) and parses the result as JSON:
 
@@ -545,6 +552,19 @@ This function can be chained with other functions as well:
 
 ```liquid
 {{service "web"}}{{.Name | replaceAll ":" "_"}}{{end}}
+```
+
+##### `split`
+Splits the given string on the provided separator:
+
+```liquid
+{{"foo\nbar\n" | split "\n"}}
+```
+
+This can be combined with chained and piped with other functions:
+
+```liquid
+{{key "foo" | toUpper | split "\n" | join ","}}
 ```
 
 ##### `timestamp`

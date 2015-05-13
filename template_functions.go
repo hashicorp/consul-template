@@ -378,6 +378,11 @@ func loop(ints ...int) (<-chan int, error) {
 	return ch, nil
 }
 
+// join is a version of strings.Join that can be piped
+func join(sep string, a []string) (string, error) {
+	return strings.Join(a, sep), nil
+}
+
 // parseJSON returns a structure for valid JSON
 func parseJSON(s string) (interface{}, error) {
 	if s == "" {
@@ -417,6 +422,11 @@ func regexMatch(re, s string) (bool, error) {
 	return compiled.MatchString(s), nil
 }
 
+// split is a version of strings.Split that can be piped
+func split(sep, s string) ([]string, error) {
+	return strings.Split(s, sep), nil
+}
+
 // timestamp returns the current UNIX timestamp in UTC. If an argument is
 // specified, it will be used to format the timestamp.
 func timestamp(s ...string) (string, error) {
@@ -451,14 +461,4 @@ func addDependency(m map[string]dep.Dependency, d dep.Dependency) {
 	if _, ok := m[d.HashCode()]; !ok {
 		m[d.HashCode()] = d
 	}
-}
-
-// splitWith is a version of strings.Split that can be piped
-func splitWith(sep, s string) ([]string, error) {
-	return strings.Split(s, sep), nil
-}
-
-// joinWith is a version of strings.Join that can be piped
-func joinWith(sep string, a []string) (string, error) {
-	return strings.Join(a, sep), nil
 }
