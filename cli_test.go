@@ -361,6 +361,42 @@ func TestParseFlags_retry(t *testing.T) {
 	}
 }
 
+func TestParseFlags_logLevel(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-log-level", "debug",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "debug"
+	if config.LogLevel != expected {
+		t.Errorf("expected %v to be %v", config.LogLevel, expected)
+	}
+	if !config.WasSet("log_level") {
+		t.Errorf("expected log_level to be set")
+	}
+}
+
+func TestParseFlags_pidFile(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-pid-file", "/path/to/pid",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "/path/to/pid"
+	if config.PidFile != expected {
+		t.Errorf("expected %v to be %v", config.PidFile, expected)
+	}
+	if !config.WasSet("pid_file") {
+		t.Errorf("expected pid_file to be set")
+	}
+}
+
 func TestParseFlags_once(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
 	_, once, _, _, err := cli.parseFlags([]string{
@@ -414,24 +450,6 @@ func TestParseFlags_v(t *testing.T) {
 
 	if version != true {
 		t.Errorf("expected version to be true")
-	}
-}
-
-func TestParseFlags_logLevel(t *testing.T) {
-	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	config, _, _, _, err := cli.parseFlags([]string{
-		"-log-level", "debug",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected := "debug"
-	if config.LogLevel != expected {
-		t.Errorf("expected %v to be %v", config.LogLevel, expected)
-	}
-	if !config.WasSet("log_level") {
-		t.Errorf("expected log_level to be set")
 	}
 }
 
