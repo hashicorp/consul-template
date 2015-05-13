@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -124,6 +125,55 @@ func lsFunc(brain *Brain,
 		}
 
 		addDependency(missing, d)
+
+		return result, nil
+	}
+}
+
+// mergeFunc returns or accumulates keyPrefix dependencies. Multiple prefixes are merged in the order they are specified, with the right-most prefix taking precedence over its left siblings.
+func mergeFunc(brain *Brain,
+	used, missing map[string]dep.Dependency) func(...string) ([]*dep.KeyPair, error) {
+	return func(sarr ...string) ([]*dep.KeyPair, error) {
+		result := make([]*dep.KeyPair, 0)
+
+		if len(sarr) == 0 {
+			return result, nil
+		}
+
+		merge := map[string]*dep.KeyPair{}
+		for _, s := range sarr {
+			d, err := dep.ParseStoreKeyPrefix(s)
+			if err != nil {
+				// Skip invalid keys
+				continue
+			}
+
+			addDependency(used, d)
+
+			// Only merge non-empty top-level keys
+			if value, ok := brain.Recall(d); ok {
+				for _, pair := range value.([]*dep.KeyPair) {
+					parts := strings.Split(pair.Key, "/")
+					if parts[len(parts)-1] != "" {
+						merge[pair.Key] = pair
+					}
+				}
+
+				continue
+			}
+
+			addDependency(missing, d)
+		}
+
+		// Sorting keys. Iterating over map would result unpredicted order of keys
+		var keyArr sort.StringSlice
+		for key, _ := range merge {
+			keyArr = append(keyArr, key)
+		}
+		keyArr.Sort()
+		for _, key := range keyArr {
+			result = append(result, merge[key])
+		}
 
 		return result, nil
 	}
