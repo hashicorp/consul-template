@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul-template/watch"
+	"github.com/hashicorp/consul/testutil"
 )
 
 func TestParseFlags_consul(t *testing.T) {
@@ -26,6 +27,9 @@ func TestParseFlags_consul(t *testing.T) {
 	expected := "12.34.56.78"
 	if config.Consul != expected {
 		t.Errorf("expected %q to be %q", config.Consul, expected)
+	}
+	if !config.WasSet("consul") {
+		t.Errorf("expected consul to be set")
 	}
 }
 
@@ -42,6 +46,9 @@ func TestParseFlags_token(t *testing.T) {
 	if config.Token != expected {
 		t.Errorf("expected %q to be %q", config.Token, expected)
 	}
+	if !config.WasSet("token") {
+		t.Errorf("expected token to be set")
+	}
 }
 
 func TestParseFlags_authUsername(t *testing.T) {
@@ -56,10 +63,16 @@ func TestParseFlags_authUsername(t *testing.T) {
 	if config.Auth.Enabled != true {
 		t.Errorf("expected auth to be enabled")
 	}
+	if !config.WasSet("auth.enabled") {
+		t.Errorf("expected auth.enabled to be set")
+	}
 
 	expected := "test"
 	if config.Auth.Username != expected {
 		t.Errorf("expected %v to be %v", config.Auth.Username, expected)
+	}
+	if !config.WasSet("auth.username") {
+		t.Errorf("expected auth.username to be set")
 	}
 }
 
@@ -75,13 +88,22 @@ func TestParseFlags_authUsernamePassword(t *testing.T) {
 	if config.Auth.Enabled != true {
 		t.Errorf("expected auth to be enabled")
 	}
+	if !config.WasSet("auth.enabled") {
+		t.Errorf("expected auth.enabled to be set")
+	}
 
 	expected := "test"
 	if config.Auth.Username != expected {
 		t.Errorf("expected %v to be %v", config.Auth.Username, expected)
 	}
+	if !config.WasSet("auth.username") {
+		t.Errorf("expected auth.username to be set")
+	}
 	if config.Auth.Password != expected {
 		t.Errorf("expected %v to be %v", config.Auth.Password, expected)
+	}
+	if !config.WasSet("auth.password") {
+		t.Errorf("expected auth.password to be set")
 	}
 }
 
@@ -98,6 +120,9 @@ func TestParseFlags_SSL(t *testing.T) {
 	if config.SSL.Enabled != expected {
 		t.Errorf("expected %v to be %v", config.SSL.Enabled, expected)
 	}
+	if !config.WasSet("ssl.enabled") {
+		t.Errorf("expected ssl.enabled to be set")
+	}
 }
 
 func TestParseFlags_noSSL(t *testing.T) {
@@ -112,6 +137,9 @@ func TestParseFlags_noSSL(t *testing.T) {
 	expected := false
 	if config.SSL.Enabled != expected {
 		t.Errorf("expected %v to be %v", config.SSL.Enabled, expected)
+	}
+	if !config.WasSet("ssl.enabled") {
+		t.Errorf("expected ssl.enabled to be set")
 	}
 }
 
@@ -128,6 +156,9 @@ func TestParseFlags_SSLVerify(t *testing.T) {
 	if config.SSL.Verify != expected {
 		t.Errorf("expected %v to be %v", config.SSL.Verify, expected)
 	}
+	if !config.WasSet("ssl.verify") {
+		t.Errorf("expected ssl.verify to be set")
+	}
 }
 
 func TestParseFlags_noSSLVerify(t *testing.T) {
@@ -142,6 +173,9 @@ func TestParseFlags_noSSLVerify(t *testing.T) {
 	expected := false
 	if config.SSL.Verify != expected {
 		t.Errorf("expected %v to be %v", config.SSL.Verify, expected)
+	}
+	if !config.WasSet("ssl.verify") {
+		t.Errorf("expected ssl.verify to be set")
 	}
 }
 
@@ -158,6 +192,9 @@ func TestParseFlags_SSLCert(t *testing.T) {
 	if config.SSL.Cert != expected {
 		t.Errorf("expected %v to be %v", config.SSL.Cert, expected)
 	}
+	if !config.WasSet("ssl.cert") {
+		t.Errorf("expected ssl.cert to be set")
+	}
 }
 
 func TestParseFlags_SSLCaCert(t *testing.T) {
@@ -172,6 +209,9 @@ func TestParseFlags_SSLCaCert(t *testing.T) {
 	expected := "/path/to/c2.pem"
 	if config.SSL.CaCert != expected {
 		t.Errorf("expected %v to be %v", config.SSL.CaCert, expected)
+	}
+	if !config.WasSet("ssl.ca_cert") {
+		t.Errorf("expected ssl.ca_cert to be set")
 	}
 }
 
@@ -226,6 +266,9 @@ func TestParseFlags_syslog(t *testing.T) {
 	if config.Syslog.Enabled != expected {
 		t.Errorf("expected %v to be %v", config.Syslog.Enabled, expected)
 	}
+	if !config.WasSet("syslog.enabled") {
+		t.Errorf("expected syslog.enabled to be set")
+	}
 }
 
 func TestParseFlags_syslogFacility(t *testing.T) {
@@ -240,6 +283,9 @@ func TestParseFlags_syslogFacility(t *testing.T) {
 	expected := "LOCAL5"
 	if config.Syslog.Facility != expected {
 		t.Errorf("expected %v to be %v", config.Syslog.Facility, expected)
+	}
+	if !config.WasSet("syslog.facility") {
+		t.Errorf("expected syslog.facility to be set")
 	}
 }
 
@@ -258,6 +304,9 @@ func TestParseFlags_wait(t *testing.T) {
 	}
 	if !reflect.DeepEqual(config.Wait, expected) {
 		t.Errorf("expected %v to be %v", config.Wait, expected)
+	}
+	if !config.WasSet("wait") {
+		t.Errorf("expected wait to be set")
 	}
 }
 
@@ -289,6 +338,9 @@ func TestParseFlags_config(t *testing.T) {
 	if config.Path != expected {
 		t.Errorf("expected %v to be %v", config.Path, expected)
 	}
+	if !config.WasSet("path") {
+		t.Errorf("expected path to be set")
+	}
 }
 
 func TestParseFlags_retry(t *testing.T) {
@@ -303,6 +355,9 @@ func TestParseFlags_retry(t *testing.T) {
 	expected := 10 * time.Hour
 	if config.Retry != expected {
 		t.Errorf("expected %v to be %v", config.Retry, expected)
+	}
+	if !config.WasSet("retry") {
+		t.Errorf("expected retry to be set")
 	}
 }
 
@@ -374,6 +429,9 @@ func TestParseFlags_logLevel(t *testing.T) {
 	expected := "debug"
 	if config.LogLevel != expected {
 		t.Errorf("expected %v to be %v", config.LogLevel, expected)
+	}
+	if !config.WasSet("log_level") {
+		t.Errorf("expected log_level to be set")
 	}
 }
 
@@ -448,18 +506,24 @@ func TestRun_parseError(t *testing.T) {
 }
 
 func TestRun_onceFlag(t *testing.T) {
+	consul := testutil.NewTestServer(t)
+	defer consul.Stop()
+
+	consul.SetKV("foo", []byte("bar"))
+
 	template := test.CreateTempfile([]byte(`
-	{{range service "consul"}}{{.Name}}{{end}}
+	{{key "foo"}}
   `), t)
 	defer test.DeleteTempfile(template, t)
 
 	out := test.CreateTempfile(nil, t)
 	defer test.DeleteTempfile(out, t)
 
-	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
-	cli := NewCLI(outStream, errStream)
+	outStream := new(bytes.Buffer)
+	cli := NewCLI(outStream, outStream)
 
-	command := fmt.Sprintf("consul-template -consul demo.consul.io -template %s:%s -once", template.Name(), out.Name())
+	command := fmt.Sprintf("consul-template -consul %s -template %s:%s -once -log-level debug",
+		consul.HTTPAddr, template.Name(), out.Name())
 	args := strings.Split(command, " ")
 
 	ch := make(chan int, 1)
@@ -471,10 +535,11 @@ func TestRun_onceFlag(t *testing.T) {
 	case status := <-ch:
 		if status != ExitCodeOK {
 			t.Errorf("expected %d to eq %d", status, ExitCodeOK)
-			t.Errorf("stderr: %s", errStream.String())
+			t.Errorf("out: %s", outStream.String())
 		}
-	case <-time.After(2 * time.Second):
-		t.Errorf("expected exit, did not exit after 2 seconds")
+	case <-time.After(500 * time.Millisecond):
+		t.Errorf("expected exit, did not exit after 500ms")
+		t.Errorf("out: %s", outStream.String())
 	}
 }
 

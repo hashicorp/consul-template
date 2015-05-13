@@ -32,98 +32,140 @@ type Config struct {
 	// Token is the Consul API token.
 	Token string `json:"-" mapstructure:"token"`
 
-	// Vault is the configuration for connecting to a vault server.
-	Vault    *VaultConfig   `json:"vault" mapstructure:"-"`
-	VaultRaw []*VaultConfig `json:"-" mapstructure:"vault"`
-
 	// Auth is the HTTP basic authentication for communicating with Consul.
-	Auth    *AuthConfig   `json:"auth" mapstructure:"-"`
-	AuthRaw []*AuthConfig `json:"-" mapstructure:"auth"`
+	Auth *AuthConfig `json:"auth" mapstructure:"auth"`
+
+	// Vault is the configuration for connecting to a vault server.
+	Vault *VaultConfig `json:"vault" mapstructure:"vault"`
 
 	// SSL indicates we should use a secure connection while talking to
 	// Consul. This requires Consul to be configured to serve HTTPS.
-	SSL    *SSLConfig   `json:"ssl" mapstructure:"-"`
-	SSLRaw []*SSLConfig `json:"-" mapstructure:"ssl"`
+	SSL *SSLConfig `json:"ssl" mapstructure:"ssl"`
 
 	// Syslog is the configuration for syslog.
-	Syslog    *SyslogConfig   `json:"syslog" mapstructure:"-"`
-	SyslogRaw []*SyslogConfig `json:"-" mapstructure:"syslog"`
+	Syslog *SyslogConfig `json:"syslog" mapstructure:"syslog"`
 
 	// MaxStale is the maximum amount of time for staleness from Consul as given
 	// by LastContact. If supplied, Consul Template will query all servers instead
 	// of just the leader.
-	MaxStale    time.Duration `json:"max_stale" mapstructure:"-"`
-	MaxStaleRaw string        `json:"-" mapstructure:"max_stale"`
+	MaxStale time.Duration `json:"max_stale" mapstructure:"max_stale"`
 
 	// ConfigTemplates is a slice of the ConfigTemplate objects in the config.
 	ConfigTemplates []*ConfigTemplate `json:"templates" mapstructure:"template"`
 
 	// Retry is the duration of time to wait between Consul failures.
-	Retry    time.Duration `json:"retry" mapstructure:"-"`
-	RetryRaw string        `json:"-" mapstructure:"retry" json:""`
+	Retry time.Duration `json:"retry" mapstructure:"retry"`
 
 	// Wait is the quiescence timers.
-	Wait    *watch.Wait `json:"wait" mapstructure:"-"`
-	WaitRaw string      `json:"-" mapstructure:"wait" json:""`
+	Wait *watch.Wait `json:"wait" mapstructure:"wait"`
 
 	// LogLevel is the level with which to log for this config.
 	LogLevel string `json:"log_level" mapstructure:"log_level"`
+
+	// setKeys is the list of config keys that were set by the user.
+	setKeys map[string]struct{}
 }
 
 // Merge merges the values in config into this config object. Values in the
 // config object overwrite the values in c.
 func (c *Config) Merge(config *Config) {
-	if config.Consul != "" {
+	if config.WasSet("path") {
+		c.Path = config.Path
+	}
+
+	if config.WasSet("consul") {
 		c.Consul = config.Consul
 	}
 
-	if config.Token != "" {
+	if config.WasSet("token") {
 		c.Token = config.Token
 	}
 
-	if config.Vault != nil {
-		c.Vault = &VaultConfig{
-			Address: config.Vault.Address,
-			Token:   config.Vault.Token,
+	if config.WasSet("vault") {
+		if c.Vault == nil {
+			c.Vault = &VaultConfig{}
 		}
-
-		if config.Vault.SSL != nil {
-			c.Vault.SSL = &SSLConfig{
-				Enabled: config.Vault.SSL.Enabled,
-				Verify:  config.Vault.SSL.Verify,
-				Cert:    config.Vault.SSL.Cert,
-				CaCert:  config.Vault.SSL.CaCert,
+		if config.WasSet("vault.address") {
+			c.Vault.Address = config.Vault.Address
+		}
+		if config.WasSet("vault.token") {
+			c.Vault.Token = config.Vault.Token
+		}
+		if config.WasSet("vault.ssl") {
+			if c.Vault.SSL == nil {
+				c.Vault.SSL = &SSLConfig{}
+			}
+			if config.WasSet("vault.ssl.verify") {
+				c.Vault.SSL.Verify = config.Vault.SSL.Verify
+				c.Vault.SSL.Enabled = true
+			}
+			if config.WasSet("vault.ssl.cert") {
+				c.Vault.SSL.Cert = config.Vault.SSL.Cert
+				c.Vault.SSL.Enabled = true
+			}
+			if config.WasSet("vault.ssl.ca_cert") {
+				c.Vault.SSL.CaCert = config.Vault.SSL.CaCert
+				c.Vault.SSL.Enabled = true
+			}
+			if config.WasSet("vault.ssl.enabled") {
+				c.Vault.SSL.Enabled = config.Vault.SSL.Enabled
 			}
 		}
 	}
 
-	if config.Auth != nil {
-		c.Auth = &AuthConfig{
-			Enabled:  config.Auth.Enabled,
-			Username: config.Auth.Username,
-			Password: config.Auth.Password,
+	if config.WasSet("auth") {
+		if c.Auth == nil {
+			c.Auth = &AuthConfig{}
+		}
+		if config.WasSet("auth.username") {
+			c.Auth.Username = config.Auth.Username
+			c.Auth.Enabled = true
+		}
+		if config.WasSet("auth.password") {
+			c.Auth.Password = config.Auth.Password
+			c.Auth.Enabled = true
+		}
+		if config.WasSet("auth.enabled") {
+			c.Auth.Enabled = config.Auth.Enabled
 		}
 	}
 
-	if config.SSL != nil {
-		c.SSL = &SSLConfig{
-			Enabled: config.SSL.Enabled,
-			Verify:  config.SSL.Verify,
-			Cert:    config.SSL.Cert,
-			CaCert:  config.SSL.CaCert,
+	if config.WasSet("ssl") {
+		if c.SSL == nil {
+			c.SSL = &SSLConfig{}
+		}
+		if config.WasSet("ssl.verify") {
+			c.SSL.Verify = config.SSL.Verify
+			c.SSL.Enabled = true
+		}
+		if config.WasSet("ssl.cert") {
+			c.SSL.Cert = config.SSL.Cert
+			c.SSL.Enabled = true
+		}
+		if config.WasSet("ssl.ca_cert") {
+			c.SSL.CaCert = config.SSL.CaCert
+			c.SSL.Enabled = true
+		}
+		if config.WasSet("ssl.enabled") {
+			c.SSL.Enabled = config.SSL.Enabled
 		}
 	}
 
-	if config.Syslog != nil {
-		c.Syslog = &SyslogConfig{
-			Enabled:  config.Syslog.Enabled,
-			Facility: config.Syslog.Facility,
+	if config.WasSet("syslog") {
+		if c.Syslog == nil {
+			c.Syslog = &SyslogConfig{}
+		}
+		if config.WasSet("syslog.facility") {
+			c.Syslog.Facility = config.Syslog.Facility
+			c.Syslog.Enabled = true
+		}
+		if config.WasSet("syslog.enabled") {
+			c.Syslog.Enabled = config.Syslog.Enabled
 		}
 	}
 
-	if config.MaxStale != 0 {
+	if config.WasSet("max_stale") {
 		c.MaxStale = config.MaxStale
-		c.MaxStaleRaw = config.MaxStaleRaw
 	}
 
 	if len(config.ConfigTemplates) > 0 {
@@ -139,21 +181,44 @@ func (c *Config) Merge(config *Config) {
 		}
 	}
 
-	if config.Retry != 0 {
+	if config.WasSet("retry") {
 		c.Retry = config.Retry
-		c.RetryRaw = config.RetryRaw
 	}
 
-	if config.Wait != nil {
+	if config.WasSet("wait") {
 		c.Wait = &watch.Wait{
 			Min: config.Wait.Min,
 			Max: config.Wait.Max,
 		}
-		c.WaitRaw = config.WaitRaw
 	}
 
-	if config.LogLevel != "" {
+	if config.WasSet("log_level") {
 		c.LogLevel = config.LogLevel
+	}
+
+	if c.setKeys == nil {
+		c.setKeys = make(map[string]struct{})
+	}
+	for k, _ := range config.setKeys {
+		if _, ok := c.setKeys[k]; !ok {
+			c.setKeys[k] = struct{}{}
+		}
+	}
+}
+
+// WasSet determines if the given key was set in the config (as opposed to just
+// having the default value).
+func (c *Config) WasSet(key string) bool {
+	if _, ok := c.setKeys[key]; ok {
+		return true
+	}
+	return false
+}
+
+// set is a helper function for marking a key as set.
+func (c *Config) set(key string) {
+	if _, ok := c.setKeys[key]; !ok {
+		c.setKeys[key] = struct{}{}
 	}
 }
 
@@ -165,31 +230,88 @@ func ParseConfig(path string) (*Config, error) {
 	// Read the contents of the file
 	contents, err := ioutil.ReadFile(path)
 	if err != nil {
-		errs = multierror.Append(errs, err)
-		return nil, errs.ErrorOrNil()
+		return nil, fmt.Errorf("error reading config at %q: %s", path, err)
 	}
 
 	// Parse the file (could be HCL or JSON)
-	var parsed interface{}
-	if err := hcl.Decode(&parsed, string(contents)); err != nil {
-		errs = multierror.Append(errs, err)
-		return nil, errs.ErrorOrNil()
+	var shadow interface{}
+	if err := hcl.Decode(&shadow, string(contents)); err != nil {
+		return nil, fmt.Errorf("error decoding config at %q: %s", path, err)
+	}
+
+	// Convert to a map and flatten the keys we want to flatten
+	parsed, ok := shadow.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("error converting config at %q", path)
+	}
+	flattenKeys(parsed, []string{"auth", "ssl", "syslog", "vault"})
+
+	//
+	if raw, ok := parsed["max_stale"]; ok {
+		if typed, ok := raw.(string); !ok {
+			err = fmt.Errorf("error converting max_stale to string at %q", path)
+			errs = multierror.Append(errs, err)
+			delete(parsed, "max_stale")
+		} else {
+			if stale, err := time.ParseDuration(typed); err != nil {
+				err = fmt.Errorf("error parsing max_stale at %q: %s", path, err)
+				errs = multierror.Append(errs, err)
+				delete(parsed, "max_stale")
+			} else {
+				parsed["max_stale"] = stale
+			}
+		}
+	}
+
+	if raw, ok := parsed["retry"]; ok {
+		if typed, ok := raw.(string); !ok {
+			err = fmt.Errorf("error converting retry to string at %q", path)
+			errs = multierror.Append(errs, err)
+			delete(parsed, "retry")
+		} else {
+			if stale, err := time.ParseDuration(typed); err != nil {
+				err = fmt.Errorf("error parsing retry at %q: %s", path, err)
+				errs = multierror.Append(errs, err)
+				delete(parsed, "retry")
+			} else {
+				parsed["retry"] = stale
+			}
+		}
+	}
+
+	if raw, ok := parsed["wait"]; ok {
+		if typed, ok := raw.(string); !ok {
+			err = fmt.Errorf("error converting wait to string at %q", path)
+			errs = multierror.Append(errs, err)
+			delete(parsed, "wait")
+		} else {
+			if wait, err := watch.ParseWait(typed); err != nil {
+				err = fmt.Errorf("error parsing wait at %q: %s", path, err)
+				errs = multierror.Append(errs, err)
+				delete(parsed, "wait")
+			} else {
+				parsed["wait"] = map[string]time.Duration{
+					"min": wait.Min,
+					"max": wait.Max,
+				}
+			}
+		}
 	}
 
 	// Create a new, empty config
-	config := &Config{}
+	config := new(Config)
 
 	// Use mapstructure to populate the basic config fields
+	metadata := new(mapstructure.Metadata)
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		ErrorUnused: true,
-		Metadata:    nil,
+		Metadata:    metadata,
 		Result:      config,
 	})
 	if err != nil {
 		errs = multierror.Append(errs, err)
 		return nil, errs.ErrorOrNil()
 	}
-
 	if err := decoder.Decode(parsed); err != nil {
 		errs = multierror.Append(errs, err)
 		return nil, errs.ErrorOrNil()
@@ -198,64 +320,20 @@ func ParseConfig(path string) (*Config, error) {
 	// Store a reference to the path where this config was read from
 	config.Path = path
 
-	// Parse the MaxStale component
-	if raw := config.MaxStaleRaw; raw != "" {
-		stale, err := time.ParseDuration(raw)
-
-		if err == nil {
-			config.MaxStale = stale
-		} else {
-			errs = multierror.Append(errs, fmt.Errorf("max_stale invalid: %v", err))
+	// Update the list of set keys
+	if config.setKeys == nil {
+		config.setKeys = make(map[string]struct{})
+	}
+	for _, key := range metadata.Keys {
+		if _, ok := config.setKeys[key]; !ok {
+			config.setKeys[key] = struct{}{}
 		}
 	}
+	config.setKeys["path"] = struct{}{}
 
-	// Extract the last Vault block
-	if len(config.VaultRaw) > 0 {
-		config.Vault = config.VaultRaw[len(config.VaultRaw)-1]
-
-		// Extract the last Vault SSL block
-		if len(config.Vault.SSLRaw) > 0 {
-			config.Vault.SSL = config.Vault.SSLRaw[len(config.Vault.SSLRaw)-1]
-		}
-
-	}
-
-	// Extract the last Auth block
-	if len(config.AuthRaw) > 0 {
-		config.Auth = config.AuthRaw[len(config.AuthRaw)-1]
-	}
-
-	// Extract the last SSL block
-	if len(config.SSLRaw) > 0 {
-		config.SSL = config.SSLRaw[len(config.SSLRaw)-1]
-	}
-
-	// Extract the last Syslog block
-	if len(config.SyslogRaw) > 0 {
-		config.Syslog = config.SyslogRaw[len(config.SyslogRaw)-1]
-	}
-
-	// Parse the Retry component
-	if raw := config.RetryRaw; raw != "" {
-		retry, err := time.ParseDuration(raw)
-
-		if err == nil {
-			config.Retry = retry
-		} else {
-			errs = multierror.Append(errs, fmt.Errorf("retry invalid: %v", err))
-		}
-	}
-
-	// Parse the Wait component
-	if raw := config.WaitRaw; raw != "" {
-		wait, err := watch.ParseWait(raw)
-
-		if err == nil {
-			config.Wait = wait
-		} else {
-			errs = multierror.Append(errs, fmt.Errorf("wait invalid: %v", err))
-		}
-	}
+	d := DefaultConfig()
+	d.Merge(config)
+	config = d
 
 	return config, errs.ErrorOrNil()
 }
@@ -289,6 +367,7 @@ func DefaultConfig() *Config {
 		Retry:           5 * time.Second,
 		Wait:            &watch.Wait{},
 		LogLevel:        logLevel,
+		setKeys:         make(map[string]struct{}),
 	}
 }
 
@@ -318,8 +397,8 @@ func (a *AuthConfig) String() string {
 type SSLConfig struct {
 	Enabled bool   `json:"enabled" mapstructure:"enabled"`
 	Verify  bool   `json:"verify" mapstructure:"verify"`
-	Cert    string `json:"cert" mapstructure:"cert"`
-	CaCert  string `json:"ca_cert" mapstructure:"ca_cert"`
+	Cert    string `json:"cert,omitempty" mapstructure:"cert"`
+	CaCert  string `json:"ca_cert,omitempty" mapstructure:"ca_cert"`
 }
 
 // SyslogConfig is the configuration for syslog.
@@ -333,17 +412,16 @@ type SyslogConfig struct {
 type ConfigTemplate struct {
 	Source      string `json:"source" mapstructure:"source"`
 	Destination string `json:"destination" mapstructure:"destination"`
-	Command     string `json:"command" mapstructure:"command"`
+	Command     string `json:"command,omitempty" mapstructure:"command"`
 }
 
 // VaultConfig is the configuration for connecting to a vault server.
 type VaultConfig struct {
-	Address string `json:"address" mapstructure:"address"`
+	Address string `json:"address,omitempty" mapstructure:"address"`
 	Token   string `json:"-" mapstructure:"token"`
 
 	// SSL indicates we should use a secure connection while talking to Vault.
-	SSL    *SSLConfig   `json:"ssl" mapstructure:"-"`
-	SSLRaw []*SSLConfig `json:"-" mapstructure:"ssl"`
+	SSL *SSLConfig `json:"ssl" mapstructure:"ssl"`
 }
 
 // ParseConfigTemplate parses a string into a ConfigTemplate struct
@@ -367,4 +445,41 @@ func ParseConfigTemplate(s string) (*ConfigTemplate, error) {
 	}
 
 	return &ConfigTemplate{source, destination, command}, nil
+}
+
+// flattenKeys is a function that takes a map[string]interface{} and recursively
+// flattens any keys that are a []map[string]interface{} where the key is in the
+// given list of keys.
+func flattenKeys(m map[string]interface{}, keys []string) {
+	keyMap := make(map[string]struct{})
+	for _, key := range keys {
+		keyMap[key] = struct{}{}
+	}
+
+	var flatten func(map[string]interface{})
+	flatten = func(m map[string]interface{}) {
+		for k, v := range m {
+			if _, ok := keyMap[k]; !ok {
+				continue
+			}
+
+			switch typed := v.(type) {
+			case []map[string]interface{}:
+				if len(typed) > 0 {
+					last := typed[len(typed)-1]
+					flatten(last)
+					m[k] = last
+				} else {
+					m[k] = nil
+				}
+			case map[string]interface{}:
+				flatten(typed)
+				m[k] = typed
+			default:
+				m[k] = v
+			}
+		}
+	}
+
+	flatten(m)
 }

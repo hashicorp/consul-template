@@ -1,57 +1,42 @@
 package main
 
 import (
-	"fmt"
-	"strings"
+	"strconv"
+	"time"
 )
 
-// configTemplateVar implements the Flag.Value interface and allows the user
-// to specify multiple -template keys in the CLI where each option is parsed
-// as a template.
-type configTemplateVar []*ConfigTemplate
+// funcVar is a type of flag that accepts a function that is the string given
+// by the user.
+type funcVar func(s string) error
 
-func (ctv *configTemplateVar) Set(value string) error {
-	template, err := ParseConfigTemplate(value)
+func (f funcVar) Set(s string) error { return f(s) }
+func (f funcVar) String() string     { return "" }
+func (f funcVar) IsBoolFlag() bool   { return false }
+
+// funcBoolVar is a type of flag that accepts a function, converts the user's
+// value to a bool, and then calls the given function.
+type funcBoolVar func(b bool) error
+
+func (f funcBoolVar) Set(s string) error {
+	v, err := strconv.ParseBool(s)
 	if err != nil {
 		return err
 	}
+	return f(v)
+}
+func (f funcBoolVar) String() string   { return "" }
+func (f funcBoolVar) IsBoolFlag() bool { return true }
 
-	if *ctv == nil {
-		*ctv = make([]*ConfigTemplate, 0, 1)
+// funcDurationVar is a type of flag that accepts a function, converts the
+// user's value to a duration, and then calls the given function.
+type funcDurationVar func(d time.Duration) error
+
+func (f funcDurationVar) Set(s string) error {
+	v, err := time.ParseDuration(s)
+	if err != nil {
+		return err
 	}
-	*ctv = append(*ctv, template)
-
-	return nil
+	return f(v)
 }
-
-func (ctv *configTemplateVar) String() string {
-	return ""
-}
-
-// authConfigVar implements the Flag.Value interface and allows the user to specify
-// authentication in the username[:password] form.
-type authConfigVar AuthConfig
-
-// Set sets the value for this authentication.
-func (a *authConfigVar) Set(value string) error {
-	a.Enabled = true
-
-	if strings.Contains(value, ":") {
-		split := strings.SplitN(value, ":", 2)
-		a.Username = split[0]
-		a.Password = split[1]
-	} else {
-		a.Username = value
-	}
-
-	return nil
-}
-
-// String returns the string representation of this authentication.
-func (a *authConfigVar) String() string {
-	if a.Password == "" {
-		return a.Username
-	}
-
-	return fmt.Sprintf("%s:%s", a.Username, a.Password)
-}
+func (f funcDurationVar) String() string   { return "" }
+func (f funcDurationVar) IsBoolFlag() bool { return false }

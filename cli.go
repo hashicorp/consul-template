@@ -7,8 +7,10 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/hashicorp/consul-template/logging"
 	"github.com/hashicorp/consul-template/watch"
@@ -143,37 +145,128 @@ func (cli *CLI) stop() {
 // much easier and cleaner.
 func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	var dry, once, version bool
-	var config = DefaultConfig()
+	config := DefaultConfig()
 
 	// Parse the flags and options
 	flags := flag.NewFlagSet(Name, flag.ContinueOnError)
 	flags.SetOutput(cli.errStream)
-	flags.Usage = func() {
-		fmt.Fprintf(cli.errStream, usage, Name)
-	}
-	flags.StringVar(&config.Consul, "consul", config.Consul, "")
-	flags.StringVar(&config.Token, "token", config.Token, "")
-	flags.Var((*authConfigVar)(config.Auth), "auth", "")
-	flags.BoolVar(&config.SSL.Enabled, "ssl", config.SSL.Enabled, "")
-	flags.BoolVar(&config.SSL.Verify, "ssl-verify", config.SSL.Verify, "")
-	flags.StringVar(&config.SSL.Cert, "ssl-cert", config.SSL.Cert, "")
-	flags.StringVar(&config.SSL.CaCert, "ssl-ca-cert", config.SSL.CaCert, "")
-	flags.DurationVar(&config.MaxStale, "max-stale", config.MaxStale, "")
-	flags.Var((*configTemplateVar)(&config.ConfigTemplates), "template", "")
-	flags.BoolVar(&config.Syslog.Enabled, "syslog", config.Syslog.Enabled, "")
-	flags.StringVar(&config.Syslog.Facility, "syslog-facility", config.Syslog.Facility, "")
-	flags.Var((*watch.WaitVar)(config.Wait), "wait", "")
-	flags.DurationVar(&config.Retry, "retry", config.Retry, "")
-	flags.StringVar(&config.Path, "config", config.Path, "")
-	flags.StringVar(&config.LogLevel, "log-level", config.LogLevel, "")
+	flags.Usage = func() { fmt.Fprintf(cli.errStream, usage, Name) }
+
+	flags.Var((funcVar)(func(s string) error {
+		config.Consul = s
+		config.set("consul")
+		return nil
+	}), "consul", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		config.Token = s
+		config.set("token")
+		return nil
+	}), "token", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		config.Auth.Enabled = true
+		config.set("auth.enabled")
+		if strings.Contains(s, ":") {
+			split := strings.SplitN(s, ":", 2)
+			config.Auth.Username = split[0]
+			config.set("auth.username")
+			config.Auth.Password = split[1]
+			config.set("auth.password")
+		} else {
+			config.Auth.Username = s
+			config.set("auth.username")
+		}
+		return nil
+	}), "auth", "")
+
+	flags.Var((funcBoolVar)(func(b bool) error {
+		config.SSL.Enabled = b
+		config.set("ssl.enabled")
+		return nil
+	}), "ssl", "")
+
+	flags.Var((funcBoolVar)(func(b bool) error {
+		config.SSL.Verify = b
+		config.set("ssl.verify")
+		return nil
+	}), "ssl-verify", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		config.SSL.Cert = s
+		config.set("ssl.cert")
+		return nil
+	}), "ssl-cert", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		config.SSL.CaCert = s
+		config.set("ssl.ca_cert")
+		return nil
+	}), "ssl-ca-cert", "")
+
+	flags.Var((funcDurationVar)(func(d time.Duration) error {
+		config.MaxStale = d
+		config.set("max_stale")
+		return nil
+	}), "max-stale", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		t, err := ParseConfigTemplate(s)
+		if err != nil {
+			return err
+		}
+		if config.ConfigTemplates == nil {
+			config.ConfigTemplates = make([]*ConfigTemplate, 0, 1)
+		}
+		config.ConfigTemplates = append(config.ConfigTemplates, t)
+		return nil
+	}), "template", "")
+
+	flags.Var((funcBoolVar)(func(b bool) error {
+		config.Syslog.Enabled = b
+		config.set("syslog.enabled")
+		return nil
+	}), "syslog", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		config.Syslog.Facility = s
+		config.set("syslog.facility")
+		return nil
+	}), "syslog-facility", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		w, err := watch.ParseWait(s)
+		if err != nil {
+			return err
+		}
+		config.Wait.Min = w.Min
+		config.Wait.Max = w.Max
+		config.set("wait")
+		return nil
+	}), "wait", "")
+
+	flags.Var((funcDurationVar)(func(d time.Duration) error {
+		config.Retry = d
+		config.set("retry")
+		return nil
+	}), "retry", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		config.Path = s
+		config.set("path")
+		return nil
+	}), "config", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		config.LogLevel = s
+		config.set("log_level")
+		return nil
+	}), "log-level", "")
+
 	flags.BoolVar(&once, "once", false, "")
 	flags.BoolVar(&dry, "dry", false, "")
 	flags.BoolVar(&version, "v", false, "")
 	flags.BoolVar(&version, "version", false, "")
-
-	// Deprecated options
-	var deprecatedSSLNoVerify bool
-	flags.BoolVar(&deprecatedSSLNoVerify, "ssl-no-verify", !config.SSL.Verify, "")
 
 	// If there was a parser error, stop
 	if err := flags.Parse(args); err != nil {
@@ -185,13 +278,6 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	if len(args) > 0 {
 		return nil, false, false, false, fmt.Errorf("cli: extra argument(s): %q",
 			args)
-	}
-
-	// Handle deprecations
-	if deprecatedSSLNoVerify {
-		log.Printf("[WARN] -ssl-no-verify is deprecated - please use " +
-			"-ssl-verify=false instead")
-		config.SSL.Verify = false
 	}
 
 	return config, once, dry, version, nil
