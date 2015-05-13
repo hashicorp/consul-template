@@ -13,7 +13,7 @@ import (
 
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul-template/test"
-	"github.com/hashicorp/consul-template/watch"
+	"github.com/hashicorp/consul/testutil"
 )
 
 func TestNewRunner_initialize(t *testing.T) {
@@ -473,6 +473,9 @@ func TestRun_multipleTemplatesRunsCommands(t *testing.T) {
 // check the demo Consul cluster and your own sanity before you assume your
 // code broke something...
 func TestRunner_quiescence(t *testing.T) {
+	consul := testutil.NewTestServer(t)
+	defer consul.Stop()
+
 	in := test.CreateTempfile([]byte(`
     {{ range service "consul" "any" }}{{.Node}}{{ end }}
   `), t)
@@ -481,19 +484,15 @@ func TestRunner_quiescence(t *testing.T) {
 	out := test.CreateTempfile(nil, t)
 	test.DeleteTempfile(out, t)
 
-	config := &Config{
-		Consul: "demo.consul.io",
-		Wait: &watch.Wait{
-			Min: 50 * time.Millisecond,
-			Max: 200 * time.Second,
-		},
-		ConfigTemplates: []*ConfigTemplate{
-			&ConfigTemplate{
-				Source:      in.Name(),
-				Destination: out.Name(),
-			},
-		},
-	}
+	config := testConfig(fmt.Sprintf(`
+		consul = "%s"
+		wait = "50ms:200ms"
+
+		template {
+			source = "%s"
+			destination = "%s"
+		}
+	`, consul.HTTPAddr, in.Name(), out.Name()), t)
 
 	runner, err := NewRunner(config, false, false)
 	if err != nil {
@@ -845,19 +844,20 @@ func TestExecute_setsEnv(t *testing.T) {
 	tmpfile := test.CreateTempfile(nil, t)
 	defer test.DeleteTempfile(tmpfile, t)
 
-	config := &Config{
-		Consul: "1.2.3.4:5678",
-		Token:  "abcd1243",
-		Auth: &AuthConfig{
-			Enabled:  true,
-			Username: "username",
-			Password: "password",
-		},
-		SSL: &SSLConfig{
-			Enabled: true,
-			Verify:  false,
-		},
-	}
+	config := testConfig(`
+		consul = "1.2.3.4:5678"
+		token = "abcd1234"
+
+		auth {
+			username = "username"
+			password = "password"
+		}
+
+		ssl {
+			enabled = true
+			verify = false
+		}
+	`, t)
 
 	runner, err := NewRunner(config, false, false)
 	if err != nil {
@@ -878,7 +878,7 @@ func TestExecute_setsEnv(t *testing.T) {
 		t.Errorf("expected env to contain CONSUL_HTTP_ADDR")
 	}
 
-	if !strings.Contains(contents, "CONSUL_HTTP_TOKEN=abcd1243") {
+	if !strings.Contains(contents, "CONSUL_HTTP_TOKEN=abcd1234") {
 		t.Errorf("expected env to contain CONSUL_HTTP_TOKEN")
 	}
 
@@ -963,34 +963,9 @@ func TestBuildConfig_BadConfigs(t *testing.T) {
 		t.Fatalf("expected error, but nothing was returned")
 	}
 
-	expected := "1 error(s) occurred"
+	expected := "error decoding config at"
 	if !strings.Contains(err.Error(), expected) {
 		t.Fatalf("expected %q to contain %q", err.Error(), expected)
-	}
-}
-
-func TestBuildConfig_configTakesPrecedence(t *testing.T) {
-	configFile := test.CreateTempfile([]byte(`
-		ssl {
-			enabled = false
-		}
-	`), t)
-	defer test.DeleteTempfile(configFile, t)
-
-	config := &Config{
-		Path: configFile.Name(),
-		SSL: &SSLConfig{
-			Enabled: true,
-		},
-	}
-
-	runner, err := NewRunner(config, true, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if runner.config.SSL.Enabled != true {
-		t.Error("expected config.SSL.Enabled to be true")
 	}
 }
 
