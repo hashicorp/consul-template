@@ -3,6 +3,22 @@ Consul Template Changelog
 
 ## v0.9.0.dev (Unreleased)
 
+FEATURES
+
+  * Add `split` function for splitting a string on a separator (GH-285)
+  * Add `join` function for joining a string slice on a given key (GH-285)
+
+IMPROVEMENTS:
+
+  * Allow setting log_level via the configuration file (CLI still take
+    precedence if specified)
+  * Improve error reporting when loading multiple configs by including the path
+    on the configuration file that had an error (GH-275)
+
+BUG FIXES:
+
+  * Properly merge "default" config values with user-supplied values (GH-271)
+
 
 ## v0.9.0 (April 29, 2015)
 
