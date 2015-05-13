@@ -104,6 +104,12 @@ func NewRunner(config *Config, dry, once bool) (*Runner, error) {
 func (r *Runner) Start() {
 	log.Printf("[INFO] (runner) starting")
 
+	// Create the pid before doing anything.
+	if err := r.storePid(); err != nil {
+		r.ErrCh <- err
+		return
+	}
+
 	// Fire an initial run to parse all the templates and setup the first-pass
 	// dependencies. This also forces any templates that have no dependencies to
 	// be rendered immediately (since they are already renderable).
@@ -199,6 +205,10 @@ func (r *Runner) Start() {
 func (r *Runner) Stop() {
 	log.Printf("[INFO] (runner) stopping")
 	r.watcher.Stop()
+	if err := r.deletePid(); err != nil {
+		log.Printf("[WARN] (runner) could not remove pid at %q: %s",
+			r.config.PidFile, err)
+	}
 	close(r.DoneCh)
 }
 
@@ -570,6 +580,53 @@ func (r *Runner) execute(command string) error {
 	cmd.Stderr = r.errStream
 	cmd.Env = cmdEnv
 	return cmd.Run()
+}
+
+// storePid is used to write out a PID file to disk.
+func (r *Runner) storePid() error {
+	path := r.config.PidFile
+	if path == "" {
+		return nil
+	}
+
+	log.Printf("[INFO] creating pid file at %q", path)
+
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
+	if err != nil {
+		return fmt.Errorf("runner: could not open pid file: %s", err)
+	}
+	defer f.Close()
+
+	pid := os.Getpid()
+	_, err = f.WriteString(fmt.Sprintf("%d", pid))
+	if err != nil {
+		return fmt.Errorf("runner: could not write to pid file: %s", err)
+	}
+	return nil
+}
+
+// deletePid is used to remove the PID on exit.
+func (r *Runner) deletePid() error {
+	path := r.config.PidFile
+	if path == "" {
+		return nil
+	}
+
+	log.Printf("[DEBUG] removing pid file at %q", path)
+
+	stat, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("runner: could not remove pid file: %s", err)
+	}
+	if stat.IsDir() {
+		return fmt.Errorf("runner: specified pid file path is directory")
+	}
+
+	err = os.Remove(path)
+	if err != nil {
+		return fmt.Errorf("runner: could not remove pid file: %s", err)
+	}
+	return nil
 }
 
 // quiescence is an internal representation of a single template's quiescence

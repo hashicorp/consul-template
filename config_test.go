@@ -49,6 +49,7 @@ func TestMerge_topLevel(t *testing.T) {
 		max_stale = "1s"
 		retry = "1s"
 		wait = "1s"
+		pid_file = "/pid-1"
 		log_level = "log_level-1"
 	`, t)
 	config2 := testConfig(`
@@ -57,6 +58,7 @@ func TestMerge_topLevel(t *testing.T) {
 		max_stale = "2s"
 		retry = "2s"
 		wait = "2s"
+		pid_file = "/pid-2"
 		log_level = "log_level-2"
 	`, t)
 	config1.Merge(config2)
@@ -291,6 +293,7 @@ func TestParseConfig_correctValues(t *testing.T) {
 		token = "abcd1234"
 		wait = "5s:10s"
 		retry = "10s"
+		pid_file = "/var/run/ct"
 		log_level = "warn"
 
 		vault {
@@ -339,6 +342,7 @@ func TestParseConfig_correctValues(t *testing.T) {
 
 	expected := &Config{
 		Path:     configFile.Name(),
+		PidFile:  "/var/run/ct",
 		Consul:   "nyc1.demo.consul.io",
 		MaxStale: time.Second * 5,
 		Vault: &VaultConfig{

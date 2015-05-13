@@ -48,6 +48,7 @@ Usage
 | `retry`           | The amount of time to wait if Consul returns an error when communicating with the API. The default value is 5 seconds.
 | `config`          | The path to a configuration file or directory of configuration files on disk, relative to the current working directory. Values specified on the CLI take precedence over values specified in the configuration file. There is no default value.
 | `log-level`       | The log level for output. This applies to the stdout/stderr logging as well as syslog logging (if enabled). Valid values are "debug", "info", "warn", and "err". The default value is "warn".
+| `pid-file`        | The path on disk to write Consul Template's PID file
 | `dry`             | Dump generated templates to the console. If specified, generated templates are not committed to disk and commands are not invoked. _(CLI-only)_
 | `once`            | Run Consul Template once and exit (as opposed to the default behavior of daemon). _(CLI-only)_
 | `version`         | Output version information and quit. _(CLI-only)_
@@ -117,6 +118,8 @@ consul = "127.0.0.1:8500"
 token = "abcd1234" // May also be specified via the envvar CONSUL_TOKEN
 retry = "10s"
 max_stale = "10m"
+log_level = "warn"
+pid_file = "/path/to/pid"
 
 vault {
   address = "https://vault.service.consul:8200"

@@ -59,6 +59,10 @@ type Config struct {
 	// Wait is the quiescence timers.
 	Wait *watch.Wait `json:"wait" mapstructure:"wait"`
 
+	// PidFile is the path on disk where a PID file should be written containing
+	// this processes PID.
+	PidFile string `json:"pid_file" mapstructure:"pid_file"`
+
 	// LogLevel is the level with which to log for this config.
 	LogLevel string `json:"log_level" mapstructure:"log_level"`
 
@@ -71,6 +75,10 @@ type Config struct {
 func (c *Config) Merge(config *Config) {
 	if config.WasSet("path") {
 		c.Path = config.Path
+	}
+
+	if config.WasSet("pid_file") {
+		c.PidFile = config.PidFile
 	}
 
 	if config.WasSet("consul") {

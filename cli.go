@@ -258,6 +258,12 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	}), "config", "")
 
 	flags.Var((funcVar)(func(s string) error {
+		config.PidFile = s
+		config.set("pid_file")
+		return nil
+	}), "pid-file", "")
+
+	flags.Var((funcVar)(func(s string) error {
 		config.LogLevel = s
 		config.set("log_level")
 		return nil
@@ -327,6 +333,8 @@ Options:
 
   -config=<path>           Sets the path to a configuration file on disk
 
+
+  -pid-file=<path>         Path on disk to write the PID of the process
   -log-level=<level>       Set the logging level - valid values are "debug",
                            "info", "warn" (default), and "err"
 

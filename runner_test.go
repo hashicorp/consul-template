@@ -783,6 +783,78 @@ func TestRun_doesNotExecuteCommandMoreThanOnce(t *testing.T) {
 	}
 }
 
+func TestRunner_pidCreate(t *testing.T) {
+	pidfile := test.CreateTempfile(nil, t)
+	os.Remove(pidfile.Name())
+	defer os.Remove(pidfile.Name())
+
+	config := testConfig(fmt.Sprintf(`
+		pid_file = "%s"
+	`, pidfile.Name()), t)
+
+	runner, err := NewRunner(config, false, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	go runner.Start()
+	defer runner.Stop()
+
+	select {
+	case err := <-runner.ErrCh:
+		t.Fatal(err)
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	_, err = os.Stat(pidfile.Name())
+	if err != nil {
+		t.Fatal("expected pidfile to exist")
+	}
+}
+
+func TestRunner_pidDelete(t *testing.T) {
+	pidfile := test.CreateTempfile(nil, t)
+	os.Remove(pidfile.Name())
+	defer os.Remove(pidfile.Name())
+
+	config := testConfig(fmt.Sprintf(`
+		pid_file = "%s"
+	`, pidfile.Name()), t)
+
+	runner, err := NewRunner(config, false, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	go runner.Start()
+
+	select {
+	case err := <-runner.ErrCh:
+		t.Fatal(err)
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	_, err = os.Stat(pidfile.Name())
+	if err != nil {
+		t.Fatal("expected pidfile to exist")
+	}
+
+	runner.Stop()
+	select {
+	case err := <-runner.ErrCh:
+		t.Fatal(err)
+	case <-runner.DoneCh:
+	}
+
+	_, err = os.Stat(pidfile.Name())
+	if err == nil {
+		t.Fatal("expected pidfile to be cleaned up")
+	}
+	if !os.IsNotExist(err) {
+		t.Fatal(err)
+	}
+}
+
 func TestRunner_onceAlreadyRenderedDoesNotHangOrRunCommands(t *testing.T) {
 	outFile := test.CreateTempfile(nil, t)
 	os.Remove(outFile.Name())

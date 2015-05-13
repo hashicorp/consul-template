@@ -7,6 +7,8 @@ FEATURES
 
   * Add `split` function for splitting a string on a separator (GH-285)
   * Add `join` function for joining a string slice on a given key (GH-285)
+  * Add `pid_file` configuration and command line option for specifying the
+    location of a pid file on disk (GH-281, GH-286)
 
 IMPROVEMENTS:
 
