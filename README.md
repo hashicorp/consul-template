@@ -195,13 +195,13 @@ Query Consul for all datacenters in the catalog. Datacenters are queried using t
 ```
 
 ##### `file`
-Read and render the contents of a local file on disk. If the file cannot be read, an error will occur. Files are read using the following syntax:
+Read and output the contents of a local file on disk. If the file cannot be read, an error will occur. Files are read using the following syntax:
 
 ```liquid
 {{file "/path/to/local/file"}}
 ```
 
-This example will render the entire contents of the file at `/path/to/local/file` into the template.
+This example will out the entire contents of the file at `/path/to/local/file` into the template. Note: this does not process nested templates.
 
 ##### `key`
 Query Consul for the value at the given key. If the key cannot be converted to a string-like value, an error will occur. Keys are queried using the following syntax:
