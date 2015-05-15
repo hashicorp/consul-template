@@ -297,6 +297,8 @@ type ConfigTemplate struct {
 	Source       string `json:"source" mapstructure:"source"`
 	Destination  string `json:"destination" mapstructure:"destination"`
 	StartCommand string `json:"start_command" mapstructure:"start_command"`
+	Stop         bool   `json:"stop" mapstructure:"stop"`
+	StopCommand  string `json:"stop_command" mapstructure:"stop_command"`
 }
 
 // ParseConfigTemplate parses a string into a ConfigTemplate struct
