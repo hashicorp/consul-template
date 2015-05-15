@@ -225,6 +225,10 @@ func (r *Runner) Stop() error {
 	close(r.DoneCh)
 	r.done = true
 
+	if err := r.StopCommand(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -596,6 +600,52 @@ func (r *Runner) execute(command string) error {
 	cmd.Stderr = r.errStream
 	cmd.Env = cmdEnv
 	return cmd.Run()
+}
+
+// StopCommand collects the defined stop commands from the templates and
+// execute them.
+// TODO Clean any rendered template to force consul template to re-execute
+// the corresponding start command when starting runner again
+func (r *Runner) StopCommand() error {
+	var commands []string
+
+	// group the stop commands
+	for _, tmpl := range r.templates {
+		for _, ctemplate := range r.configTemplatesFor(tmpl) {
+			if !ctemplate.Stop {
+				continue
+			}
+
+			if ctemplate.StopCommand != "" && !exists(ctemplate.StopCommand, commands) {
+				commands = append(commands, ctemplate.StopCommand)
+			}
+			// else...
+			// will consider capturing the pid of the process and offer to gracefully exit
+		}
+	}
+
+	// Execute each command in sequence, collecting any errors that occur - this
+	// ensures all commands execute at least once.
+	var errs []error
+	for _, command := range commands {
+		log.Printf("[DEBUG] (runner) running command: `%s`", command)
+		if err := r.execute(command); err != nil {
+			log.Printf("[ERR] (runner) error running command: %s", err)
+			errs = append(errs, err)
+		}
+	}
+
+	// If any errors were returned, convert them to an ErrorList for human
+	// readability.
+	if len(errs) != 0 {
+		var result *multierror.Error
+		for _, err := range errs {
+			result = multierror.Append(result, err)
+		}
+		return result.ErrorOrNil()
+	}
+
+	return nil
 }
 
 // quiescence is an internal representation of a single template's quiescence
