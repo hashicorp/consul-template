@@ -111,6 +111,10 @@ func (r *Runner) Start() {
 	r.Lock()
 	defer r.Unlock()
 
+	if !r.done {
+		return
+	}
+
 	log.Printf("[INFO] (runner) starting")
 
 	r.DoneCh = make(chan struct{})
@@ -211,6 +215,10 @@ func (r *Runner) Start() {
 func (r *Runner) Stop() {
 	r.Lock()
 	defer r.Unlock()
+
+	if r.done {
+		return
+	}
 
 	log.Printf("[INFO] (runner) stopping")
 	r.watcher.Stop()
