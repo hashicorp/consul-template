@@ -936,7 +936,8 @@ func TestExecute_setsEnv(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := runner.execute(fmt.Sprintf("env > %s", tmpfile.Name())); err != nil {
+	command := fmt.Sprintf("env > %s", tmpfile.Name())
+	if err := runner.execute(command, 1*time.Second); err != nil {
 		t.Fatal(err)
 	}
 
@@ -964,6 +965,41 @@ func TestExecute_setsEnv(t *testing.T) {
 
 	if !strings.Contains(contents, "CONSUL_HTTP_SSL_VERIFY=false") {
 		t.Errorf("expected env to contain CONSUL_HTTP_SSL_VERIFY")
+	}
+}
+
+func TestExecute_timeout(t *testing.T) {
+	tmpfile := test.CreateTempfile(nil, t)
+	defer test.DeleteTempfile(tmpfile, t)
+
+	config := testConfig(`
+		consul = "1.2.3.4:5678"
+		token = "abcd1234"
+
+		auth {
+			username = "username"
+			password = "password"
+		}
+
+		ssl {
+			enabled = true
+			verify = false
+		}
+	`, t)
+
+	runner, err := NewRunner(config, false, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = runner.execute("sleep 10", 100*time.Millisecond)
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "did not return for 100ms"
+	if !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected %q to include %q", err.Error(), expected)
 	}
 }
 

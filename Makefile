@@ -17,11 +17,11 @@ build: deps
 	@mkdir -p bin/
 	go build -o bin/$(NAME)
 
-test: deps
+test:
 	go test $(TEST) $(TESTARGS) -timeout=30s -parallel=4
 	go vet $(TEST)
 
-xcompile: deps test
+xcompile: build test
 	@rm -rf build/
 	@mkdir -p build
 	gox \

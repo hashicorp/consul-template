@@ -9,4 +9,4 @@ branches:
   only:
     - master
 
-script: make test
+script: make deps test
