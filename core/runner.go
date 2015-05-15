@@ -111,6 +111,8 @@ func (r *Runner) Start() {
 
 	log.Printf("[INFO] (runner) starting")
 
+	r.DoneCh = make(chan struct{})
+
 	// Fire an initial run to parse all the templates and setup the first-pass
 	// dependencies. This also forces any templates that have no dependencies to
 	// be rendered immediately (since they are already renderable).
