@@ -321,5 +321,5 @@ func ParseConfigTemplate(s string) (*ConfigTemplate, error) {
 		return nil, errors.New("invalid template declaration format")
 	}
 
-	return &ConfigTemplate{source, destination, command}, nil
+	return &ConfigTemplate{source, destination, command, false, ""}, nil
 }
