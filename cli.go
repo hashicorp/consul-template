@@ -108,11 +108,15 @@ func (cli *CLI) Run(args []string) int {
 			switch s {
 			case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
 				fmt.Fprintf(cli.errStream, "Received interrupt, cleaning up...\n")
-				runner.Stop()
+				if err = runner.Stop(); err != nil {
+					return cli.handleError(err, ExitCodeRunnerError)
+				}
 				return ExitCodeInterrupt
 			case syscall.SIGHUP:
 				fmt.Fprintf(cli.errStream, "Received HUP, reloading configuration...\n")
-				runner.Stop()
+				if err = runner.Stop(); err != nil {
+					return cli.handleError(err, ExitCodeRunnerError)
+				}
 				runner, err = core.NewRunner(config, dry, once)
 				if err != nil {
 					return cli.handleError(err, ExitCodeRunnerError)

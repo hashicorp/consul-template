@@ -212,18 +212,20 @@ func (r *Runner) Start() {
 }
 
 // Stop halts the execution of this runner and its subprocesses.
-func (r *Runner) Stop() {
+func (r *Runner) Stop() error {
 	r.Lock()
 	defer r.Unlock()
 
 	if r.done {
-		return
+		return nil
 	}
 
 	log.Printf("[INFO] (runner) stopping")
 	r.watcher.Stop()
 	close(r.DoneCh)
 	r.done = true
+
+	return nil
 }
 
 // Receive accepts a Dependency and data for that dep. This data is
