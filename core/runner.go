@@ -362,9 +362,9 @@ func (r *Runner) Run() error {
 					// in the order in which they are provided in the ConfigTemplate
 					// definitions. If we inserted commands into a map, we would lose that
 					// relative ordering and people would be unhappy.
-					if ctemplate.Command != "" && !exists(ctemplate.Command, commands) {
-						log.Printf("[DEBUG] (runner) appending command: %s", ctemplate.Command)
-						commands = append(commands, ctemplate.Command)
+					if ctemplate.StartCommand != "" && !exists(ctemplate.StartCommand, commands) {
+						log.Printf("[DEBUG] (runner) appending command: %s", ctemplate.StartCommand)
+						commands = append(commands, ctemplate.StartCommand)
 					}
 				}
 			}
