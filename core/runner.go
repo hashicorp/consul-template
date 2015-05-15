@@ -38,6 +38,7 @@ type Runner struct {
 	// ErrCh and DoneCh are channels where errors and finish notifications occur.
 	ErrCh  chan error
 	DoneCh chan struct{}
+	done bool
 
 	// config is the Config that created this Runner. It is used internally to
 	// construct other objects and pass data.
@@ -90,6 +91,7 @@ func NewRunner(config *Config, dry, once bool) (*Runner, error) {
 	log.Printf("[INFO] (runner) creating new runner (dry: %v, once: %v)", dry, once)
 
 	runner := &Runner{
+		done:   true,
 		config: config,
 		dry:    dry,
 		once:   once,
@@ -112,6 +114,7 @@ func (r *Runner) Start() {
 	log.Printf("[INFO] (runner) starting")
 
 	r.DoneCh = make(chan struct{})
+	r.done = false
 
 	// Fire an initial run to parse all the templates and setup the first-pass
 	// dependencies. This also forces any templates that have no dependencies to
@@ -212,6 +215,7 @@ func (r *Runner) Stop() {
 	log.Printf("[INFO] (runner) stopping")
 	r.watcher.Stop()
 	close(r.DoneCh)
+	r.done = true
 }
 
 // Receive accepts a Dependency and data for that dep. This data is
