@@ -33,8 +33,6 @@ const (
 
 // Runner responsible rendering Templates and invoking Commands.
 type Runner struct {
-	sync.Mutex
-
 	// ErrCh and DoneCh are channels where errors and finish notifications occur.
 	ErrCh  chan error
 	DoneCh chan struct{}
@@ -108,9 +106,6 @@ func NewRunner(config *Config, dry, once bool) (*Runner, error) {
 // this function to push an item onto the runner's error channel and the halt
 // execution. This function is blocking and should be called as a goroutine.
 func (r *Runner) Start() {
-	r.Lock()
-	defer r.Unlock()
-
 	if !r.done {
 		return
 	}
@@ -213,9 +208,6 @@ func (r *Runner) Start() {
 
 // Stop halts the execution of this runner and its subprocesses.
 func (r *Runner) Stop() error {
-	r.Lock()
-	defer r.Unlock()
-
 	if r.done {
 		return nil
 	}
