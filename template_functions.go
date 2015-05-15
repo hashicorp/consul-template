@@ -424,6 +424,10 @@ func regexMatch(re, s string) (bool, error) {
 
 // split is a version of strings.Split that can be piped
 func split(sep, s string) ([]string, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return []string{}, nil
+	}
 	return strings.Split(s, sep), nil
 }
 
