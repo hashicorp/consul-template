@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"hash/fnv"
+	"math"
 
 	dep "github.com/hashicorp/consul-template/dependency"
 )
@@ -152,6 +154,19 @@ func nodesFunc(brain *Brain,
 	}
 }
 
+// hashes the hostname and returns an service IP 
+func fqdnRandService(ray []*dep.HealthService) (string, error) {
+	if len(ray) > 1 {
+		h := fnv.New32a()
+		p, _ := os.Hostname()
+		h.Write([]byte(p))
+		pos := int((math.Remainder(float64(h.Sum32()), (float64(len(ray))))))
+		return ray[pos].NodeAddress, nil
+	} else {
+		return "", nil
+	}
+}
+
 // serviceFunc returns or accumulates health service dependencies.
 func serviceFunc(brain *Brain,
 	used, missing map[string]dep.Dependency) func(...string) ([]*dep.HealthService, error) {
@@ -174,7 +189,6 @@ func serviceFunc(brain *Brain,
 		}
 
 		addDependency(missing, d)
-
 		return result, nil
 	}
 }
