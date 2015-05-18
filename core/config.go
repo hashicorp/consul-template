@@ -115,6 +115,8 @@ func (c *Config) Merge(config *Config) {
 				Source:       template.Source,
 				Destination:  template.Destination,
 				StartCommand: template.StartCommand,
+				Stop:         template.Stop,
+				StopCommand:  template.StopCommand,
 			})
 		}
 	}
