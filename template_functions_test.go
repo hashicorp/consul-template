@@ -1110,3 +1110,14 @@ func TestToUpper(t *testing.T) {
 		t.Errorf("expected %q to be %q", result, expected)
 	}
 }
+
+func TestRandElements(t *testing.T) {
+	result, err :=  randElements("foo", 5, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result[0] < 0 {
+		t.Errorf("A negative index was returned")
+	}
+}
