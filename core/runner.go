@@ -624,6 +624,8 @@ func (r *Runner) StopCommand() error {
 
 			if !exists(ctemplate.StopCommand, commands) {
 				commands = append(commands, ctemplate.StopCommand)
+				// reset First
+				ctemplate.First = true
 				// delete rendered template
 				if err := os.Remove(ctemplate.Destination); err != nil {
 					return err
