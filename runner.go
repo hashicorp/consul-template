@@ -30,6 +30,9 @@ const (
 	// saneViewLimit is the number of views that we consider "sane" before we
 	// warn the user that they might be DDoSing their Consul cluster.
 	saneViewLimit = 128
+
+	// commandTimeout is the amount of time to wait for a command to return.
+	commandTimeout = 30 * time.Second
 )
 
 // Runner responsible rendering Templates and invoking Commands.
@@ -365,7 +368,7 @@ func (r *Runner) Run() error {
 	var errs []error
 	for _, command := range commands {
 		log.Printf("[DEBUG] (runner) running command: `%s`", command)
-		if err := r.execute(command); err != nil {
+		if err := r.execute(command, commandTimeout); err != nil {
 			log.Printf("[ERR] (runner) error running command: %s", err)
 			errs = append(errs, err)
 		}
@@ -548,7 +551,7 @@ func (r *Runner) render(contents []byte, dest string) (bool, bool, error) {
 
 // execute accepts a command string and runs that command string on the current
 // system.
-func (r *Runner) execute(command string) error {
+func (r *Runner) execute(command string, timeout time.Duration) error {
 	var shell, flag string
 	if runtime.GOOS == "windows" {
 		shell, flag = "cmd", "/C"
@@ -579,7 +582,29 @@ func (r *Runner) execute(command string) error {
 	cmd.Stdout = r.outStream
 	cmd.Stderr = r.errStream
 	cmd.Env = cmdEnv
-	return cmd.Run()
+
+	done := make(chan error, 1)
+	go func() {
+		done <- cmd.Run()
+	}()
+
+	select {
+	case <-time.After(timeout):
+		if cmd.Process != nil {
+			if err := cmd.Process.Kill(); err != nil {
+				return fmt.Errorf("failed to kill %q in %s: %s",
+					command, timeout, err)
+			}
+		}
+		<-done // Allow the goroutine to finish
+		return fmt.Errorf(
+			"command %q\n"+
+				"did not return for %s - if your command does not return, please\n"+
+				"make sure to background it",
+			command, timeout)
+	case err := <-done:
+		return err
+	}
 }
 
 // storePid is used to write out a PID file to disk.

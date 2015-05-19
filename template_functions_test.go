@@ -1017,9 +1017,19 @@ func TestSplit(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := make([]string, 2)
-	expected[0] = "foo bar"
-	expected[1] = "baz"
+	expected := []string{"foo bar", "baz"}
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+}
+
+func TestSplit_emptyString(t *testing.T) {
+	result, err := split("", "\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []string{}
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("expected %q to be %q", result, expected)
 	}

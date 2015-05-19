@@ -16,6 +16,7 @@ IMPROVEMENTS:
     precedence if specified)
   * Improve error reporting when loading multiple configs by including the path
     on the configuration file that had an error (GH-275)
+  * Add a timeout around command execution to prevent hanging (GH-283)
 
 BUG FIXES:
 
