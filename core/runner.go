@@ -365,10 +365,10 @@ func (r *Runner) Run() error {
 					if ctemplate.First {
 						ctemplate.First = false
 					} else {
-					}
-					if ctemplate.RestartCommand != "" && !exists(ctemplate.RestartCommand, commands) {
-						log.Printf("[DEBUG] (runner) appending command: %s", ctemplate.RestartCommand)
-						commands = append(commands, ctemplate.RestartCommand)
+						if ctemplate.RestartCommand != "" && !exists(ctemplate.RestartCommand, commands) {
+							log.Printf("[DEBUG] (runner) appending command: %s", ctemplate.RestartCommand)
+							commands = append(commands, ctemplate.RestartCommand)
+						}
 					}
 				}
 			}
