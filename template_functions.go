@@ -175,12 +175,13 @@ func randElements(hashSalt string, slen int, numElems int) ([]int, error) {
 	return randElems, nil
 }
 
-// hashes the hostname and returns an service IP 
-func fqdnRandService(ray []*dep.HealthService) ([]*dep.HealthService, error) {
+// selects hashed services and truncates
+// {{ range service "consul" | fqdnRandService 1 }}
+func fqdnRandService(count int, ray []*dep.HealthService) ([]*dep.HealthService, error) {
 	var res []*dep.HealthService
 	if len(ray) > 1 {
 		p, _ := os.Hostname()
-		q, _ := randElements(p, len(ray), 2) 
+		q, _ := randElements(p, len(ray), count) 
 		for i, _ := range q {
 			res = append(res, ray[i])
 		}
