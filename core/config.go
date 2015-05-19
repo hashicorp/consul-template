@@ -114,6 +114,7 @@ func (c *Config) Merge(config *Config) {
 			c.ConfigTemplates = append(c.ConfigTemplates, &ConfigTemplate{
 				Source:         template.Source,
 				Destination:    template.Destination,
+				StartCommand:   template.StartCommand,
 				RestartCommand: template.RestartCommand,
 				StopCommand:    template.StopCommand,
 			})
@@ -297,6 +298,7 @@ type SyslogConfig struct {
 type ConfigTemplate struct {
 	Source         string `json:"source" mapstructure:"source"`
 	Destination    string `json:"destination" mapstructure:"destination"`
+	StartCommand   string `json:"startcommand" mapstructure:"startcommand"`
 	RestartCommand string `json:"restartcommand" mapstructure:"restartcommand"`
 	StopCommand    string `json:"stopcommand" mapstructure:"stopcommand"`
 }
@@ -321,5 +323,5 @@ func ParseConfigTemplate(s string) (*ConfigTemplate, error) {
 		return nil, errors.New("invalid template declaration format")
 	}
 
-	return &ConfigTemplate{source, destination, command, ""}, nil
+	return &ConfigTemplate{source, destination, "", command, ""}, nil
 }
