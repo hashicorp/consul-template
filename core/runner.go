@@ -610,6 +610,10 @@ func (r *Runner) StopCommand() error {
 
 			if ctemplate.StopCommand != "" && !exists(ctemplate.StopCommand, commands) {
 				commands = append(commands, ctemplate.StopCommand)
+				// delete rendered template
+				if err := os.Remove(ctemplate.Destination); err != nil {
+					return err
+				}
 			}
 			// else...
 			// will consider capturing the pid of the process and offer to gracefully exit
