@@ -364,6 +364,14 @@ func (r *Runner) Run() error {
 					// relative ordering and people would be unhappy.
 					if ctemplate.First {
 						ctemplate.First = false
+						if ctemplate.StartCommand == "" {
+							log.Printf("[Err] (runner) start command not provided for template %s", tmpl.Path)
+							return fmt.Errorf("start command not provided for template %s", tmpl.Path)
+						}
+						if !exists(ctemplate.StartCommand, commands) {
+							log.Printf("[DEBUG] (runner) appending command: %s", ctemplate.StartCommand)
+							commands = append(commands, ctemplate.StartCommand)
+						}
 					} else {
 						if ctemplate.RestartCommand != "" && !exists(ctemplate.RestartCommand, commands) {
 							log.Printf("[DEBUG] (runner) appending command: %s", ctemplate.RestartCommand)
