@@ -36,7 +36,7 @@ type Runner struct {
 	// ErrCh and DoneCh are channels where errors and finish notifications occur.
 	ErrCh  chan error
 	DoneCh chan struct{}
-	done bool
+	Done bool
 
 	// config is the Config that created this Runner. It is used internally to
 	// construct other objects and pass data.
@@ -89,7 +89,7 @@ func NewRunner(config *Config, dry, once bool) (*Runner, error) {
 	log.Printf("[INFO] (runner) creating new runner (dry: %v, once: %v)", dry, once)
 
 	runner := &Runner{
-		done:   true,
+		Done:   true,
 		config: config,
 		dry:    dry,
 		once:   once,
@@ -106,14 +106,14 @@ func NewRunner(config *Config, dry, once bool) (*Runner, error) {
 // this function to push an item onto the runner's error channel and the halt
 // execution. This function is blocking and should be called as a goroutine.
 func (r *Runner) Start() {
-	if !r.done {
+	if !r.Done {
 		return
 	}
 
 	log.Printf("[INFO] (runner) starting")
 
 	r.DoneCh = make(chan struct{})
-	r.done = false
+	r.Done = false
 
 	// Fire an initial run to parse all the templates and setup the first-pass
 	// dependencies. This also forces any templates that have no dependencies to
@@ -208,14 +208,14 @@ func (r *Runner) Start() {
 
 // Stop halts the execution of this runner and its subprocesses.
 func (r *Runner) Stop() error {
-	if r.done {
+	if r.Done {
 		return nil
 	}
 
 	log.Printf("[INFO] (runner) stopping")
 	r.watcher.Stop()
 	close(r.DoneCh)
-	r.done = true
+	r.Done = true
 
 	if err := r.StopCommand(); err != nil {
 		return err
