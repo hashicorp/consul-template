@@ -112,11 +112,11 @@ func (c *Config) Merge(config *Config) {
 		}
 		for _, template := range config.ConfigTemplates {
 			c.ConfigTemplates = append(c.ConfigTemplates, &ConfigTemplate{
-				Source:       template.Source,
-				Destination:  template.Destination,
-				StartCommand: template.StartCommand,
-				Stop:         template.Stop,
-				StopCommand:  template.StopCommand,
+				Source:         template.Source,
+				Destination:    template.Destination,
+				RestartCommand: template.RestartCommand,
+				Stop:           template.Stop,
+				StopCommand:    template.StopCommand,
 			})
 		}
 	}
@@ -296,11 +296,11 @@ type SyslogConfig struct {
 // ConfigTemplate is the representation of an input template, output location,
 // and optional command to execute when rendered
 type ConfigTemplate struct {
-	Source       string `json:"source" mapstructure:"source"`
-	Destination  string `json:"destination" mapstructure:"destination"`
-	StartCommand string `json:"startcommand" mapstructure:"startcommand"`
-	Stop         bool   `json:"stop" mapstructure:"stop"`
-	StopCommand  string `json:"stopcommand" mapstructure:"stopcommand"`
+	Source         string `json:"source" mapstructure:"source"`
+	Destination    string `json:"destination" mapstructure:"destination"`
+	RestartCommand string `json:"restartcommand" mapstructure:"restartcommand"`
+	Stop           bool   `json:"stop" mapstructure:"stop"`
+	StopCommand    string `json:"stopcommand" mapstructure:"stopcommand"`
 }
 
 // ParseConfigTemplate parses a string into a ConfigTemplate struct
