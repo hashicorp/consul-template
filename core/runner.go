@@ -606,11 +606,11 @@ func (r *Runner) StopCommand() error {
 	// group the stop commands
 	for _, tmpl := range r.templates {
 		for _, ctemplate := range r.configTemplatesFor(tmpl) {
-			if !ctemplate.Stop {
+			if ctemplate.StopCommand == "" {
 				continue
 			}
 
-			if ctemplate.StopCommand != "" && !exists(ctemplate.StopCommand, commands) {
+			if !exists(ctemplate.StopCommand, commands) {
 				commands = append(commands, ctemplate.StopCommand)
 				// delete rendered template
 				if err := os.Remove(ctemplate.Destination); err != nil {

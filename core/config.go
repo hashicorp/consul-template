@@ -115,7 +115,6 @@ func (c *Config) Merge(config *Config) {
 				Source:         template.Source,
 				Destination:    template.Destination,
 				RestartCommand: template.RestartCommand,
-				Stop:           template.Stop,
 				StopCommand:    template.StopCommand,
 			})
 		}
@@ -299,7 +298,6 @@ type ConfigTemplate struct {
 	Source         string `json:"source" mapstructure:"source"`
 	Destination    string `json:"destination" mapstructure:"destination"`
 	RestartCommand string `json:"restartcommand" mapstructure:"restartcommand"`
-	Stop           bool   `json:"stop" mapstructure:"stop"`
 	StopCommand    string `json:"stopcommand" mapstructure:"stopcommand"`
 }
 
@@ -323,5 +321,5 @@ func ParseConfigTemplate(s string) (*ConfigTemplate, error) {
 		return nil, errors.New("invalid template declaration format")
 	}
 
-	return &ConfigTemplate{source, destination, command, false, ""}, nil
+	return &ConfigTemplate{source, destination, command, ""}, nil
 }
