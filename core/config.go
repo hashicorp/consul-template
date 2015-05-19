@@ -117,6 +117,7 @@ func (c *Config) Merge(config *Config) {
 				StartCommand:   template.StartCommand,
 				RestartCommand: template.RestartCommand,
 				StopCommand:    template.StopCommand,
+				First:          template.First,
 			})
 		}
 	}
@@ -301,6 +302,11 @@ type ConfigTemplate struct {
 	StartCommand   string `json:"startcommand" mapstructure:"startcommand"`
 	RestartCommand string `json:"restartcommand" mapstructure:"restartcommand"`
 	StopCommand    string `json:"stopcommand" mapstructure:"stopcommand"`
+	// A binary value on whether the service has been executed
+	// at least once or not.
+	// This is to know which command (StartCommand or RestartCommand)
+	// to pick next (upon a new rendering of the template)
+	First          bool
 }
 
 // ParseConfigTemplate parses a string into a ConfigTemplate struct
@@ -323,5 +329,5 @@ func ParseConfigTemplate(s string) (*ConfigTemplate, error) {
 		return nil, errors.New("invalid template declaration format")
 	}
 
-	return &ConfigTemplate{source, destination, "", command, ""}, nil
+	return &ConfigTemplate{source, destination, "", command, "", false}, nil
 }
