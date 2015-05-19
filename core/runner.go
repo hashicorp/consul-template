@@ -36,6 +36,8 @@ type Runner struct {
 	// ErrCh and DoneCh are channels where errors and finish notifications occur.
 	ErrCh  chan error
 	DoneCh chan struct{}
+
+	// binart value to indicate the state of the runner (running or stopped)
 	Done bool
 
 	// config is the Config that created this Runner. It is used internally to
