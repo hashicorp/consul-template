@@ -98,10 +98,6 @@ func NewRunner(config *Config, dry, once bool) (*Runner, error) {
 		once:   once,
 	}
 
-	if err := runner.init(); err != nil {
-		return nil, err
-	}
-
 	return runner, nil
 }
 
@@ -115,6 +111,11 @@ func (r *Runner) Start() {
 	}
 
 	log.Printf("[INFO] (runner) starting")
+
+	if err := r.init(); err != nil {
+		r.ErrCh <- err
+		return
+	}
 
 	r.DoneCh = make(chan struct{})
 	r.Up = true
