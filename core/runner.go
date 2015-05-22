@@ -92,6 +92,8 @@ func NewRunner(config *Config, dry, once bool) (*Runner, error) {
 	log.Printf("[INFO] (runner) creating new runner (dry: %v, once: %v)", dry, once)
 
 	runner := &Runner{
+		ErrCh:  make(chan error),
+		DoneCh: make(chan struct{}),
 		Up:     false,
 		config: config,
 		dry:    dry,
@@ -218,7 +220,7 @@ func (r *Runner) Stop() error {
 
 	log.Printf("[INFO] (runner) stopping")
 	r.watcher.Stop()
-	close(r.DoneCh)
+	r.DoneCh <- struct{}{}
 	r.Up = false
 
 	if err := r.StopCommand(); err != nil {
@@ -489,9 +491,6 @@ func (r *Runner) init() error {
 	r.outStream = os.Stdout
 	r.errStream = os.Stderr
 	r.brain = NewBrain()
-
-	r.ErrCh = make(chan error)
-	r.DoneCh = make(chan struct{})
 
 	r.quiescenceMap = make(map[string]*quiescence)
 	r.quiescenceCh = make(chan *Template)
