@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -109,6 +110,7 @@ func NewRunner(config *Config, dry, once bool) (*Runner, error) {
 // execution. This function is blocking and should be called as a goroutine.
 func (r *Runner) Start() {
 	if r.Up {
+		r.ErrCh <- errors.New("runner: starting an already started process")
 		return
 	}
 
@@ -211,7 +213,7 @@ func (r *Runner) Start() {
 // Stop halts the execution of this runner and its subprocesses.
 func (r *Runner) Stop() error {
 	if !r.Up {
-		return nil
+		return errors.New("runner: stopping an already stopped process")
 	}
 
 	log.Printf("[INFO] (runner) stopping")
