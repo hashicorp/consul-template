@@ -117,7 +117,6 @@ func (r *Runner) Start() {
 		return
 	}
 
-	r.DoneCh = make(chan struct{})
 	r.Up = true
 
 	// Fire an initial run to parse all the templates and setup the first-pass
