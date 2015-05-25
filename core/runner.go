@@ -114,7 +114,7 @@ func (r *Runner) Start() {
 
 	log.Printf("[INFO] (runner) starting")
 
-	if err := r.init(); err != nil {
+	if err := r.Init(); err != nil {
 		r.ErrCh <- err
 		return
 	}
@@ -416,7 +416,7 @@ func (r *Runner) Run() error {
 
 // init() creates the Runner's underlying data structures and returns an error
 // if any problems occur.
-func (r *Runner) init() error {
+func (r *Runner) Init() error {
 	// Start with the default config
 	config := DefaultConfig()
 
