@@ -390,27 +390,17 @@ func (r *Runner) Run() error {
 // init() creates the Runner's underlying data structures and returns an error
 // if any problems occur.
 func (r *Runner) init() error {
-	// Start with the default config
+	// Ensure we have default vaults
 	config := DefaultConfig()
-
-	// Merge multiple configs if given
-	if r.config.Path != "" {
-		err := buildConfig(config, r.config.Path)
-		if err != nil {
-			return fmt.Errorf("runner: %s", err)
-		}
-	}
-
-	// Merge in default values for the config
 	config.Merge(r.config)
 	r.config = config
 
 	// Print the final config for debugging
-	result, err := json.MarshalIndent(config, "", "  ")
+	result, err := json.MarshalIndent(r.config, "", "  ")
 	if err != nil {
 		return err
 	}
-	log.Printf("[DEBUG] runner: final config (tokens suppressed):\n\n%s\n\n",
+	log.Printf("[DEBUG] (runner) final config (tokens suppressed):\n\n%s\n\n",
 		result)
 
 	// Create the clientset
@@ -962,67 +952,4 @@ func newWatcher(config *Config, clients *dep.ClientSet, once bool) (*watch.Watch
 	}
 
 	return watcher, err
-}
-
-// buildConfig iterates and merges all configuration files in a given directory.
-// The config parameter will be modified and merged with subsequent configs
-// found in the directory.
-func buildConfig(config *Config, path string) error {
-	log.Printf("[DEBUG] merging with config at %s", path)
-
-	// Ensure the given filepath exists
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return fmt.Errorf("config: missing file/folder: %s", path)
-	}
-
-	// Check if a file was given or a path to a directory
-	stat, err := os.Stat(path)
-	if err != nil {
-		return fmt.Errorf("config: error stating file: %s", err)
-	}
-
-	// Recursively parse directories, single load files
-	if stat.Mode().IsDir() {
-		// Ensure the given filepath has at least one config file
-		_, err := ioutil.ReadDir(path)
-		if err != nil {
-			return fmt.Errorf("config: error listing directory: %s", err)
-		}
-
-		// Potential bug: Walk does not follow symlinks!
-		err = filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
-			// If WalkFunc had an error, just return it
-			if err != nil {
-				return err
-			}
-
-			// Do nothing for directories
-			if info.IsDir() {
-				return nil
-			}
-
-			// Parse and merge the config
-			newConfig, err := ParseConfig(path)
-			if err != nil {
-				return err
-			}
-			config.Merge(newConfig)
-
-			return nil
-		})
-
-		if err != nil {
-			return fmt.Errorf("config: walk error: %s", err)
-		}
-	} else if stat.Mode().IsRegular() {
-		newConfig, err := ParseConfig(path)
-		if err != nil {
-			return err
-		}
-		config.Merge(newConfig)
-	} else {
-		return fmt.Errorf("config: unknown filetype: %s", stat.Mode().String())
-	}
-
-	return nil
 }

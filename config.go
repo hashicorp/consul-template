@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -344,6 +346,69 @@ func ParseConfig(path string) (*Config, error) {
 	config = d
 
 	return config, errs.ErrorOrNil()
+}
+
+// ConfigFromPath iterates and merges all configuration files in a given
+// directory, returning the resulting config.
+func ConfigFromPath(path string) (*Config, error) {
+	log.Printf("[DEBUG] (config) loading configs from %q", path)
+
+	// Ensure the given filepath exists
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return nil, fmt.Errorf("config: missing file/folder: %s", path)
+	}
+
+	// Check if a file was given or a path to a directory
+	stat, err := os.Stat(path)
+	if err != nil {
+		return nil, fmt.Errorf("config: error stating file: %s", err)
+	}
+
+	// Recursively parse directories, single load files
+	if stat.Mode().IsDir() {
+		// Ensure the given filepath has at least one config file
+		_, err := ioutil.ReadDir(path)
+		if err != nil {
+			return nil, fmt.Errorf("config: error listing directory: %s", err)
+		}
+
+		// Create a blank config to merge off of
+		config := DefaultConfig()
+
+		// Potential bug: Walk does not follow symlinks!
+		err = filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+			// If WalkFunc had an error, just return it
+			if err != nil {
+				return err
+			}
+
+			// Do nothing for directories
+			if info.IsDir() {
+				return nil
+			}
+
+			log.Printf("[DEBUG] (config) merging with %q", path)
+
+			// Parse and merge the config
+			newConfig, err := ParseConfig(path)
+			if err != nil {
+				return err
+			}
+			config.Merge(newConfig)
+
+			return nil
+		})
+
+		if err != nil {
+			return nil, fmt.Errorf("config: walk error: %s", err)
+		}
+
+		return config, nil
+	} else if stat.Mode().IsRegular() {
+		return ParseConfig(path)
+	}
+
+	return nil, fmt.Errorf("config: unknown filetype: %q", stat.Mode().String())
 }
 
 // DefaultConfig returns the default configuration struct.
