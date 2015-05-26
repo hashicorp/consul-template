@@ -29,6 +29,7 @@ const (
 	ExitCodeLoggingError
 	ExitCodeParseFlagsError
 	ExitCodeRunnerError
+	ExitCodeConfigError
 )
 
 /// ------------------------- ///
@@ -61,6 +62,18 @@ func (cli *CLI) Run(args []string) int {
 	config, once, dry, version, err := cli.parseFlags(args[1:])
 	if err != nil {
 		return cli.handleError(err, ExitCodeParseFlagsError)
+	}
+
+	// If a path was given, load the config from file
+	if config.Path != "" {
+		newConfig, err := ConfigFromPath(config.Path)
+		if err != nil {
+			return cli.handleError(err, ExitCodeConfigError)
+		}
+
+		// Merge ensuring that the CLI options still take precedence
+		newConfig.Merge(config)
+		config = newConfig
 	}
 
 	// Setup the logging
