@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -17,21 +18,28 @@ var Levels = []logutils.LogLevel{"DEBUG", "INFO", "WARN", "ERR"}
 // Config is the configuration for this log setup.
 type Config struct {
 	// Name is the progname as it will appear in syslog output (if enabled).
-	Name string
+	Name string `json:"name"`
 
 	// Level is the log level to use.
-	Level string
+	Level string `json:"level"`
 
 	// Syslog and SyslogFacility are the syslog configuration options.
-	Syslog         bool
-	SyslogFacility string
+	Syslog         bool   `json:"syslog"`
+	SyslogFacility string `json:"syslog_facility"`
 
 	// Writer is the output where logs should go. If syslog is enabled, data will
 	// be written to writer in addition to syslog.
-	Writer io.Writer
+	Writer io.Writer `json:"-"`
 }
 
 func Setup(config *Config) error {
+	log.Print("[DEBUG] (logging) setting up logging")
+	result, err := json.MarshalIndent(config, "", "  ")
+	if err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] (logging) config:\n\n%s\n\n", result)
+
 	var logOutput io.Writer
 
 	// Setup the default logging
@@ -49,6 +57,8 @@ func Setup(config *Config) error {
 
 	// Check if syslog is enabled
 	if config.Syslog {
+		log.Printf("[DEBUG] (logging) enabling syslog on %s", config.SyslogFacility)
+
 		l, err := gsyslog.NewLogger(gsyslog.LOG_NOTICE, config.SyslogFacility, config.Name)
 		if err != nil {
 			return fmt.Errorf("error setting up syslog logger: %s", err)
