@@ -87,6 +87,9 @@ func (cli *CLI) Run(args []string) int {
 		return cli.handleError(err, ExitCodeLoggingError)
 	}
 
+	// Print version information for debugging
+	log.Printf("[INFO] Consul Template v%s", Version)
+
 	// If the version was requested, return an "error" containing the version
 	// information. This might sound weird, but most *nix applications actually
 	// print their version on stderr anyway.
