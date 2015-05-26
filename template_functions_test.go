@@ -338,6 +338,99 @@ func TestLsFunc_missingData(t *testing.T) {
 	}
 }
 
+func TestMergeFunc_emptyString(t *testing.T) {
+	brain := NewBrain()
+	used := make(map[string]dep.Dependency)
+	missing := make(map[string]dep.Dependency)
+
+	f := mergeFunc(brain, used, missing)
+	result, err := f("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []*dep.KeyPair{}
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+}
+
+func TestMergeFunc_hasData(t *testing.T) {
+	d, err := dep.ParseStoreKeyPrefix("existing")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data := []*dep.KeyPair{
+		&dep.KeyPair{Key: "", Value: ""},
+		&dep.KeyPair{Key: "user/sethvargo", Value: "true"},
+		&dep.KeyPair{Key: "maxconns", Value: "11"},
+		&dep.KeyPair{Key: "minconns", Value: "2"},
+	}
+
+	brain := NewBrain()
+	brain.Remember(d, data)
+
+	used := make(map[string]dep.Dependency)
+	missing := make(map[string]dep.Dependency)
+
+	f := mergeFunc(brain, used, missing)
+	result, err := f("existing")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []*dep.KeyPair{
+		&dep.KeyPair{Key: "maxconns", Value: "11"},
+		&dep.KeyPair{Key: "minconns", Value: "2"},
+		&dep.KeyPair{Key: "user/sethvargo", Value: "true"},
+	}
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+
+	if len(missing) != 0 {
+		t.Errorf("expected missing to have 0 elements, but had %d", len(missing))
+	}
+
+	if _, ok := used[d.HashCode()]; !ok {
+		t.Errorf("expected dep to be used")
+	}
+}
+
+func TestMergeFunc_missingData(t *testing.T) {
+	d, err := dep.ParseStoreKeyPrefix("non-existing")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	brain := NewBrain()
+
+	used := make(map[string]dep.Dependency)
+	missing := make(map[string]dep.Dependency)
+
+	f := mergeFunc(brain, used, missing)
+	result, err := f("non-existing")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []*dep.KeyPair{}
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+
+	if _, ok := used[d.HashCode()]; !ok {
+		t.Errorf("expected dep to be used")
+	}
+
+	if _, ok := missing[d.HashCode()]; !ok {
+		t.Errorf("expected dep to be missing")
+	}
+}
+
 func TestNodesFunc_noArgs(t *testing.T) {
 	brain := NewBrain()
 	used := make(map[string]dep.Dependency)
