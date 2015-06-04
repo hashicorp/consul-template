@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"net"
 	"os"
 	"reflect"
 	"strings"
@@ -249,6 +250,12 @@ func TestExecute_renders(t *testing.T) {
 			{{$tag}}:{{ range $services }}
 				{{.Name}}{{ end }}{{ end }}
 		env: {{ env "foo" }}
+		lookupIp:{{ range lookupIP "some.host" }}
+			{{.}}{{end}}
+		lookupIpv4:{{ range lookupIPv4 "some.host" }}
+			{{.}}{{end}}
+		lookupIpv6:{{ range lookupIPv6 "some.host" }}
+			{{.}}{{end}}
 		loop:{{range loop 3}}
 			test{{end}}
 		loop(i):{{range $i := loop 5 8}}
@@ -392,6 +399,24 @@ func TestExecute_renders(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	d, err = dep.ParseLookupIP("some.host")
+	if err != nil {
+		t.Fatal(err)
+	}
+	brain.Remember(d, []net.IP{net.IPv6loopback, net.IPv4(127, 0, 0, 1)})
+
+	d, err = dep.ParseLookupIPv4("some.host")
+	if err != nil {
+		t.Fatal(err)
+	}
+	brain.Remember(d, []net.IP{net.IPv4(127, 0, 0, 1)})
+
+	d, err = dep.ParseLookupIPv6("some.host")
+	if err != nil {
+		t.Fatal(err)
+	}
+	brain.Remember(d, []net.IP{net.IPv6loopback})
+
 	_, _, result, err := tmpl.Execute(brain)
 	if err != nil {
 		t.Fatal(err)
@@ -449,6 +474,13 @@ func TestExecute_renders(t *testing.T) {
 			release:
 				service2
 		env: bar
+		lookupIp:
+			::1
+			127.0.0.1
+		lookupIpv4:
+			127.0.0.1
+		lookupIpv6:
+			::1
 		loop:
 			test
 			test

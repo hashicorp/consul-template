@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"regexp"
 	"strings"
@@ -93,6 +94,32 @@ func keyFunc(brain *Brain,
 		addDependency(missing, d)
 
 		return "", nil
+	}
+}
+
+// lookupIPFunc returns or accumulates lookupIP dependencies.
+func lookupIPFunc(brain *Brain, used, missing map[string]dep.Dependency,
+	parseFunc func(s string) (*dep.LookupIP, error)) func(string) ([]net.IP, error) {
+	return func(s string) ([]net.IP, error) {
+		result := make([]net.IP, 0)
+		if len(s) == 0 {
+			return result, nil
+		}
+
+		d, err := parseFunc(s)
+		if err != nil {
+			return result, err
+		}
+
+		addDependency(used, d)
+
+		if value, ok := brain.Recall(d); ok {
+			return value.([]net.IP), nil
+		}
+
+		addDependency(missing, d)
+
+		return result, nil
 	}
 }
 

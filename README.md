@@ -462,6 +462,33 @@ This function can be chained to manipulate the output:
 {{env "CLUSTER_ID" | toLower}}
 ```
 
+##### `lookupIP`
+Lookup IP addresses for a host and watches for IP address changes. It returns
+an array of that host's IPv4 and IPv6 addresses.
+
+```liquid
+{{range lookupIP "consul.io" }}
+ + {{.}}{{end}}
+```
+
+##### `lookupIPv4`
+Lookup IP addresses for a host and watches for IP address changes. It returns
+an array of that host's IPv4 addresses.
+
+```liquid
+{{range lookupIPv4 "consul.io" }}
+ + {{.}}{{end}}
+```
+
+##### `lookupIPv6`
+Lookup IP addresses for a host and watches for IP address changes. It returns
+an array of that host's IPv6 addresses.
+
+```liquid
+{{range lookupIPv6 "consul.io" }}
+ + {{.}}{{end}}
+```
+
 ##### `loop`
 Accepts varying parameters and differs its behavior based on those parameters.
 
