@@ -235,6 +235,33 @@ maxconns 12
 
 If you omit the datacenter attribute on `ls`, the local Consul datacenter will be queried.
 
+##### `node`
+Query Consul for a single node in the catalog.
+
+```liquid
+{{node "node1"}}
+```
+
+When called without any arguments then the node for the current agent is returned.
+
+```liquid
+{{node}}
+```
+
+You can specify an optional parameter to the `nodes` call to specify the datacenter:
+
+```liquid
+{{node "node1" "@east-aws"}}
+```
+
+If the node specified is not found then `nil` is returned. If the node is found then you are provided with information about the node and a list of services that it provides.
+
+```liquid
+{{with node}}{{.Node.Node}} ({{.Node.Address}}){{range .Services}}
+  {{.Service}} {{.Port}} ({{.Tags | join ","}}){{end}}
+{{end}}
+```
+
 ##### `nodes`
 Query Consul for all nodes in the catalog. Nodes are queried using the following syntax:
 
