@@ -315,17 +315,17 @@ func TestExecute_renders(t *testing.T) {
 		&dep.KeyPair{Key: "minconns", Value: "2"},
 	})
 
-	d, err = dep.ParseCatalogSingleNode()
+	d, err = dep.ParseCatalogNode()
 	if err != nil {
 		t.Fatal(err)
 	}
-	brain.Remember(d, &dep.CatalogNode{
+	brain.Remember(d, &dep.NodeDetail{
 		Node: &dep.Node{Node: "node1"},
-		Services: dep.CatalogNodeServiceList{
-			&dep.CatalogNodeService{
+		Services: dep.NodeServiceList([]*dep.NodeService{
+			&dep.NodeService{
 				Service: "service1",
 			},
-		},
+		}),
 	})
 
 	d, err = dep.ParseCatalogNodes("")

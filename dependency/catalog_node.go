@@ -8,39 +8,25 @@ import (
 	"sort"
 )
 
-type CatalogNode struct {
+type NodeDetail struct {
 	Node     *Node
-	Services CatalogNodeServiceList
+	Services NodeServiceList
 }
 
-type CatalogNodeService struct {
+type NodeService struct {
 	Service string
 	Tags    ServiceTags
 	Port    int
 }
 
-type CatalogNodeServiceList []*CatalogNodeService
-
-func (s CatalogNodeServiceList) Len() int {
-	return len(s)
-}
-
-func (s CatalogNodeServiceList) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
-func (s CatalogNodeServiceList) Less(i, j int) bool {
-	return s[i].Service <= s[j].Service
-}
-
-type CatalogSingleNode struct {
+type CatalogNode struct {
 	rawKey     string
 	dataCenter string
 }
 
 // Fetch queries the Consul API defined by the given client and returns a
-// of CatalogNode object
-func (d *CatalogSingleNode) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
+// of NodeDetail object
+func (d *CatalogNode) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
 	if opts == nil {
 		opts = &QueryOptions{}
 	}
@@ -71,12 +57,12 @@ func (d *CatalogSingleNode) Fetch(clients *ClientSet, opts *QueryOptions) (inter
 		return nil, nil, fmt.Errorf("catalog node: error fetching: %s", err)
 	}
 
-	var node *CatalogNode
+	var node *NodeDetail
 	if n != nil {
-		services := make(CatalogNodeServiceList, len(n.Services))
+		services := make(NodeServiceList, len(n.Services))
 		i := 0
 		for _, v := range n.Services {
-			services[i] = &CatalogNodeService{
+			services[i] = &NodeService{
 				Service: v.Service,
 				Tags:    ServiceTags(deepCopyAndSortTags(v.Tags)),
 				Port:    v.Port,
@@ -84,7 +70,7 @@ func (d *CatalogSingleNode) Fetch(clients *ClientSet, opts *QueryOptions) (inter
 			i++
 		}
 		sort.Stable(services)
-		node = &CatalogNode{
+		node = &NodeDetail{
 			Node: &Node{
 				Node:    n.Node.Node,
 				Address: n.Node.Address,
@@ -101,28 +87,28 @@ func (d *CatalogSingleNode) Fetch(clients *ClientSet, opts *QueryOptions) (inter
 	return node, rm, nil
 }
 
-func (d *CatalogSingleNode) HashCode() string {
+func (d *CatalogNode) HashCode() string {
 	if d.dataCenter != "" {
-		return fmt.Sprintf("CatalogNode|%s@%s", d.rawKey, d.dataCenter)
+		return fmt.Sprintf("NodeDetail|%s@%s", d.rawKey, d.dataCenter)
 	}
-	return fmt.Sprintf("CatalogNode|%s", d.rawKey)
+	return fmt.Sprintf("NodeDetail|%s", d.rawKey)
 }
 
-func (d *CatalogSingleNode) Display() string {
+func (d *CatalogNode) Display() string {
 	if d.dataCenter != "" {
 		return fmt.Sprintf("node(%s@%s)", d.rawKey, d.dataCenter)
 	}
 	return fmt.Sprintf(`"node(%s)"`, d.rawKey)
 }
 
-// ParseCatalogSingleNode parses a name name and optional datacenter value.
+// ParseCatalogNode parses a name name and optional datacenter value.
 // If the name is empty or not provided then the current agent is used.
-func ParseCatalogSingleNode(s ...string) (*CatalogSingleNode, error) {
+func ParseCatalogNode(s ...string) (*CatalogNode, error) {
 	switch len(s) {
 	case 0:
-		return &CatalogSingleNode{}, nil
+		return &CatalogNode{}, nil
 	case 1:
-		return &CatalogSingleNode{rawKey: s[0]}, nil
+		return &CatalogNode{rawKey: s[0]}, nil
 	case 2:
 		dc := s[1]
 
@@ -145,7 +131,7 @@ func ParseCatalogSingleNode(s ...string) (*CatalogSingleNode, error) {
 			}
 		}
 
-		nd := &CatalogSingleNode{
+		nd := &CatalogNode{
 			rawKey:     s[0],
 			dataCenter: m["datacenter"],
 		}
@@ -154,4 +140,14 @@ func ParseCatalogSingleNode(s ...string) (*CatalogSingleNode, error) {
 	default:
 		return nil, fmt.Errorf("expected 0, 1, or 2 arguments, got %d", len(s))
 	}
+}
+
+// Sorting
+
+type NodeServiceList []*NodeService
+
+func (s NodeServiceList) Len() int      { return len(s) }
+func (s NodeServiceList) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+func (s NodeServiceList) Less(i, j int) bool {
+	return s[i].Service <= s[j].Service
 }

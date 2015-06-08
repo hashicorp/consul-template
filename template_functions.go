@@ -130,10 +130,10 @@ func lsFunc(brain *Brain,
 }
 
 func nodeFunc(brain *Brain,
-	used, missing map[string]dep.Dependency) func(...string) (*dep.CatalogNode, error) {
-	return func(s ...string) (*dep.CatalogNode, error) {
+	used, missing map[string]dep.Dependency) func(...string) (*dep.NodeDetail, error) {
+	return func(s ...string) (*dep.NodeDetail, error) {
 
-		d, err := dep.ParseCatalogSingleNode(s...)
+		d, err := dep.ParseCatalogNode(s...)
 		if err != nil {
 			return nil, err
 		}
@@ -141,7 +141,7 @@ func nodeFunc(brain *Brain,
 		addDependency(used, d)
 
 		if value, ok := brain.Recall(d); ok {
-			return value.(*dep.CatalogNode), nil
+			return value.(*dep.NodeDetail), nil
 		}
 
 		addDependency(missing, d)

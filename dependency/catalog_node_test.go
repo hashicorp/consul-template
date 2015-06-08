@@ -5,28 +5,7 @@ import (
 	"testing"
 )
 
-func TestCatalogSingleNodeFetchForUnknownNode(t *testing.T) {
-	clients, consul := testConsulServer(t)
-	defer consul.Stop()
-
-	dep := &CatalogSingleNode{rawKey: "unknownNode"}
-	result, _, err := dep.Fetch(clients, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	typed, ok := result.(*CatalogNode)
-	if !ok {
-		t.Fatal("could not convert result to *CatalogNode")
-	}
-
-	if typed != nil {
-		t.Fatal("Expecting to get nil for an unknown node")
-	}
-
-}
-
-func TestCatalogSingleNodeFetch(t *testing.T) {
+func TestCatalogNodeFetch(t *testing.T) {
 	clients, consul := testConsulServer(t)
 	defer consul.Stop()
 
@@ -34,15 +13,15 @@ func TestCatalogSingleNodeFetch(t *testing.T) {
 	consul.AddService("z", "passing", []string{"baz"})
 	consul.AddService("a", "critical", []string{"foo", "bar"})
 
-	dep := &CatalogSingleNode{}
+	dep := &CatalogNode{}
 	result, _, err := dep.Fetch(clients, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	typed, ok := result.(*CatalogNode)
+	typed, ok := result.(*NodeDetail)
 	if !ok {
-		t.Fatal("could not convert result to *CatalogNode")
+		t.Fatal("could not convert result to *NodeDetail")
 	}
 
 	if typed == nil {
@@ -59,7 +38,7 @@ func TestCatalogSingleNodeFetch(t *testing.T) {
 		t.Fatalf("expected 3 services got %d", len(typed.Services))
 	}
 
-	var s *CatalogNodeService
+	var s *NodeService
 
 	s = typed.Services[0]
 	if s.Service != "a" {
@@ -102,14 +81,33 @@ func TestCatalogSingleNodeFetch(t *testing.T) {
 	if s.Tags[0] != "baz" {
 		t.Errorf("expecting %q to be \"baz\"", s.Tags[0])
 	}
-
 }
 
-func TestCatalogSingleNodeFetchWithNameArgument(t *testing.T) {
+func TestCatalogNodeFetch_unknownNode(t *testing.T) {
 	clients, consul := testConsulServer(t)
 	defer consul.Stop()
 
-	dep := &CatalogSingleNode{
+	dep := &CatalogNode{rawKey: "unknownNode"}
+	result, _, err := dep.Fetch(clients, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	typed, ok := result.(*NodeDetail)
+	if !ok {
+		t.Fatal("could not convert result to *NodeDetail")
+	}
+
+	if typed != nil {
+		t.Fatal("Expecting to get nil for an unknown node")
+	}
+}
+
+func TestCatalogNodeFetch_nameArgument(t *testing.T) {
+	clients, consul := testConsulServer(t)
+	defer consul.Stop()
+
+	dep := &CatalogNode{
 		rawKey: consul.Config.NodeName,
 	}
 	result, _, err := dep.Fetch(clients, nil)
@@ -117,9 +115,9 @@ func TestCatalogSingleNodeFetchWithNameArgument(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	typed, ok := result.(*CatalogNode)
+	typed, ok := result.(*NodeDetail)
 	if !ok {
-		t.Fatal("could not convert result to *CatalogNode")
+		t.Fatal("could not convert result to *NodeDetail")
 	}
 
 	if typed == nil {
@@ -136,7 +134,7 @@ func TestCatalogSingleNodeFetchWithNameArgument(t *testing.T) {
 		t.Fatalf("expected 1 services got %d", len(typed.Services))
 	}
 
-	var s *CatalogNodeService
+	var s *NodeService
 
 	s = typed.Services[0]
 	if s.Service != "consul" {
@@ -148,13 +146,12 @@ func TestCatalogSingleNodeFetchWithNameArgument(t *testing.T) {
 	if len(s.Tags) != 0 {
 		t.Fatalf("expecting %d to be 0", len(s.Tags))
 	}
-
 }
 
-func TestCatalogSingleNodeHashCode_isUnique(t *testing.T) {
-	dep1 := &CatalogSingleNode{rawKey: ""}
-	dep2 := &CatalogSingleNode{rawKey: "node"}
-	dep3 := &CatalogSingleNode{rawKey: "", dataCenter: "@nyc1"}
+func TestCatalogNodeHashCode_isUnique(t *testing.T) {
+	dep1 := &CatalogNode{rawKey: ""}
+	dep2 := &CatalogNode{rawKey: "node"}
+	dep3 := &CatalogNode{rawKey: "", dataCenter: "@nyc1"}
 	if dep1.HashCode() == dep2.HashCode() {
 		t.Errorf("expected HashCode to be unique")
 	}
@@ -166,25 +163,25 @@ func TestCatalogSingleNodeHashCode_isUnique(t *testing.T) {
 	}
 }
 
-func TestParseCatalogSingleNodeNoArguments(t *testing.T) {
-	nd, err := ParseCatalogSingleNode()
+func TestParseCatalogNodeNoArguments(t *testing.T) {
+	nd, err := ParseCatalogNode()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expected := &CatalogSingleNode{}
+	expected := &CatalogNode{}
 	if !reflect.DeepEqual(nd, expected) {
 		t.Errorf("expected %+v to equal %+v", nd, expected)
 	}
 }
 
-func TestParseCatalogSingleNodeOneArgument(t *testing.T) {
-	nd, err := ParseCatalogSingleNode("node")
+func TestParseCatalogNodeOneArgument(t *testing.T) {
+	nd, err := ParseCatalogNode("node")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expected := &CatalogSingleNode{
+	expected := &CatalogNode{
 		rawKey: "node",
 	}
 	if !reflect.DeepEqual(nd, expected) {
@@ -192,13 +189,13 @@ func TestParseCatalogSingleNodeOneArgument(t *testing.T) {
 	}
 }
 
-func TestParseCatalogSingleNodeTwoArguments(t *testing.T) {
-	nd, err := ParseCatalogSingleNode("node", "@nyc1")
+func TestParseCatalogNodeTwoArguments(t *testing.T) {
+	nd, err := ParseCatalogNode("node", "@nyc1")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expected := &CatalogSingleNode{
+	expected := &CatalogNode{
 		rawKey:     "node",
 		dataCenter: "nyc1",
 	}

@@ -356,14 +356,14 @@ func TestNodesFunc_noArgs(t *testing.T) {
 }
 
 func TestNodeFunc_hasData(t *testing.T) {
-	d, err := dep.ParseCatalogSingleNode("@existing")
+	d, err := dep.ParseCatalogNode("@existing")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	data := &dep.CatalogNode{
+	data := &dep.NodeDetail{
 		Node:     &dep.Node{Node: "a"},
-		Services: make(dep.CatalogNodeServiceList, 0),
+		Services: make(dep.NodeServiceList, 0),
 	}
 
 	brain := NewBrain()
@@ -393,7 +393,7 @@ func TestNodeFunc_hasData(t *testing.T) {
 }
 
 func TestNodeFunc_missingData(t *testing.T) {
-	d, err := dep.ParseCatalogSingleNode("@non-existing")
+	d, err := dep.ParseCatalogNode("@non-existing")
 	if err != nil {
 		t.Fatal(err)
 	}
