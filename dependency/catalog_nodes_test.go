@@ -20,8 +20,8 @@ func TestCatalogNodesFetch(t *testing.T) {
 		t.Fatal("could not convert result to []*Node")
 	}
 
-	if typed[0].Node != "node1" {
-		t.Errorf("expected %q to be %q", typed[0].Node, "node1")
+	if typed[0].Address != "127.0.0.1" {
+		t.Errorf("expected %q to be %q", typed[0].Address, "127.0.0.1")
 	}
 }
 
