@@ -684,6 +684,21 @@ Takes the argument as a string and converts it to uppercase.
 
 See Go's [strings.ToUpper()](http://golang.org/pkg/strings/#ToUpper) for more information.
 
+##### `toYAML`
+Takes the result from a `tree` or `ls` call and converts it into a pretty-printed YAML object, indented by two spaces.
+
+```liquid
+{{ tree "config" | toYAML }}
+/*
+admin:
+  port: 1234
+maxconns: 5
+minconns: 2
+*/
+```
+
+Note: This functionality should be considered final. If you need to manipulate keys, combine values, or perform mutations, that should be done _outside_ of Consul. In order to keep the API scope limited, we likely will not accept Pull Requests that focus on customizing the `toYAML` functionality.
+
 
 Caveats
 -------

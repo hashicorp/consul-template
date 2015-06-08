@@ -10,6 +10,7 @@ import (
 	"time"
 
 	dep "github.com/hashicorp/consul-template/dependency"
+	yaml "gopkg.in/yaml.v2"
 )
 
 // now is function that represents the current time in UTC. This is here
@@ -534,6 +535,19 @@ func toTitle(s string) (string, error) {
 // toUpper converts the given string (usually by a pipe) to uppercase.
 func toUpper(s string) (string, error) {
 	return strings.ToUpper(s), nil
+}
+
+// toYAML converts the given structure into a deeply nested YAML string.
+func toYAML(pairs []*dep.KeyPair) (string, error) {
+	exploded, err := explode(pairs)
+	if err != nil {
+		return "", fmt.Errorf("toYAML: %s", err)
+	}
+	result, err := yaml.Marshal(exploded)
+	if err != nil {
+		return "", fmt.Errorf("toYAML: %s", err)
+	}
+	return string(bytes.TrimSpace(result)), nil
 }
 
 // addDependency adds the given Dependency to the map.

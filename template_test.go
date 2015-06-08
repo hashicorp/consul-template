@@ -279,7 +279,9 @@ func TestExecute_renders(t *testing.T) {
 {{ tree "config/redis" | toJSONPretty }}
 		toTitle: {{ file "/path/to/file" | toTitle }}
 		toUpper: {{ file "/path/to/file" | toUpper }}
-	`), t)
+		toYAML:
+{{ tree "config/redis" | toYAML }}
+`), t)
 	defer test.DeleteTempfile(in, t)
 
 	tmpl, err := NewTemplate(in.Name())
@@ -514,7 +516,12 @@ func TestExecute_renders(t *testing.T) {
 }
 		toTitle: Some Content
 		toUpper: SOME CONTENT
-	`)
+		toYAML:
+admin:
+  port: "1134"
+maxconns: "5"
+minconns: "2"
+`)
 
 	if !bytes.Equal(result, expected) {
 		t.Errorf("expected %s to be %s", result, expected)
