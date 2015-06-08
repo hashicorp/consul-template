@@ -39,14 +39,14 @@ func testConsulServer(t *testing.T) (*ClientSet, *testutil.TestServer) {
 	config.Address = consul.HTTPAddr
 	client, err := consulapi.NewClient(config)
 	if err != nil {
-		defer consul.Stop()
-		t.Fatal(err)
+		consul.Stop()
+		t.Fatalf("consul api client err: %s", err)
 	}
 
 	clients := NewClientSet()
 	if err := clients.Add(client); err != nil {
-		defer consul.Stop()
-		t.Fatal(err)
+		consul.Stop()
+		t.Fatalf("clientset err: %s", err)
 	}
 
 	return clients, consul
