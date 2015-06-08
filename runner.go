@@ -598,10 +598,13 @@ func (r *Runner) execute(command string, timeout time.Duration) error {
 	cmd.Stdout = r.outStream
 	cmd.Stderr = r.errStream
 	cmd.Env = cmdEnv
+	if err := cmd.Start(); err != nil {
+		return err
+	}
 
 	done := make(chan error, 1)
 	go func() {
-		done <- cmd.Run()
+		done <- cmd.Wait()
 	}()
 
 	select {
