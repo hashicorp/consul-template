@@ -223,6 +223,9 @@ func TestExecute_renders(t *testing.T) {
 		key: {{ key "config/redis/maxconns" }}
 		ls:{{ range ls "config/redis" }}
 			{{.Key}}={{.Value}}{{ end }}
+		node:{{ with node }}
+			{{.Node.Node}}{{ range .Services}}
+				{{.Service}}{{ end }}{{ end }}
 		nodes:{{ range nodes }}
 			{{.Node}}{{ end }}
 		service:{{ range service "webapp" }}
@@ -310,6 +313,19 @@ func TestExecute_renders(t *testing.T) {
 		&dep.KeyPair{Key: "admin/port", Value: "1134"},
 		&dep.KeyPair{Key: "maxconns", Value: "5"},
 		&dep.KeyPair{Key: "minconns", Value: "2"},
+	})
+
+	d, err = dep.ParseCatalogNode()
+	if err != nil {
+		t.Fatal(err)
+	}
+	brain.Remember(d, &dep.NodeDetail{
+		Node: &dep.Node{Node: "node1"},
+		Services: dep.NodeServiceList([]*dep.NodeService{
+			&dep.NodeService{
+				Service: "service1",
+			},
+		}),
 	})
 
 	d, err = dep.ParseCatalogNodes("")
@@ -408,6 +424,9 @@ func TestExecute_renders(t *testing.T) {
 		ls:
 			maxconns=5
 			minconns=2
+		node:
+			node1
+				service1
 		nodes:
 			node1
 			node2

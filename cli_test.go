@@ -524,7 +524,10 @@ func TestRun_parseError(t *testing.T) {
 }
 
 func TestRun_onceFlag(t *testing.T) {
-	consul := testutil.NewTestServer(t)
+	consul := testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
+		c.Stdout = ioutil.Discard
+		c.Stderr = ioutil.Discard
+	})
 	defer consul.Stop()
 
 	consul.SetKV("foo", []byte("bar"))

@@ -355,6 +355,73 @@ func TestNodesFunc_noArgs(t *testing.T) {
 	}
 }
 
+func TestNodeFunc_hasData(t *testing.T) {
+	d, err := dep.ParseCatalogNode("@existing")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data := &dep.NodeDetail{
+		Node:     &dep.Node{Node: "a"},
+		Services: make(dep.NodeServiceList, 0),
+	}
+
+	brain := NewBrain()
+	brain.Remember(d, data)
+
+	used := make(map[string]dep.Dependency)
+	missing := make(map[string]dep.Dependency)
+
+	f := nodeFunc(brain, used, missing)
+	result, err := f("@existing")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := data
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+
+	if len(missing) != 0 {
+		t.Errorf("expected missing to have 0 elements, but had %d", len(missing))
+	}
+
+	if _, ok := used[d.HashCode()]; !ok {
+		t.Errorf("expected dep to be used")
+	}
+}
+
+func TestNodeFunc_missingData(t *testing.T) {
+	d, err := dep.ParseCatalogNode("@non-existing")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	brain := NewBrain()
+
+	used := make(map[string]dep.Dependency)
+	missing := make(map[string]dep.Dependency)
+
+	f := nodeFunc(brain, used, missing)
+	result, err := f("@non-existing")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != nil {
+		t.Errorf("expected %q to be nil", result)
+	}
+
+	if _, ok := used[d.HashCode()]; !ok {
+		t.Errorf("expected dep to be used")
+	}
+
+	if _, ok := missing[d.HashCode()]; !ok {
+		t.Errorf("expected dep to be missing")
+	}
+}
+
 func TestNodesFunc_hasData(t *testing.T) {
 	d, err := dep.ParseCatalogNodes("@existing")
 	if err != nil {
