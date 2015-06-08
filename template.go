@@ -103,6 +103,7 @@ func funcMap(brain *Brain, used, missing map[string]dep.Dependency) template.Fun
 		"loop":            loop,
 		"join":            join,
 		"parseJSON":       parseJSON,
+		"fqdnRandService": fqdnRandService,
 		"regexReplaceAll": regexReplaceAll,
 		"regexMatch":      regexMatch,
 		"replaceAll":      replaceAll,

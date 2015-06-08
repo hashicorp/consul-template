@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"hash/fnv"
+	"math"
 
 	dep "github.com/hashicorp/consul-template/dependency"
 )
@@ -173,6 +175,41 @@ func nodesFunc(brain *Brain,
 	}
 }
 
+// select random-ish elements from a slice given a salt (recommend the os.Hostname)
+func randElements(hashSalt string, slen int, numElems int) ([]int, error) {
+	var randElems  []int
+	var pos float64
+	if slen >= numElems {
+		h := fnv.New32a()
+		h.Write([]byte(hashSalt))
+		pos = math.Abs(math.Remainder(float64(h.Sum32()), (float64(slen))))
+		randElems = append(randElems, int(pos))
+		for i := 1; i < numElems ; i++ {
+			if int(pos+float64(i)) > slen -1 {
+				randElems = append(randElems, (int(math.Abs(math.Remainder(pos+float64(i), (float64(slen)))))))
+			} else {
+				randElems = append(randElems,(int(pos+float64(i))))
+			}
+		}
+		return randElems, nil
+	}
+	return randElems, nil
+}
+
+// selects hashed services and truncates
+// {{ range service "consul" | fqdnRandService 1 }}
+func fqdnRandService(count int, ray []*dep.HealthService) ([]*dep.HealthService, error) {
+	var res []*dep.HealthService
+	if len(ray) > 1 {
+		p, _ := os.Hostname()
+		q, _ := randElements(p, len(ray), count) 
+		for i, _ := range q {
+			res = append(res, ray[i])
+		}
+	}
+	return res, nil
+}
+
 // serviceFunc returns or accumulates health service dependencies.
 func serviceFunc(brain *Brain,
 	used, missing map[string]dep.Dependency) func(...string) ([]*dep.HealthService, error) {
@@ -195,7 +232,6 @@ func serviceFunc(brain *Brain,
 		}
 
 		addDependency(missing, d)
-
 		return result, nil
 	}
 }
