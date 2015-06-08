@@ -28,6 +28,8 @@ func TestDeepCopyAndSortTags(t *testing.T) {
 // testConsulServer is a helper for creating a Consul server and returning the
 // appropriate configuration to connect to it.
 func testConsulServer(t *testing.T) (*ClientSet, *testutil.TestServer) {
+	t.Parallel()
+
 	consul := testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
 		c.Stdout = ioutil.Discard
 		c.Stderr = ioutil.Discard
