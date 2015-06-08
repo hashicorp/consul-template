@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"sort"
 )
 
 // Node is a node entry in Consul
@@ -52,6 +53,7 @@ func (d *CatalogNodes) Fetch(clients *ClientSet, opts *QueryOptions) (interface{
 			Address: node.Address,
 		})
 	}
+	sort.Stable(NodeList(nodes))
 
 	rm := &ResponseMetadata{
 		LastIndex:   qm.LastIndex,
@@ -109,4 +111,15 @@ func ParseCatalogNodes(s ...string) (*CatalogNodes, error) {
 	default:
 		return nil, fmt.Errorf("expected 0 or 1 arguments, got %d", len(s))
 	}
+}
+
+type NodeList []*Node
+
+func (s NodeList) Len() int      { return len(s) }
+func (s NodeList) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+func (s NodeList) Less(i, j int) bool {
+	if s[i].Node == s[j].Node {
+		return s[i].Address <= s[j].Address
+	}
+	return s[i].Node <= s[j].Node
 }
