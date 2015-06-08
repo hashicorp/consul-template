@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	dep "github.com/hashicorp/consul-template/dependency"
+	yaml "gopkg.in/yaml.v2"
 )
 
 // now is function that represents the current time in UTC. This is here
@@ -359,6 +361,33 @@ func env(s string) (string, error) {
 	return os.Getenv(s), nil
 }
 
+// explode is used to expand a list of keypairs into a deeply-nested hash.
+func explode(pairs []*dep.KeyPair) (map[string]interface{}, error) {
+	m := make(map[string]interface{})
+	for _, pair := range pairs {
+		explodeHelper(m, pair.Key, pair.Value)
+	}
+	return m, nil
+}
+
+// explodeHelper is a recursive helper for explode.
+func explodeHelper(m map[string]interface{}, k, v string) {
+	if strings.Contains(k, "/") {
+		parts := strings.Split(k, "/")
+		top := parts[0]
+		key := strings.Join(parts[1:], "/")
+
+		if _, ok := m[top]; !ok {
+			m[top] = make(map[string]interface{})
+		}
+		explodeHelper(m[top].(map[string]interface{}), key, v)
+	} else {
+		if k != "" {
+			m[k] = v
+		}
+	}
+}
+
 // loop accepts varying parameters and differs its behavior. If given one
 // parameter, loop will return a goroutine that begins at 0 and loops until the
 // given int, increasing the index by 1 each iteration. If given two parameters,
@@ -471,6 +500,33 @@ func toLower(s string) (string, error) {
 	return strings.ToLower(s), nil
 }
 
+// toJSON converts the given structure into a deeply nested JSON string.
+func toJSON(pairs []*dep.KeyPair) (string, error) {
+	exploded, err := explode(pairs)
+	if err != nil {
+		return "", fmt.Errorf("toJSON: %s", err)
+	}
+	result, err := json.Marshal(exploded)
+	if err != nil {
+		return "", fmt.Errorf("toJSON: %s", err)
+	}
+	return string(bytes.TrimSpace(result)), err
+}
+
+// toJSONPretty converts the given structure into a deeply nested pretty JSON
+// string.
+func toJSONPretty(pairs []*dep.KeyPair) (string, error) {
+	exploded, err := explode(pairs)
+	if err != nil {
+		return "", fmt.Errorf("toJSONPretty: %s", err)
+	}
+	result, err := json.MarshalIndent(exploded, "", "  ")
+	if err != nil {
+		return "", fmt.Errorf("toJSONPretty: %s", err)
+	}
+	return string(bytes.TrimSpace(result)), err
+}
+
 // toTitle converts the given string (usually by a pipe) to titlecase.
 func toTitle(s string) (string, error) {
 	return strings.Title(s), nil
@@ -479,6 +535,19 @@ func toTitle(s string) (string, error) {
 // toUpper converts the given string (usually by a pipe) to uppercase.
 func toUpper(s string) (string, error) {
 	return strings.ToUpper(s), nil
+}
+
+// toYAML converts the given structure into a deeply nested YAML string.
+func toYAML(pairs []*dep.KeyPair) (string, error) {
+	exploded, err := explode(pairs)
+	if err != nil {
+		return "", fmt.Errorf("toYAML: %s", err)
+	}
+	result, err := yaml.Marshal(exploded)
+	if err != nil {
+		return "", fmt.Errorf("toYAML: %s", err)
+	}
+	return string(bytes.TrimSpace(result)), nil
 }
 
 // addDependency adds the given Dependency to the map.

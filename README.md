@@ -489,6 +489,24 @@ This function can be chained to manipulate the output:
 {{env "CLUSTER_ID" | toLower}}
 ```
 
+##### `explode`
+Takes the result from a `tree` or `ls` call and converts it into a deeply-nested map for parsing/traversing.
+
+```liquid
+{{ tree "config" | explode }}
+```
+
+Note: You will lose any metadata about the keypair after it has been exploded.
+
+You can also access deeply nested values:
+
+```liquid
+{{ with tree "config" | explode }}
+{{.a.b.c}}{{ end }}
+```
+
+Note: You will need to have a reasonable format about your data in Consul. Please see Golang's text/template package for more information.
+
 ##### `loop`
 Accepts varying parameters and differs its behavior based on those parameters.
 
@@ -612,6 +630,33 @@ If the optional parameter is given, it is used to format the timestamp using the
 
 See Go's [time.Format()](http://golang.org/pkg/time/#Time.Format) for more information.
 
+##### `toJSON`
+Takes the result from a `tree` or `ls` call and converts it into a JSON object.
+
+```liquid
+{{ tree "config" | toJSON }} // e.g. {"admin":{"port":1234},"maxconns":5,"minconns":2}
+```
+
+Note: This functionality should be considered final. If you need to manipulate keys, combine values, or perform mutations, that should be done _outside_ of Consul. In order to keep the API scope limited, we likely will not accept Pull Requests that focus on customizing the `toJSON` functionality.
+
+##### `toJSONPretty`
+Takes the result from a `tree` or `ls` call and converts it into a pretty-printed JSON object, indented by two spaces.
+
+```liquid
+{{ tree "config" | toJSONPretty }}
+/*
+{
+  "admin": {
+    "port": 1234
+  },
+  "maxconns": 5,
+  "minconns": 2,
+}
+*/
+```
+
+Note: This functionality should be considered final. If you need to manipulate keys, combine values, or perform mutations, that should be done _outside_ of Consul. In order to keep the API scope limited, we likely will not accept Pull Requests that focus on customizing the `toJSONPretty` functionality.
+
 ##### `toLower`
 Takes the argument as a string and converts it to lowercase.
 
@@ -638,6 +683,21 @@ Takes the argument as a string and converts it to uppercase.
 ```
 
 See Go's [strings.ToUpper()](http://golang.org/pkg/strings/#ToUpper) for more information.
+
+##### `toYAML`
+Takes the result from a `tree` or `ls` call and converts it into a pretty-printed YAML object, indented by two spaces.
+
+```liquid
+{{ tree "config" | toYAML }}
+/*
+admin:
+  port: 1234
+maxconns: 5
+minconns: 2
+*/
+```
+
+Note: This functionality should be considered final. If you need to manipulate keys, combine values, or perform mutations, that should be done _outside_ of Consul. In order to keep the API scope limited, we likely will not accept Pull Requests that focus on customizing the `toYAML` functionality.
 
 
 Caveats

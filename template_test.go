@@ -252,10 +252,12 @@ func TestExecute_renders(t *testing.T) {
 			{{$tag}}:{{ range $services }}
 				{{.Name}}{{ end }}{{ end }}
 		env: {{ env "foo" }}
-		loop:{{range loop 3}}
-			test{{end}}
-		loop(i):{{range $i := loop 5 8}}
-			test{{$i}}{{end}}
+		explode:{{ range $k, $v := tree "config/redis" | explode }}
+			{{$k}}{{$v}}{{ end }}
+		loop:{{ range loop 3 }}
+			test{{ end }}
+		loop(i):{{ range $i := loop 5 8 }}
+			test{{$i}}{{ end }}
 		join: {{ "a,b,c" | split "," | join ";" }}
 		parseJSON (string):{{ range $key, $value := "{\"foo\": \"bar\"}" | parseJSON }}
 			{{$key}}={{$value}}{{ end }}
@@ -272,9 +274,14 @@ func TestExecute_renders(t *testing.T) {
 		split:{{ range "a,b,c" | split "," }}
 			{{.}}{{end}}
 		toLower: {{ file "/path/to/file" | toLower }}
+		toJSON: {{ tree "config/redis" | toJSON }}
+		toJSONPretty:
+{{ tree "config/redis" | toJSONPretty }}
 		toTitle: {{ file "/path/to/file" | toTitle }}
 		toUpper: {{ file "/path/to/file" | toUpper }}
-	`), t)
+		toYAML:
+{{ tree "config/redis" | toYAML }}
+`), t)
 	defer test.DeleteTempfile(in, t)
 
 	tmpl, err := NewTemplate(in.Name())
@@ -468,6 +475,10 @@ func TestExecute_renders(t *testing.T) {
 			release:
 				service2
 		env: bar
+		explode:
+			adminmap[port:1134]
+			maxconns5
+			minconns2
 		loop:
 			test
 			test
@@ -494,12 +505,26 @@ func TestExecute_renders(t *testing.T) {
 			b
 			c
 		toLower: some content
+		toJSON: {"admin":{"port":"1134"},"maxconns":"5","minconns":"2"}
+		toJSONPretty:
+{
+  "admin": {
+    "port": "1134"
+  },
+  "maxconns": "5",
+  "minconns": "2"
+}
 		toTitle: Some Content
 		toUpper: SOME CONTENT
-	`)
+		toYAML:
+admin:
+  port: "1134"
+maxconns: "5"
+minconns: "2"
+`)
 
 	if !bytes.Equal(result, expected) {
-		t.Errorf("expected \n%s\n to be \n%s\n", result, expected)
+		t.Errorf("expected %s to be %s", result, expected)
 	}
 }
 

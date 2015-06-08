@@ -958,6 +958,32 @@ func TestEnv(t *testing.T) {
 	}
 }
 
+func TestExplode(t *testing.T) {
+	list := []*dep.KeyPair{
+		&dep.KeyPair{Key: "a/b/c", Value: "d"},
+		&dep.KeyPair{Key: "a/b/e", Value: "f"},
+		&dep.KeyPair{Key: "a/g", Value: "h"},
+	}
+
+	result, err := explode(list)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := map[string]interface{}{
+		"a": map[string]interface{}{
+			"b": map[string]interface{}{
+				"c": "d",
+				"e": "f",
+			},
+			"g": "h",
+		},
+	}
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("expected %#v to be %#v", result, expected)
+	}
+}
+
 func TestLoop_noArgs(t *testing.T) {
 	_, err := loop()
 	if err == nil {
@@ -1075,6 +1101,72 @@ func TestRegexMatch(t *testing.T) {
 	expected := true
 	if result != expected {
 		t.Errorf("expected %t to be %t", result, expected)
+	}
+}
+
+func TestToJSON(t *testing.T) {
+	list := []*dep.KeyPair{
+		&dep.KeyPair{Key: "a/b/c", Value: "d"},
+		&dep.KeyPair{Key: "a/b/e", Value: "f"},
+		&dep.KeyPair{Key: "a/g", Value: "h"},
+	}
+
+	result, err := toJSON(list)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := `{"a":{"b":{"c":"d","e":"f"},"g":"h"}}`
+	if result != expected {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+}
+
+func TestToJSONPretty(t *testing.T) {
+	list := []*dep.KeyPair{
+		&dep.KeyPair{Key: "a/b/c", Value: "d"},
+		&dep.KeyPair{Key: "a/b/e", Value: "f"},
+		&dep.KeyPair{Key: "a/g", Value: "h"},
+	}
+
+	result, err := toJSONPretty(list)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := `{
+  "a": {
+    "b": {
+      "c": "d",
+      "e": "f"
+    },
+    "g": "h"
+  }
+}`
+	if result != expected {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+}
+
+func TestToYAML(t *testing.T) {
+	list := []*dep.KeyPair{
+		&dep.KeyPair{Key: "a/b/c", Value: "d"},
+		&dep.KeyPair{Key: "a/b/e", Value: "f"},
+		&dep.KeyPair{Key: "a/g", Value: "h"},
+	}
+
+	result, err := toYAML(list)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := `a:
+  b:
+    c: d
+    e: f
+  g: h`
+	if result != expected {
+		t.Errorf("expected %q to be %q", result, expected)
 	}
 }
 
