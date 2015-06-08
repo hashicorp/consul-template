@@ -17,6 +17,7 @@ IMPROVEMENTS:
   * Improve error reporting when loading multiple configs by including the path
     on the configuration file that had an error (GH-275)
   * Add a timeout around command execution to prevent hanging (GH-283)
+  * Read Vault/Consul environment variables for the config (GH-307, GH-308)
 
 BUG FIXES:
 
