@@ -919,6 +919,13 @@ func TestExecute_setsEnv(t *testing.T) {
 		consul = "1.2.3.4:5678"
 		token = "abcd1234"
 
+		vault {
+			address = "5.6.7.8:1234"
+			ssl {
+				verify = false
+			}
+		}
+
 		auth {
 			username = "username"
 			password = "password"
@@ -964,6 +971,14 @@ func TestExecute_setsEnv(t *testing.T) {
 
 	if !strings.Contains(contents, "CONSUL_HTTP_SSL_VERIFY=false") {
 		t.Errorf("expected env to contain CONSUL_HTTP_SSL_VERIFY")
+	}
+
+	if !strings.Contains(contents, "VAULT_ADDR=5.6.7.8:1234") {
+		t.Errorf("expected env to contain VAULT_ADDR")
+	}
+
+	if !strings.Contains(contents, "VAULT_SKIP_VERIFY=true") {
+		t.Errorf("expected env to contain VAULT_SKIP_VERIFY")
 	}
 }
 

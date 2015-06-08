@@ -553,13 +553,39 @@ func (r *Runner) execute(command string, timeout time.Duration) error {
 	// that are read by other Consul tools (like Consul's HTTP address). This
 	// allows the user to specify these values once (in the Consul Template config
 	// or command line), instead of in multiple places.
-	customEnv := map[string]string{
-		"CONSUL_HTTP_ADDR":       r.config.Consul,
-		"CONSUL_HTTP_TOKEN":      r.config.Token,
-		"CONSUL_HTTP_AUTH":       r.config.Auth.String(),
-		"CONSUL_HTTP_SSL":        strconv.FormatBool(r.config.SSL.Enabled),
-		"CONSUL_HTTP_SSL_VERIFY": strconv.FormatBool(r.config.SSL.Verify),
+	var customEnv = make(map[string]string)
+
+	if r.config.Consul != "" {
+		customEnv["CONSUL_HTTP_ADDR"] = r.config.Consul
 	}
+
+	if r.config.Token != "" {
+		customEnv["CONSUL_HTTP_TOKEN"] = r.config.Token
+	}
+
+	if r.config.Auth.Enabled {
+		customEnv["CONSUL_HTTP_AUTH"] = r.config.Auth.String()
+	}
+
+	customEnv["CONSUL_HTTP_SSL"] = strconv.FormatBool(r.config.SSL.Enabled)
+	customEnv["CONSUL_HTTP_SSL_VERIFY"] = strconv.FormatBool(r.config.SSL.Verify)
+
+	if r.config.Vault.Address != "" {
+		customEnv["VAULT_ADDR"] = r.config.Vault.Address
+	}
+
+	if !r.config.Vault.SSL.Verify {
+		customEnv["VAULT_SKIP_VERIFY"] = "true"
+	}
+
+	if r.config.Vault.SSL.Cert != "" {
+		customEnv["VAULT_CAPATH"] = r.config.Vault.SSL.Cert
+	}
+
+	if r.config.Vault.SSL.CaCert != "" {
+		customEnv["VAULT_CACERT"] = r.config.Vault.SSL.CaCert
+	}
+
 	currentEnv := os.Environ()
 	cmdEnv := make([]string, len(currentEnv), len(currentEnv)+len(customEnv))
 	copy(cmdEnv, currentEnv)
