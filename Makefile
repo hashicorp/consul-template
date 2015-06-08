@@ -19,6 +19,7 @@ build: deps
 
 test:
 	go test $(TEST) $(TESTARGS) -timeout=30s -parallel=4
+	go test $(TEST) -race
 	go vet $(TEST)
 
 xcompile: build test
