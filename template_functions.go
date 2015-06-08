@@ -129,6 +129,27 @@ func lsFunc(brain *Brain,
 	}
 }
 
+func nodeFunc(brain *Brain,
+	used, missing map[string]dep.Dependency) func(...string) (*dep.CatalogNode, error) {
+	return func(s ...string) (*dep.CatalogNode, error) {
+
+		d, err := dep.ParseCatalogSingleNode(s...)
+		if err != nil {
+			return nil, err
+		}
+
+		addDependency(used, d)
+
+		if value, ok := brain.Recall(d); ok {
+			return value.(*dep.CatalogNode), nil
+		}
+
+		addDependency(missing, d)
+
+		return nil, nil
+	}
+}
+
 // nodesFunc returns or accumulates catalog node dependencies.
 func nodesFunc(brain *Brain,
 	used, missing map[string]dep.Dependency) func(...string) ([]*dep.Node, error) {
