@@ -127,14 +127,8 @@ func ParseCatalogServices(s ...string) (*CatalogServices, error) {
 // CatalogServicesList is a sortable slice of CatalogService structs.
 type CatalogServicesList []*CatalogService
 
-func (s CatalogServicesList) Len() int {
-	return len(s)
-}
-
-func (s CatalogServicesList) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
+func (s CatalogServicesList) Len() int      { return len(s) }
+func (s CatalogServicesList) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 func (s CatalogServicesList) Less(i, j int) bool {
 	if s[i].Name <= s[j].Name {
 		return true
