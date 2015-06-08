@@ -1104,6 +1104,50 @@ func TestRegexMatch(t *testing.T) {
 	}
 }
 
+func TestToJSON(t *testing.T) {
+	list := []*dep.KeyPair{
+		&dep.KeyPair{Key: "a/b/c", Value: "d"},
+		&dep.KeyPair{Key: "a/b/e", Value: "f"},
+		&dep.KeyPair{Key: "a/g", Value: "h"},
+	}
+
+	result, err := toJSON(list)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := `{"a":{"b":{"c":"d","e":"f"},"g":"h"}}`
+	if result != expected {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+}
+
+func TestToJSONPretty(t *testing.T) {
+	list := []*dep.KeyPair{
+		&dep.KeyPair{Key: "a/b/c", Value: "d"},
+		&dep.KeyPair{Key: "a/b/e", Value: "f"},
+		&dep.KeyPair{Key: "a/g", Value: "h"},
+	}
+
+	result, err := toJSONPretty(list)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := `{
+  "a": {
+    "b": {
+      "c": "d",
+      "e": "f"
+    },
+    "g": "h"
+  }
+}`
+	if result != expected {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+}
+
 func TestSplit(t *testing.T) {
 	result, err := split("\n", "foo bar\nbaz")
 	if err != nil {

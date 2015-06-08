@@ -274,6 +274,9 @@ func TestExecute_renders(t *testing.T) {
 		split:{{ range "a,b,c" | split "," }}
 			{{.}}{{end}}
 		toLower: {{ file "/path/to/file" | toLower }}
+		toJSON: {{ tree "config/redis" | toJSON }}
+		toJSONPretty:
+{{ tree "config/redis" | toJSONPretty }}
 		toTitle: {{ file "/path/to/file" | toTitle }}
 		toUpper: {{ file "/path/to/file" | toUpper }}
 	`), t)
@@ -500,6 +503,15 @@ func TestExecute_renders(t *testing.T) {
 			b
 			c
 		toLower: some content
+		toJSON: {"admin":{"port":"1134"},"maxconns":"5","minconns":"2"}
+		toJSONPretty:
+{
+  "admin": {
+    "port": "1134"
+  },
+  "maxconns": "5",
+  "minconns": "2"
+}
 		toTitle: Some Content
 		toUpper: SOME CONTENT
 	`)

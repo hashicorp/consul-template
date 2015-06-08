@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -496,6 +497,33 @@ func timestamp(s ...string) (string, error) {
 // toLower converts the given string (usually by a pipe) to lowercase.
 func toLower(s string) (string, error) {
 	return strings.ToLower(s), nil
+}
+
+// toJSON converts the given structure into a deeply nested JSON string.
+func toJSON(pairs []*dep.KeyPair) (string, error) {
+	exploded, err := explode(pairs)
+	if err != nil {
+		return "", fmt.Errorf("toJSON: %s", err)
+	}
+	result, err := json.Marshal(exploded)
+	if err != nil {
+		return "", fmt.Errorf("toJSON: %s", err)
+	}
+	return string(bytes.TrimSpace(result)), err
+}
+
+// toJSONPretty converts the given structure into a deeply nested pretty JSON
+// string.
+func toJSONPretty(pairs []*dep.KeyPair) (string, error) {
+	exploded, err := explode(pairs)
+	if err != nil {
+		return "", fmt.Errorf("toJSONPretty: %s", err)
+	}
+	result, err := json.MarshalIndent(exploded, "", "  ")
+	if err != nil {
+		return "", fmt.Errorf("toJSONPretty: %s", err)
+	}
+	return string(bytes.TrimSpace(result)), err
 }
 
 // toTitle converts the given string (usually by a pipe) to titlecase.
