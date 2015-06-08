@@ -472,7 +472,10 @@ func TestRun_multipleTemplatesRunsCommands(t *testing.T) {
 // check the demo Consul cluster and your own sanity before you assume your
 // code broke something...
 func TestRunner_quiescence(t *testing.T) {
-	consul := testutil.NewTestServer(t)
+	consul := testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
+		c.Stdout = ioutil.Discard
+		c.Stderr = ioutil.Discard
+	})
 	defer consul.Stop()
 
 	in := test.CreateTempfile([]byte(`
