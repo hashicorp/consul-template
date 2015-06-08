@@ -5,6 +5,12 @@ Consul Template Changelog
 
 FEATURES
 
+  * Add `explode` function for exploding the result of `tree` or `ls` into a
+    deeply nested  hash (GH-311)
+  * Add `toJSON` and `toJSONPretty` function for exporting the result of `tree`
+    or `ls`  into a JSON hash (GH-311)
+  * Add `toYAML` function for exporting the result of `tree` or `ls` into a
+    YAML document (GH-311)
   * Add `node` function for querying nodes (GH-306, GH-309)
   * Add `split` function for splitting a string on a separator (GH-285)
   * Add `join` function for joining a string slice on a given key (GH-285)
