@@ -5,6 +5,7 @@ Consul Template Changelog
 
 FEATURES
 
+  * Add `node` function for querying nodes (GH-306, GH-309)
   * Add `split` function for splitting a string on a separator (GH-285)
   * Add `join` function for joining a string slice on a given key (GH-285)
   * Add `pid_file` configuration and command line option for specifying the
