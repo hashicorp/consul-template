@@ -418,7 +418,7 @@ func DefaultConfig() *Config {
 		logLevel = "WARN"
 	}
 
-	return &Config{
+	config := &Config{
 		Vault: &VaultConfig{
 			SSL: &SSLConfig{
 				Enabled: true,
@@ -436,12 +436,38 @@ func DefaultConfig() *Config {
 			Enabled:  false,
 			Facility: "LOCAL0",
 		},
-		ConfigTemplates: []*ConfigTemplate{},
+		ConfigTemplates: make([]*ConfigTemplate, 0),
 		Retry:           5 * time.Second,
 		Wait:            &watch.Wait{},
 		LogLevel:        logLevel,
 		setKeys:         make(map[string]struct{}),
 	}
+
+	if v := os.Getenv("CONSUL_HTTP_ADDR"); v != "" {
+		config.Consul = v
+	}
+
+	if v := os.Getenv("CONSUL_TOKEN"); v != "" {
+		config.Token = v
+	}
+
+	if v := os.Getenv("VAULT_ADDR"); v != "" {
+		config.Vault.Address = v
+	}
+
+	if v := os.Getenv("VAULT_CAPATH"); v != "" {
+		config.Vault.SSL.Cert = v
+	}
+
+	if v := os.Getenv("VAULT_CACERT"); v != "" {
+		config.Vault.SSL.CaCert = v
+	}
+
+	if v := os.Getenv("VAULT_SKIP_VERIFY"); v != "" {
+		config.Vault.SSL.Verify = false
+	}
+
+	return config
 }
 
 // AuthConfig is the HTTP basic authentication data.
