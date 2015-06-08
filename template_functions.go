@@ -359,6 +359,33 @@ func env(s string) (string, error) {
 	return os.Getenv(s), nil
 }
 
+// explode is used to expand a list of keypairs into a deeply-nested hash.
+func explode(pairs []*dep.KeyPair) (map[string]interface{}, error) {
+	m := make(map[string]interface{})
+	for _, pair := range pairs {
+		explodeHelper(m, pair.Key, pair.Value)
+	}
+	return m, nil
+}
+
+// explodeHelper is a recursive helper for explode.
+func explodeHelper(m map[string]interface{}, k, v string) {
+	if strings.Contains(k, "/") {
+		parts := strings.Split(k, "/")
+		top := parts[0]
+		key := strings.Join(parts[1:], "/")
+
+		if _, ok := m[top]; !ok {
+			m[top] = make(map[string]interface{})
+		}
+		explodeHelper(m[top].(map[string]interface{}), key, v)
+	} else {
+		if k != "" {
+			m[k] = v
+		}
+	}
+}
+
 // loop accepts varying parameters and differs its behavior. If given one
 // parameter, loop will return a goroutine that begins at 0 and loops until the
 // given int, increasing the index by 1 each iteration. If given two parameters,

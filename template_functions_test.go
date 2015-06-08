@@ -958,6 +958,32 @@ func TestEnv(t *testing.T) {
 	}
 }
 
+func TestExplode(t *testing.T) {
+	list := []*dep.KeyPair{
+		&dep.KeyPair{Key: "a/b/c", Value: "d"},
+		&dep.KeyPair{Key: "a/b/e", Value: "f"},
+		&dep.KeyPair{Key: "a/g", Value: "h"},
+	}
+
+	result, err := explode(list)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := map[string]interface{}{
+		"a": map[string]interface{}{
+			"b": map[string]interface{}{
+				"c": "d",
+				"e": "f",
+			},
+			"g": "h",
+		},
+	}
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("expected %#v to be %#v", result, expected)
+	}
+}
+
 func TestLoop_noArgs(t *testing.T) {
 	_, err := loop()
 	if err == nil {

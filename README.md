@@ -489,6 +489,24 @@ This function can be chained to manipulate the output:
 {{env "CLUSTER_ID" | toLower}}
 ```
 
+##### `explode`
+Takes the result from a `tree` or `ls` call and converts it into a deeply-nested map for parsing/traversing.
+
+```liquid
+{{ tree "config" | explode }}
+```
+
+Note: You will lose any metadata about the keypair after it has been exploded.
+
+You can also access deeply nested values:
+
+```liquid
+{{ with tree "config" | explode }}
+{{.a.b.c}}{{ end }}
+```
+
+Note: You will need to have a reasonable format about your data in Consul. Please see Golang's text/template package for more information.
+
 ##### `loop`
 Accepts varying parameters and differs its behavior based on those parameters.
 

@@ -252,10 +252,12 @@ func TestExecute_renders(t *testing.T) {
 			{{$tag}}:{{ range $services }}
 				{{.Name}}{{ end }}{{ end }}
 		env: {{ env "foo" }}
-		loop:{{range loop 3}}
-			test{{end}}
-		loop(i):{{range $i := loop 5 8}}
-			test{{$i}}{{end}}
+		explode:{{ range $k, $v := tree "config/redis" | explode }}
+			{{$k}}{{$v}}{{ end }}
+		loop:{{ range loop 3 }}
+			test{{ end }}
+		loop(i):{{ range $i := loop 5 8 }}
+			test{{$i}}{{ end }}
 		join: {{ "a,b,c" | split "," | join ";" }}
 		parseJSON (string):{{ range $key, $value := "{\"foo\": \"bar\"}" | parseJSON }}
 			{{$key}}={{$value}}{{ end }}
@@ -468,6 +470,10 @@ func TestExecute_renders(t *testing.T) {
 			release:
 				service2
 		env: bar
+		explode:
+			adminmap[port:1134]
+			maxconns5
+			minconns2
 		loop:
 			test
 			test
@@ -499,7 +505,7 @@ func TestExecute_renders(t *testing.T) {
 	`)
 
 	if !bytes.Equal(result, expected) {
-		t.Errorf("expected \n%s\n to be \n%s\n", result, expected)
+		t.Errorf("expected %s to be %s", result, expected)
 	}
 }
 

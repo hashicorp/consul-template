@@ -100,6 +100,7 @@ func funcMap(brain *Brain, used, missing map[string]dep.Dependency) template.Fun
 		"byKey":           byKey,
 		"byTag":           byTag,
 		"env":             env,
+		"explode":         explode,
 		"loop":            loop,
 		"join":            join,
 		"parseJSON":       parseJSON,
