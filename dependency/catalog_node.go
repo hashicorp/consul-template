@@ -45,9 +45,10 @@ func (d *CatalogNode) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 
 	nodeName := d.rawKey
 	if nodeName == "" {
+		log.Printf("[DEBUG] (%s) getting local agent name", d.Display())
 		nodeName, err = consul.Agent().NodeName()
 		if err != nil {
-			return nil, nil, fmt.Errorf("catalog node: error getting the node name of the current agent: %s", err)
+			return nil, nil, fmt.Errorf("catalog node: error getting local agent: %s", err)
 		}
 	}
 
@@ -57,31 +58,33 @@ func (d *CatalogNode) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 		return nil, nil, fmt.Errorf("catalog node: error fetching: %s", err)
 	}
 
-	var node *NodeDetail
-	if n != nil {
-		services := make(NodeServiceList, len(n.Services))
-		i := 0
-		for _, v := range n.Services {
-			services[i] = &NodeService{
-				Service: v.Service,
-				Tags:    ServiceTags(deepCopyAndSortTags(v.Tags)),
-				Port:    v.Port,
-			}
-			i++
-		}
-		sort.Stable(services)
-		node = &NodeDetail{
-			Node: &Node{
-				Node:    n.Node.Node,
-				Address: n.Node.Address,
-			},
-			Services: services,
-		}
-	}
-
 	rm := &ResponseMetadata{
 		LastIndex:   qm.LastIndex,
 		LastContact: qm.LastContact,
+	}
+
+	if n == nil {
+		log.Printf("[WARN] (%s) could not find node by that name", d.Display())
+		var node *NodeDetail
+		return node, rm, nil
+	}
+
+	services := make(NodeServiceList, 0, len(n.Services))
+	for _, v := range n.Services {
+		services = append(services, &NodeService{
+			Service: v.Service,
+			Tags:    ServiceTags(deepCopyAndSortTags(v.Tags)),
+			Port:    v.Port,
+		})
+	}
+	sort.Stable(services)
+
+	node := &NodeDetail{
+		Node: &Node{
+			Node:    n.Node.Node,
+			Address: n.Node.Address,
+		},
+		Services: services,
 	}
 
 	return node, rm, nil
