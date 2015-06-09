@@ -17,7 +17,7 @@ build:
 	go build -o bin/$(NAME)
 
 test: deps
-	go list ./... | xargs -n1 go test -timeout=5s
+	go list ./... | xargs -n1 go test -timeout=25s
 	go list ./... | xargs -n1 go vet
 
 xcompile: deps test
