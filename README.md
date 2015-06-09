@@ -784,6 +784,44 @@ The current processes environment is used when executing commands with the follo
 
 These environment variables are exported with their current values when the command executes. Other Consul tooling reads these environment variables, providing smooth integration with other Consul tools (like `consul maint` or `consul lock`). Additionally, exposing these environment variables gives power users the ability to further customize their command script.
 
+### Multi-phase Execution
+Consul Template does an n-pass evaluation of templates, accumulating dependencies on each pass. This is required due to nested dependencies, such as:
+
+```liquid
+{{range services}}
+{{range service .Name}}
+  {{.Address}}
+{{end}}{{end}}
+```
+
+During the first pass, Consul Template does not know any of the services in Consul, so it has to perform a query. When those results are returned, the inner-loop is then evaluated with that result, potentially creating more queries and watches.
+
+Because of this implementation, template functions need a default value that is an acceptable parameter to a `range` function (or similar), but does not actually execute the inner loop (which would cause a panic). This is important to mention because complex templates **must** account for the "empty" case. For example, the following **will not work**:
+
+```liquid
+{{with index (service "foo" 0)}}
+# ...
+{{end}}
+```
+
+This will raise an error like:
+
+```text
+<index $services 0>: error calling index: index out of range: 0
+```
+
+That is because, during the _first_ evaluation of the template, the `service` key is returning an empty slice. You can account for this in your template like so:
+
+```liquid
+{{if service "foo"}}
+{{with index (service "foo" 0)}}
+{{.Node}}
+{{ end }}
+{{ end }}
+```
+
+This will still add the dependency to the list of watches, but Go will not evaluate the inner-if, avoiding the out-of-index error.
+
 
 Examples
 --------
