@@ -775,7 +775,7 @@ $ NAME [INPUT...]
 #### Important Notes
 
 - Plugins execute user-provided scripts and pass in potentially sensitive data
-  from Consul or Vault. Nothing is validated or protected by Consul Remplate,
+  from Consul or Vault. Nothing is validated or protected by Consul Template,
   so all necessary precautions and considerations should be made by template
   authors
 - Plugin output must be returned as a string on stdout. Only stdout will be
