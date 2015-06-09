@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
@@ -480,6 +481,66 @@ func parseUint(s string) (uint64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("parseUint: %s", err)
 	}
+	return result, nil
+}
+
+// plugin executes a subprocess as the given command string. It is assumed the
+// resulting command returns JSON which is then parsed and returned as the
+// value for use in the template.
+func plugin(name string, args ...string) (map[string]interface{}, error) {
+	if name == "" {
+		return nil, nil
+	}
+
+	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
+
+	// Strip and trim each arg or else some plugins get confused with the newline
+	// characters
+	jsons := make([]string, 0, len(args))
+	for _, arg := range args {
+		if v := strings.TrimSpace(arg); v != "" {
+			jsons = append(jsons, v)
+		}
+	}
+
+	cmd := exec.Command(name, jsons...)
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+	if err := cmd.Start(); err != nil {
+		return nil, fmt.Errorf("exec %q: %s\n\nstdout:\n\n%s\n\nstderr:\n\n%s",
+			name, err, stdout.Bytes(), stderr.Bytes())
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		done <- cmd.Wait()
+	}()
+
+	select {
+	case <-time.After(5 * time.Second):
+		if cmd.Process != nil {
+			if err := cmd.Process.Kill(); err != nil {
+				return nil, fmt.Errorf("exec %q: failed to kill", name)
+			}
+		}
+		<-done // Allow the goroutine to exit
+		return nil, fmt.Errorf("exec %q: did not finish", name)
+	case err := <-done:
+		if err != nil {
+			return nil, fmt.Errorf("exec %q: %s\n\nstdout:\n\n%s\n\nstderr:\n\n%s",
+				name, err, stdout.Bytes(), stderr.Bytes())
+		}
+	}
+
+	if stdout.String() == "" {
+		return nil, fmt.Errorf("exec %q: no output on stdout", name)
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(stdout.Bytes(), &result); err != nil {
+		return nil, fmt.Errorf("exec %q: %s", name, err)
+	}
+
 	return result, nil
 }
 

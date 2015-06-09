@@ -1116,6 +1116,18 @@ func TestParseUint(t *testing.T) {
 	}
 }
 
+func TestPlugin(t *testing.T) {
+	result, err := plugin("echo", "{\"foo\": \"bar\"}")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := map[string]interface{}{"foo": "bar"}
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("expected %#v to be %#v", result, expected)
+	}
+}
+
 func TestReplaceAll(t *testing.T) {
 	result, err := replaceAll("bar", "foo", "foobarzipbar")
 	if err != nil {
