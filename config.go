@@ -79,10 +79,6 @@ func (c *Config) Merge(config *Config) {
 		c.Path = config.Path
 	}
 
-	if config.WasSet("pid_file") {
-		c.PidFile = config.PidFile
-	}
-
 	if config.WasSet("consul") {
 		c.Consul = config.Consul
 	}
@@ -200,6 +196,10 @@ func (c *Config) Merge(config *Config) {
 			Min: config.Wait.Min,
 			Max: config.Wait.Max,
 		}
+	}
+
+	if config.WasSet("pid_file") {
+		c.PidFile = config.PidFile
 	}
 
 	if config.WasSet("log_level") {
