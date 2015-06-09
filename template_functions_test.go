@@ -1044,6 +1044,18 @@ func TestJoin(t *testing.T) {
 	}
 }
 
+func TestParseBool(t *testing.T) {
+	result, err := parseBool("true")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := true
+	if result != expected {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+}
+
 func TestParseJSON(t *testing.T) {
 	result, err := parseJSON(`{"foo": "bar"}`)
 	if err != nil {

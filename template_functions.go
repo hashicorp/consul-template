@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -431,6 +432,15 @@ func loop(ints ...int) (<-chan int, error) {
 // join is a version of strings.Join that can be piped
 func join(sep string, a []string) (string, error) {
 	return strings.Join(a, sep), nil
+}
+
+// parseBool parses a string into a boolean
+func parseBool(s string) (bool, error) {
+	result, err := strconv.ParseBool(s)
+	if err != nil {
+		return false, fmt.Errorf("parseBool: %s", err)
+	}
+	return result, nil
 }
 
 // parseJSON returns a structure for valid JSON

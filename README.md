@@ -550,6 +550,19 @@ Takes the given list of strings as a pipe and joins them on the provided string:
 {{$items | join ","}}
 ```
 
+##### `parseBool`
+Takes the given string and parses it as a boolean:
+
+```liquid
+{{"true" | parseBool}}
+```
+
+This can be combined with a key and a conditional check, for example:
+
+```liquid
+{{if key "feature/enabled" | parseBool}}{{end}}
+```
+
 ##### `parseJSON`
 Takes the given input (usually the value from a key) and parses the result as JSON:
 
