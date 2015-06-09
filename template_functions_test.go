@@ -1122,7 +1122,7 @@ func TestPlugin(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := map[string]interface{}{"foo": "bar"}
+	expected := "{\"foo\": \"bar\"}"
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("expected %#v to be %#v", result, expected)
 	}

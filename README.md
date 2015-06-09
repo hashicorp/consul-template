@@ -778,13 +778,12 @@ $ NAME [INPUT...]
   from Consul or Vault. Nothing is validated or protected by Consul Remplate,
   so all necessary precautions and considerations should be made by template
   authors
-- Plugin output must be returned as a JSON string (even if it is empty)
-- Only stdout will be parsed for output - be sure to log all errors, debugging
-  messages onto stderr to avoid errors when Consul Template tries to parse the
-  JSON
+- Plugin output must be returned as a string on stdout. Only stdout will be
+  parsed for output. Be sure to log all errors, debugging messages onto stderr
+  to avoid errors when Consul Template returns the value.
 - Always `exit 0` or Consul Template will assume the plugin failed to execute
 
-Here is a sample plugin in a few different languages that removes any JSON keys that start with an underscore:
+Here is a sample plugin in a few different languages that removes any JSON keys that start with an underscore and returns the JSON string:
 
 ```ruby
 #! /usr/bin/env ruby
