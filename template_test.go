@@ -261,6 +261,7 @@ func TestExecute_renders(t *testing.T) {
 		join: {{ "a,b,c" | split "," | join ";" }}
 		parseBool: {{"true" | parseBool}}
 		parseFloat: {{"1.2" | parseFloat}}
+		parseInt: {{"-1" | parseInt}}
 		parseJSON (string):{{ range $key, $value := "{\"foo\": \"bar\"}" | parseJSON }}
 			{{$key}}={{$value}}{{ end }}
 		parseJSON (file):{{ range $key, $value := file "/path/to/json/file" | parseJSON }}
@@ -492,6 +493,7 @@ func TestExecute_renders(t *testing.T) {
 		join: a;b;c
 		parseBool: true
 		parseFloat: 1.2
+		parseInt: -1
 		parseJSON (string):
 			foo=bar
 		parseJSON (file):

@@ -452,6 +452,15 @@ func parseFloat(s string) (float64, error) {
 	return result, nil
 }
 
+// parseInt parses a string into a base 10 int
+func parseInt(s string) (int64, error) {
+	result, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("parseInt: %s", err)
+	}
+	return result, nil
+}
+
 // parseJSON returns a structure for valid JSON
 func parseJSON(s string) (interface{}, error) {
 	if s == "" {

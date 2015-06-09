@@ -570,6 +570,20 @@ Takes the given string and parses it as a base-10 float64:
 {{"1.2" | parseFloat}}
 ```
 
+##### `parseInt`
+Takes the given string and parses it as a base-10 int64:
+
+```liquid
+{{"1" | parseInt}}
+```
+
+This can be combined with other helpers, for example:
+
+```liquid
+{{range $i := loop key "config/pool_size" | parseInt}}
+# ...{{end}}
+```
+
 ##### `parseJSON`
 Takes the given input (usually the value from a key) and parses the result as JSON:
 

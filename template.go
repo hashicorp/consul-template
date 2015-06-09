@@ -105,6 +105,7 @@ func funcMap(brain *Brain, used, missing map[string]dep.Dependency) template.Fun
 		"join":            join,
 		"parseBool":       parseBool,
 		"parseFloat":      parseFloat,
+		"parseInt":        parseInt,
 		"parseJSON":       parseJSON,
 		"regexReplaceAll": regexReplaceAll,
 		"regexMatch":      regexMatch,

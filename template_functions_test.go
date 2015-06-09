@@ -1068,6 +1068,18 @@ func TestParseFloat(t *testing.T) {
 	}
 }
 
+func TestParseInt(t *testing.T) {
+	result, err := parseInt("-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := int64(-1)
+	if result != expected {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+}
+
 func TestParseJSON(t *testing.T) {
 	result, err := parseJSON(`{"foo": "bar"}`)
 	if err != nil {
