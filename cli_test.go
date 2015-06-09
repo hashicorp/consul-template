@@ -12,6 +12,7 @@ import (
 
 	"github.com/marouenj/consul-template/test"
 	"github.com/marouenj/consul-template/watch"
+	"github.com/marouenj/consul-template/core"
 )
 
 func TestParseFlags_consul(t *testing.T) {
@@ -203,13 +204,13 @@ func TestParseFlags_configTemplates(t *testing.T) {
 		t.Fatal("expected 1 config template")
 	}
 
-	expected := &ConfigTemplate{
+	expected := &core.ConfigTemplate{
 		Source:      "in.ctmpl",
 		Destination: "out.txt",
-		Command:     "some command",
+		RestartCommand:     "some command",
 	}
 	if !reflect.DeepEqual(config.ConfigTemplates[0], expected) {
-		t.Errorf("expected %q to be %q", config.ConfigTemplates[0], expected)
+		t.Errorf("expected %v to be %v", config.ConfigTemplates[0], expected)
 	}
 }
 
