@@ -443,6 +443,15 @@ func parseBool(s string) (bool, error) {
 	return result, nil
 }
 
+// parseFloat parses a string into a base 10 float
+func parseFloat(s string) (float64, error) {
+	result, err := strconv.ParseFloat(s, 10)
+	if err != nil {
+		return 0, fmt.Errorf("parseFloat: %s", err)
+	}
+	return result, nil
+}
+
 // parseJSON returns a structure for valid JSON
 func parseJSON(s string) (interface{}, error) {
 	if s == "" {

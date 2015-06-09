@@ -563,6 +563,13 @@ This can be combined with a key and a conditional check, for example:
 {{if key "feature/enabled" | parseBool}}{{end}}
 ```
 
+##### `parseFloat`
+Takes the given string and parses it as a base-10 float64:
+
+```liquid
+{{"1.2" | parseFloat}}
+```
+
 ##### `parseJSON`
 Takes the given input (usually the value from a key) and parses the result as JSON:
 
