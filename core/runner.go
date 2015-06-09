@@ -220,13 +220,13 @@ func (r *Runner) Stop() error {
 
 	log.Printf("[INFO] (runner) stopping")
 	r.watcher.Stop()
-	r.DoneCh <- struct{}{}
-	r.Up = false
 
 	if err := r.StopCommand(); err != nil {
 		return err
 	}
 
+	r.Up = false
+	r.DoneCh <- struct{}{}
 	return nil
 }
 
