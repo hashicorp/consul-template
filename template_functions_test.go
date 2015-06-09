@@ -1153,10 +1153,14 @@ func TestRegexMatch(t *testing.T) {
 }
 
 func TestToJSON(t *testing.T) {
-	list := []*dep.KeyPair{
-		&dep.KeyPair{Key: "a/b/c", Value: "d"},
-		&dep.KeyPair{Key: "a/b/e", Value: "f"},
-		&dep.KeyPair{Key: "a/g", Value: "h"},
+	list := map[string]interface{}{
+		"a": map[string]interface{}{
+			"b": map[string]interface{}{
+				"c": "d",
+				"e": "f",
+			},
+			"g": "h",
+		},
 	}
 
 	result, err := toJSON(list)
@@ -1171,10 +1175,14 @@ func TestToJSON(t *testing.T) {
 }
 
 func TestToJSONPretty(t *testing.T) {
-	list := []*dep.KeyPair{
-		&dep.KeyPair{Key: "a/b/c", Value: "d"},
-		&dep.KeyPair{Key: "a/b/e", Value: "f"},
-		&dep.KeyPair{Key: "a/g", Value: "h"},
+	list := map[string]interface{}{
+		"a": map[string]interface{}{
+			"b": map[string]interface{}{
+				"c": "d",
+				"e": "f",
+			},
+			"g": "h",
+		},
 	}
 
 	result, err := toJSONPretty(list)
@@ -1197,10 +1205,14 @@ func TestToJSONPretty(t *testing.T) {
 }
 
 func TestToYAML(t *testing.T) {
-	list := []*dep.KeyPair{
-		&dep.KeyPair{Key: "a/b/c", Value: "d"},
-		&dep.KeyPair{Key: "a/b/e", Value: "f"},
-		&dep.KeyPair{Key: "a/g", Value: "h"},
+	list := map[string]interface{}{
+		"a": map[string]interface{}{
+			"b": map[string]interface{}{
+				"c": "d",
+				"e": "f",
+			},
+			"g": "h",
+		},
 	}
 
 	result, err := toYAML(list)

@@ -677,7 +677,7 @@ See Go's [time.Format()](http://golang.org/pkg/time/#Time.Format) for more infor
 Takes the result from a `tree` or `ls` call and converts it into a JSON object.
 
 ```liquid
-{{ tree "config" | toJSON }} // e.g. {"admin":{"port":1234},"maxconns":5,"minconns":2}
+{{ tree "config" | explode | toJSON }} // e.g. {"admin":{"port":1234},"maxconns":5,"minconns":2}
 ```
 
 Note: This functionality should be considered final. If you need to manipulate keys, combine values, or perform mutations, that should be done _outside_ of Consul. In order to keep the API scope limited, we likely will not accept Pull Requests that focus on customizing the `toJSON` functionality.
@@ -686,7 +686,7 @@ Note: This functionality should be considered final. If you need to manipulate k
 Takes the result from a `tree` or `ls` call and converts it into a pretty-printed JSON object, indented by two spaces.
 
 ```liquid
-{{ tree "config" | toJSONPretty }}
+{{ tree "config" | explode | toJSONPretty }}
 /*
 {
   "admin": {
@@ -731,7 +731,7 @@ See Go's [strings.ToUpper()](http://golang.org/pkg/strings/#ToUpper) for more in
 Takes the result from a `tree` or `ls` call and converts it into a pretty-printed YAML object, indented by two spaces.
 
 ```liquid
-{{ tree "config" | toYAML }}
+{{ tree "config" | explode | toYAML }}
 /*
 admin:
   port: 1234

@@ -278,13 +278,13 @@ func TestExecute_renders(t *testing.T) {
 		split:{{ range "a,b,c" | split "," }}
 			{{.}}{{end}}
 		toLower: {{ file "/path/to/file" | toLower }}
-		toJSON: {{ tree "config/redis" | toJSON }}
+		toJSON: {{ tree "config/redis" | explode | toJSON }}
 		toJSONPretty:
-{{ tree "config/redis" | toJSONPretty }}
+{{ tree "config/redis" | explode | toJSONPretty }}
 		toTitle: {{ file "/path/to/file" | toTitle }}
 		toUpper: {{ file "/path/to/file" | toUpper }}
 		toYAML:
-{{ tree "config/redis" | toYAML }}
+{{ tree "config/redis" | explode | toYAML }}
 `), t)
 	defer test.DeleteTempfile(in, t)
 

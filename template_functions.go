@@ -538,12 +538,8 @@ func toLower(s string) (string, error) {
 }
 
 // toJSON converts the given structure into a deeply nested JSON string.
-func toJSON(pairs []*dep.KeyPair) (string, error) {
-	exploded, err := explode(pairs)
-	if err != nil {
-		return "", fmt.Errorf("toJSON: %s", err)
-	}
-	result, err := json.Marshal(exploded)
+func toJSON(m map[string]interface{}) (string, error) {
+	result, err := json.Marshal(m)
 	if err != nil {
 		return "", fmt.Errorf("toJSON: %s", err)
 	}
@@ -552,12 +548,8 @@ func toJSON(pairs []*dep.KeyPair) (string, error) {
 
 // toJSONPretty converts the given structure into a deeply nested pretty JSON
 // string.
-func toJSONPretty(pairs []*dep.KeyPair) (string, error) {
-	exploded, err := explode(pairs)
-	if err != nil {
-		return "", fmt.Errorf("toJSONPretty: %s", err)
-	}
-	result, err := json.MarshalIndent(exploded, "", "  ")
+func toJSONPretty(m map[string]interface{}) (string, error) {
+	result, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {
 		return "", fmt.Errorf("toJSONPretty: %s", err)
 	}
@@ -575,12 +567,8 @@ func toUpper(s string) (string, error) {
 }
 
 // toYAML converts the given structure into a deeply nested YAML string.
-func toYAML(pairs []*dep.KeyPair) (string, error) {
-	exploded, err := explode(pairs)
-	if err != nil {
-		return "", fmt.Errorf("toYAML: %s", err)
-	}
-	result, err := yaml.Marshal(exploded)
+func toYAML(m map[string]interface{}) (string, error) {
+	result, err := yaml.Marshal(m)
 	if err != nil {
 		return "", fmt.Errorf("toYAML: %s", err)
 	}
