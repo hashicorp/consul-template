@@ -1044,6 +1044,42 @@ func TestJoin(t *testing.T) {
 	}
 }
 
+func TestParseBool(t *testing.T) {
+	result, err := parseBool("true")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := true
+	if result != expected {
+		t.Errorf("expected %t to be %t", result, expected)
+	}
+}
+
+func TestParseFloat(t *testing.T) {
+	result, err := parseFloat("1.2")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := 1.2
+	if result != expected {
+		t.Errorf("expected %v to be %v", result, expected)
+	}
+}
+
+func TestParseInt(t *testing.T) {
+	result, err := parseInt("-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := int64(-1)
+	if result != expected {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+}
+
 func TestParseJSON(t *testing.T) {
 	result, err := parseJSON(`{"foo": "bar"}`)
 	if err != nil {
@@ -1065,6 +1101,18 @@ func TestParseJSON_empty(t *testing.T) {
 	expected := make([]interface{}, 0)
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("expected %#v to be %#v", result, expected)
+	}
+}
+
+func TestParseUint(t *testing.T) {
+	result, err := parseUint("1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := uint64(1)
+	if result != expected {
+		t.Errorf("expected %q to be %q", result, expected)
 	}
 }
 

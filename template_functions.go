@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -433,6 +434,33 @@ func join(sep string, a []string) (string, error) {
 	return strings.Join(a, sep), nil
 }
 
+// parseBool parses a string into a boolean
+func parseBool(s string) (bool, error) {
+	result, err := strconv.ParseBool(s)
+	if err != nil {
+		return false, fmt.Errorf("parseBool: %s", err)
+	}
+	return result, nil
+}
+
+// parseFloat parses a string into a base 10 float
+func parseFloat(s string) (float64, error) {
+	result, err := strconv.ParseFloat(s, 10)
+	if err != nil {
+		return 0, fmt.Errorf("parseFloat: %s", err)
+	}
+	return result, nil
+}
+
+// parseInt parses a string into a base 10 int
+func parseInt(s string) (int64, error) {
+	result, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("parseInt: %s", err)
+	}
+	return result, nil
+}
+
 // parseJSON returns a structure for valid JSON
 func parseJSON(s string) (interface{}, error) {
 	if s == "" {
@@ -444,6 +472,15 @@ func parseJSON(s string) (interface{}, error) {
 		return nil, err
 	}
 	return data, nil
+}
+
+// parseUint parses a string into a base 10 int
+func parseUint(s string) (uint64, error) {
+	result, err := strconv.ParseUint(s, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("parseUint: %s", err)
+	}
+	return result, nil
 }
 
 // replaceAll replaces all occurrences of a value in a string with the given

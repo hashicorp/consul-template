@@ -550,6 +550,40 @@ Takes the given list of strings as a pipe and joins them on the provided string:
 {{$items | join ","}}
 ```
 
+##### `parseBool`
+Takes the given string and parses it as a boolean:
+
+```liquid
+{{"true" | parseBool}}
+```
+
+This can be combined with a key and a conditional check, for example:
+
+```liquid
+{{if key "feature/enabled" | parseBool}}{{end}}
+```
+
+##### `parseFloat`
+Takes the given string and parses it as a base-10 float64:
+
+```liquid
+{{"1.2" | parseFloat}}
+```
+
+##### `parseInt`
+Takes the given string and parses it as a base-10 int64:
+
+```liquid
+{{"1" | parseInt}}
+```
+
+This can be combined with other helpers, for example:
+
+```liquid
+{{range $i := loop key "config/pool_size" | parseInt}}
+# ...{{end}}
+```
+
 ##### `parseJSON`
 Takes the given input (usually the value from a key) and parses the result as JSON:
 
@@ -574,6 +608,15 @@ Alternatively you can read data from a local JSON file:
 ```liquid
 {{with $d := file "/path/to/local/data.json" | parseJSON}}{{$d.some_key}}{{end}}
 ```
+
+##### `parseUint`
+Takes the given string and parses it as a base-10 int64:
+
+```liquid
+{{"1" | parseUint}}
+```
+
+See `parseInt` for examples.
 
 ##### `regexMatch`
 Takes the argument as a regular expression and will return `true` if it matches on the given string, or `false` otherwise.
