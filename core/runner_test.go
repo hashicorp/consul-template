@@ -29,15 +29,18 @@ func TestNewRunner_initialize(t *testing.T) {
 	dry, once := true, true
 	config := &Config{
 		ConfigTemplates: []*ConfigTemplate{
-			&ConfigTemplate{Source: in1.Name(), Command: "1"},
-			&ConfigTemplate{Source: in1.Name(), Command: "1.1"},
-			&ConfigTemplate{Source: in2.Name(), Command: "2"},
-			&ConfigTemplate{Source: in3.Name(), Command: "3"},
+			&ConfigTemplate{Source: in1.Name(), RestartCommand: "1"},
+			&ConfigTemplate{Source: in1.Name(), RestartCommand: "1.1"},
+			&ConfigTemplate{Source: in2.Name(), RestartCommand: "2"},
+			&ConfigTemplate{Source: in3.Name(), RestartCommand: "3"},
 		},
 	}
 
 	runner, err := NewRunner(config, dry, once)
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err := runner.Init(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -103,7 +106,9 @@ func TestNewRunner_badTemplate(t *testing.T) {
 		},
 	}
 
-	if _, err := NewRunner(config, false, false); err == nil {
+	runner, _ := NewRunner(config, false, false)
+
+	if err := runner.Init(); err == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
 }
@@ -111,6 +116,9 @@ func TestNewRunner_badTemplate(t *testing.T) {
 func TestReceive_addsToBrain(t *testing.T) {
 	runner, err := NewRunner(new(Config), false, false)
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err := runner.Init(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -136,6 +144,9 @@ func TestReceive_storesBrain(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := runner.Init(); err != nil {
+		t.Fatal(err)
+	}
 
 	d, data := &dep.File{}, "this is some data"
 	runner.dependencies[d.HashCode()] = d
@@ -149,6 +160,9 @@ func TestReceive_storesBrain(t *testing.T) {
 func TestReceive_doesNotStoreIfNotWatching(t *testing.T) {
 	runner, err := NewRunner(new(Config), false, false)
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err := runner.Init(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -208,6 +222,9 @@ func TestRun_dry(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := runner.Init(); err != nil {
+		t.Fatal(err)
+	}
 
 	d, err := dep.ParseHealthServices("consul@nyc1")
 	if err != nil {
@@ -256,6 +273,9 @@ func TestRun_singlePass(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := runner.Init(); err != nil {
+		t.Fatal(err)
+	}
 
 	if len(runner.dependencies) != 0 {
 		t.Errorf("expected %d to be %d", len(runner.dependencies), 0)
@@ -292,6 +312,9 @@ func TestRun_singlePassDuplicates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := runner.Init(); err != nil {
+		t.Fatal(err)
+	}
 
 	if len(runner.dependencies) != 0 {
 		t.Errorf("expected %d to be %d", len(runner.dependencies), 0)
@@ -324,6 +347,9 @@ func TestRun_doublePass(t *testing.T) {
 
 	runner, err := NewRunner(config, true, false)
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err := runner.Init(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -371,6 +397,9 @@ func TestRun_removesUnusedDependencies(t *testing.T) {
 
 	runner, err := NewRunner(config, true, false)
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err := runner.Init(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -434,18 +463,21 @@ func TestRun_multipleTemplatesRunsCommands(t *testing.T) {
 			&ConfigTemplate{
 				Source:      in1.Name(),
 				Destination: out1.Name(),
-				Command:     fmt.Sprintf("touch %s", touch1.Name()),
+				RestartCommand:     fmt.Sprintf("touch %s", touch1.Name()),
 			},
 			&ConfigTemplate{
 				Source:      in2.Name(),
 				Destination: out2.Name(),
-				Command:     fmt.Sprintf("touch %s", touch2.Name()),
+				RestartCommand:     fmt.Sprintf("touch %s", touch2.Name()),
 			},
 		},
 	}
 
 	runner, err := NewRunner(config, false, false)
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err := runner.Init(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -545,7 +577,7 @@ func TestRender_sameContentsDoesNotExecuteCommand(t *testing.T) {
 			&ConfigTemplate{
 				Source:      inTemplate.Name(),
 				Destination: outTemplate.Name(),
-				Command:     fmt.Sprintf("echo 'foo' > %s", outFile.Name()),
+				RestartCommand:     fmt.Sprintf("echo 'foo' > %s", outFile.Name()),
 			},
 		},
 	}
@@ -645,7 +677,7 @@ func TestRun_doesNotExecuteCommandMissingDependencies(t *testing.T) {
 			&ConfigTemplate{
 				Source:      inTemplate.Name(),
 				Destination: outTemplate.Name(),
-				Command:     fmt.Sprintf("echo 'foo' > %s", outFile.Name()),
+				RestartCommand:     fmt.Sprintf("echo 'foo' > %s", outFile.Name()),
 			},
 		},
 	}
@@ -683,13 +715,16 @@ func TestRun_executesCommand(t *testing.T) {
 			&ConfigTemplate{
 				Source:      inTemplate.Name(),
 				Destination: outTemplate.Name(),
-				Command:     fmt.Sprintf("echo 'foo' > %s", outFile.Name()),
+				RestartCommand:     fmt.Sprintf("echo 'foo' > %s", outFile.Name()),
 			},
 		},
 	}
 
 	runner, err := NewRunner(config, false, false)
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err := runner.Init(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -739,18 +774,21 @@ func TestRun_doesNotExecuteCommandMoreThanOnce(t *testing.T) {
 			&ConfigTemplate{
 				Source:      inTemplate.Name(),
 				Destination: outTemplateA.Name(),
-				Command:     fmt.Sprintf("echo 'foo' >> %s", outFile.Name()),
+				RestartCommand:     fmt.Sprintf("echo 'foo' >> %s", outFile.Name()),
 			},
 			&ConfigTemplate{
 				Source:      inTemplate.Name(),
 				Destination: outTemplateB.Name(),
-				Command:     fmt.Sprintf("echo 'foo' >> %s", outFile.Name()),
+				RestartCommand:     fmt.Sprintf("echo 'foo' >> %s", outFile.Name()),
 			},
 		},
 	}
 
 	runner, err := NewRunner(config, false, false)
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err := runner.Init(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -807,13 +845,16 @@ func TestRunner_onceAlreadyRenderedDoesNotHangOrRunCommands(t *testing.T) {
 			&ConfigTemplate{
 				Source:      in.Name(),
 				Destination: out.Name(),
-				Command:     fmt.Sprintf("echo 'foo' >> %s", outFile.Name()),
+				RestartCommand:     fmt.Sprintf("echo 'foo' >> %s", outFile.Name()),
 			},
 		},
 	}
 
 	runner, err := NewRunner(config, false, true)
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err := runner.Init(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -865,6 +906,9 @@ func TestExecute_setsEnv(t *testing.T) {
 
 	runner, err := NewRunner(config, false, false)
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err := runner.Init(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -992,6 +1036,9 @@ func TestBuildConfig_configTakesPrecedence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := runner.Init(); err != nil {
+		t.Fatal(err)
+	}
 
 	if runner.config.SSL.Enabled != true {
 		t.Error("expected config.SSL.Enabled to be true")
@@ -1022,7 +1069,7 @@ func TestBuildConfig_configDir(t *testing.T) {
 		template {
 		  source = "/path/on/disk/to/template"
 		  destination = "/path/on/disk/where/template/will/render"
-		  command = "optional command to run when the template is updated"
+		  restartcommand = "optional command to run when the template is updated"
 		}
 	`)
 	_, err = configFile2.Write(config2)
@@ -1040,7 +1087,7 @@ func TestBuildConfig_configDir(t *testing.T) {
 		ConfigTemplates: []*ConfigTemplate{{
 			Source:      "/path/on/disk/to/template",
 			Destination: "/path/on/disk/where/template/will/render",
-			Command:     "optional command to run when the template is updated",
+			RestartCommand:     "optional command to run when the template is updated",
 		}},
 	}
 	if expectedConfig.Consul != config.Consul {
@@ -1057,8 +1104,8 @@ func TestBuildConfig_configDir(t *testing.T) {
 		if actualTemplate.Destination != expectTemplate.Destination {
 			t.Fatalf("Expected template Destination to be %s but got %s", expectTemplate.Destination, actualTemplate.Destination)
 		}
-		if actualTemplate.Command != expectTemplate.Command {
-			t.Fatalf("Expected template Command to be %s but got %s", expectTemplate.Command, actualTemplate.Command)
+		if actualTemplate.RestartCommand != expectTemplate.RestartCommand {
+			t.Fatalf("Expected template Command to be %s but got %s", expectTemplate.RestartCommand, actualTemplate.RestartCommand)
 		}
 	}
 }
