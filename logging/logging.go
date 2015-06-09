@@ -1,7 +1,6 @@
 package logging
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -33,13 +32,6 @@ type Config struct {
 }
 
 func Setup(config *Config) error {
-	log.Print("[DEBUG] (logging) setting up logging")
-	result, err := json.MarshalIndent(config, "", "  ")
-	if err != nil {
-		return err
-	}
-	log.Printf("[DEBUG] (logging) config:\n\n%s\n\n", result)
-
 	var logOutput io.Writer
 
 	// Setup the default logging
