@@ -1052,7 +1052,7 @@ func TestParseBool(t *testing.T) {
 
 	expected := true
 	if result != expected {
-		t.Errorf("expected %q to be %q", result, expected)
+		t.Errorf("expected %t to be %t", result, expected)
 	}
 }
 
@@ -1064,7 +1064,7 @@ func TestParseFloat(t *testing.T) {
 
 	expected := 1.2
 	if result != expected {
-		t.Errorf("expected %q to be %q", result, expected)
+		t.Errorf("expected %v to be %v", result, expected)
 	}
 }
 
