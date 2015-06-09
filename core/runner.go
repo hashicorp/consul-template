@@ -114,11 +114,6 @@ func (r *Runner) Start() {
 
 	log.Printf("[INFO] (runner) starting")
 
-	if err := r.Init(); err != nil {
-		r.ErrCh <- err
-		return
-	}
-
 	r.Up = true
 
 	// Fire an initial run to parse all the templates and setup the first-pass

@@ -87,6 +87,9 @@ func (cli *CLI) Run(args []string) int {
 	if err != nil {
 		return cli.handleError(err, ExitCodeRunnerError)
 	}
+	if err := runner.Init(); err != nil {
+		return cli.handleError(err, ExitCodeRunnerError)
+	}
 	go runner.Start()
 
 	// Listen for signals
@@ -119,6 +122,9 @@ func (cli *CLI) Run(args []string) int {
 				}
 				runner, err = core.NewRunner(config, dry, once)
 				if err != nil {
+					return cli.handleError(err, ExitCodeRunnerError)
+				}
+				if err := runner.Init(); err != nil {
 					return cli.handleError(err, ExitCodeRunnerError)
 				}
 				go runner.Start()
