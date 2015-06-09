@@ -44,12 +44,12 @@ func TestMerge_complexConfig(t *testing.T) {
 		&ConfigTemplate{
 			Source:      "c",
 			Destination: "d",
-			Command:     "e",
+			RestartCommand:     "e",
 		},
 		&ConfigTemplate{
 			Source:      "f",
 			Destination: "g",
-			Command:     "h",
+			RestartCommand:     "h",
 		},
 		&ConfigTemplate{
 			Source:      "i",
@@ -316,7 +316,7 @@ func TestParseConfig_correctValues(t *testing.T) {
     template {
       source = "redis.conf.ctmpl"
       destination  = "/etc/redis/redis.conf"
-      command = "service redis restart"
+      restartcommand = "service redis restart"
     }
   `), t)
 	defer test.DeleteTempfile(configFile, t)
@@ -384,7 +384,7 @@ func TestParseConfig_correctValues(t *testing.T) {
 			&ConfigTemplate{
 				Source:      "redis.conf.ctmpl",
 				Destination: "/etc/redis/redis.conf",
-				Command:     "service redis restart",
+				RestartCommand:     "service redis restart",
 			},
 		},
 	}
@@ -477,7 +477,7 @@ func TestParseConfigurationTemplate_windowsDrives(t *testing.T) {
 	expected := &ConfigTemplate{
 		Source:      `C:\abc\123`,
 		Destination: `D:\xyz\789`,
-		Command:     "some command",
+		RestartCommand:     "some command",
 	}
 
 	if !reflect.DeepEqual(ct, expected) {
@@ -531,7 +531,7 @@ func TestParseConfigurationTemplate_command(t *testing.T) {
 		t.Errorf("expected %q to equal %q", template.Destination, destination)
 	}
 
-	if template.Command != command {
-		t.Errorf("expected %q to equal %q", template.Command, command)
+	if template.RestartCommand != command {
+		t.Errorf("expected %q to equal %q", template.RestartCommand, command)
 	}
 }
