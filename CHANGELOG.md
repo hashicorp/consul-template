@@ -5,6 +5,10 @@ Consul Template Changelog
 
 FEATURES
 
+  * Add `parseBool` function for parsing strings into booleans (GH-312)
+  * Add `parseFloat` function for parsing strings into float64 (GH-312)
+  * Add `parseInt` function for parsing strings into int64 (GH-312)
+  * Add `parseUint` function for parsing strings into uint64 (GH-312)
   * Add `explode` function for exploding the result of `tree` or `ls` into a
     deeply nested  hash (GH-311)
   * Add `toJSON` and `toJSONPretty` function for exporting the result of `tree`
