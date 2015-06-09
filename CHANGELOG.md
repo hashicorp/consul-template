@@ -8,6 +8,7 @@ Consul Template Changelog
 
 FEATURES
 
+  * Add `plugin` and plugin ecosystem
   * Add `parseBool` function for parsing strings into booleans (GH-312)
   * Add `parseFloat` function for parsing strings into float64 (GH-312)
   * Add `parseInt` function for parsing strings into int64 (GH-312)
