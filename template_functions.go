@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
@@ -483,6 +484,57 @@ func parseUint(s string) (uint64, error) {
 	return result, nil
 }
 
+// plugin executes a subprocess as the given command string. It is assumed the
+// resulting command returns JSON which is then parsed and returned as the
+// value for use in the template.
+func plugin(name string, args ...string) (string, error) {
+	if name == "" {
+		return "", nil
+	}
+
+	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
+
+	// Strip and trim each arg or else some plugins get confused with the newline
+	// characters
+	jsons := make([]string, 0, len(args))
+	for _, arg := range args {
+		if v := strings.TrimSpace(arg); v != "" {
+			jsons = append(jsons, v)
+		}
+	}
+
+	cmd := exec.Command(name, jsons...)
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+	if err := cmd.Start(); err != nil {
+		return "", fmt.Errorf("exec %q: %s\n\nstdout:\n\n%s\n\nstderr:\n\n%s",
+			name, err, stdout.Bytes(), stderr.Bytes())
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		done <- cmd.Wait()
+	}()
+
+	select {
+	case <-time.After(5 * time.Second):
+		if cmd.Process != nil {
+			if err := cmd.Process.Kill(); err != nil {
+				return "", fmt.Errorf("exec %q: failed to kill", name)
+			}
+		}
+		<-done // Allow the goroutine to exit
+		return "", fmt.Errorf("exec %q: did not finish", name)
+	case err := <-done:
+		if err != nil {
+			return "", fmt.Errorf("exec %q: %s\n\nstdout:\n\n%s\n\nstderr:\n\n%s",
+				name, err, stdout.Bytes(), stderr.Bytes())
+		}
+	}
+
+	return strings.TrimSpace(stdout.String()), nil
+}
+
 // replaceAll replaces all occurrences of a value in a string with the given
 // replacement value.
 func replaceAll(f, t, s string) (string, error) {
@@ -538,12 +590,8 @@ func toLower(s string) (string, error) {
 }
 
 // toJSON converts the given structure into a deeply nested JSON string.
-func toJSON(pairs []*dep.KeyPair) (string, error) {
-	exploded, err := explode(pairs)
-	if err != nil {
-		return "", fmt.Errorf("toJSON: %s", err)
-	}
-	result, err := json.Marshal(exploded)
+func toJSON(m map[string]interface{}) (string, error) {
+	result, err := json.Marshal(m)
 	if err != nil {
 		return "", fmt.Errorf("toJSON: %s", err)
 	}
@@ -552,12 +600,8 @@ func toJSON(pairs []*dep.KeyPair) (string, error) {
 
 // toJSONPretty converts the given structure into a deeply nested pretty JSON
 // string.
-func toJSONPretty(pairs []*dep.KeyPair) (string, error) {
-	exploded, err := explode(pairs)
-	if err != nil {
-		return "", fmt.Errorf("toJSONPretty: %s", err)
-	}
-	result, err := json.MarshalIndent(exploded, "", "  ")
+func toJSONPretty(m map[string]interface{}) (string, error) {
+	result, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {
 		return "", fmt.Errorf("toJSONPretty: %s", err)
 	}
@@ -575,12 +619,8 @@ func toUpper(s string) (string, error) {
 }
 
 // toYAML converts the given structure into a deeply nested YAML string.
-func toYAML(pairs []*dep.KeyPair) (string, error) {
-	exploded, err := explode(pairs)
-	if err != nil {
-		return "", fmt.Errorf("toYAML: %s", err)
-	}
-	result, err := yaml.Marshal(exploded)
+func toYAML(m map[string]interface{}) (string, error) {
+	result, err := yaml.Marshal(m)
 	if err != nil {
 		return "", fmt.Errorf("toYAML: %s", err)
 	}

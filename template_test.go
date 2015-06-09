@@ -269,6 +269,7 @@ func TestExecute_renders(t *testing.T) {
 		parseJSON (env):{{ range $key, $value := env "json" | parseJSON }}
 			{{$key}}={{$value}}{{ end }}
 		parseUint: {{"1" | parseUint}}
+		plugin: {{ file "/path/to/json/file" | plugin "echo" }}
 		timestamp: {{ timestamp }}
 		timestamp (formatted): {{ timestamp "2006-01-02" }}
 		regexMatch: {{ file "/path/to/file"  | regexMatch ".*[cont][a-z]+" }}
@@ -278,13 +279,13 @@ func TestExecute_renders(t *testing.T) {
 		split:{{ range "a,b,c" | split "," }}
 			{{.}}{{end}}
 		toLower: {{ file "/path/to/file" | toLower }}
-		toJSON: {{ tree "config/redis" | toJSON }}
+		toJSON: {{ tree "config/redis" | explode | toJSON }}
 		toJSONPretty:
-{{ tree "config/redis" | toJSONPretty }}
+{{ tree "config/redis" | explode | toJSONPretty }}
 		toTitle: {{ file "/path/to/file" | toTitle }}
 		toUpper: {{ file "/path/to/file" | toUpper }}
 		toYAML:
-{{ tree "config/redis" | toYAML }}
+{{ tree "config/redis" | explode | toYAML }}
 `), t)
 	defer test.DeleteTempfile(in, t)
 
@@ -502,6 +503,7 @@ func TestExecute_renders(t *testing.T) {
 		parseJSON (env):
 			foo=bar
 		parseUint: 1
+		plugin: {"foo": "bar"}
 		timestamp: 1970-01-01T00:00:00Z
 		timestamp (formatted): 1970-01-01
 		regexMatch: true

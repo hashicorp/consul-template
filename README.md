@@ -489,6 +489,21 @@ This function can be chained to manipulate the output:
 {{env "CLUSTER_ID" | toLower}}
 ```
 
+##### `plugin`
+Takes the name of a plugin and optional payload and executes a Consul Template plugin.
+
+```liquid
+{{plugin "my-plugin"}}
+```
+
+This is most commonly combined with a JSON filter for customization:
+
+```liquid
+{{tree "foo" | explode | toJSON | plugin "my-plugin"}}
+```
+
+Please see the [plugins](#plugins) section for more information about plugins.
+
 ##### `explode`
 Takes the result from a `tree` or `ls` call and converts it into a deeply-nested map for parsing/traversing.
 
@@ -677,7 +692,7 @@ See Go's [time.Format()](http://golang.org/pkg/time/#Time.Format) for more infor
 Takes the result from a `tree` or `ls` call and converts it into a JSON object.
 
 ```liquid
-{{ tree "config" | toJSON }} // e.g. {"admin":{"port":1234},"maxconns":5,"minconns":2}
+{{ tree "config" | explode | toJSON }} // e.g. {"admin":{"port":1234},"maxconns":5,"minconns":2}
 ```
 
 Note: This functionality should be considered final. If you need to manipulate keys, combine values, or perform mutations, that should be done _outside_ of Consul. In order to keep the API scope limited, we likely will not accept Pull Requests that focus on customizing the `toJSON` functionality.
@@ -686,7 +701,7 @@ Note: This functionality should be considered final. If you need to manipulate k
 Takes the result from a `tree` or `ls` call and converts it into a pretty-printed JSON object, indented by two spaces.
 
 ```liquid
-{{ tree "config" | toJSONPretty }}
+{{ tree "config" | explode | toJSONPretty }}
 /*
 {
   "admin": {
@@ -731,7 +746,7 @@ See Go's [strings.ToUpper()](http://golang.org/pkg/strings/#ToUpper) for more in
 Takes the result from a `tree` or `ls` call and converts it into a pretty-printed YAML object, indented by two spaces.
 
 ```liquid
-{{ tree "config" | toYAML }}
+{{ tree "config" | explode | toYAML }}
 /*
 admin:
   port: 1234
@@ -742,6 +757,75 @@ minconns: 2
 
 Note: This functionality should be considered final. If you need to manipulate keys, combine values, or perform mutations, that should be done _outside_ of Consul. In order to keep the API scope limited, we likely will not accept Pull Requests that focus on customizing the `toYAML` functionality.
 
+
+Plugins
+-------
+### Authoring Plugins
+For some use cases, it may be necessary to write a plugin that offloads work to another system. This is especially useful for things that may not fit in the "standard library" of Consul Template, but still need to be shared across multiple instances.
+
+Consul Template plugins must have the following API:
+
+```shell
+$ NAME [INPUT...]
+```
+
+- `NAME` - the name of the plugin - this is also the name of the binary
+- `INPUT` - input from the template - this wil always be JSON if provided
+
+#### Important Notes
+
+- Plugins execute user-provided scripts and pass in potentially sensitive data
+  from Consul or Vault. Nothing is validated or protected by Consul Template,
+  so all necessary precautions and considerations should be made by template
+  authors
+- Plugin output must be returned as a string on stdout. Only stdout will be
+  parsed for output. Be sure to log all errors, debugging messages onto stderr
+  to avoid errors when Consul Template returns the value.
+- Always `exit 0` or Consul Template will assume the plugin failed to execute
+
+Here is a sample plugin in a few different languages that removes any JSON keys that start with an underscore and returns the JSON string:
+
+```ruby
+#! /usr/bin/env ruby
+require "json"
+
+if ARGV.empty?
+  puts JSON.fast_generate({})
+  Kernel.exit(0)
+end
+
+hash = JSON.parse(ARGV.first)
+hash.reject! { |k, _| k.start_with?("_")  }
+puts JSON.fast_generate(hash)
+Kernel.exit(0)
+```
+
+```go
+func main() {
+  arg := []byte(os.Args[1])
+
+  var parsed map[string]interface{}
+  if err := json.Unmarshal(arg, &parsed); err != nil {
+    fmt.Fprintln(os.Stderr, fmt.Sprintf("err: %s", err))
+    os.Exit(1)
+  }
+
+  for k, _ := range parsed {
+    if string(k[0]) == "_" {
+      delete(parsed, k)
+    }
+  }
+
+  result, err := json.Marshal(parsed)
+  if err != nil {
+    fmt.Fprintln(os.Stderr, fmt.Sprintf("err: %s", err))
+    os.Exit(1)
+  }
+
+  fmt.Fprintln(os.Stdout, fmt.Sprintf("%s", result))
+  os.Exit(0)
+}
+```
 
 Caveats
 -------
