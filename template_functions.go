@@ -474,6 +474,15 @@ func parseJSON(s string) (interface{}, error) {
 	return data, nil
 }
 
+// parseUint parses a string into a base 10 int
+func parseUint(s string) (uint64, error) {
+	result, err := strconv.ParseUint(s, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("parseUint: %s", err)
+	}
+	return result, nil
+}
+
 // replaceAll replaces all occurrences of a value in a string with the given
 // replacement value.
 func replaceAll(f, t, s string) (string, error) {

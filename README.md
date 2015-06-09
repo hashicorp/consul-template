@@ -609,6 +609,15 @@ Alternatively you can read data from a local JSON file:
 {{with $d := file "/path/to/local/data.json" | parseJSON}}{{$d.some_key}}{{end}}
 ```
 
+##### `parseUint`
+Takes the given string and parses it as a base-10 int64:
+
+```liquid
+{{"1" | parseUint}}
+```
+
+See `parseInt` for examples.
+
 ##### `regexMatch`
 Takes the argument as a regular expression and will return `true` if it matches on the given string, or `false` otherwise.
 

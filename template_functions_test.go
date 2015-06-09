@@ -1104,6 +1104,18 @@ func TestParseJSON_empty(t *testing.T) {
 	}
 }
 
+func TestParseUint(t *testing.T) {
+	result, err := parseUint("1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := uint64(1)
+	if result != expected {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+}
+
 func TestReplaceAll(t *testing.T) {
 	result, err := replaceAll("bar", "foo", "foobarzipbar")
 	if err != nil {

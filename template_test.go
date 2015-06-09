@@ -268,6 +268,7 @@ func TestExecute_renders(t *testing.T) {
 			{{$key}}={{$value}}{{ end }}
 		parseJSON (env):{{ range $key, $value := env "json" | parseJSON }}
 			{{$key}}={{$value}}{{ end }}
+		parseUint: {{"1" | parseUint}}
 		timestamp: {{ timestamp }}
 		timestamp (formatted): {{ timestamp "2006-01-02" }}
 		regexMatch: {{ file "/path/to/file"  | regexMatch ".*[cont][a-z]+" }}
@@ -500,6 +501,7 @@ func TestExecute_renders(t *testing.T) {
 			foo=bar
 		parseJSON (env):
 			foo=bar
+		parseUint: 1
 		timestamp: 1970-01-01T00:00:00Z
 		timestamp (formatted): 1970-01-01
 		regexMatch: true
