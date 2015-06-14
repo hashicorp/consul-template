@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -621,6 +622,26 @@ func TestAtomicWrite_retainsPermissions(t *testing.T) {
 	expected := os.FileMode(0644)
 	if stat.Mode() != expected {
 		t.Errorf("expected %q to be %q", stat.Mode(), expected)
+	}
+}
+
+func TestAtomicWrite_nonExistent(t *testing.T) {
+	// Create a temp dir
+	outDir, err := ioutil.TempDir(os.TempDir(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(outDir)
+
+	// Try atomicWrite to a file that doesn't exist yet
+	file := filepath.Join(outDir, "nope")
+	if err := atomicWrite(file, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	// File was created
+	if _, err := os.Stat(file); err != nil {
+		t.Fatal(err)
 	}
 }
 

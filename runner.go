@@ -793,7 +793,7 @@ func atomicWrite(path string, contents []byte) error {
 	// See: http://grokbase.com/t/gg/golang-nuts/13aab5f210/go-nuts-atomic-replacement-of-files-on-windows
 	// for more information.
 	if runtime.GOOS == "windows" {
-		if err := os.Remove(path); err != nil {
+		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 			return err
 		}
 	}
