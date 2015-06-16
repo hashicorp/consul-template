@@ -10,9 +10,9 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/marouenj/consul-template/logging"
-	"github.com/marouenj/consul-template/core"
-	"github.com/marouenj/consul-template/watch"
+	"github.com/hashicorp/consul-template/logging"
+	"github.com/hashicorp/consul-template/core"
+	"github.com/hashicorp/consul-template/watch"
 )
 
 // Exit codes are int values that represent an exit code for a particular error.

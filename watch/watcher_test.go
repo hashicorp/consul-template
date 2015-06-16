@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/marouenj/consul-template/test"
+	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul/api"
 )
 

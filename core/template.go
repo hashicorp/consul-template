@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"text/template"
 
-	dep "github.com/marouenj/consul-template/dependency"
+	dep "github.com/hashicorp/consul-template/dependency"
 )
 
 type Template struct {

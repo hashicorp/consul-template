@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/marouenj/consul-template/core"
+	"github.com/hashicorp/consul-template/core"
 )
 
 // configTemplateVar implements the Flag.Value interface and allows the user

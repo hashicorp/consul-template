@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/marouenj/consul-template/test"
+	"github.com/hashicorp/consul-template/test"
 )
 
 func TestStoreKeyFetch(t *testing.T) {

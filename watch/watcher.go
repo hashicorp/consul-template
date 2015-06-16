@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	dep "github.com/marouenj/consul-template/dependency"
+	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul/api"
 )
 

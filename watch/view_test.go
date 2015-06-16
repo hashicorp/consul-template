@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/marouenj/consul-template/test"
+	"github.com/hashicorp/consul-template/test"
 )
 
 // testRetryFunc is a function specifically for tests that has a 0-time retry.
