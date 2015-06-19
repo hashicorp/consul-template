@@ -41,6 +41,9 @@ func TestCatalogNodeFetch(t *testing.T) {
 	var s *NodeService
 
 	s = typed.Services[0]
+	if s.ID != "a" {
+		t.Errorf("expecting %q to be \"a\"", s.ID)
+	}
 	if s.Service != "a" {
 		t.Errorf("expecting %q to be \"a\"", s.Service)
 	}
@@ -58,6 +61,9 @@ func TestCatalogNodeFetch(t *testing.T) {
 	}
 
 	s = typed.Services[1]
+	if s.ID != "consul" {
+		t.Errorf("expecting %q to be \"consul\"", s.ID)
+	}
 	if s.Service != "consul" {
 		t.Errorf("expecting %q to be \"consul\"", s.Service)
 	}
@@ -69,6 +75,9 @@ func TestCatalogNodeFetch(t *testing.T) {
 	}
 
 	s = typed.Services[2]
+	if s.ID != "z" {
+		t.Errorf("expecting %q to be \"z\"", s.ID)
+	}
 	if s.Service != "z" {
 		t.Errorf("expecting %q to be \"z\"", s.Service)
 	}
@@ -137,6 +146,9 @@ func TestCatalogNodeFetch_nameArgument(t *testing.T) {
 	var s *NodeService
 
 	s = typed.Services[0]
+	if s.ID != "consul" {
+		t.Errorf("expecting %q to be \"consul\"", s.ID)
+	}
 	if s.Service != "consul" {
 		t.Errorf("expecting %q to be \"consul\"", s.Service)
 	}
