@@ -3,6 +3,7 @@ package dependency
 import (
 	"reflect"
 	"testing"
+	"sort"
 )
 
 func TestCatalogNodeFetch(t *testing.T) {
@@ -214,4 +215,40 @@ func TestParseCatalogNodeTwoArguments(t *testing.T) {
 	if !reflect.DeepEqual(nd, expected) {
 		t.Errorf("expected %+v to equal %+v", nd, expected)
 	}
+}
+
+func TestNodeServiceListSort(t *testing.T) {
+	services := make(NodeServiceList, 0, 2)
+	services = append(services, &NodeService{
+		ID:      "s-z",
+		Service: "s",
+		Tags:    make(ServiceTags, 0),
+		Port:    2000,
+	})
+	services = append(services, &NodeService{
+		ID:      "s-a",
+		Service: "s",
+		Tags:    make(ServiceTags, 0),
+		Port:    1000,
+	})
+	sort.Stable(services)
+
+	var s *NodeService
+
+	s = services[0]
+	if s.ID != "s-a" {
+		t.Errorf("expecting %q to be \"s-a\"", s.ID)
+	}
+	if s.Service != "s" {
+		t.Errorf("expecting %q to be \"s\"", s.Service)
+	}
+
+	s = services[1]
+	if s.ID != "s-z" {
+		t.Errorf("expecting %q to be \"s-z\"", s.ID)
+	}
+	if s.Service != "s" {
+		t.Errorf("expecting %q to be \"s\"", s.Service)
+	}
+
 }
