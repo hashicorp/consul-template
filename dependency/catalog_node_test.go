@@ -9,7 +9,7 @@ func TestCatalogNodeFetch(t *testing.T) {
 	clients, consul := testConsulServer(t)
 	defer consul.Stop()
 
-	// AddService does not let me specify a port.
+	// AddService does not let me specify an ID or a port.
 	consul.AddService("z", "passing", []string{"baz"})
 	consul.AddService("a", "critical", []string{"foo", "bar"})
 
