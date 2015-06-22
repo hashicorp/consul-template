@@ -154,5 +154,8 @@ type NodeServiceList []*NodeService
 func (s NodeServiceList) Len() int      { return len(s) }
 func (s NodeServiceList) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 func (s NodeServiceList) Less(i, j int) bool {
-	return s[i].ID <= s[j].ID
+	if s[i].Service == s[j].Service {
+		return s[i].ID <= s[j].ID
+	}
+	return s[i].Service <= s[j].Service
 }
