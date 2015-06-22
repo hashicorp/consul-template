@@ -220,6 +220,12 @@ func TestParseCatalogNodeTwoArguments(t *testing.T) {
 func TestNodeServiceListSort(t *testing.T) {
 	services := make(NodeServiceList, 0, 2)
 	services = append(services, &NodeService{
+		ID:      "s-m",
+		Service: "z",
+		Tags:    make(ServiceTags, 0),
+		Port:    3000,
+	})
+	services = append(services, &NodeService{
 		ID:      "s-z",
 		Service: "s",
 		Tags:    make(ServiceTags, 0),
@@ -251,4 +257,11 @@ func TestNodeServiceListSort(t *testing.T) {
 		t.Errorf("expecting %q to be \"s\"", s.Service)
 	}
 
+	s = services[2]
+	if s.ID != "s-m" {
+		t.Errorf("expecting %q to be \"s-m\"", s.ID)
+	}
+	if s.Service != "z" {
+		t.Errorf("expecting %q to be \"z\"", s.Service)
+	}
 }
