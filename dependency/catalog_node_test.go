@@ -2,8 +2,8 @@ package dependency
 
 import (
 	"reflect"
-	"testing"
 	"sort"
+	"testing"
 )
 
 func TestCatalogNodeFetch(t *testing.T) {

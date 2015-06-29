@@ -14,7 +14,7 @@ type NodeDetail struct {
 }
 
 type NodeService struct {
-	ID string
+	ID      string
 	Service string
 	Tags    ServiceTags
 	Port    int
