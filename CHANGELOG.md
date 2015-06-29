@@ -11,6 +11,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+  * Set ssl in the CLI (GH-321)
 
 ## v0.10.0 (June 9, 2015)
 
