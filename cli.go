@@ -198,24 +198,28 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 
 	flags.Var((funcBoolVar)(func(b bool) error {
 		config.SSL.Enabled = b
+		config.set("ssl")
 		config.set("ssl.enabled")
 		return nil
 	}), "ssl", "")
 
 	flags.Var((funcBoolVar)(func(b bool) error {
 		config.SSL.Verify = b
+		config.set("ssl")
 		config.set("ssl.verify")
 		return nil
 	}), "ssl-verify", "")
 
 	flags.Var((funcVar)(func(s string) error {
 		config.SSL.Cert = s
+		config.set("ssl")
 		config.set("ssl.cert")
 		return nil
 	}), "ssl-cert", "")
 
 	flags.Var((funcVar)(func(s string) error {
 		config.SSL.CaCert = s
+		config.set("ssl")
 		config.set("ssl.ca_cert")
 		return nil
 	}), "ssl-ca-cert", "")

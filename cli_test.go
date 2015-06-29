@@ -120,6 +120,9 @@ func TestParseFlags_SSL(t *testing.T) {
 	if config.SSL.Enabled != expected {
 		t.Errorf("expected %v to be %v", config.SSL.Enabled, expected)
 	}
+	if !config.WasSet("ssl") {
+		t.Errorf("expected ssl to be set")
+	}
 	if !config.WasSet("ssl.enabled") {
 		t.Errorf("expected ssl.enabled to be set")
 	}
@@ -137,6 +140,9 @@ func TestParseFlags_noSSL(t *testing.T) {
 	expected := false
 	if config.SSL.Enabled != expected {
 		t.Errorf("expected %v to be %v", config.SSL.Enabled, expected)
+	}
+	if !config.WasSet("ssl") {
+		t.Errorf("expected ssl to be set")
 	}
 	if !config.WasSet("ssl.enabled") {
 		t.Errorf("expected ssl.enabled to be set")
@@ -156,6 +162,9 @@ func TestParseFlags_SSLVerify(t *testing.T) {
 	if config.SSL.Verify != expected {
 		t.Errorf("expected %v to be %v", config.SSL.Verify, expected)
 	}
+	if !config.WasSet("ssl") {
+		t.Errorf("expected ssl to be set")
+	}
 	if !config.WasSet("ssl.verify") {
 		t.Errorf("expected ssl.verify to be set")
 	}
@@ -173,6 +182,9 @@ func TestParseFlags_noSSLVerify(t *testing.T) {
 	expected := false
 	if config.SSL.Verify != expected {
 		t.Errorf("expected %v to be %v", config.SSL.Verify, expected)
+	}
+	if !config.WasSet("ssl") {
+		t.Errorf("expected ssl to be set")
 	}
 	if !config.WasSet("ssl.verify") {
 		t.Errorf("expected ssl.verify to be set")
@@ -192,6 +204,9 @@ func TestParseFlags_SSLCert(t *testing.T) {
 	if config.SSL.Cert != expected {
 		t.Errorf("expected %v to be %v", config.SSL.Cert, expected)
 	}
+	if !config.WasSet("ssl") {
+		t.Errorf("expected ssl to be set")
+	}
 	if !config.WasSet("ssl.cert") {
 		t.Errorf("expected ssl.cert to be set")
 	}
@@ -209,6 +224,9 @@ func TestParseFlags_SSLCaCert(t *testing.T) {
 	expected := "/path/to/c2.pem"
 	if config.SSL.CaCert != expected {
 		t.Errorf("expected %v to be %v", config.SSL.CaCert, expected)
+	}
+	if !config.WasSet("ssl") {
+		t.Errorf("expected ssl to be set")
 	}
 	if !config.WasSet("ssl.ca_cert") {
 		t.Errorf("expected ssl.ca_cert to be set")
