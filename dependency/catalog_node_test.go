@@ -3,13 +3,14 @@ package dependency
 import (
 	"reflect"
 	"testing"
+	"sort"
 )
 
 func TestCatalogNodeFetch(t *testing.T) {
 	clients, consul := testConsulServer(t)
 	defer consul.Stop()
 
-	// AddService does not let me specify a port.
+	// AddService does not let me specify an ID or a port.
 	consul.AddService("z", "passing", []string{"baz"})
 	consul.AddService("a", "critical", []string{"foo", "bar"})
 
@@ -41,6 +42,9 @@ func TestCatalogNodeFetch(t *testing.T) {
 	var s *NodeService
 
 	s = typed.Services[0]
+	if s.ID != "a" {
+		t.Errorf("expecting %q to be \"a\"", s.ID)
+	}
 	if s.Service != "a" {
 		t.Errorf("expecting %q to be \"a\"", s.Service)
 	}
@@ -58,6 +62,9 @@ func TestCatalogNodeFetch(t *testing.T) {
 	}
 
 	s = typed.Services[1]
+	if s.ID != "consul" {
+		t.Errorf("expecting %q to be \"consul\"", s.ID)
+	}
 	if s.Service != "consul" {
 		t.Errorf("expecting %q to be \"consul\"", s.Service)
 	}
@@ -69,6 +76,9 @@ func TestCatalogNodeFetch(t *testing.T) {
 	}
 
 	s = typed.Services[2]
+	if s.ID != "z" {
+		t.Errorf("expecting %q to be \"z\"", s.ID)
+	}
 	if s.Service != "z" {
 		t.Errorf("expecting %q to be \"z\"", s.Service)
 	}
@@ -137,6 +147,9 @@ func TestCatalogNodeFetch_nameArgument(t *testing.T) {
 	var s *NodeService
 
 	s = typed.Services[0]
+	if s.ID != "consul" {
+		t.Errorf("expecting %q to be \"consul\"", s.ID)
+	}
 	if s.Service != "consul" {
 		t.Errorf("expecting %q to be \"consul\"", s.Service)
 	}
@@ -201,5 +214,54 @@ func TestParseCatalogNodeTwoArguments(t *testing.T) {
 	}
 	if !reflect.DeepEqual(nd, expected) {
 		t.Errorf("expected %+v to equal %+v", nd, expected)
+	}
+}
+
+func TestNodeServiceListSort(t *testing.T) {
+	services := make(NodeServiceList, 0, 2)
+	services = append(services, &NodeService{
+		ID:      "s-m",
+		Service: "z",
+		Tags:    make(ServiceTags, 0),
+		Port:    3000,
+	})
+	services = append(services, &NodeService{
+		ID:      "s-z",
+		Service: "s",
+		Tags:    make(ServiceTags, 0),
+		Port:    2000,
+	})
+	services = append(services, &NodeService{
+		ID:      "s-a",
+		Service: "s",
+		Tags:    make(ServiceTags, 0),
+		Port:    1000,
+	})
+	sort.Stable(services)
+
+	var s *NodeService
+
+	s = services[0]
+	if s.ID != "s-a" {
+		t.Errorf("expecting %q to be \"s-a\"", s.ID)
+	}
+	if s.Service != "s" {
+		t.Errorf("expecting %q to be \"s\"", s.Service)
+	}
+
+	s = services[1]
+	if s.ID != "s-z" {
+		t.Errorf("expecting %q to be \"s-z\"", s.ID)
+	}
+	if s.Service != "s" {
+		t.Errorf("expecting %q to be \"s\"", s.Service)
+	}
+
+	s = services[2]
+	if s.ID != "s-m" {
+		t.Errorf("expecting %q to be \"s-m\"", s.ID)
+	}
+	if s.Service != "z" {
+		t.Errorf("expecting %q to be \"z\"", s.Service)
 	}
 }

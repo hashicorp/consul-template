@@ -14,6 +14,7 @@ type NodeDetail struct {
 }
 
 type NodeService struct {
+	ID string
 	Service string
 	Tags    ServiceTags
 	Port    int
@@ -72,6 +73,7 @@ func (d *CatalogNode) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 	services := make(NodeServiceList, 0, len(n.Services))
 	for _, v := range n.Services {
 		services = append(services, &NodeService{
+			ID:      v.ID,
 			Service: v.Service,
 			Tags:    ServiceTags(deepCopyAndSortTags(v.Tags)),
 			Port:    v.Port,
@@ -152,5 +154,8 @@ type NodeServiceList []*NodeService
 func (s NodeServiceList) Len() int      { return len(s) }
 func (s NodeServiceList) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 func (s NodeServiceList) Less(i, j int) bool {
+	if s[i].Service == s[j].Service {
+		return s[i].ID <= s[j].ID
+	}
 	return s[i].Service <= s[j].Service
 }
