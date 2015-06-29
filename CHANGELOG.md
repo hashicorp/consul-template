@@ -3,10 +3,18 @@ Consul Template Changelog
 
 ## v0.10.0.dev (Unreleased)
 
+FEATURES:
+
+IMPROVEMENTS:
+
+  * Sort serivces by ID as well
+
+BUG FIXES:
+
 
 ## v0.10.0 (June 9, 2015)
 
-FEATURES
+FEATURES:
 
   * Add `plugin` and plugin ecosystem
   * Add `parseBool` function for parsing strings into booleans (GH-312)
