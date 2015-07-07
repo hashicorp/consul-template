@@ -12,6 +12,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * Set ssl in the CLI (GH-321)
+  * **Regression** - Reload configuration on SIGHUP (GH-332)
 
 ## v0.10.0 (June 9, 2015)
 
