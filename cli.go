@@ -26,7 +26,6 @@ const (
 
 	ExitCodeError = 10 + iota
 	ExitCodeInterrupt
-	ExitCodeLoggingError
 	ExitCodeParseFlagsError
 	ExitCodeRunnerError
 	ExitCodeConfigError
@@ -64,27 +63,10 @@ func (cli *CLI) Run(args []string) int {
 		return cli.handleError(err, ExitCodeParseFlagsError)
 	}
 
-	// If a path was given, load the config from file
-	if config.Path != "" {
-		newConfig, err := ConfigFromPath(config.Path)
-		if err != nil {
-			return cli.handleError(err, ExitCodeConfigError)
-		}
-
-		// Merge ensuring that the CLI options still take precedence
-		newConfig.Merge(config)
-		config = newConfig
-	}
-
-	// Setup the logging
-	if err := logging.Setup(&logging.Config{
-		Name:           Name,
-		Level:          config.LogLevel,
-		Syslog:         config.Syslog.Enabled,
-		SyslogFacility: config.Syslog.Facility,
-		Writer:         cli.errStream,
-	}); err != nil {
-		return cli.handleError(err, ExitCodeLoggingError)
+	// Setup the config and logging
+	config, err = cli.setup(config)
+	if err != nil {
+		return cli.handleError(err, ExitCodeConfigError)
 	}
 
 	// Print version information for debugging
@@ -130,6 +112,13 @@ func (cli *CLI) Run(args []string) int {
 			case syscall.SIGHUP:
 				fmt.Fprintf(cli.errStream, "Received HUP, reloading configuration...\n")
 				runner.Stop()
+
+				// Load the new configuration from disk
+				config, err = cli.setup(config)
+				if err != nil {
+					return cli.handleError(err, ExitCodeConfigError)
+				}
+
 				runner, err = NewRunner(config, dry, once)
 				if err != nil {
 					return cli.handleError(err, ExitCodeRunnerError)
@@ -314,6 +303,32 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 func (cli *CLI) handleError(err error, status int) int {
 	fmt.Fprintf(cli.errStream, "Consul Template returned errors:\n%s", err)
 	return status
+}
+
+func (cli *CLI) setup(config *Config) (*Config, error) {
+	if config.Path != "" {
+		newConfig, err := ConfigFromPath(config.Path)
+		if err != nil {
+			return nil, err
+		}
+
+		// Merge ensuring that the CLI options still take precedence
+		newConfig.Merge(config)
+		config = newConfig
+	}
+
+	// Setup the logging
+	if err := logging.Setup(&logging.Config{
+		Name:           Name,
+		Level:          config.LogLevel,
+		Syslog:         config.Syslog.Enabled,
+		SyslogFacility: config.Syslog.Facility,
+		Writer:         cli.errStream,
+	}); err != nil {
+		return nil, err
+	}
+
+	return config, nil
 }
 
 const usage = `
