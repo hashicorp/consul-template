@@ -411,7 +411,6 @@ If you omit the datacenter attribute on `tree`, the local Consul datacenter will
 ##### `vault`
 Query [Vault](https://vaultproject.io) for the secret data at the given path. If the path does not exist or if the configured vault token does not have permission to read the path, an error will be returned.  If the path exists, but the key does not exist, `<no value>` will be returned.
 
-
 ```liquid
 {{with vault "secret/passwords"}}{{.Data.password}}{{end}}
 ```
@@ -423,9 +422,10 @@ The following fields are available:
 - `Renewable` - if the secret is renewable
 - `Data` - the raw data - this is a `map[string]interface{}`, so it can be queried using Go's templating "dot notation"
 
-If the map key has dots "." in it, you may instead access the value like this:
-```
-{{ index .Data "my.key.with.dots" }}
+If the map key has dots "." in it, you need to access the value using the `index` function:
+
+```liquid
+{{index .Data "my.key.with.dots"}}
 ```
 
 Please always consider the security implications of having the contents of a secret in plain-text on disk. If an attacker is able to get access to the file, they will have access to plain-text secrets.
