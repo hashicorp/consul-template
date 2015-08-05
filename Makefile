@@ -6,11 +6,11 @@ DEPS = $(shell go list -f '{{range .TestImports}}{{.}} {{end}}' ./...)
 all: deps build
 
 deps:
-	go get -d -v ./...
+	go get -d -v -f ./...
 	echo $(DEPS) | xargs -n1 go get -d
 
 updatedeps:
-	go get -u -v ./...
+	go get -u -v -f ./...
 	echo $(DEPS) | xargs -n1 go get -d
 
 build: deps
