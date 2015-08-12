@@ -484,6 +484,31 @@ func parseUint(s string) (uint64, error) {
 	return result, nil
 }
 
+// Adds passed int64 together
+func addInt(ints ...int64) (int64, error) {
+	var sum int64 = 0
+	for _, i := range ints {
+		sum += i
+	}
+	return sum, nil
+}
+
+// Subtract passed int64
+func subInt(ints ...int64) (int64, error) {
+	numArgs := len(ints)
+	if numArgs == 0 {
+		return 0, fmt.Errorf("subInt: requires at least one argument")
+	} else if numArgs == 1 {
+		return -ints[0], nil
+	} else {
+		difference := ints[0]
+		for i := 1; i < numArgs; i++ {
+			difference -= ints[i]
+		}
+		return difference, nil
+	}
+}
+
 // plugin executes a subprocess as the given command string. It is assumed the
 // resulting command returns JSON which is then parsed and returned as the
 // value for use in the template.

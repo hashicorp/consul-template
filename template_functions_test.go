@@ -1080,6 +1080,56 @@ func TestParseInt(t *testing.T) {
 	}
 }
 
+func TestAddInt(t *testing.T) {
+	result, err := addInt(1,2,3)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := int64(6)
+	if result != expected {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+
+	result, err = addInt()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected = int64(0)
+	if result != expected {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+}
+
+func TestSubInt(t *testing.T) {
+	result, err := subInt()
+	if err == nil {
+		t.Errorf("expected error on passing zero arguments")
+	}
+
+	result, err = subInt(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := int64(-1)
+	if result != expected {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+
+
+	result, err = subInt(4,3,1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected = int64(0)
+	if result != expected {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+}
+
 func TestParseJSON(t *testing.T) {
 	result, err := parseJSON(`{"foo": "bar"}`)
 	if err != nil {
