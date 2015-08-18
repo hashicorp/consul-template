@@ -22,6 +22,7 @@ BUG FIXES:
   * **Regression** - Reload configuration on SIGHUP (GH-332)
   * Remove port option from `service` query and documentation - it was unused
     and legacy, but was causing issues and confusion [GH-333]
+  * Return the empty value when no parsable value is given [GH-353]
 
 ## v0.10.0 (June 9, 2015)
 
