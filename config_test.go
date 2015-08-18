@@ -74,17 +74,20 @@ func TestMerge_vault(t *testing.T) {
 		vault {
 			address = "1.1.1.1"
 			token = "1"
+			renew = true
 		}
 	`, t)
 	config.Merge(testConfig(`
 		vault {
 			address = "2.2.2.2"
+			renew = false
 		}
 	`, t))
 
 	expected := &VaultConfig{
 		Address: "2.2.2.2",
 		Token:   "1",
+		Renew:   false,
 		SSL: &SSLConfig{
 			Enabled: true,
 			Verify:  true,
@@ -126,8 +129,8 @@ func TestMerge_vaultSSL(t *testing.T) {
 		},
 	}
 
-	if !reflect.DeepEqual(config.Vault, expected) {
-		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config.Vault, expected)
+	if !reflect.DeepEqual(config.Vault.SSL, expected.SSL) {
+		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config.Vault.SSL, expected.SSL)
 	}
 }
 
@@ -300,6 +303,7 @@ func TestParseConfig_correctValues(t *testing.T) {
 		vault {
 			address = "vault.service.consul"
 			token = "efgh5678"
+			renew = true
 			ssl {
 				enabled = false
 			}
@@ -349,6 +353,7 @@ func TestParseConfig_correctValues(t *testing.T) {
 		Vault: &VaultConfig{
 			Address: "vault.service.consul",
 			Token:   "efgh5678",
+			Renew:   true,
 			SSL: &SSLConfig{
 				Enabled: false,
 				Verify:  true,
