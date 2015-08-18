@@ -500,7 +500,7 @@ func parseBool(s string) (bool, error) {
 // parseFloat parses a string into a base 10 float
 func parseFloat(s string) (float64, error) {
 	if s == "" {
-		return 0.0
+		return 0.0, nil
 	}
 
 	result, err := strconv.ParseFloat(s, 10)
@@ -513,7 +513,7 @@ func parseFloat(s string) (float64, error) {
 // parseInt parses a string into a base 10 int
 func parseInt(s string) (int64, error) {
 	if s == "" {
-		return 0
+		return 0, nil
 	}
 
 	result, err := strconv.ParseInt(s, 10, 64)
