@@ -127,5 +127,6 @@ func funcMap(brain *Brain, used, missing map[string]dep.Dependency) template.Fun
 		"add":      add,
 		"subtract": subtract,
 		"multiply": multiply,
+		"divide":   divide,
 	}
 }

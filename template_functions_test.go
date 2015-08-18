@@ -1575,3 +1575,59 @@ func TestMultiply_string_int(t *testing.T) {
 		t.Errorf("expected %q to be %q", err.Error(), expected)
 	}
 }
+
+func TestDivide_int_int(t *testing.T) {
+	result, err := divide(2, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != int64(1) {
+		t.Errorf("expected %s to be %s", result, int64(1))
+	}
+}
+
+func TestDivide_int_float(t *testing.T) {
+	result, err := divide(2, 2.0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != float64(1) {
+		t.Errorf("expected %s to be %s", result, float64(1))
+	}
+}
+
+func TestDivide_float_int(t *testing.T) {
+	result, err := divide(2.0, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != float64(1) {
+		t.Errorf("expected %s to be %s", result, float64(1))
+	}
+}
+
+func TestDivide_float_float(t *testing.T) {
+	result, err := divide(2.0, 2.0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != float64(1) {
+		t.Errorf("expected %s to be %s", result, float64(1))
+	}
+}
+
+func TestDivide_string_int(t *testing.T) {
+	_, err := divide("foo", 2)
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "divide: unknown type for \"foo\" (string)"
+	if err.Error() != expected {
+		t.Errorf("expected %q to be %q", err.Error(), expected)
+	}
+}
