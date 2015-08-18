@@ -251,9 +251,13 @@ func TestExecute_renders(t *testing.T) {
 		byTag (catalog services):{{ range $tag, $services := services | byTag }}
 			{{$tag}}:{{ range $services }}
 				{{.Name}}{{ end }}{{ end }}
+		contains:{{ range service "webapp" }}{{ if .Tags | contains "production" }}
+			{{.Node}}{{ end }}{{ end }}
 		env: {{ env "foo" }}
 		explode:{{ range $k, $v := tree "config/redis" | explode }}
 			{{$k}}{{$v}}{{ end }}
+		in:{{ range service "webapp" }}{{ if in .Tags "production" }}
+			{{.Node}}{{ end }}{{ end }}
 		loop:{{ range loop 3 }}
 			test{{ end }}
 		loop(i):{{ range $i := loop 5 8 }}
@@ -286,6 +290,13 @@ func TestExecute_renders(t *testing.T) {
 		toUpper: {{ file "/path/to/file" | toUpper }}
 		toYAML:
 {{ tree "config/redis" | explode | toYAML }}
+
+		Math Functions
+		--------------
+		add:{{ 2 | add 2 }}
+		subtract:{{ 2 | subtract 2 }}
+		multiply:{{ 2 | multiply 2 }}
+		divide:{{ 2 | divide 2 }}
 `), t)
 	defer test.DeleteTempfile(in, t)
 
@@ -479,11 +490,17 @@ func TestExecute_renders(t *testing.T) {
 				service2
 			release:
 				service2
+		contains:
+			node2
+			node3
 		env: bar
 		explode:
 			adminmap[port:1134]
 			maxconns5
 			minconns2
+		in:
+			node2
+			node3
 		loop:
 			test
 			test
@@ -531,6 +548,13 @@ admin:
   port: "1134"
 maxconns: "5"
 minconns: "2"
+
+		Math Functions
+		--------------
+		add:4
+		subtract:0
+		multiply:4
+		divide:1
 `)
 
 	if !bytes.Equal(result, expected) {

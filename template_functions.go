@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -358,6 +359,15 @@ func byTag(in interface{}) (map[string][]interface{}, error) {
 	return m, nil
 }
 
+// contains is a function that have reverse arguments of "in" and is designed to
+// be used as a pipe instead of a function:
+//
+// 		{{ l | contains "thing" }}
+//
+func contains(v, l interface{}) (bool, error) {
+	return in(l, v)
+}
+
 // env returns the value of the environment variable set
 func env(s string) (string, error) {
 	return os.Getenv(s), nil
@@ -388,6 +398,45 @@ func explodeHelper(m map[string]interface{}, k, v string) {
 			m[k] = v
 		}
 	}
+}
+
+// in seaches for a given value in a given interface.
+func in(l, v interface{}) (bool, error) {
+	lv := reflect.ValueOf(l)
+	vv := reflect.ValueOf(v)
+
+	switch lv.Kind() {
+	case reflect.Array, reflect.Slice:
+		for i := 0; i < lv.Len(); i++ {
+			lvv := lv.Index(i)
+			switch lvv.Kind() {
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				switch vv.Kind() {
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+					if vv.Int() == lvv.Int() {
+						return true, nil
+					}
+				}
+			case reflect.Float32, reflect.Float64:
+				switch vv.Kind() {
+				case reflect.Float32, reflect.Float64:
+					if vv.Float() == lvv.Float() {
+						return true, nil
+					}
+				}
+			case reflect.String:
+				if vv.Type() == lvv.Type() && vv.String() == lvv.String() {
+					return true, nil
+				}
+			}
+		}
+	case reflect.String:
+		if vv.Type() == lv.Type() && strings.Contains(lv.String(), vv.String()) {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 // loop accepts varying parameters and differs its behavior. If given one
@@ -625,6 +674,122 @@ func toYAML(m map[string]interface{}) (string, error) {
 		return "", fmt.Errorf("toYAML: %s", err)
 	}
 	return string(bytes.TrimSpace(result)), nil
+}
+
+// add returns the sum of a and b.
+func add(b, a interface{}) (interface{}, error) {
+	av := reflect.ValueOf(a)
+	bv := reflect.ValueOf(b)
+
+	switch av.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		switch bv.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return av.Int() + av.Int(), nil
+		case reflect.Float32, reflect.Float64:
+			return float64(av.Int()) + bv.Float(), nil
+		default:
+			return nil, fmt.Errorf("add: unknown type for %q (%T)", bv, b)
+		}
+	case reflect.Float32, reflect.Float64:
+		switch bv.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return av.Float() + float64(bv.Int()), nil
+		case reflect.Float32, reflect.Float64:
+			return av.Float() + bv.Float(), nil
+		default:
+			return nil, fmt.Errorf("add: unknown type for %q (%T)", bv, b)
+		}
+	default:
+		return nil, fmt.Errorf("add: unknown type for %q (%T)", av, a)
+	}
+}
+
+// subtract returns the difference of b from a.
+func subtract(b, a interface{}) (interface{}, error) {
+	av := reflect.ValueOf(a)
+	bv := reflect.ValueOf(b)
+
+	switch av.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		switch bv.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return av.Int() - av.Int(), nil
+		case reflect.Float32, reflect.Float64:
+			return float64(av.Int()) - bv.Float(), nil
+		default:
+			return nil, fmt.Errorf("subtract: unknown type for %q (%T)", bv, b)
+		}
+	case reflect.Float32, reflect.Float64:
+		switch bv.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return av.Float() - float64(bv.Int()), nil
+		case reflect.Float32, reflect.Float64:
+			return av.Float() - bv.Float(), nil
+		default:
+			return nil, fmt.Errorf("subtract: unknown type for %q (%T)", bv, b)
+		}
+	default:
+		return nil, fmt.Errorf("subtract: unknown type for %q (%T)", av, a)
+	}
+}
+
+// multiply returns the product of a and b.
+func multiply(b, a interface{}) (interface{}, error) {
+	av := reflect.ValueOf(a)
+	bv := reflect.ValueOf(b)
+
+	switch av.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		switch bv.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return av.Int() * av.Int(), nil
+		case reflect.Float32, reflect.Float64:
+			return float64(av.Int()) * bv.Float(), nil
+		default:
+			return nil, fmt.Errorf("multiply: unknown type for %q (%T)", bv, b)
+		}
+	case reflect.Float32, reflect.Float64:
+		switch bv.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return av.Float() * float64(bv.Int()), nil
+		case reflect.Float32, reflect.Float64:
+			return av.Float() * bv.Float(), nil
+		default:
+			return nil, fmt.Errorf("multiply: unknown type for %q (%T)", bv, b)
+		}
+	default:
+		return nil, fmt.Errorf("multiply: unknown type for %q (%T)", av, a)
+	}
+}
+
+// divide returns the division of b from a.
+func divide(b, a interface{}) (interface{}, error) {
+	av := reflect.ValueOf(a)
+	bv := reflect.ValueOf(b)
+
+	switch av.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		switch bv.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return av.Int() / av.Int(), nil
+		case reflect.Float32, reflect.Float64:
+			return float64(av.Int()) / bv.Float(), nil
+		default:
+			return nil, fmt.Errorf("divide: unknown type for %q (%T)", bv, b)
+		}
+	case reflect.Float32, reflect.Float64:
+		switch bv.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return av.Float() / float64(bv.Int()), nil
+		case reflect.Float32, reflect.Float64:
+			return av.Float() / bv.Float(), nil
+		default:
+			return nil, fmt.Errorf("divide: unknown type for %q (%T)", bv, b)
+		}
+	default:
+		return nil, fmt.Errorf("divide: unknown type for %q (%T)", av, a)
+	}
 }
 
 // addDependency adds the given Dependency to the map.

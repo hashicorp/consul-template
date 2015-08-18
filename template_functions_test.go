@@ -984,6 +984,72 @@ func TestExplode(t *testing.T) {
 	}
 }
 
+func TestIn_string(t *testing.T) {
+	list := []string{"a", "b", "c"}
+
+	result, err := in(list, "a")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != true {
+		t.Errorf("expected %#v to contain %s", list, "a")
+	}
+
+	result, err = in(list, "z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != false {
+		t.Errorf("expected %#v to not contain %s", list, "z")
+	}
+}
+
+func TestIn_int(t *testing.T) {
+	list := []int{1, 2, 3}
+
+	result, err := in(list, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != true {
+		t.Errorf("expected %#v to contain %s", list, "a")
+	}
+
+	result, err = in(list, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != false {
+		t.Errorf("expected %#v to not contain %s", list, "z")
+	}
+}
+
+func TestIn_float32(t *testing.T) {
+	list := []float32{1.0, 2.0, 3.0}
+
+	result, err := in(list, 1.0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != true {
+		t.Errorf("expected %#v to contain %s", list, "a")
+	}
+
+	result, err = in(list, 5.0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != false {
+		t.Errorf("expected %#v to not contain %s", list, "z")
+	}
+}
+
 func TestLoop_noArgs(t *testing.T) {
 	_, err := loop()
 	if err == nil {
@@ -1339,5 +1405,229 @@ func TestToUpper(t *testing.T) {
 	expected := "FOO"
 	if result != expected {
 		t.Errorf("expected %q to be %q", result, expected)
+	}
+}
+
+func TestAdd_int_int(t *testing.T) {
+	result, err := add(2, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != int64(4) {
+		t.Errorf("expected %d to be %d", result, int64(4))
+	}
+}
+
+func TestAdd_int_float(t *testing.T) {
+	result, err := add(2, 2.0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != float64(4) {
+		t.Errorf("expected %f to be %f", result, float64(4))
+	}
+}
+
+func TestAdd_float_int(t *testing.T) {
+	result, err := add(2.0, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != float64(4) {
+		t.Errorf("expected %f to be %f", result, float64(4))
+	}
+}
+
+func TestAdd_float_float(t *testing.T) {
+	result, err := add(2.0, 2.0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != float64(4) {
+		t.Errorf("expected %f to be %f", result, float64(4))
+	}
+}
+
+func TestAdd_string_int(t *testing.T) {
+	_, err := add("foo", 2)
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "add: unknown type for \"foo\" (string)"
+	if err.Error() != expected {
+		t.Errorf("expected %q to be %q", err.Error(), expected)
+	}
+}
+
+func TestSubtract_int_int(t *testing.T) {
+	result, err := subtract(2, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != int64(0) {
+		t.Errorf("expected %d to be %d", result, int64(0))
+	}
+}
+
+func TestSubtract_int_float(t *testing.T) {
+	result, err := subtract(2, 2.0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != float64(0) {
+		t.Errorf("expected %f to be %f", result, float64(0))
+	}
+}
+
+func TestSubtract_float_int(t *testing.T) {
+	result, err := subtract(2.0, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != float64(0) {
+		t.Errorf("expected %f to be %f", result, float64(0))
+	}
+}
+
+func TestSubtract_float_float(t *testing.T) {
+	result, err := subtract(2.0, 2.0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != float64(0) {
+		t.Errorf("expected %f to be %f", result, float64(0))
+	}
+}
+
+func TestSubtract_string_int(t *testing.T) {
+	_, err := subtract("foo", 2)
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "subtract: unknown type for \"foo\" (string)"
+	if err.Error() != expected {
+		t.Errorf("expected %q to be %q", err.Error(), expected)
+	}
+}
+
+func TestMultiply_int_int(t *testing.T) {
+	result, err := multiply(2, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != int64(4) {
+		t.Errorf("expected %d to be %d", result, int64(4))
+	}
+}
+
+func TestMultiply_int_float(t *testing.T) {
+	result, err := multiply(2, 2.0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != float64(4) {
+		t.Errorf("expected %f to be %f", result, float64(4))
+	}
+}
+
+func TestMultiply_float_int(t *testing.T) {
+	result, err := multiply(2.0, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != float64(4) {
+		t.Errorf("expected %f to be %f", result, float64(4))
+	}
+}
+
+func TestMultiply_float_float(t *testing.T) {
+	result, err := multiply(2.0, 2.0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != float64(4) {
+		t.Errorf("expected %f to be %f", result, float64(4))
+	}
+}
+
+func TestMultiply_string_int(t *testing.T) {
+	_, err := multiply("foo", 2)
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "multiply: unknown type for \"foo\" (string)"
+	if err.Error() != expected {
+		t.Errorf("expected %q to be %q", err.Error(), expected)
+	}
+}
+
+func TestDivide_int_int(t *testing.T) {
+	result, err := divide(2, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != int64(1) {
+		t.Errorf("expected %d to be %d", result, int64(1))
+	}
+}
+
+func TestDivide_int_float(t *testing.T) {
+	result, err := divide(2, 2.0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != float64(1) {
+		t.Errorf("expected %f to be %f", result, float64(1))
+	}
+}
+
+func TestDivide_float_int(t *testing.T) {
+	result, err := divide(2.0, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != float64(1) {
+		t.Errorf("expected %f to be %f", result, float64(1))
+	}
+}
+
+func TestDivide_float_float(t *testing.T) {
+	result, err := divide(2.0, 2.0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != float64(1) {
+		t.Errorf("expected %f to be %f", result, float64(1))
+	}
+}
+
+func TestDivide_string_int(t *testing.T) {
+	_, err := divide("foo", 2)
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "divide: unknown type for \"foo\" (string)"
+	if err.Error() != expected {
+		t.Errorf("expected %q to be %q", err.Error(), expected)
 	}
 }

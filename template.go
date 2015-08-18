@@ -99,8 +99,10 @@ func funcMap(brain *Brain, used, missing map[string]dep.Dependency) template.Fun
 		// Helper functions
 		"byKey":           byKey,
 		"byTag":           byTag,
+		"contains":        contains,
 		"env":             env,
 		"explode":         explode,
+		"in":              in,
 		"loop":            loop,
 		"join":            join,
 		"parseBool":       parseBool,
@@ -120,5 +122,11 @@ func funcMap(brain *Brain, used, missing map[string]dep.Dependency) template.Fun
 		"toUpper":         toUpper,
 		"toYAML":          toYAML,
 		"split":           split,
+
+		// Math functions
+		"add":      add,
+		"subtract": subtract,
+		"multiply": multiply,
+		"divide":   divide,
 	}
 }
