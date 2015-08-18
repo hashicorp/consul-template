@@ -1464,6 +1464,62 @@ func TestAdd_string_int(t *testing.T) {
 	}
 }
 
+func TestSubtract_int_int(t *testing.T) {
+	result, err := subtract(2, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != int64(0) {
+		t.Errorf("expected %s to be %s", result, int64(0))
+	}
+}
+
+func TestSubtract_int_float(t *testing.T) {
+	result, err := subtract(2, 2.0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != float64(0) {
+		t.Errorf("expected %s to be %s", result, float64(0))
+	}
+}
+
+func TestSubtract_float_int(t *testing.T) {
+	result, err := subtract(2.0, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != float64(0) {
+		t.Errorf("expected %s to be %s", result, float64(0))
+	}
+}
+
+func TestSubtract_float_float(t *testing.T) {
+	result, err := subtract(2.0, 2.0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != float64(0) {
+		t.Errorf("expected %s to be %s", result, float64(0))
+	}
+}
+
+func TestSubtract_string_int(t *testing.T) {
+	_, err := subtract("foo", 2)
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "subtract: unknown type for \"foo\" (string)"
+	if err.Error() != expected {
+		t.Errorf("expected %q to be %q", err.Error(), expected)
+	}
+}
+
 func TestMultiply_int_int(t *testing.T) {
 	result, err := multiply(2, 2)
 	if err != nil {

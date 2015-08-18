@@ -294,6 +294,7 @@ func TestExecute_renders(t *testing.T) {
 		Math Functions
 		--------------
 		add:{{ 2 | add 2 }}
+		subtract:{{ 2 | subtract 2 }}
 		multiply:{{ 2 | multiply 2 }}
 `), t)
 	defer test.DeleteTempfile(in, t)
@@ -550,6 +551,7 @@ minconns: "2"
 		Math Functions
 		--------------
 		add:4
+		subtract:0
 		multiply:4
 `)
 
