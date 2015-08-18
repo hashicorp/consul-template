@@ -486,6 +486,10 @@ func join(sep string, a []string) (string, error) {
 
 // parseBool parses a string into a boolean
 func parseBool(s string) (bool, error) {
+	if s == "" {
+		return false, nil
+	}
+
 	result, err := strconv.ParseBool(s)
 	if err != nil {
 		return false, fmt.Errorf("parseBool: %s", err)
@@ -495,6 +499,10 @@ func parseBool(s string) (bool, error) {
 
 // parseFloat parses a string into a base 10 float
 func parseFloat(s string) (float64, error) {
+	if s == "" {
+		return 0.0
+	}
+
 	result, err := strconv.ParseFloat(s, 10)
 	if err != nil {
 		return 0, fmt.Errorf("parseFloat: %s", err)
@@ -504,6 +512,10 @@ func parseFloat(s string) (float64, error) {
 
 // parseInt parses a string into a base 10 int
 func parseInt(s string) (int64, error) {
+	if s == "" {
+		return 0
+	}
+
 	result, err := strconv.ParseInt(s, 10, 64)
 	if err != nil {
 		return 0, fmt.Errorf("parseInt: %s", err)
