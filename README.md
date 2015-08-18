@@ -281,10 +281,10 @@ This will query Consul for all nodes in the east-aws datacenter.
 Query Consul for the service group(s) matching the given pattern. Services are queried using the following syntax:
 
 ```liquid
-{{service "release.web@east-aws:8000"}}
+{{service "release.web@east-aws"}}
 ```
 
-The example above is querying Consul for healthy "web" services, in the "east-aws" datacenter, using port "8000". The tag, datacenter and port attributes are optional. To query all nodes of the "web" service (regardless of tag and port) for the current datacenter:
+The example above is querying Consul for healthy "web" services, in the "east-aws" datacenter. The tag and datacenter attributes are optional. To query all nodes of the "web" service (regardless of tag) for the current datacenter:
 
 ```liquid
 {{service "web"}}

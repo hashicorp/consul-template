@@ -219,7 +219,6 @@ func TestParseHealthServices_nameTagDataCenterPort(t *testing.T) {
 		Name:         "webapp",
 		Tag:          "release",
 		DataCenter:   "nyc1",
-		Port:         8500,
 		StatusFilter: nil,
 	}
 
@@ -249,7 +248,6 @@ func TestParseHealthServices_nameAndPort(t *testing.T) {
 	expected := &HealthServices{
 		rawKey:       "webapp:8500",
 		Name:         "webapp",
-		Port:         8500,
 		StatusFilter: nil,
 	}
 

@@ -6,7 +6,6 @@ import (
 	"log"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/hashicorp/consul/api"
@@ -41,7 +40,6 @@ type HealthServices struct {
 	Name         string
 	Tag          string
 	DataCenter   string
-	Port         uint64
 	StatusFilter ServiceStatusFilter
 }
 
@@ -199,6 +197,11 @@ func ParseHealthServices(s ...string) (*HealthServices, error) {
 		return nil, errors.New("name part is required")
 	}
 
+	if port != "" {
+		log.Printf("[WARN] specifying a port in a 'service' query is not "+
+			"supported - please remove the port from the query %q", query)
+	}
+
 	var key string
 	if filter == nil {
 		key = query
@@ -212,15 +215,6 @@ func ParseHealthServices(s ...string) (*HealthServices, error) {
 		Tag:          tag,
 		DataCenter:   datacenter,
 		StatusFilter: filter,
-	}
-
-	if port != "" {
-		port, err := strconv.ParseUint(port, 0, 64)
-		if err != nil {
-			return nil, err
-		} else {
-			sd.Port = port
-		}
 	}
 
 	return sd, nil
