@@ -99,8 +99,10 @@ func funcMap(brain *Brain, used, missing map[string]dep.Dependency) template.Fun
 		// Helper functions
 		"byKey":           byKey,
 		"byTag":           byTag,
+		"contains":        contains,
 		"env":             env,
 		"explode":         explode,
+		"in":              in,
 		"loop":            loop,
 		"join":            join,
 		"parseBool":       parseBool,

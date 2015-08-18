@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -358,6 +359,15 @@ func byTag(in interface{}) (map[string][]interface{}, error) {
 	return m, nil
 }
 
+// contains is a function that have reverse arguments of "in" and is designed to
+// be used as a pipe instead of a function:
+//
+// 		{{ l | contains "thing" }}
+//
+func contains(v, l interface{}) (bool, error) {
+	return in(l, v)
+}
+
 // env returns the value of the environment variable set
 func env(s string) (string, error) {
 	return os.Getenv(s), nil
@@ -388,6 +398,45 @@ func explodeHelper(m map[string]interface{}, k, v string) {
 			m[k] = v
 		}
 	}
+}
+
+// in seaches for a given value in a given interface.
+func in(l, v interface{}) (bool, error) {
+	lv := reflect.ValueOf(l)
+	vv := reflect.ValueOf(v)
+
+	switch lv.Kind() {
+	case reflect.Array, reflect.Slice:
+		for i := 0; i < lv.Len(); i++ {
+			lvv := lv.Index(i)
+			switch lvv.Kind() {
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				switch vv.Kind() {
+				case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+					if vv.Int() == lvv.Int() {
+						return true, nil
+					}
+				}
+			case reflect.Float32, reflect.Float64:
+				switch vv.Kind() {
+				case reflect.Float32, reflect.Float64:
+					if vv.Float() == lvv.Float() {
+						return true, nil
+					}
+				}
+			case reflect.String:
+				if vv.Type() == lvv.Type() && vv.String() == lvv.String() {
+					return true, nil
+				}
+			}
+		}
+	case reflect.String:
+		if vv.Type() == lv.Type() && strings.Contains(lv.String(), vv.String()) {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 // loop accepts varying parameters and differs its behavior. If given one

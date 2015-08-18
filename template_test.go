@@ -251,9 +251,13 @@ func TestExecute_renders(t *testing.T) {
 		byTag (catalog services):{{ range $tag, $services := services | byTag }}
 			{{$tag}}:{{ range $services }}
 				{{.Name}}{{ end }}{{ end }}
+		contains:{{ range service "webapp" }}{{ if .Tags | contains "production" }}
+			{{.Node}}{{ end }}{{ end }}
 		env: {{ env "foo" }}
 		explode:{{ range $k, $v := tree "config/redis" | explode }}
 			{{$k}}{{$v}}{{ end }}
+		in:{{ range service "webapp" }}{{ if in .Tags "production" }}
+			{{.Node}}{{ end }}{{ end }}
 		loop:{{ range loop 3 }}
 			test{{ end }}
 		loop(i):{{ range $i := loop 5 8 }}
@@ -479,11 +483,17 @@ func TestExecute_renders(t *testing.T) {
 				service2
 			release:
 				service2
+		contains:
+			node2
+			node3
 		env: bar
 		explode:
 			adminmap[port:1134]
 			maxconns5
 			minconns2
+		in:
+			node2
+			node3
 		loop:
 			test
 			test

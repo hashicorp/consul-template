@@ -984,6 +984,72 @@ func TestExplode(t *testing.T) {
 	}
 }
 
+func TestIn_string(t *testing.T) {
+	list := []string{"a", "b", "c"}
+
+	result, err := in(list, "a")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != true {
+		t.Errorf("expected %#v to contain %s", list, "a")
+	}
+
+	result, err = in(list, "z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != false {
+		t.Errorf("expected %#v to not contain %s", list, "z")
+	}
+}
+
+func TestIn_int(t *testing.T) {
+	list := []int{1, 2, 3}
+
+	result, err := in(list, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != true {
+		t.Errorf("expected %#v to contain %s", list, "a")
+	}
+
+	result, err = in(list, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != false {
+		t.Errorf("expected %#v to not contain %s", list, "z")
+	}
+}
+
+func TestIn_float32(t *testing.T) {
+	list := []float32{1.0, 2.0, 3.0}
+
+	result, err := in(list, 1.0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != true {
+		t.Errorf("expected %#v to contain %s", list, "a")
+	}
+
+	result, err = in(list, 5.0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != false {
+		t.Errorf("expected %#v to not contain %s", list, "z")
+	}
+}
+
 func TestLoop_noArgs(t *testing.T) {
 	_, err := loop()
 	if err == nil {
