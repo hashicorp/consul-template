@@ -5,6 +5,13 @@ Consul Template Changelog
 
 FEATURES:
 
+  * Add `in` and `contains` functions for checking if a slice or array contains
+    a given value [GH-366]
+  * Add `add` function for calculating the sum of integers/floats
+  * Add `subtract` function for calculating the difference of integers/floats
+  * Add `multiply` function for calculating the product of integers/floats
+  * Add `divide` function for calculating the division of integers/floats
+
 IMPROVEMENTS:
 
   * Sort serivces by ID as well
@@ -13,6 +20,8 @@ BUG FIXES:
 
   * Set ssl in the CLI (GH-321)
   * **Regression** - Reload configuration on SIGHUP (GH-332)
+  * Remove port option from `service` query and documentation - it was unused
+    and legacy, but was causing issues and confusion [GH-333]
 
 ## v0.10.0 (June 9, 2015)
 
