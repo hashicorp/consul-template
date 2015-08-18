@@ -290,6 +290,11 @@ func TestExecute_renders(t *testing.T) {
 		toUpper: {{ file "/path/to/file" | toUpper }}
 		toYAML:
 {{ tree "config/redis" | explode | toYAML }}
+
+		Math Functions
+		--------------
+		add:{{ 2 | add 2 }}
+		multiply:{{ 2 | multiply 2 }}
 `), t)
 	defer test.DeleteTempfile(in, t)
 
@@ -541,6 +546,10 @@ admin:
   port: "1134"
 maxconns: "5"
 minconns: "2"
+
+		Math Functions
+		--------------
+		add:4
 `)
 
 	if !bytes.Equal(result, expected) {

@@ -676,6 +676,35 @@ func toYAML(m map[string]interface{}) (string, error) {
 	return string(bytes.TrimSpace(result)), nil
 }
 
+// add returns the sum of a and b.
+func add(b, a interface{}) (interface{}, error) {
+	av := reflect.ValueOf(a)
+	bv := reflect.ValueOf(b)
+
+	switch av.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		switch bv.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return av.Int() + av.Int(), nil
+		case reflect.Float32, reflect.Float64:
+			return float64(av.Int()) + bv.Float(), nil
+		default:
+			return nil, fmt.Errorf("add: unknown type for %q (%T)", bv, b)
+		}
+	case reflect.Float32, reflect.Float64:
+		switch bv.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			return av.Float() + float64(bv.Int()), nil
+		case reflect.Float32, reflect.Float64:
+			return av.Float() + bv.Float(), nil
+		default:
+			return nil, fmt.Errorf("add: unknown type for %q (%T)", bv, b)
+		}
+	default:
+		return nil, fmt.Errorf("add: unknown type for %q (%T)", av, a)
+	}
+}
+
 // addDependency adds the given Dependency to the map.
 func addDependency(m map[string]dep.Dependency, d dep.Dependency) {
 	if _, ok := m[d.HashCode()]; !ok {

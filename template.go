@@ -122,5 +122,8 @@ func funcMap(brain *Brain, used, missing map[string]dep.Dependency) template.Fun
 		"toUpper":         toUpper,
 		"toYAML":          toYAML,
 		"split":           split,
+
+		// Math functions
+		"add": add,
 	}
 }

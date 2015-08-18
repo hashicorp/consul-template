@@ -1407,3 +1407,59 @@ func TestToUpper(t *testing.T) {
 		t.Errorf("expected %q to be %q", result, expected)
 	}
 }
+
+func TestAdd_int_int(t *testing.T) {
+	result, err := add(2, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != int64(4) {
+		t.Errorf("expected %s to be %s", result, int64(4))
+	}
+}
+
+func TestAdd_int_float(t *testing.T) {
+	result, err := add(2, 2.0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != float64(4) {
+		t.Errorf("expected %s to be %s", result, float64(4))
+	}
+}
+
+func TestAdd_float_int(t *testing.T) {
+	result, err := add(2.0, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != float64(4) {
+		t.Errorf("expected %s to be %s", result, float64(4))
+	}
+}
+
+func TestAdd_float_float(t *testing.T) {
+	result, err := add(2.0, 2.0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != float64(4) {
+		t.Errorf("expected %s to be %s", result, float64(4))
+	}
+}
+
+func TestAdd_string_int(t *testing.T) {
+	_, err := add("foo", 2)
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "add: unknown type for \"foo\" (string)"
+	if err.Error() != expected {
+		t.Errorf("expected %q to be %q", err.Error(), expected)
+	}
+}
