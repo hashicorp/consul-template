@@ -482,6 +482,15 @@ Takes the list of services returned by the [`service`](#service) or [`services`]
 {{end}}{{end}}
 ```
 
+##### `contains`
+Determines if a needle is within an iterable element.
+
+```liquid
+{{ if .Tags | contains "production" }}
+# ...
+{{ end }}
+```
+
 ##### `env`
 Reads the given environment variable accessible to the current process.
 
@@ -494,21 +503,6 @@ This function can be chained to manipulate the output:
 ```liquid
 {{env "CLUSTER_ID" | toLower}}
 ```
-
-##### `plugin`
-Takes the name of a plugin and optional payload and executes a Consul Template plugin.
-
-```liquid
-{{plugin "my-plugin"}}
-```
-
-This is most commonly combined with a JSON filter for customization:
-
-```liquid
-{{tree "foo" | explode | toJSON | plugin "my-plugin"}}
-```
-
-Please see the [plugins](#plugins) section for more information about plugins.
 
 ##### `explode`
 Takes the result from a `tree` or `ls` call and converts it into a deeply-nested map for parsing/traversing.
@@ -527,6 +521,15 @@ You can also access deeply nested values:
 ```
 
 Note: You will need to have a reasonable format about your data in Consul. Please see Golang's text/template package for more information.
+
+##### `in`
+Determines if a needle is within an iterable element.
+
+```liquid
+{{ if in .Tags "production" }}
+# ...
+{{ end }}
+```
 
 ##### `loop`
 Accepts varying parameters and differs its behavior based on those parameters.
@@ -638,6 +641,21 @@ Takes the given string and parses it as a base-10 int64:
 ```
 
 See `parseInt` for examples.
+
+##### `plugin`
+Takes the name of a plugin and optional payload and executes a Consul Template plugin.
+
+```liquid
+{{plugin "my-plugin"}}
+```
+
+This is most commonly combined with a JSON filter for customization:
+
+```liquid
+{{tree "foo" | explode | toJSON | plugin "my-plugin"}}
+```
+
+Please see the [plugins](#plugins) section for more information about plugins.
 
 ##### `regexMatch`
 Takes the argument as a regular expression and will return `true` if it matches on the given string, or `false` otherwise.
@@ -763,6 +781,67 @@ minconns: 2
 
 Note: This functionality should be considered final. If you need to manipulate keys, combine values, or perform mutations, that should be done _outside_ of Consul. In order to keep the API scope limited, we likely will not accept Pull Requests that focus on customizing the `toYAML` functionality.
 
+- - -
+
+#### Math Functions
+
+The following functions are available on floats and integer values.
+
+##### `add`
+Returns the sum of the two values.
+
+```liquid
+{{ add 1 2 }} // 3
+```
+
+This can also be used with a pipe function.
+
+```liquid
+{{ 1 | add 2 }} // 3
+```
+
+##### `subtract`
+Returns the difference of the second value from the first.
+
+```liquid
+{{ subtract 2 5 }} // 3
+```
+
+This can also be used with a pipe function.
+
+```liquid
+{{ 5 | subtract 2 }}
+```
+
+Please take careful note of the order of arguments.
+
+##### `multiply`
+Returns the product of the two values.
+
+```liquid
+{{ multiply 2 2 }} // 4
+```
+
+This can also be used with a pipe function.
+
+```liquid
+{{ 2 | multiply 2 }} // 4
+```
+
+##### `divide`
+Returns the division of the second value from the first.
+
+```liquid
+{{ divide 2 10 }} // 5
+```
+
+This can also be used with a pipe function.
+
+```liquid
+{{ 10 | divide 2 }} // 5
+```
+
+Please take careful note of the order or arguments.
 
 Plugins
 -------
