@@ -550,6 +550,7 @@ minconns: "2"
 		Math Functions
 		--------------
 		add:4
+		multiply:4
 `)
 
 	if !bytes.Equal(result, expected) {

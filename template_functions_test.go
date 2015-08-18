@@ -1463,3 +1463,59 @@ func TestAdd_string_int(t *testing.T) {
 		t.Errorf("expected %q to be %q", err.Error(), expected)
 	}
 }
+
+func TestMultiply_int_int(t *testing.T) {
+	result, err := multiply(2, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != int64(4) {
+		t.Errorf("expected %s to be %s", result, int64(4))
+	}
+}
+
+func TestMultiply_int_float(t *testing.T) {
+	result, err := multiply(2, 2.0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != float64(4) {
+		t.Errorf("expected %s to be %s", result, float64(4))
+	}
+}
+
+func TestMultiply_float_int(t *testing.T) {
+	result, err := multiply(2.0, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != float64(4) {
+		t.Errorf("expected %s to be %s", result, float64(4))
+	}
+}
+
+func TestMultiply_float_float(t *testing.T) {
+	result, err := multiply(2.0, 2.0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != float64(4) {
+		t.Errorf("expected %s to be %s", result, float64(4))
+	}
+}
+
+func TestMultiply_string_int(t *testing.T) {
+	_, err := multiply("foo", 2)
+	if err == nil {
+		t.Fatal("expected error, but nothing was returned")
+	}
+
+	expected := "multiply: unknown type for \"foo\" (string)"
+	if err.Error() != expected {
+		t.Errorf("expected %q to be %q", err.Error(), expected)
+	}
+}
