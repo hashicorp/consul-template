@@ -1415,7 +1415,7 @@ func TestAdd_int_int(t *testing.T) {
 	}
 
 	if result != int64(4) {
-		t.Errorf("expected %s to be %s", result, int64(4))
+		t.Errorf("expected %d to be %d", result, int64(4))
 	}
 }
 
@@ -1426,7 +1426,7 @@ func TestAdd_int_float(t *testing.T) {
 	}
 
 	if result != float64(4) {
-		t.Errorf("expected %s to be %s", result, float64(4))
+		t.Errorf("expected %f to be %f", result, float64(4))
 	}
 }
 
@@ -1437,7 +1437,7 @@ func TestAdd_float_int(t *testing.T) {
 	}
 
 	if result != float64(4) {
-		t.Errorf("expected %s to be %s", result, float64(4))
+		t.Errorf("expected %f to be %f", result, float64(4))
 	}
 }
 
@@ -1448,7 +1448,7 @@ func TestAdd_float_float(t *testing.T) {
 	}
 
 	if result != float64(4) {
-		t.Errorf("expected %s to be %s", result, float64(4))
+		t.Errorf("expected %f to be %f", result, float64(4))
 	}
 }
 
@@ -1471,7 +1471,7 @@ func TestSubtract_int_int(t *testing.T) {
 	}
 
 	if result != int64(0) {
-		t.Errorf("expected %s to be %s", result, int64(0))
+		t.Errorf("expected %d to be %d", result, int64(0))
 	}
 }
 
@@ -1482,7 +1482,7 @@ func TestSubtract_int_float(t *testing.T) {
 	}
 
 	if result != float64(0) {
-		t.Errorf("expected %s to be %s", result, float64(0))
+		t.Errorf("expected %f to be %f", result, float64(0))
 	}
 }
 
@@ -1493,7 +1493,7 @@ func TestSubtract_float_int(t *testing.T) {
 	}
 
 	if result != float64(0) {
-		t.Errorf("expected %s to be %s", result, float64(0))
+		t.Errorf("expected %f to be %f", result, float64(0))
 	}
 }
 
@@ -1504,7 +1504,7 @@ func TestSubtract_float_float(t *testing.T) {
 	}
 
 	if result != float64(0) {
-		t.Errorf("expected %s to be %s", result, float64(0))
+		t.Errorf("expected %f to be %f", result, float64(0))
 	}
 }
 
@@ -1527,7 +1527,7 @@ func TestMultiply_int_int(t *testing.T) {
 	}
 
 	if result != int64(4) {
-		t.Errorf("expected %s to be %s", result, int64(4))
+		t.Errorf("expected %d to be %d", result, int64(4))
 	}
 }
 
@@ -1538,7 +1538,7 @@ func TestMultiply_int_float(t *testing.T) {
 	}
 
 	if result != float64(4) {
-		t.Errorf("expected %s to be %s", result, float64(4))
+		t.Errorf("expected %f to be %f", result, float64(4))
 	}
 }
 
@@ -1549,7 +1549,7 @@ func TestMultiply_float_int(t *testing.T) {
 	}
 
 	if result != float64(4) {
-		t.Errorf("expected %s to be %s", result, float64(4))
+		t.Errorf("expected %f to be %f", result, float64(4))
 	}
 }
 
@@ -1560,7 +1560,7 @@ func TestMultiply_float_float(t *testing.T) {
 	}
 
 	if result != float64(4) {
-		t.Errorf("expected %s to be %s", result, float64(4))
+		t.Errorf("expected %f to be %f", result, float64(4))
 	}
 }
 
@@ -1583,7 +1583,7 @@ func TestDivide_int_int(t *testing.T) {
 	}
 
 	if result != int64(1) {
-		t.Errorf("expected %s to be %s", result, int64(1))
+		t.Errorf("expected %d to be %d", result, int64(1))
 	}
 }
 
@@ -1594,7 +1594,7 @@ func TestDivide_int_float(t *testing.T) {
 	}
 
 	if result != float64(1) {
-		t.Errorf("expected %s to be %s", result, float64(1))
+		t.Errorf("expected %f to be %f", result, float64(1))
 	}
 }
 
@@ -1605,7 +1605,7 @@ func TestDivide_float_int(t *testing.T) {
 	}
 
 	if result != float64(1) {
-		t.Errorf("expected %s to be %s", result, float64(1))
+		t.Errorf("expected %f to be %f", result, float64(1))
 	}
 }
 
@@ -1616,7 +1616,7 @@ func TestDivide_float_float(t *testing.T) {
 	}
 
 	if result != float64(1) {
-		t.Errorf("expected %s to be %s", result, float64(1))
+		t.Errorf("expected %f to be %f", result, float64(1))
 	}
 }
 
