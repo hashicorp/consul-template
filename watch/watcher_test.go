@@ -79,6 +79,24 @@ func TestNewWatcher_values(t *testing.T) {
 	}
 }
 
+func TestNewWatcher_renewVault(t *testing.T) {
+	clients := dep.NewClientSet()
+
+	w, err := NewWatcher(&WatcherConfig{
+		Clients:    clients,
+		Once:       true,
+		RenewVault: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer w.Stop()
+
+	if !w.Watching(new(dep.VaultToken)) {
+		t.Errorf("expected watcher to be renewing vault token")
+	}
+}
+
 func TestAdd_updatesMap(t *testing.T) {
 	w, err := NewWatcher(defaultWatcherConfig)
 	if err != nil {
