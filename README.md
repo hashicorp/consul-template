@@ -124,6 +124,7 @@ pid_file = "/path/to/pid"
 vault {
   address = "https://vault.service.consul:8200"
   token = "abcd1234" // May also be specified via the envvar VAULT_TOKEN
+  renew = true
   ssl {
     enabled = true
     verify = true
