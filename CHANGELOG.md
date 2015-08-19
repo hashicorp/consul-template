@@ -15,6 +15,7 @@ FEATURES:
 IMPROVEMENTS:
 
   * Sort serivces by ID as well
+  * Add a mechanism for renewing the given Vault token [GH-359, GH-367]
 
 BUG FIXES:
 
