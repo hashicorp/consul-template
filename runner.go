@@ -975,6 +975,7 @@ func newWatcher(config *Config, clients *dep.ClientSet, once bool) (*watch.Watch
 		RetryFunc: func(current time.Duration) time.Duration {
 			return config.Retry
 		},
+		RenewVault: config.Vault.Renew,
 	})
 	if err != nil {
 		return nil, err
