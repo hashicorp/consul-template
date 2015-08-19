@@ -61,6 +61,10 @@ type WatcherConfig struct {
 	// RetryFunc is a RetryFunc that represents the way retrys and backoffs
 	// should occur.
 	RetryFunc RetryFunc
+
+	// RenewVault determines if the watcher should renew the Vault token as a
+	// background job.
+	RenewVault bool
 }
 
 // NewWatcher creates a new watcher using the given API client.
@@ -176,6 +180,13 @@ func (w *Watcher) init() error {
 
 	// Setup our map of dependencies to views
 	w.depViewMap = make(map[string]*View)
+
+	// Start a watcher for the Vault renew if that config was specified
+	if w.config.RenewVault {
+		if _, err := w.Add(new(dep.VaultToken)); err != nil {
+			return fmt.Errorf("watcher: %s", err)
+		}
+	}
 
 	return nil
 }

@@ -95,7 +95,7 @@ func (d *VaultSecret) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 	d.renewable = secret.Renewable
 	d.Unlock()
 
-	log.Printf("[DEBUG] (%s) Consul returned the secret", d.Display())
+	log.Printf("[DEBUG] (%s) vault returned the secret", d.Display())
 
 	ts := time.Now().Unix()
 	rm := &ResponseMetadata{

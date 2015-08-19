@@ -97,6 +97,9 @@ func (c *Config) Merge(config *Config) {
 		if config.WasSet("vault.token") {
 			c.Vault.Token = config.Vault.Token
 		}
+		if config.WasSet("vault.renew") {
+			c.Vault.Renew = config.Vault.Renew
+		}
 		if config.WasSet("vault.ssl") {
 			if c.Vault.SSL == nil {
 				c.Vault.SSL = &SSLConfig{}
@@ -420,6 +423,7 @@ func DefaultConfig() *Config {
 
 	config := &Config{
 		Vault: &VaultConfig{
+			Renew: true,
 			SSL: &SSLConfig{
 				Enabled: true,
 				Verify:  true,
@@ -518,6 +522,7 @@ type ConfigTemplate struct {
 type VaultConfig struct {
 	Address string `json:"address,omitempty" mapstructure:"address"`
 	Token   string `json:"-" mapstructure:"token"`
+	Renew   bool   `json:"renew" mapstructure:"renew"`
 
 	// SSL indicates we should use a secure connection while talking to Vault.
 	SSL *SSLConfig `json:"ssl" mapstructure:"ssl"`
