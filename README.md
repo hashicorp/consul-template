@@ -483,13 +483,13 @@ Takes the list of services returned by the [`service`](#service) or [`services`]
 {{end}}{{end}}
 ```
 
-##### `contains`
-Determines if a needle is within an iterable element.
+##### `.Tags.Contains`
+Determines if a needle is within an service's tags.
 
 ```liquid
-{{ if .Tags | contains "production" }}
+{{ range service "consul" }}{{ if .Tags.Contains "production" }}
 # ...
-{{ end }}
+{{ end }}{{ end }}
 ```
 
 ##### `env`
