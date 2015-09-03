@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"reflect"
 	"strings"
@@ -589,11 +590,30 @@ func TestReload_sighup(t *testing.T) {
 	out := test.CreateTempfile(nil, t)
 	defer test.DeleteTempfile(out, t)
 
-	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
-	cli := NewCLI(outStream, errStream)
+	_, outPipeWriter := io.Pipe()
+	errPipeReader, errPipeWriter := io.Pipe()
+	cli := NewCLI(outPipeWriter, errPipeWriter)
 
 	command := fmt.Sprintf("consul-template -template %s:%s", template.Name(), out.Name())
 	args := strings.Split(command, " ")
+
+	go func() {
+		buf := bytes.NewBuffer(nil)
+		for {
+			_, err := buf.ReadFrom(errPipeReader)
+			if err != nil {
+				if err == io.EOF {
+					errPipeReader.CloseWithError(io.EOF)
+					return
+				}
+				t.Fatalf("Error in error reader: %s", err)
+			}
+			if buf.Len() > 0 {
+				out.Write(buf.Bytes())
+			}
+			buf.Reset()
+		}
+	}()
 
 	go func(args []string) {
 		if exit := cli.Run(args); exit != 0 {
