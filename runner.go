@@ -272,9 +272,18 @@ func (r *Runner) Run() error {
 		// Attempt to render the template, returning any missing dependencies and
 		// the rendered contents. If there are any missing dependencies, the
 		// contents cannot be rendered or trusted!
-		used, missing, contents, err := tmpl.Execute(r.brain)
+		used, missing, contents, control, err := tmpl.Execute(r.brain)
 		if err != nil {
 			return err
+		}
+		if control != nil {
+			switch control.controlType {
+			case ControlTypeSkip:
+				log.Printf("[ERR] skipping template generation: %s", control.reason)
+				continue
+			default:
+				return fmt.Errorf("Invalid control type: %v", control.controlType)
+			}
 		}
 
 		// Add the dependency to the list of dependencies for this runner.
