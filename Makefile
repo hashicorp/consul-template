@@ -22,26 +22,20 @@ test:
 	go test $(TEST) -race
 	go vet $(TEST)
 
-xcompile: build test
-	@rm -rf build/
-	@mkdir -p build
+xcompile:
+	@rm -rf pkg/
+	@mkdir -p pkg
 	gox \
 		-os="darwin" \
-		-os="dragonfly" \
 		-os="freebsd" \
 		-os="linux" \
 		-os="netbsd" \
 		-os="openbsd" \
 		-os="solaris" \
 		-os="windows" \
-		-output="build/{{.Dir}}_$(VERSION)_{{.OS}}_{{.Arch}}/$(NAME)"
+		-output="pkg/{{.Dir}}_$(VERSION)_{{.OS}}_{{.Arch}}/$(NAME)"
 
 package: xcompile
-	$(eval FILES := $(shell ls build))
-	@mkdir -p build/tgz
-	for f in $(FILES); do \
-		(cd $(shell pwd)/build && tar -zcvf tgz/$$f.tar.gz $$f); \
-		echo $$f; \
-	done
+	./scripts/package.sh
 
 .PHONY: all deps updatedeps build test xcompile package

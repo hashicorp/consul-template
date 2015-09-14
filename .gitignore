@@ -25,4 +25,4 @@ _testmain.go
 *.conf
 
 bin/
-build/
+pkg/
