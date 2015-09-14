@@ -63,9 +63,10 @@ func (cli *CLI) Run(args []string) int {
 		return cli.handleError(err, ExitCodeParseFlagsError)
 	}
 
+	// Save original config (defaults + parsed flags) for handling reloads
+	base_config := config
+
 	// Setup the config and logging
-	// Save original config (defaults + parsed flags) for handling HUP
-	original_config := config
 	config, err = cli.setup(config)
 	if err != nil {
 		return cli.handleError(err, ExitCodeConfigError)
@@ -116,7 +117,7 @@ func (cli *CLI) Run(args []string) int {
 				runner.Stop()
 
 				// Load the new configuration from disk
-				config, err = cli.setup(original_config)
+				config, err = cli.setup(base_config)
 				if err != nil {
 					return cli.handleError(err, ExitCodeConfigError)
 				}
