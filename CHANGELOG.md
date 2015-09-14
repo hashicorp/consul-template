@@ -18,6 +18,7 @@ IMPROVEMENTS:
   * Add a mechanism for renewing the given Vault token [GH-359, GH-367]
   * Default max-stale to 1s - this severely reduces the load on the Consul
     leader by allowing followers to respond to API requests [GH-386, GH-397]
+  * Add GPG signing for SHASUMS on new releases
 
 BUG FIXES:
 
