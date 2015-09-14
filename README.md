@@ -35,7 +35,7 @@ Usage
 | ----------------- |------------ |
 | `auth`            | The basic authentication username (and optional password), separated by a colon. There is no default value.
 | `consul`*         | The location of the Consul instance to query (may be an IP address or FQDN) with port.
-| `max-stale`       | The maximum staleness of a query. If specified, Consul will distribute work among all servers instead of just the leader. The default value is 0 (none).
+| `max-stale`       | The maximum staleness of a query. If specified, Consul will distribute work among all servers instead of just the leader. The default value is 1s.
 | `ssl`             | Use HTTPS while talking to Consul. Requires the Consul server to be configured to serve secure connections. The default value is false.
 | `ssl-verify`      | Verify certificates when connecting via SSL. This requires the use of `-ssl`. The default value is true.
 | `ssl-cert`        | Path to an SSL client certificate to use to authenticate to the consul server. Useful if the consul server "verify_incoming" option is set.
