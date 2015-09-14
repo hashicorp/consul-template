@@ -442,6 +442,7 @@ func DefaultConfig() *Config {
 		},
 		ConfigTemplates: make([]*ConfigTemplate, 0),
 		Retry:           5 * time.Second,
+		MaxStale:        1 * time.Second,
 		Wait:            &watch.Wait{},
 		LogLevel:        logLevel,
 		setKeys:         make(map[string]struct{}),
