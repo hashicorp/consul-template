@@ -16,6 +16,8 @@ IMPROVEMENTS:
 
   * Sort serivces by ID as well
   * Add a mechanism for renewing the given Vault token [GH-359, GH-367]
+  * Default max-stale to 1s - this severely reduces the load on the Consul
+    leader by allowing followers to respond to API requests [GH-386, GH-397]
 
 BUG FIXES:
 
@@ -24,6 +26,7 @@ BUG FIXES:
   * Remove port option from `service` query and documentation - it was unused
     and legacy, but was causing issues and confusion [GH-333]
   * Return the empty value when no parsable value is given [GH-353]
+  * Start with a blank configuration when reloading via SIGHUP [GH-393, GH-394]
 
 ## v0.10.0 (June 9, 2015)
 
