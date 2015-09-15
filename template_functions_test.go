@@ -1084,8 +1084,8 @@ func TestLoop_twoArgs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := []int{3, 4, 5, 6}
-	actual := make([]int, 0, 4)
+	expected := []int64{3, 4, 5, 6}
+	actual := make([]int64, 0, 4)
 	for val := range result {
 		actual = append(actual, val)
 	}

@@ -455,8 +455,8 @@ func in(l, v interface{}) (bool, error) {
 // 			print(i)
 // 		}
 //
-func loop(ints ...int) (<-chan int, error) {
-	var start, stop int
+func loop(ints ...int64) (<-chan int64, error) {
+	var start, stop int64
 	switch len(ints) {
 	case 1:
 		start, stop = 0, ints[0]
@@ -467,7 +467,7 @@ func loop(ints ...int) (<-chan int, error) {
 			", but got %d", len(ints))
 	}
 
-	ch := make(chan int)
+	ch := make(chan int64)
 
 	go func() {
 		for i := start; i < stop; i++ {
