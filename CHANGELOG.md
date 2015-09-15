@@ -28,6 +28,7 @@ BUG FIXES:
     and legacy, but was causing issues and confusion [GH-333]
   * Return the empty value when no parsable value is given [GH-353]
   * Start with a blank configuration when reloading via SIGHUP [GH-393, GH-394]
+  * Use an int64 instead of an int to loop function [GH-401, GH-402]
 
 ## v0.10.0 (June 9, 2015)
 
