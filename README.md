@@ -969,7 +969,7 @@ During the first pass, Consul Template does not know any of the services in Cons
 Because of this implementation, template functions need a default value that is an acceptable parameter to a `range` function (or similar), but does not actually execute the inner loop (which would cause a panic). This is important to mention because complex templates **must** account for the "empty" case. For example, the following **will not work**:
 
 ```liquid
-{{with index (service "foo" 0)}}
+{{with index (service "foo") 0}}
 # ...
 {{end}}
 ```
@@ -984,7 +984,7 @@ That is because, during the _first_ evaluation of the template, the `service` ke
 
 ```liquid
 {{if service "foo"}}
-{{with index (service "foo" 0)}}
+{{with index (service "foo") 0}}
 {{.Node}}
 {{ end }}
 {{ end }}
