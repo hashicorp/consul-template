@@ -855,7 +855,7 @@ Consul Template plugins must have the following API:
 $ NAME [INPUT...]
 ```
 
-- `NAME` - the name of the plugin - this is also the name of the binary
+- `NAME` - the name of the plugin - this is also the name of the binary, either a full path or just the program name.  It will be executed in a shell with the inherited `PATH` so e.g. the plugin `cat` will run the first executable `cat` that is found on the `PATH`.
 - `INPUT` - input from the template - this wil always be JSON if provided
 
 #### Important Notes
