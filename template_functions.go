@@ -810,3 +810,18 @@ func addDependency(m map[string]dep.Dependency, d dep.Dependency) {
 		m[d.HashCode()] = d
 	}
 }
+
+// toMap converts ServiceTags into a map. It loops through the tags
+// and any tag that has an equal sign in it is indexed in the map.
+func toMap(entries dep.ServiceTags) (map[string]string, error) {
+	m := make(map[string]string)
+	for i := 0; i < len(entries); i++ {
+		if strings.Contains(entries[i], "=") {
+			item := strings.Split(entries[i], "=")
+			m[item[0]] = item[1]
+		}
+	}
+	return m, nil
+}
+
+
