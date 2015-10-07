@@ -266,6 +266,7 @@ func TestParseFlags_configTemplates(t *testing.T) {
 		Source:      "in.ctmpl",
 		Destination: "out.txt",
 		Command:     "some command",
+		Perms:       defaultFilePerms,
 	}
 	if !reflect.DeepEqual(config.ConfigTemplates[0], expected) {
 		t.Errorf("expected %q to be %q", config.ConfigTemplates[0], expected)

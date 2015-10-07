@@ -20,6 +20,10 @@ import (
 // The pattern to split the config template syntax on
 var configTemplateRe = regexp.MustCompile("([a-zA-Z]:)?([^:]+)")
 
+// defaultFilePerms are the default file permissions for templates rendered
+// onto disk when a specific file permission has not already been specified.
+const defaultFilePerms = 0644
+
 // Config is used to configure Consul Template
 type Config struct {
 	// Path is the path to this configuration file on disk. This value is not
@@ -186,6 +190,7 @@ func (c *Config) Merge(config *Config) {
 				Source:      template.Source,
 				Destination: template.Destination,
 				Command:     template.Command,
+				Perms:       template.Perms,
 			})
 		}
 	}
@@ -332,6 +337,13 @@ func ParseConfig(path string) (*Config, error) {
 
 	// Store a reference to the path where this config was read from
 	config.Path = path
+
+	// Ensure there's a default value for the template's file permissions
+	for _, t := range config.ConfigTemplates {
+		if t.Perms == 0000 {
+			t.Perms = defaultFilePerms
+		}
+	}
 
 	// Update the list of set keys
 	if config.setKeys == nil {
@@ -514,9 +526,10 @@ type SyslogConfig struct {
 // ConfigTemplate is the representation of an input template, output location,
 // and optional command to execute when rendered
 type ConfigTemplate struct {
-	Source      string `json:"source" mapstructure:"source"`
-	Destination string `json:"destination" mapstructure:"destination"`
-	Command     string `json:"command,omitempty" mapstructure:"command"`
+	Source      string      `json:"source" mapstructure:"source"`
+	Destination string      `json:"destination" mapstructure:"destination"`
+	Command     string      `json:"command,omitempty" mapstructure:"command"`
+	Perms       os.FileMode `json:"perms" mapstructure:"perms"`
 }
 
 // VaultConfig is the configuration for connecting to a vault server.
@@ -549,7 +562,12 @@ func ParseConfigTemplate(s string) (*ConfigTemplate, error) {
 		return nil, errors.New("invalid template declaration format")
 	}
 
-	return &ConfigTemplate{source, destination, command}, nil
+	return &ConfigTemplate{
+		Source:      source,
+		Destination: destination,
+		Command:     command,
+		Perms:       defaultFilePerms,
+	}, nil
 }
 
 // flattenKeys is a function that takes a map[string]interface{} and recursively
