@@ -786,18 +786,6 @@ func atomicWrite(path string, contents []byte) error {
 		return err
 	}
 
-	// Remove the file if we are running on Windows. There is a bug in Go on
-	// Windows such that Go uses MoveFile which raises an exception if the file
-	// already exists.
-	//
-	// See: http://grokbase.com/t/gg/golang-nuts/13aab5f210/go-nuts-atomic-replacement-of-files-on-windows
-	// for more information.
-	if runtime.GOOS == "windows" {
-		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-			return err
-		}
-	}
-
 	if err := os.Rename(f.Name(), path); err != nil {
 		return err
 	}
