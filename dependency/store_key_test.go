@@ -24,10 +24,49 @@ func TestStoreKeyFetch(t *testing.T) {
 	}
 }
 
+func TestStoreKeySetDefault(t *testing.T) {
+	dep, err := ParseStoreKey("conns")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dep.SetDefault("3")
+
+	if dep.defaultValue != "3" {
+		t.Errorf("expected %q to be %q", dep.defaultValue, "3")
+	}
+}
+
+func TestStoreKeyDisplay_includesDefault(t *testing.T) {
+	dep, err := ParseStoreKey("conns")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dep.SetDefault("3")
+	expected := `"key_or_default(conns, "3")"`
+	if dep.Display() != expected {
+		t.Errorf("expected %q to be %q", dep.Display(), expected)
+	}
+}
+
 func TestStoreKeyHashCode_isUnique(t *testing.T) {
-	dep1 := &StoreKey{rawKey: "config/redis/maxconns"}
-	dep2 := &StoreKey{rawKey: "config/redis/minconns"}
+	dep1, err := ParseStoreKey("config/redis/maxconns")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dep2, err := ParseStoreKey("config/redis/minconns")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dep3, err := ParseStoreKey("config/redis/minconns")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dep3.SetDefault("3")
+
 	if dep1.HashCode() == dep2.HashCode() {
+		t.Errorf("expected HashCode to be unique")
+	}
+	if dep2.HashCode() == dep3.HashCode() {
 		t.Errorf("expected HashCode to be unique")
 	}
 }

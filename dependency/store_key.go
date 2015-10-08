@@ -12,6 +12,9 @@ type StoreKey struct {
 	rawKey     string
 	Path       string
 	DataCenter string
+
+	defaultValue string
+	defaultGiven bool
 }
 
 // Fetch queries the Consul API defined by the given client and returns string
@@ -45,9 +48,15 @@ func (d *StoreKey) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *
 	}
 
 	if pair == nil {
-		log.Printf("[WARN] (%s) Consul returned no data (does the path exist?)",
-			d.Display())
-		return "", rm, nil
+		if d.defaultGiven {
+			log.Printf("[DEBUG] (%s) Consul returned no data (using default of %q)",
+				d.Display(), d.defaultValue)
+			return d.defaultValue, rm, nil
+		} else {
+			log.Printf("[WARN] (%s) Consul returned no data (does the path exist?)",
+				d.Display())
+			return "", rm, nil
+		}
 	}
 
 	log.Printf("[DEBUG] (%s) Consul returned %s", d.Display(), pair.Value)
@@ -55,11 +64,22 @@ func (d *StoreKey) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *
 	return string(pair.Value), rm, nil
 }
 
+func (d *StoreKey) SetDefault(s string) {
+	d.defaultGiven = true
+	d.defaultValue = s
+}
+
 func (d *StoreKey) HashCode() string {
+	if d.defaultGiven {
+		return fmt.Sprintf("StoreKey|%s|%s", d.rawKey, d.defaultValue)
+	}
 	return fmt.Sprintf("StoreKey|%s", d.rawKey)
 }
 
 func (d *StoreKey) Display() string {
+	if d.defaultGiven {
+		return fmt.Sprintf(`"key_or_default(%s, %q)"`, d.rawKey, d.defaultValue)
+	}
 	return fmt.Sprintf(`"key(%s)"`, d.rawKey)
 }
 
