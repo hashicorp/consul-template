@@ -101,6 +101,37 @@ func keyFunc(brain *Brain,
 	}
 }
 
+// keyWithDefaultFunc returns or accumulates key dependencies that have a
+// default value.
+func keyWithDefaultFunc(brain *Brain,
+	used, missing map[string]dep.Dependency) func(string, string) (string, error) {
+	return func(s, def string) (string, error) {
+		if len(s) == 0 {
+			return def, nil
+		}
+
+		d, err := dep.ParseStoreKey(s)
+		if err != nil {
+			return "", err
+		}
+		d.SetDefault(def)
+
+		addDependency(used, d)
+
+		if value, ok := brain.Recall(d); ok {
+			if value == nil {
+				return def, nil
+			} else {
+				return value.(string), nil
+			}
+		}
+
+		addDependency(missing, d)
+
+		return def, nil
+	}
+}
+
 // lsFunc returns or accumulates keyPrefix dependencies.
 func lsFunc(brain *Brain,
 	used, missing map[string]dep.Dependency) func(string) ([]*dep.KeyPair, error) {

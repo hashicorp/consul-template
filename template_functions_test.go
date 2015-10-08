@@ -246,6 +246,85 @@ func TestKeyFunc_missingData(t *testing.T) {
 	}
 }
 
+func TestKeyWithDefaultFunc_emptyString(t *testing.T) {
+	brain := NewBrain()
+	used := make(map[string]dep.Dependency)
+	missing := make(map[string]dep.Dependency)
+
+	f := keyWithDefaultFunc(brain, used, missing)
+	result, err := f("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != "" {
+		t.Errorf("expected %q to be %q", result, "")
+	}
+}
+
+func TestKeyWithDefaultFunc_hasData(t *testing.T) {
+	d, err := dep.ParseStoreKey("existing")
+	if err != nil {
+		t.Fatal(err)
+	}
+	d.SetDefault("default")
+
+	brain := NewBrain()
+	brain.Remember(d, "contents")
+
+	used := make(map[string]dep.Dependency)
+	missing := make(map[string]dep.Dependency)
+
+	f := keyWithDefaultFunc(brain, used, missing)
+	result, err := f("existing", "default")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != "contents" {
+		t.Errorf("expected %q to be %q", result, "contents")
+	}
+
+	if len(missing) != 0 {
+		t.Errorf("expected missing to have 0 elements, but had %d", len(missing))
+	}
+
+	if _, ok := used[d.HashCode()]; !ok {
+		t.Errorf("expected dep to be used")
+	}
+}
+
+func TestKeyWithDefaultFunc_missingData(t *testing.T) {
+	d, err := dep.ParseStoreKey("non-existing")
+	if err != nil {
+		t.Fatal(err)
+	}
+	d.SetDefault("default")
+
+	brain := NewBrain()
+
+	used := make(map[string]dep.Dependency)
+	missing := make(map[string]dep.Dependency)
+
+	f := keyWithDefaultFunc(brain, used, missing)
+	result, err := f("non-existing", "default")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != "default" {
+		t.Errorf("expected %q to be %q", result, "")
+	}
+
+	if _, ok := used[d.HashCode()]; !ok {
+		t.Errorf("expected dep to be used")
+	}
+
+	if _, ok := missing[d.HashCode()]; !ok {
+		t.Errorf("expected dep to be missing")
+	}
+}
+
 func TestLsFunc_emptyString(t *testing.T) {
 	brain := NewBrain()
 	used := make(map[string]dep.Dependency)

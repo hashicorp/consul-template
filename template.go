@@ -85,16 +85,17 @@ func (t *Template) init() error {
 func funcMap(brain *Brain, used, missing map[string]dep.Dependency) template.FuncMap {
 	return template.FuncMap{
 		// API functions
-		"datacenters": datacentersFunc(brain, used, missing),
-		"file":        fileFunc(brain, used, missing),
-		"key":         keyFunc(brain, used, missing),
-		"ls":          lsFunc(brain, used, missing),
-		"node":        nodeFunc(brain, used, missing),
-		"nodes":       nodesFunc(brain, used, missing),
-		"service":     serviceFunc(brain, used, missing),
-		"services":    servicesFunc(brain, used, missing),
-		"tree":        treeFunc(brain, used, missing),
-		"vault":       vaultFunc(brain, used, missing),
+		"datacenters":    datacentersFunc(brain, used, missing),
+		"file":           fileFunc(brain, used, missing),
+		"key":            keyFunc(brain, used, missing),
+		"key_or_default": keyWithDefaultFunc(brain, used, missing),
+		"ls":             lsFunc(brain, used, missing),
+		"node":           nodeFunc(brain, used, missing),
+		"nodes":          nodesFunc(brain, used, missing),
+		"service":        serviceFunc(brain, used, missing),
+		"services":       servicesFunc(brain, used, missing),
+		"tree":           treeFunc(brain, used, missing),
+		"vault":          vaultFunc(brain, used, missing),
 
 		// Helper functions
 		"byKey":           byKey,
