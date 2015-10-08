@@ -589,7 +589,7 @@ func TestAtomicWrite_parentFolderMissing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := atomicWrite(outFile.Name(), nil); err != nil {
+	if err := atomicWrite(outFile.Name(), nil, 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -610,7 +610,7 @@ func TestAtomicWrite_retainsPermissions(t *testing.T) {
 	}
 	os.Chmod(outFile.Name(), 0644)
 
-	if err := atomicWrite(outFile.Name(), nil); err != nil {
+	if err := atomicWrite(outFile.Name(), nil, 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -635,7 +635,7 @@ func TestAtomicWrite_nonExistent(t *testing.T) {
 
 	// Try atomicWrite to a file that doesn't exist yet
 	file := filepath.Join(outDir, "nope")
-	if err := atomicWrite(file, nil); err != nil {
+	if err := atomicWrite(file, nil, 0644); err != nil {
 		t.Fatal(err)
 	}
 

@@ -155,6 +155,7 @@ template {
   source = "/path/on/disk/to/template"
   destination = "/path/on/disk/where/template/will/render"
   command = "optional command to run when the template is updated"
+  perms = 0600
 }
 
 template {
@@ -926,22 +927,6 @@ $ consul-template \
 ```
 
 In this example, even if the Nginx restart command returns non-zero, the overall function will still return an OK exit code; Consul Template will continue to run as a service. Additionally, if you have complex logic for restarting your service, you can intelligently choose when you want Consul Template to exit and when you want it to continue to watch for changes. For these types of complex scripts, we recommend using a custom sh or bash script instead of putting the logic directly in the `consul-template` command or configuration file.
-
-### File Permissions
-Consul Template uses Go's file modification libraries under the hood. If a file at the destination path already exists, Consul Template will do its best to preserve the existing file permissions. For non-existent files, Go will default to the system default. If you require specific file permissions on the output file, you can use the optional `command` parameter and `chmod`, for example:
-
-```bash
-consul-template \
-  -template "/tmp/nginx.ctmpl:/var/nginx/nginx.conf:chmod 644 /var/nginx/nginx.conf && sudo restart nginx"
-```
-
-```javascript
-template {
-  source = "/tmp/nginx.ctmpl"
-  destination = "/var/nginx/nginx.conf"
-  command = "chmod 644 /var/nginx/nginx.conf && sudo restart nginx"
-}
-```
 
 ### Command Environment
 The current processes environment is used when executing commands with the following additional environment variables:

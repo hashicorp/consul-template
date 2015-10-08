@@ -319,7 +319,7 @@ func (r *Runner) Run() error {
 			log.Printf("[DEBUG] (runner) checking ctemplate %+v", ctemplate)
 
 			// Render the template, taking dry mode into account
-			wouldRender, didRender, err := r.render(contents, ctemplate.Destination)
+			wouldRender, didRender, err := r.render(contents, ctemplate.Destination, ctemplate.Perms)
 			if err != nil {
 				log.Printf("[DEBUG] (runner) error rendering %s", tmpl.Path)
 				return err
@@ -518,7 +518,7 @@ func (r *Runner) allTemplatesRendered() bool {
 // No template exists on disk: true, true, nil
 // Template exists, but contents are different: true, true, nil
 // Template exists, but contents are the same: true, false, nil
-func (r *Runner) render(contents []byte, dest string) (bool, bool, error) {
+func (r *Runner) render(contents []byte, dest string, perms os.FileMode) (bool, bool, error) {
 	existingContents, err := ioutil.ReadFile(dest)
 	if err != nil && !os.IsNotExist(err) {
 		return false, false, err
@@ -531,7 +531,7 @@ func (r *Runner) render(contents []byte, dest string) (bool, bool, error) {
 	if r.dry {
 		fmt.Fprintf(r.outStream, "> %s\n%s", dest, contents)
 	} else {
-		if err := atomicWrite(dest, contents); err != nil {
+		if err := atomicWrite(dest, contents, perms); err != nil {
 			return false, false, err
 		}
 	}
@@ -742,21 +742,7 @@ func (q *quiescence) tick() {
 //
 // If no errors occur, the Tempfile is "renamed" (moved) to the destination
 // path.
-func atomicWrite(path string, contents []byte) error {
-	var mode os.FileMode
-
-	// If the current file exists, get permissions so we can preserve them
-	stat, err := os.Stat(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			mode = 0644
-		} else {
-			return err
-		}
-	} else {
-		mode = stat.Mode()
-	}
-
+func atomicWrite(path string, contents []byte, perms os.FileMode) error {
 	parent := filepath.Dir(path)
 	if _, err := os.Stat(parent); os.IsNotExist(err) {
 		if err := os.MkdirAll(parent, 0755); err != nil {
@@ -782,7 +768,7 @@ func atomicWrite(path string, contents []byte) error {
 		return err
 	}
 
-	if err := os.Chmod(f.Name(), mode); err != nil {
+	if err := os.Chmod(f.Name(), perms); err != nil {
 		return err
 	}
 

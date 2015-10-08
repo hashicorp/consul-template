@@ -215,6 +215,7 @@ func TestMerge_configTemplates(t *testing.T) {
 			source = "1"
 			destination = "1"
 			command = "1"
+			perms = 0600
 		}
 	`, t)
 	config.Merge(testConfig(`
@@ -222,6 +223,7 @@ func TestMerge_configTemplates(t *testing.T) {
 			source = "2"
 			destination = "2"
 			command = "2"
+			perms = 0755
 		}
 	`, t))
 
@@ -230,16 +232,19 @@ func TestMerge_configTemplates(t *testing.T) {
 			Source:      "1",
 			Destination: "1",
 			Command:     "1",
+			Perms:       0600,
 		},
 		&ConfigTemplate{
 			Source:      "2",
 			Destination: "2",
 			Command:     "2",
+			Perms:       0755,
 		},
 	}
 
 	if !reflect.DeepEqual(config.ConfigTemplates, expected) {
-		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config.ConfigTemplates, expected)
+		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config.ConfigTemplates[0], expected[0])
+		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config.ConfigTemplates[1], expected[1])
 	}
 }
 
@@ -336,6 +341,7 @@ func TestParseConfig_correctValues(t *testing.T) {
 			source = "redis.conf.ctmpl"
 			destination  = "/etc/redis/redis.conf"
 			command = "service redis restart"
+			perms = 0755
 		}
   `), t)
 	defer test.DeleteTempfile(configFile, t)
@@ -387,11 +393,13 @@ func TestParseConfig_correctValues(t *testing.T) {
 			&ConfigTemplate{
 				Source:      "nginx.conf.ctmpl",
 				Destination: "/etc/nginx/nginx.conf",
+				Perms:       0644,
 			},
 			&ConfigTemplate{
 				Source:      "redis.conf.ctmpl",
 				Destination: "/etc/redis/redis.conf",
 				Command:     "service redis restart",
+				Perms:       0755,
 			},
 		},
 		setKeys: config.setKeys,
@@ -694,6 +702,7 @@ func TestParseConfigurationTemplate_windowsDrives(t *testing.T) {
 		Source:      `C:\abc\123`,
 		Destination: `D:\xyz\789`,
 		Command:     "some command",
+		Perms:       0644,
 	}
 
 	if !reflect.DeepEqual(ct, expected) {
