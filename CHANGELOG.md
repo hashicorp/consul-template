@@ -3,6 +3,23 @@ Consul Template Changelog
 
 ## v0.10.0.dev (Unreleased)
 
+BREAKING CHANGES:
+
+  * Allow configuration of destination file permissions [GH-415, GH-358]
+
+    Previously, Consul Template would inspect the file at the destination path
+    and mirror those file permissions, if a file existed. If a file did not
+    exist, Consul Template would render the file with 0644 permissions. This was
+    acceptable behavior in a pre-Vault world, but now that Consul Template is
+    capable of rendering secrets, there is a desire for increased security. As
+    such, Consul Template **no longer mirrors existing destination file
+    permissions**. Instead, users can specify the file permissions in the
+    configuration file. Please see the README for examples. If you were
+    previously relying on an existing file's file permissions to enfore the
+    destination file permissions, you must switch to specifying the file
+    permissions in the configuration file. If you were not dependent on this
+    behavior, nothing has changed; the default value is still 0644.
+
 FEATURES:
 
   * Add `in` and `contains` functions for checking if a slice or array contains
@@ -22,13 +39,14 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
-  * Set ssl in the CLI (GH-321)
-  * **Regression** - Reload configuration on SIGHUP (GH-332)
+  * Set ssl in the CLI [GH-321]
+  * **Regression** - Reload configuration on SIGHUP [GH-332]
   * Remove port option from `service` query and documentation - it was unused
     and legacy, but was causing issues and confusion [GH-333]
   * Return the empty value when no parsable value is given [GH-353]
   * Start with a blank configuration when reloading via SIGHUP [GH-393, GH-394]
   * Use an int64 instead of an int to loop function [GH-401, GH-402]
+  * Do not remove the Windows file if it exists [GH-378]
 
 ## v0.10.0 (June 9, 2015)
 
