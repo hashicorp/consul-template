@@ -116,6 +116,7 @@ func funcMap(brain *Brain, used, missing map[string]dep.Dependency) template.Fun
 		"replaceAll":      replaceAll,
 		"timestamp":       timestamp,
 		"toLower":         toLower,
+		"toMap":           toMap,
 		"toJSON":          toJSON,
 		"toJSONPretty":    toJSONPretty,
 		"toTitle":         toTitle,

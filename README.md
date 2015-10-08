@@ -750,6 +750,19 @@ Takes the argument as a string and converts it to lowercase.
 
 See Go's [strings.ToLower()](http://golang.org/pkg/strings/#ToLower) for more information.
 
+##### 'toMap'
+Takes the argument as a ServiceTags and converts any tag which are of the style `key=value` into a `map`.
+
+Given the following tags in a service entry: ``path=/test lbset=group1``
+
+```liquid
+{{range service "www"}}
+   {{$x := .Tags | toMap}}
+   ProxyPass {{$x.path}} http://{{$x.lbset}}{{$x.path}}
+   ProxyPassReverse {{$x.path}} http://{{$x.lbset}}{{$x.path}}
+{{end}}
+```
+
 ##### `toTitle`
 Takes the argument as a string and converts it to titlecase.
 
