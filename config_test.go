@@ -549,14 +549,22 @@ func TestConfigFromPath_EmptyDirectory(t *testing.T) {
 }
 
 func TestConfigFromPath_BadConfigs(t *testing.T) {
-	configFile := test.CreateTempfile([]byte(`
-		totally not a vaild config
-	`), t)
-	defer test.DeleteTempfile(configFile, t)
+	configDir, err := ioutil.TempDir("", "bad-configs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(configDir)
 
-	configDir := filepath.Dir(configFile.Name())
+	configPath := filepath.Join(configDir, "config")
+	err = ioutil.WriteFile(configPath, []byte(`
+		totally not a valid config
+	`), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(configPath)
 
-	_, err := ConfigFromPath(configDir)
+	_, err = ConfigFromPath(configDir)
 	if err == nil {
 		t.Fatalf("expected error, but nothing was returned")
 	}

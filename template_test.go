@@ -104,7 +104,7 @@ func TestExecute_missingDependencies(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(missing[0], expected) {
-		t.Errorf("expected %q to be %q", missing[0], expected)
+		t.Errorf("expected %v to be %v", missing[0], expected)
 	}
 
 	if num := len(used); num != 1 {
@@ -112,7 +112,7 @@ func TestExecute_missingDependencies(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(used[0], expected) {
-		t.Errorf("expected %q to be %q", used[0], expected)
+		t.Errorf("expected %v to be %v", used[0], expected)
 	}
 
 	expectedResult := []byte("")

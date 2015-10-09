@@ -18,33 +18,22 @@ dist: bin
 # test runs the test suite and vets the code
 test: generate
 	go test $(TEST) $(TESTARGS) -timeout=30s -parallel=4
-	@$(MAKE) vet
 
 # testrace runs the race checker
 testrace: generate
 	go test -race $(TEST) $(TESTARGS)
 
-# updatedeps instlals all the dependencies Consul Template needs to run and
+# updatedeps installs all the dependencies Consul Template needs to run and
 # build
 updatedeps:
 	go get -u github.com/mitchellh/gox
-	go list -f '{{range .TestImports}}{{.}} {{end}}' ./... \
+	go get -f -t -u ./...
+	go list ./... \
 		| xargs go list -f '{{join .Deps "\n"}}' \
 		| grep -v github.com/hashicorp/consul-template \
+		| grep -v '/internal/' \
 		| sort -u \
-		| xargs go get -f -u -v
-
-# vet runs Go's vetter and reports any common errors
-vet:
-	@go tool vet 2>/dev/null ; if [ $$? -eq 3 ]; then \
-		go get golang.org/x/tools/cmd/vet; \
-	fi
-	@echo "go tool vet $(VETARGS) ."
-	@go tool vet $(VETARGS) . ; if [ $$? -eq 1 ]; then \
-		echo ""; \
-		echo "Vet found suspicious constructs. Please check the reported constructs"; \
-		echo "and fix them if necessary before submitting the code for reviewal."; \
-	fi
+		| xargs go get -f -u
 
 # generate runs `go generate` to build the dynamically generated
 # source files.
