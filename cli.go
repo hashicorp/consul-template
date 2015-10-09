@@ -80,7 +80,7 @@ func (cli *CLI) Run(args []string) int {
 	// print their version on stderr anyway.
 	if version {
 		log.Printf("[DEBUG] (cli) version flag was given, exiting now")
-		fmt.Fprintf(cli.errStream, formattedVersion())
+		fmt.Fprintf(cli.errStream, "%s\n", formattedVersion())
 		return ExitCodeOK
 	}
 
