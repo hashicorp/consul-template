@@ -182,6 +182,10 @@ func (r *Runner) Start() {
 			//   errCh <- err
 			// }
 			log.Printf("[ERR] (runner) watcher reported error: %s", err)
+			if r.once {
+				r.ErrCh <- err
+				return
+			}
 		case tmpl := <-r.quiescenceCh:
 			// Remove the quiescence for this template from the map. This will force
 			// the upcoming Run call to actually evaluate and render the template.
