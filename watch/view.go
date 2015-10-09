@@ -70,7 +70,7 @@ func (v *View) poll(viewCh chan<- *View, errCh chan<- error) {
 			// have some successful requests
 			currentRetry = defaultRetry
 
-			log.Printf("[INFO] (view) %s received data from consul", v.display())
+			log.Printf("[INFO] (view) %s received data", v.display())
 			select {
 			case <-v.stopCh:
 			case viewCh <- v:
