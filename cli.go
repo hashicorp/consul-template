@@ -73,14 +73,14 @@ func (cli *CLI) Run(args []string) int {
 	}
 
 	// Print version information for debugging
-	log.Printf("[INFO] Consul Template v%s", Version)
+	log.Printf("[INFO] %s", formattedVersion())
 
 	// If the version was requested, return an "error" containing the version
 	// information. This might sound weird, but most *nix applications actually
 	// print their version on stderr anyway.
 	if version {
 		log.Printf("[DEBUG] (cli) version flag was given, exiting now")
-		fmt.Fprintf(cli.errStream, "%s v%s\n", Name, Version)
+		fmt.Fprintf(cli.errStream, formattedVersion())
 		return ExitCodeOK
 	}
 

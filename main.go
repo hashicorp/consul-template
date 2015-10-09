@@ -1,16 +1,37 @@
 package main // import "github.com/hashicorp/consul-template"
 
 import (
+	"bytes"
+	"fmt"
 	"os"
 )
 
-// Name is the exported name of this application.
-const Name = "consul-template"
+// The git commit that was compiled. This will be filled in by the compiler.
+var GitCommit string
 
-// Version is the current version of this application.
-const Version = "0.10.0"
+const (
+	Name              = "consul-template"
+	Version           = "0.10.0"
+	VersionPrerelease = "dev"
+)
 
 func main() {
 	cli := NewCLI(os.Stdout, os.Stderr)
 	os.Exit(cli.Run(os.Args))
+}
+
+// formattedVersion returns a formatted version string which includes the git
+// commit and development information.
+func formattedVersion() string {
+	var versionString bytes.Buffer
+	fmt.Fprintf(&versionString, "%s v%s", Name, Version)
+
+	if VersionPrerelease != "" {
+		fmt.Fprintf(&versionString, "-%s", VersionPrerelease)
+
+		if GitCommit != "" {
+			fmt.Fprintf(&versionString, " (%s)", GitCommit)
+		}
+	}
+	return versionString.String()
 }
