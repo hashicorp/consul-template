@@ -14,4 +14,4 @@ before_script: |-
   unzip consul.zip
   mv consul ~/bin/
 
-script: make deps test
+script: make updatedeps test testrace
