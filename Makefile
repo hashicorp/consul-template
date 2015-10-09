@@ -24,15 +24,17 @@ test: generate
 testrace: generate
 	go test -race $(TEST) $(TESTARGS)
 
-# updatedeps instlals all the dependencies Consul Template needs to run and
+# updatedeps installs all the dependencies Consul Template needs to run and
 # build
 updatedeps:
 	go get -u github.com/mitchellh/gox
-	go list -f '{{range .TestImports}}{{.}} {{end}}' ./... \
+	go get -f -t -u ./...
+	go list ./... \
 		| xargs go list -f '{{join .Deps "\n"}}' \
 		| grep -v github.com/hashicorp/consul-template \
+		| grep -v '/internal/' \
 		| sort -u \
-		| xargs go get -f -u -v
+		| xargs go get -f -u
 
 # vet runs Go's vetter and reports any common errors
 vet:
