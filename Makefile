@@ -1,5 +1,6 @@
 TEST?=./...
-VERSION = $(shell awk -F\" '/^const Version/ { print $$2 }' main.go)
+NAME = $(shell awk -F\" '/^const Name/ { print $$2; exit }' main.go)
+VERSION = $(shell awk -F\" '/^const Version/ { print $$2; exit }' main.go)
 
 default: test
 
@@ -13,7 +14,7 @@ dev: generate
 
 # dist creates the binaries for distibution
 dist: bin
-	./scripts/dist.sh $(VERSION)
+	@sh -c "'$(CURDIR)/scripts/dist.sh' $(VERSION)"
 
 # test runs the test suite and vets the code
 test: generate
