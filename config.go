@@ -264,64 +264,17 @@ func ParseConfig(path string) (*Config, error) {
 	}
 	flattenKeys(parsed, []string{"auth", "ssl", "syslog", "vault"})
 
-	//
-	if raw, ok := parsed["max_stale"]; ok {
-		if typed, ok := raw.(string); !ok {
-			err = fmt.Errorf("error converting max_stale to string at %q", path)
-			errs = multierror.Append(errs, err)
-			delete(parsed, "max_stale")
-		} else {
-			if stale, err := time.ParseDuration(typed); err != nil {
-				err = fmt.Errorf("error parsing max_stale at %q: %s", path, err)
-				errs = multierror.Append(errs, err)
-				delete(parsed, "max_stale")
-			} else {
-				parsed["max_stale"] = stale
-			}
-		}
-	}
-
-	if raw, ok := parsed["retry"]; ok {
-		if typed, ok := raw.(string); !ok {
-			err = fmt.Errorf("error converting retry to string at %q", path)
-			errs = multierror.Append(errs, err)
-			delete(parsed, "retry")
-		} else {
-			if stale, err := time.ParseDuration(typed); err != nil {
-				err = fmt.Errorf("error parsing retry at %q: %s", path, err)
-				errs = multierror.Append(errs, err)
-				delete(parsed, "retry")
-			} else {
-				parsed["retry"] = stale
-			}
-		}
-	}
-
-	if raw, ok := parsed["wait"]; ok {
-		if typed, ok := raw.(string); !ok {
-			err = fmt.Errorf("error converting wait to string at %q", path)
-			errs = multierror.Append(errs, err)
-			delete(parsed, "wait")
-		} else {
-			if wait, err := watch.ParseWait(typed); err != nil {
-				err = fmt.Errorf("error parsing wait at %q: %s", path, err)
-				errs = multierror.Append(errs, err)
-				delete(parsed, "wait")
-			} else {
-				parsed["wait"] = map[string]time.Duration{
-					"min": wait.Min,
-					"max": wait.Max,
-				}
-			}
-		}
-	}
-
 	// Create a new, empty config
 	config := new(Config)
 
 	// Use mapstructure to populate the basic config fields
 	metadata := new(mapstructure.Metadata)
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			watch.StringToWaitDurationHookFunc(),
+			mapstructure.StringToSliceHookFunc(","),
+			mapstructure.StringToTimeDurationHookFunc(),
+		),
 		ErrorUnused: true,
 		Metadata:    metadata,
 		Result:      config,
