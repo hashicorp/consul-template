@@ -36,6 +36,7 @@ IMPROVEMENTS:
   * Default max-stale to 1s - this severely reduces the load on the Consul
     leader by allowing followers to respond to API requests [GH-386, GH-397]
   * Add GPG signing for SHASUMS on new releases
+  * Push watcher errors down to the client in `once` mode [GH-361, GH-418]
 
 BUG FIXES:
 
