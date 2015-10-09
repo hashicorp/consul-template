@@ -18,7 +18,6 @@ dist: bin
 # test runs the test suite and vets the code
 test: generate
 	go test $(TEST) $(TESTARGS) -timeout=30s -parallel=4
-	@$(MAKE) vet
 
 # testrace runs the race checker
 testrace: generate
@@ -35,18 +34,6 @@ updatedeps:
 		| grep -v '/internal/' \
 		| sort -u \
 		| xargs go get -f -u
-
-# vet runs Go's vetter and reports any common errors
-vet:
-	@go tool vet 2>/dev/null ; if [ $$? -eq 3 ]; then \
-		go get golang.org/x/tools/cmd/vet; \
-	fi
-	@echo "go tool vet $(VETARGS) ."
-	@go tool vet $(VETARGS) . ; if [ $$? -eq 1 ]; then \
-		echo ""; \
-		echo "Vet found suspicious constructs. Please check the reported constructs"; \
-		echo "and fix them if necessary before submitting the code for reviewal."; \
-	fi
 
 # generate runs `go generate` to build the dynamically generated
 # source files.
