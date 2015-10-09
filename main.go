@@ -11,7 +11,7 @@ var GitCommit string
 
 const Name = "consul-template"
 const Version = "0.11.0"
-const VersionPrerelease = ""
+const VersionPrerelease = "dev"
 
 func main() {
 	cli := NewCLI(os.Stdout, os.Stderr)
