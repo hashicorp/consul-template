@@ -28,7 +28,7 @@ testrace: generate
 # build
 updatedeps:
 	go get -u github.com/mitchellh/gox
-	go list ./... \
+	go list -f '{{range .TestImports}}{{.}} {{end}}' ./... \
 		| xargs go list -f '{{join .Deps "\n"}}' \
 		| grep -v github.com/hashicorp/consul-template \
 		| sort -u \
