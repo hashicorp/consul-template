@@ -716,13 +716,20 @@ Returns the current timestamp as a string (UTC). If no arguments are given, the 
 {{timestamp}} // e.g. 1970-01-01T00:00:00Z
 ```
 
-If the optional parameter is given, it is used to format the timestamp using the magic reference date **Mon Jan 2 15:04:05 -0700 MST 2006**:
+If the optional parameter is given, it is used to format the timestamp. The magic reference date **Mon Jan 2 15:04:05 -0700 MST 2006** can be used to format the date as required:
 
 ```liquid
 {{timestamp "2006-01-02"}} // e.g. 1970-01-01
 ```
 
 See Go's [time.Format()](http://golang.org/pkg/time/#Time.Format) for more information.
+
+As a special case, if the optional parameter is `"unix"`, the unix timestamp in seconds is returned as a string.
+
+```liquid
+{{timestamp "unix"}} // e.g. 0
+```
+
 
 ##### `toJSON`
 Takes the result from a `tree` or `ls` call and converts it into a JSON object.

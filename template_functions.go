@@ -669,7 +669,11 @@ func timestamp(s ...string) (string, error) {
 	case 0:
 		return now().Format(time.RFC3339), nil
 	case 1:
-		return now().Format(s[0]), nil
+		if s[0] == "unix" {
+			return strconv.FormatInt(now().Unix(), 10), nil
+		} else {
+			return now().Format(s[0]), nil
+		}
 	default:
 		return "", fmt.Errorf("timestamp: wrong number of arguments, expected 0 or 1"+
 			", but got %d", len(s))
