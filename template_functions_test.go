@@ -1439,6 +1439,20 @@ func TestTimestamp_format(t *testing.T) {
 	}
 }
 
+func TestTimestamp_formatUnix(t *testing.T) {
+	now = func() time.Time { return time.Unix(0, 0).UTC() }
+
+	result, err := timestamp("unix")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "0"
+	if result != expected {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+}
+
 func TestTimestamp_tooManyArgs(t *testing.T) {
 	_, err := timestamp("a", "b")
 	if err == nil {
