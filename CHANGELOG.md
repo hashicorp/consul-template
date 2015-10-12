@@ -9,6 +9,8 @@ IMPROVEMENTS:
 
   * Accept "unix" as an argument to `timestamp` to generate a unix
     timestamp [GH-422]
+  * Make `Path` a public field on the vault secret dependency so other libraries
+    can access it
 
 BUG FIXES:
 
