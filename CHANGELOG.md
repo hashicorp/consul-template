@@ -7,6 +7,9 @@ FEATURES:
 
 IMPROVEMENTS:
 
+  * Accept "unix" as an argument to `timestamp` to generate a unix
+    timestamp [GH-422]
+
 BUG FIXES:
 
   * Ensure there is a newline at the end of the version output
