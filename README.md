@@ -1227,18 +1227,26 @@ A: Configuration management tools are designed to be used in unison with Consul 
 
 Contributing
 ------------
-To hack on Consul Template, you will need a modern [Go][] environment. To compile the `consul-template` binary and run the test suite, simply execute:
+To hack on Consul Template, you will need a modern [Go][] environment.
+
+First, download/update all the dependencies:
 
 ```shell
-$ make
+$ make updatedeps
 ```
 
-This will compile the `consul-template` binary into `bin/consul-template` and run the test suite.
+To compile the `consul-template` binary and run the test suite:
+
+```shell
+$ make dev
+```
+
+This will compile the `consul-template` binary into `bin/consul-template` as well as your `$GOPATH` and run the test suite.
 
 If you just want to run the tests:
 
 ```shell
-$ make
+$ make test
 ```
 
 Or to run a specific test in the suite:
