@@ -13,6 +13,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * Ensure there is a newline at the end of the version output
+  * Update README development instructions [GH-423]
 
 
 ## v0.11.0 (October 9, 2015)
