@@ -24,7 +24,7 @@ type Secret struct {
 type VaultSecret struct {
 	sync.Mutex
 
-	secretPath    string
+	Path          string
 	leaseID       string
 	leaseDuration int
 	renewable     bool
@@ -64,7 +64,7 @@ func (d *VaultSecret) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 
 	// If we did not renew, attempt a fresh read
 	if vaultSecret == nil {
-		vaultSecret, err = vault.Logical().Read(d.secretPath)
+		vaultSecret, err = vault.Logical().Read(d.Path)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error reading from vault: %s", err)
 		}
@@ -108,16 +108,16 @@ func (d *VaultSecret) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 
 // HashCode returns the hash code for this dependency.
 func (d *VaultSecret) HashCode() string {
-	return fmt.Sprintf("VaultSecret|%s", d.secretPath)
+	return fmt.Sprintf("VaultSecret|%s", d.Path)
 }
 
 // Display returns a string that should be displayed to the user in output (for
 // example).
 func (d *VaultSecret) Display() string {
-	return fmt.Sprintf(`"vault(%s)"`, d.secretPath)
+	return fmt.Sprintf(`"vault(%s)"`, d.Path)
 }
 
 // ParseVaultSecret creates a new datacenter dependency.
 func ParseVaultSecret(s string) (*VaultSecret, error) {
-	return &VaultSecret{secretPath: s}, nil
+	return &VaultSecret{Path: s}, nil
 }
