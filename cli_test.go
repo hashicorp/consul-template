@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"reflect"
 	"strings"
@@ -14,6 +12,7 @@ import (
 	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul-template/watch"
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/go-gatedio"
 )
 
 func TestParseFlags_consul(t *testing.T) {
@@ -496,7 +495,7 @@ func TestParseFlags_badArgs(t *testing.T) {
 }
 
 func TestRun_printsErrors(t *testing.T) {
-	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
+	outStream, errStream := gatedio.NewByteBuffer(), gatedio.NewByteBuffer()
 	cli := NewCLI(outStream, errStream)
 	args := strings.Split("consul-template -bacon delicious", " ")
 
@@ -512,7 +511,7 @@ func TestRun_printsErrors(t *testing.T) {
 }
 
 func TestRun_versionFlag(t *testing.T) {
-	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
+	outStream, errStream := gatedio.NewByteBuffer(), gatedio.NewByteBuffer()
 	cli := NewCLI(outStream, errStream)
 	args := strings.Split("consul-template -version", " ")
 
@@ -528,7 +527,7 @@ func TestRun_versionFlag(t *testing.T) {
 }
 
 func TestRun_parseError(t *testing.T) {
-	outStream, errStream := new(bytes.Buffer), new(bytes.Buffer)
+	outStream, errStream := gatedio.NewByteBuffer(), gatedio.NewByteBuffer()
 	cli := NewCLI(outStream, errStream)
 	args := strings.Split("consul-template -bacon delicious", " ")
 
@@ -560,7 +559,7 @@ func TestRun_onceFlag(t *testing.T) {
 	out := test.CreateTempfile(nil, t)
 	defer test.DeleteTempfile(out, t)
 
-	outStream := new(bytes.Buffer)
+	outStream := gatedio.NewByteBuffer()
 	cli := NewCLI(outStream, outStream)
 
 	command := fmt.Sprintf("consul-template -consul %s -template %s:%s -once -log-level debug",
@@ -591,30 +590,11 @@ func TestReload_sighup(t *testing.T) {
 	out := test.CreateTempfile(nil, t)
 	defer test.DeleteTempfile(out, t)
 
-	_, outPipeWriter := io.Pipe()
-	errPipeReader, errPipeWriter := io.Pipe()
-	cli := NewCLI(outPipeWriter, errPipeWriter)
+	outStream := gatedio.NewByteBuffer()
+	cli := NewCLI(outStream, outStream)
 
 	command := fmt.Sprintf("consul-template -template %s:%s", template.Name(), out.Name())
 	args := strings.Split(command, " ")
-
-	go func() {
-		buf := bytes.NewBuffer(nil)
-		for {
-			_, err := buf.ReadFrom(errPipeReader)
-			if err != nil {
-				if err == io.EOF {
-					errPipeReader.CloseWithError(io.EOF)
-					return
-				}
-				t.Fatalf("Error in error reader: %s", err)
-			}
-			if buf.Len() > 0 {
-				out.Write(buf.Bytes())
-			}
-			buf.Reset()
-		}
-	}()
 
 	go func(args []string) {
 		if exit := cli.Run(args); exit != 0 {

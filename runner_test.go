@@ -14,6 +14,7 @@ import (
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/go-gatedio"
 )
 
 func TestNewRunner_initialize(t *testing.T) {
@@ -173,7 +174,7 @@ func TestRun_noopIfMissingData(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	buff := new(bytes.Buffer)
+	buff := gatedio.NewByteBuffer()
 	runner.outStream, runner.errStream = buff, buff
 
 	if err := runner.Run(); err != nil {
@@ -216,7 +217,7 @@ func TestRun_dry(t *testing.T) {
 	runner.dependencies[d.HashCode()] = d
 	runner.Receive(d, data)
 
-	buff := new(bytes.Buffer)
+	buff := gatedio.NewByteBuffer()
 	runner.outStream, runner.errStream = buff, buff
 
 	if err := runner.Run(); err != nil {
