@@ -321,6 +321,33 @@ func vaultFunc(brain *Brain,
 	}
 }
 
+// minimum checks whether number of elements has at least N elements
+// and skips generating a template if it doesn't, otherwise it is no-op.
+func minimum(missing map[string]dep.Dependency, control chan ControlType) func(int, interface{}) (interface{}, error) {
+	return func(minValue int, in interface{}) (interface{}, error) {
+		if len(missing) > 0 {
+			return in, nil
+		}
+
+		var numElements int
+		switch typed := in.(type) {
+		case []*dep.CatalogService:
+			numElements = len(typed)
+		case []*dep.HealthService:
+			numElements = len(typed)
+		default:
+			return in, fmt.Errorf("minimum: wrong argument type %T", in)
+		}
+
+		if numElements < minValue {
+			control <- ControlType{ControlTypeSkip, fmt.Sprintf("minimum: number of entries is lower than limit (%d)", minValue)}
+			close(control)
+		}
+
+		return in, nil
+	}
+}
+
 // byKey accepts a slice of KV pairs and returns a map of the top-level
 // key to all its subkeys. For example:
 //

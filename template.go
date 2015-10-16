@@ -18,6 +18,18 @@ type Template struct {
 	contents string
 }
 
+const (
+	// skip generating the template and log message.
+	ControlTypeSkip = iota
+)
+
+type ControlType struct {
+	// type of the issued control signal.
+	controlType uint
+	// reason that will be displayed to the user.
+	reason string
+}
+
 // NewTemplate creates and parses a new Consul Template template at the given
 // path. If the template does not exist, an error is returned. During
 // initialization, the template is read and is parsed for dependencies. Any
@@ -37,21 +49,22 @@ func NewTemplate(path string) (*Template, error) {
 // The second return value is the list of missing dependencies.
 // The third return value is the rendered text.
 // The fourth return value any error that occurs.
-func (t *Template) Execute(brain *Brain) ([]dep.Dependency, []dep.Dependency, []byte, error) {
+func (t *Template) Execute(brain *Brain) ([]dep.Dependency, []dep.Dependency, []byte, *ControlType, error) {
 	usedMap := make(map[string]dep.Dependency)
 	missingMap := make(map[string]dep.Dependency)
+	controlCh := make(chan ControlType, 1)
 	name := filepath.Base(t.Path)
-	funcs := funcMap(brain, usedMap, missingMap)
+	funcs := funcMap(brain, usedMap, missingMap, controlCh)
 
 	tmpl, err := template.New(name).Funcs(funcs).Parse(t.contents)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("template: %s", err)
+		return nil, nil, nil, nil, fmt.Errorf("template: %s", err)
 	}
 
 	// TODO: accept an io.Writer instead
 	buff := new(bytes.Buffer)
 	if err := tmpl.Execute(buff, nil); err != nil {
-		return nil, nil, nil, fmt.Errorf("template: %s", err)
+		return nil, nil, nil, nil, fmt.Errorf("template: %s", err)
 	}
 
 	// Update this list of this template's dependencies
@@ -66,7 +79,12 @@ func (t *Template) Execute(brain *Brain) ([]dep.Dependency, []dep.Dependency, []
 		missing = append(missing, dep)
 	}
 
-	return used, missing, buff.Bytes(), nil
+	select {
+	case control := <-controlCh:
+		return used, missing, buff.Bytes(), &control, nil
+	default:
+		return used, missing, buff.Bytes(), nil, nil
+	}
 }
 
 // init reads the template file and initializes required variables.
@@ -82,7 +100,7 @@ func (t *Template) init() error {
 }
 
 // funcMap is the map of template functions to their respective functions.
-func funcMap(brain *Brain, used, missing map[string]dep.Dependency) template.FuncMap {
+func funcMap(brain *Brain, used, missing map[string]dep.Dependency, control chan ControlType) template.FuncMap {
 	return template.FuncMap{
 		// API functions
 		"datacenters":    datacentersFunc(brain, used, missing),
@@ -96,6 +114,9 @@ func funcMap(brain *Brain, used, missing map[string]dep.Dependency) template.Fun
 		"services":       servicesFunc(brain, used, missing),
 		"tree":           treeFunc(brain, used, missing),
 		"vault":          vaultFunc(brain, used, missing),
+
+		// Control functions
+		"minimum": minimum(missing, control),
 
 		// Helper functions
 		"byKey":           byKey,
