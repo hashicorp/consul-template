@@ -1502,45 +1502,45 @@ func TestToUpper(t *testing.T) {
 }
 
 func TestAdd_int_int(t *testing.T) {
-	result, err := add(2, 2)
+	result, err := add(1, 2)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if result != int64(4) {
+	if result != int64(3) {
 		t.Errorf("expected %d to be %d", result, int64(4))
 	}
 }
 
 func TestAdd_int_float(t *testing.T) {
-	result, err := add(2, 2.0)
+	result, err := add(1, 2.0)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if result != float64(4) {
+	if result != float64(3) {
 		t.Errorf("expected %f to be %f", result, float64(4))
 	}
 }
 
 func TestAdd_float_int(t *testing.T) {
-	result, err := add(2.0, 2)
+	result, err := add(1.0, 2)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if result != float64(4) {
+	if result != float64(3) {
 		t.Errorf("expected %f to be %f", result, float64(4))
 	}
 }
 
 func TestAdd_float_float(t *testing.T) {
-	result, err := add(2.0, 2.0)
+	result, err := add(1.0, 2.0)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if result != float64(4) {
+	if result != float64(3) {
 		t.Errorf("expected %f to be %f", result, float64(4))
 	}
 }
@@ -1558,45 +1558,45 @@ func TestAdd_string_int(t *testing.T) {
 }
 
 func TestSubtract_int_int(t *testing.T) {
-	result, err := subtract(2, 2)
+	result, err := subtract(1, 2)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if result != int64(0) {
+	if result != int64(1) {
 		t.Errorf("expected %d to be %d", result, int64(0))
 	}
 }
 
 func TestSubtract_int_float(t *testing.T) {
-	result, err := subtract(2, 2.0)
+	result, err := subtract(1, 2.0)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if result != float64(0) {
+	if result != float64(1) {
 		t.Errorf("expected %f to be %f", result, float64(0))
 	}
 }
 
 func TestSubtract_float_int(t *testing.T) {
-	result, err := subtract(2.0, 2)
+	result, err := subtract(1.0, 2)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if result != float64(0) {
+	if result != float64(1) {
 		t.Errorf("expected %f to be %f", result, float64(0))
 	}
 }
 
 func TestSubtract_float_float(t *testing.T) {
-	result, err := subtract(2.0, 2.0)
+	result, err := subtract(1.0, 2.0)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if result != float64(0) {
+	if result != float64(1) {
 		t.Errorf("expected %f to be %f", result, float64(0))
 	}
 }
@@ -1614,45 +1614,45 @@ func TestSubtract_string_int(t *testing.T) {
 }
 
 func TestMultiply_int_int(t *testing.T) {
-	result, err := multiply(2, 2)
+	result, err := multiply(2, 3)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if result != int64(4) {
+	if result != int64(6) {
 		t.Errorf("expected %d to be %d", result, int64(4))
 	}
 }
 
 func TestMultiply_int_float(t *testing.T) {
-	result, err := multiply(2, 2.0)
+	result, err := multiply(2, 3.0)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if result != float64(4) {
+	if result != float64(6) {
 		t.Errorf("expected %f to be %f", result, float64(4))
 	}
 }
 
 func TestMultiply_float_int(t *testing.T) {
-	result, err := multiply(2.0, 2)
+	result, err := multiply(2.0, 3)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if result != float64(4) {
+	if result != float64(6) {
 		t.Errorf("expected %f to be %f", result, float64(4))
 	}
 }
 
 func TestMultiply_float_float(t *testing.T) {
-	result, err := multiply(2.0, 2.0)
+	result, err := multiply(2.0, 3.0)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if result != float64(4) {
+	if result != float64(6) {
 		t.Errorf("expected %f to be %f", result, float64(4))
 	}
 }
@@ -1670,45 +1670,45 @@ func TestMultiply_string_int(t *testing.T) {
 }
 
 func TestDivide_int_int(t *testing.T) {
-	result, err := divide(2, 2)
+	result, err := divide(2, 10)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if result != int64(1) {
+	if result != int64(5) {
 		t.Errorf("expected %d to be %d", result, int64(1))
 	}
 }
 
 func TestDivide_int_float(t *testing.T) {
-	result, err := divide(2, 2.0)
+	result, err := divide(2, 10.0)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if result != float64(1) {
+	if result != float64(5) {
 		t.Errorf("expected %f to be %f", result, float64(1))
 	}
 }
 
 func TestDivide_float_int(t *testing.T) {
-	result, err := divide(2.0, 2)
+	result, err := divide(2.0, 10)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if result != float64(1) {
+	if result != float64(5) {
 		t.Errorf("expected %f to be %f", result, float64(1))
 	}
 }
 
 func TestDivide_float_float(t *testing.T) {
-	result, err := divide(2.0, 2.0)
+	result, err := divide(2.0, 10.0)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if result != float64(1) {
+	if result != float64(5) {
 		t.Errorf("expected %f to be %f", result, float64(1))
 	}
 }

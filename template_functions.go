@@ -761,7 +761,7 @@ func subtract(b, a interface{}) (interface{}, error) {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		switch bv.Kind() {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			return av.Int() - av.Int(), nil
+			return av.Int() - bv.Int(), nil
 		case reflect.Float32, reflect.Float64:
 			return float64(av.Int()) - bv.Float(), nil
 		default:
@@ -790,7 +790,7 @@ func multiply(b, a interface{}) (interface{}, error) {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		switch bv.Kind() {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			return av.Int() * av.Int(), nil
+			return av.Int() * bv.Int(), nil
 		case reflect.Float32, reflect.Float64:
 			return float64(av.Int()) * bv.Float(), nil
 		default:
@@ -819,7 +819,7 @@ func divide(b, a interface{}) (interface{}, error) {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		switch bv.Kind() {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			return av.Int() / av.Int(), nil
+			return av.Int() / bv.Int(), nil
 		case reflect.Float32, reflect.Float64:
 			return float64(av.Int()) / bv.Float(), nil
 		default:
