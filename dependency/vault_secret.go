@@ -99,7 +99,7 @@ func (d *VaultSecret) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 
 	ts := time.Now().Unix()
 	rm := &ResponseMetadata{
-		LastContact: time.Duration(ts),
+		LastContact: 0,
 		LastIndex:   uint64(ts),
 	}
 
