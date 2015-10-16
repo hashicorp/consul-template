@@ -41,17 +41,20 @@ func TestFileFetch_waits(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dataCh := make(chan interface{})
-	go func(c chan<- interface{}) {
-		data, _, err := dep.Fetch(nil, nil)
-		if err != nil {
-			t.Fatal(err)
+	doneCh := make(chan struct{})
+	errCh := make(chan error)
+	go func() {
+		if _, _, err := dep.Fetch(nil, nil); err != nil {
+			errCh <- err
+			return
 		}
-		c <- data
-	}(dataCh)
+		close(doneCh)
+	}()
 
 	select {
-	case <-dataCh:
+	case err := <-errCh:
+		t.Fatal(err)
+	case <-doneCh:
 		t.Fatal("received data, but should not have")
 	case <-time.After(1000 * time.Nanosecond):
 		return
@@ -73,13 +76,15 @@ func TestFileFetch_firesChanges(t *testing.T) {
 	}
 
 	dataCh := make(chan interface{})
-	go func(c chan<- interface{}) {
+	errCh := make(chan error)
+	go func() {
 		data, _, err := dep.Fetch(nil, nil)
 		if err != nil {
-			t.Fatal(err)
+			errCh <- err
+			return
 		}
-		c <- data
-	}(dataCh)
+		dataCh <- data
+	}()
 
 	newData := `{"bar": "baz"}`
 	ioutil.WriteFile(inTemplate.Name(), []byte(newData), 0644)
@@ -89,7 +94,7 @@ func TestFileFetch_firesChanges(t *testing.T) {
 		if d != newData {
 			t.Fatalf("expected %q to be %q", d, newData)
 		}
-	case <-time.After(1 * time.Second):
+	case <-time.After(5 * time.Second):
 		t.Fatal("did not receive data from file changes")
 	}
 }

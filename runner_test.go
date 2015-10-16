@@ -28,14 +28,15 @@ func TestNewRunner_initialize(t *testing.T) {
 	defer test.DeleteTempfile(in3, t)
 
 	dry, once := true, true
-	config := &Config{
+	config := DefaultConfig()
+	config.Merge(&Config{
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{Source: in1.Name(), Command: "1"},
 			&ConfigTemplate{Source: in1.Name(), Command: "1.1"},
 			&ConfigTemplate{Source: in2.Name(), Command: "2"},
 			&ConfigTemplate{Source: in3.Name(), Command: "3"},
 		},
-	}
+	})
 
 	runner, err := NewRunner(config, dry, once)
 	if err != nil {
@@ -94,11 +95,12 @@ func TestNewRunner_initialize(t *testing.T) {
 }
 
 func TestNewRunner_badTemplate(t *testing.T) {
-	config := &Config{
+	config := DefaultConfig()
+	config.Merge(&Config{
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{Source: "/not/a/real/path"},
 		},
-	}
+	})
 
 	if _, err := NewRunner(config, false, false); err == nil {
 		t.Fatal("expected error, but nothing was returned")
@@ -106,7 +108,7 @@ func TestNewRunner_badTemplate(t *testing.T) {
 }
 
 func TestReceive_addsToBrain(t *testing.T) {
-	runner, err := NewRunner(new(Config), false, false)
+	runner, err := NewRunner(DefaultConfig(), false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +131,7 @@ func TestReceive_addsToBrain(t *testing.T) {
 }
 
 func TestReceive_storesBrain(t *testing.T) {
-	runner, err := NewRunner(new(Config), false, false)
+	runner, err := NewRunner(DefaultConfig(), false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +146,7 @@ func TestReceive_storesBrain(t *testing.T) {
 }
 
 func TestReceive_doesNotStoreIfNotWatching(t *testing.T) {
-	runner, err := NewRunner(new(Config), false, false)
+	runner, err := NewRunner(DefaultConfig(), false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,11 +165,12 @@ func TestRun_noopIfMissingData(t *testing.T) {
   `), t)
 	defer test.DeleteTempfile(in, t)
 
-	config := &Config{
+	config := DefaultConfig()
+	config.Merge(&Config{
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{Source: in.Name()},
 		},
-	}
+	})
 
 	runner, err := NewRunner(config, false, false)
 	if err != nil {
@@ -192,14 +195,15 @@ func TestRun_dry(t *testing.T) {
   `), t)
 	defer test.DeleteTempfile(in, t)
 
-	config := &Config{
+	config := DefaultConfig()
+	config.Merge(&Config{
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{
 				Source:      in.Name(),
 				Destination: "/out/file.txt",
 			},
 		},
-	}
+	})
 
 	runner, err := NewRunner(config, true, false)
 	if err != nil {
@@ -243,11 +247,12 @@ func TestRun_singlePass(t *testing.T) {
   `), t)
 	defer test.DeleteTempfile(in, t)
 
-	config := &Config{
+	config := DefaultConfig()
+	config.Merge(&Config{
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{Source: in.Name()},
 		},
-	}
+	})
 
 	runner, err := NewRunner(config, true, false)
 	if err != nil {
@@ -279,11 +284,12 @@ func TestRun_singlePassDuplicates(t *testing.T) {
   `), t)
 	defer test.DeleteTempfile(in, t)
 
-	config := &Config{
+	config := DefaultConfig()
+	config.Merge(&Config{
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{Source: in.Name()},
 		},
-	}
+	})
 
 	runner, err := NewRunner(config, true, false)
 	if err != nil {
@@ -313,11 +319,12 @@ func TestRun_doublePass(t *testing.T) {
   `), t)
 	defer test.DeleteTempfile(in, t)
 
-	config := &Config{
+	config := DefaultConfig()
+	config.Merge(&Config{
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{Source: in.Name()},
 		},
-	}
+	})
 
 	runner, err := NewRunner(config, true, false)
 	if err != nil {
@@ -360,11 +367,12 @@ func TestRun_removesUnusedDependencies(t *testing.T) {
 	in := test.CreateTempfile([]byte(nil), t)
 	defer test.DeleteTempfile(in, t)
 
-	config := &Config{
+	config := DefaultConfig()
+	config.Merge(&Config{
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{Source: in.Name()},
 		},
-	}
+	})
 
 	runner, err := NewRunner(config, true, false)
 	if err != nil {
@@ -426,7 +434,8 @@ func TestRun_multipleTemplatesRunsCommands(t *testing.T) {
 	os.Remove(touch2.Name())
 	defer os.Remove(touch2.Name())
 
-	config := &Config{
+	config := DefaultConfig()
+	config.Merge(&Config{
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{
 				Source:      in1.Name(),
@@ -439,7 +448,7 @@ func TestRun_multipleTemplatesRunsCommands(t *testing.T) {
 				Command:     fmt.Sprintf("touch %s", touch2.Name()),
 			},
 		},
-	}
+	})
 
 	runner, err := NewRunner(config, false, false)
 	if err != nil {
@@ -539,7 +548,8 @@ func TestRender_sameContentsDoesNotExecuteCommand(t *testing.T) {
   `), t)
 	defer test.DeleteTempfile(outTemplate, t)
 
-	config := &Config{
+	config := DefaultConfig()
+	config.Merge(&Config{
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{
 				Source:      inTemplate.Name(),
@@ -547,7 +557,7 @@ func TestRender_sameContentsDoesNotExecuteCommand(t *testing.T) {
 				Command:     fmt.Sprintf("echo 'foo' > %s", outFile.Name()),
 			},
 		},
-	}
+	})
 
 	runner, err := NewRunner(config, false, false)
 	if err != nil {
@@ -659,7 +669,8 @@ func TestRun_doesNotExecuteCommandMissingDependencies(t *testing.T) {
 	outTemplate := test.CreateTempfile(nil, t)
 	defer test.DeleteTempfile(outTemplate, t)
 
-	config := &Config{
+	config := DefaultConfig()
+	config.Merge(&Config{
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{
 				Source:      inTemplate.Name(),
@@ -667,7 +678,7 @@ func TestRun_doesNotExecuteCommandMissingDependencies(t *testing.T) {
 				Command:     fmt.Sprintf("echo 'foo' > %s", outFile.Name()),
 			},
 		},
-	}
+	})
 
 	runner, err := NewRunner(config, false, false)
 	if err != nil {
@@ -697,7 +708,8 @@ func TestRun_executesCommand(t *testing.T) {
 	outTemplate := test.CreateTempfile(nil, t)
 	defer test.DeleteTempfile(outTemplate, t)
 
-	config := &Config{
+	config := DefaultConfig()
+	config.Merge(&Config{
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{
 				Source:      inTemplate.Name(),
@@ -705,7 +717,7 @@ func TestRun_executesCommand(t *testing.T) {
 				Command:     fmt.Sprintf("echo 'foo' > %s", outFile.Name()),
 			},
 		},
-	}
+	})
 
 	runner, err := NewRunner(config, false, false)
 	if err != nil {
@@ -753,7 +765,8 @@ func TestRun_doesNotExecuteCommandMoreThanOnce(t *testing.T) {
 	outTemplateB := test.CreateTempfile(nil, t)
 	defer test.DeleteTempfile(outTemplateB, t)
 
-	config := &Config{
+	config := DefaultConfig()
+	config.Merge(&Config{
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{
 				Source:      inTemplate.Name(),
@@ -766,7 +779,7 @@ func TestRun_doesNotExecuteCommandMoreThanOnce(t *testing.T) {
 				Command:     fmt.Sprintf("echo 'foo' >> %s", outFile.Name()),
 			},
 		},
-	}
+	})
 
 	runner, err := NewRunner(config, false, false)
 	if err != nil {
@@ -893,7 +906,8 @@ func TestRunner_onceAlreadyRenderedDoesNotHangOrRunCommands(t *testing.T) {
 	outTemplateA := test.CreateTempfile(nil, t)
 	defer test.DeleteTempfile(outTemplateA, t)
 
-	config := &Config{
+	config := DefaultConfig()
+	config.Merge(&Config{
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{
 				Source:      in.Name(),
@@ -901,7 +915,7 @@ func TestRunner_onceAlreadyRenderedDoesNotHangOrRunCommands(t *testing.T) {
 				Command:     fmt.Sprintf("echo 'foo' >> %s", outFile.Name()),
 			},
 		},
-	}
+	})
 
 	runner, err := NewRunner(config, false, true)
 	if err != nil {
