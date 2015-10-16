@@ -17,15 +17,7 @@ The daemon `consul-template` queries a [Consul][] instance and updates any numbe
 
 Installation
 ------------
-You can download a released `consul-template` artifact from [the Consul Template release page][Releases] on GitHub. If you wish to compile from source, you will need to have buildtools and [Go][] installed:
-
-```shell
-$ git clone https://github.com/hashicorp/consul-template.git
-$ cd consul-template
-$ make
-```
-
-This process will create `bin/consul-template` which make be invoked as a binary.
+You can download a released `consul-template` artifact from [the Consul Template release page][Releases] on GitHub. If you wish to compile from source, please see the instructions in the [Contributing][#Contributing] section.
 
 
 Usage
@@ -1227,9 +1219,15 @@ A: Configuration management tools are designed to be used in unison with Consul 
 
 Contributing
 ------------
-To hack on Consul Template, you will need a modern [Go][] environment.
+To build and install Consul Template locally, you will need a modern [Go][] environment.
 
-First, download/update all the dependencies:
+First, clone the repo:
+
+```shell
+$ git clone https://github.com/hashicorp/consul-template.git
+```
+
+Next, download/update all the dependencies:
 
 ```shell
 $ make updatedeps
