@@ -1219,7 +1219,7 @@ A: Configuration management tools are designed to be used in unison with Consul 
 
 Contributing
 ------------
-To build and install Consul Template locally, you will need a modern [Go][] environment.
+To build and install Consul Template locally, you will need a modern [Go][] (Go 1.5+) environment.
 
 First, clone the repo:
 
