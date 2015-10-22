@@ -45,8 +45,8 @@ func (d *VaultToken) Fetch(clients *ClientSet, opts *QueryOptions) (interface{},
 	// Create our cloned secret
 	secret := &Secret{
 		LeaseID:       token.LeaseID,
-		LeaseDuration: token.LeaseDuration,
-		Renewable:     token.Renewable,
+		LeaseDuration: token.Auth.LeaseDuration,
+		Renewable:     token.Auth.Renewable,
 		Data:          token.Data,
 	}
 
