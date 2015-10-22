@@ -25,6 +25,7 @@ BUG FIXES:
   * Fix broken math functions - previously add, subtract, multiply, and divide
     for integers would perform the operation on only the first operand
     [GH-430, GH-435]
+  * Renew the vault token based off of the auth, not the secret [GH-443]
 
 
 ## v0.11.0 (October 9, 2015)
