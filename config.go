@@ -319,8 +319,6 @@ func ParseConfig(path string) (*Config, error) {
 // ConfigFromPath iterates and merges all configuration files in a given
 // directory, returning the resulting config.
 func ConfigFromPath(path string) (*Config, error) {
-	log.Printf("[DEBUG] (config) loading configs from %q", path)
-
 	// Ensure the given filepath exists
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return nil, fmt.Errorf("config: missing file/folder: %s", path)
