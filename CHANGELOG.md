@@ -26,6 +26,7 @@ BUG FIXES:
     for integers would perform the operation on only the first operand
     [GH-430, GH-435]
   * Renew the vault token based off of the auth, not the secret [GH-443]
+  * Remove noisy log message [GH-445]
 
 
 ## v0.11.0 (October 9, 2015)
