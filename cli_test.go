@@ -212,6 +212,27 @@ func TestParseFlags_SSLCert(t *testing.T) {
 	}
 }
 
+func TestParseFlags_SSLKey(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-ssl-key", "/path/to/client-key.pem",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "/path/to/client-key.pem"
+	if config.SSL.Key != expected {
+		t.Errorf("expected %v to be %v", config.SSL.Key, expected)
+	}
+	if !config.WasSet("ssl") {
+		t.Errorf("expected ssl to be set")
+	}
+	if !config.WasSet("ssl.key") {
+		t.Errorf("expected ssl.key to be set")
+	}
+}
+
 func TestParseFlags_SSLCaCert(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
 	config, _, _, _, err := cli.parseFlags([]string{

@@ -427,6 +427,29 @@ func TestParseConfig_mapstructureError(t *testing.T) {
 	}
 }
 
+func TestParseConfig_ssh_key_should_enable_ssl(t *testing.T) {
+	config := testConfig(`
+		ssl {
+			key = "private-key.pem"
+			verify = true
+			cert = "1.pem"
+			ca_cert = "ca-1.pem"
+		}
+	`, t)
+
+	expected := &SSLConfig{
+		Enabled:	true,
+		Verify:		true,
+		Cert:		"1.pem",
+		Key:		"private-key.pem",
+		CaCert:		"ca-1.pem",
+	}
+
+	if !reflect.DeepEqual(config.SSL, expected) {
+		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config.SSL, expected)
+	}
+}
+
 func TestParseConfig_extraKeys(t *testing.T) {
 	configFile := test.CreateTempfile([]byte(`
 		fake_key = "nope"

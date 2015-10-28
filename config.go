@@ -155,6 +155,10 @@ func (c *Config) Merge(config *Config) {
 			c.SSL.Cert = config.SSL.Cert
 			c.SSL.Enabled = true
 		}
+		if config.WasSet("ssl.key") {
+			c.SSL.Key = config.SSL.Key
+			c.SSL.Enabled = true
+		}
 		if config.WasSet("ssl.ca_cert") {
 			c.SSL.CaCert = config.SSL.CaCert
 			c.SSL.Enabled = true
@@ -465,6 +469,7 @@ type SSLConfig struct {
 	Enabled bool   `json:"enabled" mapstructure:"enabled"`
 	Verify  bool   `json:"verify" mapstructure:"verify"`
 	Cert    string `json:"cert,omitempty" mapstructure:"cert"`
+	Key     string `json:"key,omitempty" mapstructure:"key"`
 	CaCert  string `json:"ca_cert,omitempty" mapstructure:"ca_cert"`
 }
 
