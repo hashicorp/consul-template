@@ -37,7 +37,7 @@ func (d *VaultToken) Fetch(clients *ClientSet, opts *QueryOptions) (interface{},
 		return nil, nil, fmt.Errorf("vault_token: %s", err)
 	}
 
-	token, err := vault.Auth().Token().Renew(vault.Token(), 0)
+	token, err := vault.Auth().Token().RenewSelf(0)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error renewing vault token: %s", err)
 	}
