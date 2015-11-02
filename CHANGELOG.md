@@ -8,6 +8,9 @@ FEATURES:
 
 IMPROVEMENTS:
 
+  * Use the `renew-self` endpoint instead of `renew` for renewing the token
+    [GH-450]
+
 
 BUG FIXES:
 
