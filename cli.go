@@ -246,6 +246,12 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 		return nil
 	}), "syslog-facility", "")
 
+	flags.Var((funcBoolVar)(func(b bool) error {
+		config.Deduplicate.Enabled = b
+		config.set("deduplicate.enabled")
+		return nil
+	}), "dedup", "")
+
 	flags.Var((funcVar)(func(s string) error {
 		w, err := watch.ParseWait(s)
 		if err != nil {

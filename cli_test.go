@@ -272,6 +272,24 @@ func TestParseFlags_configTemplates(t *testing.T) {
 	}
 }
 
+func TestParseFlags_dedup(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-dedup",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := true
+	if config.Deduplicate.Enabled != expected {
+		t.Errorf("expected %v to be %v", config.Deduplicate.Enabled, expected)
+	}
+	if !config.WasSet("deduplicate.enabled") {
+		t.Errorf("expected deduplicate.enabled to be set")
+	}
+}
+
 func TestParseFlags_syslog(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
 	config, _, _, _, err := cli.parseFlags([]string{
