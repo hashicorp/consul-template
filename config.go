@@ -24,6 +24,9 @@ var configTemplateRe = regexp.MustCompile("([a-zA-Z]:)?([^:]+)")
 // onto disk when a specific file permission has not already been specified.
 const defaultFilePerms = 0644
 
+// defaultDedupPrefix is the default prefix used for de-duplication mode
+const defaultDedupPrefix = "consul-template/dedup/"
+
 // Config is used to configure Consul Template
 type Config struct {
 	// Path is the path to this configuration file on disk. This value is not
@@ -72,8 +75,26 @@ type Config struct {
 	// LogLevel is the level with which to log for this config.
 	LogLevel string `json:"log_level" mapstructure:"log_level"`
 
+	// Deduplicate is used to configure the dedup settings
+	Deduplicate *DeduplicateConfig `json:"deduplicate" mapstructure:"deduplicate"`
+
 	// setKeys is the list of config keys that were set by the user.
 	setKeys map[string]struct{}
+}
+
+// DeduplicateConfig is used to enable the de-duplication mode, which depends
+// on electing a leader per-template and watching of a key. This is used
+// to reduce the cost of many instances of CT running the same template.
+type DeduplicateConfig struct {
+	// Controls if deduplication mode is enabled
+	Enabled bool
+
+	// Controls the KV prefix used. Defaults to defaultDedupPrefix
+	Prefix string
+
+	// TTL is the Session TTL used for lock acquisition, defaults
+	// to 15 seconds.
+	TTL time.Duration
 }
 
 // Merge merges the values in config into this config object. Values in the
@@ -215,6 +236,18 @@ func (c *Config) Merge(config *Config) {
 		c.LogLevel = config.LogLevel
 	}
 
+	if config.WasSet("deduplicate") {
+		if c.Deduplicate == nil {
+			c.Deduplicate = &DeduplicateConfig{}
+		}
+		if config.WasSet("deduplicate.enabled") {
+			c.Deduplicate.Enabled = config.Deduplicate.Enabled
+		}
+		if config.WasSet("deduplicate.prefix") {
+			c.Deduplicate.Prefix = config.Deduplicate.Prefix
+		}
+	}
+
 	if c.setKeys == nil {
 		c.setKeys = make(map[string]struct{})
 	}
@@ -263,7 +296,7 @@ func ParseConfig(path string) (*Config, error) {
 	if !ok {
 		return nil, fmt.Errorf("error converting config at %q", path)
 	}
-	flattenKeys(parsed, []string{"auth", "ssl", "syslog", "vault"})
+	flattenKeys(parsed, []string{"auth", "ssl", "syslog", "vault", "deduplicate"})
 
 	// Create a new, empty config
 	config := new(Config)
@@ -403,6 +436,11 @@ func DefaultConfig() *Config {
 		Syslog: &SyslogConfig{
 			Enabled:  false,
 			Facility: "LOCAL0",
+		},
+		Deduplicate: &DeduplicateConfig{
+			Enabled: false,
+			Prefix:  defaultDedupPrefix,
+			TTL:     15 * time.Second,
 		},
 		ConfigTemplates: make([]*ConfigTemplate, 0),
 		Retry:           5 * time.Second,

@@ -68,6 +68,30 @@ func TestMerge_topLevel(t *testing.T) {
 	}
 }
 
+func TestMerge_deduplicate(t *testing.T) {
+	config := testConfig(`
+		deduplicate {
+			prefix = "foobar/"
+			enabled = true
+		}
+	`, t)
+	config.Merge(testConfig(`
+		deduplicate {
+			prefix = "abc/"
+			enabled = true
+		}
+	`, t))
+
+	expected := &DeduplicateConfig{
+		Prefix:  "abc/",
+		Enabled: true,
+	}
+
+	if !reflect.DeepEqual(config.Deduplicate, expected) {
+		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config.Deduplicate, expected)
+	}
+}
+
 func TestMerge_vault(t *testing.T) {
 	config := testConfig(`
 		vault {
@@ -329,6 +353,11 @@ func TestParseConfig_correctValues(t *testing.T) {
 			command = "service redis restart"
 			perms = 0755
 		}
+
+		deduplicate {
+			prefix = "my-prefix/"
+			enabled = true
+		}
   `), t)
 	defer test.DeleteTempfile(configFile, t)
 
@@ -387,6 +416,11 @@ func TestParseConfig_correctValues(t *testing.T) {
 				Command:     "service redis restart",
 				Perms:       0755,
 			},
+		},
+		Deduplicate: &DeduplicateConfig{
+			Prefix:  "my-prefix/",
+			Enabled: true,
+			TTL:     15 * time.Second,
 		},
 		setKeys: config.setKeys,
 	}
