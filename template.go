@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -16,6 +18,9 @@ type Template struct {
 
 	// contents is string contents for this file when read from disk.
 	contents string
+
+	// hexMD5 stores the hex version of the MD5
+	hexMD5 string
 }
 
 // NewTemplate creates and parses a new Consul Template template at the given
@@ -77,6 +82,10 @@ func (t *Template) init() error {
 		return err
 	}
 	t.contents = string(contents)
+
+	// Compute the MD5, encode as hex
+	hash := md5.Sum(contents)
+	t.hexMD5 = hex.EncodeToString(hash[:])
 
 	return nil
 }

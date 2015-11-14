@@ -44,6 +44,27 @@ func TestNewTemplate_setsPathAndContents(t *testing.T) {
 	}
 }
 
+func TestNewTemplate_setsPathAndMD5(t *testing.T) {
+	contents := []byte("some content")
+
+	in := test.CreateTempfile(contents, t)
+	defer test.DeleteTempfile(in, t)
+
+	tmpl, err := NewTemplate(in.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if tmpl.Path != in.Name() {
+		t.Errorf("expected %q to be %q", tmpl.Path, in.Name())
+	}
+
+	expect := "9893532233caff98cd083a116b013c0b"
+	if tmpl.hexMD5 != expect {
+		t.Errorf("expected %q to be %q", tmpl.hexMD5, expect)
+	}
+}
+
 func TestExecute_noDependencies(t *testing.T) {
 	contents := []byte("This is a template with just text")
 
