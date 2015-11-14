@@ -87,14 +87,14 @@ type Config struct {
 // to reduce the cost of many instances of CT running the same template.
 type DeduplicateConfig struct {
 	// Controls if deduplication mode is enabled
-	Enabled bool
+	Enabled bool `json:"enabled" mapstructure:"enabled"`
 
 	// Controls the KV prefix used. Defaults to defaultDedupPrefix
-	Prefix string
+	Prefix string `json:"prefix" mapstructure:"prefix"`
 
 	// TTL is the Session TTL used for lock acquisition, defaults
 	// to 15 seconds.
-	TTL time.Duration
+	TTL time.Duration `json:"ttl" mapstructure:"ttl"`
 }
 
 // Merge merges the values in config into this config object. Values in the
