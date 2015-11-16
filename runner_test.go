@@ -666,6 +666,9 @@ func TestAtomicWrite_backup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := os.Chmod(outFile.Name(), 0600); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := outFile.Write([]byte("before")); err != nil {
 		t.Fatal(err)
 	}
@@ -680,6 +683,14 @@ func TestAtomicWrite_backup(t *testing.T) {
 	}
 	if !bytes.Equal(f, []byte("before")) {
 		t.Fatal("expected %q to be %q", f, []byte("before"))
+	}
+
+	if stat, err := os.Stat(outFile.Name() + ".bak"); err != nil {
+		t.Fatal(err)
+	} else {
+		if stat.Mode() != 0600 {
+			t.Fatal("expected %d to be %d", stat.Mode(), 0600)
+		}
 	}
 }
 
