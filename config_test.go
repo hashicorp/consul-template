@@ -85,6 +85,7 @@ func TestMerge_deduplicate(t *testing.T) {
 	expected := &DeduplicateConfig{
 		Prefix:  "abc/",
 		Enabled: true,
+		TTL:     15 * time.Second,
 	}
 
 	if !reflect.DeepEqual(config.Deduplicate, expected) {
