@@ -323,7 +323,7 @@ func (r *Runner) Run() error {
 			log.Printf("[DEBUG] (runner) checking ctemplate %+v", ctemplate)
 
 			// Render the template, taking dry mode into account
-			wouldRender, didRender, err := r.render(contents, ctemplate.Destination, ctemplate.Perms)
+			wouldRender, didRender, err := r.render(contents, ctemplate.Destination, ctemplate.Perms, ctemplate.Backup)
 			if err != nil {
 				log.Printf("[DEBUG] (runner) error rendering %s", tmpl.Path)
 				return err
@@ -522,7 +522,7 @@ func (r *Runner) allTemplatesRendered() bool {
 // No template exists on disk: true, true, nil
 // Template exists, but contents are different: true, true, nil
 // Template exists, but contents are the same: true, false, nil
-func (r *Runner) render(contents []byte, dest string, perms os.FileMode) (bool, bool, error) {
+func (r *Runner) render(contents []byte, dest string, perms os.FileMode, backup bool) (bool, bool, error) {
 	existingContents, err := ioutil.ReadFile(dest)
 	if err != nil && !os.IsNotExist(err) {
 		return false, false, err
@@ -535,7 +535,7 @@ func (r *Runner) render(contents []byte, dest string, perms os.FileMode) (bool, 
 	if r.dry {
 		fmt.Fprintf(r.outStream, "> %s\n%s", dest, contents)
 	} else {
-		if err := atomicWrite(dest, contents, perms); err != nil {
+		if err := atomicWrite(dest, contents, perms, backup); err != nil {
 			return false, false, err
 		}
 	}
@@ -746,7 +746,7 @@ func (q *quiescence) tick() {
 //
 // If no errors occur, the Tempfile is "renamed" (moved) to the destination
 // path.
-func atomicWrite(path string, contents []byte, perms os.FileMode) error {
+func atomicWrite(path string, contents []byte, perms os.FileMode, backup bool) error {
 	parent := filepath.Dir(path)
 	if _, err := os.Stat(parent); os.IsNotExist(err) {
 		if err := os.MkdirAll(parent, 0755); err != nil {
@@ -776,11 +776,46 @@ func atomicWrite(path string, contents []byte, perms os.FileMode) error {
 		return err
 	}
 
+	// If we got this far, it means we are about to save the file. Copy the
+	// current contents of the file onto disk (if it exists) so we have a backup.
+	if backup {
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			if err := copyFile(path, path+".bak"); err != nil {
+				return err
+			}
+		}
+	}
+
 	if err := os.Rename(f.Name(), path); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// copyFile copies the file at src to the path at dst. Any errors that occur
+// are returned.
+func copyFile(src, dst string) error {
+	s, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer s.Close()
+
+	stat, err := s.Stat()
+	if err != nil {
+		return err
+	}
+
+	d, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, stat.Mode())
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(d, s); err != nil {
+		d.Close()
+		return err
+	}
+	return d.Close()
 }
 
 // Checks if a value exists in an array

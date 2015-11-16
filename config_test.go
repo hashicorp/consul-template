@@ -215,6 +215,7 @@ func TestMerge_configTemplates(t *testing.T) {
 			destination = "1"
 			command = "1"
 			perms = 0600
+			backup = false
 		}
 	`, t)
 	config.Merge(testConfig(`
@@ -223,6 +224,7 @@ func TestMerge_configTemplates(t *testing.T) {
 			destination = "2"
 			command = "2"
 			perms = 0755
+			backup = true
 		}
 	`, t))
 
@@ -232,12 +234,14 @@ func TestMerge_configTemplates(t *testing.T) {
 			Destination: "1",
 			Command:     "1",
 			Perms:       0600,
+			Backup:      false,
 		},
 		&ConfigTemplate{
 			Source:      "2",
 			Destination: "2",
 			Command:     "2",
 			Perms:       0755,
+			Backup:      true,
 		},
 	}
 

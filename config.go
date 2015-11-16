@@ -191,6 +191,7 @@ func (c *Config) Merge(config *Config) {
 				Destination: template.Destination,
 				Command:     template.Command,
 				Perms:       template.Perms,
+				Backup:      template.Backup,
 			})
 		}
 	}
@@ -481,6 +482,7 @@ type ConfigTemplate struct {
 	Destination string      `json:"destination" mapstructure:"destination"`
 	Command     string      `json:"command,omitempty" mapstructure:"command"`
 	Perms       os.FileMode `json:"perms" mapstructure:"perms"`
+	Backup      bool        `json:"backup" mapstructure:"backup"`
 }
 
 // VaultConfig is the configuration for connecting to a vault server.

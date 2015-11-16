@@ -600,7 +600,7 @@ func TestAtomicWrite_parentFolderMissing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := atomicWrite(outFile.Name(), nil, 0644); err != nil {
+	if err := atomicWrite(outFile.Name(), nil, 0644, false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -621,7 +621,7 @@ func TestAtomicWrite_retainsPermissions(t *testing.T) {
 	}
 	os.Chmod(outFile.Name(), 0644)
 
-	if err := atomicWrite(outFile.Name(), nil, 0644); err != nil {
+	if err := atomicWrite(outFile.Name(), nil, 0644, false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -646,13 +646,79 @@ func TestAtomicWrite_nonExistent(t *testing.T) {
 
 	// Try atomicWrite to a file that doesn't exist yet
 	file := filepath.Join(outDir, "nope")
-	if err := atomicWrite(file, nil, 0644); err != nil {
+	if err := atomicWrite(file, nil, 0644, false); err != nil {
 		t.Fatal(err)
 	}
 
 	// File was created
 	if _, err := os.Stat(file); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestAtomicWrite_backup(t *testing.T) {
+	outDir, err := ioutil.TempDir(os.TempDir(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(outDir)
+	outFile, err := ioutil.TempFile(outDir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(outFile.Name(), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := outFile.Write([]byte("before")); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := atomicWrite(outFile.Name(), []byte("after"), 0644, true); err != nil {
+		t.Fatal(err)
+	}
+
+	f, err := ioutil.ReadFile(outFile.Name() + ".bak")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(f, []byte("before")) {
+		t.Fatal("expected %q to be %q", f, []byte("before"))
+	}
+
+	if stat, err := os.Stat(outFile.Name() + ".bak"); err != nil {
+		t.Fatal(err)
+	} else {
+		if stat.Mode() != 0600 {
+			t.Fatal("expected %d to be %d", stat.Mode(), 0600)
+		}
+	}
+}
+
+func TestAtomicWrite_backupNoExist(t *testing.T) {
+	outDir, err := ioutil.TempDir(os.TempDir(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(outDir)
+	outFile, err := ioutil.TempFile(outDir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(outFile.Name()); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := atomicWrite(outFile.Name(), nil, 0644, true); err != nil {
+		t.Fatal(err)
+	}
+
+	// Shouldn't have a backup file, since the original file didn't exist
+	if _, err := os.Stat(outFile.Name() + ".bak"); err == nil {
+		t.Fatal("expected error")
+	} else {
+		if !os.IsNotExist(err) {
+			t.Fatal("bad error: %s", err)
+		}
 	}
 }
 
