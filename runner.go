@@ -802,7 +802,12 @@ func copyFile(src, dst string) error {
 	}
 	defer s.Close()
 
-	d, err := os.Create(dst)
+	stat, err := s.Stat()
+	if err != nil {
+		return err
+	}
+
+	d, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, stat.Mode())
 	if err != nil {
 		return err
 	}
