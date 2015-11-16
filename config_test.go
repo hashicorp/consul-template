@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -278,23 +277,6 @@ func TestParseConfig_readFileError(t *testing.T) {
 	}
 }
 
-func TestParseConfig_parseFileError(t *testing.T) {
-	configFile := test.CreateTempfile([]byte(`
-    invalid file in here
-  `), t)
-	defer test.DeleteTempfile(configFile, t)
-
-	_, err := ParseConfig(configFile.Name())
-	if err == nil {
-		t.Fatal("expected error, but nothing was returned")
-	}
-
-	expected := "syntax error"
-	if !strings.Contains(err.Error(), expected) {
-		t.Fatalf("expected %q to contain %q", err.Error(), expected)
-	}
-}
-
 func TestParseConfig_correctValues(t *testing.T) {
 	configFile := test.CreateTempfile([]byte(`
 		consul = "nyc1.demo.consul.io"
@@ -545,33 +527,6 @@ func TestConfigFromPath_EmptyDirectory(t *testing.T) {
 	_, err = ConfigFromPath(configDir)
 	if err != nil {
 		t.Fatalf("empty directories are allowed")
-	}
-}
-
-func TestConfigFromPath_BadConfigs(t *testing.T) {
-	configDir, err := ioutil.TempDir("", "bad-configs")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.Remove(configDir)
-
-	configPath := filepath.Join(configDir, "config")
-	err = ioutil.WriteFile(configPath, []byte(`
-		totally not a valid config
-	`), 0644)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.Remove(configPath)
-
-	_, err = ConfigFromPath(configDir)
-	if err == nil {
-		t.Fatalf("expected error, but nothing was returned")
-	}
-
-	expected := "error decoding config at"
-	if !strings.Contains(err.Error(), expected) {
-		t.Fatalf("expected %q to contain %q", err.Error(), expected)
 	}
 }
 
