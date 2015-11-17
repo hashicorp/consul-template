@@ -81,6 +81,9 @@ type Runner struct {
 	// fires.
 	quiescenceMap map[string]*quiescence
 	quiescenceCh  chan *Template
+
+	// dedup is the deduplication manager if enabled
+	dedup *DedupManager
 }
 
 // NewRunner accepts a slice of ConfigTemplates and returns a pointer to the new
@@ -111,6 +114,17 @@ func (r *Runner) Start() {
 	if err := r.storePid(); err != nil {
 		r.ErrCh <- err
 		return
+	}
+
+	// Attempt to acquire the locks for the de-duplication manager
+	var updateCh, leaderCh <-chan struct{}
+	if r.dedup != nil {
+		if err := r.dedup.Start(); err != nil {
+			r.ErrCh <- err
+			return
+		}
+		leaderCh = r.dedup.LeaderCh()
+		updateCh = r.dedup.UpdateCh()
 	}
 
 	// Fire an initial run to parse all the templates and setup the first-pass
@@ -173,6 +187,18 @@ func (r *Runner) Start() {
 					break OUTER
 				}
 			}
+
+		case <-leaderCh:
+			// On change of leadership we may need need to either stop updating
+			// a particular template or start updating the template
+			log.Printf("[INFO] (runner) watcher triggered by leadership change")
+			break OUTER
+
+		case <-updateCh:
+			// On update of a template data we may need to render a template
+			log.Printf("[INFO] (runner) watcher triggered by de-duplication data update")
+			break OUTER
+
 		case err := <-r.watcher.ErrCh:
 			// Intentionally do not send the error back up to the runner. Eventually,
 			// once Consul API implements errwrap and multierror, we can check the
@@ -211,6 +237,9 @@ func (r *Runner) Start() {
 // Stop halts the execution of this runner and its subprocesses.
 func (r *Runner) Stop() {
 	log.Printf("[INFO] (runner) stopping")
+	if r.dedup != nil {
+		r.dedup.Stop()
+	}
 	r.watcher.Stop()
 	if err := r.deletePid(); err != nil {
 		log.Printf("[WARN] (runner) could not remove pid at %q: %s",
@@ -259,6 +288,12 @@ func (r *Runner) Run() error {
 	for _, tmpl := range r.templates {
 		log.Printf("[DEBUG] (runner) checking template %s", tmpl.Path)
 
+		// Check if we are currently the leader instance
+		isLeader := true
+		if r.dedup != nil {
+			isLeader = r.dedup.IsLeader(tmpl)
+		}
+
 		// If we are in once mode and this template was already rendered, move
 		// onto the next one. We do not want to re-render the template if we are
 		// in once mode, and we certainly do not want to re-run any commands.
@@ -279,6 +314,12 @@ func (r *Runner) Run() error {
 
 		// Add the dependency to the list of dependencies for this runner.
 		for _, d := range used {
+			// If we've taken over leadership for a template, we may have data
+			// that is cached, but not have the watcher. We must treat this as
+			// missing so that we create the watcher and re-run the template.
+			if isLeader && !r.watcher.Watching(d) {
+				missing = append(missing, d)
+			}
 			if _, ok := depsMap[d.HashCode()]; !ok {
 				depsMap[d.HashCode()] = d
 			}
@@ -297,8 +338,15 @@ func (r *Runner) Run() error {
 		// next one.
 		if len(unwatched) > 0 {
 			log.Printf("[INFO] (runner) was not watching %d dependencies", len(unwatched))
-			for _, dep := range unwatched {
-				r.watcher.Add(dep)
+			for _, d := range unwatched {
+				_, isVaultSecret := d.(*dep.VaultSecret)
+				_, isVaultToken := d.(*dep.VaultToken)
+
+				// If we are deduplicating, we must still handle Vault dependencies,
+				// since those will be ignored to avoid leaking secrets.
+				if isLeader || isVaultSecret || isVaultToken {
+					r.watcher.Add(d)
+				}
 			}
 			continue
 		}
@@ -308,6 +356,11 @@ func (r *Runner) Run() error {
 		if len(missing) > 0 {
 			log.Printf("[INFO] (runner) missing data for %d dependencies", len(missing))
 			continue
+		}
+
+		// Trigger an update of the de-duplicaiton manager
+		if r.dedup != nil && isLeader {
+			r.dedup.UpdateDeps(tmpl, used)
 		}
 
 		// If quiescence is activated, start/update the timers and loop back around.
@@ -464,6 +517,18 @@ func (r *Runner) init() error {
 
 	r.quiescenceMap = make(map[string]*quiescence)
 	r.quiescenceCh = make(chan *Template)
+
+	// Setup the dedup manager if needed. This is
+	if r.config.Deduplicate.Enabled {
+		if r.once {
+			log.Printf("[INFO] (runner) disabling de-duplication in once mode")
+		} else {
+			r.dedup, err = NewDedupManager(r.config, clients, r.brain, r.templates)
+			if err != nil {
+				return err
+			}
+		}
+	}
 
 	return nil
 }
