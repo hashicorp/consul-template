@@ -53,7 +53,7 @@ func (b *Brain) Recall(d dep.Dependency) (interface{}, bool) {
 	return b.data[d.HashCode()], true
 }
 
-// ForceSet is used to force set the value of a depdency
+// ForceSet is used to force set the value of a dependency
 // for a given hash code
 func (b *Brain) ForceSet(hashCode string, data interface{}) {
 	b.Lock()
