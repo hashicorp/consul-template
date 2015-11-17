@@ -286,7 +286,19 @@ func (d *DedupManager) setLeader(tmpl *Template, lockCh <-chan struct{}) {
 func (d *DedupManager) watchTemplate(client *consulapi.Client, t *Template) {
 	log.Printf("[INFO] (dedup) starting watch for template hash %s", t.hexMD5)
 	path := path.Join(d.config.Deduplicate.Prefix, t.hexMD5, "data")
-	opts := &consulapi.QueryOptions{WaitTime: 60 * time.Second}
+
+	// Determine if stale queries are allowed
+	var allowStale bool
+	if d.config.MaxStale != 0 {
+		allowStale = true
+	}
+
+	// Setup our query options
+	opts := &consulapi.QueryOptions{
+		AllowStale: allowStale,
+		WaitTime:   60 * time.Second,
+	}
+
 START:
 	// Stop listening if we're stopped
 	select {
@@ -321,6 +333,18 @@ START:
 		}
 	}
 	opts.WaitIndex = meta.LastIndex
+
+	// If we've exceeded the maximum staleness, retry without stale
+	if allowStale && meta.LastContact > d.config.MaxStale {
+		allowStale = false
+		log.Printf("[DEBUG] (dedup) %s stale data (last contact exceeded max_stale)", path)
+		goto START
+	}
+
+	// Re-enable stale queries if allowed
+	if d.config.MaxStale != 0 {
+		allowStale = true
+	}
 
 	// Stop listening if we're stopped
 	select {
