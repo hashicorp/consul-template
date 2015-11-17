@@ -69,9 +69,6 @@ type DedupManager struct {
 	leader     map[*Template]<-chan struct{}
 	leaderLock sync.RWMutex
 
-	// leaderCh is used to indicate a change in leadership
-	leaderCh chan struct{}
-
 	// updateCh is used to indicate an update watched data
 	updateCh chan struct{}
 
@@ -91,7 +88,6 @@ func NewDedupManager(config *Config, clients *dep.ClientSet, brain *Brain, templ
 		brain:     brain,
 		templates: templates,
 		leader:    make(map[*Template]<-chan struct{}),
-		leaderCh:  make(chan struct{}, 1),
 		updateCh:  make(chan struct{}, 1),
 		stopCh:    make(chan struct{}),
 	}
@@ -239,11 +235,6 @@ func (d *DedupManager) UpdateDeps(t *Template, deps []dep.Dependency) {
 	log.Printf("[INFO] (dedup) updated de-duplicate data '%s'", dataPath)
 }
 
-// LeaderCh returns a channel to watch for leadership changes
-func (d *DedupManager) LeaderCh() <-chan struct{} {
-	return d.leaderCh
-}
-
 // UpdateCh returns a channel to watch for depedency updates
 func (d *DedupManager) UpdateCh() <-chan struct{} {
 	return d.updateCh
@@ -260,9 +251,9 @@ func (d *DedupManager) setLeader(tmpl *Template, lockCh <-chan struct{}) {
 	}
 	d.leaderLock.Unlock()
 
-	// Do an async push on the leaderCh
+	// Do an async notify of an update
 	select {
-	case d.leaderCh <- struct{}{}:
+	case d.updateCh <- struct{}{}:
 	default:
 	}
 }

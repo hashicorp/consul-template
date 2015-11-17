@@ -116,15 +116,14 @@ func (r *Runner) Start() {
 		return
 	}
 
-	// Attempt to acquire the locks for the de-duplication manager
-	var updateCh, leaderCh <-chan struct{}
+	// Start the de-duplication manager
+	var dedupCh <-chan struct{}
 	if r.dedup != nil {
 		if err := r.dedup.Start(); err != nil {
 			r.ErrCh <- err
 			return
 		}
-		leaderCh = r.dedup.LeaderCh()
-		updateCh = r.dedup.UpdateCh()
+		dedupCh = r.dedup.UpdateCh()
 	}
 
 	// Fire an initial run to parse all the templates and setup the first-pass
@@ -188,15 +187,11 @@ func (r *Runner) Start() {
 				}
 			}
 
-		case <-leaderCh:
-			// On change of leadership we may need need to either stop updating
-			// a particular template or start updating the template
-			log.Printf("[INFO] (runner) watcher triggered by leadership change")
-			break OUTER
-
-		case <-updateCh:
-			// On update of a template data we may need to render a template
-			log.Printf("[INFO] (runner) watcher triggered by de-duplication data update")
+		case <-dedupCh:
+			// We may get triggered by the de-duplication manager for either a change
+			// in leadership (acquired or lost lock), or an update of data for a template
+			// that we are watching.
+			log.Printf("[INFO] (runner) watcher triggered by de-duplication manager")
 			break OUTER
 
 		case err := <-r.watcher.ErrCh:
