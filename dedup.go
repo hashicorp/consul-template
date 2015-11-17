@@ -5,6 +5,7 @@ import (
 	"compress/lzw"
 	"crypto/md5"
 	"encoding/gob"
+	"fmt"
 	"log"
 	"path"
 	"sync"
@@ -189,7 +190,7 @@ func (d *DedupManager) IsLeader(tmpl *Template) bool {
 }
 
 // UpdateDeps is used to update the values of the dependencies for a template
-func (d *DedupManager) UpdateDeps(t *Template, deps []dep.Dependency) {
+func (d *DedupManager) UpdateDeps(t *Template, deps []dep.Dependency) error {
 	// Calculate the path to write updates to
 	dataPath := path.Join(d.config.Deduplicate.Prefix, t.hexMD5, "data")
 
@@ -217,9 +218,7 @@ func (d *DedupManager) UpdateDeps(t *Template, deps []dep.Dependency) {
 	compress := lzw.NewWriter(&buf, lzw.LSB, 8)
 	enc := gob.NewEncoder(compress)
 	if err := enc.Encode(&td); err != nil {
-		log.Printf("[ERR] (dedup) failed to encode data for '%s': %v",
-			dataPath, err)
-		return
+		return fmt.Errorf("encode failed: %v", err)
 	}
 	compress.Close()
 
@@ -231,7 +230,7 @@ func (d *DedupManager) UpdateDeps(t *Template, deps []dep.Dependency) {
 	if ok && bytes.Equal(existing, hash[:]) {
 		log.Printf("[INFO] (dedup) de-duplicate data '%s' already current",
 			dataPath)
-		return
+		return nil
 	}
 
 	// Write the KV update
@@ -242,17 +241,16 @@ func (d *DedupManager) UpdateDeps(t *Template, deps []dep.Dependency) {
 	}
 	client, err := d.clients.Consul()
 	if err != nil {
-		log.Printf("[ERR] (dedup) failed to get consul client: %v", err)
-		return
+		return fmt.Errorf("failed to get consul client: %v", err)
 	}
 	if _, err := client.KV().Put(&kvPair, nil); err != nil {
-		log.Printf("[ERR] (dedup) failed to write '%s': %v",
-			dataPath, err)
+		return fmt.Errorf("failed to write '%s': %v", dataPath, err)
 	}
 	log.Printf("[INFO] (dedup) updated de-duplicate data '%s'", dataPath)
 	d.lastWriteLock.Lock()
 	d.lastWrite[t] = hash[:]
 	d.lastWriteLock.Unlock()
+	return nil
 }
 
 // UpdateCh returns a channel to watch for depedency updates

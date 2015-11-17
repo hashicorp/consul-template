@@ -355,7 +355,9 @@ func (r *Runner) Run() error {
 
 		// Trigger an update of the de-duplicaiton manager
 		if r.dedup != nil && isLeader {
-			r.dedup.UpdateDeps(tmpl, used)
+			if err := r.dedup.UpdateDeps(tmpl, used); err != nil {
+				log.Printf("[ERR] (runner) failed to update dependency data for de-duplication: %v", err)
+			}
 		}
 
 		// If quiescence is activated, start/update the timers and loop back around.
