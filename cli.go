@@ -236,6 +236,7 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 
 	flags.Var((funcBoolVar)(func(b bool) error {
 		config.Syslog.Enabled = b
+		config.set("syslog")
 		config.set("syslog.enabled")
 		return nil
 	}), "syslog", "")
@@ -248,6 +249,7 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 
 	flags.Var((funcBoolVar)(func(b bool) error {
 		config.Deduplicate.Enabled = b
+		config.set("deduplicate")
 		config.set("deduplicate.enabled")
 		return nil
 	}), "dedup", "")

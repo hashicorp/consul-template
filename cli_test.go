@@ -285,6 +285,9 @@ func TestParseFlags_dedup(t *testing.T) {
 	if config.Deduplicate.Enabled != expected {
 		t.Errorf("expected %v to be %v", config.Deduplicate.Enabled, expected)
 	}
+	if !config.WasSet("deduplicate") {
+		t.Errorf("expected deduplicate to be set")
+	}
 	if !config.WasSet("deduplicate.enabled") {
 		t.Errorf("expected deduplicate.enabled to be set")
 	}
@@ -302,6 +305,9 @@ func TestParseFlags_syslog(t *testing.T) {
 	expected := true
 	if config.Syslog.Enabled != expected {
 		t.Errorf("expected %v to be %v", config.Syslog.Enabled, expected)
+	}
+	if !config.WasSet("syslog") {
+		t.Errorf("expected syslog to be set")
 	}
 	if !config.WasSet("syslog.enabled") {
 		t.Errorf("expected syslog.enabled to be set")
