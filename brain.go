@@ -53,6 +53,16 @@ func (b *Brain) Recall(d dep.Dependency) (interface{}, bool) {
 	return b.data[d.HashCode()], true
 }
 
+// ForceSet is used to force set the value of a depdency
+// for a given hash code
+func (b *Brain) ForceSet(hashCode string, data interface{}) {
+	b.Lock()
+	defer b.Unlock()
+
+	b.data[hashCode] = data
+	b.receivedData[hashCode] = struct{}{}
+}
+
 // Forget accepts a dependency and removes all associated data with this
 // dependency. It also resets the "receivedData" internal map.
 func (b *Brain) Forget(d dep.Dependency) {
