@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"compress/lzw"
+	"crypto/md5"
 	"encoding/gob"
 	"log"
 	"path"
@@ -69,6 +70,10 @@ type DedupManager struct {
 	leader     map[*Template]<-chan struct{}
 	leaderLock sync.RWMutex
 
+	// lastWrite tracks the hash of the data paths
+	lastWrite     map[*Template][]byte
+	lastWriteLock sync.RWMutex
+
 	// updateCh is used to indicate an update watched data
 	updateCh chan struct{}
 
@@ -88,6 +93,7 @@ func NewDedupManager(config *Config, clients *dep.ClientSet, brain *Brain, templ
 		brain:     brain,
 		templates: templates,
 		leader:    make(map[*Template]<-chan struct{}),
+		lastWrite: make(map[*Template][]byte),
 		updateCh:  make(chan struct{}, 1),
 		stopCh:    make(chan struct{}),
 	}
@@ -217,6 +223,17 @@ func (d *DedupManager) UpdateDeps(t *Template, deps []dep.Dependency) {
 	}
 	compress.Close()
 
+	// Compute MD5 of the buffer
+	hash := md5.Sum(buf.Bytes())
+	d.lastWriteLock.RLock()
+	existing, ok := d.lastWrite[t]
+	d.lastWriteLock.RUnlock()
+	if ok && bytes.Equal(existing, hash[:]) {
+		log.Printf("[INFO] (dedup) de-duplicate data '%s' already current",
+			dataPath)
+		return
+	}
+
 	// Write the KV update
 	kvPair := consulapi.KVPair{
 		Key:   dataPath,
@@ -233,6 +250,9 @@ func (d *DedupManager) UpdateDeps(t *Template, deps []dep.Dependency) {
 			dataPath, err)
 	}
 	log.Printf("[INFO] (dedup) updated de-duplicate data '%s'", dataPath)
+	d.lastWriteLock.Lock()
+	d.lastWrite[t] = hash[:]
+	d.lastWriteLock.Unlock()
 }
 
 // UpdateCh returns a channel to watch for depedency updates
@@ -250,6 +270,13 @@ func (d *DedupManager) setLeader(tmpl *Template, lockCh <-chan struct{}) {
 		delete(d.leader, tmpl)
 	}
 	d.leaderLock.Unlock()
+
+	// Clear the lastWrite hash if we've lost leadership
+	if lockCh == nil {
+		d.lastWriteLock.Lock()
+		delete(d.lastWrite, tmpl)
+		d.lastWriteLock.Unlock()
+	}
 
 	// Do an async notify of an update
 	select {
