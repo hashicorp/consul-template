@@ -1189,6 +1189,28 @@ func TestJoin(t *testing.T) {
 	}
 }
 
+func TestJoiner(t *testing.T) {
+	comma, err := joiner(",")
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result := sep(comma)
+	expected = ""
+	if result != expected {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+
+	for i := 0; i < 10; i++ {
+		result := sep(comma)
+		expected = ","
+		if result != expected {
+			t.Errorf("expected %q to be %q", result, expected)
+		}
+	}
+}
+
 func TestParseBool(t *testing.T) {
 	result, err := parseBool("true")
 	if err != nil {
