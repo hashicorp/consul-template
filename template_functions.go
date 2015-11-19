@@ -517,13 +517,13 @@ func join(sep string, a []string) (string, error) {
 
 // joiner is a port of Jinja2's "joiner"
 // see: http://jinja.pocoo.org/docs/dev/templates/#joiner
-func joiner(sep string) (chan string, error) {
+func joiner(seperator string) (chan string, error) {
 
 	ch := make(chan string)
 	go func() {
 		ch <- ""
 		for {
-			ch <- sep
+			ch <- seperator
 		}
 		// we'll never get here
 		close(ch)

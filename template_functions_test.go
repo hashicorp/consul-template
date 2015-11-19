@@ -1196,14 +1196,14 @@ func TestJoiner(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	result := sep(comma)
-	expected = ""
+	result, _ := sep(comma)
+	expected := ""
 	if result != expected {
 		t.Errorf("expected %q to be %q", result, expected)
 	}
 
 	for i := 0; i < 10; i++ {
-		result := sep(comma)
+		result, _ := sep(comma)
 		expected = ","
 		if result != expected {
 			t.Errorf("expected %q to be %q", result, expected)
