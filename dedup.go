@@ -200,10 +200,8 @@ func (d *DedupManager) UpdateDeps(t *Template, deps []dep.Dependency) error {
 		Data: make(map[string]interface{}),
 	}
 	for _, dp := range deps {
-		// Do not persist any vault related depdendencies
-		_, isVaultSecret := dp.(*dep.VaultSecret)
-		_, isVaultToken := dp.(*dep.VaultToken)
-		if isVaultSecret || isVaultToken {
+		// Skip any dependencies that can't be shared
+		if !dep.CanShare(dp) {
 			continue
 		}
 

@@ -334,12 +334,9 @@ func (r *Runner) Run() error {
 		if len(unwatched) > 0 {
 			log.Printf("[INFO] (runner) was not watching %d dependencies", len(unwatched))
 			for _, d := range unwatched {
-				_, isVaultSecret := d.(*dep.VaultSecret)
-				_, isVaultToken := d.(*dep.VaultToken)
-
-				// If we are deduplicating, we must still handle Vault dependencies,
-				// since those will be ignored to avoid leaking secrets.
-				if isLeader || isVaultSecret || isVaultToken {
+				// If we are deduplicating, we must still handle non-sharable
+				// dependencies, since those will be ignored.
+				if isLeader || !dep.CanShare(d) {
 					r.watcher.Add(d)
 				}
 			}
