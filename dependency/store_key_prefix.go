@@ -1,12 +1,17 @@
 package dependency
 
 import (
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"log"
 	"regexp"
 	"strings"
 )
+
+func init() {
+	gob.Register([]*KeyPair{})
+}
 
 // KeyPair is a simple Key-Value pair
 type KeyPair struct {

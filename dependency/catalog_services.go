@@ -1,12 +1,17 @@
 package dependency
 
 import (
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"log"
 	"regexp"
 	"sort"
 )
+
+func init() {
+	gob.Register([]*CatalogService{})
+}
 
 // CatalogService is a catalog entry in Consul.
 type CatalogService struct {
