@@ -139,10 +139,11 @@ START:
 	log.Printf("[INFO] (dedup) attempting to create session")
 	session := client.Session()
 	sessionCh := make(chan struct{})
+	ttl := fmt.Sprintf("%ds", d.config.Deduplicate.TTL/time.Second)
 	se := &consulapi.SessionEntry{
 		Name:     "Consul-Template de-duplication",
 		Behavior: "delete",
-		TTL:      "15s",
+		TTL:      ttl,
 	}
 	id, _, err := session.Create(se, nil)
 	if err != nil {
