@@ -1121,3 +1121,92 @@ func TestExecute_timeout(t *testing.T) {
 		t.Errorf("expected %q to include %q", err.Error(), expected)
 	}
 }
+
+func TestRunner_dedup(t *testing.T) {
+	// Create a template
+	in := test.CreateTempfile([]byte(`
+    {{ range service "consul" }}{{.Node}}{{ end }}
+  `), t)
+	defer test.DeleteTempfile(in, t)
+
+	out1 := test.CreateTempfile(nil, t)
+	defer test.DeleteTempfile(out1, t)
+
+	out2 := test.CreateTempfile(nil, t)
+	defer test.DeleteTempfile(out2, t)
+
+	// Start consul
+	consul := testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
+		c.Stdout = ioutil.Discard
+		c.Stderr = ioutil.Discard
+	})
+	defer consul.Stop()
+
+	// Setup the runner config
+	config := DefaultConfig()
+	config.Merge(&Config{
+		ConfigTemplates: []*ConfigTemplate{
+			&ConfigTemplate{Source: in.Name(), Destination: out1.Name()},
+		},
+	})
+	config.Deduplicate.Enabled = true
+	config.Consul = consul.HTTPAddr
+	config.set("consul")
+	config.set("deduplicate")
+	config.set("deduplicate.enabled")
+
+	config2 := DefaultConfig()
+	config2.Merge(&Config{
+		ConfigTemplates: []*ConfigTemplate{
+			&ConfigTemplate{Source: in.Name(), Destination: out2.Name()},
+		},
+	})
+	config2.Deduplicate.Enabled = true
+	config2.Consul = consul.HTTPAddr
+	config2.set("consul")
+	config2.set("deduplicate")
+	config2.set("deduplicate.enabled")
+
+	// Create the runners
+	r1, err := NewRunner(config, false, false)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	go r1.Start()
+	defer r1.Stop()
+
+	r2, err := NewRunner(config2, false, false)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	go r2.Start()
+	defer r2.Stop()
+
+	// Wait until the output file exists
+	testutil.WaitForResult(func() (bool, error) {
+		_, err := os.Stat(out1.Name())
+		if err != nil {
+			return false, nil
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("err: %v", err)
+	})
+
+	// Wait until the output file exists
+	testutil.WaitForResult(func() (bool, error) {
+		_, err := os.Stat(out2.Name())
+		if err != nil {
+			return false, nil
+		}
+		return true, nil
+	}, func(err error) {
+		t.Fatalf("err: %v", err)
+	})
+
+	// Should only be a single total watcher
+	total := r1.watcher.Size() + r2.watcher.Size()
+	if total != 1 {
+		t.Fatalf("too many watchers: %d", total)
+	}
+}
