@@ -72,6 +72,9 @@ type Config struct {
 	// LogLevel is the level with which to log for this config.
 	LogLevel string `json:"log_level" mapstructure:"log_level"`
 
+	// Delimiter is the template action delimiter.
+	Delimiter []string `json:"delimiter" mapstructure:"delimiter"`
+
 	// setKeys is the list of config keys that were set by the user.
 	setKeys map[string]struct{}
 }
@@ -213,6 +216,10 @@ func (c *Config) Merge(config *Config) {
 
 	if config.WasSet("log_level") {
 		c.LogLevel = config.LogLevel
+	}
+
+	if config.WasSet("delimiter") {
+		c.Delimiter = config.Delimiter
 	}
 
 	if c.setKeys == nil {
@@ -409,6 +416,7 @@ func DefaultConfig() *Config {
 		MaxStale:        1 * time.Second,
 		Wait:            &watch.Wait{},
 		LogLevel:        logLevel,
+		Delimiter:       []string{"{{", "}}"},
 		setKeys:         make(map[string]struct{}),
 	}
 
