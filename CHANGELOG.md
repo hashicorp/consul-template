@@ -5,6 +5,14 @@ Consul Template Changelog
 
 FEATURES:
 
+  * Add support for de-duplication mode. In de-duplication mode, Consul Template
+    uses leader election to elect one Consul Template process to render a
+    template. The results of this template are rendered into Consul's key-value
+    store, and other templates pull from the pre-rendered template. This option
+    is off by default, but it is highly recommended that the option is enabled
+    for clusters with a high load factor (number of templates x number of
+    dependencies per template). [GH-465]
+
 
 IMPROVEMENTS:
 
