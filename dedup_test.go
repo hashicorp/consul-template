@@ -60,6 +60,8 @@ func testDedupFollower(t *testing.T, leader *DedupManager) *DedupManager {
 }
 
 func TestDedup_StartStop(t *testing.T) {
+	t.Parallel()
+
 	consul, dedup := testDedupManager(t, nil)
 	defer consul.Stop()
 
@@ -73,6 +75,8 @@ func TestDedup_StartStop(t *testing.T) {
 }
 
 func TestDedup_IsLeader(t *testing.T) {
+	t.Parallel()
+
 	// Create a template
 	in := test.CreateTempfile([]byte(`
     {{ range service "consul" }}{{.Node}}{{ end }}
@@ -95,7 +99,7 @@ func TestDedup_IsLeader(t *testing.T) {
 	// Wait until we are leader
 	select {
 	case <-dedup.UpdateCh():
-	case <-time.After(time.Second):
+	case <-time.After(2 * time.Second):
 		t.Fatalf("timeout")
 	}
 
@@ -106,6 +110,8 @@ func TestDedup_IsLeader(t *testing.T) {
 }
 
 func TestDedup_UpdateDeps(t *testing.T) {
+	t.Parallel()
+
 	// Create a template
 	in := test.CreateTempfile([]byte(`
     {{ range service "consul" }}{{.Node}}{{ end }}
@@ -128,7 +134,7 @@ func TestDedup_UpdateDeps(t *testing.T) {
 	// Wait until we are leader
 	select {
 	case <-dedup.UpdateCh():
-	case <-time.After(time.Second):
+	case <-time.After(2 * time.Second):
 		t.Fatalf("timeout")
 	}
 
@@ -149,6 +155,8 @@ func TestDedup_UpdateDeps(t *testing.T) {
 }
 
 func TestDedup_FollowerUpdate(t *testing.T) {
+	t.Parallel()
+
 	// Create a template
 	in := test.CreateTempfile([]byte(`
     {{ range service "consul" }}{{.Node}}{{ end }}
@@ -187,7 +195,7 @@ func TestDedup_FollowerUpdate(t *testing.T) {
 			leader = dedup2
 			follow = dedup1
 		}
-	case <-time.After(time.Second):
+	case <-time.After(2 * time.Second):
 		t.Fatalf("timeout")
 	}
 
@@ -209,7 +217,7 @@ func TestDedup_FollowerUpdate(t *testing.T) {
 	// Follower should get an update
 	select {
 	case <-follow.UpdateCh():
-	case <-time.After(time.Second):
+	case <-time.After(2 * time.Second):
 		t.Fatalf("timeout")
 	}
 
