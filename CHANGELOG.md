@@ -18,6 +18,7 @@ IMPROVEMENTS:
 
   * Use the `renew-self` endpoint instead of `renew` for renewing the token
     [GH-450]
+  * Allow existing templates to be backed up before writing the new one [GH-464]
 
 
 BUG FIXES:
