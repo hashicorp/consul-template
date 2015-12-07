@@ -18,11 +18,11 @@ dist: bin
 
 # test runs the test suite and vets the code
 test: generate
-	go test $(TEST) $(TESTARGS) -timeout=30s -parallel=4
+	go list $(TEST) | xargs -n1 go test -timeout=30s -parallel=4 $(TESTARGS)
 
 # testrace runs the race checker
 testrace: generate
-	go test -race $(TEST) $(TESTARGS)
+	go list $(TEST) | xargs -n1 go test -race $(TESTARGS)
 
 # updatedeps installs all the dependencies Consul Template needs to run and
 # build
