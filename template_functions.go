@@ -165,6 +165,7 @@ func lsFunc(brain *Brain,
 	}
 }
 
+// nodeFunc returns or accumulates catalog node dependency.
 func nodeFunc(brain *Brain,
 	used, missing map[string]dep.Dependency) func(...string) (*dep.NodeDetail, error) {
 	return func(s ...string) (*dep.NodeDetail, error) {
