@@ -408,8 +408,10 @@ START:
 	log.Printf("[INFO] (dedup) attempting lock for template hash %s", t.hexMD5)
 	basePath := path.Join(d.config.Deduplicate.Prefix, t.hexMD5)
 	lopts := &consulapi.LockOptions{
-		Key:     path.Join(basePath, "lock"),
-		Session: session,
+		Key:              path.Join(basePath, "lock"),
+		Session:          session,
+		MonitorRetries:   3,
+		MonitorRetryTime: 3 * time.Second,
 	}
 	lock, err := client.LockOpts(lopts)
 	if err != nil {
