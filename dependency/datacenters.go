@@ -60,6 +60,11 @@ func (d *Datacenters) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 	return result, rm, nil
 }
 
+// CanShare returns if this dependency is shareable.
+func (d *Datacenters) CanShare() bool {
+	return true
+}
+
 // HashCode returns the hash code for this dependency.
 func (d *Datacenters) HashCode() string {
 	return fmt.Sprintf("Datacenters|%s", d.rawKey)

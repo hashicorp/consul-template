@@ -82,21 +82,6 @@ type Config struct {
 	setKeys map[string]struct{}
 }
 
-// DeduplicateConfig is used to enable the de-duplication mode, which depends
-// on electing a leader per-template and watching of a key. This is used
-// to reduce the cost of many instances of CT running the same template.
-type DeduplicateConfig struct {
-	// Controls if deduplication mode is enabled
-	Enabled bool `json:"enabled" mapstructure:"enabled"`
-
-	// Controls the KV prefix used. Defaults to defaultDedupPrefix
-	Prefix string `json:"prefix" mapstructure:"prefix"`
-
-	// TTL is the Session TTL used for lock acquisition, defaults
-	// to 15 seconds.
-	TTL time.Duration `json:"ttl" mapstructure:"ttl"`
-}
-
 // Merge merges the values in config into this config object. Values in the
 // config object overwrite the values in c.
 func (c *Config) Merge(config *Config) {
@@ -497,6 +482,20 @@ func (a *AuthConfig) String() string {
 	}
 
 	return a.Username
+}
+
+// DeduplicateConfig is used to enable the de-duplication mode, which depends
+// on electing a leader per-template and watching of a key. This is used
+// to reduce the cost of many instances of CT running the same template.
+type DeduplicateConfig struct {
+	// Controls if deduplication mode is enabled
+	Enabled bool `json:"enabled" mapstructure:"enabled"`
+
+	// Controls the KV prefix used. Defaults to defaultDedupPrefix
+	Prefix string `json:"prefix" mapstructure:"prefix"`
+
+	// TTL is the Session TTL used for lock acquisition, defaults to 15 seconds.
+	TTL time.Duration `json:"ttl" mapstructure:"ttl"`
 }
 
 // SSLConfig is the configuration for SSL.

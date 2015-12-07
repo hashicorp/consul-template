@@ -98,6 +98,11 @@ func (d *CatalogNode) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 	return node, rm, nil
 }
 
+// CanShare returns if this dependency is shareable.
+func (d *CatalogNode) CanShare() bool {
+	return true
+}
+
 func (d *CatalogNode) HashCode() string {
 	if d.dataCenter != "" {
 		return fmt.Sprintf("NodeDetail|%s@%s", d.rawKey, d.dataCenter)

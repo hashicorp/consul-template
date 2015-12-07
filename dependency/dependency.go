@@ -11,23 +11,9 @@ import (
 // of watching.
 type Dependency interface {
 	Fetch(*ClientSet, *QueryOptions) (interface{}, *ResponseMetadata, error)
+	CanShare() bool
 	HashCode() string
 	Display() string
-}
-
-// CanShare is used to check if the dependency can be shared for deduplication.
-// This is used to avoid sharing Vault or local file values between instances.
-func CanShare(dep Dependency) bool {
-	switch dep.(type) {
-	case *File:
-		return false
-	case *VaultSecret:
-		return false
-	case *VaultToken:
-		return false
-	default:
-		return true
-	}
 }
 
 // ServiceTags is a slice of tags assigned to a Service

@@ -18,6 +18,10 @@ func (d *Test) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *Resp
 	return data, rm, nil
 }
 
+func (d *Test) CanShare() bool {
+	return true
+}
+
 func (d *Test) HashCode() string {
 	return fmt.Sprintf("Test|%s", d.Name)
 }
@@ -49,6 +53,10 @@ func (d *TestStale) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, 
 	}
 }
 
+func (d *TestStale) CanShare() bool {
+	return true
+}
+
 func (d *TestStale) HashCode() string {
 	return fmt.Sprintf("TestStale|%s", d.Name)
 }
@@ -63,6 +71,10 @@ type TestFetchError struct {
 func (d *TestFetchError) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
 	time.Sleep(10 * time.Millisecond)
 	return nil, nil, fmt.Errorf("failed to contact server")
+}
+
+func (d *TestFetchError) CanShare() bool {
+	return true
 }
 
 func (d *TestFetchError) HashCode() string {
@@ -93,6 +105,10 @@ func (d *TestRetry) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, 
 		d.retried = true
 		return nil, nil, fmt.Errorf("failed to contact server (try again)")
 	}
+}
+
+func (d *TestRetry) CanShare() bool {
+	return true
 }
 
 func (d *TestRetry) HashCode() string {

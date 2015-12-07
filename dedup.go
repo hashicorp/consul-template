@@ -201,7 +201,7 @@ func (d *DedupManager) UpdateDeps(t *Template, deps []dep.Dependency) error {
 	}
 	for _, dp := range deps {
 		// Skip any dependencies that can't be shared
-		if !dep.CanShare(dp) {
+		if !dp.CanShare() {
 			continue
 		}
 

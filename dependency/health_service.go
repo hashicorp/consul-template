@@ -131,6 +131,10 @@ func (d *HealthServices) Fetch(clients *ClientSet, opts *QueryOptions) (interfac
 	return services, rm, nil
 }
 
+func (d *HealthServices) CanShare() bool {
+	return true
+}
+
 func (d *HealthServices) HashCode() string {
 	return fmt.Sprintf("HealthServices|%s", d.rawKey)
 }

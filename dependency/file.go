@@ -43,6 +43,10 @@ func (d *File) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *Resp
 	return nil, nil, fmt.Errorf("file: error reading: %s", err)
 }
 
+func (d *File) CanShare() bool {
+	return false
+}
+
 func (d *File) HashCode() string {
 	return fmt.Sprintf("StoreKeyPrefix|%s", d.rawKey)
 }

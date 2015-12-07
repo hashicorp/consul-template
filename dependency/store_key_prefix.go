@@ -87,6 +87,10 @@ func (d *StoreKeyPrefix) Fetch(clients *ClientSet, opts *QueryOptions) (interfac
 	return keyPairs, rm, nil
 }
 
+func (d *StoreKeyPrefix) CanShare() bool {
+	return true
+}
+
 func (d *StoreKeyPrefix) HashCode() string {
 	return fmt.Sprintf("StoreKeyPrefix|%s", d.rawKey)
 }

@@ -336,7 +336,7 @@ func (r *Runner) Run() error {
 			for _, d := range unwatched {
 				// If we are deduplicating, we must still handle non-sharable
 				// dependencies, since those will be ignored.
-				if isLeader || !dep.CanShare(d) {
+				if isLeader || !d.CanShare() {
 					r.watcher.Add(d)
 				}
 			}

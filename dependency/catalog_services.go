@@ -74,6 +74,11 @@ func (d *CatalogServices) Fetch(clients *ClientSet, opts *QueryOptions) (interfa
 	return catalogServices, rm, nil
 }
 
+// CanShare returns if this dependency is shareable.
+func (d *CatalogServices) CanShare() bool {
+	return true
+}
+
 // HashCode returns the hash code for this dependency.
 func (d *CatalogServices) HashCode() string {
 	return fmt.Sprintf("CatalogServices|%s", d.rawKey)

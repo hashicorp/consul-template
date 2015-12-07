@@ -106,6 +106,11 @@ func (d *VaultSecret) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 	return secret, rm, nil
 }
 
+// CanShare returns if this dependency is shareable.
+func (d *VaultSecret) CanShare() bool {
+	return false
+}
+
 // HashCode returns the hash code for this dependency.
 func (d *VaultSecret) HashCode() string {
 	return fmt.Sprintf("VaultSecret|%s", d.Path)

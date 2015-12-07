@@ -69,6 +69,10 @@ func (d *StoreKey) SetDefault(s string) {
 	d.defaultValue = s
 }
 
+func (d *StoreKey) CanShare() bool {
+	return true
+}
+
 func (d *StoreKey) HashCode() string {
 	if d.defaultGiven {
 		return fmt.Sprintf("StoreKey|%s|%s", d.rawKey, d.defaultValue)

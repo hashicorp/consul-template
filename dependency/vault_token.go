@@ -72,6 +72,11 @@ func (d *VaultToken) Fetch(clients *ClientSet, opts *QueryOptions) (interface{},
 	return secret, rm, nil
 }
 
+// CanShare returns if this dependency is shareable.
+func (d *VaultToken) CanShare() bool {
+	return false
+}
+
 // HashCode returns the hash code for this dependency.
 func (d *VaultToken) HashCode() string {
 	return "VaultToken"

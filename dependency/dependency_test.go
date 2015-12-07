@@ -21,16 +21,16 @@ func TestCanShare(t *testing.T) {
 	file := &File{}
 	service := &HealthServices{}
 
-	if CanShare(vs) {
+	if vs.CanShare() {
 		t.Fatalf("should not share vault")
 	}
-	if CanShare(vt) {
+	if vt.CanShare() {
 		t.Fatalf("should not share vault")
 	}
-	if CanShare(file) {
+	if file.CanShare() {
 		t.Fatalf("should not share file")
 	}
-	if !CanShare(service) {
+	if !service.CanShare() {
 		t.Fatalf("should share service")
 	}
 }
