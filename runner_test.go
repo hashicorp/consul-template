@@ -1211,7 +1211,7 @@ func TestRunner_dedup(t *testing.T) {
 
 	// Should only be a single total watcher
 	total := r1.watcher.Size() + r2.watcher.Size()
-	if total != 1 {
+	if total > 1 {
 		t.Fatalf("too many watchers: %d", total)
 	}
 }
