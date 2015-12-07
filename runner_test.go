@@ -219,6 +219,7 @@ func TestRun_dry(t *testing.T) {
 		&dep.HealthService{Node: "consul2"},
 	}
 	runner.dependencies[d.HashCode()] = d
+	runner.watcher.ForceWatching(d, true)
 	runner.Receive(d, data)
 
 	buff := gatedio.NewByteBuffer()
@@ -464,6 +465,7 @@ func TestRun_multipleTemplatesRunsCommands(t *testing.T) {
 		&dep.HealthService{Node: "consul2"},
 	}
 	runner.dependencies[d.HashCode()] = d
+	runner.watcher.ForceWatching(d, true)
 	runner.Receive(d, data)
 
 	if err := runner.Run(); err != nil {
@@ -803,6 +805,7 @@ func TestRun_executesCommand(t *testing.T) {
 		},
 	}
 	runner.dependencies[d.HashCode()] = d
+	runner.watcher.ForceWatching(d, true)
 	runner.Receive(d, data)
 
 	if err := runner.Run(); err != nil {
@@ -865,6 +868,7 @@ func TestRun_doesNotExecuteCommandMoreThanOnce(t *testing.T) {
 		},
 	}
 	runner.dependencies[d.HashCode()] = d
+	runner.watcher.ForceWatching(d, true)
 	runner.Receive(d, data)
 
 	if err := runner.Run(); err != nil {
@@ -994,6 +998,7 @@ func TestRunner_onceAlreadyRenderedDoesNotHangOrRunCommands(t *testing.T) {
 	}
 	data := "redis"
 	runner.dependencies[d.HashCode()] = d
+	runner.watcher.ForceWatching(d, true)
 	runner.Receive(d, data)
 
 	go runner.Start()
