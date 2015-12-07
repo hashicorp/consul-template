@@ -356,6 +356,9 @@ Options:
   -max-stale=<duration>    Set the maximum staleness and allow stale queries to
                            Consul which will distribute work among all servers
                            instead of just the leader
+  -dedup                   Enable de-duplication mode. Reduces load on Consul when
+                           many instances of Consul Template are rendering a common
+                           template.
   -ssl                     Use SSL when connecting to Consul
   -ssl-verify              Verify certificates when connecting via SSL
   -ssl-cert                SSL client certificate to send to server
