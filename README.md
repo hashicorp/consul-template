@@ -28,7 +28,7 @@ Usage
 | `auth`            | The basic authentication username (and optional password), separated by a colon. There is no default value.
 | `consul`*         | The location of the Consul instance to query (may be an IP address or FQDN) with port.
 | `max-stale`       | The maximum staleness of a query. If specified, Consul will distribute work among all servers instead of just the leader. The default value is 1s.
-| `deduplicate`*    | Enable de-duplication of template rendering. If many instances of consul-template render the same template this reduces the load on Consul.
+| `deduplicate`     | Enable de-duplication of template rendering. If many instances of consul-template render the same template this reduces the load on Consul. Please see the "De-Duplication Mode" section in caveats for more information.
 | `ssl`             | Use HTTPS while talking to Consul. Requires the Consul server to be configured to serve secure connections. The default value is false.
 | `ssl-verify`      | Verify certificates when connecting via SSL. This requires the use of `-ssl`. The default value is true.
 | `ssl-cert`        | Path to an SSL client certificate to use to authenticate to the consul server. Useful if the consul server "verify_incoming" option is set.
@@ -934,16 +934,11 @@ Caveats
 -------
 ### De-Duplication Mode
 
-Consul Template works by parsing templates to determine what data is needed and then watching Consul
-for any changes to that data. This allows Consul Template to efficiently re-render templates when a
-change occurs. However, if there are many instances of Consul Template rendering a common template
-there is a linear duplicaiton of work as each instance is querying the same data.
+Consul Template works by parsing templates to determine what data is needed and then watching Consul for any changes to that data. This allows Consul Template to efficiently re-render templates when a change occurs. However, if there are many instances of Consul Template rendering a common template there is a linear duplicaiton of work as each instance is querying the same data.
 
-To make this pattern more efficient Consul Template supports work de-duplication across instances.
-This can be enabled with the `-dedup` flag or via the `deduplicate` configuration block. Once enabled,
-Consul Template uses [leader election](https://consul.io/docs/guides/leader-election.html) on a per
-template basis to have only a single node perform the queries. Results are shared among other instances
-rending the same template by passing compressed data through the Consul K/V store.
+To make this pattern more efficient Consul Template supports work de-duplication across instances. This can be enabled with the `-dedup` flag or via the `deduplicate` configuration block. Once enabled, Consul Template uses [leader election](https://consul.io/docs/guides/leader-election.html) on a per-template basis to have only a single node perform the queries. Results are shared among other instances rendering the same template by passing compressed data through the Consul K/V store.
+
+Please note that no Vault data will be stored in the compressed template. Because ACLs around Vault are typically more closely controlled than those ACLs around Consul's KV, Consul Template will still request the secret from Vault on each iteration.
 
 ### Termination on Error
 By default Consul Template is highly fault-tolerant. If Consul is unreachable or a template changes, Consul Template will happily continue running. The only exception to this rule is if the optional `command` exits non-zero. In this case, Consul Template will also exit non-zero. The reason for this decision is so the user can easily configure something like Upstart or God to manage Consul Template as a service.
@@ -1231,7 +1226,7 @@ $ consul-template -log-level debug ...
 FAQ
 ---
 **Q: How is this different than confd?**<br>
-A: The answer is simple: Service Discovery as a first class citizen. You are also encouraged to read [this Pull Request](https://github.com/kelseyhightower/confd/pull/102) on the project for more background information. We think confd is a great project, but Consul Template fills a missing gap. Additionally, Consul Template has first class integration with [Vault](https://vaultproject.io), making it easy to incorporate secret material like database credentials or API tokens into configuraiton files.
+A: The answer is simple: Service Discovery as a first class citizen. You are also encouraged to read [this Pull Request](https://github.com/kelseyhightower/confd/pull/102) on the project for more background information. We think confd is a great project, but Consul Template fills a missing gap. Additionally, Consul Template has first class integration with [Vault](https://vaultproject.io), making it easy to incorporate secret material like database credentials or API tokens into configuration files.
 
 **Q: How is this different than Puppet/Chef/Ansible/Salt?**<br>
 A: Configuration management tools are designed to be used in unison with Consul Template. Instead of rendering a stale configuration file, use your configuration management software to render a dynamic template that will be populated by [Consul][].
