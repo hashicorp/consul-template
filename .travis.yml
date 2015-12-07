@@ -9,4 +9,7 @@ branches:
   only:
     - master
 
-script: make updatedeps test testrace
+script:
+  - make updatedeps
+  - make test
+  - make testrace
