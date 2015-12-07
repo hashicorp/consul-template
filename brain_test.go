@@ -38,6 +38,25 @@ func TestRecall(t *testing.T) {
 	}
 }
 
+func TestForceSet(t *testing.T) {
+	b := NewBrain()
+
+	d := &dep.CatalogNodes{}
+	nodes := []*dep.Node{&dep.Node{Node: "node", Address: "address"}}
+
+	b.ForceSet(d.HashCode(), nodes)
+	data, ok := b.Recall(d)
+
+	if !ok {
+		t.Fatal("expected data from brain")
+	}
+
+	result := data.([]*dep.Node)
+	if !reflect.DeepEqual(result, nodes) {
+		t.Errorf("expected %#v to be %#v", result, nodes)
+	}
+}
+
 func TestForget(t *testing.T) {
 	b := NewBrain()
 

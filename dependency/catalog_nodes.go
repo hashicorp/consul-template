@@ -1,12 +1,17 @@
 package dependency
 
 import (
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"log"
 	"regexp"
 	"sort"
 )
+
+func init() {
+	gob.Register([]*Node{})
+}
 
 // Node is a node entry in Consul
 type Node struct {

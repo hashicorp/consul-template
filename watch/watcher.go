@@ -118,6 +118,19 @@ func (w *Watcher) Watching(d dep.Dependency) bool {
 	return ok
 }
 
+// ForceWatching is used to force setting the internal state of watching
+// a depedency. This is only used for unit testing purposes.
+func (w *Watcher) ForceWatching(d dep.Dependency, enabled bool) {
+	w.Lock()
+	defer w.Unlock()
+
+	if enabled {
+		w.depViewMap[d.HashCode()] = nil
+	} else {
+		delete(w.depViewMap, d.HashCode())
+	}
+}
+
 // Remove removes the given dependency from the list and stops the
 // associated View. If a View for the given dependency does not exist, this
 // function will return false. If the View does exist, this function will return
@@ -155,6 +168,9 @@ func (w *Watcher) Stop() {
 	log.Printf("[INFO] (watcher) stopping all views")
 
 	for _, view := range w.depViewMap {
+		if view == nil {
+			continue
+		}
 		log.Printf("[DEBUG] (watcher) stopping %s", view.Dependency.Display())
 		view.stop()
 	}

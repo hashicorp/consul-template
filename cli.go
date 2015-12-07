@@ -236,6 +236,7 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 
 	flags.Var((funcBoolVar)(func(b bool) error {
 		config.Syslog.Enabled = b
+		config.set("syslog")
 		config.set("syslog.enabled")
 		return nil
 	}), "syslog", "")
@@ -245,6 +246,13 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 		config.set("syslog.facility")
 		return nil
 	}), "syslog-facility", "")
+
+	flags.Var((funcBoolVar)(func(b bool) error {
+		config.Deduplicate.Enabled = b
+		config.set("deduplicate")
+		config.set("deduplicate.enabled")
+		return nil
+	}), "dedup", "")
 
 	flags.Var((funcVar)(func(s string) error {
 		w, err := watch.ParseWait(s)
@@ -348,6 +356,9 @@ Options:
   -max-stale=<duration>    Set the maximum staleness and allow stale queries to
                            Consul which will distribute work among all servers
                            instead of just the leader
+  -dedup                   Enable de-duplication mode. Reduces load on Consul when
+                           many instances of Consul Template are rendering a common
+                           template.
   -ssl                     Use SSL when connecting to Consul
   -ssl-verify              Verify certificates when connecting via SSL
   -ssl-cert                SSL client certificate to send to server

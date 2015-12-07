@@ -1,12 +1,18 @@
 package dependency
 
 import (
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"log"
 	"regexp"
 	"sort"
 )
+
+func init() {
+	gob.Register([]*NodeDetail{})
+	gob.Register([]*NodeService{})
+}
 
 type NodeDetail struct {
 	Node     *Node

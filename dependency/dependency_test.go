@@ -15,6 +15,26 @@ import (
 	"github.com/hashicorp/vault/vault"
 )
 
+func TestCanShare(t *testing.T) {
+	vs := &VaultSecret{}
+	vt := &VaultToken{}
+	file := &File{}
+	service := &HealthServices{}
+
+	if CanShare(vs) {
+		t.Fatalf("should not share vault")
+	}
+	if CanShare(vt) {
+		t.Fatalf("should not share vault")
+	}
+	if CanShare(file) {
+		t.Fatalf("should not share file")
+	}
+	if !CanShare(service) {
+		t.Fatalf("should share service")
+	}
+}
+
 func TestDeepCopyAndSortTags(t *testing.T) {
 	tags := []string{"hello", "world", "these", "are", "tags"}
 	expected := []string{"are", "hello", "tags", "these", "world"}

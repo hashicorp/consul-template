@@ -1,6 +1,7 @@
 package dependency
 
 import (
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"log"
@@ -11,6 +12,10 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-multierror"
 )
+
+func init() {
+	gob.Register([]*HealthService{})
+}
 
 // Ripped from https://github.com/hashicorp/consul/blob/master/consul/structs/structs.go#L31
 const (
