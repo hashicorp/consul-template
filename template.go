@@ -16,14 +16,17 @@ type Template struct {
 
 	// contents is string contents for this file when read from disk.
 	contents string
+
+	// config is the Config created by the Runner.
+	config *Config
 }
 
 // NewTemplate creates and parses a new Consul Template template at the given
 // path. If the template does not exist, an error is returned. During
 // initialization, the template is read and is parsed for dependencies. Any
 // errors that occur are returned.
-func NewTemplate(path string) (*Template, error) {
-	template := &Template{Path: path}
+func NewTemplate(path string, config *Config) (*Template, error) {
+	template := &Template{Path: path, config: config}
 	if err := template.init(); err != nil {
 		return nil, err
 	}
@@ -43,7 +46,7 @@ func (t *Template) Execute(brain *Brain) ([]dep.Dependency, []dep.Dependency, []
 	name := filepath.Base(t.Path)
 	funcs := funcMap(brain, usedMap, missingMap)
 
-	tmpl, err := template.New(name).Funcs(funcs).Parse(t.contents)
+	tmpl, err := template.New(name).Delims(t.config.Delimiter[0], t.config.Delimiter[1]).Funcs(funcs).Parse(t.contents)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("template: %s", err)
 	}

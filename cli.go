@@ -281,6 +281,12 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 		return nil
 	}), "log-level", "")
 
+	flags.Var((funcVar)(func(s string) error {
+		config.Delimiter = strings.SplitN(s, " ", 2)
+		config.set("delimiter")
+		return nil
+        }), "delimiter", "")
+
 	flags.BoolVar(&once, "once", false, "")
 	flags.BoolVar(&dry, "dry", false, "")
 	flags.BoolVar(&version, "v", false, "")
@@ -375,6 +381,9 @@ Options:
   -pid-file=<path>         Path on disk to write the PID of the process
   -log-level=<level>       Set the logging level - valid values are "debug",
                            "info", "warn" (default), and "err"
+
+  -delimiter=<delimiter>   Change the delimiter utilised by the template
+                           where the format of <delimiter> is <left> <right>
 
   -dry                     Dump generated templates to stdout
   -once                    Do not run the process as a daemon

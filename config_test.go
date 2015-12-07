@@ -375,6 +375,7 @@ func TestParseConfig_correctValues(t *testing.T) {
 		},
 		Retry:    10 * time.Second,
 		LogLevel: "warn",
+		Delimiter: []string{"{{", "}}"},
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{
 				Source:      "nginx.conf.ctmpl",
