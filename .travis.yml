@@ -9,10 +9,4 @@ branches:
   only:
     - master
 
-before_script:
-  - mkdir -p ~/bin/
-  - wget -O consul.zip -q https://releases.hashicorp.com/consul/0.6.0/consul_0.6.0_linux_amd64.zip
-  - unzip consul.zip
-  - mv consul ~/bin/
-
 script: make updatedeps test testrace
