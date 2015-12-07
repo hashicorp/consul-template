@@ -11,5 +11,4 @@ branches:
 
 script:
   - make updatedeps
-  - make test
-  - make testrace
+  - make test testrace
