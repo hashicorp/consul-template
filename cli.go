@@ -210,6 +210,13 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	}), "ssl-cert", "")
 
 	flags.Var((funcVar)(func(s string) error {
+		config.SSL.Key = s
+		config.set("ssl")
+		config.set("ssl.key")
+		return nil
+	}), "ssl-key", "")
+
+	flags.Var((funcVar)(func(s string) error {
 		config.SSL.CaCert = s
 		config.set("ssl")
 		config.set("ssl.ca_cert")
@@ -362,6 +369,8 @@ Options:
   -ssl                     Use SSL when connecting to Consul
   -ssl-verify              Verify certificates when connecting via SSL
   -ssl-cert                SSL client certificate to send to server
+  -ssl-key                 SSL/TLS private key for use in client authentication
+                           key exchange
   -ssl-ca-cert             Validate server certificate against this CA
                            certificate file list
   -token=<token>           Sets the Consul API token

@@ -934,7 +934,14 @@ func newConsulClient(config *Config) (*consulapi.Client, error) {
 
 		tlsConfig := &tls.Config{}
 
-		if config.SSL.Cert != "" {
+		// Client configured for TLS Mutual Authentication
+		if config.SSL.Cert != "" && config.SSL.Key != "" {
+			cert, err := tls.LoadX509KeyPair(config.SSL.Cert, config.SSL.Key)
+			if err != nil {
+				return nil, err
+			}
+			tlsConfig.Certificates = []tls.Certificate{cert}
+		} else if config.SSL.Cert != "" {
 			cert, err := tls.LoadX509KeyPair(config.SSL.Cert, config.SSL.Cert)
 			if err != nil {
 				return nil, err
