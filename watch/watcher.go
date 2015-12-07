@@ -168,6 +168,9 @@ func (w *Watcher) Stop() {
 	log.Printf("[INFO] (watcher) stopping all views")
 
 	for _, view := range w.depViewMap {
+		if view == nil {
+			continue
+		}
 		log.Printf("[DEBUG] (watcher) stopping %s", view.Dependency.Display())
 		view.stop()
 	}
