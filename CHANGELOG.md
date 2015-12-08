@@ -3,6 +3,16 @@ Consul Template Changelog
 
 ## v0.12.0.dev (Unreleased)
 
+BREAKING CHANGES:
+
+  * Add support for checking if a node is in maintenance mode [GH-477, GH-455]
+
+    Previously, Consul Template would report nodes in maintenance mode as
+    "critical". They will now report as "maintenance" so users can perform more
+    detailed filtering. It is unlikely, but if you were filtering critical
+    services, nodes/services in maintenance mode will no longer be included.
+
+
 FEATURES:
 
   * Add support for de-duplication mode. In de-duplication mode, Consul Template
@@ -20,6 +30,7 @@ IMPROVEMENTS:
     [GH-450]
   * Allow existing templates to be backed up before writing the new one [GH-464]
   * Add support for TLS/SSL mutual authentication [GH-448]
+  * Add support for checking if a node is in maintenance mode [GH-477, GH-455]
 
 
 BUG FIXES:
