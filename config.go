@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -375,8 +374,6 @@ func ConfigFromPath(path string) (*Config, error) {
 			if info.IsDir() {
 				return nil
 			}
-
-			log.Printf("[DEBUG] (config) merging with %q", path)
 
 			// Parse and merge the config
 			newConfig, err := ParseConfig(path)
