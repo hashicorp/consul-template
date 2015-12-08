@@ -26,7 +26,7 @@ const (
 	HealthMaint    = "maintenance"
 
 	NodeMaint    = "_node_maintenance"
-	ServiceMaint = "_service_maintenance"
+	ServiceMaint = "_service_maintenance:"
 )
 
 // HealthService is a service entry in Consul.
@@ -241,7 +241,7 @@ func ParseHealthServices(s ...string) (*HealthServices, error) {
 func statusFromChecks(checks []*api.HealthCheck) (string, error) {
 	var passing, warning, unknown, critical, maintenance bool
 	for _, check := range checks {
-		if check.CheckID == NodeMaint || check.CheckID == ServiceMaint {
+		if check.CheckID == NodeMaint || strings.HasPrefix(check.CheckID, ServiceMaint) {
 			maintenance = true
 			continue
 		}

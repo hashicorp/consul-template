@@ -418,7 +418,7 @@ func TestStatusFromChecks_serviceMaintenance(t *testing.T) {
 		&api.HealthCheck{Status: "warning"},
 		&api.HealthCheck{Status: "unknown"},
 		&api.HealthCheck{Status: "critical"},
-		&api.HealthCheck{CheckID: "_service_maintenance"},
+		&api.HealthCheck{CheckID: "_service_maintenance:1234"},
 	}
 	status, err := statusFromChecks(checks)
 	if err != nil {
