@@ -399,7 +399,7 @@ func TestStatusFromChecks_nodeMaintenance(t *testing.T) {
 		&api.HealthCheck{Status: "warning"},
 		&api.HealthCheck{Status: "unknown"},
 		&api.HealthCheck{Status: "critical"},
-		&api.HealthCheck{CheckID: NodeMaint},
+		&api.HealthCheck{CheckID: "_node_maintenance"},
 	}
 	status, err := statusFromChecks(checks)
 	if err != nil {
@@ -418,7 +418,7 @@ func TestStatusFromChecks_serviceMaintenance(t *testing.T) {
 		&api.HealthCheck{Status: "warning"},
 		&api.HealthCheck{Status: "unknown"},
 		&api.HealthCheck{Status: "critical"},
-		&api.HealthCheck{CheckID: ServiceMaint},
+		&api.HealthCheck{CheckID: "_service_maintenance"},
 	}
 	status, err := statusFromChecks(checks)
 	if err != nil {

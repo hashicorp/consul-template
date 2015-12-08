@@ -26,7 +26,7 @@ const (
 	HealthMaint    = "maintenance"
 
 	NodeMaint    = "_node_maintenance"
-	ServiceMaint = "_service_maintenance:"
+	ServiceMaint = "_service_maintenance"
 )
 
 // HealthService is a service entry in Consul.
