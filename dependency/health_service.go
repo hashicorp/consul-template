@@ -17,13 +17,16 @@ func init() {
 	gob.Register([]*HealthService{})
 }
 
-// Ripped from https://github.com/hashicorp/consul/blob/master/consul/structs/structs.go#L31
 const (
 	HealthAny      = "any"
 	HealthPassing  = "passing"
 	HealthWarning  = "warning"
 	HealthUnknown  = "unknown"
 	HealthCritical = "critical"
+	HealthMaint    = "maintenance"
+
+	NodeMaint    = "_node_maintenance"
+	ServiceMaint = "_service_maintenance:"
 )
 
 // HealthService is a service entry in Consul.
@@ -236,8 +239,13 @@ func ParseHealthServices(s ...string) (*HealthServices, error) {
 // "warning", and finally "passing". If there are no checks, the service will be
 // marked as "passing".
 func statusFromChecks(checks []*api.HealthCheck) (string, error) {
-	var passing, warning, unknown, critical bool
+	var passing, warning, unknown, critical, maintenance bool
 	for _, check := range checks {
+		if check.CheckID == NodeMaint || strings.HasPrefix(check.CheckID, ServiceMaint) {
+			maintenance = true
+			continue
+		}
+
 		switch check.Status {
 		case "passing":
 			passing = true
@@ -253,17 +261,19 @@ func statusFromChecks(checks []*api.HealthCheck) (string, error) {
 	}
 
 	switch {
+	case maintenance:
+		return HealthMaint, nil
 	case critical:
-		return "critical", nil
+		return HealthCritical, nil
 	case unknown:
-		return "unknown", nil
+		return HealthUnknown, nil
 	case warning:
-		return "warning", nil
+		return HealthWarning, nil
 	case passing:
-		return "passing", nil
+		return HealthPassing, nil
 	default:
 		// No checks?
-		return "passing", nil
+		return HealthPassing, nil
 	}
 }
 
@@ -309,9 +319,7 @@ func NewServiceStatusFilter(s string) (ServiceStatusFilter, error) {
 
 		// Validate that the service is actually a valid name.
 		switch trim {
-		// Note that we intentionally do not att Healthy here because that is not
-		// something the user should specify.
-		case HealthAny, HealthUnknown, HealthPassing, HealthWarning, HealthCritical:
+		case HealthAny, HealthUnknown, HealthPassing, HealthWarning, HealthCritical, HealthMaint:
 			trimmed = append(trimmed, trim)
 		default:
 			errs = multierror.Append(errs, fmt.Errorf("service filter: invalid filter %q", trim))
