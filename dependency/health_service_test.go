@@ -393,6 +393,44 @@ func TestStatusFromChecks_critical(t *testing.T) {
 	}
 }
 
+func TestStatusFromChecks_nodeMaintenance(t *testing.T) {
+	checks := []*api.HealthCheck{
+		&api.HealthCheck{Status: "passing"},
+		&api.HealthCheck{Status: "warning"},
+		&api.HealthCheck{Status: "unknown"},
+		&api.HealthCheck{Status: "critical"},
+		&api.HealthCheck{CheckID: NodeMaint},
+	}
+	status, err := statusFromChecks(checks)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "maintenance"
+	if status != expected {
+		t.Fatalf("expected %q to be %q", status, expected)
+	}
+}
+
+func TestStatusFromChecks_serviceMaintenance(t *testing.T) {
+	checks := []*api.HealthCheck{
+		&api.HealthCheck{Status: "passing"},
+		&api.HealthCheck{Status: "warning"},
+		&api.HealthCheck{Status: "unknown"},
+		&api.HealthCheck{Status: "critical"},
+		&api.HealthCheck{CheckID: ServiceMaint},
+	}
+	status, err := statusFromChecks(checks)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "maintenance"
+	if status != expected {
+		t.Fatalf("expected %q to be %q", status, expected)
+	}
+}
+
 // Tests specifically relating to health service filtering
 // -------------------------
 
