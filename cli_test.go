@@ -501,6 +501,9 @@ func TestParseFlags_reap(t *testing.T) {
 	if config.Reap != true {
 		t.Errorf("expected reap to be true")
 	}
+	if !config.WasSet("reap") {
+		t.Errorf("expected reap to be set")
+	}
 }
 
 func TestParseFlags_version(t *testing.T) {

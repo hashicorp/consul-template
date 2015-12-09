@@ -86,11 +86,12 @@ func (cli *CLI) Run(args []string) int {
 	}
 
 	// If they configured a child process reaper, start that now
-	if config.Reap {
+	if config.Reap || (!config.WasSet("reap") && os.Getpid() == 1) {
 		if !reap.IsSupported() {
-			err := fmt.Errorf("[WARN] Child process reaping requested but not supported on this platform")
+			err := fmt.Errorf("[WARN] Child process reaping is not supported on this platform, please set the 'reap' option to false")
 			return cli.handleError(err, ExitCodeConfigError)
 		}
+		log.Printf("[DEBUG] Automatically reaping child processes")
 
 		pids := make(reap.PidCh, 1)
 		errors := make(reap.ErrorCh, 1)
@@ -429,7 +430,12 @@ Options:
 
   -dry                     Dump generated templates to stdout
   -once                    Do not run the process as a daemon
-  -reap                    Enable automatic reaping of child processes, useful
-                           if running as PID 1 in a Docker container
+  -reap                    Control automatic reaping of child processes, useful
+                           if running as PID 1 in a Docker container. By default,
+                           if Consul Template detects that it is running as PID 1
+                           it will automatically enable child process reaping.
+                           Setting this option to false disables this behavior,
+                           and setting it to true enables child process reaping
+                           regardless of Consul Template's PID.
   -v, -version             Print the version of this daemon
 `
