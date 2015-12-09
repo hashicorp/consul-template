@@ -294,6 +294,29 @@ func TestMerge_wait(t *testing.T) {
 	}
 }
 
+func TestMerge_reap(t *testing.T) {
+	config := testConfig(`
+		reap = true
+	`, t)
+	if config.Reap != true {
+		t.Fatalf("reap should be true")
+	}
+
+	config.Merge(testConfig(`
+		reap = false
+	`, t))
+	if config.Reap != false {
+		t.Fatalf("reap should be false")
+	}
+
+	config.Merge(testConfig(`
+		reap = true
+	`, t))
+	if config.Reap != true {
+		t.Fatalf("reap should be true")
+	}
+}
+
 func TestParseConfig_readFileError(t *testing.T) {
 	_, err := ParseConfig(path.Join(os.TempDir(), "config.json"))
 	if err == nil {
@@ -359,6 +382,8 @@ func TestParseConfig_correctValues(t *testing.T) {
 			prefix = "my-prefix/"
 			enabled = true
 		}
+
+		reap = true
   `), t)
 	defer test.DeleteTempfile(configFile, t)
 
@@ -423,6 +448,7 @@ func TestParseConfig_correctValues(t *testing.T) {
 			Enabled: true,
 			TTL:     15 * time.Second,
 		},
+		Reap:    true,
 		setKeys: config.setKeys,
 	}
 
@@ -459,11 +485,11 @@ func TestParseConfig_ssh_key_should_enable_ssl(t *testing.T) {
 	`, t)
 
 	expected := &SSLConfig{
-		Enabled:	true,
-		Verify:		true,
-		Cert:		"1.pem",
-		Key:		"private-key.pem",
-		CaCert:		"ca-1.pem",
+		Enabled: true,
+		Verify:  true,
+		Cert:    "1.pem",
+		Key:     "private-key.pem",
+		CaCert:  "ca-1.pem",
 	}
 
 	if !reflect.DeepEqual(config.SSL, expected) {

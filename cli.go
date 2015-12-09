@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/consul-template/logging"
 	"github.com/hashicorp/consul-template/watch"
+	"github.com/hashicorp/go-reap"
 )
 
 // Exit codes are int values that represent an exit code for a particular error.
@@ -82,6 +83,30 @@ func (cli *CLI) Run(args []string) int {
 		log.Printf("[DEBUG] (cli) version flag was given, exiting now")
 		fmt.Fprintf(cli.errStream, "%s\n", formattedVersion())
 		return ExitCodeOK
+	}
+
+	// If they configured a child process reaper, start that now
+	if config.Reap {
+		if !reap.IsSupported() {
+			err := fmt.Errorf("[WARN] Child process reaping requested but not supported on this platform")
+			return cli.handleError(err, ExitCodeConfigError)
+		}
+
+		pids := make(reap.PidCh, 1)
+		errors := make(reap.ErrorCh, 1)
+		go func() {
+			for {
+				select {
+				case pid := <-pids:
+					log.Printf("[DEBUG] Reaped child process %d", pid)
+				case err := <-errors:
+					log.Printf("[ERR] Error reaping child process: %v", err)
+				case <-cli.stopCh:
+					return
+				}
+			}
+		}()
+		go reap.ReapChildren(pids, errors, cli.stopCh)
 	}
 
 	// Initial runner
@@ -296,6 +321,12 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 		return nil
 	}), "log-level", "")
 
+	flags.Var((funcBoolVar)(func(b bool) error {
+		config.Reap = b
+		config.set("reap")
+		return nil
+	}), "reap", "")
+
 	flags.BoolVar(&once, "once", false, "")
 	flags.BoolVar(&dry, "dry", false, "")
 	flags.BoolVar(&version, "v", false, "")
@@ -398,5 +429,7 @@ Options:
 
   -dry                     Dump generated templates to stdout
   -once                    Do not run the process as a daemon
+  -reap                    Enable automatic reaping of child processes, useful
+                           if running as PID 1 in a Docker container
   -v, -version             Print the version of this daemon
 `

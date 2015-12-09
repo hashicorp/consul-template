@@ -77,6 +77,9 @@ type Config struct {
 	// Deduplicate is used to configure the dedup settings
 	Deduplicate *DeduplicateConfig `json:"deduplicate" mapstructure:"deduplicate"`
 
+	// Reap is used to configure automatic reaping of child processes.
+	Reap bool `json:"reap" mapstructure:"reap"`
+
 	// setKeys is the list of config keys that were set by the user.
 	setKeys map[string]struct{}
 }
@@ -234,6 +237,10 @@ func (c *Config) Merge(config *Config) {
 		if config.WasSet("deduplicate.prefix") {
 			c.Deduplicate.Prefix = config.Deduplicate.Prefix
 		}
+	}
+
+	if config.WasSet("reap") {
+		c.Reap = config.Reap
 	}
 
 	if c.setKeys == nil {
@@ -433,6 +440,7 @@ func DefaultConfig() *Config {
 		MaxStale:        1 * time.Second,
 		Wait:            &watch.Wait{},
 		LogLevel:        logLevel,
+		Reap:            false,
 		setKeys:         make(map[string]struct{}),
 	}
 
