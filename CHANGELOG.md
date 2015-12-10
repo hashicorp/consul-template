@@ -41,9 +41,6 @@ IMPROVEMENTS:
   * Add support for checking if a node is in maintenance mode [GH-477, GH-455]
 
 
-BUG FIXES:
-
-
 ## v0.11.1 (October 26, 2015)
 
 FEATURES:
