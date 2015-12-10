@@ -489,6 +489,23 @@ func TestParseFlags_dry(t *testing.T) {
 	}
 }
 
+func TestParseFlags_reap(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-reap",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if config.Reap != true {
+		t.Errorf("expected reap to be true")
+	}
+	if !config.WasSet("reap") {
+		t.Errorf("expected reap to be set")
+	}
+}
+
 func TestParseFlags_version(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
 	_, _, _, version, err := cli.parseFlags([]string{
