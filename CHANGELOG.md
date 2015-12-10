@@ -22,6 +22,10 @@ FEATURES:
     is off by default, but it is highly recommended that the option is enabled
     for clusters with a high load factor (number of templates x number of
     dependencies per template). [GH-465]
+  * Add support for automatically reaping child processes. This is very useful
+    when running Consul Template as PID 1 (like in a Docker container) when no
+    init system is present. The option is configurable, but it defaults to "on"
+    when the Consul Template process is PID 1. [GH-428, GH-479]
 
 
 IMPROVEMENTS:

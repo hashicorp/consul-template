@@ -440,7 +440,7 @@ func DefaultConfig() *Config {
 		MaxStale:        1 * time.Second,
 		Wait:            &watch.Wait{},
 		LogLevel:        logLevel,
-		Reap:            false,
+		Reap:            os.Getpid() == 1,
 		setKeys:         make(map[string]struct{}),
 	}
 
