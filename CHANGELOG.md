@@ -3,6 +3,9 @@ Consul Template Changelog
 
 ## v0.13.0.dev (Unreleased)
 
+IMPROVEMENTS:
+
+  * Add support for math operations on uint types [GH-483, GH-484]
 
 
 ## v0.12.0 (December 10, 2015)
