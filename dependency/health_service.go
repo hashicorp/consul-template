@@ -37,6 +37,7 @@ type HealthService struct {
 	ID          string
 	Name        string
 	Tags        ServiceTags
+	Checks      []*api.HealthCheck
 	Status      string
 	Port        uint64
 }
@@ -118,6 +119,7 @@ func (d *HealthServices) Fetch(clients *ClientSet, opts *QueryOptions) (interfac
 			Name:        entry.Service.Service,
 			Tags:        tags,
 			Status:      status,
+			Checks:      entry.Checks,
 			Port:        uint64(entry.Service.Port),
 		})
 	}

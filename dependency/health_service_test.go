@@ -28,6 +28,14 @@ func TestServiceDependencyFetch(t *testing.T) {
 	if typed[0].ID != "consul" {
 		t.Errorf("expected %q to be %q", typed[0].ID, "consul")
 	}
+
+	if len(typed[0].Checks) == 0 {
+		t.Fatalf("expected to have at least one associated health check")
+	}
+
+	if typed[0].Checks[0].CheckID != "serfHealth" {
+		t.Errorf("expected %q to be %q", typed[0].Checks[0].CheckID, "serfHealth")
+	}
 }
 
 func TestHealthServiceList_sorts(t *testing.T) {
