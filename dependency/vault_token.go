@@ -63,13 +63,7 @@ func (d *VaultToken) Fetch(clients *ClientSet, opts *QueryOptions) (interface{},
 
 	log.Printf("[DEBUG] (%s) successfully renewed token", d.Display())
 
-	ts := time.Now().Unix()
-	rm := &ResponseMetadata{
-		LastContact: 0,
-		LastIndex:   uint64(ts),
-	}
-
-	return secret, rm, nil
+	return respWithMetadata(secret)
 }
 
 // CanShare returns if this dependency is shareable.

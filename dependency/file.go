@@ -31,14 +31,8 @@ func (d *File) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *Resp
 	defer d.mutex.Unlock()
 	d.lastStat = newStat
 
-	ts := time.Now().Unix()
-	rm := &ResponseMetadata{
-		LastContact: 0,
-		LastIndex:   uint64(ts),
-	}
-
 	if data, err = ioutil.ReadFile(d.rawKey); err == nil {
-		return string(data), rm, nil
+		return respWithMetadata(string(data))
 	}
 	return nil, nil, fmt.Errorf("file: error reading: %s", err)
 }

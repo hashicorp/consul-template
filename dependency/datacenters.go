@@ -51,13 +51,7 @@ func (d *Datacenters) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 	log.Printf("[DEBUG] (%s) Consul returned %d datacenters", d.Display(), len(result))
 	sort.Strings(result)
 
-	ts := time.Now().Unix()
-	rm := &ResponseMetadata{
-		LastContact: 0,
-		LastIndex:   uint64(ts),
-	}
-
-	return result, rm, nil
+	return respWithMetadata(result)
 }
 
 // CanShare returns if this dependency is shareable.

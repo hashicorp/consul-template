@@ -64,3 +64,12 @@ func deepCopyAndSortTags(tags []string) []string {
 	sort.Strings(newTags)
 	return newTags
 }
+
+// respWithMetadata is a short wrapper to return the given interface with fake
+// response metadata for non-Consul dependencies.
+func respWithMetadata(i interface{}) (interface{}, *ResponseMetadata, error) {
+	return i, &ResponseMetadata{
+		LastContact: 0,
+		LastIndex:   uint64(time.Now().Unix()),
+	}, nil
+}
