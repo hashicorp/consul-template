@@ -5,8 +5,6 @@ import (
 	"log"
 	"sync"
 	"time"
-
-	vaultapi "github.com/hashicorp/vault/api"
 )
 
 // Secret is a vault secret.
@@ -24,10 +22,8 @@ type Secret struct {
 type VaultSecret struct {
 	sync.Mutex
 
-	Path          string
-	leaseID       string
-	leaseDuration int
-	renewable     bool
+	Path   string
+	secret *Secret
 }
 
 // Fetch queries the Vault API
@@ -40,8 +36,8 @@ func (d *VaultSecret) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 
 	// If this is not the first query and we have a lease duration, sleep until we
 	// try to renew.
-	if opts.WaitIndex != 0 && d.leaseDuration != 0 {
-		duration := time.Duration(d.leaseDuration/2) * time.Second
+	if opts.WaitIndex != 0 && d.secret != nil && d.secret.LeaseDuration != 0 {
+		duration := time.Duration(d.secret.LeaseDuration/2) * time.Second
 		log.Printf("[DEBUG] (%s) pretending to long-poll for %q",
 			d.Display(), duration)
 		time.Sleep(duration)
@@ -53,24 +49,41 @@ func (d *VaultSecret) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 		return nil, nil, fmt.Errorf("vault secret: %s", err)
 	}
 
-	// Attempt to renew the secret
-	var vaultSecret *vaultapi.Secret
-	if d.renewable && d.leaseID != "" {
-		vaultSecret, err = vault.Sys().Renew(d.leaseID, 1)
-		if err != nil {
-			log.Printf("[WARN] (%s) failed to renew, re-reading", d.Display())
+	// Attempt to renew the secret. If we do not have a secret or if that secret
+	// is not renewable, we will attempt a (re-)read later.
+	if d.secret != nil && d.secret.LeaseID != "" && d.secret.Renewable {
+		renewal, err := vault.Sys().Renew(d.secret.LeaseID, 0)
+		if err == nil {
+			log.Printf("[DEBUG] (%s) successfully renewed", d.Display())
+
+			secret := &Secret{
+				LeaseID:       renewal.LeaseID,
+				LeaseDuration: leaseDurationOrDefault(renewal.LeaseDuration),
+				Renewable:     renewal.Renewable,
+				Data:          d.secret.Data,
+			}
+
+			d.Lock()
+			d.secret = secret
+			d.Unlock()
+
+			return respWithMetadata(secret)
 		}
+
+		// The renewal failed for some reason.
+		log.Printf("[WARN] (%s) failed to renew, re-reading: %s", d.Display(), err)
 	}
 
-	// If we did not renew, attempt a fresh read
-	if vaultSecret == nil {
-		vaultSecret, err = vault.Logical().Read(d.Path)
-		if err != nil {
-			return nil, nil, fmt.Errorf("error reading from vault: %s", err)
-		}
+	// If we got this far, we either didn't have a secret to renew, the secret was
+	// not renewable, or the renewal failed, so attempt a fresh read.
+	vaultSecret, err := vault.Logical().Read(d.Path)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error reading from vault: %s", err)
 	}
 
-	// The secret could be nil (maybe it does not exist yet)
+	// The secret could be nil (maybe it does not exist yet). This is not an error
+	// to Vault, but it is an error to Consul Template, so return an error
+	// instead.
 	if vaultSecret == nil {
 		return nil, nil, fmt.Errorf("no secret exists at path %q", d.Display())
 	}
@@ -78,32 +91,18 @@ func (d *VaultSecret) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 	// Create our cloned secret
 	secret := &Secret{
 		LeaseID:       vaultSecret.LeaseID,
-		LeaseDuration: vaultSecret.LeaseDuration,
+		LeaseDuration: leaseDurationOrDefault(vaultSecret.LeaseDuration),
 		Renewable:     vaultSecret.Renewable,
 		Data:          vaultSecret.Data,
 	}
 
-	leaseDuration := secret.LeaseDuration
-	if leaseDuration == 0 {
-		log.Printf("[WARN] (%s) lease duration is 0, setting to 5m", d.Display())
-		leaseDuration = 5 * 60
-	}
-
 	d.Lock()
-	d.leaseID = secret.LeaseID
-	d.leaseDuration = secret.LeaseDuration
-	d.renewable = secret.Renewable
+	d.secret = secret
 	d.Unlock()
 
 	log.Printf("[DEBUG] (%s) vault returned the secret", d.Display())
 
-	ts := time.Now().Unix()
-	rm := &ResponseMetadata{
-		LastContact: 0,
-		LastIndex:   uint64(ts),
-	}
-
-	return secret, rm, nil
+	return respWithMetadata(secret)
 }
 
 // CanShare returns if this dependency is shareable.
@@ -125,4 +124,11 @@ func (d *VaultSecret) Display() string {
 // ParseVaultSecret creates a new datacenter dependency.
 func ParseVaultSecret(s string) (*VaultSecret, error) {
 	return &VaultSecret{Path: s}, nil
+}
+
+func leaseDurationOrDefault(d int) int {
+	if d == 0 {
+		return 5 * 60
+	}
+	return d
 }
