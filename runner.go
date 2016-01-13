@@ -50,6 +50,10 @@ type Runner struct {
 	// time and then stop.
 	dry, once bool
 
+	// reapLock is a mutex that turns off child process reaping during times
+	// when we are executing sub processes and waiting for results.
+	reapLock *sync.RWMutex
+
 	// outStream and errStream are the io.Writer streams where the runner will
 	// write information. These streams can be set using the SetOutStream()
 	// and SetErrStream() functions.
@@ -88,13 +92,14 @@ type Runner struct {
 
 // NewRunner accepts a slice of ConfigTemplates and returns a pointer to the new
 // Runner and any error that occurred during creation.
-func NewRunner(config *Config, dry, once bool) (*Runner, error) {
+func NewRunner(config *Config, dry, once bool, reapLock *sync.RWMutex) (*Runner, error) {
 	log.Printf("[INFO] (runner) creating new runner (dry: %v, once: %v)", dry, once)
 
 	runner := &Runner{
-		config: config,
-		dry:    dry,
-		once:   once,
+		config:   config,
+		dry:      dry,
+		once:     once,
+		reapLock: reapLock,
 	}
 
 	if err := runner.init(); err != nil {
@@ -656,7 +661,13 @@ func (r *Runner) execute(command string, timeout time.Duration) error {
 		cmdEnv = append(cmdEnv, fmt.Sprintf("%s=%s", k, v))
 	}
 
-	// Create an invoke the command
+	// Disable child process reaping so that we can get this command's
+	// return value. Note that we use the read lock here because different
+	// runners will not interfere with each other, just with the reaper.
+	r.reapLock.RLock()
+	defer r.reapLock.RUnlock()
+
+	// Create and invoke the command
 	cmd := exec.Command(shell, flag, command)
 	cmd.Stdout = r.outStream
 	cmd.Stderr = r.errStream
