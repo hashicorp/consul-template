@@ -85,7 +85,7 @@ func (s *vaultServer) Stop() {
 
 func (s *vaultServer) CreateSecret(path string, data map[string]interface{}) error {
 	req := &logical.Request{
-		Operation:   logical.WriteOperation,
+		Operation:   logical.UpdateOperation,
 		Path:        fmt.Sprintf("secret/%s", path),
 		Data:        data,
 		ClientToken: s.Token,
