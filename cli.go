@@ -86,6 +86,7 @@ func (cli *CLI) Run(args []string) int {
 	}
 
 	// If they configured a child process reaper, start that now
+	var reapLock sync.RWMutex
 	if config.Reap || (!config.WasSet("reap") && os.Getpid() == 1) {
 		if !reap.IsSupported() {
 			err := fmt.Errorf("[WARN] Child process reaping is not supported on this platform, please set the 'reap' option to false")
@@ -107,11 +108,11 @@ func (cli *CLI) Run(args []string) int {
 				}
 			}
 		}()
-		go reap.ReapChildren(pids, errors, cli.stopCh)
+		go reap.ReapChildren(pids, errors, cli.stopCh, &reapLock)
 	}
 
 	// Initial runner
-	runner, err := NewRunner(config, dry, once)
+	runner, err := NewRunner(config, dry, once, &reapLock)
 	if err != nil {
 		return cli.handleError(err, ExitCodeRunnerError)
 	}
@@ -148,7 +149,7 @@ func (cli *CLI) Run(args []string) int {
 					return cli.handleError(err, ExitCodeConfigError)
 				}
 
-				runner, err = NewRunner(config, dry, once)
+				runner, err = NewRunner(config, dry, once, &reapLock)
 				if err != nil {
 					return cli.handleError(err, ExitCodeRunnerError)
 				}
