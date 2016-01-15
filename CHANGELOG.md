@@ -1,8 +1,13 @@
 Consul Template Changelog
 =========================
 
-## v0.13.0 (Unreleased)
+## v0.12.2 (January 15, 2016)
 
+BUF FIXES:
+
+  * Fixed an issue when running as PID 1 in a Docker container where Consul
+    Template could consume CPU and spuriously think its spwaned sub-processes
+    had failed [GH-511]
 
 ## v0.12.1 (January 7, 2016)
 
