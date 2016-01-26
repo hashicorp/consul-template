@@ -149,6 +149,7 @@ template {
   source = "/path/on/disk/to/template"
   destination = "/path/on/disk/where/template/will/render"
   command = "optional command to run when the template is updated"
+  command_timeout = "60s"
   perms = 0600
   backup = true
 }

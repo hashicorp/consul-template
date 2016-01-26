@@ -30,9 +30,6 @@ const (
 	// saneViewLimit is the number of views that we consider "sane" before we
 	// warn the user that they might be DDoSing their Consul cluster.
 	saneViewLimit = 128
-
-	// commandTimeout is the amount of time to wait for a command to return.
-	commandTimeout = 30 * time.Second
 )
 
 // Runner responsible rendering Templates and invoking Commands.
@@ -282,7 +279,7 @@ func (r *Runner) Receive(d dep.Dependency, data interface{}) {
 func (r *Runner) Run() error {
 	log.Printf("[INFO] (runner) running")
 
-	var commands []string
+	var commands []*ConfigTemplate
 	depsMap := make(map[string]dep.Dependency)
 
 	for _, tmpl := range r.templates {
@@ -407,9 +404,9 @@ func (r *Runner) Run() error {
 					// in the order in which they are provided in the ConfigTemplate
 					// definitions. If we inserted commands into a map, we would lose that
 					// relative ordering and people would be unhappy.
-					if ctemplate.Command != "" && !exists(ctemplate.Command, commands) {
+					if ctemplate.Command != "" && !commandExists(ctemplate, commands) {
 						log.Printf("[DEBUG] (runner) appending command: %s", ctemplate.Command)
-						commands = append(commands, ctemplate.Command)
+						commands = append(commands, ctemplate)
 					}
 				}
 			}
@@ -422,9 +419,10 @@ func (r *Runner) Run() error {
 	// Execute each command in sequence, collecting any errors that occur - this
 	// ensures all commands execute at least once.
 	var errs []error
-	for _, command := range commands {
-		log.Printf("[DEBUG] (runner) running command: `%s`", command)
-		if err := r.execute(command, commandTimeout); err != nil {
+	for _, t := range commands {
+		log.Printf("[DEBUG] (runner) running command: `%s`, timeout: %s",
+			t.Command, t.CommandTimeout)
+		if err := r.execute(t.Command, t.CommandTimeout); err != nil {
 			log.Printf("[ERR] (runner) error running command: %s", err)
 			errs = append(errs, err)
 		}
@@ -888,11 +886,12 @@ func copyFile(src, dst string) error {
 	return d.Close()
 }
 
-// Checks if a value exists in an array
-func exists(needle string, haystack []string) bool {
-	needle = strings.TrimSpace(needle)
-	for _, value := range haystack {
-		if needle == strings.TrimSpace(value) {
+// Checks if a ConfigTemplate with the given data exists in the list of Config
+// Templates.
+func commandExists(c *ConfigTemplate, templates []*ConfigTemplate) bool {
+	needle := strings.TrimSpace(c.Command)
+	for _, t := range templates {
+		if needle == strings.TrimSpace(t.Command) {
 			return true
 		}
 	}

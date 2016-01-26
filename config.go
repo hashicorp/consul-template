@@ -26,6 +26,9 @@ const defaultFilePerms = 0644
 // defaultDedupPrefix is the default prefix used for de-duplication mode
 const defaultDedupPrefix = "consul-template/dedup/"
 
+// commandTimeout is the amount of time to wait for a command to return.
+const defaultCommandTimeout = 30 * time.Second
+
 // Config is used to configure Consul Template
 type Config struct {
 	// Path is the path to this configuration file on disk. This value is not
@@ -199,11 +202,12 @@ func (c *Config) Merge(config *Config) {
 		}
 		for _, template := range config.ConfigTemplates {
 			c.ConfigTemplates = append(c.ConfigTemplates, &ConfigTemplate{
-				Source:      template.Source,
-				Destination: template.Destination,
-				Command:     template.Command,
-				Perms:       template.Perms,
-				Backup:      template.Backup,
+				Source:         template.Source,
+				Destination:    template.Destination,
+				Command:        template.Command,
+				CommandTimeout: template.CommandTimeout,
+				Perms:          template.Perms,
+				Backup:         template.Backup,
 			})
 		}
 	}
@@ -246,7 +250,7 @@ func (c *Config) Merge(config *Config) {
 	if c.setKeys == nil {
 		c.setKeys = make(map[string]struct{})
 	}
-	for k, _ := range config.setKeys {
+	for k := range config.setKeys {
 		if _, ok := c.setKeys[k]; !ok {
 			c.setKeys[k] = struct{}{}
 		}
@@ -320,10 +324,16 @@ func ParseConfig(path string) (*Config, error) {
 	// Store a reference to the path where this config was read from
 	config.Path = path
 
-	// Ensure there's a default value for the template's file permissions
+	// Setup default values for templates
 	for _, t := range config.ConfigTemplates {
+		// Ensure there's a default value for the template's file permissions
 		if t.Perms == 0000 {
 			t.Perms = defaultFilePerms
+		}
+
+		// Ensure we have a default command timeout
+		if t.CommandTimeout == 0 {
+			t.CommandTimeout = defaultCommandTimeout
 		}
 	}
 
@@ -525,11 +535,12 @@ type SyslogConfig struct {
 // ConfigTemplate is the representation of an input template, output location,
 // and optional command to execute when rendered
 type ConfigTemplate struct {
-	Source      string      `json:"source" mapstructure:"source"`
-	Destination string      `json:"destination" mapstructure:"destination"`
-	Command     string      `json:"command,omitempty" mapstructure:"command"`
-	Perms       os.FileMode `json:"perms" mapstructure:"perms"`
-	Backup      bool        `json:"backup" mapstructure:"backup"`
+	Source         string        `json:"source" mapstructure:"source"`
+	Destination    string        `json:"destination" mapstructure:"destination"`
+	Command        string        `json:"command,omitempty" mapstructure:"command"`
+	CommandTimeout time.Duration `json:"command_timeout,omitempty" mapstructure:"command_timeout"`
+	Perms          os.FileMode   `json:"perms" mapstructure:"perms"`
+	Backup         bool          `json:"backup" mapstructure:"backup"`
 }
 
 // VaultConfig is the configuration for connecting to a vault server.
@@ -563,10 +574,11 @@ func ParseConfigTemplate(s string) (*ConfigTemplate, error) {
 	}
 
 	return &ConfigTemplate{
-		Source:      source,
-		Destination: destination,
-		Command:     command,
-		Perms:       defaultFilePerms,
+		Source:         source,
+		Destination:    destination,
+		Command:        command,
+		CommandTimeout: defaultCommandTimeout,
+		Perms:          defaultFilePerms,
 	}, nil
 }
 
