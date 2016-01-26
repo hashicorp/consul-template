@@ -32,10 +32,10 @@ func TestNewRunner_initialize(t *testing.T) {
 	config := DefaultConfig()
 	config.Merge(&Config{
 		ConfigTemplates: []*ConfigTemplate{
-			&ConfigTemplate{Source: in1.Name(), Command: "1"},
-			&ConfigTemplate{Source: in1.Name(), Command: "1.1"},
-			&ConfigTemplate{Source: in2.Name(), Command: "2"},
-			&ConfigTemplate{Source: in3.Name(), Command: "3"},
+			&ConfigTemplate{Source: in1.Name(), Command: "1", CommandTimeout: 1 * time.Second},
+			&ConfigTemplate{Source: in1.Name(), Command: "1.1", CommandTimeout: 1 * time.Second},
+			&ConfigTemplate{Source: in2.Name(), Command: "2", CommandTimeout: 1 * time.Second},
+			&ConfigTemplate{Source: in3.Name(), Command: "3", CommandTimeout: 1 * time.Second},
 		},
 	})
 
@@ -440,14 +440,16 @@ func TestRun_multipleTemplatesRunsCommands(t *testing.T) {
 	config.Merge(&Config{
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{
-				Source:      in1.Name(),
-				Destination: out1.Name(),
-				Command:     fmt.Sprintf("touch %s", touch1.Name()),
+				Source:         in1.Name(),
+				Destination:    out1.Name(),
+				Command:        fmt.Sprintf("touch %s", touch1.Name()),
+				CommandTimeout: 1 * time.Second,
 			},
 			&ConfigTemplate{
-				Source:      in2.Name(),
-				Destination: out2.Name(),
-				Command:     fmt.Sprintf("touch %s", touch2.Name()),
+				Source:         in2.Name(),
+				Destination:    out2.Name(),
+				Command:        fmt.Sprintf("touch %s", touch2.Name()),
+				CommandTimeout: 1 * time.Second,
 			},
 		},
 	})
@@ -685,14 +687,14 @@ func TestAtomicWrite_backup(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(f, []byte("before")) {
-		t.Fatal("expected %q to be %q", f, []byte("before"))
+		t.Fatalf("expected %q to be %q", f, []byte("before"))
 	}
 
 	if stat, err := os.Stat(outFile.Name() + ".bak"); err != nil {
 		t.Fatal(err)
 	} else {
 		if stat.Mode() != 0600 {
-			t.Fatal("expected %d to be %d", stat.Mode(), 0600)
+			t.Fatalf("expected %d to be %d", stat.Mode(), 0600)
 		}
 	}
 }
@@ -720,7 +722,7 @@ func TestAtomicWrite_backupNoExist(t *testing.T) {
 		t.Fatal("expected error")
 	} else {
 		if !os.IsNotExist(err) {
-			t.Fatal("bad error: %s", err)
+			t.Fatalf("bad error: %s", err)
 		}
 	}
 }
@@ -781,9 +783,10 @@ func TestRun_executesCommand(t *testing.T) {
 	config.Merge(&Config{
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{
-				Source:      inTemplate.Name(),
-				Destination: outTemplate.Name(),
-				Command:     fmt.Sprintf("echo 'foo' > %s", outFile.Name()),
+				Source:         inTemplate.Name(),
+				Destination:    outTemplate.Name(),
+				Command:        fmt.Sprintf("echo 'foo' > %s", outFile.Name()),
+				CommandTimeout: 1 * time.Second,
 			},
 		},
 	})
@@ -839,14 +842,16 @@ func TestRun_doesNotExecuteCommandMoreThanOnce(t *testing.T) {
 	config.Merge(&Config{
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{
-				Source:      inTemplate.Name(),
-				Destination: outTemplateA.Name(),
-				Command:     fmt.Sprintf("echo 'foo' >> %s", outFile.Name()),
+				Source:         inTemplate.Name(),
+				Destination:    outTemplateA.Name(),
+				Command:        fmt.Sprintf("echo 'foo' >> %s", outFile.Name()),
+				CommandTimeout: 1 * time.Second,
 			},
 			&ConfigTemplate{
-				Source:      inTemplate.Name(),
-				Destination: outTemplateB.Name(),
-				Command:     fmt.Sprintf("echo 'foo' >> %s", outFile.Name()),
+				Source:         inTemplate.Name(),
+				Destination:    outTemplateB.Name(),
+				Command:        fmt.Sprintf("echo 'foo' >> %s", outFile.Name()),
+				CommandTimeout: 1 * time.Second,
 			},
 		},
 	})

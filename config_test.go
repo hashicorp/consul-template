@@ -239,6 +239,7 @@ func TestMerge_configTemplates(t *testing.T) {
 			source = "1"
 			destination = "1"
 			command = "1"
+			command_timeout = "60s"
 			perms = 0600
 			backup = false
 		}
@@ -248,6 +249,7 @@ func TestMerge_configTemplates(t *testing.T) {
 			source = "2"
 			destination = "2"
 			command = "2"
+			command_timeout = "2h"
 			perms = 0755
 			backup = true
 		}
@@ -255,18 +257,20 @@ func TestMerge_configTemplates(t *testing.T) {
 
 	expected := []*ConfigTemplate{
 		&ConfigTemplate{
-			Source:      "1",
-			Destination: "1",
-			Command:     "1",
-			Perms:       0600,
-			Backup:      false,
+			Source:         "1",
+			Destination:    "1",
+			Command:        "1",
+			CommandTimeout: 60 * time.Second,
+			Perms:          0600,
+			Backup:         false,
 		},
 		&ConfigTemplate{
-			Source:      "2",
-			Destination: "2",
-			Command:     "2",
-			Perms:       0755,
-			Backup:      true,
+			Source:         "2",
+			Destination:    "2",
+			Command:        "2",
+			CommandTimeout: 2 * time.Hour,
+			Perms:          0755,
+			Backup:         true,
 		},
 	}
 
@@ -375,6 +379,7 @@ func TestParseConfig_correctValues(t *testing.T) {
 			source = "redis.conf.ctmpl"
 			destination  = "/etc/redis/redis.conf"
 			command = "service redis restart"
+			command_timeout = "60s"
 			perms = 0755
 		}
 
@@ -432,15 +437,17 @@ func TestParseConfig_correctValues(t *testing.T) {
 		LogLevel: "warn",
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{
-				Source:      "nginx.conf.ctmpl",
-				Destination: "/etc/nginx/nginx.conf",
-				Perms:       0644,
+				Source:         "nginx.conf.ctmpl",
+				Destination:    "/etc/nginx/nginx.conf",
+				CommandTimeout: defaultCommandTimeout,
+				Perms:          0644,
 			},
 			&ConfigTemplate{
-				Source:      "redis.conf.ctmpl",
-				Destination: "/etc/redis/redis.conf",
-				Command:     "service redis restart",
-				Perms:       0755,
+				Source:         "redis.conf.ctmpl",
+				Destination:    "/etc/redis/redis.conf",
+				Command:        "service redis restart",
+				CommandTimeout: 60 * time.Second,
+				Perms:          0755,
 			},
 		},
 		Deduplicate: &DeduplicateConfig{
@@ -750,10 +757,11 @@ func TestParseConfigurationTemplate_windowsDrives(t *testing.T) {
 	}
 
 	expected := &ConfigTemplate{
-		Source:      `C:\abc\123`,
-		Destination: `D:\xyz\789`,
-		Command:     "some command",
-		Perms:       0644,
+		Source:         `C:\abc\123`,
+		Destination:    `D:\xyz\789`,
+		Command:        "some command",
+		CommandTimeout: defaultCommandTimeout,
+		Perms:          0644,
 	}
 
 	if !reflect.DeepEqual(ct, expected) {

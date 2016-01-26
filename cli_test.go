@@ -283,10 +283,11 @@ func TestParseFlags_configTemplates(t *testing.T) {
 	}
 
 	expected := &ConfigTemplate{
-		Source:      "in.ctmpl",
-		Destination: "out.txt",
-		Command:     "some command",
-		Perms:       defaultFilePerms,
+		Source:         "in.ctmpl",
+		Destination:    "out.txt",
+		Command:        "some command",
+		CommandTimeout: defaultCommandTimeout,
+		Perms:          defaultFilePerms,
 	}
 	if !reflect.DeepEqual(config.ConfigTemplates[0], expected) {
 		t.Errorf("expected %q to be %q", config.ConfigTemplates[0], expected)
