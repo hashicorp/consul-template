@@ -516,6 +516,27 @@ func join(sep string, a []string) (string, error) {
 	return strings.Join(a, sep), nil
 }
 
+// joiner is a port of Jinja2's "joiner"
+// see: http://jinja.pocoo.org/docs/dev/templates/#joiner
+func joiner(seperator string) (chan string, error) {
+
+	ch := make(chan string)
+	go func() {
+		ch <- ""
+		for {
+			ch <- seperator
+		}
+		// we'll never get here
+		close(ch)
+	}()
+	return ch, nil
+}
+
+// sep extracts the current joiner value
+func sep(ch chan string) (string, error) {
+	return <- ch, nil
+}
+
 // parseBool parses a string into a boolean
 func parseBool(s string) (bool, error) {
 	if s == "" {
