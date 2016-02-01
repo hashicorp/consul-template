@@ -321,6 +321,29 @@ func TestMerge_reap(t *testing.T) {
 	}
 }
 
+func TestMerge_leaveOnFailure(t *testing.T) {
+	config := testConfig(`
+		leave_on_failure = true
+	`, t)
+	if config.LeaveOnFailure != true {
+		t.Fatalf("leave-on-failure should be true")
+	}
+
+	config.Merge(testConfig(`
+		leave_on_failure = false
+	`, t))
+	if config.LeaveOnFailure != false {
+		t.Fatalf("leave_on_failure should be false")
+	}
+
+	config.Merge(testConfig(`
+		leave_on_failure = true
+	`, t))
+	if config.LeaveOnFailure != true {
+		t.Fatalf("leave_on_failure should be true")
+	}
+}
+
 func TestParseConfig_readFileError(t *testing.T) {
 	_, err := ParseConfig(path.Join(os.TempDir(), "config.json"))
 	if err == nil {
@@ -389,6 +412,7 @@ func TestParseConfig_correctValues(t *testing.T) {
 		}
 
 		reap = true
+		leave_on_failure = false
   `), t)
 	defer test.DeleteTempfile(configFile, t)
 
@@ -455,8 +479,9 @@ func TestParseConfig_correctValues(t *testing.T) {
 			Enabled: true,
 			TTL:     15 * time.Second,
 		},
-		Reap:    true,
-		setKeys: config.setKeys,
+		Reap:           true,
+		setKeys:        config.setKeys,
+		LeaveOnFailure: false,
 	}
 
 	if !reflect.DeepEqual(config, expected) {

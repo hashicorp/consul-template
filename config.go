@@ -85,6 +85,9 @@ type Config struct {
 
 	// setKeys is the list of config keys that were set by the user.
 	setKeys map[string]struct{}
+
+	// LeaveOnFailure implies that the runner should exit in case of error.
+	LeaveOnFailure bool `json:"leaveOnFailure" mapstructure:"leave_on_failure"`
 }
 
 // Merge merges the values in config into this config object. Values in the
@@ -255,6 +258,11 @@ func (c *Config) Merge(config *Config) {
 			c.setKeys[k] = struct{}{}
 		}
 	}
+
+	if config.WasSet("leave_on_failure") {
+		c.LeaveOnFailure = config.LeaveOnFailure
+	}
+
 }
 
 // WasSet determines if the given key was set in the config (as opposed to just
@@ -452,6 +460,7 @@ func DefaultConfig() *Config {
 		LogLevel:        logLevel,
 		Reap:            os.Getpid() == 1,
 		setKeys:         make(map[string]struct{}),
+		LeaveOnFailure:  false,
 	}
 
 	if v := os.Getenv("CONSUL_HTTP_ADDR"); v != "" {
