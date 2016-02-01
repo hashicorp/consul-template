@@ -516,6 +516,11 @@ func join(sep string, a []string) (string, error) {
 	return strings.Join(a, sep), nil
 }
 
+// TrimSpace is a version of strings.TrimSpace that can be piped
+func trimSpace(s string) (string, error) {
+	return strings.TrimSpace(s), nil
+}
+
 // parseBool parses a string into a boolean
 func parseBool(s string) (bool, error) {
 	if s == "" {
