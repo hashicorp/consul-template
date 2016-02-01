@@ -1189,8 +1189,8 @@ func TestJoin(t *testing.T) {
 	}
 }
 
-func TestTrim(t *testing.T) {
-	result, err := trim("\t Hello, World\n ")
+func TestTrimSpace(t *testing.T) {
+	result, err := trimSpace("\t Hello, World\n ")
 	if err != nil {
 		t.Fatal(err)
 	}

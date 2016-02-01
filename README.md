@@ -587,10 +587,10 @@ Takes the given list of strings as a pipe and joins them on the provided string:
 {{$items | join ","}}
 ```
 
-#### `trim`
+#### `trimSpace`
 Takes the provided input and trims all whitespace, tabs and newlines:
 ```liquid
-{{ file "/etc/ec2_version"| trim }}
+{{ file "/etc/ec2_version"| trimSpace }}
 ```
 
 ##### `parseBool`

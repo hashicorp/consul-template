@@ -286,7 +286,7 @@ func TestExecute_renders(t *testing.T) {
 		loop(i):{{ range $i := loop 5 8 }}
 			test{{$i}}{{ end }}
 		join: {{ "a,b,c" | split "," | join ";" }}
-		trim: {{ "\t Hello, World\n " | trim }}
+		trimSpace: {{ "\t Hello, World\n " | trimSpace }}
 		parseBool: {{"true" | parseBool}}
 		parseFloat: {{"1.2" | parseFloat}}
 		parseInt: {{"-1" | parseInt}}
@@ -549,7 +549,7 @@ func TestExecute_renders(t *testing.T) {
 			test6
 			test7
 		join: a;b;c
-		trim: Hello, World
+		trimSpace: Hello, World
 		parseBool: true
 		parseFloat: 1.2
 		parseInt: -1
