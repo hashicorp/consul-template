@@ -516,6 +516,11 @@ func join(sep string, a []string) (string, error) {
 	return strings.Join(a, sep), nil
 }
 
+// trim is a version of strings.Trim that can be piped
+func trim(s string) (string, error) {
+	return strings.Trim(s, " \n \t"), nil
+}
+
 // parseBool parses a string into a boolean
 func parseBool(s string) (bool, error) {
 	if s == "" {

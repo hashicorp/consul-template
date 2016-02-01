@@ -1189,6 +1189,18 @@ func TestJoin(t *testing.T) {
 	}
 }
 
+func TestTrim(t *testing.T) {
+	result, err := trim("\t Hello, World\n ")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "Hello, World"
+	if result != expected {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+}
+
 func TestParseBool(t *testing.T) {
 	result, err := parseBool("true")
 	if err != nil {

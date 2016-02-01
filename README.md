@@ -587,6 +587,12 @@ Takes the given list of strings as a pipe and joins them on the provided string:
 {{$items | join ","}}
 ```
 
+#### `trim`
+Takes the provided input and trims all whitespace, tabs and newlines:
+```liquid
+{{ file "/etc/ec2_version"| trim }}
+```
+
 ##### `parseBool`
 Takes the given string and parses it as a boolean:
 
