@@ -303,7 +303,7 @@ The example above is querying Consul for healthy "web" services, in the "east-aw
 {{service "web"}}
 ```
 
-The function returns a `[]*Service` struct which can be used for ranging in a template:
+The function returns a `[]*HealthService` struct which can be used for ranging in a template:
 
 ```liquid
 {{range service "web@datacenter"}}
