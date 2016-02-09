@@ -329,6 +329,12 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 		return nil
 	}), "reap", "")
 
+	flags.Var((funcBoolVar)(func(b bool) error {
+		config.LeaveOnFailure = b
+		config.set("leave_on_failure")
+		return nil
+	}), "leave-on-failure", "")
+
 	flags.BoolVar(&once, "once", false, "")
 	flags.BoolVar(&dry, "dry", false, "")
 	flags.BoolVar(&version, "v", false, "")
@@ -387,7 +393,7 @@ Usage: %s [options]
 
   Watches a series of templates on the file system, writing new changes when
   Consul is updated. It runs until an interrupt is received unless the -once
-  flag is specified.
+  or -leave-on-failure flag is specified.
 
 Options:
 
@@ -438,5 +444,6 @@ Options:
                            Setting this option to false disables this behavior,
                            and setting it to true enables child process reaping
                            regardless of Consul Template's PID.
+  -leave-on-failure        Exit in case of error.
   -v, -version             Print the version of this daemon
 `

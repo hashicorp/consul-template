@@ -426,6 +426,23 @@ func TestParseFlags_retry(t *testing.T) {
 	}
 }
 
+func TestParseFlags_leaveOnFailure(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-leave-on-failure",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if config.LeaveOnFailure != true {
+		t.Errorf("expected leave_on_failure to be true")
+	}
+	if !config.WasSet("leave_on_failure") {
+		t.Errorf("expected leave_on_failure to be set")
+	}
+}
+
 func TestParseFlags_logLevel(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
 	config, _, _, _, err := cli.parseFlags([]string{
