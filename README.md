@@ -893,6 +893,8 @@ $ NAME [INPUT...]
   parsed for output. Be sure to log all errors, debugging messages onto stderr
   to avoid errors when Consul Template returns the value.
 - Always `exit 0` or Consul Template will assume the plugin failed to execute
+- Ensure the empty input case is handled correctly (see [Multi-phase exection](https://github.com/hashicorp/consul-template#multi-phase-execution))
+- Data piped into the plugin is appended after any parameters given explicitly (eg `{{ "sample-data" | plugin "my-plugin" "some-parameter"}}` will call `my-plugin some-parameter sample-data`)
 
 Here is a sample plugin in a few different languages that removes any JSON keys that start with an underscore and returns the JSON string:
 
