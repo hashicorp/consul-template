@@ -3,6 +3,11 @@ Consul Template Changelog
 
 ## v0.13.0 (Unreleased)
 
+BUG FIXES:
+
+  * Compile with go1.6 to avoid race [GH-442]
+  * Switch to using a pooled transport [GH-546]
+
 ## v0.12.2 (January 15, 2016)
 
 BUG FIXES:
