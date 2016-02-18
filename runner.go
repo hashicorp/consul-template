@@ -22,6 +22,7 @@ import (
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul-template/watch"
 	consulapi "github.com/hashicorp/consul/api"
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-multierror"
 	vaultapi "github.com/hashicorp/vault/api"
 )
@@ -938,6 +939,9 @@ func newConsulClient(config *Config) (*consulapi.Client, error) {
 		consulConfig.Token = config.Token
 	}
 
+	// This transport will attempt to keep connections open to the Consul
+	// server. This will get installed after possibly configuring SSL.
+	transport := cleanhttp.DefaultPooledTransport()
 	if config.SSL.Enabled {
 		log.Printf("[DEBUG] (runner) enabling consul SSL")
 		consulConfig.Scheme = "https"
@@ -974,10 +978,9 @@ func newConsulClient(config *Config) (*consulapi.Client, error) {
 			log.Printf("[WARN] (runner) disabling consul SSL verification")
 			tlsConfig.InsecureSkipVerify = true
 		}
-		consulConfig.HttpClient.Transport = &http.Transport{
-			TLSClientConfig: tlsConfig,
-		}
+		transport.TLSClientConfig = tlsConfig
 	}
+	consulConfig.HttpClient.Transport = transport
 
 	if config.Auth.Enabled {
 		log.Printf("[DEBUG] (runner) setting basic auth")
