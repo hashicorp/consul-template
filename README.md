@@ -45,7 +45,7 @@ Usage
 | `template`*       | The input template, output path, and optional command separated by a colon (`:`). This option is additive and may be specified multiple times for multiple templates.
 | `token`           | The [Consul API token][Consul ACLs]. There is no default value.
 | `version`         | Output version information and quit. _(CLI-only)_
-| `wait`            | The `minimum(:maximum)` to wait before rendering a new template to disk and triggering a command, separated by a colon (`:`). If the optional maximum value is omitted, it is assumed to be 4x the required minimum value. There is no default value.
+| `wait`            | The `minimum(:maximum)` seconds to wait before rendering a new template to disk and triggering a command, separated by a colon (`:`). If the optional maximum value is omitted, it is assumed to be 4x the required minimum value. There is no default value.
 
 \* = Required parameter
 
