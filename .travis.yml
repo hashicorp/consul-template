@@ -5,10 +5,12 @@ language: go
 go:
   - 1.5.1
 
+env:
+  - GO15VENDOREXPERIMENT=1
+
 branches:
   only:
     - master
 
 script:
-  - make updatedeps
   - make test testrace
