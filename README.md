@@ -177,8 +177,8 @@ Query the nyc3 demo Consul instance, rendering the template on disk at `/tmp/tem
 consul = "nyc3.demo.consul.io"
 
 template {
-  source = "/tmp/template.ctmpl"
-  destination  = "/tmp/result"
+  source      = "/tmp/template.ctmpl"
+  destination = "/tmp/result"
 }
 ```
 

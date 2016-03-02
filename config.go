@@ -539,7 +539,7 @@ type ConfigTemplate struct {
 	Destination    string        `json:"destination" mapstructure:"destination"`
 	Command        string        `json:"command,omitempty" mapstructure:"command"`
 	CommandTimeout time.Duration `json:"command_timeout,omitempty" mapstructure:"command_timeout"`
-	Perms          os.FileMode   `json:"perms" mapstructure:"perms"`
+	Perms          os.FileMode   `json:"perms,string" mapstructure:"perms"`
 	Backup         bool          `json:"backup" mapstructure:"backup"`
 }
 
