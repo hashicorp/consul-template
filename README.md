@@ -45,7 +45,7 @@ Usage
 | `template`*       | The input template, output path, and optional command separated by a colon (`:`). This option is additive and may be specified multiple times for multiple templates.
 | `token`           | The [Consul API token][Consul ACLs]. There is no default value.
 | `version`         | Output version information and quit. _(CLI-only)_
-| `wait`            | The `minimum(:maximum)` to wait before rendering a new template to disk and triggering a command, separated by a colon (`:`). If the optional maximum value is omitted, it is assumed to be 4x the required minimum value. There is no default value.
+| `wait`            | The `minimum(:maximum)` to wait before rendering a new template to disk and triggering a command, separated by a colon (`:`). If the optional maximum value is omitted, it is assumed to be 4x the required minimum value. This is a numeric time with a unit suffix ("5s"). There is no default value.
 
 \* = Required parameter
 
@@ -109,54 +109,57 @@ The Configuration file syntax interface supports all of the options detailed abo
 
 ```javascript
 consul = "127.0.0.1:8500"
-token = "abcd1234" // May also be specified via the envvar CONSUL_TOKEN
-retry = "10s"
+token  = "abcd1234" // May also be specified via the envvar CONSUL_TOKEN
+retry  = "10s"
+
 max_stale = "10m"
 log_level = "warn"
-pid_file = "/path/to/pid"
+pid_file  = "/path/to/pid"
+
+wait = "5s:10s"
 
 vault {
   address = "https://vault.service.consul:8200"
-  token = "abcd1234" // May also be specified via the envvar VAULT_TOKEN
-  renew = true
+  token   = "abcd1234" // May also be specified via the envvar VAULT_TOKEN
+  renew   = true
   ssl {
     enabled = true
-    verify = true
-    cert = "/path/to/client/cert.pem"
+    verify  = true
+    cert    = "/path/to/client/cert.pem"
     ca_cert = "/path/to/ca/cert.pem"
   }
 }
 
 auth {
-  enabled = true
+  enabled  = true
   username = "test"
   password = "test"
 }
 
 ssl {
   enabled = true
-  verify = false
-  cert = "/path/to/client/cert.pem"
+  verify  = false
+  cert    = "/path/to/client/cert.pem"
   ca_cert = "/path/to/ca/cert.pem"
 }
 
 syslog {
-  enabled = true
+  enabled  = true
   facility = "LOCAL5"
-}
-
-template {
-  source = "/path/on/disk/to/template"
-  destination = "/path/on/disk/where/template/will/render"
-  command = "optional command to run when the template is updated"
-  command_timeout = "60s"
-  perms = 0600
-  backup = true
 }
 
 deduplicate {
   enabled = true
-  prefix = "consul-template/dedup/"
+  prefix  = "consul-template/dedup/"
+}
+
+template {
+  source          = "/path/on/disk/to/template"
+  destination     = "/path/on/disk/where/template/will/render"
+  command         = "optional command to run when the template is updated"
+  command_timeout = "60s"
+  perms           = 0600
+  backup          = true
 }
 
 template {
