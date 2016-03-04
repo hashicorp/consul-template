@@ -3,18 +3,22 @@ Consul Template Changelog
 
 ## v0.13.0.dev (Unreleased)
 
-DEPRECATIONS
+DEPRECATIONS:
 
   * The `vault` template API function has been renamed to `secret` to be in line
     with other tooling. The `vault` API function will continue to work but will
     print a warning to the log file. A future release of Consul Template will
     remove the `vault` API.
 
-NEW FEATURES
+NEW FEATURES:
 
   * Add `secrets` template API for listing secrets in Vault. Please note this
     requires Vault 0.5+ and the secret backend must support listing. Please see
     the Vault documentation for more information [GH-270]
+
+BUG FIXES:
+
+  * Parse file permissions as a string in JSON [GH-548]
 
 ## v0.13.0 (February 18, 2016)
 
