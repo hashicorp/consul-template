@@ -417,23 +417,6 @@ func TestLsFunc_missingData(t *testing.T) {
 	}
 }
 
-func TestNodesFunc_noArgs(t *testing.T) {
-	brain := NewBrain()
-	used := make(map[string]dep.Dependency)
-	missing := make(map[string]dep.Dependency)
-
-	f := nodesFunc(brain, used, missing)
-	result, err := f()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected := []*dep.Node{}
-	if !reflect.DeepEqual(result, expected) {
-		t.Errorf("expected %q to be %q", result, expected)
-	}
-}
-
 func TestNodeFunc_hasData(t *testing.T) {
 	d, err := dep.ParseCatalogNode("@existing")
 	if err != nil {
@@ -501,6 +484,23 @@ func TestNodeFunc_missingData(t *testing.T) {
 	}
 }
 
+func TestNodesFunc_noArgs(t *testing.T) {
+	brain := NewBrain()
+	used := make(map[string]dep.Dependency)
+	missing := make(map[string]dep.Dependency)
+
+	f := nodesFunc(brain, used, missing)
+	result, err := f()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []*dep.Node{}
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+}
+
 func TestNodesFunc_hasData(t *testing.T) {
 	d, err := dep.ParseCatalogNodes("@existing")
 	if err != nil {
@@ -558,6 +558,175 @@ func TestNodesFunc_missingData(t *testing.T) {
 	expected := []*dep.Node{}
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("expected %q to be %q", result, expected)
+	}
+
+	if _, ok := used[d.HashCode()]; !ok {
+		t.Errorf("expected dep to be used")
+	}
+
+	if _, ok := missing[d.HashCode()]; !ok {
+		t.Errorf("expected dep to be missing")
+	}
+}
+
+func TestSecretFunc_emptyString(t *testing.T) {
+	brain := NewBrain()
+	used := make(map[string]dep.Dependency)
+	missing := make(map[string]dep.Dependency)
+
+	f := secretFunc(brain, used, missing)
+	result, err := f("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := &dep.Secret{}
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("expected %#v to be %#v", result, expected)
+	}
+}
+
+func TestSecretFunc_hasData(t *testing.T) {
+	d, err := dep.ParseVaultSecret("secret/foo/bar")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data := &dep.Secret{
+		LeaseID:       "abcd1234",
+		LeaseDuration: 120,
+		Renewable:     true,
+		Data:          map[string]interface{}{"zip": "zap"},
+	}
+
+	brain := NewBrain()
+	brain.Remember(d, data)
+
+	used := make(map[string]dep.Dependency)
+	missing := make(map[string]dep.Dependency)
+
+	f := secretFunc(brain, used, missing)
+	result, err := f("secret/foo/bar")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(result, data) {
+		t.Errorf("expected %#v to be %#v", result, data)
+	}
+
+	if len(missing) != 0 {
+		t.Errorf("expected missing to have 0 elements, but had %d", len(missing))
+	}
+
+	if _, ok := used[d.HashCode()]; !ok {
+		t.Errorf("expected dep to be used")
+	}
+}
+
+func TestSecretFunc_missingData(t *testing.T) {
+	d, err := dep.ParseVaultSecret("secret/foo/bar")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	brain := NewBrain()
+
+	used := make(map[string]dep.Dependency)
+	missing := make(map[string]dep.Dependency)
+
+	f := secretFunc(brain, used, missing)
+	result, err := f("secret/foo/bar")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := &dep.Secret{}
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("expected %#v to be %#v", result, expected)
+	}
+
+	if _, ok := used[d.HashCode()]; !ok {
+		t.Errorf("expected dep to be used")
+	}
+
+	if _, ok := missing[d.HashCode()]; !ok {
+		t.Errorf("expected dep to be missing")
+	}
+}
+
+func TestSecretsFunc_emptyString(t *testing.T) {
+	brain := NewBrain()
+	used := make(map[string]dep.Dependency)
+	missing := make(map[string]dep.Dependency)
+
+	f := secretsFunc(brain, used, missing)
+	result, err := f("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []string{}
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("expected %#v to be %#v", result, expected)
+	}
+}
+
+func TestSecretsFunc_hasData(t *testing.T) {
+	d, err := dep.ParseVaultSecrets("secret/")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data := []string{"foo", "bar"}
+
+	brain := NewBrain()
+	brain.Remember(d, data)
+
+	used := make(map[string]dep.Dependency)
+	missing := make(map[string]dep.Dependency)
+
+	f := secretsFunc(brain, used, missing)
+	result, err := f("secret/")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(result, data) {
+		t.Errorf("expected %#v to be %#v", result, data)
+	}
+
+	if len(missing) != 0 {
+		t.Errorf("expected missing to have 0 elements, but had %d", len(missing))
+	}
+
+	if _, ok := used[d.HashCode()]; !ok {
+		t.Errorf("expected dep to be used")
+	}
+}
+
+func TestSecretsFunc_missingData(t *testing.T) {
+	d, err := dep.ParseVaultSecrets("secret/")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	brain := NewBrain()
+
+	used := make(map[string]dep.Dependency)
+	missing := make(map[string]dep.Dependency)
+
+	f := secretsFunc(brain, used, missing)
+	result, err := f("secret/")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []string{}
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("expected %#v to be %#v", result, expected)
 	}
 
 	if _, ok := used[d.HashCode()]; !ok {
@@ -1255,7 +1424,7 @@ func TestParseJSON_empty(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := make([]interface{}, 0)
+	expected := []interface{}{}
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("expected %#v to be %#v", result, expected)
 	}

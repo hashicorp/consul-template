@@ -101,6 +101,8 @@ func funcMap(brain *Brain, used, missing map[string]dep.Dependency) template.Fun
 		"ls":             lsFunc(brain, used, missing),
 		"node":           nodeFunc(brain, used, missing),
 		"nodes":          nodesFunc(brain, used, missing),
+		"secret":         secretFunc(brain, used, missing),
+		"secrets":        secretsFunc(brain, used, missing),
 		"service":        serviceFunc(brain, used, missing),
 		"services":       servicesFunc(brain, used, missing),
 		"tree":           treeFunc(brain, used, missing),

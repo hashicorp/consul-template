@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"reflect"
@@ -210,6 +211,62 @@ func nodesFunc(brain *Brain,
 	}
 }
 
+// secretFunc returns or accumulates secret dependencies from Vault.
+func secretFunc(brain *Brain,
+	used, missing map[string]dep.Dependency) func(string) (*dep.Secret, error) {
+	return func(s string) (*dep.Secret, error) {
+		result := &dep.Secret{}
+
+		if len(s) == 0 {
+			return result, nil
+		}
+
+		d, err := dep.ParseVaultSecret(s)
+		if err != nil {
+			return result, nil
+		}
+
+		addDependency(used, d)
+
+		if value, ok := brain.Recall(d); ok {
+			result = value.(*dep.Secret)
+			return result, nil
+		}
+
+		addDependency(missing, d)
+
+		return result, nil
+	}
+}
+
+// secretsFunc returns or accumulates a list of secret dependencies from Vault.
+func secretsFunc(brain *Brain,
+	used, missing map[string]dep.Dependency) func(string) ([]string, error) {
+	return func(s string) ([]string, error) {
+		result := make([]string, 0)
+
+		if len(s) == 0 {
+			return result, nil
+		}
+
+		d, err := dep.ParseVaultSecrets(s)
+		if err != nil {
+			return result, nil
+		}
+
+		addDependency(used, d)
+
+		if value, ok := brain.Recall(d); ok {
+			result = value.([]string)
+			return result, nil
+		}
+
+		addDependency(missing, d)
+
+		return result, nil
+	}
+}
+
 // serviceFunc returns or accumulates health service dependencies.
 func serviceFunc(brain *Brain,
 	used, missing map[string]dep.Dependency) func(...string) ([]*dep.HealthService, error) {
@@ -294,32 +351,12 @@ func treeFunc(brain *Brain,
 	}
 }
 
-// vaultFunc returns or accumulates secret dependencies.
+// vaultFunc is deprecated. Use secretFunc instead.
 func vaultFunc(brain *Brain,
 	used, missing map[string]dep.Dependency) func(string) (*dep.Secret, error) {
-	return func(s string) (*dep.Secret, error) {
-		result := &dep.Secret{}
-
-		if len(s) == 0 {
-			return result, nil
-		}
-
-		d, err := dep.ParseVaultSecret(s)
-		if err != nil {
-			return result, nil
-		}
-
-		addDependency(used, d)
-
-		if value, ok := brain.Recall(d); ok {
-			result = value.(*dep.Secret)
-			return result, nil
-		}
-
-		addDependency(missing, d)
-
-		return result, nil
-	}
+	log.Printf("[WARN] the `vault` template function has been deprecated. " +
+		"Please use `secret` instead!")
+	return secretFunc(brain, used, missing)
 }
 
 // byKey accepts a slice of KV pairs and returns a map of the top-level

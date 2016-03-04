@@ -31,15 +31,3 @@ func TestVaultSecretHashCode_isUnique(t *testing.T) {
 		t.Errorf("expected HashCode to be unique")
 	}
 }
-
-func TestParseVaultSecret_emptyString(t *testing.T) {
-	secret, err := ParseVaultSecret("secret/foo/bar")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected := "secret/foo/bar"
-	if secret.Path != expected {
-		t.Errorf("expected %q to be %q", secret.Path, expected)
-	}
-}

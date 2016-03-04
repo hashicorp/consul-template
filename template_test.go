@@ -251,6 +251,9 @@ func TestExecute_renders(t *testing.T) {
 				{{.Service}}{{ end }}{{ end }}
 		nodes:{{ range nodes }}
 			{{.Node}}{{ end }}
+		secret: {{ with secret "secret/foo/bar" }}{{.Data.zip}}{{ end }}
+		secrets:{{ range secrets "secret/" }}
+			{{.}}{{ end }}
 		service:{{ range service "webapp" }}
 			{{.Address}}{{ end }}
 		service (any):{{ range service "webapp" "any" }}
@@ -443,6 +446,12 @@ func TestExecute_renders(t *testing.T) {
 		},
 	})
 
+	d, err = dep.ParseVaultSecrets("secret/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	brain.Remember(d, []string{"bar", "foo"})
+
 	d, err = dep.ParseVaultSecret("secret/foo/bar")
 	if err != nil {
 		t.Fatal(err)
@@ -492,6 +501,10 @@ func TestExecute_renders(t *testing.T) {
 		nodes:
 			node1
 			node2
+		secret: zap
+		secrets:
+			bar
+			foo
 		service:
 			1.2.3.4
 			5.6.7.8
@@ -598,7 +611,7 @@ minconns: "2"
 `)
 
 	if !bytes.Equal(result, expected) {
-		t.Errorf("expected %s to be %s", result, expected)
+		t.Errorf("expected \n\n%q\n\n to be \n\n%q\n\n", result, expected)
 	}
 }
 

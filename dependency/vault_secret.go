@@ -118,7 +118,7 @@ func (d *VaultSecret) HashCode() string {
 // Display returns a string that should be displayed to the user in output (for
 // example).
 func (d *VaultSecret) Display() string {
-	return fmt.Sprintf(`"vault(%s)"`, d.Path)
+	return fmt.Sprintf(`"secret(%s)"`, d.Path)
 }
 
 // ParseVaultSecret creates a new datacenter dependency.
