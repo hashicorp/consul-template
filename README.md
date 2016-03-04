@@ -1220,6 +1220,12 @@ You should see output similar to the following:
 104.131.59.59
 ```
 
+Running and Process Lifecycle
+-----------------------------
+While there are multiple ways to run Consul Template, the most common pattern is to run Consul Template as a system service. When Consul Template first starts, it reads any configuration files and templates from disk and loads them into memory. From that point forward, changes to the files on disk do not propagate to running process without a reload.
+
+The reason for this behavior is simple and aligns with other tools like haproxy. A user may want to perform pre-flight validation checks on the configuration or templates before loading them into the process. Additionally, a user may want to update configuration and templates simultaneously. Having Consul Template automatically watch and reload those files on changes is both operationally dangerous and against some of the paradigms of modern infrastructure. Instead, Consul Template listens for the `SIGHUP` syscall to trigger a configuration reload. If you update configuration or templates, simply send `HUP` to the running Consul Template process and Consul Template will reload all the configurations and templates from disk.
+
 Debugging
 ---------
 Consul Template can print verbose debugging output. To set the log level for Consul Template, use the `-log-level` flag:
