@@ -19,6 +19,7 @@ NEW FEATURES:
 BUG FIXES:
 
   * Parse file permissions as a string in JSON [GH-548]
+  * Document how to reload config with signals [GH-522]
 
 ## v0.13.0 (February 18, 2016)
 
