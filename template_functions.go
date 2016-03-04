@@ -354,9 +354,11 @@ func treeFunc(brain *Brain,
 // vaultFunc is deprecated. Use secretFunc instead.
 func vaultFunc(brain *Brain,
 	used, missing map[string]dep.Dependency) func(string) (*dep.Secret, error) {
-	log.Printf("[WARN] the `vault` template function has been deprecated. " +
-		"Please use `secret` instead!")
-	return secretFunc(brain, used, missing)
+	return func(s string) (*dep.Secret, error) {
+		log.Printf("[WARN] the `vault' template function has been deprecated. " +
+			"Please use `secret` instead!")
+		return secretFunc(brain, used, missing)(s)
+	}
 }
 
 // byKey accepts a slice of KV pairs and returns a map of the top-level
