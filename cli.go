@@ -47,6 +47,7 @@ type CLI struct {
 	stopped bool
 }
 
+// NewCLI creates a new CLI object with the given stdout and stderr streams.
 func NewCLI(out, err io.Writer) *CLI {
 	return &CLI{
 		outStream: out,
@@ -65,7 +66,7 @@ func (cli *CLI) Run(args []string) int {
 	}
 
 	// Save original config (defaults + parsed flags) for handling reloads
-	base_config := config
+	baseConfig := config.Copy()
 
 	// Setup the config and logging
 	config, err = cli.setup(config)
@@ -85,7 +86,7 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeOK
 	}
 
-	// If they configured a child process reaper, start that now
+	// If they configured a child process reaper, start that now.
 	var reapLock sync.RWMutex
 	if config.Reap || (!config.WasSet("reap") && os.Getpid() == 1) {
 		if !reap.IsSupported() {
@@ -144,7 +145,7 @@ func (cli *CLI) Run(args []string) int {
 				runner.Stop()
 
 				// Load the new configuration from disk
-				config, err = cli.setup(base_config)
+				config, err = cli.setup(baseConfig)
 				if err != nil {
 					return cli.handleError(err, ExitCodeConfigError)
 				}

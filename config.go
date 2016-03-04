@@ -87,6 +87,97 @@ type Config struct {
 	setKeys map[string]struct{}
 }
 
+// Copy returns a deep copy of the current configuration. This is useful because
+// the nested data structures may be shared.
+func (c *Config) Copy() *Config {
+	config := new(Config)
+	config.Path = c.Path
+	config.Consul = c.Consul
+	config.Token = c.Token
+
+	if c.Auth != nil {
+		config.Auth = &AuthConfig{
+			Enabled:  c.Auth.Enabled,
+			Username: c.Auth.Username,
+			Password: c.Auth.Password,
+		}
+	}
+
+	if c.Vault != nil {
+		config.Vault = &VaultConfig{
+			Address: c.Vault.Address,
+			Token:   c.Vault.Token,
+			Renew:   c.Vault.Renew,
+		}
+
+		if c.Vault.SSL != nil {
+			config.Vault.SSL = &SSLConfig{
+				Enabled: c.Vault.SSL.Enabled,
+				Verify:  c.Vault.SSL.Verify,
+				Cert:    c.Vault.SSL.Cert,
+				Key:     c.Vault.SSL.Key,
+				CaCert:  c.Vault.SSL.CaCert,
+			}
+		}
+	}
+
+	if c.SSL != nil {
+		config.SSL = &SSLConfig{
+			Enabled: c.SSL.Enabled,
+			Verify:  c.SSL.Verify,
+			Cert:    c.SSL.Cert,
+			Key:     c.SSL.Key,
+			CaCert:  c.SSL.CaCert,
+		}
+	}
+
+	if c.Syslog != nil {
+		config.Syslog = &SyslogConfig{
+			Enabled:  c.Syslog.Enabled,
+			Facility: c.Syslog.Facility,
+		}
+	}
+
+	config.MaxStale = c.MaxStale
+
+	config.ConfigTemplates = make([]*ConfigTemplate, len(c.ConfigTemplates))
+	for i, t := range c.ConfigTemplates {
+		config.ConfigTemplates[i] = &ConfigTemplate{
+			Source:         t.Source,
+			Destination:    t.Destination,
+			Command:        t.Command,
+			CommandTimeout: t.CommandTimeout,
+			Perms:          t.Perms,
+			Backup:         t.Backup,
+		}
+	}
+
+	config.Retry = c.Retry
+
+	if c.Wait != nil {
+		config.Wait = &watch.Wait{
+			Min: c.Wait.Min,
+			Max: c.Wait.Max,
+		}
+	}
+
+	config.PidFile = c.PidFile
+	config.LogLevel = c.LogLevel
+
+	if c.Deduplicate != nil {
+		config.Deduplicate = &DeduplicateConfig{
+			Enabled: c.Deduplicate.Enabled,
+			Prefix:  c.Deduplicate.Prefix,
+			TTL:     c.Deduplicate.TTL,
+		}
+	}
+
+	config.Reap = c.Reap
+	config.setKeys = c.setKeys
+
+	return config
+}
+
 // Merge merges the values in config into this config object. Values in the
 // config object overwrite the values in c.
 func (c *Config) Merge(config *Config) {
