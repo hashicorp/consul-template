@@ -293,6 +293,51 @@ This example will query Consul's default datacenter. You can specify an optional
 
 This will query Consul for all nodes in the east-aws datacenter.
 
+##### `secret`
+Query [Vault](https://www.vaultproject.io) for the secret data at the given path. If the path does not exist or if the configured Vault token does not have permission to read the path, an error will be returned.  If the path exists, but the key does not exist, `<no value>` will be returned.
+
+```liquid
+{{with secret "secret/passwords"}}{{.Data.password}}{{end}}
+```
+
+The following fields are available:
+
+- `LeaseID` - the unique lease identifier
+- `LeaseDuration` - the number of seconds the lease is valid
+- `Renewable` - if the secret is renewable
+- `Data` - the raw data - this is a `map[string]interface{}`, so it can be queried using Go's templating "dot notation"
+
+If the map key has dots "." in it, you need to access the value using the `index` function:
+
+```liquid
+{{index .Data "my.key.with.dots"}}
+```
+
+Please always consider the security implications of having the contents of a secret in plain-text on disk. If an attacker is able to get access to the file, they will have access to plain-text secrets.
+
+##### `secrets`
+Query [Vault](https://www.vaultproject.io) to list the secrets at the given path. Please note this requires Vault 0.5+ and the endpoint you want to list secrets must support listing. Not all endpoints support listing. The result is the list of secret names as strings.
+
+```liquid
+{{range secrets "secret/"}}{{.}}{{end}}
+```
+
+The trailing slash is optional in the template, but the generated secret dependency will always have a trailing slash in log output.
+
+To iterate and list over every secret in the generic secret backend in Vault, for example, you would need to do something like this:
+
+```liquid
+{{range secrets "secret/"}}
+{{with secret (printf "secret/%" .)}}
+{{range $k, $v := .Data}}
+{{$k}}: {{$v}}
+{{end}}
+{{end}}
+{{end}}
+```
+
+You should probably never do this.
+
 ##### `service`
 Query Consul for the service group(s) matching the given pattern. Services are queried using the following syntax:
 
@@ -423,28 +468,6 @@ nested/config/value "value"
 Unlike `ls`, `tree` returns **all** keys under the prefix, just like the Unix `tree` command.
 
 If you omit the datacenter attribute on `tree`, the local Consul datacenter will be queried.
-
-##### `vault`
-Query [Vault](https://vaultproject.io) for the secret data at the given path. If the path does not exist or if the configured vault token does not have permission to read the path, an error will be returned.  If the path exists, but the key does not exist, `<no value>` will be returned.
-
-```liquid
-{{with vault "secret/passwords"}}{{.Data.password}}{{end}}
-```
-
-The following fields are available:
-
-- `LeaseID` - the unique lease identifier
-- `LeaseDuration` - the number of seconds the lease is valid
-- `Renewable` - if the secret is renewable
-- `Data` - the raw data - this is a `map[string]interface{}`, so it can be queried using Go's templating "dot notation"
-
-If the map key has dots "." in it, you need to access the value using the `index` function:
-
-```liquid
-{{index .Data "my.key.with.dots"}}
-```
-
-Please always consider the security implications of having the contents of a secret in plain-text on disk. If an attacker is able to get access to the file, they will have access to plain-text secrets.
 
 - - -
 
