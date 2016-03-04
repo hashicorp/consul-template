@@ -25,7 +25,7 @@ var now = func() time.Time { return time.Now().UTC() }
 func datacentersFunc(brain *Brain,
 	used, missing map[string]dep.Dependency) func(...string) ([]string, error) {
 	return func(s ...string) ([]string, error) {
-		result := make([]string, 0)
+		result := []string{}
 
 		d, err := dep.ParseDatacenters(s...)
 		if err != nil {
@@ -62,9 +62,8 @@ func fileFunc(brain *Brain,
 		if value, ok := brain.Recall(d); ok {
 			if value == nil {
 				return "", nil
-			} else {
-				return value.(string), nil
 			}
+			return value.(string), nil
 		}
 
 		addDependency(missing, d)
@@ -91,9 +90,8 @@ func keyFunc(brain *Brain,
 		if value, ok := brain.Recall(d); ok {
 			if value == nil {
 				return "", nil
-			} else {
-				return value.(string), nil
 			}
+			return value.(string), nil
 		}
 
 		addDependency(missing, d)
@@ -122,9 +120,8 @@ func keyWithDefaultFunc(brain *Brain,
 		if value, ok := brain.Recall(d); ok {
 			if value == nil {
 				return def, nil
-			} else {
-				return value.(string), nil
 			}
+			return value.(string), nil
 		}
 
 		addDependency(missing, d)
@@ -137,7 +134,7 @@ func keyWithDefaultFunc(brain *Brain,
 func lsFunc(brain *Brain,
 	used, missing map[string]dep.Dependency) func(string) ([]*dep.KeyPair, error) {
 	return func(s string) ([]*dep.KeyPair, error) {
-		result := make([]*dep.KeyPair, 0)
+		result := []*dep.KeyPair{}
 
 		if len(s) == 0 {
 			return result, nil
@@ -192,7 +189,7 @@ func nodeFunc(brain *Brain,
 func nodesFunc(brain *Brain,
 	used, missing map[string]dep.Dependency) func(...string) ([]*dep.Node, error) {
 	return func(s ...string) ([]*dep.Node, error) {
-		result := make([]*dep.Node, 0)
+		result := []*dep.Node{}
 
 		d, err := dep.ParseCatalogNodes(s...)
 		if err != nil {
@@ -243,7 +240,7 @@ func secretFunc(brain *Brain,
 func secretsFunc(brain *Brain,
 	used, missing map[string]dep.Dependency) func(string) ([]string, error) {
 	return func(s string) ([]string, error) {
-		result := make([]string, 0)
+		result := []string{}
 
 		if len(s) == 0 {
 			return result, nil
@@ -271,7 +268,7 @@ func secretsFunc(brain *Brain,
 func serviceFunc(brain *Brain,
 	used, missing map[string]dep.Dependency) func(...string) ([]*dep.HealthService, error) {
 	return func(s ...string) ([]*dep.HealthService, error) {
-		result := make([]*dep.HealthService, 0)
+		result := []*dep.HealthService{}
 
 		if len(s) == 0 || s[0] == "" {
 			return result, nil
@@ -298,7 +295,7 @@ func serviceFunc(brain *Brain,
 func servicesFunc(brain *Brain,
 	used, missing map[string]dep.Dependency) func(...string) ([]*dep.CatalogService, error) {
 	return func(s ...string) ([]*dep.CatalogService, error) {
-		result := make([]*dep.CatalogService, 0)
+		result := []*dep.CatalogService{}
 
 		d, err := dep.ParseCatalogServices(s...)
 		if err != nil {
@@ -321,7 +318,7 @@ func servicesFunc(brain *Brain,
 func treeFunc(brain *Brain,
 	used, missing map[string]dep.Dependency) func(string) ([]*dep.KeyPair, error) {
 	return func(s string) ([]*dep.KeyPair, error) {
-		result := make([]*dep.KeyPair, 0)
+		result := []*dep.KeyPair{}
 
 		if len(s) == 0 {
 			return result, nil
@@ -716,9 +713,8 @@ func timestamp(s ...string) (string, error) {
 	case 1:
 		if s[0] == "unix" {
 			return strconv.FormatInt(now().Unix(), 10), nil
-		} else {
-			return now().Format(s[0]), nil
 		}
+		return now().Format(s[0]), nil
 	default:
 		return "", fmt.Errorf("timestamp: wrong number of arguments, expected 0 or 1"+
 			", but got %d", len(s))
@@ -947,6 +943,7 @@ func divide(b, a interface{}) (interface{}, error) {
 // addDependency adds the given Dependency to the map.
 func addDependency(m map[string]dep.Dependency, d dep.Dependency) {
 	if _, ok := m[d.HashCode()]; !ok {
+		log.Println(fmt.Sprintf("[TRACE] Adding dependency %q", d.HashCode()))
 		m[d.HashCode()] = d
 	}
 }
