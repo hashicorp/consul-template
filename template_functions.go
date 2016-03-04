@@ -943,7 +943,6 @@ func divide(b, a interface{}) (interface{}, error) {
 // addDependency adds the given Dependency to the map.
 func addDependency(m map[string]dep.Dependency, d dep.Dependency) {
 	if _, ok := m[d.HashCode()]; !ok {
-		log.Println(fmt.Sprintf("[TRACE] Adding dependency %q", d.HashCode()))
 		m[d.HashCode()] = d
 	}
 }
