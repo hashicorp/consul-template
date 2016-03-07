@@ -315,6 +315,8 @@ If the map key has dots "." in it, you need to access the value using the `index
 
 Please always consider the security implications of having the contents of a secret in plain-text on disk. If an attacker is able to get access to the file, they will have access to plain-text secrets.
 
+Please note that Vault does not support blocking queries. As a result, Consul Template will not immediately reload in the event a secret is changed as it does with Consul's key-value store. Consul Template will fetch a new secret at half the lease duration of the original secret. For example, most items in Vault's generic secret backend have a default 30 day lease. This means Consul Template will renew the secret every 15 days. As such, it is recommended that a smaller lease duration be used when generating the initial secret to force Consul Template to renew more often.
+
 ##### `secrets`
 Query [Vault](https://www.vaultproject.io) to list the secrets at the given path. Please note this requires Vault 0.5+ and the endpoint you want to list secrets must support listing. Not all endpoints support listing. The result is the list of secret names as strings.
 
@@ -336,7 +338,7 @@ To iterate and list over every secret in the generic secret backend in Vault, fo
 {{end}}
 ```
 
-You should probably never do this.
+You should probably never do this. Please also note that Vault does not support blocking queries. To understand the implications, please read the note at the end of the `secret` function.
 
 ##### `service`
 Query Consul for the service group(s) matching the given pattern. Services are queried using the following syntax:
@@ -613,7 +615,7 @@ Takes the given list of strings as a pipe and joins them on the provided string:
 {{$items | join ","}}
 ```
 
-#### `trimSpace`
+##### `trimSpace`
 Takes the provided input and trims all whitespace, tabs and newlines:
 ```liquid
 {{ file "/etc/ec2_version"| trimSpace }}
