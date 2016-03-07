@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"sync"
 	"time"
 )
 
@@ -11,6 +12,8 @@ var sleepTime = 15 * time.Second
 
 // Datacenters is the dependency to query all datacenters
 type Datacenters struct {
+	sync.Mutex
+
 	rawKey string
 
 	stopped bool
@@ -20,9 +23,12 @@ type Datacenters struct {
 // Fetch queries the Consul API defined by the given client and returns a slice
 // of strings representing the datacenters
 func (d *Datacenters) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
+	d.Lock()
 	if d.stopped {
+		defer d.Unlock()
 		return nil, nil, ErrStopped
 	}
+	d.Unlock()
 
 	if opts == nil {
 		opts = &QueryOptions{}
@@ -88,6 +94,9 @@ func (d *Datacenters) Display() string {
 
 // Stop terminates this dependency's execution early.
 func (d *Datacenters) Stop() {
+	d.Lock()
+	defer d.Unlock()
+
 	if !d.stopped {
 		close(d.stopCh)
 		d.stopped = true

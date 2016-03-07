@@ -20,9 +20,12 @@ type VaultToken struct {
 
 // Fetch queries the Vault API
 func (d *VaultToken) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
+	d.Lock()
 	if d.stopped {
+		defer d.Unlock()
 		return nil, nil, ErrStopped
 	}
+	d.Unlock()
 
 	if opts == nil {
 		opts = &QueryOptions{}
@@ -95,6 +98,9 @@ func (d *VaultToken) Display() string {
 
 // Stop halts the dependency's fetch function.
 func (d *VaultToken) Stop() {
+	d.Lock()
+	defer d.Unlock()
+
 	if !d.stopped {
 		close(d.stopCh)
 		d.stopped = true

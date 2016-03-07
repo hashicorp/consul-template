@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-multierror"
@@ -45,6 +46,8 @@ type HealthService struct {
 // HealthServices is the struct that is formed from the dependency inside a
 // template.
 type HealthServices struct {
+	sync.Mutex
+
 	rawKey       string
 	Name         string
 	Tag          string
@@ -57,6 +60,13 @@ type HealthServices struct {
 // Fetch queries the Consul API defined by the given client and returns a slice
 // of HealthService objects.
 func (d *HealthServices) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
+	d.Lock()
+	if d.stopped {
+		defer d.Unlock()
+		return nil, nil, ErrStopped
+	}
+	d.Unlock()
+
 	if opts == nil {
 		opts = &QueryOptions{}
 	}
@@ -166,6 +176,9 @@ func (d *HealthServices) Display() string {
 
 // Stop halts the dependency's fetch function.
 func (d *HealthServices) Stop() {
+	d.Lock()
+	defer d.Unlock()
+
 	if !d.stopped {
 		close(d.stopCh)
 		d.stopped = true

@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"sync"
 	"time"
 )
 
 // VaultSecrets is the dependency to list secrets in Vault.
 type VaultSecrets struct {
+	sync.Mutex
+
 	Path string
 
 	stopped bool
@@ -17,9 +20,12 @@ type VaultSecrets struct {
 
 // Fetch queries the Vault API
 func (d *VaultSecrets) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
+	d.Lock()
 	if d.stopped {
+		defer d.Unlock()
 		return nil, nil, ErrStopped
 	}
+	d.Unlock()
 
 	if opts == nil {
 		opts = &QueryOptions{}
@@ -108,6 +114,9 @@ func (d *VaultSecrets) Display() string {
 
 // Stop halts the dependency's fetch function.
 func (d *VaultSecrets) Stop() {
+	d.Lock()
+	defer d.Unlock()
+
 	if !d.stopped {
 		close(d.stopCh)
 		d.stopped = true

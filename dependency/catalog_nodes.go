@@ -7,6 +7,7 @@ import (
 	"log"
 	"regexp"
 	"sort"
+	"sync"
 
 	"github.com/hashicorp/consul/api"
 )
@@ -23,6 +24,8 @@ type Node struct {
 
 // CatalogNodes is the representation of all registered nodes in Consul.
 type CatalogNodes struct {
+	sync.Mutex
+
 	rawKey     string
 	DataCenter string
 	stopped    bool
@@ -32,6 +35,13 @@ type CatalogNodes struct {
 // Fetch queries the Consul API defined by the given client and returns a slice
 // of Node objects
 func (d *CatalogNodes) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
+	d.Lock()
+	if d.stopped {
+		defer d.Unlock()
+		return nil, nil, ErrStopped
+	}
+	d.Unlock()
+
 	if opts == nil {
 		opts = &QueryOptions{}
 	}
@@ -105,6 +115,9 @@ func (d *CatalogNodes) Display() string {
 
 // Stop halts the dependency's fetch function.
 func (d *CatalogNodes) Stop() {
+	d.Lock()
+	defer d.Unlock()
+
 	if !d.stopped {
 		close(d.stopCh)
 		d.stopped = true

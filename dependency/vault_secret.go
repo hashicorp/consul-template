@@ -31,9 +31,12 @@ type VaultSecret struct {
 
 // Fetch queries the Vault API
 func (d *VaultSecret) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
+	d.Lock()
 	if d.stopped {
+		defer d.Unlock()
 		return nil, nil, ErrStopped
 	}
+	d.Unlock()
 
 	if opts == nil {
 		opts = &QueryOptions{}
@@ -135,6 +138,9 @@ func (d *VaultSecret) Display() string {
 
 // Stop halts the given dependency's fetch.
 func (d *VaultSecret) Stop() {
+	d.Lock()
+	defer d.Unlock()
+
 	if !d.stopped {
 		close(d.stopCh)
 		d.stopped = true

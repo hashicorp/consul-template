@@ -12,6 +12,7 @@ import (
 
 // File represents a local file dependency.
 type File struct {
+	sync.Mutex
 	mutex    sync.RWMutex
 	rawKey   string
 	lastStat os.FileInfo
@@ -22,6 +23,13 @@ type File struct {
 // Fetch retrieves this dependency and returns the result or any errors that
 // occur in the process.
 func (d *File) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
+	d.Lock()
+	if d.stopped {
+		defer d.Unlock()
+		return nil, nil, ErrStopped
+	}
+	d.Unlock()
+
 	var err error
 	var newStat os.FileInfo
 	var data []byte
@@ -70,6 +78,9 @@ func (d *File) Display() string {
 
 // Stop halts the dependency's fetch function.
 func (d *File) Stop() {
+	d.Lock()
+	defer d.Unlock()
+
 	if !d.stopped {
 		close(d.stopCh)
 		d.stopped = true

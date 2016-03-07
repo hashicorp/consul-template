@@ -7,6 +7,7 @@ import (
 	"log"
 	"regexp"
 	"sort"
+	"sync"
 
 	"github.com/hashicorp/consul/api"
 )
@@ -24,6 +25,8 @@ type CatalogService struct {
 // CatalogServices is the representation of a requested catalog service
 // dependency from inside a template.
 type CatalogServices struct {
+	sync.Mutex
+
 	rawKey     string
 	Name       string
 	Tags       []string
@@ -35,6 +38,13 @@ type CatalogServices struct {
 // Fetch queries the Consul API defined by the given client and returns a slice
 // of CatalogService objects.
 func (d *CatalogServices) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
+	d.Lock()
+	if d.stopped {
+		defer d.Unlock()
+		return nil, nil, ErrStopped
+	}
+	d.Unlock()
+
 	if opts == nil {
 		opts = &QueryOptions{}
 	}
@@ -110,6 +120,9 @@ func (d *CatalogServices) Display() string {
 
 // Stop halts the dependency's fetch function.
 func (d *CatalogServices) Stop() {
+	d.Lock()
+	defer d.Unlock()
+
 	if !d.stopped {
 		close(d.stopCh)
 		d.stopped = true
