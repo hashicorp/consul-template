@@ -16,6 +16,12 @@ NEW FEATURES:
     requires Vault 0.5+ and the secret backend must support listing. Please see
     the Vault documentation for more information [GH-270]
 
+IMPROVEMENTS:
+
+  * Allow passing any kind of object to `toJSON` in the template. Previously
+    this was restricted to key-value maps, but that restriction is now removed.
+    [GH-553]
+
 BUG FIXES:
 
   * Parse file permissions as a string in JSON [GH-548]
