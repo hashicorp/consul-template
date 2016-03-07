@@ -97,6 +97,8 @@ func (s *vaultServer) CreateSecret(path string, data map[string]interface{}) err
 // testVaultServer is a helper for creating a Vault server and returning the
 // appropriate client to connect to it.
 func testVaultServer(t *testing.T) (*ClientSet, *vaultServer) {
+	t.Parallel()
+
 	core, _, token := vault.TestCoreUnsealed(t)
 	ln, addr := http.TestServer(t, core)
 
