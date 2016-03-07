@@ -33,7 +33,27 @@ if [ -z $NOTAG ]; then
   git tag -a -m "Version $VERSION" -s -u 348FFC4C "v${VERSION}" master
 fi
 
+if [ -z $NOBUILD ]; then
+  echo "==> Building..."
+  docker run \
+    --rm \
+    --workdir="/go/src/github.com/hashicorp/consul-template" \
+    --volume="$(pwd):/go/src/github.com/hashicorp/consul-template" \
+    golang:1.6.0 "make updatedeps && make bin"
+fi
+
 # Zip all the files
+echo "==> Packaging..."
+for PLATFORM in $(find ./pkg -mindepth 1 -maxdepth 1 -type d); do
+  OSARCH=$(basename ${PLATFORM})
+  echo "--> ${OSARCH}"
+
+  pushd $PLATFORM >/dev/null 2>&1
+  zip ../${OSARCH}.zip ./*
+  popd >/dev/null 2>&1
+done
+
+# Move everything into dist
 rm -rf ./pkg/dist
 mkdir -p ./pkg/dist
 for FILENAME in $(find ./pkg -mindepth 1 -maxdepth 1 -type f); do
