@@ -10,8 +10,8 @@ import (
 var GitCommit string
 
 const Name = "consul-template"
-const Version = "0.14.0"
-const VersionPrerelease = ""
+const Version = "0.15.0"
+const VersionPrerelease = "dev"
 
 func main() {
 	cli := NewCLI(os.Stdout, os.Stderr)
