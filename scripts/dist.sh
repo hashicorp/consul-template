@@ -18,6 +18,7 @@ cd $DIR
 
 # Generate and save godeps
 if [ -z $NODEPS ]; then
+  echo "==> Saving deps..."
   rm -rf Godeps/
   rm -rf vendor/
   godep save ./...
@@ -39,7 +40,7 @@ if [ -z $NOBUILD ]; then
     --rm \
     --workdir="/go/src/github.com/hashicorp/consul-template" \
     --volume="$(pwd):/go/src/github.com/hashicorp/consul-template" \
-    golang:1.6.0 "make updatedeps && make bin"
+    golang:1.6.0 /bin/sh -c "make updatedeps && make bin"
 fi
 
 # Zip all the files
