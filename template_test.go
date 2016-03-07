@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"os"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -118,22 +117,6 @@ func TestExecute_missingDependencies(t *testing.T) {
 
 	if num := len(missing); num != 1 {
 		t.Fatalf("expected 1 missing, got: %d", num)
-	}
-
-	expected, err := dep.ParseStoreKey("foo")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !reflect.DeepEqual(missing[0], expected) {
-		t.Errorf("expected %v to be %v", missing[0], expected)
-	}
-
-	if num := len(used); num != 1 {
-		t.Fatalf("expected 1 used, got %d", num)
-	}
-
-	if !reflect.DeepEqual(used[0], expected) {
-		t.Errorf("expected %v to be %v", used[0], expected)
 	}
 
 	expectedResult := []byte("")

@@ -50,6 +50,8 @@ type HealthServices struct {
 	Tag          string
 	DataCenter   string
 	StatusFilter ServiceStatusFilter
+	stopped      bool
+	stopCh       chan struct{}
 }
 
 // Fetch queries the Consul API defined by the given client and returns a slice
@@ -64,8 +66,6 @@ func (d *HealthServices) Fetch(clients *ClientSet, opts *QueryOptions) (interfac
 		consulOpts.Datacenter = d.DataCenter
 	}
 
-	log.Printf("[DEBUG] (%s) querying Consul with %+v", d.Display(), consulOpts)
-
 	onlyHealthy := false
 	if d.StatusFilter == nil {
 		onlyHealthy = true
@@ -76,8 +76,21 @@ func (d *HealthServices) Fetch(clients *ClientSet, opts *QueryOptions) (interfac
 		return nil, nil, fmt.Errorf("health services: error getting client: %s", err)
 	}
 
-	health := consul.Health()
-	entries, qm, err := health.Service(d.Name, d.Tag, onlyHealthy, consulOpts)
+	var entries []*api.ServiceEntry
+	var qm *api.QueryMeta
+	dataCh := make(chan struct{})
+	go func() {
+		log.Printf("[DEBUG] (%s) querying consul with %+v", d.Display(), consulOpts)
+		entries, qm, err = consul.Health().Service(d.Name, d.Tag, onlyHealthy, consulOpts)
+		close(dataCh)
+	}()
+
+	select {
+	case <-d.stopCh:
+		return nil, nil, ErrStopped
+	case <-dataCh:
+	}
+
 	if err != nil {
 		return nil, nil, fmt.Errorf("health services: error fetching: %s", err)
 	}
@@ -136,16 +149,27 @@ func (d *HealthServices) Fetch(clients *ClientSet, opts *QueryOptions) (interfac
 	return services, rm, nil
 }
 
+// CanShare returns a boolean if this dependency is shareable.
 func (d *HealthServices) CanShare() bool {
 	return true
 }
 
+// HashCode returns a unique identifier.
 func (d *HealthServices) HashCode() string {
 	return fmt.Sprintf("HealthServices|%s", d.rawKey)
 }
 
+// Display prints the human-friendly output.
 func (d *HealthServices) Display() string {
 	return fmt.Sprintf(`"service(%s)"`, d.rawKey)
+}
+
+// Stop halts the dependency's fetch function.
+func (d *HealthServices) Stop() {
+	if !d.stopped {
+		close(d.stopCh)
+		d.stopped = true
+	}
 }
 
 // ParseHealthServices processes the incoming strings to build a service dependency.
@@ -154,7 +178,7 @@ func (d *HealthServices) Display() string {
 //   ParseHealthServices("service_id")
 //   ParseHealthServices("service_id", "health_check")
 //
-// Where service_id is in the format of service(.tag(@datacenter(:port)))
+// Where service_id is in the format of service(.tag(@datacenter))
 // and health_check is either "any" or "passing".
 //
 // If no health_check is provided then its the same as "passing".
@@ -229,6 +253,7 @@ func ParseHealthServices(s ...string) (*HealthServices, error) {
 		Tag:          tag,
 		DataCenter:   datacenter,
 		StatusFilter: filter,
+		stopCh:       make(chan struct{}),
 	}
 
 	return sd, nil

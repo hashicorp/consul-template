@@ -92,7 +92,7 @@ func TestNewWatcher_renewVault(t *testing.T) {
 	}
 	defer w.Stop()
 
-	if !w.Watching(new(dep.VaultToken)) {
+	if !w.Watching(&dep.VaultToken{}) {
 		t.Errorf("expected watcher to be renewing vault token")
 	}
 }

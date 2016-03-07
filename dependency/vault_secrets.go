@@ -10,10 +10,17 @@ import (
 // VaultSecrets is the dependency to list secrets in Vault.
 type VaultSecrets struct {
 	Path string
+
+	stopped bool
+	stopCh  chan struct{}
 }
 
 // Fetch queries the Vault API
 func (d *VaultSecrets) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
+	if d.stopped {
+		return nil, nil, ErrStopped
+	}
+
 	if opts == nil {
 		opts = &QueryOptions{}
 	}
@@ -24,7 +31,11 @@ func (d *VaultSecrets) Fetch(clients *ClientSet, opts *QueryOptions) (interface{
 	// try to renew.
 	if opts.WaitIndex != 0 {
 		log.Printf("[DEBUG] (%s) pretending to long-poll", d.Display())
-		time.Sleep(sleepTime)
+		select {
+		case <-d.stopCh:
+			return nil, nil, ErrStopped
+		case <-time.After(sleepTime):
+		}
 	}
 
 	// Grab the vault client
@@ -95,6 +106,14 @@ func (d *VaultSecrets) Display() string {
 	return fmt.Sprintf(`"secrets(%s)"`, d.Path)
 }
 
+// Stop halts the dependency's fetch function.
+func (d *VaultSecrets) Stop() {
+	if !d.stopped {
+		close(d.stopCh)
+		d.stopped = true
+	}
+}
+
 // ParseVaultSecrets creates a new datacenter dependency.
 func ParseVaultSecrets(s string) (*VaultSecrets, error) {
 	// Ensure a trailing slash, always.
@@ -105,5 +124,9 @@ func ParseVaultSecrets(s string) (*VaultSecrets, error) {
 		s = fmt.Sprintf("%s/", s)
 	}
 
-	return &VaultSecrets{Path: s}, nil
+	vs := &VaultSecrets{
+		Path:   s,
+		stopCh: make(chan struct{}),
+	}
+	return vs, nil
 }

@@ -1,9 +1,9 @@
 package dependency
 
 import (
-	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestStoreKeyFetch(t *testing.T) {
@@ -12,7 +12,11 @@ func TestStoreKeyFetch(t *testing.T) {
 
 	consul.SetKV("foo", []byte("bar"))
 
-	dep := &StoreKey{rawKey: "foo", Path: "foo"}
+	dep, err := ParseStoreKey("foo")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	results, _, err := dep.Fetch(clients, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -21,6 +25,38 @@ func TestStoreKeyFetch(t *testing.T) {
 	_, ok := results.(string)
 	if !ok {
 		t.Fatal("could not convert result to string")
+	}
+}
+
+func TestStoreKeyFetch_stopped(t *testing.T) {
+	clients, consul := testConsulServer(t)
+	defer consul.Stop()
+
+	consul.SetKV("foo", []byte("bar"))
+
+	dep, err := ParseStoreKey("foo")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	errCh := make(chan error)
+	go func() {
+		results, _, err := dep.Fetch(clients, &QueryOptions{WaitIndex: 100})
+		if results != nil {
+			t.Fatalf("should not get results: %#v", results)
+		}
+		errCh <- err
+	}()
+
+	dep.Stop()
+
+	select {
+	case err := <-errCh:
+		if err != ErrStopped {
+			t.Errorf("expected %q to be %q", err, ErrStopped)
+		}
+	case <-time.After(50 * time.Millisecond):
+		t.Errorf("did not return in 50ms")
 	}
 }
 
@@ -42,6 +78,7 @@ func TestStoreKeyDisplay_includesDefault(t *testing.T) {
 		t.Fatal(err)
 	}
 	dep.SetDefault("3")
+
 	expected := `"key_or_default(conns, "3")"`
 	if dep.Display() != expected {
 		t.Errorf("expected %q to be %q", dep.Display(), expected)
@@ -89,12 +126,12 @@ func TestParseStoreKey_name(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := &StoreKey{
-		rawKey: "config/redis/maxconns",
-		Path:   "config/redis/maxconns",
+	if sd.rawKey != "config/redis/maxconns" {
+		t.Errorf("expected %q to be %q", sd.rawKey, "config/redis/maxconns")
 	}
-	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %+v to equal %+v", sd, expected)
+
+	if sd.Path != "config/redis/maxconns" {
+		t.Errorf("expected %q to be %q", sd.Path, "config/redis/maxconns")
 	}
 }
 
@@ -104,13 +141,16 @@ func TestParseStoreKey_nameSpecialCharacters(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := &StoreKey{
-		rawKey:     "config/facet:größe-lf-si@nyc1",
-		Path:       "config/facet:größe-lf-si",
-		DataCenter: "nyc1",
+	if sd.rawKey != "config/facet:größe-lf-si@nyc1" {
+		t.Errorf("expected %q to be %q", sd.rawKey, "config/facet:größe-lf-si@nyc1")
 	}
-	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %+v to equal %+v", sd, expected)
+
+	if sd.Path != "config/facet:größe-lf-si" {
+		t.Errorf("expected %q to be %q", sd.Path, "config/facet:größe-lf-si")
+	}
+
+	if sd.DataCenter != "nyc1" {
+		t.Errorf("expected %q to be %q", sd.DataCenter, "nyc1")
 	}
 }
 
@@ -120,13 +160,15 @@ func TestParseStoreKey_nameTagDataCenter(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := &StoreKey{
-		rawKey:     "config/redis/maxconns@nyc1",
-		Path:       "config/redis/maxconns",
-		DataCenter: "nyc1",
+	if sd.rawKey != "config/redis/maxconns@nyc1" {
+		t.Errorf("expected %q to be %q", sd.rawKey, "config/redis/maxconns@nyc1")
 	}
 
-	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %+v to equal %+v", sd, expected)
+	if sd.Path != "config/redis/maxconns" {
+		t.Errorf("expected %q to be %q", sd.Path, "config/redis/maxconns")
+	}
+
+	if sd.DataCenter != "nyc1" {
+		t.Errorf("expected %q to be %q", sd.DataCenter, "nyc1")
 	}
 }

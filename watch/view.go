@@ -118,6 +118,14 @@ func (v *View) fetch(doneCh chan<- struct{}, errCh chan<- error) {
 	}
 
 	for {
+		// If the view was stopped, short-circuit this loop. This prevents a bug
+		// where a view can get "lost" in the event Consul Template is reloaded.
+		select {
+		case <-v.stopCh:
+			return
+		default:
+		}
+
 		opts := &dep.QueryOptions{
 			AllowStale: allowStale,
 			WaitTime:   defaultWaitTime,
@@ -125,7 +133,14 @@ func (v *View) fetch(doneCh chan<- struct{}, errCh chan<- error) {
 		}
 		data, rm, err := v.Dependency.Fetch(v.config.Clients, opts)
 		if err != nil {
-			errCh <- err
+			// ErrStopped is returned by a dependency when it prematurely stopped
+			// because the upstream process asked for a reload or termination. The
+			// most likely cause is that the view was stopped due to a configuration
+			// reload or process interrupt, so we do not want to propagate this error
+			// to the runner, but we want to stop the fetch routine for this view.
+			if err != dep.ErrStopped {
+				errCh <- err
+			}
 			return
 		}
 
@@ -177,5 +192,6 @@ func (v *View) display() string {
 
 // stop halts polling of this view.
 func (v *View) stop() {
+	v.Dependency.Stop()
 	close(v.stopCh)
 }

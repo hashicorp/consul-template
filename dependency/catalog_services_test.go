@@ -1,35 +1,70 @@
 package dependency
 
 import (
-	"reflect"
 	"testing"
+	"time"
 )
 
 func TestCatalogServicesFetch(t *testing.T) {
 	clients, consul := testConsulServer(t)
 	defer consul.Stop()
 
-	consul.AddService("redis", "passing", []string{"master"})
+	dep, err := ParseCatalogServices("")
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	dep := &CatalogServices{rawKey: "redis"}
 	results, _, err := dep.Fetch(clients, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	typed, ok := results.([]*CatalogService)
-	if !ok {
+	if _, ok := results.([]*CatalogService); !ok {
 		t.Fatal("could not convert result to []*CatalogService")
 	}
+}
 
-	if typed[1].Name != "redis" {
-		t.Errorf("expected %q to be %q", typed[1].Name, "redis")
+func TestCatalogServicesFetch_stopped(t *testing.T) {
+	clients, consul := testConsulServer(t)
+	defer consul.Stop()
+
+	dep, err := ParseCatalogServices("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	errCh := make(chan error)
+	go func() {
+		results, _, err := dep.Fetch(clients, &QueryOptions{WaitIndex: 100})
+		if results != nil {
+			t.Fatalf("should not get results: %#v", results)
+		}
+		errCh <- err
+	}()
+
+	dep.Stop()
+
+	select {
+	case err := <-errCh:
+		if err != ErrStopped {
+			t.Errorf("expected %q to be %q", err, ErrStopped)
+		}
+	case <-time.After(50 * time.Millisecond):
+		t.Errorf("did not return in 50ms")
 	}
 }
 
 func TestCatalogServicesHashCode_isUnique(t *testing.T) {
-	dep1 := &CatalogServices{rawKey: ""}
-	dep2 := &CatalogServices{rawKey: "@nyc1"}
+	dep1, err := ParseCatalogServices("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dep2, err := ParseCatalogServices("@nyc1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	if dep1.HashCode() == dep2.HashCode() {
 		t.Errorf("expected HashCode to be unique")
 	}
@@ -41,9 +76,16 @@ func TestParseCatalogServices_emptyString(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := &CatalogServices{}
-	if !reflect.DeepEqual(nd, expected) {
-		t.Errorf("expected %+v to equal %+v", nd, expected)
+	if nd.rawKey != "" {
+		t.Errorf("expected %q to be %q", nd.rawKey, "")
+	}
+
+	if nd.Name != "" {
+		t.Errorf("expected %q to be %q", nd.Name, "")
+	}
+
+	if nd.DataCenter != "" {
+		t.Errorf("expected %q to be %q", nd.DataCenter, "")
 	}
 }
 
@@ -53,11 +95,15 @@ func TestParseCatalogServices_dataCenter(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := &CatalogServices{
-		rawKey:     "@nyc1",
-		DataCenter: "nyc1",
+	if nd.rawKey != "@nyc1" {
+		t.Errorf("expected %q to be %q", nd.rawKey, "@nyc1")
 	}
-	if !reflect.DeepEqual(nd, expected) {
-		t.Errorf("expected %+v to equal %+v", nd, expected)
+
+	if nd.Name != "" {
+		t.Errorf("expected %q to be %q", nd.Name, "")
+	}
+
+	if nd.DataCenter != "nyc1" {
+		t.Errorf("expected %q to be %q", nd.DataCenter, "nyc1")
 	}
 }

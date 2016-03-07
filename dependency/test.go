@@ -28,6 +28,8 @@ func (d *Test) HashCode() string {
 
 func (d *Test) Display() string { return "fakedep" }
 
+func (d *Test) Stop() {}
+
 // TestStale is a special dependency that can be used to test what happens when
 // stale data is permitted.
 type TestStale struct {
@@ -63,6 +65,8 @@ func (d *TestStale) HashCode() string {
 
 func (d *TestStale) Display() string { return "fakedep" }
 
+func (d *TestStale) Stop() {}
+
 // TestFetchError is a special dependency that returns an error while fetching.
 type TestFetchError struct {
 	Name string
@@ -82,6 +86,8 @@ func (d *TestFetchError) HashCode() string {
 }
 
 func (d *TestFetchError) Display() string { return "fakedep" }
+
+func (d *TestFetchError) Stop() {}
 
 // TestRetry is a special dependency that errors on the first fetch and
 // succeeds on subsequent fetches.
@@ -116,3 +122,5 @@ func (d *TestRetry) HashCode() string {
 }
 
 func (d *TestRetry) Display() string { return "fakedep" }
+
+func (d *TestRetry) Stop() {}

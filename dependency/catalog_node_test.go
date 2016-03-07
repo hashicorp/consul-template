@@ -1,9 +1,9 @@
 package dependency
 
 import (
-	"reflect"
 	"sort"
 	"testing"
+	"time"
 )
 
 func TestCatalogNodeFetch(t *testing.T) {
@@ -14,7 +14,11 @@ func TestCatalogNodeFetch(t *testing.T) {
 	consul.AddService("z", "passing", []string{"baz"})
 	consul.AddService("a", "critical", []string{"foo", "bar"})
 
-	dep := &CatalogNode{}
+	dep, err := ParseCatalogNode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	result, _, err := dep.Fetch(clients, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -93,11 +97,49 @@ func TestCatalogNodeFetch(t *testing.T) {
 	}
 }
 
+func TestCatalogNodeFetch_stopped(t *testing.T) {
+	clients, consul := testConsulServer(t)
+	defer consul.Stop()
+
+	// AddService does not let me specify an ID or a port.
+	consul.AddService("z", "passing", []string{"baz"})
+	consul.AddService("a", "critical", []string{"foo", "bar"})
+
+	dep, err := ParseCatalogNode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	errCh := make(chan error)
+	go func() {
+		results, _, err := dep.Fetch(clients, &QueryOptions{WaitIndex: 100})
+		if results != nil {
+			t.Fatalf("should not get results: %#v", results)
+		}
+		errCh <- err
+	}()
+
+	dep.Stop()
+
+	select {
+	case err := <-errCh:
+		if err != ErrStopped {
+			t.Errorf("expected %q to be %q", err, ErrStopped)
+		}
+	case <-time.After(50 * time.Millisecond):
+		t.Errorf("did not return in 50ms")
+	}
+}
+
 func TestCatalogNodeFetch_unknownNode(t *testing.T) {
 	clients, consul := testConsulServer(t)
 	defer consul.Stop()
 
-	dep := &CatalogNode{rawKey: "unknownNode"}
+	dep, err := ParseCatalogNode("unknownNode")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	result, _, err := dep.Fetch(clients, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -117,9 +159,11 @@ func TestCatalogNodeFetch_nameArgument(t *testing.T) {
 	clients, consul := testConsulServer(t)
 	defer consul.Stop()
 
-	dep := &CatalogNode{
-		rawKey: consul.Config.NodeName,
+	dep, err := ParseCatalogNode(consul.Config.NodeName)
+	if err != nil {
+		t.Fatal(err)
 	}
+
 	result, _, err := dep.Fetch(clients, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -162,9 +206,21 @@ func TestCatalogNodeFetch_nameArgument(t *testing.T) {
 }
 
 func TestCatalogNodeHashCode_isUnique(t *testing.T) {
-	dep1 := &CatalogNode{rawKey: ""}
-	dep2 := &CatalogNode{rawKey: "node"}
-	dep3 := &CatalogNode{rawKey: "", dataCenter: "@nyc1"}
+	dep1, err := ParseCatalogNode("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dep2, err := ParseCatalogNode("node")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dep3, err := ParseCatalogNode("@nyc1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	if dep1.HashCode() == dep2.HashCode() {
 		t.Errorf("expected HashCode to be unique")
 	}
@@ -182,9 +238,12 @@ func TestParseCatalogNodeNoArguments(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := &CatalogNode{}
-	if !reflect.DeepEqual(nd, expected) {
-		t.Errorf("expected %+v to equal %+v", nd, expected)
+	if nd.rawKey != "" {
+		t.Errorf("expected %q to be %q", nd.rawKey, "")
+	}
+
+	if nd.dataCenter != "" {
+		t.Errorf("expected %q to be %q", nd.dataCenter, "")
 	}
 }
 
@@ -194,11 +253,12 @@ func TestParseCatalogNodeOneArgument(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := &CatalogNode{
-		rawKey: "node",
+	if nd.rawKey != "node" {
+		t.Errorf("expected %q to be %q", nd.rawKey, "node")
 	}
-	if !reflect.DeepEqual(nd, expected) {
-		t.Errorf("expected %+v to equal %+v", nd, expected)
+
+	if nd.dataCenter != "" {
+		t.Errorf("expected %q to be %q", nd.dataCenter, "")
 	}
 }
 
@@ -208,12 +268,12 @@ func TestParseCatalogNodeTwoArguments(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := &CatalogNode{
-		rawKey:     "node",
-		dataCenter: "nyc1",
+	if nd.rawKey != "node" {
+		t.Errorf("expected %q to be %q", nd.rawKey, "node")
 	}
-	if !reflect.DeepEqual(nd, expected) {
-		t.Errorf("expected %+v to equal %+v", nd, expected)
+
+	if nd.dataCenter != "nyc1" {
+		t.Errorf("expected %q to be %q", nd.dataCenter, "nyc1")
 	}
 }
 

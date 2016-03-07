@@ -24,10 +24,17 @@ type VaultSecret struct {
 
 	Path   string
 	secret *Secret
+
+	stopped bool
+	stopCh  chan struct{}
 }
 
 // Fetch queries the Vault API
 func (d *VaultSecret) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
+	if d.stopped {
+		return nil, nil, ErrStopped
+	}
+
 	if opts == nil {
 		opts = &QueryOptions{}
 	}
@@ -40,7 +47,12 @@ func (d *VaultSecret) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 		duration := time.Duration(d.secret.LeaseDuration/2) * time.Second
 		log.Printf("[DEBUG] (%s) pretending to long-poll for %q",
 			d.Display(), duration)
-		time.Sleep(duration)
+		select {
+		case <-d.stopCh:
+			log.Printf("[DEBUG] (%s) received interrupt", d.Display())
+			return nil, nil, ErrStopped
+		case <-time.After(duration):
+		}
 	}
 
 	// Grab the vault client
@@ -121,9 +133,21 @@ func (d *VaultSecret) Display() string {
 	return fmt.Sprintf(`"secret(%s)"`, d.Path)
 }
 
+// Stop halts the given dependency's fetch.
+func (d *VaultSecret) Stop() {
+	if !d.stopped {
+		close(d.stopCh)
+		d.stopped = true
+	}
+}
+
 // ParseVaultSecret creates a new datacenter dependency.
 func ParseVaultSecret(s string) (*VaultSecret, error) {
-	return &VaultSecret{Path: s}, nil
+	vs := &VaultSecret{
+		Path:   s,
+		stopCh: make(chan struct{}),
+	}
+	return vs, nil
 }
 
 func leaseDurationOrDefault(d int) int {

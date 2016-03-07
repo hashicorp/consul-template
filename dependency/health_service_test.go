@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/api"
 )
@@ -14,7 +15,11 @@ func TestServiceDependencyFetch(t *testing.T) {
 	clients, consul := testConsulServer(t)
 	defer consul.Stop()
 
-	dep := &HealthServices{rawKey: "consul", Name: "consul"}
+	dep, err := ParseHealthServices("consul")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	results, _, err := dep.Fetch(clients, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -35,6 +40,36 @@ func TestServiceDependencyFetch(t *testing.T) {
 
 	if typed[0].Checks[0].CheckID != "serfHealth" {
 		t.Errorf("expected %q to be %q", typed[0].Checks[0].CheckID, "serfHealth")
+	}
+}
+
+func TestServiceDependencyFetch_stopped(t *testing.T) {
+	clients, consul := testConsulServer(t)
+	defer consul.Stop()
+
+	dep, err := ParseHealthServices("consul")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	errCh := make(chan error)
+	go func() {
+		results, _, err := dep.Fetch(clients, &QueryOptions{WaitIndex: 100})
+		if results != nil {
+			t.Fatalf("should not get results: %#v", results)
+		}
+		errCh <- err
+	}()
+
+	dep.Stop()
+
+	select {
+	case err := <-errCh:
+		if err != ErrStopped {
+			t.Errorf("expected %q to be %q", err, ErrStopped)
+		}
+	case <-time.After(50 * time.Millisecond):
+		t.Errorf("did not return in 50ms")
 	}
 }
 
@@ -79,8 +114,16 @@ func TestHealthServiceList_sorts(t *testing.T) {
 }
 
 func TestServiceDependencyHashCode_isUnique(t *testing.T) {
-	dep1 := &HealthServices{rawKey: "redis@nyc1"}
-	dep2 := &HealthServices{rawKey: "redis@nyc2"}
+	dep1, err := ParseHealthServices("redis@nyc1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dep2, err := ParseHealthServices("redis@nyc2")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	if dep1.HashCode() == dep2.HashCode() {
 		t.Errorf("expected HashCode to be unique")
 	}
@@ -104,13 +147,16 @@ func TestParseHealthServices_name(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := &HealthServices{
-		rawKey:       "webapp",
-		Name:         "webapp",
-		StatusFilter: nil,
+	if sd.rawKey != "webapp" {
+		t.Errorf("expected %q to be %q", sd.rawKey, "webapp")
 	}
-	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %#v to equal %#v", sd, expected)
+
+	if sd.Name != "webapp" {
+		t.Errorf("expected %q to be %q", sd.Name, "webapp")
+	}
+
+	if sd.StatusFilter != nil {
+		t.Errorf("expected %q to be nil", sd.StatusFilter)
 	}
 }
 
@@ -120,13 +166,17 @@ func TestParseHealthServices_nameAndAnyStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := &HealthServices{
-		rawKey:       "webapp [passing]",
-		Name:         "webapp",
-		StatusFilter: ServiceStatusFilter{HealthPassing},
+	if sd.rawKey != "webapp [passing]" {
+		t.Errorf("expected %q to be %q", sd.rawKey, "webapp")
 	}
-	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %#v to equal %#v", sd, expected)
+
+	if sd.Name != "webapp" {
+		t.Errorf("expected %q to be %q", sd.Name, "webapp")
+	}
+
+	filter := ServiceStatusFilter{HealthPassing}
+	if !reflect.DeepEqual(sd.StatusFilter, filter) {
+		t.Errorf("expected %q to be %q", sd.StatusFilter, filter)
 	}
 }
 
@@ -136,13 +186,16 @@ func TestParseHealthServices_slashName(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := &HealthServices{
-		rawKey:       "web/app",
-		Name:         "web/app",
-		StatusFilter: nil,
+	if sd.rawKey != "web/app" {
+		t.Errorf("expected %q to be %q", sd.rawKey, "web/app")
 	}
-	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %#v to equal %#v", sd, expected)
+
+	if sd.Name != "web/app" {
+		t.Errorf("expected %q to be %q", sd.Name, "web/app")
+	}
+
+	if sd.StatusFilter != nil {
+		t.Errorf("expected %q to be nil", sd.StatusFilter)
 	}
 }
 
@@ -152,13 +205,16 @@ func TestParseHealthServices_underscoreName(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := &HealthServices{
-		rawKey:       "web_app",
-		Name:         "web_app",
-		StatusFilter: nil,
+	if sd.rawKey != "web_app" {
+		t.Errorf("expected %q to be %q", sd.rawKey, "web_app")
 	}
-	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %#v to equal %#v", sd, expected)
+
+	if sd.Name != "web_app" {
+		t.Errorf("expected %q to be %q", sd.Name, "web_app")
+	}
+
+	if sd.StatusFilter != nil {
+		t.Errorf("expected %q to be nil", sd.StatusFilter)
 	}
 }
 
@@ -168,14 +224,20 @@ func TestParseHealthServices_dotTag(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := &HealthServices{
-		rawKey:       "first.release.webapp",
-		Name:         "webapp",
-		Tag:          "first.release",
-		StatusFilter: nil,
+	if sd.rawKey != "first.release.webapp" {
+		t.Errorf("expected %q to be %q", sd.rawKey, "first.release.webapp")
 	}
-	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %#v to equal %#v", sd, expected)
+
+	if sd.Name != "webapp" {
+		t.Errorf("expected %q to be %q", sd.Name, "webapp")
+	}
+
+	if sd.Tag != "first.release" {
+		t.Errorf("expected %q to be %q", sd.Tag, "first.release")
+	}
+
+	if sd.StatusFilter != nil {
+		t.Errorf("expected %q to be nil", sd.StatusFilter)
 	}
 }
 
@@ -185,15 +247,20 @@ func TestParseHealthServices_nameTag(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := &HealthServices{
-		rawKey:       "release.webapp",
-		Name:         "webapp",
-		Tag:          "release",
-		StatusFilter: nil,
+	if sd.rawKey != "release.webapp" {
+		t.Errorf("expected %q to be %q", sd.rawKey, "release.webapp")
 	}
 
-	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %#v to equal %#v", sd, expected)
+	if sd.Name != "webapp" {
+		t.Errorf("expected %q to be %q", sd.Name, "webapp")
+	}
+
+	if sd.Tag != "release" {
+		t.Errorf("expected %q to be %q", sd.Tag, "release")
+	}
+
+	if sd.StatusFilter != nil {
+		t.Errorf("expected %q to be nil", sd.StatusFilter)
 	}
 }
 
@@ -203,35 +270,24 @@ func TestParseHealthServices_nameTagDataCenter(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := &HealthServices{
-		rawKey:       "release.webapp@nyc1",
-		Name:         "webapp",
-		Tag:          "release",
-		DataCenter:   "nyc1",
-		StatusFilter: nil,
+	if sd.rawKey != "release.webapp@nyc1" {
+		t.Errorf("expected %q to be %q", sd.rawKey, "release.webapp@nyc1")
 	}
 
-	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %#v to equal %#v", sd, expected)
-	}
-}
-
-func TestParseHealthServices_nameTagDataCenterPort(t *testing.T) {
-	sd, err := ParseHealthServices("release.webapp@nyc1:8500")
-	if err != nil {
-		t.Fatal(err)
+	if sd.Name != "webapp" {
+		t.Errorf("expected %q to be %q", sd.Name, "webapp")
 	}
 
-	expected := &HealthServices{
-		rawKey:       "release.webapp@nyc1:8500",
-		Name:         "webapp",
-		Tag:          "release",
-		DataCenter:   "nyc1",
-		StatusFilter: nil,
+	if sd.Tag != "release" {
+		t.Errorf("expected %q to be %q", sd.Tag, "release")
 	}
 
-	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %#v to equal %#v", sd, expected)
+	if sd.DataCenter != "nyc1" {
+		t.Errorf("expected %q to be %q", sd.DataCenter, "nyc1")
+	}
+
+	if sd.StatusFilter != nil {
+		t.Errorf("expected %q to be nil", sd.StatusFilter)
 	}
 }
 
@@ -247,38 +303,30 @@ func TestParseHealthServices_dataCenterOnly(t *testing.T) {
 	}
 }
 
-func TestParseHealthServices_nameAndPort(t *testing.T) {
-	sd, err := ParseHealthServices("webapp:8500")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected := &HealthServices{
-		rawKey:       "webapp:8500",
-		Name:         "webapp",
-		StatusFilter: nil,
-	}
-
-	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %#v to equal %#v", sd, expected)
-	}
-}
-
 func TestParseHealthServices_nameAndDataCenter(t *testing.T) {
 	sd, err := ParseHealthServices("webapp@nyc1")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expected := &HealthServices{
-		rawKey:       "webapp@nyc1",
-		Name:         "webapp",
-		DataCenter:   "nyc1",
-		StatusFilter: nil,
+	if sd.rawKey != "webapp@nyc1" {
+		t.Errorf("expected %q to be %q", sd.rawKey, "webapp@nyc1")
 	}
 
-	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %#v to equal %#v", sd, expected)
+	if sd.Name != "webapp" {
+		t.Errorf("expected %q to be %q", sd.Name, "webapp")
+	}
+
+	if sd.Tag != "" {
+		t.Errorf("expected %q to be %q", sd.Tag, "")
+	}
+
+	if sd.DataCenter != "nyc1" {
+		t.Errorf("expected %q to be %q", sd.DataCenter, "nyc1")
+	}
+
+	if sd.StatusFilter != nil {
+		t.Errorf("expected %q to be nil", sd.StatusFilter)
 	}
 }
 

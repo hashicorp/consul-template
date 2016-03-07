@@ -1,7 +1,6 @@
 package dependency
 
 import (
-	"reflect"
 	"testing"
 	"time"
 )
@@ -10,7 +9,11 @@ func TestDatacentersFetch(t *testing.T) {
 	clients, consul := testConsulServer(t)
 	defer consul.Stop()
 
-	dep := &Datacenters{rawKey: ""}
+	dep, err := ParseDatacenters()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	results, _, err := dep.Fetch(clients, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -26,15 +29,18 @@ func TestDatacentersFetch_blocks(t *testing.T) {
 	clients, consul := testConsulServer(t)
 	defer consul.Stop()
 
-	dep := &Datacenters{rawKey: ""}
-	_, _, err := dep.Fetch(clients, nil)
+	dep, err := ParseDatacenters()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	dataCh := make(chan struct{})
 	go func() {
-		dep.Fetch(clients, nil)
+		_, _, err := dep.Fetch(clients, &QueryOptions{WaitIndex: 1})
+		if err != nil {
+			t.Fatal(err)
+		}
+		close(dataCh)
 	}()
 
 	select {
@@ -45,14 +51,29 @@ func TestDatacentersFetch_blocks(t *testing.T) {
 	}
 }
 
-func TestParseDatacenters_noArgs(t *testing.T) {
-	nd, err := ParseDatacenters()
+func TestDatacentersFetch_stopped(t *testing.T) {
+	clients, consul := testConsulServer(t)
+	defer consul.Stop()
+
+	dep, err := ParseDatacenters()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expected := &Datacenters{rawKey: ""}
-	if !reflect.DeepEqual(nd, expected) {
-		t.Errorf("expected %+v to equal %+v", nd, expected)
+	errCh := make(chan error)
+	go func() {
+		_, _, err := dep.Fetch(clients, &QueryOptions{WaitIndex: 1})
+		errCh <- err
+	}()
+
+	dep.Stop()
+
+	select {
+	case err := <-errCh:
+		if err != ErrStopped {
+			t.Errorf("expected %q to be %q", err, ErrStopped)
+		}
+	case <-time.After(50 * time.Millisecond):
+		t.Errorf("did not return in 50ms")
 	}
 }

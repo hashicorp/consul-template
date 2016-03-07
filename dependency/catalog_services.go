@@ -7,6 +7,8 @@ import (
 	"log"
 	"regexp"
 	"sort"
+
+	"github.com/hashicorp/consul/api"
 )
 
 func init() {
@@ -26,6 +28,8 @@ type CatalogServices struct {
 	Name       string
 	Tags       []string
 	DataCenter string
+	stopped    bool
+	stopCh     chan struct{}
 }
 
 // Fetch queries the Consul API defined by the given client and returns a slice
@@ -40,15 +44,26 @@ func (d *CatalogServices) Fetch(clients *ClientSet, opts *QueryOptions) (interfa
 		consulOpts.Datacenter = d.DataCenter
 	}
 
-	log.Printf("[DEBUG] (%s) querying Consul with %+v", d.Display(), consulOpts)
-
 	consul, err := clients.Consul()
 	if err != nil {
 		return nil, nil, fmt.Errorf("catalog services: error getting client: %s", err)
 	}
 
-	catalog := consul.Catalog()
-	entries, qm, err := catalog.Services(consulOpts)
+	var entries map[string][]string
+	var qm *api.QueryMeta
+	dataCh := make(chan struct{})
+	go func() {
+		log.Printf("[DEBUG] (%s) querying Consul with %+v", d.Display(), consulOpts)
+		entries, qm, err = consul.Catalog().Services(consulOpts)
+		close(dataCh)
+	}()
+
+	select {
+	case <-d.stopCh:
+		return nil, nil, ErrStopped
+	case <-dataCh:
+	}
+
 	if err != nil {
 		return nil, nil, fmt.Errorf("catalog services: error fetching: %s", err)
 	}
@@ -74,18 +89,17 @@ func (d *CatalogServices) Fetch(clients *ClientSet, opts *QueryOptions) (interfa
 	return catalogServices, rm, nil
 }
 
-// CanShare returns if this dependency is shareable.
+// CanShare returns a boolean if this dependency is shareable.
 func (d *CatalogServices) CanShare() bool {
 	return true
 }
 
-// HashCode returns the hash code for this dependency.
+// HashCode returns a unique identifier.
 func (d *CatalogServices) HashCode() string {
 	return fmt.Sprintf("CatalogServices|%s", d.rawKey)
 }
 
-// Display returns a string that should be displayed to the user in output (for
-// example).
+// Display prints the human-friendly output.
 func (d *CatalogServices) Display() string {
 	if d.rawKey == "" {
 		return fmt.Sprintf(`"services"`)
@@ -94,11 +108,23 @@ func (d *CatalogServices) Display() string {
 	return fmt.Sprintf(`"services(%s)"`, d.rawKey)
 }
 
+// Stop halts the dependency's fetch function.
+func (d *CatalogServices) Stop() {
+	if !d.stopped {
+		close(d.stopCh)
+		d.stopped = true
+	}
+}
+
 // ParseCatalogServices parses a string of the format @dc.
 func ParseCatalogServices(s ...string) (*CatalogServices, error) {
 	switch len(s) {
 	case 0:
-		return &CatalogServices{rawKey: ""}, nil
+		cs := &CatalogServices{
+			rawKey: "",
+			stopCh: make(chan struct{}),
+		}
+		return cs, nil
 	case 1:
 		dc := s[0]
 
@@ -124,6 +150,7 @@ func ParseCatalogServices(s ...string) (*CatalogServices, error) {
 		nd := &CatalogServices{
 			rawKey:     dc,
 			DataCenter: m["datacenter"],
+			stopCh:     make(chan struct{}),
 		}
 
 		return nd, nil

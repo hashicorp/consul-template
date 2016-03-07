@@ -7,6 +7,8 @@ import (
 	"log"
 	"regexp"
 	"strings"
+
+	"github.com/hashicorp/consul/api"
 )
 
 func init() {
@@ -33,6 +35,8 @@ type StoreKeyPrefix struct {
 	rawKey     string
 	Prefix     string
 	DataCenter string
+	stopped    bool
+	stopCh     chan struct{}
 }
 
 // Fetch queries the Consul API defined by the given client and returns a slice
@@ -47,15 +51,26 @@ func (d *StoreKeyPrefix) Fetch(clients *ClientSet, opts *QueryOptions) (interfac
 		consulOpts.Datacenter = d.DataCenter
 	}
 
-	log.Printf("[DEBUG] (%s) querying Consul with %+v", d.Display(), consulOpts)
-
 	consul, err := clients.Consul()
 	if err != nil {
 		return nil, nil, fmt.Errorf("store key prefix: error getting client: %s", err)
 	}
 
-	store := consul.KV()
-	prefixes, qm, err := store.List(d.Prefix, consulOpts)
+	var prefixes api.KVPairs
+	var qm *api.QueryMeta
+	dataCh := make(chan struct{})
+	go func() {
+		log.Printf("[DEBUG] (%s) querying consul with %+v", d.Display(), consulOpts)
+		prefixes, qm, err = consul.KV().List(d.Prefix, consulOpts)
+		close(dataCh)
+	}()
+
+	select {
+	case <-d.stopCh:
+		return nil, nil, ErrStopped
+	case <-dataCh:
+	}
+
 	if err != nil {
 		return nil, nil, fmt.Errorf("store key prefix: error fetching: %s", err)
 	}
@@ -87,16 +102,27 @@ func (d *StoreKeyPrefix) Fetch(clients *ClientSet, opts *QueryOptions) (interfac
 	return keyPairs, rm, nil
 }
 
+// CanShare returns a boolean if this dependency is shareable.
 func (d *StoreKeyPrefix) CanShare() bool {
 	return true
 }
 
+// HashCode returns a unique identifier.
 func (d *StoreKeyPrefix) HashCode() string {
 	return fmt.Sprintf("StoreKeyPrefix|%s", d.rawKey)
 }
 
+// Display prints the human-friendly output.
 func (d *StoreKeyPrefix) Display() string {
 	return fmt.Sprintf(`"storeKeyPrefix(%s)"`, d.rawKey)
+}
+
+// Stop halts the dependency's fetch function.
+func (d *StoreKeyPrefix) Stop() {
+	if !d.stopped {
+		close(d.stopCh)
+		d.stopped = true
+	}
 }
 
 // ParseStoreKeyPrefix parses a string of the format a(/b(/c...))
@@ -128,6 +154,7 @@ func ParseStoreKeyPrefix(s string) (*StoreKeyPrefix, error) {
 		rawKey:     s,
 		Prefix:     prefix,
 		DataCenter: datacenter,
+		stopCh:     make(chan struct{}),
 	}
 
 	return kpd, nil

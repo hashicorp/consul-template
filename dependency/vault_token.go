@@ -13,10 +13,17 @@ type VaultToken struct {
 
 	leaseID       string
 	leaseDuration int
+
+	stopped bool
+	stopCh  chan struct{}
 }
 
 // Fetch queries the Vault API
 func (d *VaultToken) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
+	if d.stopped {
+		return nil, nil, ErrStopped
+	}
+
 	if opts == nil {
 		opts = &QueryOptions{}
 	}
@@ -28,7 +35,11 @@ func (d *VaultToken) Fetch(clients *ClientSet, opts *QueryOptions) (interface{},
 	if opts.WaitIndex != 0 && d.leaseDuration != 0 {
 		duration := time.Duration(d.leaseDuration/2) * time.Second
 		log.Printf("[DEBUG] (%s) sleeping for %q", d.Display(), duration)
-		time.Sleep(duration)
+		select {
+		case <-d.stopCh:
+			return nil, nil, ErrStopped
+		case <-time.After(duration):
+		}
 	}
 
 	// Grab the vault client
@@ -80,4 +91,17 @@ func (d *VaultToken) HashCode() string {
 // example).
 func (d *VaultToken) Display() string {
 	return "vault_token"
+}
+
+// Stop halts the dependency's fetch function.
+func (d *VaultToken) Stop() {
+	if !d.stopped {
+		close(d.stopCh)
+		d.stopped = true
+	}
+}
+
+// ParseVaultToken creates a new VaultToken dependency.
+func ParseVaultToken() (*VaultToken, error) {
+	return &VaultToken{stopCh: make(chan struct{})}, nil
 }

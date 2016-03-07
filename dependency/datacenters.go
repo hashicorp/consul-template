@@ -12,11 +12,18 @@ var sleepTime = 15 * time.Second
 // Datacenters is the dependency to query all datacenters
 type Datacenters struct {
 	rawKey string
+
+	stopped bool
+	stopCh  chan struct{}
 }
 
 // Fetch queries the Consul API defined by the given client and returns a slice
 // of strings representing the datacenters
 func (d *Datacenters) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
+	if d.stopped {
+		return nil, nil, ErrStopped
+	}
+
 	if opts == nil {
 		opts = &QueryOptions{}
 	}
@@ -34,7 +41,12 @@ func (d *Datacenters) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 	// change, but is technically not edge-triggering.
 	if opts.WaitIndex != 0 {
 		log.Printf("[DEBUG] (%s) pretending to long-poll", d.Display())
-		time.Sleep(sleepTime)
+		select {
+		case <-d.stopCh:
+			log.Printf("[DEBUG] (%s) received interrupt", d.Display())
+			return nil, nil, ErrStopped
+		case <-time.After(sleepTime):
+		}
 	}
 
 	consul, err := clients.Consul()
@@ -74,11 +86,23 @@ func (d *Datacenters) Display() string {
 	return fmt.Sprintf(`"datacenters(%s)"`, d.rawKey)
 }
 
+// Stop terminates this dependency's execution early.
+func (d *Datacenters) Stop() {
+	if !d.stopped {
+		close(d.stopCh)
+		d.stopped = true
+	}
+}
+
 // ParseDatacenters creates a new datacenter dependency.
 func ParseDatacenters(s ...string) (*Datacenters, error) {
 	switch len(s) {
 	case 0:
-		return &Datacenters{rawKey: ""}, nil
+		dcs := &Datacenters{
+			rawKey: "",
+			stopCh: make(chan struct{}, 0),
+		}
+		return dcs, nil
 	default:
 		return nil, fmt.Errorf("expected 0 arguments, got %d", len(s))
 	}
