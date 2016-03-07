@@ -18,7 +18,7 @@ dist: bin
 
 # test runs the test suite and vets the code
 test: generate
-	go list $(TEST) | xargs -n1 go test -timeout=60s -parallel=4 $(TESTARGS)
+	go list $(TEST) | xargs -n1 go test -timeout=60s -parallel=10 $(TESTARGS)
 
 # testrace runs the race checker
 testrace: generate

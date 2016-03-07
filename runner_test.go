@@ -1134,6 +1134,8 @@ func TestExecute_timeout(t *testing.T) {
 }
 
 func TestRunner_dedup(t *testing.T) {
+	t.Parallel()
+
 	// Create a template
 	in := test.CreateTempfile([]byte(`
     {{ range service "consul" }}{{.Node}}{{ end }}
