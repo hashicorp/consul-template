@@ -199,7 +199,11 @@ func (w *Watcher) init() error {
 
 	// Start a watcher for the Vault renew if that config was specified
 	if w.config.RenewVault {
-		if _, err := w.Add(new(dep.VaultToken)); err != nil {
+		vt, err := dep.ParseVaultToken()
+		if err != nil {
+			return fmt.Errorf("watcher: %s", err)
+		}
+		if _, err := w.Add(vt); err != nil {
 			return fmt.Errorf("watcher: %s", err)
 		}
 	}

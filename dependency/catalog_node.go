@@ -7,6 +7,9 @@ import (
 	"log"
 	"regexp"
 	"sort"
+	"sync"
+
+	"github.com/hashicorp/consul/api"
 )
 
 func init() {
@@ -14,11 +17,13 @@ func init() {
 	gob.Register([]*NodeService{})
 }
 
+// NodeDetail is a wrapper around the node and its services.
 type NodeDetail struct {
 	Node     *Node
 	Services NodeServiceList
 }
 
+// NodeService is a service on a single node.
 type NodeService struct {
 	ID      string
 	Service string
@@ -26,14 +31,26 @@ type NodeService struct {
 	Port    int
 }
 
+// CatalogNode represents a single node from the Consul catalog.
 type CatalogNode struct {
+	sync.Mutex
+
 	rawKey     string
 	dataCenter string
+	stopped    bool
+	stopCh     chan struct{}
 }
 
 // Fetch queries the Consul API defined by the given client and returns a
-// of NodeDetail object
+// of NodeDetail object.
 func (d *CatalogNode) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
+	d.Lock()
+	if d.stopped {
+		defer d.Unlock()
+		return nil, nil, ErrStopped
+	}
+	d.Unlock()
+
 	if opts == nil {
 		opts = &QueryOptions{}
 	}
@@ -42,8 +59,6 @@ func (d *CatalogNode) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 	if d.dataCenter != "" {
 		consulOpts.Datacenter = d.dataCenter
 	}
-
-	log.Printf("[DEBUG] (%s) querying Consul with %+v", d.Display(), consulOpts)
 
 	consul, err := clients.Consul()
 	if err != nil {
@@ -59,8 +74,21 @@ func (d *CatalogNode) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 		}
 	}
 
-	catalog := consul.Catalog()
-	n, qm, err := catalog.Node(nodeName, consulOpts)
+	var n *api.CatalogNode
+	var qm *api.QueryMeta
+	dataCh := make(chan struct{})
+	go func() {
+		log.Printf("[DEBUG] (%s) querying consul with %+v", d.Display(), consulOpts)
+		n, qm, err = consul.Catalog().Node(nodeName, consulOpts)
+		close(dataCh)
+	}()
+
+	select {
+	case <-d.stopCh:
+		return nil, nil, ErrStopped
+	case <-dataCh:
+	}
+
 	if err != nil {
 		return nil, nil, fmt.Errorf("catalog node: error fetching: %s", err)
 	}
@@ -98,11 +126,12 @@ func (d *CatalogNode) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 	return node, rm, nil
 }
 
-// CanShare returns if this dependency is shareable.
+// CanShare returns a boolean if this dependency is shareable.
 func (d *CatalogNode) CanShare() bool {
 	return true
 }
 
+// HashCode returns a unique identifier.
 func (d *CatalogNode) HashCode() string {
 	if d.dataCenter != "" {
 		return fmt.Sprintf("NodeDetail|%s@%s", d.rawKey, d.dataCenter)
@@ -110,6 +139,7 @@ func (d *CatalogNode) HashCode() string {
 	return fmt.Sprintf("NodeDetail|%s", d.rawKey)
 }
 
+// Display prints the human-friendly output.
 func (d *CatalogNode) Display() string {
 	if d.dataCenter != "" {
 		return fmt.Sprintf("node(%s@%s)", d.rawKey, d.dataCenter)
@@ -117,14 +147,30 @@ func (d *CatalogNode) Display() string {
 	return fmt.Sprintf(`"node(%s)"`, d.rawKey)
 }
 
+// Stop halts the dependency's fetch function.
+func (d *CatalogNode) Stop() {
+	d.Lock()
+	defer d.Unlock()
+
+	if !d.stopped {
+		close(d.stopCh)
+		d.stopped = true
+	}
+}
+
 // ParseCatalogNode parses a name name and optional datacenter value.
 // If the name is empty or not provided then the current agent is used.
 func ParseCatalogNode(s ...string) (*CatalogNode, error) {
 	switch len(s) {
 	case 0:
-		return &CatalogNode{}, nil
+		cn := &CatalogNode{stopCh: make(chan struct{})}
+		return cn, nil
 	case 1:
-		return &CatalogNode{rawKey: s[0]}, nil
+		cn := &CatalogNode{
+			rawKey: s[0],
+			stopCh: make(chan struct{}),
+		}
+		return cn, nil
 	case 2:
 		dc := s[1]
 
@@ -150,6 +196,7 @@ func ParseCatalogNode(s ...string) (*CatalogNode, error) {
 		nd := &CatalogNode{
 			rawKey:     s[0],
 			dataCenter: m["datacenter"],
+			stopCh:     make(chan struct{}),
 		}
 
 		return nd, nil
@@ -160,6 +207,7 @@ func ParseCatalogNode(s ...string) (*CatalogNode, error) {
 
 // Sorting
 
+// NodeServiceList is a sortable list of node service names.
 type NodeServiceList []*NodeService
 
 func (s NodeServiceList) Len() int      { return len(s) }

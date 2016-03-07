@@ -1,11 +1,17 @@
 package dependency
 
 import (
+	"errors"
 	"sort"
 	"time"
 
 	consulapi "github.com/hashicorp/consul/api"
 )
+
+// ErrStopped is a special error that is returned when a dependency is
+// prematurely stopped, usually due to a configuration reload or a process
+// interrupt.
+var ErrStopped = errors.New("dependency stopped")
 
 // Dependency is an interface for a dependency that Consul Template is capable
 // of watching.
@@ -14,6 +20,7 @@ type Dependency interface {
 	CanShare() bool
 	HashCode() string
 	Display() string
+	Stop()
 }
 
 // ServiceTags is a slice of tags assigned to a Service

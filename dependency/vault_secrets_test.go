@@ -3,13 +3,18 @@ package dependency
 import (
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestVaultSecretsFetch_empty(t *testing.T) {
 	clients, vault := testVaultServer(t)
 	defer vault.Stop()
 
-	dep := &VaultSecrets{Path: "secret"}
+	dep, err := ParseVaultSecrets("secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	results, _, err := dep.Fetch(clients, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -33,7 +38,11 @@ func TestVaultSecretsFetch(t *testing.T) {
 	vault.CreateSecret("foo", map[string]interface{}{"a": "b"})
 	vault.CreateSecret("bar", map[string]interface{}{"c": "d"})
 
-	dep := &VaultSecrets{Path: "secret"}
+	dep, err := ParseVaultSecrets("secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	results, _, err := dep.Fetch(clients, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -50,9 +59,47 @@ func TestVaultSecretsFetch(t *testing.T) {
 	}
 }
 
+func TestVaultSecretsFetch_stopped(t *testing.T) {
+	clients, vault := testVaultServer(t)
+	defer vault.Stop()
+
+	dep, err := ParseVaultSecrets("secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	errCh := make(chan error)
+	go func() {
+		results, _, err := dep.Fetch(clients, &QueryOptions{WaitIndex: 100})
+		if results != nil {
+			t.Fatalf("should not get results: %#v", results)
+		}
+		errCh <- err
+	}()
+
+	dep.Stop()
+
+	select {
+	case err := <-errCh:
+		if err != ErrStopped {
+			t.Errorf("expected %q to be %q", err, ErrStopped)
+		}
+	case <-time.After(50 * time.Millisecond):
+		t.Errorf("did not return in 50ms")
+	}
+}
+
 func TestVaultSecretsHashCode_isUnique(t *testing.T) {
-	dep1 := &VaultSecrets{Path: "secret"}
-	dep2 := &VaultSecrets{Path: "postgresql"}
+	dep1, err := ParseVaultSecrets("secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dep2, err := ParseVaultSecrets("postgresql")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	if dep1.HashCode() == dep2.HashCode() {
 		t.Errorf("expected HashCode to be unique")
 	}

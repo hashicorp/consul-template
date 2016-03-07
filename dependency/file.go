@@ -10,19 +10,43 @@ import (
 	"time"
 )
 
+// File represents a local file dependency.
 type File struct {
+	sync.Mutex
 	mutex    sync.RWMutex
 	rawKey   string
 	lastStat os.FileInfo
+	stopped  bool
+	stopCh   chan struct{}
 }
 
+// Fetch retrieves this dependency and returns the result or any errors that
+// occur in the process.
 func (d *File) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
-	var err error = nil
+	d.Lock()
+	if d.stopped {
+		defer d.Unlock()
+		return nil, nil, ErrStopped
+	}
+	d.Unlock()
+
+	var err error
+	var newStat os.FileInfo
 	var data []byte
 
-	log.Printf("[DEBUG] (%s) querying file", d.Display())
+	dataCh := make(chan struct{})
+	go func() {
+		log.Printf("[DEBUG] (%s) querying file", d.Display())
+		newStat, err = d.watch()
+		close(dataCh)
+	}()
 
-	newStat, err := d.watch()
+	select {
+	case <-d.stopCh:
+		return nil, nil, ErrStopped
+	case <-dataCh:
+	}
+
 	if err != nil {
 		return "", nil, fmt.Errorf("file: error watching: %s", err)
 	}
@@ -37,16 +61,30 @@ func (d *File) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *Resp
 	return nil, nil, fmt.Errorf("file: error reading: %s", err)
 }
 
+// CanShare returns a boolean if this dependency is shareable.
 func (d *File) CanShare() bool {
 	return false
 }
 
+// HashCode returns a unique identifier.
 func (d *File) HashCode() string {
 	return fmt.Sprintf("StoreKeyPrefix|%s", d.rawKey)
 }
 
+// Display prints the human-friendly output.
 func (d *File) Display() string {
 	return fmt.Sprintf(`"file(%s)"`, d.rawKey)
+}
+
+// Stop halts the dependency's fetch function.
+func (d *File) Stop() {
+	d.Lock()
+	defer d.Unlock()
+
+	if !d.stopped {
+		close(d.stopCh)
+		d.stopped = true
+	}
 }
 
 // watch watchers the file for changes
@@ -77,12 +115,12 @@ func (d *File) watch() (os.FileInfo, error) {
 
 		if changed {
 			return stat, nil
-		} else {
-			time.Sleep(3 * time.Second)
 		}
+		time.Sleep(3 * time.Second)
 	}
 }
 
+// ParseFile creates a file dependency from the given path.
 func ParseFile(s string) (*File, error) {
 	if len(s) == 0 {
 		return nil, errors.New("cannot specify empty file dependency")
@@ -90,6 +128,7 @@ func ParseFile(s string) (*File, error) {
 
 	kd := &File{
 		rawKey: s,
+		stopCh: make(chan struct{}),
 	}
 
 	return kd, nil

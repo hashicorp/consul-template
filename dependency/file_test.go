@@ -13,8 +13,9 @@ func TestFileFetch(t *testing.T) {
 	inTemplate := test.CreateTempfile([]byte(data), t)
 	defer test.DeleteTempfile(inTemplate, t)
 
-	dep := &File{
-		rawKey: inTemplate.Name(),
+	dep, err := ParseFile(inTemplate.Name())
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	read, _, err := dep.Fetch(nil, nil)
@@ -27,16 +28,48 @@ func TestFileFetch(t *testing.T) {
 	}
 }
 
+func TestFileFetch_stopped(t *testing.T) {
+	data := `{"foo":"bar"}`
+	inTemplate := test.CreateTempfile([]byte(data), t)
+	defer test.DeleteTempfile(inTemplate, t)
+
+	dep, err := ParseFile(inTemplate.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	errCh := make(chan error)
+	go func() {
+		results, _, err := dep.Fetch(nil, &QueryOptions{WaitIndex: 100})
+		if results != nil {
+			t.Fatalf("should not get results: %#v", results)
+		}
+		errCh <- err
+	}()
+
+	dep.Stop()
+
+	select {
+	case err := <-errCh:
+		if err != ErrStopped {
+			t.Errorf("expected %q to be %q", err, ErrStopped)
+		}
+	case <-time.After(50 * time.Millisecond):
+		t.Errorf("did not return in 50ms")
+	}
+}
+
 func TestFileFetch_waits(t *testing.T) {
 	data := `{"foo":"bar"}`
 	inTemplate := test.CreateTempfile([]byte(data), t)
 	defer test.DeleteTempfile(inTemplate, t)
 
-	dep := &File{
-		rawKey: inTemplate.Name(),
+	dep, err := ParseFile(inTemplate.Name())
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	_, _, err := dep.Fetch(nil, nil)
+	_, _, err = dep.Fetch(nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,11 +99,12 @@ func TestFileFetch_firesChanges(t *testing.T) {
 	inTemplate := test.CreateTempfile([]byte(data), t)
 	defer test.DeleteTempfile(inTemplate, t)
 
-	dep := &File{
-		rawKey: inTemplate.Name(),
+	dep, err := ParseFile(inTemplate.Name())
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	_, _, err := dep.Fetch(nil, nil)
+	_, _, err = dep.Fetch(nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

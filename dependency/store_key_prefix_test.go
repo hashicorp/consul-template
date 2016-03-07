@@ -1,8 +1,8 @@
 package dependency
 
 import (
-	"reflect"
 	"testing"
+	"time"
 )
 
 func TestStoreKeyPrefixFetch(t *testing.T) {
@@ -12,7 +12,11 @@ func TestStoreKeyPrefixFetch(t *testing.T) {
 	consul.SetKV("foo/bar", []byte("zip"))
 	consul.SetKV("foo/zip", []byte("zap"))
 
-	dep := &StoreKeyPrefix{rawKey: "foo", Prefix: "foo"}
+	dep, err := ParseStoreKeyPrefix("foo")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	results, _, err := dep.Fetch(clients, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -32,9 +36,50 @@ func TestStoreKeyPrefixFetch(t *testing.T) {
 	}
 }
 
+func TestStoreKeyPrefixFetch_stopped(t *testing.T) {
+	clients, consul := testConsulServer(t)
+	defer consul.Stop()
+
+	consul.SetKV("foo/bar", []byte("zip"))
+	consul.SetKV("foo/zip", []byte("zap"))
+
+	dep, err := ParseStoreKeyPrefix("foo")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	errCh := make(chan error)
+	go func() {
+		results, _, err := dep.Fetch(clients, &QueryOptions{WaitIndex: 100})
+		if results != nil {
+			t.Fatalf("should not get results: %#v", results)
+		}
+		errCh <- err
+	}()
+
+	dep.Stop()
+
+	select {
+	case err := <-errCh:
+		if err != ErrStopped {
+			t.Errorf("expected %q to be %q", err, ErrStopped)
+		}
+	case <-time.After(50 * time.Millisecond):
+		t.Errorf("did not return in 50ms")
+	}
+}
+
 func TestStoreKeyPrefixHashCode_isUnique(t *testing.T) {
-	dep1 := &StoreKeyPrefix{rawKey: "config/redis"}
-	dep2 := &StoreKeyPrefix{rawKey: "config/consul"}
+	dep1, err := ParseStoreKeyPrefix("config/redis")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dep2, err := ParseStoreKeyPrefix("config/consul")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	if dep1.HashCode() == dep2.HashCode() {
 		t.Errorf("expected HashCode to be unique")
 	}
@@ -46,9 +91,16 @@ func TestParseStoreKeyPrefix_emptyString(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := &StoreKeyPrefix{}
-	if !reflect.DeepEqual(kpd, expected) {
-		t.Errorf("expected %+v to equal %+v", kpd, expected)
+	if kpd.rawKey != "" {
+		t.Errorf("expected %q to be %q", kpd.rawKey, "")
+	}
+
+	if kpd.Prefix != "" {
+		t.Errorf("expected %q to be %q", kpd.Prefix, "")
+	}
+
+	if kpd.DataCenter != "" {
+		t.Errorf("expected %q to be %q", kpd.DataCenter, "")
 	}
 }
 
@@ -58,27 +110,35 @@ func TestParseStoreKeyPrefix_name(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := &StoreKeyPrefix{
-		rawKey: "config/redis",
-		Prefix: "config/redis",
+	if kpd.rawKey != "config/redis" {
+		t.Errorf("expected %q to be %q", kpd.rawKey, "config/redis")
 	}
-	if !reflect.DeepEqual(kpd, expected) {
-		t.Errorf("expected %+v to equal %+v", kpd, expected)
+
+	if kpd.Prefix != "config/redis" {
+		t.Errorf("expected %q to be %q", kpd.Prefix, "config/redis")
+	}
+
+	if kpd.DataCenter != "" {
+		t.Errorf("expected %q to be %q", kpd.DataCenter, "")
 	}
 }
 
 func TestParseStoreKeyPrefix_nameColon(t *testing.T) {
-	sd, err := ParseStoreKeyPrefix("config/redis:magic:80")
+	kpd, err := ParseStoreKeyPrefix("config/redis:magic:80")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expected := &StoreKeyPrefix{
-		rawKey: "config/redis:magic:80",
-		Prefix: "config/redis:magic:80",
+	if kpd.rawKey != "config/redis:magic:80" {
+		t.Errorf("expected %q to be %q", kpd.rawKey, "config/redis:magic:80")
 	}
-	if !reflect.DeepEqual(sd, expected) {
-		t.Errorf("expected %+v to equal %+v", sd, expected)
+
+	if kpd.Prefix != "config/redis:magic:80" {
+		t.Errorf("expected %q to be %q", kpd.Prefix, "config/redis:magic:80")
+	}
+
+	if kpd.DataCenter != "" {
+		t.Errorf("expected %q to be %q", kpd.DataCenter, "")
 	}
 }
 
@@ -88,14 +148,16 @@ func TestParseStoreKeyPrefix_nameTagDataCenter(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := &StoreKeyPrefix{
-		rawKey:     "config/redis@nyc1",
-		Prefix:     "config/redis",
-		DataCenter: "nyc1",
+	if kpd.rawKey != "config/redis@nyc1" {
+		t.Errorf("expected %q to be %q", kpd.rawKey, "config/redis@nyc1")
 	}
 
-	if !reflect.DeepEqual(kpd, expected) {
-		t.Errorf("expected %+v to equal %+v", kpd, expected)
+	if kpd.Prefix != "config/redis" {
+		t.Errorf("expected %q to be %q", kpd.Prefix, "config/redis")
+	}
+
+	if kpd.DataCenter != "nyc1" {
+		t.Errorf("expected %q to be %q", kpd.DataCenter, "nyc1")
 	}
 }
 
@@ -105,11 +167,15 @@ func TestParseStoreKeyPrefix_dataCenter(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := &StoreKeyPrefix{
-		rawKey:     "@nyc1",
-		DataCenter: "nyc1",
+	if kpd.rawKey != "@nyc1" {
+		t.Errorf("expected %q to be %q", kpd.rawKey, "@nyc1")
 	}
-	if !reflect.DeepEqual(kpd, expected) {
-		t.Errorf("expected %+v to equal %+v", kpd, expected)
+
+	if kpd.Prefix != "" {
+		t.Errorf("expected %q to be %q", kpd.Prefix, "")
+	}
+
+	if kpd.DataCenter != "nyc1" {
+		t.Errorf("expected %q to be %q", kpd.DataCenter, "nyc1")
 	}
 }
