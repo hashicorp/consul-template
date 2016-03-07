@@ -727,8 +727,8 @@ func toLower(s string) (string, error) {
 }
 
 // toJSON converts the given structure into a deeply nested JSON string.
-func toJSON(m map[string]interface{}) (string, error) {
-	result, err := json.Marshal(m)
+func toJSON(i interface{}) (string, error) {
+	result, err := json.Marshal(i)
 	if err != nil {
 		return "", fmt.Errorf("toJSON: %s", err)
 	}
