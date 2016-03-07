@@ -16,7 +16,9 @@ GIT_COMMIT=$(git rev-parse HEAD)
 GIT_DIRTY=$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 
 # Determine the arch/os combos we're building for
-XC_ARCH=${XC_ARCH:-"386 amd64 arm"}
+# Currently we are unable to build on ARM because of, sorry:
+#   https://github.com/golang/go/issues/14643
+XC_ARCH=${XC_ARCH:-"386 amd64"}
 XC_OS=${XC_OS:-"darwin freebsd linux netbsd openbsd solaris windows"}
 
 # Install dependencies
