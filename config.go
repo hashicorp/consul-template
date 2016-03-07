@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -201,17 +202,20 @@ func (c *Config) Merge(config *Config) {
 			c.ConfigTemplates = make([]*ConfigTemplate, 0, 1)
 		}
 		for _, template := range config.ConfigTemplates {
-			c.ConfigTemplates = append(c.ConfigTemplates, &ConfigTemplate{
-				Source:         template.Source,
-				Destination:    template.Destination,
-				Command:        template.Command,
-				CommandTimeout: template.CommandTimeout,
-				Perms:          template.Perms,
-				Backup:         template.Backup,
-			})
+			if !replaceExistingTemplate(c.ConfigTemplates, template) {
+				c.ConfigTemplates = append(c.ConfigTemplates, &ConfigTemplate{
+					Source:         template.Source,
+					Destination:    template.Destination,
+					Command:        template.Command,
+					CommandTimeout: template.CommandTimeout,
+					Perms:          template.Perms,
+					Backup:         template.Backup,
+				})
+			}
 		}
 	}
 
+	log.Printf("[DEBUG] (config) now have %d config templates", len(c.ConfigTemplates))
 	if config.WasSet("retry") {
 		c.Retry = config.Retry
 	}
@@ -255,6 +259,23 @@ func (c *Config) Merge(config *Config) {
 			c.setKeys[k] = struct{}{}
 		}
 	}
+}
+
+func replaceExistingTemplate(existingTemplates []*ConfigTemplate, template *ConfigTemplate) bool {
+	for i, t := range existingTemplates {
+		if t.Destination == template.Destination {
+			existingTemplates[i] = &ConfigTemplate{
+				Source:         template.Source,
+				Destination:    template.Destination,
+				Command:        template.Command,
+				CommandTimeout: template.CommandTimeout,
+				Perms:          template.Perms,
+				Backup:         template.Backup,
+			}
+			return true
+		}
+	}
+	return false
 }
 
 // WasSet determines if the given key was set in the config (as opposed to just
