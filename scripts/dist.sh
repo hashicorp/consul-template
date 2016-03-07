@@ -75,4 +75,5 @@ popd
 if [ -z $NODEPS ]; then
   rm -rf Godeps/
   rm -rf vendor/
+  git commit -q -a -m "Remove godeps"
 fi
