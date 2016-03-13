@@ -17,7 +17,7 @@ import (
 
 func TestParseFlags_consul(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	config, _, _, _, err := cli.parseFlags([]string{
+	config, _, _, _, _, err := cli.parseFlags([]string{
 		"-consul", "12.34.56.78",
 	})
 	if err != nil {
@@ -35,7 +35,7 @@ func TestParseFlags_consul(t *testing.T) {
 
 func TestParseFlags_token(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	config, _, _, _, err := cli.parseFlags([]string{
+	config, _, _, _, _, err := cli.parseFlags([]string{
 		"-token", "abcd1234",
 	})
 	if err != nil {
@@ -53,7 +53,7 @@ func TestParseFlags_token(t *testing.T) {
 
 func TestParseFlags_authUsername(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	config, _, _, _, err := cli.parseFlags([]string{
+	config, _, _, _, _, err := cli.parseFlags([]string{
 		"-auth", "test",
 	})
 	if err != nil {
@@ -78,7 +78,7 @@ func TestParseFlags_authUsername(t *testing.T) {
 
 func TestParseFlags_authUsernamePassword(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	config, _, _, _, err := cli.parseFlags([]string{
+	config, _, _, _, _, err := cli.parseFlags([]string{
 		"-auth", "test:test",
 	})
 	if err != nil {
@@ -109,7 +109,7 @@ func TestParseFlags_authUsernamePassword(t *testing.T) {
 
 func TestParseFlags_SSL(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	config, _, _, _, err := cli.parseFlags([]string{
+	config, _, _, _, _, err := cli.parseFlags([]string{
 		"-ssl",
 	})
 	if err != nil {
@@ -130,7 +130,7 @@ func TestParseFlags_SSL(t *testing.T) {
 
 func TestParseFlags_noSSL(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	config, _, _, _, err := cli.parseFlags([]string{
+	config, _, _, _, _, err := cli.parseFlags([]string{
 		"-ssl=false",
 	})
 	if err != nil {
@@ -151,7 +151,7 @@ func TestParseFlags_noSSL(t *testing.T) {
 
 func TestParseFlags_SSLVerify(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	config, _, _, _, err := cli.parseFlags([]string{
+	config, _, _, _, _, err := cli.parseFlags([]string{
 		"-ssl-verify",
 	})
 	if err != nil {
@@ -172,7 +172,7 @@ func TestParseFlags_SSLVerify(t *testing.T) {
 
 func TestParseFlags_noSSLVerify(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	config, _, _, _, err := cli.parseFlags([]string{
+	config, _, _, _, _, err := cli.parseFlags([]string{
 		"-ssl-verify=false",
 	})
 	if err != nil {
@@ -193,7 +193,7 @@ func TestParseFlags_noSSLVerify(t *testing.T) {
 
 func TestParseFlags_SSLCert(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	config, _, _, _, err := cli.parseFlags([]string{
+	config, _, _, _, _, err := cli.parseFlags([]string{
 		"-ssl-cert", "/path/to/c1.pem",
 	})
 	if err != nil {
@@ -214,7 +214,7 @@ func TestParseFlags_SSLCert(t *testing.T) {
 
 func TestParseFlags_SSLKey(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	config, _, _, _, err := cli.parseFlags([]string{
+	config, _, _, _, _, err := cli.parseFlags([]string{
 		"-ssl-key", "/path/to/client-key.pem",
 	})
 	if err != nil {
@@ -235,7 +235,7 @@ func TestParseFlags_SSLKey(t *testing.T) {
 
 func TestParseFlags_SSLCaCert(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	config, _, _, _, err := cli.parseFlags([]string{
+	config, _, _, _, _, err := cli.parseFlags([]string{
 		"-ssl-ca-cert", "/path/to/c2.pem",
 	})
 	if err != nil {
@@ -256,7 +256,7 @@ func TestParseFlags_SSLCaCert(t *testing.T) {
 
 func TestParseFlags_maxStale(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	config, _, _, _, err := cli.parseFlags([]string{
+	config, _, _, _, _, err := cli.parseFlags([]string{
 		"-max-stale", "10h",
 	})
 	if err != nil {
@@ -271,7 +271,7 @@ func TestParseFlags_maxStale(t *testing.T) {
 
 func TestParseFlags_configTemplates(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	config, _, _, _, err := cli.parseFlags([]string{
+	config, _, _, _, _, err := cli.parseFlags([]string{
 		"-template", "in.ctmpl:out.txt:some command",
 	})
 	if err != nil {
@@ -296,7 +296,7 @@ func TestParseFlags_configTemplates(t *testing.T) {
 
 func TestParseFlags_dedup(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	config, _, _, _, err := cli.parseFlags([]string{
+	config, _, _, _, _, err := cli.parseFlags([]string{
 		"-dedup",
 	})
 	if err != nil {
@@ -317,7 +317,7 @@ func TestParseFlags_dedup(t *testing.T) {
 
 func TestParseFlags_syslog(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	config, _, _, _, err := cli.parseFlags([]string{
+	config, _, _, _, _, err := cli.parseFlags([]string{
 		"-syslog",
 	})
 	if err != nil {
@@ -338,7 +338,7 @@ func TestParseFlags_syslog(t *testing.T) {
 
 func TestParseFlags_syslogFacility(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	config, _, _, _, err := cli.parseFlags([]string{
+	config, _, _, _, _, err := cli.parseFlags([]string{
 		"-syslog-facility", "LOCAL5",
 	})
 	if err != nil {
@@ -356,7 +356,7 @@ func TestParseFlags_syslogFacility(t *testing.T) {
 
 func TestParseFlags_wait(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	config, _, _, _, err := cli.parseFlags([]string{
+	config, _, _, _, _, err := cli.parseFlags([]string{
 		"-wait", "10h:11h",
 	})
 	if err != nil {
@@ -377,7 +377,7 @@ func TestParseFlags_wait(t *testing.T) {
 
 func TestParseFlags_waitError(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	_, _, _, _, err := cli.parseFlags([]string{
+	_, _, _, _, _, err := cli.parseFlags([]string{
 		"-wait", "watermelon:bacon",
 	})
 	if err == nil {
@@ -392,7 +392,7 @@ func TestParseFlags_waitError(t *testing.T) {
 
 func TestParseFlags_config(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	config, _, _, _, err := cli.parseFlags([]string{
+	config, _, _, _, _, err := cli.parseFlags([]string{
 		"-config", "/path/to/file",
 	})
 	if err != nil {
@@ -410,7 +410,7 @@ func TestParseFlags_config(t *testing.T) {
 
 func TestParseFlags_retry(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	config, _, _, _, err := cli.parseFlags([]string{
+	config, _, _, _, _, err := cli.parseFlags([]string{
 		"-retry", "10h",
 	})
 	if err != nil {
@@ -428,7 +428,7 @@ func TestParseFlags_retry(t *testing.T) {
 
 func TestParseFlags_logLevel(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	config, _, _, _, err := cli.parseFlags([]string{
+	config, _, _, _, _, err := cli.parseFlags([]string{
 		"-log-level", "debug",
 	})
 	if err != nil {
@@ -446,7 +446,7 @@ func TestParseFlags_logLevel(t *testing.T) {
 
 func TestParseFlags_pidFile(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	config, _, _, _, err := cli.parseFlags([]string{
+	config, _, _, _, _, err := cli.parseFlags([]string{
 		"-pid-file", "/path/to/pid",
 	})
 	if err != nil {
@@ -464,7 +464,7 @@ func TestParseFlags_pidFile(t *testing.T) {
 
 func TestParseFlags_once(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	_, once, _, _, err := cli.parseFlags([]string{
+	_, once, _, _, _, err := cli.parseFlags([]string{
 		"-once",
 	})
 	if err != nil {
@@ -476,9 +476,23 @@ func TestParseFlags_once(t *testing.T) {
 	}
 }
 
+func TestParseFlags_ignore(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	_, _, ignore, _, _, err := cli.parseFlags([]string{
+		"-ignore",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if ignore != true {
+		t.Errorf("expected ignore to be true")
+	}
+}
+
 func TestParseFlags_dry(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	_, _, dry, _, err := cli.parseFlags([]string{
+	_, _, _, dry, _, err := cli.parseFlags([]string{
 		"-dry",
 	})
 	if err != nil {
@@ -492,7 +506,7 @@ func TestParseFlags_dry(t *testing.T) {
 
 func TestParseFlags_reap(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	config, _, _, _, err := cli.parseFlags([]string{
+	config, _, _, _, _, err := cli.parseFlags([]string{
 		"-reap",
 	})
 	if err != nil {
@@ -509,7 +523,7 @@ func TestParseFlags_reap(t *testing.T) {
 
 func TestParseFlags_version(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	_, _, _, version, err := cli.parseFlags([]string{
+	_, _, _, _, version, err := cli.parseFlags([]string{
 		"-version",
 	})
 	if err != nil {
@@ -523,7 +537,7 @@ func TestParseFlags_version(t *testing.T) {
 
 func TestParseFlags_v(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	_, _, _, version, err := cli.parseFlags([]string{
+	_, _, _, _, version, err := cli.parseFlags([]string{
 		"-v",
 	})
 	if err != nil {
@@ -537,7 +551,7 @@ func TestParseFlags_v(t *testing.T) {
 
 func TestParseFlags_errors(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	_, _, _, _, err := cli.parseFlags([]string{
+	_, _, _, _, _, err := cli.parseFlags([]string{
 		"-totally", "-not", "-valid",
 	})
 
@@ -548,7 +562,7 @@ func TestParseFlags_errors(t *testing.T) {
 
 func TestParseFlags_badArgs(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	_, _, _, _, err := cli.parseFlags([]string{
+	_, _, _, _, _, err := cli.parseFlags([]string{
 		"foo", "bar",
 	})
 
