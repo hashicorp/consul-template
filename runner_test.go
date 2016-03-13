@@ -28,7 +28,7 @@ func TestNewRunner_initialize(t *testing.T) {
 	in3 := test.CreateTempfile(nil, t)
 	defer test.DeleteTempfile(in3, t)
 
-	dry, once, ignore := true, true, true
+	dry, once, ignoreCommands := true, true, true
 	config := DefaultConfig()
 	config.Merge(&Config{
 		ConfigTemplates: []*ConfigTemplate{
@@ -39,7 +39,7 @@ func TestNewRunner_initialize(t *testing.T) {
 		},
 	})
 
-	runner, err := NewRunner(config, dry, once, ignore, &sync.RWMutex{})
+	runner, err := NewRunner(config, dry, once, ignoreCommands, &sync.RWMutex{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,8 +52,8 @@ func TestNewRunner_initialize(t *testing.T) {
 		t.Errorf("expected %#v to be %#v", runner.once, once)
 	}
 
-	if runner.ignore != ignore {
-		t.Errorf("expected %#v to be %#v", runner.ignore, ignore)
+	if runner.ignoreCommands != ignoreCommands {
+		t.Errorf("expected %#v to be %#v", runner.ignoreCommands, ignoreCommands)
 	}
 
 	if runner.watcher == nil {
@@ -900,7 +900,7 @@ func TestRun_doesNotExecuteCommandMoreThanOnce(t *testing.T) {
 	}
 }
 
-func TestRun_doesNotExecuteCommandIfIgnore(t *testing.T) {
+func TestRun_doesNotExecuteCommandIfIgnoreCommands(t *testing.T) {
 	outFile := test.CreateTempfile(nil, t)
 	os.Remove(outFile.Name())
 	defer os.Remove(outFile.Name())

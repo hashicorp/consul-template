@@ -60,7 +60,7 @@ func NewCLI(out, err io.Writer) *CLI {
 // status from the command.
 func (cli *CLI) Run(args []string) int {
 	// Parse the flags
-	config, once, ignore, dry, version, err := cli.parseFlags(args[1:])
+	config, once, ignoreCommands, dry, version, err := cli.parseFlags(args[1:])
 	if err != nil {
 		return cli.handleError(err, ExitCodeParseFlagsError)
 	}
@@ -113,7 +113,7 @@ func (cli *CLI) Run(args []string) int {
 	}
 
 	// Initial runner
-	runner, err := NewRunner(config, dry, once, ignore, &reapLock)
+	runner, err := NewRunner(config, dry, once, ignoreCommands, &reapLock)
 	if err != nil {
 		return cli.handleError(err, ExitCodeRunnerError)
 	}
@@ -150,7 +150,7 @@ func (cli *CLI) Run(args []string) int {
 					return cli.handleError(err, ExitCodeConfigError)
 				}
 
-				runner, err = NewRunner(config, dry, once, ignore, &reapLock)
+				runner, err = NewRunner(config, dry, once, ignoreCommands, &reapLock)
 				if err != nil {
 					return cli.handleError(err, ExitCodeRunnerError)
 				}
@@ -180,7 +180,7 @@ func (cli *CLI) stop() {
 // small, but it also makes writing tests for parsing command line arguments
 // much easier and cleaner.
 func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, bool, error) {
-	var dry, once, ignore, version bool
+	var dry, once, ignoreCommands, version bool
 	config := DefaultConfig()
 
 	// Parse the flags and options
@@ -331,7 +331,7 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, bool, erro
 	}), "reap", "")
 
 	flags.BoolVar(&once, "once", false, "")
-	flags.BoolVar(&ignore, "ignore", false, "")
+	flags.BoolVar(&ignoreCommands, "ignore-commands", false, "")
 	flags.BoolVar(&dry, "dry", false, "")
 	flags.BoolVar(&version, "v", false, "")
 	flags.BoolVar(&version, "version", false, "")
@@ -348,7 +348,7 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, bool, erro
 			args)
 	}
 
-	return config, once, ignore, dry, version, nil
+	return config, once, ignoreCommands, dry, version, nil
 }
 
 // handleError outputs the given error's Error() to the errStream and returns
@@ -433,7 +433,7 @@ Options:
 
   -dry                     Dump generated templates to stdout
   -once                    Do not run the process as a daemon
-  -ignore                  Do not execute commands after rendering
+  -ignore-commands         Do not execute commands after rendering
   -reap                    Control automatic reaping of child processes, useful
                            if running as PID 1 in a Docker container. By default,
                            if Consul Template detects that it is running as PID 1

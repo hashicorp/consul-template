@@ -476,17 +476,17 @@ func TestParseFlags_once(t *testing.T) {
 	}
 }
 
-func TestParseFlags_ignore(t *testing.T) {
+func TestParseFlags_ignoreCommands(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	_, _, ignore, _, _, err := cli.parseFlags([]string{
-		"-ignore",
+	_, _, ignoreCommands, _, _, err := cli.parseFlags([]string{
+		"-ignore-commands",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if ignore != true {
-		t.Errorf("expected ignore to be true")
+	if ignoreCommands != true {
+		t.Errorf("expected ignoreCommands to be true")
 	}
 }
 

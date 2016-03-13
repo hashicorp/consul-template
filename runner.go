@@ -45,9 +45,9 @@ type Runner struct {
 
 	// dry signals that output should be sent to stdout instead of committed to
 	// disk. once indicates the runner should execute each template exactly one
-	// time and then stop. ignore indicates the runner should not execute any
+	// time and then stop. ignoreCommands indicates the runner should not execute any
 	// commands
-	dry, once, ignore bool
+	dry, once, ignoreCommands bool
 
 	// reapLock is a mutex that turns off child process reaping during times
 	// when we are executing sub processes and waiting for results.
@@ -91,15 +91,15 @@ type Runner struct {
 
 // NewRunner accepts a slice of ConfigTemplates and returns a pointer to the new
 // Runner and any error that occurred during creation.
-func NewRunner(config *Config, dry bool, once bool, ignore bool, reapLock *sync.RWMutex) (*Runner, error) {
-	log.Printf("[INFO] (runner) creating new runner (dry: %v, once: %v, ignore: %v)", dry, once, ignore)
+func NewRunner(config *Config, dry bool, once bool, ignoreCommands bool, reapLock *sync.RWMutex) (*Runner, error) {
+	log.Printf("[INFO] (runner) creating new runner (dry: %v, once: %v, ignoreCommands: %v)", dry, once, ignoreCommands)
 
 	runner := &Runner{
-		config:   config,
-		dry:      dry,
-		once:     once,
-		ignore:   ignore,
-		reapLock: reapLock,
+		config:         config,
+		dry:            dry,
+		once:           once,
+		ignoreCommands: ignoreCommands,
+		reapLock:       reapLock,
 	}
 
 	if err := runner.init(); err != nil {
@@ -402,13 +402,13 @@ func (r *Runner) Run() error {
 					continue
 				}
 
-				if r.ignore {
-					log.Printf("[DEBUG] (runner) ignore mode enabled, command execution ignored")
+				if r.ignoreCommands {
+					log.Printf("[DEBUG] (runner) ignore-commands enabled, command execution ignored")
 					continue
 				}
 
 				// If the template was rendered (changed) and we are not in dry-run mode
-				// or ignore mode, aggregate commands, ignoring previously known commands
+				// and if ignoreCommands is disabled, aggregate commands, ignoring previously known commands
 				//
 				// Future-self Q&A: Why not use a map for the commands instead of an
 				// array with an expensive lookup option? Well I'm glad you asked that

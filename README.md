@@ -30,7 +30,7 @@ Usage
 | `consul`*         | The location of the Consul instance to query (may be an IP address or FQDN) with port.
 | `deduplicate`     | Enable de-duplication of template rendering. If many instances of consul-template render the same template this reduces the load on Consul. Please see the "De-Duplication Mode" section in caveats for more information.
 | `dry`             | Dump generated templates to the console. If specified, generated templates are not committed to disk and commands are not invoked. _(CLI-only)_
-| `ignore`          | Ignore commands. If specified, commands are not executed after templates rendering. _(CLI-only)_
+| `ignore-commands` | Ignore commands. If specified, commands are not executed after templates rendering. _(CLI-only)_
 | `log-level`       | The log level for output. This applies to the stdout/stderr logging as well as syslog logging (if enabled). Valid values are "debug", "info", "warn", and "err". The default value is "warn".
 | `max-stale`       | The maximum staleness of a query. If specified, Consul will distribute work among all servers instead of just the leader. The default value is 1s.
 | `once`            | Run Consul Template once and exit (as opposed to the default behavior of daemon). _(CLI-only)_
