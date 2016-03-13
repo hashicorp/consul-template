@@ -45,8 +45,9 @@ type Runner struct {
 
 	// dry signals that output should be sent to stdout instead of committed to
 	// disk. once indicates the runner should execute each template exactly one
-	// time and then stop.
-	dry, once bool
+	// time and then stop. ignore indicates the runner should not execute any
+	// commands
+	dry, once, ignore bool
 
 	// reapLock is a mutex that turns off child process reaping during times
 	// when we are executing sub processes and waiting for results.
@@ -90,13 +91,14 @@ type Runner struct {
 
 // NewRunner accepts a slice of ConfigTemplates and returns a pointer to the new
 // Runner and any error that occurred during creation.
-func NewRunner(config *Config, dry, once bool, reapLock *sync.RWMutex) (*Runner, error) {
-	log.Printf("[INFO] (runner) creating new runner (dry: %v, once: %v)", dry, once)
+func NewRunner(config *Config, dry bool, once bool, ignore bool, reapLock *sync.RWMutex) (*Runner, error) {
+	log.Printf("[INFO] (runner) creating new runner (dry: %v, once: %v, ignore: %v)", dry, once, ignore)
 
 	runner := &Runner{
 		config:   config,
 		dry:      dry,
 		once:     once,
+		ignore:   ignore,
 		reapLock: reapLock,
 	}
 
@@ -395,20 +397,28 @@ func (r *Runner) Run() error {
 			// If we _actually_ rendered the template to disk, we want to run the
 			// appropriate commands.
 			if didRender {
-				if !r.dry {
-					// If the template was rendered (changed) and we are not in dry-run mode,
-					// aggregate commands, ignoring previously known commands
-					//
-					// Future-self Q&A: Why not use a map for the commands instead of an
-					// array with an expensive lookup option? Well I'm glad you asked that
-					// future-self! One of the API promises is that commands are executed
-					// in the order in which they are provided in the ConfigTemplate
-					// definitions. If we inserted commands into a map, we would lose that
-					// relative ordering and people would be unhappy.
-					if ctemplate.Command != "" && !commandExists(ctemplate, commands) {
-						log.Printf("[DEBUG] (runner) appending command: %s", ctemplate.Command)
-						commands = append(commands, ctemplate)
-					}
+				if r.dry {
+					log.Printf("[DEBUG] (runner) dry mode enabled, command execution ignored")
+					continue
+				}
+
+				if r.ignore {
+					log.Printf("[DEBUG] (runner) ignore mode enabled, command execution ignored")
+					continue
+				}
+
+				// If the template was rendered (changed) and we are not in dry-run mode
+				// or ignore mode, aggregate commands, ignoring previously known commands
+				//
+				// Future-self Q&A: Why not use a map for the commands instead of an
+				// array with an expensive lookup option? Well I'm glad you asked that
+				// future-self! One of the API promises is that commands are executed
+				// in the order in which they are provided in the ConfigTemplate
+				// definitions. If we inserted commands into a map, we would lose that
+				// relative ordering and people would be unhappy.
+				if ctemplate.Command != "" && !commandExists(ctemplate, commands) {
+					log.Printf("[DEBUG] (runner) appending command: %s", ctemplate.Command)
+					commands = append(commands, ctemplate)
 				}
 			}
 		}
