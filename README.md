@@ -329,13 +329,20 @@ The trailing slash is optional in the template, but the generated secret depende
 To iterate and list over every secret in the generic secret backend in Vault, for example, you would need to do something like this:
 
 ```liquid
-{{range secrets "secret/"}}
-{{with secret (printf "secret/%" .)}}
-{{range $k, $v := .Data}}
-{{$k}}: {{$v}}
-{{end}}
-{{end}}
-{{end}}
+{{- define "recursive-secret" }}
+  {{- $prefix := . }}
+  {{- range secrets (printf "secret/%s" .) }}
+    {{- if regexMatch ".+/$" . }}
+      {{- template "recursive-secret" (printf "%s%s" $prefix .) }}
+    {{- else }}
+      {{ printf "%s%s" $prefix . }}{{ with secret (printf "secret/%s%s" $prefix .) }}
+        {{ range $k, $v := .Data }}{{ $k }}: {{ $v }}
+        {{ end }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- range secrets "secret/" }}{{ template "recursive-secret" . }}{{ end }}
 ```
 
 You should probably never do this. Please also note that Vault does not support blocking queries. To understand the implications, please read the note at the end of the `secret` function.
