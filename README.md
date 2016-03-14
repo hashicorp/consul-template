@@ -330,7 +330,7 @@ To iterate and list over every secret in the generic secret backend in Vault, fo
 
 ```liquid
 {{range secrets "secret/"}}
-{{with secret (printf "secret/%" .)}}
+{{with secret (printf "secret/%s" .)}}
 {{range $k, $v := .Data}}
 {{$k}}: {{$v}}
 {{end}}
