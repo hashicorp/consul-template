@@ -416,6 +416,8 @@ func ParseConfig(path string) (*Config, error) {
 	config.Path = path
 
 	// Setup default values for templates
+	subTemplatesToAppend := []*ConfigTemplate{}
+	configTemplatesToKeep := []*ConfigTemplate{}
 	for _, t := range config.ConfigTemplates {
 		// Ensure there's a default value for the template's file permissions
 		if t.Perms == 0000 {
@@ -426,7 +428,24 @@ func ParseConfig(path string) (*Config, error) {
 		if t.CommandTimeout == 0 {
 			t.CommandTimeout = defaultCommandTimeout
 		}
+
+		isDiscoverable, err := isDiscoverableTemplateDir(t.Source, t.Destination)
+		if err != nil {
+			errs = multierror.Append(errs, err)
+			return nil, errs.ErrorOrNil()
+		}
+
+		if isDiscoverable == true {
+			err := expandTemplateDir(&subTemplatesToAppend, t)
+			if err != nil {
+				errs = multierror.Append(errs, err)
+				return nil, errs.ErrorOrNil()
+			}
+		} else {
+			configTemplatesToKeep = append(configTemplatesToKeep, t)
+		}
 	}
+	config.ConfigTemplates = append(configTemplatesToKeep, subTemplatesToAppend...)
 
 	// Update the list of set keys
 	if config.setKeys == nil {
@@ -444,6 +463,60 @@ func ParseConfig(path string) (*Config, error) {
 	config = d
 
 	return config, errs.ErrorOrNil()
+}
+
+// expandTemplateDir walks in a template directory, explode the dir into regular template files, and
+// prepares the destination folder by making sure the directories exists.
+func expandTemplateDir(foundTemplates *[]*ConfigTemplate, baseConfigTemplate *ConfigTemplate) error {
+
+	err := filepath.Walk(baseConfigTemplate.Source, func(srcPath string, info os.FileInfo, err error) error {
+
+		dstPath := strings.Replace(srcPath, filepath.Clean(baseConfigTemplate.Source), filepath.Clean(baseConfigTemplate.Destination), 1)
+		// we will probably never have ctmpl as destination
+		dstPath = strings.Replace(dstPath, ".ctmpl", "", 1)
+		//fmt.Println(srcPath, filepath.Clean(baseConfigTemplate.Source), filepath.Clean(baseConfigTemplate.Destination), "=",dstPath)
+		if info.IsDir() {
+			// create the destination structure
+			os.MkdirAll(dstPath, info.Mode())
+			return nil
+		}
+
+		fmt.Println(dstPath)
+		tempConfigTemplate := *baseConfigTemplate
+		tempConfigTemplate.Source = srcPath
+		tempConfigTemplate.Destination = dstPath
+		*foundTemplates = append(*foundTemplates, &tempConfigTemplate)
+
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("config: walk discoverable path. error: %s", err)
+	}
+	return nil
+}
+
+// isDiscoverableTemplateDir returns true if the template is discoverable (both source and destination
+// are directories so we can walk in it and find templates)
+func isDiscoverableTemplateDir(source string, destination string) (bool, error) {
+
+	// Check if a file was given or a path to a directory
+	statSrc, err := os.Stat(source)
+	if err != nil {
+		return false, fmt.Errorf("config: error stating source file: %s", err)
+	}
+
+	dstIsDir := false
+	statDst, err := os.Stat(destination)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return false, fmt.Errorf("config: error stating dest file: %s", err)
+		}
+	} else {
+		dstIsDir = statDst.Mode().IsDir()
+	}
+
+	return statSrc.Mode().IsDir() && dstIsDir, nil
 }
 
 // ConfigFromPath iterates and merges all configuration files in a given
