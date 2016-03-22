@@ -288,6 +288,7 @@ func TestParseFlags_configTemplates(t *testing.T) {
 		Command:        "some command",
 		CommandTimeout: defaultCommandTimeout,
 		Perms:          defaultFilePerms,
+		Wait:           &watch.Wait{},
 	}
 	if !reflect.DeepEqual(config.ConfigTemplates[0], expected) {
 		t.Errorf("expected %q to be %q", config.ConfigTemplates[0], expected)
