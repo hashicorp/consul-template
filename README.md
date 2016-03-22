@@ -273,6 +273,10 @@ template {
   // This is the maximum amount of time to wait for the optional command to
   // return. Default is 30s.
   command_timeout = "60s"
+  perms           = 0600
+  backup          = true
+  wait            = "2s:6s"
+}
 
   // This is the permission to render the file. If this option is left
   // unspecified, Consul Template will attempt to match the permissions of the

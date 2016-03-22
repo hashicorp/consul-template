@@ -134,10 +134,21 @@ func (r *Runner) Start() {
 
 	for {
 		// Enable quiescence for all templates if we have specified wait intervals.
-		if r.config.Wait.Min != 0 && r.config.Wait.Max != 0 {
-			for _, t := range r.templates {
+		for _, t := range r.templates {
+			for _, ctemplate := range r.configTemplatesFor(t) {
+				if ctemplate.Wait.Min != 0 && ctemplate.Wait.Max != 0 {
+					if _, ok := r.quiescenceMap[t.Path]; !ok {
+						log.Printf("[DEBUG] (runner) enabling template-specific quiescence for %q", t.Path)
+						r.quiescenceMap[t.Path] = newQuiescence(
+							r.quiescenceCh, ctemplate.Wait.Min, ctemplate.Wait.Max, t)
+					}
+					break
+				}
+			}
+
+			if r.config.Wait.Min != 0 && r.config.Wait.Max != 0 {
 				if _, ok := r.quiescenceMap[t.Path]; !ok {
-					log.Printf("[DEBUG] (runner) enabling quiescence for %q", t.Path)
+					log.Printf("[DEBUG] (runner) enabling global quiescence for %q", t.Path)
 					r.quiescenceMap[t.Path] = newQuiescence(
 						r.quiescenceCh, r.config.Wait.Min, r.config.Wait.Max, t)
 				}

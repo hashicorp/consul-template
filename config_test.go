@@ -254,6 +254,7 @@ func TestMerge_configTemplates(t *testing.T) {
 			command_timeout = "2h"
 			perms = 0755
 			backup = true
+			wait = "6s"
 		}
 	`, t))
 
@@ -267,6 +268,7 @@ func TestMerge_configTemplates(t *testing.T) {
 			Backup:         false,
 			LeftDelim:      "<%",
 			RightDelim:     "%>",
+			Wait:           &watch.Wait{},
 		},
 		&ConfigTemplate{
 			Source:         "2",
@@ -275,6 +277,10 @@ func TestMerge_configTemplates(t *testing.T) {
 			CommandTimeout: 2 * time.Hour,
 			Perms:          0755,
 			Backup:         true,
+			Wait: &watch.Wait{
+				Min: 6 * time.Second,
+				Max: 24 * time.Second,
+			},
 		},
 	}
 
@@ -385,6 +391,7 @@ func TestParseConfig_correctValues(t *testing.T) {
 			command = "service redis restart"
 			command_timeout = "60s"
 			perms = 0755
+			wait = "3s:7s"
 		}
 
 		deduplicate {
@@ -445,6 +452,7 @@ func TestParseConfig_correctValues(t *testing.T) {
 				Destination:    "/etc/nginx/nginx.conf",
 				CommandTimeout: defaultCommandTimeout,
 				Perms:          0644,
+				Wait:           &watch.Wait{},
 			},
 			&ConfigTemplate{
 				Source:         "redis.conf.ctmpl",
@@ -452,6 +460,10 @@ func TestParseConfig_correctValues(t *testing.T) {
 				Command:        "service redis restart",
 				CommandTimeout: 60 * time.Second,
 				Perms:          0755,
+				Wait: &watch.Wait{
+					Min: 3 * time.Second,
+					Max: 7 * time.Second,
+				},
 			},
 		},
 		Deduplicate: &DeduplicateConfig{
@@ -766,6 +778,7 @@ func TestParseConfigurationTemplate_windowsDrives(t *testing.T) {
 		Command:        "some command",
 		CommandTimeout: defaultCommandTimeout,
 		Perms:          0644,
+		Wait:           &watch.Wait{},
 	}
 
 	if !reflect.DeepEqual(ct, expected) {
