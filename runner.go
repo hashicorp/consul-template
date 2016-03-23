@@ -827,6 +827,7 @@ func atomicWrite(path string, contents []byte, perms os.FileMode, backup bool) e
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 	defer os.Remove(f.Name())
 
 	if _, err := f.Write(contents); err != nil {
