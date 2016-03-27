@@ -177,6 +177,9 @@ func (w *Watcher) Stop() {
 
 	// Reset the map to have no views
 	w.depViewMap = make(map[string]*View)
+
+	// Close any idle TCP connections
+	w.config.Clients.Stop()
 }
 
 // init sets up the initial values for the watcher.

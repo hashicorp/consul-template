@@ -1,10 +1,16 @@
 package dependency
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
 	"sync"
 
 	consulapi "github.com/hashicorp/consul/api"
+	"github.com/hashicorp/go-cleanhttp"
 	vaultapi "github.com/hashicorp/vault/api"
 )
 
@@ -13,8 +19,45 @@ import (
 type ClientSet struct {
 	sync.RWMutex
 
-	vault  *vaultapi.Client
-	consul *consulapi.Client
+	vault  *vaultClient
+	consul *consulClient
+}
+
+// consulClient is a wrapper around a real Consul API client.
+type consulClient struct {
+	client     *consulapi.Client
+	httpClient *http.Client
+}
+
+// vaultClient is a wrapper around a real Vault API client.
+type vaultClient struct {
+	client     *vaultapi.Client
+	httpClient *http.Client
+}
+
+// CreateConsulClientInput is used as input to the CreateConsulClient function.
+type CreateConsulClientInput struct {
+	Address      string
+	Token        string
+	AuthEnabled  bool
+	AuthUsername string
+	AuthPassword string
+	SSLEnabled   bool
+	SSLVerify    bool
+	SSLCert      string
+	SSLKey       string
+	SSLCACert    string
+}
+
+// CreateVaultClientInput is used as input to the CreateVaultClient function.
+type CreateVaultClientInput struct {
+	Address    string
+	Token      string
+	SSLEnabled bool
+	SSLVerify  bool
+	SSLCert    string
+	SSLKey     string
+	SSLCACert  string
 }
 
 // NewClientSet creates a new client set that is ready to accept clients.
@@ -22,24 +65,181 @@ func NewClientSet() *ClientSet {
 	return &ClientSet{}
 }
 
-// Add stores the given client.
-func (c *ClientSet) Add(client interface{}) error {
-	c.Lock()
-	defer c.Unlock()
+// CreateConsulClient creates a new Consul API client from the given input.
+func (c *ClientSet) CreateConsulClient(i *CreateConsulClientInput) error {
+	log.Printf("[INFO] (clients) creating consul/api client")
 
-	switch typed := client.(type) {
-	case *consulapi.Client:
-		if c.consul != nil {
-			return fmt.Errorf("a consul client already exists")
+	// Generate the default config
+	consulConfig := consulapi.DefaultConfig()
+
+	// Set the address
+	if i.Address != "" {
+		log.Printf("[DEBUG] (clients) setting consul address to %q", i.Address)
+		consulConfig.Address = i.Address
+	}
+
+	// Configure the token
+	if i.Token != "" {
+		log.Printf("[DEBUG] (clients) setting consul token")
+		consulConfig.Token = i.Token
+	}
+
+	// Add basic auth
+	if i.AuthEnabled {
+		log.Printf("[DEBUG] (clients) setting basic auth")
+		consulConfig.HttpAuth = &consulapi.HttpBasicAuth{
+			Username: i.AuthUsername,
+			Password: i.AuthPassword,
 		}
-		c.consul = typed
-	case *vaultapi.Client:
-		if c.vault != nil {
-			return fmt.Errorf("a vault client already exists")
+	}
+
+	// This transport will attempt to keep connections open to the Consul server.
+	transport := cleanhttp.DefaultPooledTransport()
+
+	// Configure SSL
+	if i.SSLEnabled {
+		log.Printf("[DEBUG] (clients) enabling consul SSL")
+		consulConfig.Scheme = "https"
+
+		var tlsConfig tls.Config
+
+		// Custom certificate or certificate and key
+		if i.SSLCert != "" && i.SSLKey != "" {
+			cert, err := tls.LoadX509KeyPair(i.SSLCert, i.SSLKey)
+			if err != nil {
+				return fmt.Errorf("client set: consul: %s", err)
+			}
+			tlsConfig.Certificates = []tls.Certificate{cert}
+		} else if i.SSLCert != "" {
+			cert, err := tls.LoadX509KeyPair(i.SSLCert, i.SSLCert)
+			if err != nil {
+				return fmt.Errorf("client set: consul: %s", err)
+			}
+			tlsConfig.Certificates = []tls.Certificate{cert}
 		}
-		c.vault = typed
-	default:
-		return fmt.Errorf("unknown client type %T", client)
+
+		// Custom CA certificate
+		if i.SSLCACert != "" {
+			cacert, err := ioutil.ReadFile(i.SSLCACert)
+			if err != nil {
+				return fmt.Errorf("client set: consul: %s", err)
+			}
+			caCertPool := x509.NewCertPool()
+			caCertPool.AppendCertsFromPEM(cacert)
+
+			tlsConfig.RootCAs = caCertPool
+		}
+
+		// Construct all the certificates now
+		tlsConfig.BuildNameToCertificate()
+
+		// SSL verification
+		if !i.SSLVerify {
+			log.Printf("[WARN] (clients) disabling consul SSL verification")
+			tlsConfig.InsecureSkipVerify = true
+		}
+
+		// Save the TLS config on our transport
+		transport.TLSClientConfig = &tlsConfig
+	}
+
+	// Setup the new transport
+	consulConfig.HttpClient.Transport = transport
+
+	// Create the API client
+	client, err := consulapi.NewClient(consulConfig)
+	if err != nil {
+		return fmt.Errorf("client set: consul: %s", err)
+	}
+
+	// Save the data on ourselves
+	c.consul = &consulClient{
+		client:     client,
+		httpClient: consulConfig.HttpClient,
+	}
+
+	return nil
+}
+
+func (c *ClientSet) CreateVaultClient(i *CreateVaultClientInput) error {
+	log.Printf("[INFO] (clients) creating vault/api client")
+
+	// Generate the default config
+	vaultConfig := vaultapi.DefaultConfig()
+
+	// Set the address
+	if i.Address != "" {
+		log.Printf("[DEBUG] (clients) setting vault address to %q", i.Address)
+		vaultConfig.Address = i.Address
+	}
+
+	// This transport will attempt to keep connections open to the Vault server.
+	transport := cleanhttp.DefaultPooledTransport()
+
+	// Configure SSL
+	if i.SSLEnabled {
+		log.Printf("[DEBUG] (clients) enabling vault SSL")
+		var tlsConfig tls.Config
+
+		// Custom certificate or certificate and key
+		if i.SSLCert != "" && i.SSLKey != "" {
+			cert, err := tls.LoadX509KeyPair(i.SSLCert, i.SSLKey)
+			if err != nil {
+				return fmt.Errorf("client set: vault: %s", err)
+			}
+			tlsConfig.Certificates = []tls.Certificate{cert}
+		} else if i.SSLCert != "" {
+			cert, err := tls.LoadX509KeyPair(i.SSLCert, i.SSLCert)
+			if err != nil {
+				return fmt.Errorf("client set: vault: %s", err)
+			}
+			tlsConfig.Certificates = []tls.Certificate{cert}
+		}
+
+		// Custom CA certificate
+		if i.SSLCACert != "" {
+			cacert, err := ioutil.ReadFile(i.SSLCACert)
+			if err != nil {
+				return fmt.Errorf("client set: vault: %s", err)
+			}
+			caCertPool := x509.NewCertPool()
+			caCertPool.AppendCertsFromPEM(cacert)
+
+			tlsConfig.RootCAs = caCertPool
+		}
+
+		// Construct all the certificates now
+		tlsConfig.BuildNameToCertificate()
+
+		// SSL verification
+		if !i.SSLVerify {
+			log.Printf("[WARN] (clients) disabling vault SSL verification")
+			tlsConfig.InsecureSkipVerify = true
+		}
+
+		// Save the TLS config on our transport
+		transport.TLSClientConfig = &tlsConfig
+	}
+
+	// Setup the new transport
+	vaultConfig.HttpClient.Transport = transport
+
+	// Create the client
+	client, err := vaultapi.NewClient(vaultConfig)
+	if err != nil {
+		return fmt.Errorf("client set: vault: %s", err)
+	}
+
+	// Set the token if given
+	if i.Token != "" {
+		log.Printf("[DEBUG] (clients) setting vault token")
+		client.SetToken(i.Token)
+	}
+
+	// Save the data on ourselves
+	c.vault = &vaultClient{
+		client:     client,
+		httpClient: vaultConfig.HttpClient,
 	}
 
 	return nil
@@ -55,7 +255,7 @@ func (c *ClientSet) Consul() (*consulapi.Client, error) {
 		return nil, fmt.Errorf("clientset: missing consul client")
 	}
 	cp := new(consulapi.Client)
-	*cp = *c.consul
+	*cp = *c.consul.client
 	return cp, nil
 }
 
@@ -69,6 +269,20 @@ func (c *ClientSet) Vault() (*vaultapi.Client, error) {
 		return nil, fmt.Errorf("clientset: missing vault client")
 	}
 	cp := new(vaultapi.Client)
-	*cp = *c.vault
+	*cp = *c.vault.client
 	return cp, nil
+}
+
+// Stop closes all idle connections for any attached clients.
+func (c *ClientSet) Stop() {
+	c.Lock()
+	defer c.Unlock()
+
+	if c.consul != nil {
+		c.consul.httpClient.Transport.(*http.Transport).CloseIdleConnections()
+	}
+
+	if c.vault != nil {
+		c.vault.httpClient.Transport.(*http.Transport).CloseIdleConnections()
+	}
 }

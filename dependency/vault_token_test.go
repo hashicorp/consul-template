@@ -11,15 +11,18 @@ func TestVaultTokenFetch(t *testing.T) {
 	clients, server := testVaultServer(t)
 	defer server.Stop()
 
+	// Grab the underlying client
+	vault := clients.vault.client
+
 	// Create a new token - the default token is a root token and is therefore
 	// not renewable
-	secret, err := clients.vault.Auth().Token().Create(&api.TokenCreateRequest{
+	secret, err := vault.Auth().Token().Create(&api.TokenCreateRequest{
 		Lease: "1h",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	clients.vault.SetToken(secret.Auth.ClientToken)
+	vault.SetToken(secret.Auth.ClientToken)
 
 	dep, err := ParseVaultToken()
 	if err != nil {
@@ -41,15 +44,18 @@ func TestVaultTokenFetch_stoped(t *testing.T) {
 	clients, server := testVaultServer(t)
 	defer server.Stop()
 
+	// Grab the underlying client
+	vault := clients.vault.client
+
 	// Create a new token - the default token is a root token and is therefore
 	// not renewable
-	secret, err := clients.vault.Auth().Token().Create(&api.TokenCreateRequest{
+	secret, err := vault.Auth().Token().Create(&api.TokenCreateRequest{
 		Lease: "1h",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	clients.vault.SetToken(secret.Auth.ClientToken)
+	vault.SetToken(secret.Auth.ClientToken)
 
 	dep, err := ParseVaultToken()
 	if err != nil {

@@ -7,9 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testutil"
-	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/http"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/vault"
@@ -55,18 +53,12 @@ func testConsulServer(t *testing.T) (*ClientSet, *testutil.TestServer) {
 		c.Stderr = ioutil.Discard
 	})
 
-	config := consulapi.DefaultConfig()
-	config.Address = consul.HTTPAddr
-	client, err := consulapi.NewClient(config)
-	if err != nil {
-		consul.Stop()
-		t.Fatalf("consul api client err: %s", err)
-	}
-
 	clients := NewClientSet()
-	if err := clients.Add(client); err != nil {
+	if err := clients.CreateConsulClient(&CreateConsulClientInput{
+		Address: consul.HTTPAddr,
+	}); err != nil {
 		consul.Stop()
-		t.Fatalf("clientset err: %s", err)
+		t.Fatalf("clientset: %s", err)
 	}
 
 	return clients, consul
@@ -102,19 +94,12 @@ func testVaultServer(t *testing.T) (*ClientSet, *vaultServer) {
 	core, _, token := vault.TestCoreUnsealed(t)
 	ln, addr := http.TestServer(t, core)
 
-	config := vaultapi.DefaultConfig()
-	config.Address = addr
-	client, err := vaultapi.NewClient(config)
-	if err != nil {
-		defer ln.Close()
-		t.Fatal(err)
-	}
-
-	client.SetToken(token)
-
 	clients := NewClientSet()
-	if err := clients.Add(client); err != nil {
-		defer ln.Close()
+	if err := clients.CreateVaultClient(&CreateVaultClientInput{
+		Address: addr,
+		Token:   token,
+	}); err != nil {
+		ln.Close()
 		t.Fatal(err)
 	}
 
