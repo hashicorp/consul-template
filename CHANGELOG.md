@@ -5,6 +5,7 @@ Consul Template Changelog
 
 BUG FIXES:
 
+  * Close open connections when reloading configuration [GH-591, GH-595]
 
 ## v0.14.0 (March 7, 2016)
 
