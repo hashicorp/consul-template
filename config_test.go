@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -234,10 +235,34 @@ func TestMerge_syslog(t *testing.T) {
 }
 
 func TestMerge_configTemplates(t *testing.T) {
+
+	testDir, err := ioutil.TempDir(os.TempDir(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(testDir)
+	srcFile, err := ioutil.TempFile(testDir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dstFile, err := ioutil.TempFile(testDir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	srcFileToMerge, err := ioutil.TempFile(testDir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dstFileToMerge, err := ioutil.TempFile(testDir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	config := testConfig(`
 		template {
-			source = "1"
-			destination = "1"
+			source = "`+srcFile.Name()+`"
+			destination = "`+dstFile.Name()+`"
 			command = "1"
 			command_timeout = "60s"
 			perms = 0600
@@ -246,8 +271,8 @@ func TestMerge_configTemplates(t *testing.T) {
 	`, t)
 	config.Merge(testConfig(`
 		template {
-			source = "2"
-			destination = "2"
+			source = "`+srcFileToMerge.Name()+`"
+			destination = "`+dstFileToMerge.Name()+`"
 			command = "2"
 			command_timeout = "2h"
 			perms = 0755
@@ -257,16 +282,16 @@ func TestMerge_configTemplates(t *testing.T) {
 
 	expected := []*ConfigTemplate{
 		&ConfigTemplate{
-			Source:         "1",
-			Destination:    "1",
+			Source:         srcFile.Name(),
+			Destination:    dstFile.Name(),
 			Command:        "1",
 			CommandTimeout: 60 * time.Second,
 			Perms:          0600,
 			Backup:         false,
 		},
 		&ConfigTemplate{
-			Source:         "2",
-			Destination:    "2",
+			Source:         srcFileToMerge.Name(),
+			Destination:    dstFileToMerge.Name(),
 			Command:        "2",
 			CommandTimeout: 2 * time.Hour,
 			Perms:          0755,
@@ -334,6 +359,33 @@ func TestParseConfig_readFileError(t *testing.T) {
 }
 
 func TestParseConfig_correctValues(t *testing.T) {
+
+	testDir, err := ioutil.TempDir(os.TempDir(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(testDir)
+
+	srcFile1, err := ioutil.TempFile(testDir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dstFile1, err := ioutil.TempFile(testDir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	srcFile2, err := ioutil.TempFile(testDir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dstFile2, err := ioutil.TempFile(testDir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	configFile := test.CreateTempfile([]byte(`
 		consul = "nyc1.demo.consul.io"
 		max_stale = "5s"
@@ -371,13 +423,13 @@ func TestParseConfig_correctValues(t *testing.T) {
 		}
 
 		template {
-			source = "nginx.conf.ctmpl"
-			destination  = "/etc/nginx/nginx.conf"
+			source = "`+srcFile1.Name()+`"
+			destination  = "`+dstFile1.Name()+`"
 		}
 
 		template {
-			source = "redis.conf.ctmpl"
-			destination  = "/etc/redis/redis.conf"
+			source = "`+srcFile2.Name()+`"
+			destination  = "`+dstFile2.Name()+`"
 			command = "service redis restart"
 			command_timeout = "60s"
 			perms = 0755
@@ -437,14 +489,14 @@ func TestParseConfig_correctValues(t *testing.T) {
 		LogLevel: "warn",
 		ConfigTemplates: []*ConfigTemplate{
 			&ConfigTemplate{
-				Source:         "nginx.conf.ctmpl",
-				Destination:    "/etc/nginx/nginx.conf",
+				Source:         srcFile1.Name(),
+				Destination:    dstFile1.Name(),
 				CommandTimeout: defaultCommandTimeout,
 				Perms:          0644,
 			},
 			&ConfigTemplate{
-				Source:         "redis.conf.ctmpl",
-				Destination:    "/etc/redis/redis.conf",
+				Source:         srcFile2.Name(),
+				Destination:    dstFile2.Name(),
 				Command:        "service redis restart",
 				CommandTimeout: 60 * time.Second,
 				Perms:          0755,
@@ -634,6 +686,15 @@ func TestConfigFromPath_configDir(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	templateFileSrc, err := ioutil.TempFile(configDir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	templateFileDst, err := ioutil.TempFile(configDir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	config1 := []byte(`
 		consul = "127.0.0.1:8500"
 	`)
@@ -647,8 +708,8 @@ func TestConfigFromPath_configDir(t *testing.T) {
 	}
 	config2 := []byte(`
 		template {
-		  source = "/path/on/disk/to/template"
-		  destination = "/path/on/disk/where/template/will/render"
+		  source = "` + templateFileSrc.Name() + `"
+		  destination = "` + templateFileDst.Name() + `"
 		  command = "optional command to run when the template is updated"
 		}
 	`)
@@ -665,8 +726,8 @@ func TestConfigFromPath_configDir(t *testing.T) {
 	expectedConfig := Config{
 		Consul: "127.0.0.1:8500",
 		ConfigTemplates: []*ConfigTemplate{{
-			Source:      "/path/on/disk/to/template",
-			Destination: "/path/on/disk/where/template/will/render",
+			Source:      templateFileSrc.Name(),
+			Destination: templateFileDst.Name(),
 			Command:     "optional command to run when the template is updated",
 		}},
 	}
@@ -686,6 +747,81 @@ func TestConfigFromPath_configDir(t *testing.T) {
 		}
 		if actualTemplate.Command != expectTemplate.Command {
 			t.Fatalf("Expected template Command to be %s but got %s", expectTemplate.Command, actualTemplate.Command)
+		}
+	}
+}
+
+func TestConfigFromPath_discoverSubTemplates(t *testing.T) {
+	sep := string(filepath.Separator)
+	configDir, err := ioutil.TempDir(os.TempDir(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	templatesDir, err := ioutil.TempDir(os.TempDir(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(templatesDir)
+
+	os.MkdirAll(templatesDir+sep+"src"+sep+"lvl1"+sep+"lvl2", 0755)
+	os.Mkdir(templatesDir+sep+"dst", 0755)
+
+	f1, err := os.Create(templatesDir + sep + "src" + sep + "lvl1" + sep + "file1.ctmpl")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f1.Close()
+
+	f2, err := os.Create(templatesDir + sep + "src" + sep + "lvl1" + sep + "lvl2" + sep + "file2.ctmpl")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f2.Close()
+
+	configFile, err := ioutil.TempFile(configDir, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	configContents := []byte(`
+		template {
+		  source = "` + templatesDir + sep + `src"
+		  destination = "` + templatesDir + sep + `dst"
+		}
+	`)
+	_, err = configFile.Write(configContents)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	config, err := ConfigFromPath(configDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectedConfig := Config{
+		ConfigTemplates: []*ConfigTemplate{
+			{
+				Source:      templatesDir + sep + "src" + sep + "lvl1" + sep + "file1.ctmpl",
+				Destination: templatesDir + sep + "dst" + sep + "lvl1" + sep + "file1",
+			},
+			{
+				Source:      templatesDir + sep + "src" + sep + "lvl1" + sep + "lvl2" + sep + "file2.ctmpl",
+				Destination: templatesDir + sep + "dst" + sep + "lvl1" + sep + "lvl2" + sep + "file2",
+			},
+		},
+	}
+	if len(config.ConfigTemplates) != len(expectedConfig.ConfigTemplates) {
+		t.Fatalf("Expected %d ConfigTemplate but got %d", len(expectedConfig.ConfigTemplates), len(config.ConfigTemplates))
+	}
+	for i, expectTemplate := range expectedConfig.ConfigTemplates {
+		actualTemplate := config.ConfigTemplates[i]
+		if actualTemplate.Source != expectTemplate.Source {
+			t.Fatalf("Expected template Source to be %s but got %s", expectTemplate.Source, actualTemplate.Source)
+		}
+		if actualTemplate.Destination != expectTemplate.Destination {
+			t.Fatalf("Expected template Destination to be %s but got %s", expectTemplate.Destination, actualTemplate.Destination)
 		}
 	}
 }
