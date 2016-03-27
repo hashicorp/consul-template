@@ -2,14 +2,11 @@ package main
 
 import (
 	"bytes"
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -21,10 +18,7 @@ import (
 
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul-template/watch"
-	consulapi "github.com/hashicorp/consul/api"
-	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-multierror"
-	vaultapi "github.com/hashicorp/vault/api"
 )
 
 const (
@@ -904,156 +898,34 @@ func commandExists(c *ConfigTemplate, templates []*ConfigTemplate) bool {
 func newClientSet(config *Config) (*dep.ClientSet, error) {
 	clients := dep.NewClientSet()
 
-	consul, err := newConsulClient(config)
-	if err != nil {
-		return nil, err
-	}
-	if err := clients.Add(consul); err != nil {
-		return nil, err
+	if err := clients.CreateConsulClient(&dep.CreateConsulClientInput{
+		Address:      config.Consul,
+		Token:        config.Token,
+		AuthEnabled:  config.Auth.Enabled,
+		AuthUsername: config.Auth.Username,
+		AuthPassword: config.Auth.Password,
+		SSLEnabled:   config.SSL.Enabled,
+		SSLVerify:    config.SSL.Verify,
+		SSLCert:      config.SSL.Cert,
+		SSLKey:       config.SSL.Key,
+		SSLCACert:    config.SSL.CaCert,
+	}); err != nil {
+		return nil, fmt.Errorf("runner: %s", err)
 	}
 
-	vault, err := newVaultClient(config)
-	if err != nil {
-		return nil, err
-	}
-	if err := clients.Add(vault); err != nil {
-		return nil, err
+	if err := clients.CreateVaultClient(&dep.CreateVaultClientInput{
+		Address:    config.Vault.Address,
+		Token:      config.Vault.Token,
+		SSLEnabled: config.Vault.SSL.Enabled,
+		SSLVerify:  config.Vault.SSL.Verify,
+		SSLCert:    config.Vault.SSL.Cert,
+		SSLKey:     config.Vault.SSL.Key,
+		SSLCACert:  config.Vault.SSL.CaCert,
+	}); err != nil {
+		return nil, fmt.Errorf("runner: %s", err)
 	}
 
 	return clients, nil
-}
-
-// newConsulClient creates a new API client from the given config and
-func newConsulClient(config *Config) (*consulapi.Client, error) {
-	log.Printf("[INFO] (runner) creating consul/api client")
-
-	consulConfig := consulapi.DefaultConfig()
-
-	if config.Consul != "" {
-		log.Printf("[DEBUG] (runner) setting consul address to %s", config.Consul)
-		consulConfig.Address = config.Consul
-	}
-
-	if config.Token != "" {
-		log.Printf("[DEBUG] (runner) setting consul token")
-		consulConfig.Token = config.Token
-	}
-
-	// This transport will attempt to keep connections open to the Consul
-	// server. This will get installed after possibly configuring SSL.
-	transport := cleanhttp.DefaultPooledTransport()
-	if config.SSL.Enabled {
-		log.Printf("[DEBUG] (runner) enabling consul SSL")
-		consulConfig.Scheme = "https"
-
-		tlsConfig := &tls.Config{}
-
-		// Client configured for TLS Mutual Authentication
-		if config.SSL.Cert != "" && config.SSL.Key != "" {
-			cert, err := tls.LoadX509KeyPair(config.SSL.Cert, config.SSL.Key)
-			if err != nil {
-				return nil, err
-			}
-			tlsConfig.Certificates = []tls.Certificate{cert}
-		} else if config.SSL.Cert != "" {
-			cert, err := tls.LoadX509KeyPair(config.SSL.Cert, config.SSL.Cert)
-			if err != nil {
-				return nil, err
-			}
-			tlsConfig.Certificates = []tls.Certificate{cert}
-		}
-		if config.SSL.CaCert != "" {
-			cacert, err := ioutil.ReadFile(config.SSL.CaCert)
-			if err != nil {
-				return nil, err
-			}
-			caCertPool := x509.NewCertPool()
-			caCertPool.AppendCertsFromPEM(cacert)
-
-			tlsConfig.RootCAs = caCertPool
-		}
-		tlsConfig.BuildNameToCertificate()
-
-		if !config.SSL.Verify {
-			log.Printf("[WARN] (runner) disabling consul SSL verification")
-			tlsConfig.InsecureSkipVerify = true
-		}
-		transport.TLSClientConfig = tlsConfig
-	}
-	consulConfig.HttpClient.Transport = transport
-
-	if config.Auth.Enabled {
-		log.Printf("[DEBUG] (runner) setting basic auth")
-		consulConfig.HttpAuth = &consulapi.HttpBasicAuth{
-			Username: config.Auth.Username,
-			Password: config.Auth.Password,
-		}
-	}
-
-	client, err := consulapi.NewClient(consulConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	return client, nil
-}
-
-// newVaultClient creates a new client for connecting to vault.
-func newVaultClient(config *Config) (*vaultapi.Client, error) {
-	log.Printf("[INFO] (runner) creating vault/api client")
-
-	vaultConfig := vaultapi.DefaultConfig()
-
-	if config.Vault.Address != "" {
-		log.Printf("[DEBUG] (runner) setting vault address to %s", config.Vault.Address)
-		vaultConfig.Address = config.Vault.Address
-	}
-
-	if config.Vault.SSL.Enabled {
-		log.Printf("[DEBUG] (runner) enabling vault SSL")
-		tlsConfig := &tls.Config{}
-
-		if config.Vault.SSL.Cert != "" {
-			cert, err := tls.LoadX509KeyPair(config.Vault.SSL.Cert, config.Vault.SSL.Cert)
-			if err != nil {
-				return nil, err
-			}
-			tlsConfig.Certificates = []tls.Certificate{cert}
-		}
-
-		if config.Vault.SSL.CaCert != "" {
-			cacert, err := ioutil.ReadFile(config.Vault.SSL.CaCert)
-			if err != nil {
-				return nil, err
-			}
-			caCertPool := x509.NewCertPool()
-			caCertPool.AppendCertsFromPEM(cacert)
-
-			tlsConfig.RootCAs = caCertPool
-		}
-		tlsConfig.BuildNameToCertificate()
-
-		if !config.Vault.SSL.Verify {
-			log.Printf("[WARN] (runner) disabling vault SSL verification")
-			tlsConfig.InsecureSkipVerify = true
-		}
-
-		vaultConfig.HttpClient.Transport = &http.Transport{
-			TLSClientConfig: tlsConfig,
-		}
-	}
-
-	client, err := vaultapi.NewClient(vaultConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	if config.Vault.Token != "" {
-		log.Printf("[DEBUG] (runner) setting vault token")
-		client.SetToken(config.Vault.Token)
-	}
-
-	return client, nil
 }
 
 // newWatcher creates a new watcher.
