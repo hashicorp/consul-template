@@ -47,7 +47,7 @@ func (d *VaultSecret) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 	// If this is not the first query and we have a lease duration, sleep until we
 	// try to renew.
 	if opts.WaitIndex != 0 && d.secret != nil && d.secret.LeaseDuration != 0 {
-		duration := time.Duration(d.secret.LeaseDuration/2) * time.Second
+		duration := time.Duration(d.secret.LeaseDuration/2.0) * time.Second
 		log.Printf("[DEBUG] (%s) pretending to long-poll for %q",
 			d.Display(), duration)
 		select {
