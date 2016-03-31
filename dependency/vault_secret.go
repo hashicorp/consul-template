@@ -71,9 +71,11 @@ func (d *VaultSecret) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 		if err == nil {
 			log.Printf("[DEBUG] (%s) successfully renewed", d.Display())
 
+			log.Printf("[DEBUG] (%s) %#v", d.Display(), renewal)
+
 			secret := &Secret{
 				LeaseID:       renewal.LeaseID,
-				LeaseDuration: leaseDurationOrDefault(renewal.LeaseDuration),
+				LeaseDuration: d.secret.LeaseDuration,
 				Renewable:     renewal.Renewable,
 				Data:          d.secret.Data,
 			}
