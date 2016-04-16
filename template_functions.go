@@ -611,6 +611,10 @@ func parseJSON(s string) (interface{}, error) {
 
 // parseUint parses a string into a base 10 int
 func parseUint(s string) (uint64, error) {
+	if s == "" {
+		return 0, nil
+	}
+
 	result, err := strconv.ParseUint(s, 10, 64)
 	if err != nil {
 		return 0, fmt.Errorf("parseUint: %s", err)
