@@ -128,7 +128,7 @@ func (d *CatalogNode) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 
 // CanShare returns a boolean if this dependency is shareable.
 func (d *CatalogNode) CanShare() bool {
-	return true
+	return false
 }
 
 // HashCode returns a unique identifier.
