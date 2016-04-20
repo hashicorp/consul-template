@@ -14,6 +14,7 @@ import (
 
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul-template/test"
+	"github.com/hashicorp/consul-template/watch"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/go-gatedio"
 )
@@ -989,6 +990,7 @@ func TestRunner_onceAlreadyRenderedDoesNotHangOrRunCommands(t *testing.T) {
 				Source:      in.Name(),
 				Destination: out.Name(),
 				Command:     fmt.Sprintf("echo 'foo' >> %s", outFile.Name()),
+				Wait:        &watch.Wait{},
 			},
 		},
 	})
@@ -1159,7 +1161,7 @@ func TestRunner_dedup(t *testing.T) {
 	config := DefaultConfig()
 	config.Merge(&Config{
 		ConfigTemplates: []*ConfigTemplate{
-			&ConfigTemplate{Source: in.Name(), Destination: out1.Name()},
+			&ConfigTemplate{Source: in.Name(), Destination: out1.Name(), Wait: &watch.Wait{}},
 		},
 	})
 	config.Deduplicate.Enabled = true
@@ -1171,7 +1173,7 @@ func TestRunner_dedup(t *testing.T) {
 	config2 := DefaultConfig()
 	config2.Merge(&Config{
 		ConfigTemplates: []*ConfigTemplate{
-			&ConfigTemplate{Source: in.Name(), Destination: out2.Name()},
+			&ConfigTemplate{Source: in.Name(), Destination: out2.Name(), Wait: &watch.Wait{}},
 		},
 	})
 	config2.Deduplicate.Enabled = true

@@ -149,6 +149,7 @@ func (c *Config) Copy() *Config {
 			CommandTimeout: t.CommandTimeout,
 			Perms:          t.Perms,
 			Backup:         t.Backup,
+			Wait:           t.Wait,
 		}
 	}
 
@@ -299,6 +300,7 @@ func (c *Config) Merge(config *Config) {
 				CommandTimeout: template.CommandTimeout,
 				Perms:          template.Perms,
 				Backup:         template.Backup,
+				Wait:           template.Wait,
 			})
 		}
 	}
@@ -425,6 +427,10 @@ func ParseConfig(path string) (*Config, error) {
 		// Ensure we have a default command timeout
 		if t.CommandTimeout == 0 {
 			t.CommandTimeout = defaultCommandTimeout
+		}
+
+		if t.Wait == nil {
+			t.Wait = &watch.Wait{}
 		}
 	}
 
@@ -636,6 +642,7 @@ type ConfigTemplate struct {
 	CommandTimeout time.Duration `json:"command_timeout,omitempty" mapstructure:"command_timeout"`
 	Perms          os.FileMode   `json:"perms,string" mapstructure:"perms"`
 	Backup         bool          `json:"backup" mapstructure:"backup"`
+	Wait           *watch.Wait   `json:"wait" mapstructure:"wait"`
 }
 
 // VaultConfig is the configuration for connecting to a vault server.
@@ -674,6 +681,7 @@ func ParseConfigTemplate(s string) (*ConfigTemplate, error) {
 		Command:        command,
 		CommandTimeout: defaultCommandTimeout,
 		Perms:          defaultFilePerms,
+		Wait:           &watch.Wait{},
 	}, nil
 }
 
