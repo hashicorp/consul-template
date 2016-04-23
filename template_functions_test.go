@@ -1232,6 +1232,22 @@ func TestExplode(t *testing.T) {
 	}
 }
 
+func TestExplode_notMap(t *testing.T) {
+	list := []*dep.KeyPair{
+		&dep.KeyPair{Key: "a/b", Value: "foo"},
+		&dep.KeyPair{Key: "a/b/c", Value: "bar"},
+	}
+
+	_, err := explode(list)
+	if err == nil {
+		t.Errorf("expected error")
+	}
+
+	if !strings.Contains(err.Error(), "not a map") {
+		t.Errorf("bad error")
+	}
+}
+
 func TestIn_string(t *testing.T) {
 	list := []string{"a", "b", "c"}
 
