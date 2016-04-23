@@ -149,6 +149,8 @@ func (c *Config) Copy() *Config {
 			CommandTimeout: t.CommandTimeout,
 			Perms:          t.Perms,
 			Backup:         t.Backup,
+			LeftDelim:      t.LeftDelim,
+			RightDelim:     t.RightDelim,
 		}
 	}
 
@@ -299,6 +301,8 @@ func (c *Config) Merge(config *Config) {
 				CommandTimeout: template.CommandTimeout,
 				Perms:          template.Perms,
 				Backup:         template.Backup,
+				LeftDelim:      template.LeftDelim,
+				RightDelim:     template.RightDelim,
 			})
 		}
 	}
@@ -636,6 +640,8 @@ type ConfigTemplate struct {
 	CommandTimeout time.Duration `json:"command_timeout,omitempty" mapstructure:"command_timeout"`
 	Perms          os.FileMode   `json:"perms,string" mapstructure:"perms"`
 	Backup         bool          `json:"backup" mapstructure:"backup"`
+	LeftDelim      string        `json:"left_delimiter" mapstructure:"left_delimiter"`
+	RightDelim     string        `json:"right_delimiter" mapstructure:"right_delimiter"`
 }
 
 // VaultConfig is the configuration for connecting to a vault server.

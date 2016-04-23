@@ -242,6 +242,8 @@ func TestMerge_configTemplates(t *testing.T) {
 			command_timeout = "60s"
 			perms = 0600
 			backup = false
+			left_delimiter = "<%"
+			right_delimiter = "%>"
 		}
 	`, t)
 	config.Merge(testConfig(`
@@ -263,6 +265,8 @@ func TestMerge_configTemplates(t *testing.T) {
 			CommandTimeout: 60 * time.Second,
 			Perms:          0600,
 			Backup:         false,
+			LeftDelim:      "<%",
+			RightDelim:     "%>",
 		},
 		&ConfigTemplate{
 			Source:         "2",

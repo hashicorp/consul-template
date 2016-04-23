@@ -12,7 +12,7 @@ import (
 )
 
 func TestNewTemplate_missingPath(t *testing.T) {
-	_, err := NewTemplate("/path/to/non-existent/file")
+	_, err := NewTemplate("/path/to/non-existent/file", "", "")
 	if err == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
@@ -29,7 +29,7 @@ func TestNewTemplate_setsPathAndContents(t *testing.T) {
 	in := test.CreateTempfile(contents, t)
 	defer test.DeleteTempfile(in, t)
 
-	tmpl, err := NewTemplate(in.Name())
+	tmpl, err := NewTemplate(in.Name(), "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func TestNewTemplate_setsPathAndMD5(t *testing.T) {
 	in := test.CreateTempfile(contents, t)
 	defer test.DeleteTempfile(in, t)
 
-	tmpl, err := NewTemplate(in.Name())
+	tmpl, err := NewTemplate(in.Name(), "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestExecute_noDependencies(t *testing.T) {
 	in := test.CreateTempfile(contents, t)
 	defer test.DeleteTempfile(in, t)
 
-	tmpl, err := NewTemplate(in.Name())
+	tmpl, err := NewTemplate(in.Name(), "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +100,7 @@ func TestExecute_missingDependencies(t *testing.T) {
 	in := test.CreateTempfile(contents, t)
 	defer test.DeleteTempfile(in, t)
 
-	tmpl, err := NewTemplate(in.Name())
+	tmpl, err := NewTemplate(in.Name(), "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +129,7 @@ func TestExecte_badFuncs(t *testing.T) {
 	in := test.CreateTempfile([]byte(`{{ tickle_me_pink }}`), t)
 	defer test.DeleteTempfile(in, t)
 
-	tmpl, err := NewTemplate(in.Name())
+	tmpl, err := NewTemplate(in.Name(), "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -166,7 +166,7 @@ func TestExecute_funcs(t *testing.T) {
   `), t)
 	defer test.DeleteTempfile(in, t)
 
-	tmpl, err := NewTemplate(in.Name())
+	tmpl, err := NewTemplate(in.Name(), "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,7 +194,33 @@ func TestExecute_duplicateFuncs(t *testing.T) {
   `), t)
 	defer test.DeleteTempfile(in, t)
 
-	tmpl, err := NewTemplate(in.Name())
+	tmpl, err := NewTemplate(in.Name(), "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	brain := NewBrain()
+	used, missing, _, err := tmpl.Execute(brain)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if num := len(missing); num != 1 {
+		t.Fatalf("expected 1 missing, got: %d", num)
+	}
+
+	if num := len(used); num != 1 {
+		t.Fatalf("expected 1 used, got: %d", num)
+	}
+}
+
+func TestExecute_delims(t *testing.T) {
+	in := test.CreateTempfile([]byte(`
+		redis: <%= key "server/redis/maxconns" %>
+	`), t)
+	defer test.DeleteTempfile(in, t)
+
+	tmpl, err := NewTemplate(in.Name(), "<%=", "%>")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -310,7 +336,7 @@ func TestExecute_renders(t *testing.T) {
 `), t)
 	defer test.DeleteTempfile(in, t)
 
-	tmpl, err := NewTemplate(in.Name())
+	tmpl, err := NewTemplate(in.Name(), "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -606,7 +632,7 @@ func TestExecute_multipass(t *testing.T) {
 	`), t)
 	defer test.DeleteTempfile(in, t)
 
-	tmpl, err := NewTemplate(in.Name())
+	tmpl, err := NewTemplate(in.Name(), "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
