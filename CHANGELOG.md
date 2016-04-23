@@ -16,6 +16,7 @@ BUG FIXES:
   * Use decimal division for calculating Vault lease durations [87d61d9]
   * Load VAULT_TOKEN environment variable [2431448]
   * Properly clean up quiescence timers when using multiple templates [GH-616]
+ * Print a nice error if K/V cannot be exploded [GH-617, GH-596]
 
 ## v0.14.0 (March 7, 2016)
 
