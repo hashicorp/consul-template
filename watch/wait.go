@@ -60,7 +60,7 @@ func ParseWait(s string) (*Wait, error) {
 }
 
 // IsActive returns true if this wait is active (non-zero).
-func (w Wait) IsActive() bool {
+func (w *Wait) IsActive() bool {
 	return w.Min != 0 && w.Max != 0
 }
 
