@@ -484,10 +484,94 @@ func TestRun_multipleTemplatesRunsCommands(t *testing.T) {
 	}
 }
 
+func TestRunner_quiescence(t *testing.T) {
+	template := &Template{}
+
+	// Basic min case.
+	{
+		ch := make(chan *Template, 1)
+		q := newQuiescence(ch,
+			50*time.Millisecond, 250*time.Millisecond, template)
+
+		// Should not fire until we tick() it.
+		select {
+		case <-ch:
+			t.Fatalf("q should not have fired")
+
+		case <-time.After(2 * q.max):
+		}
+
+		// Tick it once and make sure it fires after the min time.
+		start := time.Now()
+		q.tick()
+		select {
+		case <-ch:
+			dur := time.Now().Sub(start)
+			if dur < q.min || dur > 2*q.min {
+				t.Fatalf("bad duration %9.6f", dur.Seconds())
+			}
+
+		case <-time.After(2 * q.min):
+			t.Fatalf("q should have fired")
+		}
+	}
+
+	// Single snooze case.
+	{
+		ch := make(chan *Template, 1)
+		q := newQuiescence(ch,
+			50*time.Millisecond, 250*time.Millisecond, template)
+
+		// Tick once with a small delay to simulate an update coming
+		// in.
+		q.tick()
+		time.Sleep(q.min / 2)
+
+		// Tick again to make sure it waits the full min amount.
+		start := time.Now()
+		q.tick()
+		select {
+		case <-ch:
+			dur := time.Now().Sub(start)
+			if dur < q.min || dur > 2*q.min {
+				t.Fatalf("bad duration %9.6f", dur.Seconds())
+			}
+
+		case <-time.After(2 * q.min):
+			t.Fatalf("q should have fired")
+		}
+	}
+
+	// Max time case.
+	{
+		ch := make(chan *Template, 1)
+		q := newQuiescence(ch,
+			50*time.Millisecond, 250*time.Millisecond, template)
+
+		// Keep ticking to service the min timer and make sure we get
+		// cut off at the max time.
+		fired := false
+		start := time.Now()
+		for !fired && time.Now().Sub(start) < 2*q.max {
+			q.tick()
+			time.Sleep(q.min / 2)
+			select {
+			case <-ch:
+				fired = true
+			default:
+			}
+		}
+
+		if !fired {
+			t.Fatalf("q should have fired")
+		}
+	}
+}
+
 // Warning: this is a super fragile and time-dependent test. If it's failing,
 // check the demo Consul cluster and your own sanity before you assume your
 // code broke something...
-func TestRunner_quiescence(t *testing.T) {
+func TestRunner_quiescenceIntegrated(t *testing.T) {
 	consul := testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
 		c.Stdout = ioutil.Discard
 		c.Stderr = ioutil.Discard
