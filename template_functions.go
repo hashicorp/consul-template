@@ -445,13 +445,15 @@ func env(s string) (string, error) {
 func explode(pairs []*dep.KeyPair) (map[string]interface{}, error) {
 	m := make(map[string]interface{})
 	for _, pair := range pairs {
-		explodeHelper(m, pair.Key, pair.Value)
+		if err := explodeHelper(m, pair.Key, pair.Value, pair.Key); err != nil {
+			return nil, err
+		}
 	}
 	return m, nil
 }
 
 // explodeHelper is a recursive helper for explode.
-func explodeHelper(m map[string]interface{}, k, v string) {
+func explodeHelper(m map[string]interface{}, k, v, p string) error {
 	if strings.Contains(k, "/") {
 		parts := strings.Split(k, "/")
 		top := parts[0]
@@ -460,12 +462,18 @@ func explodeHelper(m map[string]interface{}, k, v string) {
 		if _, ok := m[top]; !ok {
 			m[top] = make(map[string]interface{})
 		}
-		explodeHelper(m[top].(map[string]interface{}), key, v)
+		nest, ok := m[top].(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("not a map: %q", p)
+		}
+		return explodeHelper(nest, key, v, k)
 	} else {
 		if k != "" {
 			m[k] = v
 		}
 	}
+
+	return nil
 }
 
 // in seaches for a given value in a given interface.
