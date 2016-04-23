@@ -82,7 +82,7 @@ func TestDedup_IsLeader(t *testing.T) {
     {{ range service "consul" }}{{.Node}}{{ end }}
   `), t)
 	defer test.DeleteTempfile(in, t)
-	tmpl, err := NewTemplate(in.Name())
+	tmpl, err := NewTemplate(in.Name(), "", "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -117,7 +117,7 @@ func TestDedup_UpdateDeps(t *testing.T) {
     {{ range service "consul" }}{{.Node}}{{ end }}
   `), t)
 	defer test.DeleteTempfile(in, t)
-	tmpl, err := NewTemplate(in.Name())
+	tmpl, err := NewTemplate(in.Name(), "", "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -162,7 +162,7 @@ func TestDedup_FollowerUpdate(t *testing.T) {
     {{ range service "consul" }}{{.Node}}{{ end }}
   `), t)
 	defer test.DeleteTempfile(in, t)
-	tmpl, err := NewTemplate(in.Name())
+	tmpl, err := NewTemplate(in.Name(), "", "")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

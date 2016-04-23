@@ -285,6 +285,12 @@ template {
   // useful for preventing accidental changes to the data without having a
   // rollback strategy.
   backup = true
+
+  // These are the delimiters to use in the template. The default is "{{" and
+  // "}}", but for some templates, it may be easier to use a different delimiter
+  // that does not conflict with the output file itself.
+  left_delimiter  = "{{"
+  right_delimiter = "}}"
 }
 ```
 

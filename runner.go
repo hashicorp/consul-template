@@ -473,7 +473,7 @@ func (r *Runner) init() error {
 	// config templates is kept so templates can lookup their commands and output
 	// destinations.
 	for _, ctmpl := range r.config.ConfigTemplates {
-		tmpl, err := NewTemplate(ctmpl.Source)
+		tmpl, err := NewTemplate(ctmpl.Source, ctmpl.LeftDelim, ctmpl.RightDelim)
 		if err != nil {
 			return err
 		}

@@ -16,6 +16,9 @@ type Template struct {
 	// Path is the path to this template on disk.
 	Path string
 
+	// LeftDelim and RightDelim are the left and right delimiters to use.
+	LeftDelim, RightDelim string
+
 	// contents is string contents for this file when read from disk.
 	contents string
 
@@ -27,8 +30,12 @@ type Template struct {
 // path. If the template does not exist, an error is returned. During
 // initialization, the template is read and is parsed for dependencies. Any
 // errors that occur are returned.
-func NewTemplate(path string) (*Template, error) {
-	template := &Template{Path: path}
+func NewTemplate(path, leftDelim, rightDelim string) (*Template, error) {
+	template := &Template{
+		Path:       path,
+		LeftDelim:  leftDelim,
+		RightDelim: rightDelim,
+	}
 	if err := template.init(); err != nil {
 		return nil, err
 	}
@@ -48,7 +55,10 @@ func (t *Template) Execute(brain *Brain) ([]dep.Dependency, []dep.Dependency, []
 	name := filepath.Base(t.Path)
 	funcs := funcMap(brain, usedMap, missingMap)
 
-	tmpl, err := template.New(name).Funcs(funcs).Parse(t.contents)
+	tmpl, err := template.New(name).
+		Delims(t.LeftDelim, t.RightDelim).
+		Funcs(funcs).
+		Parse(t.contents)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("template: %s", err)
 	}
