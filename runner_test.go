@@ -579,23 +579,33 @@ func TestRunner_quiescenceIntegrated(t *testing.T) {
 	})
 	defer consul.Stop()
 
-	in := test.CreateTempfile([]byte(`
+	in, out := make([]*os.File, 2), make([]*os.File, 2)
+	for i := 0; i < 2; i++ {
+		in[i] = test.CreateTempfile([]byte(`
     {{ range service "consul" "any" }}{{.Node}}{{ end }}
   `), t)
-	defer test.DeleteTempfile(in, t)
+		defer test.DeleteTempfile(in[i], t)
 
-	out := test.CreateTempfile(nil, t)
-	test.DeleteTempfile(out, t)
+		out[i] = test.CreateTempfile(nil, t)
+		test.DeleteTempfile(out[i], t)
+	}
 
 	config := testConfig(fmt.Sprintf(`
 		consul = "%s"
-		wait = "50ms:200ms"
+		wait = "100ms:200ms"
 
 		template {
 			source = "%s"
 			destination = "%s"
 		}
-	`, consul.HTTPAddr, in.Name(), out.Name()), t)
+
+		template {
+			source = "%s"
+			destination = "%s"
+                        wait = "300ms:400ms"
+		}
+	`, consul.HTTPAddr, in[0].Name(), out[0].Name(),
+		in[1].Name(), out[1].Name()), t)
 
 	runner, err := NewRunner(config, false, false, &sync.RWMutex{})
 	if err != nil {
@@ -605,21 +615,56 @@ func TestRunner_quiescenceIntegrated(t *testing.T) {
 	go runner.Start()
 	defer runner.Stop()
 
-	min := time.After(10 * time.Millisecond)
-	max := time.After(500 * time.Millisecond)
+	// Watch for the appearance of the first template, which needs to at
+	// least take 100 ms. We don't have enough certainty with Consul's
+	// interactions with us to put tighter bounds.
+	start := time.Now()
 	for {
-		select {
-		case <-min:
-			if _, err = os.Stat(out.Name()); !os.IsNotExist(err) {
-				t.Errorf("expected quiescence timer to not fire for yet")
+		dur := time.Now().Sub(start)
+
+		_, err = os.Stat(out[0].Name())
+		if !os.IsNotExist(err) {
+			if dur < 100*time.Millisecond {
+				t.Fatalf("template appeared too quickly, %9.6f", dur.Seconds())
 			}
-			continue
-		case <-max:
-			if _, err = os.Stat(out.Name()); os.IsNotExist(err) {
-				t.Errorf("expected template to be rendered by now")
-			}
-			return
+			break
 		}
+
+		if dur > 500*time.Millisecond {
+			t.Fatalf("template should have appeared")
+		}
+
+		time.Sleep(1 * time.Millisecond)
+	}
+
+	// Now we know that the previous template just got rendered, so there
+	// should have been tick() call on the second template. This is a clean
+	// time base to check from and we can use tighter bounds here.
+	start = time.Now()
+	checks := []struct {
+		eventCh   <-chan time.Time
+		fileExist bool
+	}{
+		{time.After(1 * time.Millisecond), false},
+		{time.After(250 * time.Millisecond), false},
+		{time.After(350 * time.Millisecond), true},
+	}
+	for {
+		for idx, check := range checks {
+			select {
+			case <-check.eventCh:
+				_, err = os.Stat(out[1].Name())
+				if os.IsNotExist(err) == check.fileExist {
+					t.Errorf("check %d failed", idx)
+				}
+				if idx == len(checks)-1 {
+					return
+				}
+			default:
+			}
+		}
+
+		time.Sleep(1 * time.Millisecond)
 	}
 }
 

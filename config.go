@@ -433,6 +433,8 @@ func ParseConfig(path string) (*Config, error) {
 			t.CommandTimeout = defaultCommandTimeout
 		}
 
+		// Set up a default zero wait, which disables it for this
+		// template.
 		if t.Wait == nil {
 			t.Wait = &watch.Wait{}
 		}
