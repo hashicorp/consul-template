@@ -11,10 +11,11 @@ BUG FIXES:
 
   * Close open connections when reloading configuration [GH-591, GH-595]
   * Do not share catalog nodes [GH-611, GH-572, GH-603]
-  * Properly handle empty string in ParseUint [GH-610, Gh-609]
+  * Properly handle empty string in ParseUint [GH-610, GH-609]
   * Cache Vault's _original_ lease duration [5b955a8]
   * Use decimal division for calculating Vault lease durations [87d61d9]
   * Load VAULT_TOKEN environment variable [2431448]
+  * Properly clean up quiescence timers when using multiple templates [GH-616]
 
 ## v0.14.0 (March 7, 2016)
 
