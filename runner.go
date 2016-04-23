@@ -204,14 +204,17 @@ func (r *Runner) Start() {
 				r.ErrCh <- err
 				return
 			}
+
 		case tmpl := <-r.quiescenceCh:
 			// Remove the quiescence for this template from the map. This will force
 			// the upcoming Run call to actually evaluate and render the template.
 			log.Printf("[INFO] (runner) received template %q from quiescence", tmpl.Path)
 			delete(r.quiescenceMap, tmpl.Path)
+
 		case <-r.watcher.FinishCh:
 			log.Printf("[INFO] (runner) watcher reported finish")
 			return
+
 		case <-r.DoneCh:
 			log.Printf("[INFO] (runner) received finish")
 			return
@@ -743,13 +746,12 @@ func (r *Runner) deletePid() error {
 // quiescence is an internal representation of a single template's quiescence
 // state.
 type quiescence struct {
-	sync.Mutex
-
-	template           *Template
-	min                time.Duration
-	minTimer, maxTimer <-chan time.Time
-	ch                 chan *Template
-	stopCh             chan struct{}
+	template *Template
+	min      time.Duration
+	max      time.Duration
+	ch       chan *Template
+	timer    *time.Timer
+	deadline time.Time
 }
 
 // newQuiescence creates a new quiescence timer for the given template.
@@ -757,41 +759,40 @@ func newQuiescence(ch chan *Template, min, max time.Duration, t *Template) *quie
 	return &quiescence{
 		template: t,
 		min:      min,
-		minTimer: time.After(min),
-		maxTimer: time.After(max),
+		max:      max,
 		ch:       ch,
-		stopCh:   make(chan struct{}),
-	}
-}
-
-// start begins the quiescence timer for this quiescence.
-func (q *quiescence) start() {
-	select {
-	case <-q.minTimer:
-		log.Printf("[INFO] (runner) quiescence minTimer fired for %s", q.template.Path)
-		q.minTimer, q.maxTimer = nil, nil
-		q.ch <- q.template
-	case <-q.maxTimer:
-		log.Printf("[INFO] (runner) quiescence maxTimer fired for %s", q.template.Path)
-		q.minTimer, q.maxTimer = nil, nil
-		q.ch <- q.template
-	case <-q.stopCh:
-		return
 	}
 }
 
 // tick updates the minimum quiescence timer.
 func (q *quiescence) tick() {
-	q.Lock()
-	defer q.Unlock()
+	now := time.Now()
 
-	// Stop an existing poll so we can reset the minTimer and restart.
-	close(q.stopCh)
-	q.stopCh = make(chan struct{})
+	// If this is the first tick, set up the timer and calculate the max
+	// deadline.
+	if q.timer == nil {
+		q.timer = time.NewTimer(q.min)
+		go func() {
+			select {
+			case <-q.timer.C:
+				q.ch <- q.template
+			}
+		}()
 
-	// Update the timer value and start a new poller
-	q.minTimer = time.After(q.min)
-	go q.start()
+		q.deadline = now.Add(q.max)
+		return
+	}
+
+	// Snooze the timer for the min time, or snooze less if we are coming
+	// up against the max time. If the timer has already fired and the reset
+	// doesn't work that's ok because we guarantee that the channel gets our
+	// template which means that we are obsolete and a fresh quiescence will
+	// be set up.
+	if now.Add(q.min).Before(q.deadline) {
+		q.timer.Reset(q.min)
+	} else if dur := q.deadline.Sub(now); dur > 0 {
+		q.timer.Reset(dur)
+	}
 }
 
 // atomicWrite accepts a destination path and the template contents. It writes
