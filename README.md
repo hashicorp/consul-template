@@ -45,7 +45,7 @@ Usage
 | `template`*       | The input template, output path, and optional command separated by a colon (`:`). This option is additive and may be specified multiple times for multiple templates.
 | `token`           | The [Consul API token][Consul ACLs]. There is no default value.
 | `version`         | Output version information and quit. _(CLI-only)_
-| `wait`            | The `minimum(:maximum)` to wait before rendering a new template to disk and triggering a command, separated by a colon (`:`). If the optional maximum value is omitted, it is assumed to be 4x the required minimum value. This is a numeric time with a unit suffix ("5s"). There is no default value.
+| `wait`            | The `minimum(:maximum)` to wait before rendering a new template to disk and triggering a command, separated by a colon (`:`). If the optional maximum value is omitted, it is assumed to be 4x the required minimum value. This is a numeric time with a unit suffix ("5s"). There is no default value. Note that templates may override this setting with a template-specific wait using configuration files; this is described below.
 
 \* = Required parameter
 
@@ -291,6 +291,14 @@ template {
   // that does not conflict with the output file itself.
   left_delimiter  = "{{"
   right_delimiter = "}}"
+
+  // This is the `minimum(:maximum)` to wait before rendering a new template to
+  // disk and triggering a command, separated by a colon (`:`). If the optional
+  // maximum value is omitted, it is assumed to be 4x the required minimum value.
+  // This is a numeric time with a unit suffix ("5s"). There is no default value.
+  // The wait value for a template takes precedence over any globally-configured
+  // wait.
+  wait = "2s:6s"
 }
 ```
 

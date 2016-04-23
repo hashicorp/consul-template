@@ -79,6 +79,10 @@ func TestParse_singleWait(t *testing.T) {
 	if wait.Max != expectedMax {
 		t.Errorf("expected %q to equal %q", wait.Max, expectedMax)
 	}
+
+	if !wait.IsActive() {
+		t.Errorf("should be active")
+	}
 }
 
 // Test that a multiple wait value is correctly used
@@ -96,6 +100,10 @@ func TestParse_multipleWait(t *testing.T) {
 	expectedMax := time.Duration(20) * time.Second
 	if wait.Max != expectedMax {
 		t.Errorf("expected %q to equal %q", wait.Max, expectedMax)
+	}
+
+	if !wait.IsActive() {
+		t.Errorf("should be active")
 	}
 }
 
@@ -138,5 +146,13 @@ func TestParse_maxLargerThanMin(t *testing.T) {
 	expectedErr := "max must be larger than min"
 	if !strings.Contains(err.Error(), expectedErr) {
 		t.Fatalf("expected error %q to contain %q", err.Error(), expectedErr)
+	}
+}
+
+// Test that a zero-valued wait is not active
+func TestWait_IsActive(t *testing.T) {
+	var wait Wait
+	if wait.IsActive() {
+		t.Fatalf("should not be active")
 	}
 }

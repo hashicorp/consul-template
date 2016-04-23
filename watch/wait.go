@@ -59,6 +59,11 @@ func ParseWait(s string) (*Wait, error) {
 	return &Wait{min, max}, nil
 }
 
+// IsActive returns true if this wait is active (non-zero).
+func (w *Wait) IsActive() bool {
+	return w.Min != 0 && w.Max != 0
+}
+
 // WaitVar implements the Flag.Value interface and allows the user to specify
 // a watch interval using Go's flag parsing library.
 type WaitVar Wait
