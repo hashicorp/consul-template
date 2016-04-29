@@ -178,7 +178,7 @@ func (r *Runner) Start() {
 		select {
 		case data := <-r.watcher.DataCh:
 			// Receive this update
-			r.Receive(data.Dependency, data.Data)
+			r.Receive(data.Dependency, data.GetData())
 
 			// Drain all dependency data. Given a large number of dependencies, it is
 			// feasible that we have data for more than one of them. Instead of
@@ -192,7 +192,7 @@ func (r *Runner) Start() {
 			for {
 				select {
 				case data := <-r.watcher.DataCh:
-					r.Receive(data.Dependency, data.Data)
+					r.Receive(data.Dependency, data.GetData())
 				default:
 					break OUTER
 				}
