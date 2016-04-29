@@ -54,17 +54,17 @@ func NewView(config *WatcherConfig, d dep.Dependency) (*View, error) {
 	}, nil
 }
 
-// GetData returns the most-recently-received data from Consul for this View.
-func (v *View) GetData() interface{} {
+// Data returns the most-recently-received data from Consul for this View.
+func (v *View) Data() interface{} {
 	v.dataLock.RLock()
 	defer v.dataLock.RUnlock()
 	return v.data
 }
 
-// GetDataAndLastIndex returns the most-recently-received data from Consul for
+// DataAndLastIndex returns the most-recently-received data from Consul for
 // this view, along with the last index. This is atomic so you will get the
 // index that goes with the data you are fetching.
-func (v *View) GetDataAndLastIndex() (interface{}, uint64) {
+func (v *View) DataAndLastIndex() (interface{}, uint64) {
 	v.dataLock.RLock()
 	defer v.dataLock.RUnlock()
 	return v.data, v.lastIndex
