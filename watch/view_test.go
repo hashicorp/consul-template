@@ -201,8 +201,8 @@ func TestFetch_maxStale(t *testing.T) {
 	select {
 	case <-doneCh:
 		expected := "this is some fresh data"
-		if !reflect.DeepEqual(view.Data, expected) {
-			t.Errorf("expected %q to be %q", view.Data, expected)
+		if !reflect.DeepEqual(view.Data(), expected) {
+			t.Errorf("expected %q to be %q", view.Data(), expected)
 		}
 	case err := <-errCh:
 		t.Errorf("error while fetching: %s", err)
@@ -223,8 +223,8 @@ func TestFetch_savesView(t *testing.T) {
 	select {
 	case <-doneCh:
 		expected := "this is some data"
-		if !reflect.DeepEqual(view.Data, expected) {
-			t.Errorf("expected %q to be %q", view.Data, expected)
+		if !reflect.DeepEqual(view.Data(), expected) {
+			t.Errorf("expected %q to be %q", view.Data(), expected)
 		}
 	case err := <-errCh:
 		t.Errorf("error while fetching: %s", err)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"sync"
 	"time"
 
 	dep "github.com/hashicorp/consul-template/dependency"
@@ -26,9 +27,10 @@ type View struct {
 	config *WatcherConfig
 
 	// Data is the most-recently-received data from Consul for this View
-	Data         interface{}
-	ReceivedData bool
-	LastIndex    uint64
+	dataLock     sync.RWMutex
+	data         interface{}
+	receivedData bool
+	lastIndex    uint64
 
 	// stopCh is used to stop polling on this View
 	stopCh chan struct{}
@@ -50,6 +52,22 @@ func NewView(config *WatcherConfig, d dep.Dependency) (*View, error) {
 		config:     config,
 		stopCh:     make(chan struct{}),
 	}, nil
+}
+
+// Data returns the most-recently-received data from Consul for this View.
+func (v *View) Data() interface{} {
+	v.dataLock.RLock()
+	defer v.dataLock.RUnlock()
+	return v.data
+}
+
+// DataAndLastIndex returns the most-recently-received data from Consul for
+// this view, along with the last index. This is atomic so you will get the
+// index that goes with the data you are fetching.
+func (v *View) DataAndLastIndex() (interface{}, uint64) {
+	v.dataLock.RLock()
+	defer v.dataLock.RUnlock()
+	return v.data, v.lastIndex
 }
 
 // poll queries the Consul instance for data using the fetch function, but also
@@ -129,7 +147,7 @@ func (v *View) fetch(doneCh chan<- struct{}, errCh chan<- error) {
 		opts := &dep.QueryOptions{
 			AllowStale: allowStale,
 			WaitTime:   defaultWaitTime,
-			WaitIndex:  v.LastIndex,
+			WaitIndex:  v.lastIndex,
 		}
 		data, rm, err := v.Dependency.Fetch(v.config.Clients, opts)
 		if err != nil {
@@ -160,26 +178,29 @@ func (v *View) fetch(doneCh chan<- struct{}, errCh chan<- error) {
 			allowStale = true
 		}
 
-		if rm.LastIndex == v.LastIndex {
+		if rm.LastIndex == v.lastIndex {
 			log.Printf("[DEBUG] (view) %s no new data (index was the same)", v.display())
 			continue
 		}
 
-		if rm.LastIndex < v.LastIndex {
+		v.dataLock.Lock()
+		if rm.LastIndex < v.lastIndex {
 			log.Printf("[DEBUG] (view) %s had a lower index, resetting", v.display())
-			v.LastIndex = 0
+			v.lastIndex = 0
+			v.dataLock.Unlock()
 			continue
 		}
+		v.lastIndex = rm.LastIndex
 
-		v.LastIndex = rm.LastIndex
-
-		if v.ReceivedData && reflect.DeepEqual(data, v.Data) {
+		if v.receivedData && reflect.DeepEqual(data, v.data) {
 			log.Printf("[DEBUG] (view) %s no new data (contents were the same)", v.display())
+			v.dataLock.Unlock()
 			continue
 		}
+		v.data = data
+		v.receivedData = true
+		v.dataLock.Unlock()
 
-		v.Data = data
-		v.ReceivedData = true
 		close(doneCh)
 		return
 	}
