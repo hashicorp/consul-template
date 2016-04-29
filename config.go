@@ -221,6 +221,10 @@ func (c *Config) Merge(config *Config) {
 				c.Vault.SSL.Cert = config.Vault.SSL.Cert
 				c.Vault.SSL.Enabled = true
 			}
+			if config.WasSet("vault.ssl.key") {
+				c.Vault.SSL.Key = config.Vault.SSL.Key
+				c.Vault.SSL.Enabled = true
+			}
 			if config.WasSet("vault.ssl.ca_cert") {
 				c.Vault.SSL.CaCert = config.Vault.SSL.CaCert
 				c.Vault.SSL.Enabled = true
