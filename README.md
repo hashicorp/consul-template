@@ -317,7 +317,7 @@ template {
 }
 ```
 
-If a directory is given instead of a file, all files in the directory (recursively) will be merged in [lexical order](http://golang.org/pkg/path/filepath/#Walk). So if multiple files declare a "consul" key for instance, the last one will be used.
+If a directory is given instead of a file, all files in the directory (recursively) will be merged in [lexical order](http://golang.org/pkg/path/filepath/#Walk). So if multiple files declare a "consul" key for instance, the last one will be used. Please note that symbolic links [are not followed](https://github.com/golang/go/issues/4759).
 
 **Commands specified on the command line take precedence over those defined in a config file!**
 
