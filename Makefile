@@ -2,8 +2,7 @@ TEST?=./...
 NAME?=$(shell basename "${CURDIR}")
 VERSION = $(shell awk -F\" '/^const Version/ { print $$2; exit }' main.go)
 EXTERNAL_TOOLS=\
-	github.com/mitchellh/gox\
-	github.com/tools/godep
+	github.com/mitchellh/gox
 
 default: test
 
@@ -35,15 +34,7 @@ testrace: generate
 
 # updatedeps installs all the dependencies needed to run and build.
 updatedeps:
-	@echo "==> Updating dependencies..."
-	@echo "    Cleaning previous dependencies..."
-	@rm -rf Godeps/ vendor/
-	@echo "    Updating to newest dependencies..."
-	@go list ./... \
-		| xargs go list -f '{{ join .Deps "\n" }}{{ printf "\n" }}{{ join .TestImports "\n" }}' \
-		| xargs go get -f -u -t
-	@echo "    Saving dependencies..."
-	@godep save ./...
+	@sh -c "'${CURDIR}/scripts/deps.sh' '${NAME}'"
 
 # generate runs `go generate` to build the dynamically generated source files.
 generate:
@@ -57,7 +48,7 @@ generate:
 bootstrap:
 	@echo "==> Bootstrapping..."
 	@for t in ${EXTERNAL_TOOLS}; do \
-		echo "    Installing "$$t"..." ; \
+		echo "--> Installing "$$t"..." ; \
 		go get -u "$$t"; \
 	done
 

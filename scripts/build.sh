@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # This script builds the application from source for multiple platforms.
 set -e
@@ -13,7 +13,7 @@ fi
 # Get the parent directory of where this script is.
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ] ; do SOURCE="$(readlink "$SOURCE")"; done
-DIR="$( cd -P "$( dirname "$SOURCE" )/.." && pwd )"
+DIR="$(cd -P "$(dirname "$SOURCE")/.." && pwd)"
 
 # Change into that directory
 cd "$DIR"
