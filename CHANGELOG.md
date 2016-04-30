@@ -7,6 +7,7 @@ IMPROVEMENTS:
 
   * Allow specifying per-template delimiters [GH-615, GH-389]
   * Allow specifying per-template wait parameters [GH-589, GH-618]
+  * Switch to actually vendoring dependencies
 
 BUG FIXES:
 
@@ -17,7 +18,8 @@ BUG FIXES:
   * Use decimal division for calculating Vault lease durations [87d61d9]
   * Load VAULT_TOKEN environment variable [2431448]
   * Properly clean up quiescence timers when using multiple templates [GH-616]
- * Print a nice error if K/V cannot be exploded [GH-617, GH-596]
+  * Print a nice error if K/V cannot be exploded [GH-617, GH-596]
+  * Update documentation about symlinks [GH-579]
 
 ## v0.14.0 (March 7, 2016)
 
