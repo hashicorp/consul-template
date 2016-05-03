@@ -20,6 +20,7 @@ BUG FIXES:
   * Properly clean up quiescence timers when using multiple templates [GH-616]
   * Print a nice error if K/V cannot be exploded [GH-617, GH-596]
   * Update documentation about symlinks [GH-579]
+  * Properly parse file permissions in mapstructure [GH-626]
 
 ## v0.14.0 (March 7, 2016)
 
