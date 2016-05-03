@@ -56,15 +56,8 @@ func (d *VaultSecrets) Fetch(clients *ClientSet, opts *QueryOptions) (interface{
 		return nil, nil, fmt.Errorf("error listing secrets from vault: %s", err)
 	}
 
-	// The secret could be nil (maybe it does not exist yet). This is not an error
-	// to Vault, but it is an error to Consul Template, so return an error
-	// instead.
-	if vaultSecret == nil {
-		return nil, nil, fmt.Errorf("no secrets exist at path %q", d.Display())
-	}
-
-	// If the data is nil, return an empty list of strings.
-	if vaultSecret.Data == nil {
+	// If the secret or data data is nil, return an empty list of strings.
+	if vaultSecret == nil || vaultSecret.Data == nil {
 		return respWithMetadata(make([]string, 0))
 	}
 
