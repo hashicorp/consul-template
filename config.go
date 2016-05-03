@@ -405,6 +405,7 @@ func ParseConfig(path string) (*Config, error) {
 	metadata := new(mapstructure.Metadata)
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			StringToFileMode(),
 			watch.StringToWaitDurationHookFunc(),
 			mapstructure.StringToSliceHookFunc(","),
 			mapstructure.StringToTimeDurationHookFunc(),
@@ -650,7 +651,7 @@ type ConfigTemplate struct {
 	Destination    string        `json:"destination" mapstructure:"destination"`
 	Command        string        `json:"command,omitempty" mapstructure:"command"`
 	CommandTimeout time.Duration `json:"command_timeout,omitempty" mapstructure:"command_timeout"`
-	Perms          os.FileMode   `json:"perms,string" mapstructure:"perms"`
+	Perms          os.FileMode   `json:"perms" mapstructure:"perms"`
 	Backup         bool          `json:"backup" mapstructure:"backup"`
 	LeftDelim      string        `json:"left_delimiter" mapstructure:"left_delimiter"`
 	RightDelim     string        `json:"right_delimiter" mapstructure:"right_delimiter"`
