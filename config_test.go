@@ -331,6 +331,52 @@ func TestMerge_reap(t *testing.T) {
 	}
 }
 
+// There is a custom mapstructure function that tests this as well, so this is
+// more of an integration test to ensure we are parsing permissions correctly.
+func TestParseConfig_jsonFilePerms(t *testing.T) {
+	config := testConfig(`
+		{
+			"template": {
+				"perms": "0600"
+			}
+		}
+	`, t)
+
+	if len(config.ConfigTemplates) != 1 {
+		t.Fatalf("expected %d to be %d", len(config.ConfigTemplates), 1)
+	}
+
+	tpl := config.ConfigTemplates[0]
+	expected := os.FileMode(0600)
+	if tpl.Perms != expected {
+		t.Errorf("expected %q to to be %q", tpl.Perms, expected)
+	}
+}
+
+func TestParseConfig_hclFilePerms(t *testing.T) {
+	config := testConfig(`
+		template {
+			perms = 0600
+		}
+
+		template {
+			perms = "0600"
+		}
+	`, t)
+
+	if len(config.ConfigTemplates) != 2 {
+		t.Fatalf("expected %d to be %d", len(config.ConfigTemplates), 1)
+	}
+
+	expected := os.FileMode(0600)
+
+	for i, tpl := range config.ConfigTemplates {
+		if tpl.Perms != expected {
+			t.Errorf("case %d: expected %q to be %q", i, tpl.Perms, expected)
+		}
+	}
+}
+
 func TestParseConfig_readFileError(t *testing.T) {
 	_, err := ParseConfig(path.Join(os.TempDir(), "config.json"))
 	if err == nil {
