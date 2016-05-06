@@ -52,7 +52,7 @@ Usage
 ### Command Line
 The CLI interface supports all of the options detailed above.
 
-Query the nyc3 demo Consul instance, rendering the template on disk at `/tmp/template.ctmpl` to `/tmp/result`, running Consul Template as a service until stopped:
+Query the `demo.consul.io` Consul instance, rendering the template on disk at `/tmp/template.ctmpl` to `/tmp/result`, running Consul Template as a service until stopped:
 
 ```shell
 $ consul-template \
