@@ -3,6 +3,10 @@ Consul Template Changelog
 
 ## v0.15.0.dev (Unreleased)
 
+BREAKING CHANGES:
+
+  * **Removing reaping functionality** [GH-628]
+
 IMPROVEMENTS:
 
   * Allow specifying per-template delimiters [GH-615, GH-389]
