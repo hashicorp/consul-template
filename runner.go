@@ -13,7 +13,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	dep "github.com/hashicorp/consul-template/dependency"
@@ -41,10 +40,6 @@ type Runner struct {
 	// disk. once indicates the runner should execute each template exactly one
 	// time and then stop.
 	dry, once bool
-
-	// reapLock is a mutex that turns off child process reaping during times
-	// when we are executing sub processes and waiting for results.
-	reapLock *sync.RWMutex
 
 	// outStream and errStream are the io.Writer streams where the runner will
 	// write information. These streams can be set using the SetOutStream()
@@ -84,14 +79,13 @@ type Runner struct {
 
 // NewRunner accepts a slice of ConfigTemplates and returns a pointer to the new
 // Runner and any error that occurred during creation.
-func NewRunner(config *Config, dry, once bool, reapLock *sync.RWMutex) (*Runner, error) {
+func NewRunner(config *Config, dry, once bool) (*Runner, error) {
 	log.Printf("[INFO] (runner) creating new runner (dry: %v, once: %v)", dry, once)
 
 	runner := &Runner{
-		config:   config,
-		dry:      dry,
-		once:     once,
-		reapLock: reapLock,
+		config: config,
+		dry:    dry,
+		once:   once,
 	}
 
 	if err := runner.init(); err != nil {
@@ -670,12 +664,6 @@ func (r *Runner) execute(command string, timeout time.Duration) error {
 	for k, v := range customEnv {
 		cmdEnv = append(cmdEnv, fmt.Sprintf("%s=%s", k, v))
 	}
-
-	// Disable child process reaping so that we can get this command's
-	// return value. Note that we use the read lock here because different
-	// runners will not interfere with each other, just with the reaper.
-	r.reapLock.RLock()
-	defer r.reapLock.RUnlock()
 
 	// Create and invoke the command
 	cmd := exec.Command(shell, flag, command)

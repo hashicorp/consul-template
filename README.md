@@ -34,7 +34,6 @@ Usage
 | `max-stale`       | The maximum staleness of a query. If specified, Consul will distribute work among all servers instead of just the leader. The default value is 1s.
 | `once`            | Run Consul Template once and exit (as opposed to the default behavior of daemon). _(CLI-only)_
 | `pid-file`        | The path on disk to write Consul Template's PID file.
-| `reap`            | Control automatic reaping of child processes, useful if running as PID 1 in a Docker container. By default, if Consul Template detects that it is running as PID 1 it will automatically enable child process reaping. Setting this option to false disables this behavior, and setting it to true enables child process reaping regardless of Consul Template's PID.
 | `retry`           | The amount of time to wait if Consul returns an error when communicating with the API. The default value is 5 seconds.
 | `ssl`             | Use HTTPS while talking to Consul. Requires the Consul server to be configured to serve secure connections. The default value is false.
 | `ssl-ca-cert`     | Path to a CA certificate file, containing one or more CA certificates to use to validate the certificate sent by the consul server to us. This is a handy alternative to setting ```--ssl-verify=false``` if you are using your own CA.
@@ -129,10 +128,6 @@ token = "abcd1234"
 // wait for the cluster to become available, as is customary in distributed
 // systems.
 retry = "10s"
-
-// This option tells Consul Template to reap child processes. The default value
-// is false unless Consul Template is running as PID 1.
-reap = false
 
 // This is the maximum interval to allow "stale" data. By default, only the
 // Consul leader will respond to queries; any requests to a follower will
