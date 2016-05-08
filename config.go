@@ -34,54 +34,54 @@ type Config struct {
 	// Path is the path to this configuration file on disk. This value is not
 	// read from disk by rather dynamically populated by the code so the Config
 	// has a reference to the path to the file on disk that created it.
-	Path string `json:"path" mapstructure:"-"`
+	Path string `mapstructure:"-"`
 
 	// Consul is the location of the Consul instance to query (may be an IP
 	// address or FQDN) with port.
-	Consul string `json:"consul" mapstructure:"consul"`
+	Consul string `mapstructure:"consul"`
 
 	// Token is the Consul API token.
-	Token string `json:"-" mapstructure:"token"`
+	Token string `mapstructure:"token"`
 
 	// Auth is the HTTP basic authentication for communicating with Consul.
-	Auth *AuthConfig `json:"auth" mapstructure:"auth"`
+	Auth *AuthConfig `mapstructure:"auth"`
 
 	// Vault is the configuration for connecting to a vault server.
-	Vault *VaultConfig `json:"vault" mapstructure:"vault"`
+	Vault *VaultConfig `mapstructure:"vault"`
 
 	// SSL indicates we should use a secure connection while talking to
 	// Consul. This requires Consul to be configured to serve HTTPS.
-	SSL *SSLConfig `json:"ssl" mapstructure:"ssl"`
+	SSL *SSLConfig `mapstructure:"ssl"`
 
 	// Syslog is the configuration for syslog.
-	Syslog *SyslogConfig `json:"syslog" mapstructure:"syslog"`
+	Syslog *SyslogConfig `mapstructure:"syslog"`
 
 	// MaxStale is the maximum amount of time for staleness from Consul as given
 	// by LastContact. If supplied, Consul Template will query all servers instead
 	// of just the leader.
-	MaxStale time.Duration `json:"max_stale" mapstructure:"max_stale"`
+	MaxStale time.Duration `mapstructure:"max_stale"`
 
 	// ConfigTemplates is a slice of the ConfigTemplate objects in the config.
-	ConfigTemplates []*ConfigTemplate `json:"templates" mapstructure:"template"`
+	ConfigTemplates []*ConfigTemplate `mapstructure:"template"`
 
 	// Retry is the duration of time to wait between Consul failures.
-	Retry time.Duration `json:"retry" mapstructure:"retry"`
+	Retry time.Duration `mapstructure:"retry"`
 
 	// Wait is the quiescence timers.
-	Wait *watch.Wait `json:"wait" mapstructure:"wait"`
+	Wait *watch.Wait `mapstructure:"wait"`
 
 	// PidFile is the path on disk where a PID file should be written containing
 	// this processes PID.
-	PidFile string `json:"pid_file" mapstructure:"pid_file"`
+	PidFile string `mapstructure:"pid_file"`
 
 	// LogLevel is the level with which to log for this config.
-	LogLevel string `json:"log_level" mapstructure:"log_level"`
+	LogLevel string `mapstructure:"log_level"`
 
 	// Deduplicate is used to configure the dedup settings
-	Deduplicate *DeduplicateConfig `json:"deduplicate" mapstructure:"deduplicate"`
+	Deduplicate *DeduplicateConfig `mapstructure:"deduplicate"`
 
 	// Reap is used to configure automatic reaping of child processes.
-	Reap bool `json:"reap" mapstructure:"reap"`
+	Reap bool `mapstructure:"reap"`
 
 	// setKeys is the list of config keys that were set by the user.
 	setKeys map[string]struct{}
@@ -595,9 +595,9 @@ func DefaultConfig() *Config {
 
 // AuthConfig is the HTTP basic authentication data.
 type AuthConfig struct {
-	Enabled  bool   `json:"enabled" mapstructure:"enabled"`
-	Username string `json:"username" mapstructure:"username"`
-	Password string `json:"password" mapstructure:"password"`
+	Enabled  bool   `mapstructure:"enabled"`
+	Username string `mapstructure:"username"`
+	Password string `mapstructure:"password"`
 }
 
 // String is the string representation of this authentication. If authentication
@@ -620,52 +620,52 @@ func (a *AuthConfig) String() string {
 // to reduce the cost of many instances of CT running the same template.
 type DeduplicateConfig struct {
 	// Controls if deduplication mode is enabled
-	Enabled bool `json:"enabled" mapstructure:"enabled"`
+	Enabled bool `mapstructure:"enabled"`
 
 	// Controls the KV prefix used. Defaults to defaultDedupPrefix
-	Prefix string `json:"prefix" mapstructure:"prefix"`
+	Prefix string `mapstructure:"prefix"`
 
 	// TTL is the Session TTL used for lock acquisition, defaults to 15 seconds.
-	TTL time.Duration `json:"ttl" mapstructure:"ttl"`
+	TTL time.Duration `mapstructure:"ttl"`
 }
 
 // SSLConfig is the configuration for SSL.
 type SSLConfig struct {
-	Enabled bool   `json:"enabled" mapstructure:"enabled"`
-	Verify  bool   `json:"verify" mapstructure:"verify"`
-	Cert    string `json:"cert,omitempty" mapstructure:"cert"`
-	Key     string `json:"key,omitempty" mapstructure:"key"`
-	CaCert  string `json:"ca_cert,omitempty" mapstructure:"ca_cert"`
+	Enabled bool   `mapstructure:"enabled"`
+	Verify  bool   `mapstructure:"verify"`
+	Cert    string `mapstructure:"cert"`
+	Key     string `mapstructure:"key"`
+	CaCert  string `mapstructure:"ca_cert"`
 }
 
 // SyslogConfig is the configuration for syslog.
 type SyslogConfig struct {
-	Enabled  bool   `json:"enabled" mapstructure:"enabled"`
-	Facility string `json:"facility" mapstructure:"facility"`
+	Enabled  bool   `mapstructure:"enabled"`
+	Facility string `mapstructure:"facility"`
 }
 
 // ConfigTemplate is the representation of an input template, output location,
 // and optional command to execute when rendered
 type ConfigTemplate struct {
-	Source         string        `json:"source" mapstructure:"source"`
-	Destination    string        `json:"destination" mapstructure:"destination"`
-	Command        string        `json:"command,omitempty" mapstructure:"command"`
-	CommandTimeout time.Duration `json:"command_timeout,omitempty" mapstructure:"command_timeout"`
-	Perms          os.FileMode   `json:"perms" mapstructure:"perms"`
-	Backup         bool          `json:"backup" mapstructure:"backup"`
-	LeftDelim      string        `json:"left_delimiter" mapstructure:"left_delimiter"`
-	RightDelim     string        `json:"right_delimiter" mapstructure:"right_delimiter"`
-	Wait           *watch.Wait   `json:"wait" mapstructure:"wait"`
+	Source         string        `mapstructure:"source"`
+	Destination    string        `mapstructure:"destination"`
+	Command        string        `mapstructure:"command"`
+	CommandTimeout time.Duration `mapstructure:"command_timeout"`
+	Perms          os.FileMode   `mapstructure:"perms"`
+	Backup         bool          `mapstructure:"backup"`
+	LeftDelim      string        `mapstructure:"left_delimiter"`
+	RightDelim     string        `mapstructure:"right_delimiter"`
+	Wait           *watch.Wait   `mapstructure:"wait"`
 }
 
 // VaultConfig is the configuration for connecting to a vault server.
 type VaultConfig struct {
-	Address string `json:"address,omitempty" mapstructure:"address"`
-	Token   string `json:"-" mapstructure:"token"`
-	Renew   bool   `json:"renew" mapstructure:"renew"`
+	Address string `mapstructure:"address"`
+	Token   string `mapstructure:"token"`
+	Renew   bool   `mapstructure:"renew"`
 
 	// SSL indicates we should use a secure connection while talking to Vault.
-	SSL *SSLConfig `json:"ssl" mapstructure:"ssl"`
+	SSL *SSLConfig `mapstructure:"ssl"`
 }
 
 // ParseConfigTemplate parses a string into a ConfigTemplate struct
