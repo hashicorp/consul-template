@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -40,7 +39,7 @@ func TestNewRunner_initialize(t *testing.T) {
 		},
 	})
 
-	runner, err := NewRunner(config, dry, once, &sync.RWMutex{})
+	runner, err := NewRunner(config, dry, once)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,13 +103,13 @@ func TestNewRunner_badTemplate(t *testing.T) {
 		},
 	})
 
-	if _, err := NewRunner(config, false, false, &sync.RWMutex{}); err == nil {
+	if _, err := NewRunner(config, false, false); err == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
 }
 
 func TestReceive_addsToBrain(t *testing.T) {
-	runner, err := NewRunner(DefaultConfig(), false, false, &sync.RWMutex{})
+	runner, err := NewRunner(DefaultConfig(), false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,7 +132,7 @@ func TestReceive_addsToBrain(t *testing.T) {
 }
 
 func TestReceive_storesBrain(t *testing.T) {
-	runner, err := NewRunner(DefaultConfig(), false, false, &sync.RWMutex{})
+	runner, err := NewRunner(DefaultConfig(), false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +147,7 @@ func TestReceive_storesBrain(t *testing.T) {
 }
 
 func TestReceive_doesNotStoreIfNotWatching(t *testing.T) {
-	runner, err := NewRunner(DefaultConfig(), false, false, &sync.RWMutex{})
+	runner, err := NewRunner(DefaultConfig(), false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,7 +173,7 @@ func TestRun_noopIfMissingData(t *testing.T) {
 		},
 	})
 
-	runner, err := NewRunner(config, false, false, &sync.RWMutex{})
+	runner, err := NewRunner(config, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -207,7 +206,7 @@ func TestRun_dry(t *testing.T) {
 		},
 	})
 
-	runner, err := NewRunner(config, true, false, &sync.RWMutex{})
+	runner, err := NewRunner(config, true, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -257,7 +256,7 @@ func TestRun_singlePass(t *testing.T) {
 		},
 	})
 
-	runner, err := NewRunner(config, true, false, &sync.RWMutex{})
+	runner, err := NewRunner(config, true, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -294,7 +293,7 @@ func TestRun_singlePassDuplicates(t *testing.T) {
 		},
 	})
 
-	runner, err := NewRunner(config, true, false, &sync.RWMutex{})
+	runner, err := NewRunner(config, true, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -329,7 +328,7 @@ func TestRun_doublePass(t *testing.T) {
 		},
 	})
 
-	runner, err := NewRunner(config, true, false, &sync.RWMutex{})
+	runner, err := NewRunner(config, true, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -377,7 +376,7 @@ func TestRun_removesUnusedDependencies(t *testing.T) {
 		},
 	})
 
-	runner, err := NewRunner(config, true, false, &sync.RWMutex{})
+	runner, err := NewRunner(config, true, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -455,7 +454,7 @@ func TestRun_multipleTemplatesRunsCommands(t *testing.T) {
 		},
 	})
 
-	runner, err := NewRunner(config, false, false, &sync.RWMutex{})
+	runner, err := NewRunner(config, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -607,7 +606,7 @@ func TestRunner_quiescenceIntegrated(t *testing.T) {
 	`, consul.HTTPAddr, in[0].Name(), out[0].Name(),
 		in[1].Name(), out[1].Name()), t)
 
-	runner, err := NewRunner(config, false, false, &sync.RWMutex{})
+	runner, err := NewRunner(config, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -694,7 +693,7 @@ func TestRender_sameContentsDoesNotExecuteCommand(t *testing.T) {
 		},
 	})
 
-	runner, err := NewRunner(config, false, false, &sync.RWMutex{})
+	runner, err := NewRunner(config, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -881,7 +880,7 @@ func TestRun_doesNotExecuteCommandMissingDependencies(t *testing.T) {
 		},
 	})
 
-	runner, err := NewRunner(config, false, false, &sync.RWMutex{})
+	runner, err := NewRunner(config, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -921,7 +920,7 @@ func TestRun_executesCommand(t *testing.T) {
 		},
 	})
 
-	runner, err := NewRunner(config, false, false, &sync.RWMutex{})
+	runner, err := NewRunner(config, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -986,7 +985,7 @@ func TestRun_doesNotExecuteCommandMoreThanOnce(t *testing.T) {
 		},
 	})
 
-	runner, err := NewRunner(config, false, false, &sync.RWMutex{})
+	runner, err := NewRunner(config, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1035,7 +1034,7 @@ func TestRunner_pidCreate(t *testing.T) {
 		pid_file = "%s"
 	`, pidfile.Name()), t)
 
-	runner, err := NewRunner(config, false, false, &sync.RWMutex{})
+	runner, err := NewRunner(config, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1064,7 +1063,7 @@ func TestRunner_pidDelete(t *testing.T) {
 		pid_file = "%s"
 	`, pidfile.Name()), t)
 
-	runner, err := NewRunner(config, false, false, &sync.RWMutex{})
+	runner, err := NewRunner(config, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1124,7 +1123,7 @@ func TestRunner_onceAlreadyRenderedDoesNotHangOrRunCommands(t *testing.T) {
 		},
 	})
 
-	runner, err := NewRunner(config, false, true, &sync.RWMutex{})
+	runner, err := NewRunner(config, false, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1184,7 +1183,7 @@ func TestExecute_setsEnv(t *testing.T) {
 		}
 	`, t)
 
-	runner, err := NewRunner(config, false, false, &sync.RWMutex{})
+	runner, err := NewRunner(config, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1248,7 +1247,7 @@ func TestExecute_timeout(t *testing.T) {
 		}
 	`, t)
 
-	runner, err := NewRunner(config, false, false, &sync.RWMutex{})
+	runner, err := NewRunner(config, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1312,15 +1311,14 @@ func TestRunner_dedup(t *testing.T) {
 	config2.set("deduplicate.enabled")
 
 	// Create the runners
-	var reapLock sync.RWMutex
-	r1, err := NewRunner(config, false, false, &reapLock)
+	r1, err := NewRunner(config, false, false)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	go r1.Start()
 	defer r1.Stop()
 
-	r2, err := NewRunner(config2, false, false, &reapLock)
+	r2, err := NewRunner(config2, false, false)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

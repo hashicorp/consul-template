@@ -14,7 +14,6 @@ import (
 
 	"github.com/hashicorp/consul-template/logging"
 	"github.com/hashicorp/consul-template/watch"
-	"github.com/hashicorp/go-reap"
 )
 
 // Exit codes are int values that represent an exit code for a particular error.
@@ -86,34 +85,8 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeOK
 	}
 
-	// If they configured a child process reaper, start that now.
-	var reapLock sync.RWMutex
-	if config.Reap || (!config.WasSet("reap") && os.Getpid() == 1) {
-		if !reap.IsSupported() {
-			err := fmt.Errorf("[WARN] Child process reaping is not supported on this platform, please set the 'reap' option to false")
-			return cli.handleError(err, ExitCodeConfigError)
-		}
-		log.Printf("[DEBUG] Automatically reaping child processes")
-
-		pids := make(reap.PidCh, 1)
-		errors := make(reap.ErrorCh, 1)
-		go func() {
-			for {
-				select {
-				case pid := <-pids:
-					log.Printf("[DEBUG] Reaped child process %d", pid)
-				case err := <-errors:
-					log.Printf("[ERR] Error reaping child process: %v", err)
-				case <-cli.stopCh:
-					return
-				}
-			}
-		}()
-		go reap.ReapChildren(pids, errors, cli.stopCh, &reapLock)
-	}
-
 	// Initial runner
-	runner, err := NewRunner(config, dry, once, &reapLock)
+	runner, err := NewRunner(config, dry, once)
 	if err != nil {
 		return cli.handleError(err, ExitCodeRunnerError)
 	}
@@ -150,7 +123,7 @@ func (cli *CLI) Run(args []string) int {
 					return cli.handleError(err, ExitCodeConfigError)
 				}
 
-				runner, err = NewRunner(config, dry, once, &reapLock)
+				runner, err = NewRunner(config, dry, once)
 				if err != nil {
 					return cli.handleError(err, ExitCodeRunnerError)
 				}
@@ -324,12 +297,6 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 		return nil
 	}), "log-level", "")
 
-	flags.Var((funcBoolVar)(func(b bool) error {
-		config.Reap = b
-		config.set("reap")
-		return nil
-	}), "reap", "")
-
 	flags.BoolVar(&once, "once", false, "")
 	flags.BoolVar(&dry, "dry", false, "")
 	flags.BoolVar(&version, "v", false, "")
@@ -432,12 +399,6 @@ Options:
 
   -dry                     Dump generated templates to stdout
   -once                    Do not run the process as a daemon
-  -reap                    Control automatic reaping of child processes, useful
-                           if running as PID 1 in a Docker container. By default,
-                           if Consul Template detects that it is running as PID 1
-                           it will automatically enable child process reaping.
-                           Setting this option to false disables this behavior,
-                           and setting it to true enables child process reaping
-                           regardless of Consul Template's PID.
+
   -v, -version             Print the version of this daemon
 `

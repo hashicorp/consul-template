@@ -308,29 +308,6 @@ func TestMerge_wait(t *testing.T) {
 	}
 }
 
-func TestMerge_reap(t *testing.T) {
-	config := testConfig(`
-		reap = true
-	`, t)
-	if config.Reap != true {
-		t.Fatalf("reap should be true")
-	}
-
-	config.Merge(testConfig(`
-		reap = false
-	`, t))
-	if config.Reap != false {
-		t.Fatalf("reap should be false")
-	}
-
-	config.Merge(testConfig(`
-		reap = true
-	`, t))
-	if config.Reap != true {
-		t.Fatalf("reap should be true")
-	}
-}
-
 // There is a custom mapstructure function that tests this as well, so this is
 // more of an integration test to ensure we are parsing permissions correctly.
 func TestParseConfig_jsonFilePerms(t *testing.T) {
@@ -444,8 +421,6 @@ func TestParseConfig_correctValues(t *testing.T) {
 			prefix = "my-prefix/"
 			enabled = true
 		}
-
-		reap = true
   `), t)
 	defer test.DeleteTempfile(configFile, t)
 
@@ -517,7 +492,6 @@ func TestParseConfig_correctValues(t *testing.T) {
 			Enabled: true,
 			TTL:     15 * time.Second,
 		},
-		Reap:    true,
 		setKeys: config.setKeys,
 	}
 
