@@ -17,7 +17,7 @@ The daemon `consul-template` queries a [Consul][] instance and updates any numbe
 
 Installation
 ------------
-You can download a released `consul-template` artifact from [the Consul Template release page][Releases] on GitHub. If you wish to compile from source, please see the instructions in the [Contributing](#contributing) section.
+You can download a released `consul-template` artifact from [the Consul Template release page](https://releases.hashicorp.com/consul-template/). If you wish to compile from source, please see the instructions in the [Contributing](#contributing) section.
 
 
 Usage
