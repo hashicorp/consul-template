@@ -40,6 +40,7 @@ fi
 
 # Build!
 echo "==> Building..."
+export CGO_ENABLED=0
 gox \
   -os="${XC_OS}" \
   -arch="${XC_ARCH}" \
