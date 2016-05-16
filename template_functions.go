@@ -607,7 +607,7 @@ func parseInt(s string) (int64, error) {
 // parseJSON returns a structure for valid JSON
 func parseJSON(s string) (interface{}, error) {
 	if s == "" {
-		return make([]interface{}, 0), nil
+		return map[string]interface{}{}, nil
 	}
 
 	var data interface{}
