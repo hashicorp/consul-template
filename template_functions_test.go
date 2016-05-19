@@ -1440,7 +1440,7 @@ func TestParseJSON_empty(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := []interface{}{}
+	expected := map[string]interface{}{}
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("expected %#v to be %#v", result, expected)
 	}
