@@ -219,10 +219,6 @@ func (r *Runner) Start() {
 			log.Printf("[INFO] (runner) received template %q from quiescence", tmpl.Path)
 			delete(r.quiescenceMap, tmpl.Path)
 
-		case <-r.watcher.FinishCh:
-			log.Printf("[INFO] (runner) watcher reported finish")
-			return
-
 		case <-r.DoneCh:
 			log.Printf("[INFO] (runner) received finish")
 			return

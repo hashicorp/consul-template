@@ -50,10 +50,6 @@ func TestNewWatcher_defaultValues(t *testing.T) {
 		t.Errorf("expected ErrCh to exist")
 	}
 
-	if w.FinishCh == nil {
-		t.Errorf("expected FinishCh to exist")
-	}
-
 	if w.depViewMap == nil {
 		t.Errorf("expected depViewMap to exist")
 	}

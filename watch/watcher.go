@@ -34,9 +34,6 @@ type Watcher struct {
 	// ErrCh is the chan where any errors will be published.
 	ErrCh chan error
 
-	// FinishCh is the chan where the watcher reports it is "done".
-	FinishCh chan struct{}
-
 	// config is the internal configuration of this watcher.
 	config *WatcherConfig
 
@@ -195,7 +192,6 @@ func (w *Watcher) init() error {
 	// Setup the channels
 	w.DataCh = make(chan *View, dataBufferSize)
 	w.ErrCh = make(chan error)
-	w.FinishCh = make(chan struct{})
 
 	// Setup our map of dependencies to views
 	w.depViewMap = make(map[string]*View)
