@@ -31,7 +31,7 @@ type Backend interface {
 	List(prefix string) ([]string, error)
 }
 
-// HABackend is an extentions to the standard physical
+// HABackend is an extensions to the standard physical
 // backend to support high-availability. Vault only expects to
 // use mutual exclusion to allow multiple instances to act as a
 // hot standby for a leader that services all requests.
@@ -48,21 +48,27 @@ type AdvertiseDetect interface {
 	DetectHostAddr() (string, error)
 }
 
+// Callback signatures for RunServiceDiscovery
+type activeFunction func() bool
+type sealedFunction func() bool
+
 // ServiceDiscovery is an optional interface that an HABackend can implement.
 // If they do, the state of a backend is advertised to the service discovery
 // network.
 type ServiceDiscovery interface {
-	// AdvertiseActive is used to reflect whether or not a backend is in
-	// an active or standby state.
-	AdvertiseActive(bool) error
+	// NotifyActiveStateChange is used by Core to notify a backend
+	// capable of ServiceDiscovery that this Vault instance has changed
+	// its status to active or standby.
+	NotifyActiveStateChange() error
 
-	// AdvertiseSealed is used to reflect whether or not a backend is in
-	// a sealed state or not.
-	AdvertiseSealed(bool) error
+	// NotifySealedStateChange is used by Core to notify a backend
+	// capable of ServiceDiscovery that Vault has changed its Sealed
+	// status to sealed or unsealed.
+	NotifySealedStateChange() error
 
 	// Run executes any background service discovery tasks until the
 	// shutdown channel is closed.
-	RunServiceDiscovery(shutdownCh ShutdownChannel, advertiseAddr string) error
+	RunServiceDiscovery(shutdownCh ShutdownChannel, advertiseAddr string, activeFunc activeFunction, sealedFunc sealedFunction) error
 }
 
 type Lock interface {

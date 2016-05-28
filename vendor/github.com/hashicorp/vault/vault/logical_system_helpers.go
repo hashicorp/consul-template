@@ -1,8 +1,8 @@
 package vault
 
 import (
-	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -44,12 +44,15 @@ func (b *SystemBackend) tuneMountTTLs(path string, meConfig *MountConfig, newDef
 					int(newDefault.Seconds()), int(b.Core.maxLeaseTTL.Seconds()))
 			}
 		} else {
-			if meConfig.MaxLeaseTTL < *newDefault {
+			if newMax == nil && *newDefault > meConfig.MaxLeaseTTL {
 				return fmt.Errorf("new backend default lease TTL of %d greater than backend max lease TTL of %d",
 					int(newDefault.Seconds()), int(meConfig.MaxLeaseTTL.Seconds()))
 			}
 		}
 	}
+
+	origMax := meConfig.MaxLeaseTTL
+	origDefault := meConfig.DefaultLeaseTTL
 
 	if newMax != nil {
 		meConfig.MaxLeaseTTL = *newMax
@@ -59,8 +62,17 @@ func (b *SystemBackend) tuneMountTTLs(path string, meConfig *MountConfig, newDef
 	}
 
 	// Update the mount table
-	if err := b.Core.persistMounts(b.Core.mounts); err != nil {
-		return errors.New("failed to update mount table")
+	var err error
+	switch {
+	case strings.HasPrefix(path, "auth/"):
+		err = b.Core.persistAuth(b.Core.auth)
+	default:
+		err = b.Core.persistMounts(b.Core.mounts)
+	}
+	if err != nil {
+		meConfig.MaxLeaseTTL = origMax
+		meConfig.DefaultLeaseTTL = origDefault
+		return fmt.Errorf("failed to update mount table, rolling back TTL changes")
 	}
 
 	b.Core.logger.Printf("[INFO] core: tuned '%s'", path)

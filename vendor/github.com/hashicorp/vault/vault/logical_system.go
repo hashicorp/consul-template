@@ -3,6 +3,7 @@ package vault
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/vault/logical"
@@ -719,6 +720,7 @@ func (b *SystemBackend) handleMount(
 
 	// Create the mount entry
 	me := &MountEntry{
+		Table:       mountTableType,
 		Path:        path,
 		Type:        logicalType,
 		Description: description,
@@ -845,6 +847,14 @@ func (b *SystemBackend) handleMountTuneWrite(
 		return handleError(err)
 	}
 
+	var lock *sync.RWMutex
+	switch {
+	case strings.HasPrefix(path, "auth/"):
+		lock = &b.Core.authLock
+	default:
+		lock = &b.Core.mountsLock
+	}
+
 	// Timing configuration parameters
 	{
 		var newDefault, newMax *time.Duration
@@ -877,8 +887,9 @@ func (b *SystemBackend) handleMountTuneWrite(
 		}
 
 		if newDefault != nil || newMax != nil {
-			b.Core.mountsLock.Lock()
-			defer b.Core.mountsLock.Unlock()
+			lock.Lock()
+			defer lock.Unlock()
+
 			if err := b.tuneMountTTLs(path, &mountEntry.Config, newDefault, newMax); err != nil {
 				b.Backend.Logger().Printf("[ERR] sys: tune of path '%s' failed: %v", path, err)
 				return handleError(err)
@@ -991,6 +1002,7 @@ func (b *SystemBackend) handleEnableAuth(
 
 	// Create the mount entry
 	me := &MountEntry{
+		Table:       credentialTableType,
 		Path:        path,
 		Type:        logicalType,
 		Description: description,
@@ -1086,6 +1098,7 @@ func (b *SystemBackend) handlePolicySet(
 func (b *SystemBackend) handlePolicyDelete(
 	req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 	name := data.Get("name").(string)
+
 	if err := b.Core.policyStore.DeletePolicy(name); err != nil {
 		return handleError(err)
 	}
@@ -1158,6 +1171,7 @@ func (b *SystemBackend) handleEnableAudit(
 
 	// Create the mount entry
 	me := &MountEntry{
+		Table:       auditTableType,
 		Path:        path,
 		Type:        backendType,
 		Description: description,

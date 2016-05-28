@@ -25,7 +25,7 @@ func (f *Field) Tag(key string) string {
 	return f.field.Tag.Get(key)
 }
 
-// Value returns the underlying value of of the field. It panics if the field
+// Value returns the underlying value of the field. It panics if the field
 // is not exported.
 func (f *Field) Value() interface{} {
 	return f.value.Interface()
@@ -114,9 +114,8 @@ func (f *Field) Field(name string) *Field {
 	return field
 }
 
-// Field returns the field from a nested struct. The boolean returns true if
-// the field was found. It panics if the nested struct is not exported or if
-// the field was not found.
+// FieldOk returns the field from a nested struct. The boolean returns whether
+// the field was found (true) or not (false).
 func (f *Field) FieldOk(name string) (*Field, bool) {
 	v := strctVal(f.value.Interface())
 	t := v.Type()

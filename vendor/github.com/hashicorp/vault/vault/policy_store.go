@@ -7,6 +7,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/golang-lru"
+	"github.com/hashicorp/vault/helper/strutil"
 	"github.com/hashicorp/vault/logical"
 )
 
@@ -17,6 +18,24 @@ const (
 
 	// policyCacheSize is the number of policies that are kept cached
 	policyCacheSize = 1024
+
+	// cubbyholeResponseWrappingPolicyName is the name of the fixed policy
+	cubbyholeResponseWrappingPolicyName = "cubbyhole-response-wrapping"
+
+	// cubbyholeResponseWrappingPolicy is the policy that ensures cubbyhole
+	// response wrapping can always succeed
+	cubbyholeResponseWrappingPolicy = `
+path "cubbyhole/response" {
+    capabilities = ["create", "read"]
+}
+`
+)
+
+var (
+	immutablePolicies = []string{
+		"root",
+		cubbyholeResponseWrappingPolicyName,
+	}
 )
 
 // PolicyStore is used to provide durable storage of policy, and to
@@ -34,12 +53,15 @@ type PolicyEntry struct {
 
 // NewPolicyStore creates a new PolicyStore that is backed
 // using a given view. It used used to durable store and manage named policy.
-func NewPolicyStore(view *BarrierView) *PolicyStore {
-	cache, _ := lru.New2Q(policyCacheSize)
+func NewPolicyStore(view *BarrierView, system logical.SystemView) *PolicyStore {
 	p := &PolicyStore{
 		view: view,
-		lru:  cache,
 	}
+	if !system.CachingDisabled() {
+		cache, _ := lru.New2Q(policyCacheSize)
+		p.lru = cache
+	}
+
 	return p
 }
 
@@ -50,7 +72,7 @@ func (c *Core) setupPolicyStore() error {
 	view := c.systemBarrierView.SubView(policySubPath)
 
 	// Create the policy store
-	c.policyStore = NewPolicyStore(view)
+	c.policyStore = NewPolicyStore(view, &dynamicSystemView{core: c})
 
 	// Ensure that the default policy exists, and if not, create it
 	policy, err := c.policyStore.GetPolicy("default")
@@ -63,6 +85,19 @@ func (c *Core) setupPolicyStore() error {
 			return err
 		}
 	}
+
+	// Ensure that the cubbyhole response wrapping policy exists
+	policy, err = c.policyStore.GetPolicy(cubbyholeResponseWrappingPolicyName)
+	if err != nil {
+		return errwrap.Wrapf("error fetching default policy from store: {{err}}", err)
+	}
+	if policy == nil || policy.Raw != cubbyholeResponseWrappingPolicy {
+		err := c.policyStore.createCubbyholeResponseWrappingPolicy()
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -76,13 +111,17 @@ func (c *Core) teardownPolicyStore() error {
 // SetPolicy is used to create or update the given policy
 func (ps *PolicyStore) SetPolicy(p *Policy) error {
 	defer metrics.MeasureSince([]string{"policy", "set_policy"}, time.Now())
-	if p.Name == "root" {
-		return fmt.Errorf("cannot update root policy")
-	}
 	if p.Name == "" {
 		return fmt.Errorf("policy name missing")
 	}
+	if strutil.StrListContains(immutablePolicies, p.Name) {
+		return fmt.Errorf("cannot update %s policy", p.Name)
+	}
 
+	return ps.setPolicyInternal(p)
+}
+
+func (ps *PolicyStore) setPolicyInternal(p *Policy) error {
 	// Create the entry
 	entry, err := logical.StorageEntryJSON(p.Name, &PolicyEntry{
 		Version: 2,
@@ -95,23 +134,29 @@ func (ps *PolicyStore) SetPolicy(p *Policy) error {
 		return fmt.Errorf("failed to persist policy: %v", err)
 	}
 
-	// Update the LRU cache
-	ps.lru.Add(p.Name, p)
+	if ps.lru != nil {
+		// Update the LRU cache
+		ps.lru.Add(p.Name, p)
+	}
 	return nil
 }
 
 // GetPolicy is used to fetch the named policy
 func (ps *PolicyStore) GetPolicy(name string) (*Policy, error) {
 	defer metrics.MeasureSince([]string{"policy", "get_policy"}, time.Now())
-	// Check for cached policy
-	if raw, ok := ps.lru.Get(name); ok {
-		return raw.(*Policy), nil
+	if ps.lru != nil {
+		// Check for cached policy
+		if raw, ok := ps.lru.Get(name); ok {
+			return raw.(*Policy), nil
+		}
 	}
 
 	// Special case the root policy
 	if name == "root" {
 		p := &Policy{Name: "root"}
-		ps.lru.Add(p.Name, p)
+		if ps.lru != nil {
+			ps.lru.Add(p.Name, p)
+		}
 		return p, nil
 	}
 
@@ -152,8 +197,11 @@ func (ps *PolicyStore) GetPolicy(name string) (*Policy, error) {
 		policy = p
 	}
 
-	// Update the LRU cache
-	ps.lru.Add(name, policy)
+	if ps.lru != nil {
+		// Update the LRU cache
+		ps.lru.Add(name, policy)
+	}
+
 	return policy, nil
 }
 
@@ -168,8 +216,8 @@ func (ps *PolicyStore) ListPolicies() ([]string, error) {
 // DeletePolicy is used to delete the named policy
 func (ps *PolicyStore) DeletePolicy(name string) error {
 	defer metrics.MeasureSince([]string{"policy", "delete_policy"}, time.Now())
-	if name == "root" {
-		return fmt.Errorf("cannot delete root policy")
+	if strutil.StrListContains(immutablePolicies, name) {
+		return fmt.Errorf("cannot delete %s policy", name)
 	}
 	if name == "default" {
 		return fmt.Errorf("cannot delete default policy")
@@ -178,8 +226,10 @@ func (ps *PolicyStore) DeletePolicy(name string) error {
 		return fmt.Errorf("failed to delete policy: %v", err)
 	}
 
-	// Clear the cache
-	ps.lru.Remove(name)
+	if ps.lru != nil {
+		// Clear the cache
+		ps.lru.Remove(name)
+	}
 	return nil
 }
 
@@ -235,5 +285,19 @@ path "cubbyhole" {
 	}
 
 	policy.Name = "default"
-	return ps.SetPolicy(policy)
+	return ps.setPolicyInternal(policy)
+}
+
+func (ps *PolicyStore) createCubbyholeResponseWrappingPolicy() error {
+	policy, err := Parse(cubbyholeResponseWrappingPolicy)
+	if err != nil {
+		return errwrap.Wrapf(fmt.Sprintf("error parsing %s policy: {{err}}", cubbyholeResponseWrappingPolicyName), err)
+	}
+
+	if policy == nil {
+		return fmt.Errorf("parsing %s policy resulted in nil policy", cubbyholeResponseWrappingPolicyName)
+	}
+
+	policy.Name = cubbyholeResponseWrappingPolicyName
+	return ps.setPolicyInternal(policy)
 }

@@ -42,14 +42,24 @@ type Backend struct {
 	// and ease specifying callbacks for revocation, renewal, etc.
 	Secrets []*Secret
 
-	// Rollback is called when a WAL entry (see wal.go) has to be rolled
+	// PeriodicFunc is the callback, which if set, will be invoked when the
+	// periodic timer of RollbackManager ticks. This can be used by
+	// backends to do anything it wishes to do periodically.
+	//
+	// PeriodicFunc can be invoked to, say to periodically delete stale
+	// entries in backend's storage, while the backend is still being used.
+	// (Note the different of this action from what `Clean` does, which is
+	// invoked just before the backend is unmounted).
+	PeriodicFunc periodicFunc
+
+	// WALRollback is called when a WAL entry (see wal.go) has to be rolled
 	// back. It is called with the data from the entry.
 	//
-	// RollbackMinAge is the minimum age of a WAL entry before it is attempted
+	// WALRollbackMinAge is the minimum age of a WAL entry before it is attempted
 	// to be rolled back. This should be longer than the maximum time it takes
 	// to successfully create a secret.
-	Rollback       RollbackFunc
-	RollbackMinAge time.Duration
+	WALRollback       WALRollbackFunc
+	WALRollbackMinAge time.Duration
 
 	// Clean is called on unload to clean up e.g any existing connections
 	// to the backend, if required.
@@ -66,11 +76,15 @@ type Backend struct {
 	pathsRe []*regexp.Regexp
 }
 
+// periodicFunc is the callback called when the RollbackManager's timer ticks.
+// This can be utilized by the backends to do anything it wants.
+type periodicFunc func(*logical.Request) error
+
 // OperationFunc is the callback called for an operation on a path.
 type OperationFunc func(*logical.Request, *FieldData) (*logical.Response, error)
 
-// RollbackFunc is the callback for rollbacks.
-type RollbackFunc func(*logical.Request, string, interface{}) error
+// WALRollbackFunc is the callback for rollbacks.
+type WALRollbackFunc func(*logical.Request, string, interface{}) error
 
 // CleanupFunc is the callback for backend unload.
 type CleanupFunc func()
@@ -225,8 +239,7 @@ func (b *Backend) System() logical.SystemView {
 // compares those with the SystemView values. If they are empty a value of 0 is
 // set, which will cause initial secret or LeaseExtend operations to use the
 // mount/system defaults.  If they are set, their boundaries are validated.
-func (b *Backend) SanitizeTTL(ttlStr, maxTTLStr string) (ttl, maxTTL time.Duration, err error) {
-	sysMaxTTL := b.System().MaxLeaseTTL()
+func (b *Backend) SanitizeTTLStr(ttlStr, maxTTLStr string) (ttl, maxTTL time.Duration, err error) {
 	if len(ttlStr) == 0 || ttlStr == "0" {
 		ttl = 0
 	} else {
@@ -234,10 +247,8 @@ func (b *Backend) SanitizeTTL(ttlStr, maxTTLStr string) (ttl, maxTTL time.Durati
 		if err != nil {
 			return 0, 0, fmt.Errorf("Invalid ttl: %s", err)
 		}
-		if ttl > sysMaxTTL {
-			return 0, 0, fmt.Errorf("\"ttl\" value must be less than allowed max lease TTL value '%s'", sysMaxTTL.String())
-		}
 	}
+
 	if len(maxTTLStr) == 0 || maxTTLStr == "0" {
 		maxTTL = 0
 	} else {
@@ -245,14 +256,26 @@ func (b *Backend) SanitizeTTL(ttlStr, maxTTLStr string) (ttl, maxTTL time.Durati
 		if err != nil {
 			return 0, 0, fmt.Errorf("Invalid max_ttl: %s", err)
 		}
-		if maxTTL > sysMaxTTL {
-			return 0, 0, fmt.Errorf("\"max_ttl\" value must be less than allowed max lease TTL value '%s'", sysMaxTTL.String())
-		}
+	}
+
+	ttl, maxTTL, err = b.SanitizeTTL(ttl, maxTTL)
+
+	return
+}
+
+// Caps the boundaries of ttl and max_ttl values to the backend mount's max_ttl value.
+func (b *Backend) SanitizeTTL(ttl, maxTTL time.Duration) (time.Duration, time.Duration, error) {
+	sysMaxTTL := b.System().MaxLeaseTTL()
+	if ttl > sysMaxTTL {
+		return 0, 0, fmt.Errorf("\"ttl\" value must be less than allowed max lease TTL value '%s'", sysMaxTTL.String())
+	}
+	if maxTTL > sysMaxTTL {
+		return 0, 0, fmt.Errorf("\"max_ttl\" value must be less than allowed max lease TTL value '%s'", sysMaxTTL.String())
 	}
 	if ttl > maxTTL && maxTTL != 0 {
 		ttl = maxTTL
 	}
-	return
+	return ttl, maxTTL, nil
 }
 
 // Route looks up the path that would be used for a given path string.
@@ -385,6 +408,19 @@ func (b *Backend) handleRevokeRenew(
 	}
 }
 
+// handleRollback invokes the PeriodicFunc set on the backend. It also does a WAL rollback operation.
+func (b *Backend) handleRollback(
+	req *logical.Request) (*logical.Response, error) {
+	// Response is not expected from the periodic operation.
+	if b.PeriodicFunc != nil {
+		if err := b.PeriodicFunc(req); err != nil {
+			return nil, err
+		}
+	}
+
+	return b.handleWALRollback(req)
+}
+
 func (b *Backend) handleAuthRenew(req *logical.Request) (*logical.Response, error) {
 	if b.AuthRenew == nil {
 		return logical.ErrorResponse("this auth type doesn't support renew"), nil
@@ -393,9 +429,9 @@ func (b *Backend) handleAuthRenew(req *logical.Request) (*logical.Response, erro
 	return b.AuthRenew(req, nil)
 }
 
-func (b *Backend) handleRollback(
+func (b *Backend) handleWALRollback(
 	req *logical.Request) (*logical.Response, error) {
-	if b.Rollback == nil {
+	if b.WALRollback == nil {
 		return nil, logical.ErrUnsupportedOperation
 	}
 
@@ -410,7 +446,7 @@ func (b *Backend) handleRollback(
 
 	// Calculate the minimum time that the WAL entries could be
 	// created in order to be rolled back.
-	age := b.RollbackMinAge
+	age := b.WALRollbackMinAge
 	if age == 0 {
 		age = 10 * time.Minute
 	}
@@ -434,8 +470,8 @@ func (b *Backend) handleRollback(
 			continue
 		}
 
-		// Attempt a rollback
-		err = b.Rollback(req, entry.Kind, entry.Data)
+		// Attempt a WAL rollback
+		err = b.WALRollback(req, entry.Kind, entry.Data)
 		if err != nil {
 			err = fmt.Errorf(
 				"Error rolling back '%s' entry: %s", entry.Kind, err)
