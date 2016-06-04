@@ -5,12 +5,12 @@ Consul Template
 [![Go Documentation](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)][godocs]
 
 [release]: https://github.com/hashicorp/consul-template/releases
-[travis]: http://travis-ci.org/hashicorp/consul-template
-[godocs]: http://godoc.org/github.com/hashicorp/consul-template
+[travis]: https://travis-ci.org/hashicorp/consul-template
+[godocs]: https://godoc.org/github.com/hashicorp/consul-template
 
-This project provides a convenient way to populate values from [Consul][] into the filesystem using the `consul-template` daemon.
+This project provides a convenient way to populate values from [Consul][] into the file system using the `consul-template` daemon.
 
-The daemon `consul-template` queries a [Consul][] instance and updates any number of specified templates on the filesystem. As an added bonus, `consul-template` can optionally run arbitrary commands when the update process completes. See the [Examples](#examples) section for some scenarios where this functionality might prove useful.
+The daemon `consul-template` queries a [Consul][] instance and updates any number of specified templates on the file system. As an added bonus, `consul-template` can optionally run arbitrary commands when the update process completes. See the [Examples](#examples) section for some scenarios where this functionality might prove useful.
 
 **The documentation in this README corresponds to the master branch of Consul Template. It may contain unreleased features or different APIs than the most recently released version. Please see the Git tag that corresponds to your version of Consul Template for the proper documentation.**
 
@@ -59,7 +59,7 @@ $ consul-template \
   -template "/tmp/template.ctmpl:/tmp/result"
 ```
 
-Query a local Consul instance, rendering the template and restarting nginx if the template has changed, once, polling 30s if Consul is unavailable:
+Query a local Consul instance, rendering the template and restarting Nginx if the template has changed, once, polling 30s if Consul is unavailable:
 
 ```shell
 $ consul-template \
@@ -324,7 +324,7 @@ In addition to the [Go-provided template functions][Go Template], Consul Templat
 #### API Functions
 
 ##### `datacenters`
-Query Consul for all datacenters in the catalog. Datacenters are queried using the following syntax:
+Query Consul for all data centers in the catalog. Data centers are queried using the following syntax:
 
 ```liquid
 {{datacenters}}
@@ -346,7 +346,7 @@ Query Consul for the value at the given key. If the key cannot be converted to a
 {{key "service/redis/maxconns@east-aws"}}
 ```
 
-The example above is querying Consul for the `service/redis/maxconns` in the east-aws datacenter. If you omit the datacenter attribute, the local Consul datacenter will be queried:
+The example above is querying Consul for the `service/redis/maxconns` in the east-aws data center. If you omit the data center attribute, the local Consul data center will be queried:
 
 ```liquid
 {{key "service/redis/maxconns"}}
@@ -372,14 +372,14 @@ Query Consul for all top-level key-value pairs at the given prefix. If any of th
 {{.Key}} {{.Value}}{{end}}
 ```
 
-If the Consul instance had the correct structure at `service/redis` in the east-aws datacenter, the resulting template could look like:
+If the Consul instance had the correct structure at `service/redis` in the east-aws data center, the resulting template could look like:
 
 ```text
 minconns 2
 maxconns 12
 ```
 
-If you omit the datacenter attribute on `ls`, the local Consul datacenter will be queried.
+If you omit the data center attribute on `ls`, the local Consul data center will be queried.
 
 ##### `node`
 Query Consul for a single node in the catalog.
@@ -394,7 +394,7 @@ When called without any arguments then the node for the current agent is returne
 {{node}}
 ```
 
-You can specify an optional parameter to the `nodes` call to specify the datacenter:
+You can specify an optional parameter to the `nodes` call to specify the data center:
 
 ```liquid
 {{node "node1" "@east-aws"}}
@@ -415,13 +415,13 @@ Query Consul for all nodes in the catalog. Nodes are queried using the following
 {{nodes}}
 ```
 
-This example will query Consul's default datacenter. You can specify an optional parameter to the `nodes` call to specify the datacenter:
+This example will query Consul's default data center. You can specify an optional parameter to the `nodes` call to specify the data center:
 
 ```liquid
 {{nodes "@east-aws"}}
 ```
 
-This will query Consul for all nodes in the east-aws datacenter.
+This will query Consul for all nodes in the east-aws data center.
 
 ##### `secret`
 Query [Vault](https://www.vaultproject.io) for the secret data at the given path. If the path does not exist or if the configured Vault token does not have permission to read the path, an error will be returned.  If the path exists, but the key does not exist, `<no value>` will be returned.
@@ -477,7 +477,7 @@ Query Consul for the service group(s) matching the given pattern. Services are q
 {{service "release.web@east-aws"}}
 ```
 
-The example above is querying Consul for healthy "web" services, in the "east-aws" datacenter. The tag and datacenter attributes are optional. To query all nodes of the "web" service (regardless of tag) for the current datacenter:
+The example above is querying Consul for healthy "web" services, in the "east-aws" data center. The tag and data center attributes are optional. To query all nodes of the "web" service (regardless of tag) for the current data center:
 
 ```liquid
 {{service "web"}}
@@ -486,7 +486,7 @@ The example above is querying Consul for healthy "web" services, in the "east-aw
 The function returns a `[]*HealthService` struct which can be used for ranging in a template:
 
 ```liquid
-{{range service "web@datacenter"}}
+{{range service "web@data center"}}
 server {{.Name}} {{.Address}}:{{.Port}}{{end}}
 ```
 
@@ -565,7 +565,7 @@ Query Consul for all services in the catalog. Services are queried using the fol
 {{services}}
 ```
 
-This example will query Consul's default datacenter. You can specify an optional parameter to the `services` call to specify the datacenter:
+This example will query Consul's default data center. You can specify an optional parameter to the `services` call to specify the data center:
 
 ```liquid
 {{services "@east-aws"}}
@@ -589,7 +589,7 @@ Query Consul for all key-value pairs at the given prefix. If any of the values c
 {{.Key}} {{.Value}}{{end}}
 ```
 
-If the Consul instance had the correct structure at `service/redis` in the east-aws datacenter, the resulting template could look like:
+If the Consul instance had the correct structure at `service/redis` in the east-aws data center, the resulting template could look like:
 
 ```text
 minconns 2
@@ -599,7 +599,7 @@ nested/config/value "value"
 
 Unlike `ls`, `tree` returns **all** keys under the prefix, just like the Unix `tree` command.
 
-If you omit the datacenter attribute on `tree`, the local Consul datacenter will be queried.
+If you omit the data center attribute on `tree`, the local Consul data center will be queried.
 
 - - -
 
@@ -842,14 +842,14 @@ Takes the argument as a regular expression and will return `true` if it matches 
 ```
 
 ##### `regexReplaceAll`
-Takes the argument as a regular expression and replaces all occurences of the regex with the given string. As in go, you can use variables like $1 to refer to subexpressions in the replacement string.
+Takes the argument as a regular expression and replaces all occurrences of the regex with the given string. As in go, you can use variables like $1 to refer to subexpressions in the replacement string.
 
 ```liquid
 {{"foo.bar" | regexReplaceAll "foo([.a-z]+)" "$1"}}
 ```
 
 ##### `replaceAll`
-Takes the argument as a string and replaces all occurences of the given string with the given string.
+Takes the argument as a string and replaces all occurrences of the given string with the given string.
 
 ```liquid
 {{"foo.bar" | replaceAll "." "_"}}
@@ -1039,7 +1039,7 @@ $ NAME [INPUT...]
 ```
 
 - `NAME` - the name of the plugin - this is also the name of the binary, either a full path or just the program name.  It will be executed in a shell with the inherited `PATH` so e.g. the plugin `cat` will run the first executable `cat` that is found on the `PATH`.
-- `INPUT` - input from the template - this wil always be JSON if provided
+- `INPUT` - input from the template - this will always be JSON if provided
 
 #### Important Notes
 
@@ -1051,7 +1051,7 @@ $ NAME [INPUT...]
   parsed for output. Be sure to log all errors, debugging messages onto stderr
   to avoid errors when Consul Template returns the value.
 - Always `exit 0` or Consul Template will assume the plugin failed to execute
-- Ensure the empty input case is handled correctly (see [Multi-phase exection](https://github.com/hashicorp/consul-template#multi-phase-execution))
+- Ensure the empty input case is handled correctly (see [Multi-phase execution](https://github.com/hashicorp/consul-template#multi-phase-execution))
 - Data piped into the plugin is appended after any parameters given explicitly (eg `{{ "sample-data" | plugin "my-plugin" "some-parameter"}}` will call `my-plugin some-parameter sample-data`)
 
 Here is a sample plugin in a few different languages that removes any JSON keys that start with an underscore and returns the JSON string:
@@ -1445,10 +1445,10 @@ go test ./... -run SomeTestFunction_name
 Submit Pull Requests and Issues to the [Consul Template project on GitHub][Consul Template].
 
 
-[Consul]: http://consul.io/ "Service discovery and configuration made easy"
+[Consul]: https://www.consul.io/ "Service discovery and configuration made easy"
 [Releases]: https://github.com/hashicorp/consul-template/releases "Consul Template releases page"
 [HCL]: https://github.com/hashicorp/hcl "HashiCorp Configuration Language (HCL)"
-[Go]: http://golang.org "Go the language"
-[Consul ACLs]: http://www.consul.io/docs/internals/acl.html "Consul ACLs"
-[Go Template]: http://golang.org/pkg/text/template/ "Go Template"
+[Go]: https://golang.org "Go the language"
+[Consul ACLs]: https://www.consul.io/docs/internals/acl.html "Consul ACLs"
+[Go Template]: https://golang.org/pkg/text/template/ "Go Template"
 [Consul Template]: https://github.com/hashicorp/consul-template "Consul Template on GitHub"
