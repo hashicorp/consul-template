@@ -35,9 +35,9 @@ export PATH="${tmpdir}/bin:$PATH"
 mkdir -p "${tmpdir}/src/github.com/hashicorp"
 pushd "${tmpdir}/src/github.com/hashicorp" &>/dev/null
 
-echo "--> Cloning ${NAME}..."
-git clone --quiet --depth=1 "https://github.com/hashicorp/${NAME}"
-pushd "${NAME}" &>/dev/null
+echo "--> Copying ${NAME}..."
+cp -R "$DIR" "${tmpdir}/src/github.com/hashicorp/${NAME}"
+pushd "${tmpdir}/src/github.com/hashicorp/${NAME}" &>/dev/null
 rm -rf vendor/
 
 echo "--> Installing dependency manager..."
