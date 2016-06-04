@@ -163,6 +163,21 @@ func ParseStoreKeyPrefix(s string) (*StoreKeyPrefix, error) {
 
 	prefix, datacenter := m["prefix"], m["datacenter"]
 
+	// Empty prefix or nil prefix should default to "/"
+	if len(prefix) == 0 {
+		prefix = "/"
+	}
+
+	// Remove leading slash
+	if len(prefix) > 1 && prefix[0] == '/' {
+		prefix = prefix[1:len(prefix)]
+	}
+
+	// Ensure a trailing slash
+	if prefix[len(prefix)-1] != '/' {
+		prefix = fmt.Sprintf("%s/", prefix)
+	}
+
 	kpd := &StoreKeyPrefix{
 		rawKey:     s,
 		Prefix:     prefix,
