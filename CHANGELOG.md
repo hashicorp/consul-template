@@ -12,6 +12,7 @@ IMPROVEMENTS:
   * Allow specifying per-template delimiters [GH-615, GH-389]
   * Allow specifying per-template wait parameters [GH-589, GH-618]
   * Switch to actually vendoring dependencies
+  * Add support for writing data [GH-652, GH-492]
 
 BUG FIXES:
 
