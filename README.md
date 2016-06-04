@@ -443,6 +443,20 @@ If the map key has dots "." in it, you need to access the value using the `index
 {{index .Data "my.key.with.dots"}}
 ```
 
+If additional arguments are passed to the function, then the operation is assumed to be a `write` operation instead of a `read` operation. The write operation must return data in order to be valid. This is especially useful for the PKI secret backend, for example.
+
+```liquid
+{{ with secret "pki/issue/my-domain-dot-com" "common_name=foo.example.com" }}
+{{ .Data.certificate }}
+{{ end }}
+```
+
+The parameters must be `key=value` pairs, and each pair must be its own argument to the function:
+
+```liquid
+{{ secret "path/" "a=b", "c=d", "e=f" }}
+```
+
 Please always consider the security implications of having the contents of a secret in plain-text on disk. If an attacker is able to get access to the file, they will have access to plain-text secrets.
 
 Please note that Vault does not support blocking queries. As a result, Consul Template will not immediately reload in the event a secret is changed as it does with Consul's key-value store. Consul Template will fetch a new secret at half the lease duration of the original secret. For example, most items in Vault's generic secret backend have a default 30 day lease. This means Consul Template will renew the secret every 15 days. As such, it is recommended that a smaller lease duration be used when generating the initial secret to force Consul Template to renew more often.
