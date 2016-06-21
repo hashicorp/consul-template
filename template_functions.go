@@ -210,15 +210,15 @@ func nodesFunc(brain *Brain,
 
 // secretFunc returns or accumulates secret dependencies from Vault.
 func secretFunc(brain *Brain,
-	used, missing map[string]dep.Dependency) func(string) (*dep.Secret, error) {
-	return func(s string) (*dep.Secret, error) {
+	used, missing map[string]dep.Dependency) func(...string) (*dep.Secret, error) {
+	return func(s ...string) (*dep.Secret, error) {
 		result := &dep.Secret{}
 
 		if len(s) == 0 {
 			return result, nil
 		}
 
-		d, err := dep.ParseVaultSecret(s)
+		d, err := dep.ParseVaultSecret(s...)
 		if err != nil {
 			return result, nil
 		}
