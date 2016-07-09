@@ -4,14 +4,15 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"syscall"
 
 	"github.com/mitchellh/mapstructure"
 )
 
-// StringToFileMode returns a function that converts strings to os.FileMode
+// StringToFileModeFunc returns a function that converts strings to os.FileMode
 // value. This is designed to be used with mapstructure for parsing out a
 // filemode value.
-func StringToFileMode() mapstructure.DecodeHookFunc {
+func StringToFileModeFunc() mapstructure.DecodeHookFunc {
 	return func(
 		f reflect.Type,
 		t reflect.Type,
@@ -29,5 +30,21 @@ func StringToFileMode() mapstructure.DecodeHookFunc {
 			return data, err
 		}
 		return os.FileMode(v), nil
+	}
+}
+
+// StringToSignalFunc parses a string as a signal based on the signal lookup table.
+func StringToSignalFunc() mapstructure.DecodeHookFunc {
+	return func(
+		f reflect.Type,
+		t reflect.Type,
+		data interface{}) (interface{}, error) {
+		if f.Kind() != reflect.String {
+			return data, nil
+		}
+		if t != reflect.TypeOf(syscall.SIGINT) {
+			return data, nil
+		}
+		return ParseSignal(data.(string))
 	}
 }

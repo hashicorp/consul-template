@@ -397,7 +397,8 @@ func ParseConfig(path string) (*Config, error) {
 	metadata := new(mapstructure.Metadata)
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
-			StringToFileMode(),
+			StringToFileModeFunc(),
+			StringToSignalFunc(),
 			watch.StringToWaitDurationHookFunc(),
 			mapstructure.StringToSliceHookFunc(","),
 			mapstructure.StringToTimeDurationHookFunc(),
