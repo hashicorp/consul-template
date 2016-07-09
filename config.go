@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/hashicorp/consul-template/watch"
@@ -55,6 +56,9 @@ type Config struct {
 
 	// Syslog is the configuration for syslog.
 	Syslog *SyslogConfig `mapstructure:"syslog"`
+
+	// Exec is the configuration for exec/supervise mode.
+	Exec *ExecConfig `mapstructure:"exec"`
 
 	// MaxStale is the maximum amount of time for staleness from Consul as given
 	// by LastContact. If supplied, Consul Template will query all servers instead
@@ -132,6 +136,16 @@ func (c *Config) Copy() *Config {
 		config.Syslog = &SyslogConfig{
 			Enabled:  c.Syslog.Enabled,
 			Facility: c.Syslog.Facility,
+		}
+	}
+
+	if c.Exec != nil {
+		config.Exec = &ExecConfig{
+			Command:      c.Exec.Command,
+			Splay:        c.Exec.Splay,
+			ReloadSignal: c.Exec.ReloadSignal,
+			KillSignal:   c.Exec.KillSignal,
+			KillTimeout:  c.Exec.KillTimeout,
 		}
 	}
 
@@ -286,6 +300,27 @@ func (c *Config) Merge(config *Config) {
 		}
 	}
 
+	if config.WasSet("exec") {
+		if c.Exec == nil {
+			c.Exec = &ExecConfig{}
+		}
+		if config.WasSet("exec.command") {
+			c.Exec.Command = config.Exec.Command
+		}
+		if config.WasSet("exec.splay") {
+			c.Exec.Splay = config.Exec.Splay
+		}
+		if config.WasSet("exec.reload_signal") {
+			c.Exec.ReloadSignal = config.Exec.ReloadSignal
+		}
+		if config.WasSet("exec.kill_signal") {
+			c.Exec.KillSignal = config.Exec.KillSignal
+		}
+		if config.WasSet("exec.kill_timeout") {
+			c.Exec.KillTimeout = config.Exec.KillTimeout
+		}
+	}
+
 	if config.WasSet("max_stale") {
 		c.MaxStale = config.MaxStale
 	}
@@ -388,7 +423,14 @@ func ParseConfig(path string) (*Config, error) {
 	if !ok {
 		return nil, fmt.Errorf("error converting config at %q", path)
 	}
-	flattenKeys(parsed, []string{"auth", "ssl", "syslog", "vault", "deduplicate"})
+	flattenKeys(parsed, []string{
+		"auth",
+		"ssl",
+		"syslog",
+		"exec",
+		"vault",
+		"deduplicate",
+	})
 
 	// Create a new, empty config
 	config := new(Config)
@@ -546,6 +588,11 @@ func DefaultConfig() *Config {
 			Prefix:  defaultDedupPrefix,
 			TTL:     15 * time.Second,
 		},
+		Exec: &ExecConfig{
+			ReloadSignal: syscall.SIGHUP,
+			KillSignal:   syscall.SIGTERM,
+			KillTimeout:  30 * time.Second,
+		},
 		ConfigTemplates: make([]*ConfigTemplate, 0),
 		Retry:           5 * time.Second,
 		MaxStale:        1 * time.Second,
@@ -605,6 +652,28 @@ func (a *AuthConfig) String() string {
 	}
 
 	return a.Username
+}
+
+// ExecConfig is used to configure the application when it runs in
+// exec/supervise mode.
+type ExecConfig struct {
+	// Command is the command to execute and watch as a child process.
+	Command string `mapstructure:"command"`
+
+	// Splay is the maximum amount of time to wait to kill the process.
+	Splay time.Duration `mapstructure:"splay"`
+
+	// ReloadSignal is the signal to send to the child process when a template
+	// changes. This tells the child process that templates have
+	ReloadSignal os.Signal `mapstructure:"reload_signal"`
+
+	// KillSignal is the signal to send to the command to kill it gracefully. The
+	// default value is "SIGTERM".
+	KillSignal os.Signal `mapstructure:"kill_signal"`
+
+	// KillTimeout is the amount of time to give the process to cleanup before
+	// hard-killing it.
+	KillTimeout time.Duration `mapstructure:"kill_timeout"`
 }
 
 // DeduplicateConfig is used to enable the de-duplication mode, which depends

@@ -7,6 +7,7 @@ import (
 	"path"
 	"reflect"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -207,6 +208,36 @@ func TestMerge_SSL(t *testing.T) {
 
 	if !reflect.DeepEqual(config.SSL, expected) {
 		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config.SSL, expected)
+	}
+}
+
+func TestMerge_Exec(t *testing.T) {
+	config := testConfig(`
+		exec {
+			command       = "a"
+			splay         = "100s"
+			reload_signal = "SIGUSR1"
+			kill_signal   = "SIGUSR2"
+			kill_timeout  = "10s"
+		}
+	`, t)
+	config.Merge(testConfig(`
+		exec {
+			command = "b"
+			splay   = "50s"
+		}
+	`, t))
+
+	expected := &ExecConfig{
+		Command:      "b",
+		Splay:        50 * time.Second,
+		ReloadSignal: syscall.SIGUSR1,
+		KillSignal:   syscall.SIGUSR2,
+		KillTimeout:  10 * time.Second,
+	}
+
+	if !reflect.DeepEqual(config.Exec, expected) {
+		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config.Exec, expected)
 	}
 }
 
@@ -464,6 +495,11 @@ func TestParseConfig_correctValues(t *testing.T) {
 		Wait: &watch.Wait{
 			Min: time.Second * 5,
 			Max: time.Second * 10,
+		},
+		Exec: &ExecConfig{
+			ReloadSignal: syscall.SIGHUP,
+			KillSignal:   syscall.SIGTERM,
+			KillTimeout:  30 * time.Second,
 		},
 		Retry:    10 * time.Second,
 		LogLevel: "warn",

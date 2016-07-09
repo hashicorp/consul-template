@@ -105,6 +105,7 @@ func (cli *CLI) Run(args []string) int {
 		case s := <-signalCh:
 			// Propogate the signal to the child process
 			runner.Signal(s)
+
 			switch s {
 			case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
 				fmt.Fprintf(cli.errStream, "Received interrupt, cleaning up...\n")
@@ -260,6 +261,45 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	}), "dedup", "")
 
 	flags.Var((funcVar)(func(s string) error {
+		config.Exec.Command = s
+		config.set("exec")
+		config.set("exec.command")
+		return nil
+	}), "exec", "")
+
+	flags.Var((funcDurationVar)(func(d time.Duration) error {
+		config.Exec.Splay = d
+		config.set("exec.splay")
+		return nil
+	}), "exec-splay", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		sig, err := ParseSignal(s)
+		if err != nil {
+			return err
+		}
+		config.Exec.ReloadSignal = sig
+		config.set("exec.reload_signal")
+		return nil
+	}), "exec-reload-signal", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		sig, err := ParseSignal(s)
+		if err != nil {
+			return err
+		}
+		config.Exec.KillSignal = sig
+		config.set("exec.kill_signal")
+		return nil
+	}), "exec-kill-signal", "")
+
+	flags.Var((funcDurationVar)(func(d time.Duration) error {
+		config.Exec.KillTimeout = d
+		config.set("exec.kill_timeout")
+		return nil
+	}), "exec-kill-timeout", "")
+
+	flags.Var((funcVar)(func(s string) error {
 		w, err := watch.ParseWait(s)
 		if err != nil {
 			return err
@@ -356,46 +396,90 @@ Usage: %s [options]
 
 Options:
 
-  -auth=<user[:pass]>      Set the basic authentication username (and password)
-  -consul=<address>        Sets the address of the Consul instance
-  -max-stale=<duration>    Set the maximum staleness and allow stale queries to
-                           Consul which will distribute work among all servers
-                           instead of just the leader
-  -dedup                   Enable de-duplication mode. Reduces load on Consul when
-                           many instances of Consul Template are rendering a common
-                           template.
-  -ssl                     Use SSL when connecting to Consul
-  -ssl-verify              Verify certificates when connecting via SSL
-  -ssl-cert                SSL client certificate to send to server
-  -ssl-key                 SSL/TLS private key for use in client authentication
-                           key exchange
-  -ssl-ca-cert             Validate server certificate against this CA
-                           certificate file list
-  -token=<token>           Sets the Consul API token
+  -auth=<user[:pass]>
+      Set the basic authentication username (and password)
 
-  -syslog                  Send the output to syslog instead of standard error
-                           and standard out. The syslog facility defaults to
-                           LOCAL0 and can be changed using a configuration file
-  -syslog-facility=<f>     Set the facility where syslog should log. If this
-                           attribute is supplied, the -syslog flag must also be
-                           supplied.
+  -config=<path>
+      Sets the path to a configuration file on disk
 
-  -template=<template>     Adds a new template to watch on disk in the format
-                           'templatePath:outputPath(:command)'
-  -wait=<duration>         Sets the 'minumum(:maximum)' amount of time to wait
-                           before writing a template (and triggering a command)
-  -retry=<duration>        The amount of time to wait if Consul returns an
-                           error when communicating with the API
+  -consul=<address>
+      Sets the address of the Consul instance
 
-  -config=<path>           Sets the path to a configuration file on disk
+  -dedup
+      Enable de-duplication mode - reduces load on Consul when many instances of
+      Consul Template are rendering a common template
 
+  -dry
+      Dump generated templates to stdout
 
-  -pid-file=<path>         Path on disk to write the PID of the process
-  -log-level=<level>       Set the logging level - valid values are "debug",
-                           "info", "warn" (default), and "err"
+  -exec=<command>
+      Enable exec mode to run as a supervisor-like process - the given command
+      will receive all signals provided to the parent process and will receive a
+      signal when templates change
 
-  -dry                     Dump generated templates to stdout
-  -once                    Do not run the process as a daemon
+  -exec-kill-signal=<signal>
+      Signal to send when gracefully killing the process
 
-  -v, -version             Print the version of this daemon
+  -exec-kill-timeout=<duration>
+      Amount of time to wait before force-killing the child
+
+  -exec-reload-signal=<signal>
+      Signal to send when a reload takes place
+
+  -exec-splay=<duration>
+      Amount of time to wait before sending signals
+
+  -log-level=<level>
+      Set the logging level - values are "debug", "info", "warn", and "err"
+
+  -max-stale=<duration>
+      Set the maximum staleness and allow stale queries to Consul which will
+      distribute work among all servers instead of just the leader
+
+  -once
+      Do not run the process as a daemon
+
+  -pid-file=<path>
+      Path on disk to write the PID of the process
+
+  -retry=<duration>
+      The amount of time to wait if Consul returns an error when communicating
+      with the API
+
+  -ssl
+      Use SSL when connecting to Consul
+
+  -ssl-ca-cert
+      Validate server certificate against this CA certificate file list
+
+  -ssl-cert
+      SSL client certificate to send to server
+
+  -ssl-key
+      SSL/TLS private key for use in client authentication key exchange
+
+  -ssl-verify
+      Verify certificates when connecting via SSL
+
+  -syslog
+      Send the output to syslog instead of standard error and standard out. The
+      syslog facility defaults to LOCAL0 and can be changed using a
+      configuration file
+
+  -syslog-facility=<facility>
+      Set the facility where syslog should log - if this attribute is supplied,
+      the -syslog flag must also be supplied
+
+  -template=<template>
+       Adds a new template to watch on disk in the format 'in:out(:command)'
+
+  -token=<token>
+      Sets the Consul API token
+
+  -wait=<duration>
+      Sets the 'min(:max)' amount of time to wait before writing a template (and
+      triggering a command)
+
+  -v, -version
+      Print the version of this daemon
 `
