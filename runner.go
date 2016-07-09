@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	dep "github.com/hashicorp/consul-template/dependency"
@@ -66,6 +67,9 @@ type Runner struct {
 
 	// brain is the internal storage database of returned dependency data.
 	brain *Brain
+
+	// cmd is the last known instance of the running command.
+	cmd *exec.Cmd
 
 	// quiescenceMap is the map of templates to their quiescence timers.
 	// quiescenceCh is the channel where templates report returns from quiescence
@@ -269,6 +273,26 @@ func (r *Runner) Receive(d dep.Dependency, data interface{}) {
 		log.Printf("[DEBUG] (runner) receiving dependency %s", d.Display())
 		r.brain.Remember(d, data)
 	}
+}
+
+// Signal sends a signal to the child process, if it exists. Any errors that
+// occur are returned.
+func (r *Runner) Signal(sig os.Signal) error {
+	// Do nothing if we aren't in exec mode - there will be no subprocess to
+	// forward a signal to.
+	if r.config.Exec.Command == "" {
+		return nil
+	}
+
+	log.Printf("[DEBUG] (runner) proxying signal %s", sig.String())
+
+	if r.cmd == nil || r.cmd.Process == nil {
+		log.Printf("[WARN] (runner) attempted to send %s to subprocess, "+
+			"but it does not exist", sig.String())
+		return nil
+	}
+
+	return r.cmd.Process.Signal(sig)
 }
 
 // Run iterates over each template in this Runner and conditionally executes

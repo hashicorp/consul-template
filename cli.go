@@ -94,12 +94,7 @@ func (cli *CLI) Run(args []string) int {
 
 	// Listen for signals
 	signalCh := make(chan os.Signal, 1)
-	signal.Notify(signalCh,
-		syscall.SIGHUP,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGQUIT,
-	)
+	signal.Notify(signalCh, Signals...)
 
 	for {
 		select {
@@ -108,6 +103,8 @@ func (cli *CLI) Run(args []string) int {
 		case <-runner.DoneCh:
 			return ExitCodeOK
 		case s := <-signalCh:
+			// Propogate the signal to the child process
+			runner.Signal(s)
 			switch s {
 			case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
 				fmt.Fprintf(cli.errStream, "Received interrupt, cleaning up...\n")
