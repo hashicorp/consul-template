@@ -4,7 +4,6 @@ import (
 	"os"
 	"reflect"
 	"strconv"
-	"syscall"
 
 	"github.com/mitchellh/mapstructure"
 )
@@ -42,9 +41,11 @@ func StringToSignalFunc() mapstructure.DecodeHookFunc {
 		if f.Kind() != reflect.String {
 			return data, nil
 		}
-		if t != reflect.TypeOf(syscall.SIGINT) {
+
+		if t.String() != "os.Signal" {
 			return data, nil
 		}
+
 		return ParseSignal(data.(string))
 	}
 }
