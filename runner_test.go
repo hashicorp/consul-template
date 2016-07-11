@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -1352,4 +1353,89 @@ func TestRunner_dedup(t *testing.T) {
 	if total > 1 {
 		t.Fatalf("too many watchers: %d", total)
 	}
+}
+
+func TestRunner_exec(t *testing.T) {
+	consul := testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
+		c.Stdout = ioutil.Discard
+		c.Stderr = ioutil.Discard
+	})
+	defer consul.Stop()
+
+	in := test.CreateTempfile(nil, t)
+	defer test.DeleteTempfile(in, t)
+
+	out := test.CreateTempfile(nil, t)
+	defer test.DeleteTempfile(out, t)
+
+	// Create a tiny bash script for us to run as a "program"
+	script := test.CreateTempfile([]byte(strings.TrimSpace(fmt.Sprintf(`
+#!/usr/bin/env bash
+trap "echo 'one' >> %s" SIGUSR1
+trap "echo 'two' >> %s" SIGUSR2
+
+while true; do
+	: # Hang
+done
+	`, out.Name(), out.Name()))), t)
+	if err := os.Chmod(script.Name(), 0700); err != nil {
+		t.Fatal(err)
+	}
+	defer test.DeleteTempfile(script, t)
+
+	config := testConfig(fmt.Sprintf(`
+		consul = "%s"
+
+		template {
+			source = "%s"
+		}
+
+		exec {
+			command       = "%s"
+			reload_signal = "sigusr1"
+			kill_signal   = "sigusr2"
+
+			# We used SIGUSR2 to check, so there's force-kill shortly to make the
+			# test faster.
+			kill_timeout  = "1ms"
+		}
+	`, consul.HTTPAddr, in.Name(), script.Name()), t)
+
+	runner, err := NewRunner(config, true, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	go runner.Start()
+	defer runner.Stop()
+
+	doneCh := make(chan struct{}, 1)
+	go func() {
+		for {
+			if runner.cmd != nil && runner.cmd.Process != nil {
+				close(doneCh)
+				return
+			}
+			time.Sleep(50 * time.Millisecond)
+		}
+	}()
+
+	select {
+	case err := <-runner.ErrCh:
+		t.Fatal(err)
+	case <-doneCh:
+		// Childprocess is started, we can send it signals now
+	case <-time.After(2 * time.Second):
+		t.Fatal("child process should have started")
+	}
+
+	if err := runner.Signal(syscall.SIGUSR1); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := runner.Signal(syscall.SIGUSR2); err != nil {
+		t.Fatal(err)
+	}
+
+	test.WaitForFileContents(out.Name(), []byte("one\ntwo\n"), t)
 }
