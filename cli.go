@@ -94,7 +94,7 @@ func (cli *CLI) Run(args []string) int {
 
 	// Listen for signals
 	signalCh := make(chan os.Signal, 1)
-	signal.Notify(signalCh, Signals...)
+	signal.Notify(signalCh)
 
 	for {
 		select {
