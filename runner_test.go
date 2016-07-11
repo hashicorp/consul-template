@@ -1437,5 +1437,15 @@ done
 		t.Fatal(err)
 	}
 
-	test.WaitForFileContents(out.Name(), []byte("one\ntwo\n"), t)
+	time.Sleep(3 * time.Second)
+
+	c, err := ioutil.ReadFile(out.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "one\ntwo"
+	if !strings.Contains(string(c), expected) {
+		t.Errorf("expected %q to contain %q", c, expected)
+	}
 }
