@@ -7,20 +7,33 @@ import (
 	"syscall"
 )
 
-var Signals = []os.Signal{
-	syscall.SIGHUP,  // Hangup detected on controlling terminalor death of controlling process
-	syscall.SIGINT,  // Interrupt from keyboard
-	syscall.SIGQUIT, // Quit from keyboard
-	syscall.SIGTERM, // Termination signal
-	syscall.SIGUSR1, // User-defined signal 1
-	syscall.SIGUSR2, // User-defined signal 2
-}
-
 var SignalLookup = map[string]os.Signal{
+	"SIGABRT": syscall.SIGABRT,
+	"SIGALRM": syscall.SIGALRM,
+	"SIGBUS":  syscall.SIGBUS,
+	"SIGCHLD": syscall.SIGCHLD,
+	"SIGCONT": syscall.SIGCONT,
+	"SIGFPE":  syscall.SIGFPE,
 	"SIGHUP":  syscall.SIGHUP,
+	"SIGILL":  syscall.SIGILL,
 	"SIGINT":  syscall.SIGINT,
+	"SIGIO":   syscall.SIGIO,
+	"SIGIOT":  syscall.SIGIOT,
+	"SIGKILL": syscall.SIGKILL,
+	"SIGPIPE": syscall.SIGPIPE,
+	"SIGPROF": syscall.SIGPROF,
 	"SIGQUIT": syscall.SIGQUIT,
+	"SIGSEGV": syscall.SIGSEGV,
+	"SIGSTOP": syscall.SIGSTOP,
+	"SIGSYS":  syscall.SIGSYS,
 	"SIGTERM": syscall.SIGTERM,
+	"SIGTRAP": syscall.SIGTRAP,
+	"SIGTSTP": syscall.SIGTSTP,
+	"SIGTTIN": syscall.SIGTTIN,
+	"SIGTTOU": syscall.SIGTTOU,
+	"SIGURG":  syscall.SIGURG,
 	"SIGUSR1": syscall.SIGUSR1,
 	"SIGUSR2": syscall.SIGUSR2,
+	"SIGXCPU": syscall.SIGXCPU,
+	"SIGXFSZ": syscall.SIGXFSZ,
 }

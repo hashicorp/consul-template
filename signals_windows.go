@@ -1,4 +1,4 @@
-// +build windows plan9
+// +build windows
 
 package main
 
@@ -7,16 +7,18 @@ import (
 	"syscall"
 )
 
-var Signals = []os.Signal{
-	syscall.SIGHUP,
-	syscall.SIGINT,
-	syscall.SIGTERM,
-	syscall.SIGQUIT,
-}
-
 var SignalLookup = map[string]os.Signal{
+	"SIGABRT": syscall.SIGABRT,
+	"SIGALRM": syscall.SIGALRM,
+	"SIGBUS":  syscall.SIGBUS,
+	"SIGFPE":  syscall.SIGFPE,
 	"SIGHUP":  syscall.SIGHUP,
+	"SIGILL":  syscall.SIGILL,
 	"SIGINT":  syscall.SIGINT,
-	"SIGTERM": syscall.SIGTERM,
+	"SIGKILL": syscall.SIGKILL,
+	"SIGPIPE": syscall.SIGPIPE,
 	"SIGQUIT": syscall.SIGQUIT,
+	"SIGSEGV": syscall.SIGSEGV,
+	"SIGTERM": syscall.SIGTERM,
+	"SIGTRAP": syscall.SIGTRAP,
 }
