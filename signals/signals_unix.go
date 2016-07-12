@@ -1,6 +1,6 @@
 // +build linux darwin freebsd openbsd solaris netbsd
 
-package main
+package signals
 
 import (
 	"os"

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul-template/logging"
+	"github.com/hashicorp/consul-template/signals"
 	"github.com/hashicorp/consul-template/watch"
 )
 
@@ -274,7 +275,7 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	}), "exec-splay", "")
 
 	flags.Var((funcVar)(func(s string) error {
-		sig, err := ParseSignal(s)
+		sig, err := signals.Parse(s)
 		if err != nil {
 			return err
 		}
@@ -284,7 +285,7 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	}), "exec-reload-signal", "")
 
 	flags.Var((funcVar)(func(s string) error {
-		sig, err := ParseSignal(s)
+		sig, err := signals.Parse(s)
 		if err != nil {
 			return err
 		}

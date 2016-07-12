@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/hashicorp/consul-template/signals"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -32,7 +33,8 @@ func StringToFileModeFunc() mapstructure.DecodeHookFunc {
 	}
 }
 
-// StringToSignalFunc parses a string as a signal based on the signal lookup table.
+// StringToSignalFunc parses a string as a signal based on the signal lookup
+// table.
 func StringToSignalFunc() mapstructure.DecodeHookFunc {
 	return func(
 		f reflect.Type,
@@ -46,6 +48,10 @@ func StringToSignalFunc() mapstructure.DecodeHookFunc {
 			return data, nil
 		}
 
-		return ParseSignal(data.(string))
+		if data == nil || data.(string) == "" {
+			return (*os.Signal)(nil), nil
+		}
+
+		return signals.Parse(data.(string))
 	}
 }
