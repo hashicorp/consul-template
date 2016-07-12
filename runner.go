@@ -199,12 +199,6 @@ func (r *Runner) Start() {
 			}
 		}
 
-		// If we are in exec mode and all templates have been rendered, spawn the
-		// child process.
-		if r.config.Exec.Command != "" && r.allTemplatesRendered() {
-
-		}
-
 	OUTER:
 		select {
 		case view := <-r.watcher.DataCh:
