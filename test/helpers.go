@@ -30,29 +30,32 @@ func DeleteTempfile(f *os.File, t *testing.T) {
 	}
 }
 
-func WaitForFileContents(path string, contents []byte, t *testing.T) {
+func WaitForFileContents(path string, expected []byte, t *testing.T) {
 	readCh := make(chan struct{})
+	var last []byte
 
-	go func(ch chan struct{}, path string, contents []byte) {
+	go func(ch chan struct{}, path string, expected []byte) {
 		for {
-			data, err := ioutil.ReadFile(path)
+			actual, err := ioutil.ReadFile(path)
 			if err != nil && !os.IsNotExist(err) {
 				t.Fatal(err)
 				return
 			}
 
-			if bytes.Equal(data, contents) {
+			last = actual
+			if bytes.Equal(actual, expected) {
 				close(readCh)
 				return
 			}
 
 			time.Sleep(50 * time.Millisecond)
 		}
-	}(readCh, path, contents)
+	}(readCh, path, expected)
 
 	select {
 	case <-readCh:
 	case <-time.After(2 * time.Second):
-		t.Fatal("file contents not present after 2 seconds")
+		t.Errorf("contents not present after 2 seconds, expected: %q, actual: %q",
+			expected, last)
 	}
 }
