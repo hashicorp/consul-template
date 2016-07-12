@@ -33,7 +33,7 @@ Usage
 | `exec`            | Start the given command as a child process and proxy signals to that child. See [Exec mode](#exec-mode) below for more information.
 | `exec-kill-signal` | The signal to send to gracefully stop the child process.
 | `exec-kill-timeout` | The duration to wait before force-killing the child process.
-| `exec-reload-signal` | The signal to send to notify the child process that templates have changed.
+| `exec-reload-signal` | The signal to send to notify the child process that templates have changed. The default value is nil, which tells Consul Template to restart the child process instead of sending a reload signal.
 | `exec-splay` | Amount of time (random max) to wait before sending signals to the child process.
 | `log-level`       | The log level for output. This applies to the stdout/stderr logging as well as syslog logging (if enabled). Valid values are "debug", "info", "warn", and "err". The default value is "warn".
 | `max-stale`       | The maximum staleness of a query. If specified, Consul will distribute work among all servers instead of just the leader. The default value is 1s.
@@ -282,7 +282,10 @@ exec {
   // change occurs in a watched template. The signal will only be sent after
   // the process is started, and the process will only be started after all
   // dependent templates have been rendered at least once. The default value
-  // is "SIGHUP".
+  // is "" (empty or nil), which tells Consul Template to restart the child
+  // process instead of sending it a signal. This is useful for legacy
+  // applications or applications that cannot properly reload their
+  // configuration without a full reload.
   reload_signal = "SIGUSR1"
 
   // This defines the signal sent to the child process when Consul Template is
@@ -1178,7 +1181,7 @@ $ consul-template \
     -exec="/bin/my-server -config /tmp/server.conf"
 ```
 
-When Consul Template starts, it will pull the required dependencies and populate the `/tmp/server.conf`, which the `my-server` binary consumes. After that template is rendered completely the first time, Consul Template spawns and manages a child process. When any of the list templates change, Consul Template will send the configurable reload signal to that child process. Additionally, in this mode, Consul Template will proxy any signals it receives to the child process. This enables a scheduler to control the lifecycle of the process and also eases the friction of running inside a container.
+When Consul Template starts, it will pull the required dependencies and populate the `/tmp/server.conf`, which the `my-server` binary consumes. After that template is rendered completely the first time, Consul Template spawns and manages a child process. When any of the list templates change, Consul Template will send the configurable reload signal to that child process. If no reload signal is provided, Consul Template will kill and restart the process. Additionally, in this mode, Consul Template will proxy any signals it receives to the child process. This enables a scheduler to control the lifecycle of the process and also eases the friction of running inside a container.
 
 A common point of confusion is that the command string behaves the same as the shell; it does not. In the shell, when you run `foo | bar` or `foo > bar`, that is actually running as a subprocess of your shell (bash, zsh, csh, etc.). When Consul Template spawns the exec process, it runs outside of your shell. This behavior is _different_ from when Consul Template executes the template-specific reload command. If you want the ability to pipe or redirect in the exec command, you will need to spawn the process in subshell, for example:
 
@@ -1211,7 +1214,7 @@ There are some additional caveats with Exec Mode, which should be considered car
 - If the child process dies, the Consul Template process will also die. Consul Template **does not supervise the process!** This is generally the responsibility of the scheduler or init system.
 - The child process must remain in the foreground. This is a requirement for Consul Template to manage the process and send signals.
 - The exec command will only start after _all_ templates have been rendered at least once. One may have multiple templates for a single Consul Template process, all of which must be rendered before the process starts. Consider something like an nginx or apache configuration where both the process configuration file and individual site configuration must be written in order for the service to successfully start.
-- After the child process is started, any change to any dependent template will cause the reload signal to be sent to the child process. This reload signal defaults to SIGHUP, but can be customizing via the CLI or configuration file.
+- After the child process is started, any change to any dependent template will cause the reload signal to be sent to the child process. This reload signal defaults to nil, in which Consul Template will not kill and respawn the child. The reload signal can be specified and customized via the CLI or configuration file.
 - When Consul Template is stopped gracefully, it will send the configurable kill signal to the child process. The default value is SIGTERM, but it can be customized via the CLI or configuration file.
 - It is not possible to have more than one exec command (although each template can still have its own reload command).
 - Individual template reload commands still fire independently of the exec command.

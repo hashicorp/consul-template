@@ -589,9 +589,8 @@ func DefaultConfig() *Config {
 			TTL:     15 * time.Second,
 		},
 		Exec: &ExecConfig{
-			ReloadSignal: syscall.SIGHUP,
-			KillSignal:   syscall.SIGTERM,
-			KillTimeout:  30 * time.Second,
+			KillSignal:  syscall.SIGTERM,
+			KillTimeout: 30 * time.Second,
 		},
 		ConfigTemplates: make([]*ConfigTemplate, 0),
 		Retry:           5 * time.Second,

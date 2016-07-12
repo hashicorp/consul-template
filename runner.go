@@ -7,16 +7,15 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"math/rand"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
+	"github.com/hashicorp/consul-template/child"
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul-template/watch"
 	"github.com/hashicorp/go-multierror"
@@ -73,8 +72,9 @@ type Runner struct {
 	// brain is the internal storage database of returned dependency data.
 	brain *Brain
 
-	// cmd is the last known instance of the running command.
-	cmd *exec.Cmd
+	// child is the child process under management. This may be nil if not running
+	// in exec mode.
+	child *child.Child
 
 	// quiescenceMap is the map of templates to their quiescence timers.
 	// quiescenceCh is the channel where templates report returns from quiescence
@@ -173,29 +173,33 @@ func (r *Runner) Start() {
 		}
 
 		if r.allTemplatesRendered() {
+			// If an exec command was given and a command is not currently running,
+			// spawn the child process for supervision.
+			if r.config.Exec.Command != "" {
+				if r.child == nil {
+					if err := r.spawnChild(); err != nil {
+						r.ErrCh <- err
+						return
+					}
+				}
+
+				// It's possible that we didn't start a process, in which case no
+				// channel is returned. If we did get a new exitCh, that means a child
+				// was spawned, so we need to watch a new exitCh. It is also possible
+				// that during a run, the child process was restarted, which means a
+				// new exit channel should be used.
+				nexitCh := r.child.ExitCh()
+				if nexitCh != nil {
+					childExitCh = nexitCh
+				}
+			}
+
 			// If we are running in once mode and all our templates are rendered,
 			// then we should exit here.
 			if r.once {
 				log.Printf("[INFO] (runner) once mode and all templates rendered")
 				r.Stop()
 				return
-			}
-
-			// If an exec command was given and a command is not currently running,
-			// spawn the child process for supervision.
-			if r.config.Exec.Command != "" && r.cmd == nil {
-				nexitCh, err := r.spawnChild()
-				if err != nil {
-					r.ErrCh <- err
-					return
-				}
-
-				// It's possible that we didn't start a process, in which case no
-				// channel is returned. If we did get a new exitCh, that means a child
-				// was spawned, so we need to watch a new exitCh.
-				if nexitCh != nil {
-					childExitCh = nexitCh
-				}
 			}
 		}
 
@@ -277,8 +281,8 @@ func (r *Runner) Stop() {
 	}
 	r.watcher.Stop()
 
-	if r.cmd != nil && r.cmd.Process != nil {
-		r.killChild()
+	if r.child != nil {
+		r.child.Stop()
 	}
 
 	if err := r.deletePid(); err != nil {
@@ -315,22 +319,11 @@ func (r *Runner) Receive(d dep.Dependency, data interface{}) {
 
 // Signal sends a signal to the child process, if it exists. Any errors that
 // occur are returned.
-func (r *Runner) Signal(sig os.Signal) error {
-	// Do nothing if we aren't in exec mode - there will be no subprocess to
-	// forward a signal to.
-	if r.config.Exec.Command == "" {
+func (r *Runner) Signal(s os.Signal) error {
+	if r.child == nil {
 		return nil
 	}
-
-	log.Printf("[DEBUG] (runner) proxying signal %s", sig.String())
-
-	if r.cmd == nil || r.cmd.Process == nil {
-		log.Printf("[WARN] (runner) attempted to send %s to subprocess, "+
-			"but it does not exist", sig.String())
-		return nil
-	}
-
-	return r.cmd.Process.Signal(sig)
+	return r.child.Signal(s)
 }
 
 // Run iterates over each template in this Runner and conditionally executes
@@ -498,8 +491,8 @@ func (r *Runner) Run() error {
 
 	// If we got this far and have a child process, we need to send the reload
 	// signal to the child process.
-	if renderedAny && r.cmd != nil && r.cmd.Process != nil {
-		if err := r.reloadChild(); err != nil {
+	if renderedAny && r.child != nil {
+		if err := r.child.Reload(); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -816,125 +809,36 @@ func (r *Runner) deletePid() error {
 	return nil
 }
 
-// reloadChild sends the reload signal to the child process.
-func (r *Runner) reloadChild() error {
-	log.Printf("[INFO] (runner) reloading child process")
-
-	if r.config.Exec.Splay > 0 {
-		ns := r.config.Exec.Splay.Nanoseconds()
-		offset := rand.Int63n(ns)
-
-		log.Printf("[DEBUG] (runner) waiting %.2fs for random splay",
-			time.Duration(offset).Seconds())
-
-		select {
-		case <-time.After(time.Duration(offset)):
-		case <-r.DoneCh:
-			return nil
-		}
-	}
-
-	return r.cmd.Process.Signal(r.config.Exec.ReloadSignal)
-}
-
-// killChild kills the attached process as part of a graceful shutdown. This
-// function should only be called if there is an attached and running process.
-func (r *Runner) killChild() {
-	log.Printf("[INFO] (runner) killing child process")
-
-	exited := false
-
-	if r.config.Exec.Splay > 0 {
-		ns := r.config.Exec.Splay.Nanoseconds()
-		offset := rand.Int63n(ns)
-
-		log.Printf("[DEBUG] (runner) waiting %.2fs for random splay",
-			time.Duration(offset).Seconds())
-
-		select {
-		case <-time.After(time.Duration(offset)):
-		case <-r.DoneCh:
-			return
-		}
-	}
-
-	if err := r.cmd.Process.Signal(r.config.Exec.KillSignal); err == nil {
-		// Wait a few seconds for it to exit
-		killCh := make(chan struct{})
-		go func() {
-			defer close(killCh)
-			r.cmd.Process.Wait()
-		}()
-
-		select {
-		case <-killCh:
-			exited = true
-		case <-time.After(r.config.Exec.KillTimeout):
-		}
-	}
-
-	if !exited {
-		r.cmd.Process.Kill()
-	}
-
-	r.cmd = nil
-}
-
-// spawnChild creates a new child process and returns the child processes' exit
-// channel. If any errors occur while starting they process, they will be
-// returned here. Any errors that occur after the process starts will be
-// indicated via a bad exit code on the exit channel.
-func (r *Runner) spawnChild() (<-chan int, error) {
-	command := r.config.Exec.Command
-	if len(command) == 0 {
-		return nil, fmt.Errorf("no command given to spawn child: %q", command)
-	}
-
+// spawnChild creates a new child process and stores it on the runner object.
+func (r *Runner) spawnChild() error {
 	p := shellwords.NewParser()
 	p.ParseEnv = true
 	p.ParseBacktick = true
-	args, err := p.Parse(command)
+	args, err := p.Parse(r.config.Exec.Command)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if len(args) < 1 {
-		return nil, fmt.Errorf("missing command")
+	child, err := child.New(&child.NewInput{
+		Stdin:        r.inStream,
+		Stdout:       r.outStream,
+		Stderr:       r.errStream,
+		Command:      args[0],
+		Args:         args[1:],
+		ReloadSignal: r.config.Exec.ReloadSignal,
+		KillSignal:   r.config.Exec.KillSignal,
+		KillTimeout:  r.config.Exec.KillTimeout,
+		Splay:        r.config.Exec.Splay,
+	})
+	if err != nil {
+		return fmt.Errorf("error creating child: %s", err)
 	}
+	r.child = child
 
-	log.Printf("[INFO] (runner) spawning child %q with args %q", args[0], args[1:])
-	cmd := exec.Command(args[0], args[1:]...)
-	cmd.Stdin = r.inStream
-	cmd.Stdout = r.outStream
-	cmd.Stderr = r.errStream
-	if err := cmd.Start(); err != nil {
-		return nil, err
+	if err := r.child.Start(); err != nil {
+		return fmt.Errorf("error starting child: %s", err)
 	}
-
-	r.cmd = cmd
-
-	// Create a new exitCh so that previously invoked commands (if any) don't
-	// cause us to exit, and start a goroutine to wait for that process to end.
-	exitCh := make(chan int, 1)
-	go func() {
-		err := cmd.Wait()
-		if err == nil {
-			exitCh <- ExitCodeOK
-			return
-		}
-
-		if exiterr, ok := err.(*exec.ExitError); ok {
-			// The program has exited with an exit code != 0
-			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
-				exitCh <- status.ExitStatus()
-				return
-			}
-		}
-
-		exitCh <- ExitCodeError
-	}()
-
-	return exitCh, nil
+	return nil
 }
 
 // quiescence is an internal representation of a single template's quiescence

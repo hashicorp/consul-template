@@ -216,7 +216,6 @@ func TestMerge_Exec(t *testing.T) {
 		exec {
 			command       = "a"
 			splay         = "100s"
-			reload_signal = "SIGUSR1"
 			kill_signal   = "SIGUSR2"
 			kill_timeout  = "10s"
 		}
@@ -229,11 +228,10 @@ func TestMerge_Exec(t *testing.T) {
 	`, t))
 
 	expected := &ExecConfig{
-		Command:      "b",
-		Splay:        50 * time.Second,
-		ReloadSignal: syscall.SIGUSR1,
-		KillSignal:   syscall.SIGUSR2,
-		KillTimeout:  10 * time.Second,
+		Command:     "b",
+		Splay:       50 * time.Second,
+		KillSignal:  syscall.SIGUSR2,
+		KillTimeout: 10 * time.Second,
 	}
 
 	if !reflect.DeepEqual(config.Exec, expected) {
@@ -434,6 +432,12 @@ func TestParseConfig_correctValues(t *testing.T) {
 			facility = "LOCAL5"
 		}
 
+		exec {
+			reload_signal = "SIGUSR1"
+			kill_signal = "SIGUSR2"
+			kill_timeout = "100ms"
+		}
+
 		template {
 			source = "nginx.conf.ctmpl"
 			destination  = "/etc/nginx/nginx.conf"
@@ -497,9 +501,9 @@ func TestParseConfig_correctValues(t *testing.T) {
 			Max: time.Second * 10,
 		},
 		Exec: &ExecConfig{
-			ReloadSignal: syscall.SIGHUP,
-			KillSignal:   syscall.SIGTERM,
-			KillTimeout:  30 * time.Second,
+			ReloadSignal: syscall.SIGUSR1,
+			KillSignal:   syscall.SIGUSR2,
+			KillTimeout:  100 * time.Millisecond,
 		},
 		Retry:    10 * time.Second,
 		LogLevel: "warn",

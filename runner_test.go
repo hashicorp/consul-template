@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
-	"syscall"
 	"testing"
 	"time"
 
@@ -1355,18 +1354,20 @@ func TestRunner_dedup(t *testing.T) {
 	}
 }
 
-func TestRunner_exec(t *testing.T) {
+func TestRunner_execReload(t *testing.T) {
+	t.Parallel()
+
 	consul := testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
 		c.Stdout = ioutil.Discard
 		c.Stderr = ioutil.Discard
 	})
 	defer consul.Stop()
 
-	in := test.CreateTempfile(nil, t)
-	defer test.DeleteTempfile(in, t)
-
 	out := test.CreateTempfile(nil, t)
 	defer test.DeleteTempfile(out, t)
+
+	tmpl := test.CreateTempfile([]byte(`{{ key "foo" }}`), t)
+	defer test.DeleteTempfile(tmpl, t)
 
 	// Create a tiny bash script for us to run as a "program"
 	script := test.CreateTempfile([]byte(strings.TrimSpace(fmt.Sprintf(`
@@ -1397,9 +1398,9 @@ done
 
 			# We used SIGUSR2 to check, so there's force-kill shortly to make the
 			# test faster.
-			kill_timeout  = "1ms"
+			kill_timeout  = "10ms"
 		}
-	`, consul.HTTPAddr, in.Name(), script.Name()), t)
+	`, consul.HTTPAddr, tmpl.Name(), script.Name()), t)
 
 	runner, err := NewRunner(config, true, false)
 	if err != nil {
@@ -1412,7 +1413,7 @@ done
 	doneCh := make(chan struct{}, 1)
 	go func() {
 		for {
-			if runner.cmd != nil && runner.cmd.Process != nil {
+			if runner.child != nil {
 				close(doneCh)
 				return
 			}
@@ -1429,23 +1430,108 @@ done
 		t.Fatal("child process should have started")
 	}
 
-	if err := runner.Signal(syscall.SIGUSR1); err != nil {
-		t.Fatal(err)
+	// Grab the current child pid - this will help us confirm the child was not
+	// restarted on template change.
+	opid := runner.child.Pid()
+
+	// Change a dependent value in Consul, which will force the runner to cycle.
+	consul.SetKV("foo", []byte("bar"))
+
+	// Check that the reload signal was sent.
+	test.WaitForFileContents(out.Name(), []byte("one\n"), t)
+
+	npid := runner.child.Pid()
+	if opid != npid {
+		t.Errorf("expected %d to be the same as %d", opid, npid)
 	}
 
-	if err := runner.Signal(syscall.SIGUSR2); err != nil {
+	// Kill the child to check that the kill signal is properly sent.
+	runner.child.Stop()
+
+	test.WaitForFileContents(out.Name(), []byte("one\ntwo\n"), t)
+}
+
+func TestRunner_execRestart(t *testing.T) {
+	t.Parallel()
+
+	consul := testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
+		c.Stdout = ioutil.Discard
+		c.Stderr = ioutil.Discard
+	})
+	defer consul.Stop()
+
+	tmpl := test.CreateTempfile([]byte(`{{ key "foo" }}`), t)
+	defer test.DeleteTempfile(tmpl, t)
+
+	out := test.CreateTempfile(nil, t)
+	defer test.DeleteTempfile(out, t)
+
+	// Create a tiny bash script for us to run as a "program"
+	script := test.CreateTempfile([]byte(strings.TrimSpace(`
+#!/usr/bin/env bash
+while true; do
+	: # Hang
+done
+	`)), t)
+	if err := os.Chmod(script.Name(), 0700); err != nil {
 		t.Fatal(err)
 	}
+	defer test.DeleteTempfile(script, t)
 
-	time.Sleep(3 * time.Second)
+	config := testConfig(fmt.Sprintf(`
+		consul = "%s"
 
-	c, err := ioutil.ReadFile(out.Name())
+		template {
+			source      = "%s"
+			destination = "%s"
+		}
+
+		exec {
+			command      = "%s"
+			kill_timeout = "10ms" # Faster tests
+		}
+	`, consul.HTTPAddr, tmpl.Name(), out.Name(), script.Name()), t)
+
+	runner, err := NewRunner(config, true, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expected := "one\ntwo"
-	if !strings.Contains(string(c), expected) {
-		t.Errorf("expected %q to contain %q", c, expected)
+	go runner.Start()
+	defer runner.Stop()
+
+	doneCh := make(chan struct{}, 1)
+	go func() {
+		for {
+			if runner.child != nil {
+				close(doneCh)
+				return
+			}
+			time.Sleep(50 * time.Millisecond)
+		}
+	}()
+
+	select {
+	case err := <-runner.ErrCh:
+		t.Fatal(err)
+	case <-doneCh:
+		// Childprocess is started, we can send it signals now
+	case <-time.After(2 * time.Second):
+		t.Fatal("child process should have started")
+	}
+
+	// Grab the current child pid - this will help us confirm the child was
+	// restarted on template change.
+	opid := runner.child.Pid()
+
+	// Change a dependent value in Consul, which will force the runner to cycle.
+	consul.SetKV("foo", []byte("bar"))
+
+	// Give the runner time to do its thing.
+	time.Sleep(1 * time.Second)
+
+	npid := runner.child.Pid()
+	if opid == npid {
+		t.Errorf("expected %d to be different from %d", opid, npid)
 	}
 }
