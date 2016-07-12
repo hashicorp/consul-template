@@ -1168,7 +1168,7 @@ Caveats
 -------
 ### Exec Mode
 
-As of version 0.16.0, Consul Template has the ability to maintain an arbitrary child process (similar to [envconsul](https://github.com/hashicorp/envconsul)). This mode is most beneficial when running Consul Template in a container or cgroup, particularly on a scheduler like [Nomad](https://www.nomadproject.io) or Kubernetes. When activated, Consul Template will spawn and manage the lifecycle of the child process.
+As of version 0.16.0, Consul Template has the ability to maintain an arbitrary child process (similar to [envconsul](https://github.com/hashicorp/envconsul)). This mode is most beneficial when running Consul Template in a container or on a scheduler like [Nomad](https://www.nomadproject.io) or Kubernetes. When activated, Consul Template will spawn and manage the lifecycle of the child process.
 
 This mode is best-explained through example. Consider a simple application that reads a configuration file from disk and spawns a server from that configuration.
 
