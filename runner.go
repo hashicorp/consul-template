@@ -836,6 +836,7 @@ func (r *Runner) reloadChild() error {
 		select {
 		case <-time.After(time.Duration(offset)):
 		case <-r.DoneCh:
+			return nil
 		}
 	}
 
@@ -859,6 +860,7 @@ func (r *Runner) killChild() {
 		select {
 		case <-time.After(time.Duration(offset)):
 		case <-r.DoneCh:
+			return
 		}
 	}
 
