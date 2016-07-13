@@ -25,7 +25,7 @@ GIT_DIRTY=$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 # Determine the arch/os combos we're building for
 XC_ARCH=${XC_ARCH:-"386 amd64 arm"}
 XC_OS=${XC_OS:-"darwin freebsd linux netbsd openbsd solaris windows"}
-XC_EXCLUDE=${XC_EXCLUDE:-""}
+XC_EXCLUDE=${XC_EXCLUDE:-"!darwin/arm"}
 
 # Delete the old dir
 echo "==> Removing old builds..."
