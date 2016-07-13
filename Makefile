@@ -1,6 +1,8 @@
 TEST?=./...
-NAME?=$(shell basename "${CURDIR}")
-VERSION = $(shell awk -F\" '/^const Version/ { print $$2; exit }' main.go)
+NAME?=$(shell awk -F\" '/^\tName/ { print $$2; exit }' version.go)
+VERSIONMAJ?=$(shell awk -F\" '/^\tVersion/ { print $$2; exit }' version.go)
+VERSIONPRE?=$(shell awk -F\" '/^\tVersionPrerelease/ { print $$2; exit }' version.go)
+VERSION?=$(shell if [ "${VERSIONPRE}x" != x ]; then echo "${VERSIONMAJ}-${VERSIONPRE}"; else echo "${VERSIONMAJ}"; fi)
 EXTERNAL_TOOLS=\
 	github.com/mitchellh/gox
 
