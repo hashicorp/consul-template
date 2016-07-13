@@ -294,6 +294,7 @@ func (c *Child) kill() {
 	}
 
 	exited := false
+	process := c.cmd.Process
 
 	select {
 	case <-c.stopCh:
@@ -301,15 +302,16 @@ func (c *Child) kill() {
 	}
 
 	if c.killSignal != nil {
-		if err := c.cmd.Process.Signal(c.killSignal); err == nil {
+		if err := process.Signal(c.killSignal); err == nil {
 			// Wait a few seconds for it to exit
-			killCh := make(chan struct{})
+			killCh := make(chan struct{}, 1)
 			go func() {
 				defer close(killCh)
-				c.cmd.Process.Wait()
+				process.Wait()
 			}()
 
 			select {
+			case <-c.stopCh:
 			case <-killCh:
 				exited = true
 			case <-time.After(c.killTimeout):
@@ -318,7 +320,7 @@ func (c *Child) kill() {
 	}
 
 	if !exited {
-		c.cmd.Process.Kill()
+		process.Kill()
 	}
 
 	c.cmd = nil
