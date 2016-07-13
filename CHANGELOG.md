@@ -3,6 +3,20 @@ Consul Template Changelog
 
 ## v0.15.1.dev (Unreleased)
 
+NEW FEATURES:
+
+  * **Exec Mode!** Consul Template can now act as a faux-supervisor for
+      applications. Please see the [Exec Mode](README.md#exec-mode)
+      documentation for more information.
+
+IMPROVEMENTS:
+
+  * Permit commas in key prefix names [GH-669]
+
+BUG FIXES:
+
+  * Allow variadic template function for `secret` [GH-660, GH-662]
+
 ## v0.15.0.dev (June 9, 2016)
 
 BREAKING CHANGES:
