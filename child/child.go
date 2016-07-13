@@ -48,7 +48,7 @@ type Child struct {
 	// exitCh is the channel where the processes exit will be returned.
 	exitCh chan int
 
-	// stopLock is the mutext to lock when stopping. stopCh is the circuit breaker
+	// stopLock is the mutex to lock when stopping. stopCh is the circuit breaker
 	// to force-terminate any waiting splays to kill the process now. stopped is
 	// a boolean that tells us if we have previously been stopped.
 	stopLock sync.RWMutex
@@ -185,7 +185,7 @@ func (c *Child) Reload() error {
 // Kill sends the kill signal to the child process and waits for successful
 // termination. If no kill signal is defined, the process is killed with the
 // most aggressive kill signal. If the process does not gracefully stop within
-// the provided KillTimeout, the process is force-killed. If a splay wa
+// the provided KillTimeout, the process is force-killed. If a splay was
 // provided, this function will sleep for a random period of time between 0 and
 // the provided splay value to reduce the thundering herd problem. This function
 // does not return any errors because it guarantees the process will be dead by
