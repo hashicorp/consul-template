@@ -316,6 +316,99 @@ func TestParseFlags_dedup(t *testing.T) {
 	}
 }
 
+func TestParseFlags_exec(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-exec", "/bin/bar",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "/bin/bar"
+	if config.Exec.Command != "/bin/bar" {
+		t.Errorf("expected %v to be %v", config.Exec.Command, expected)
+	}
+	if !config.WasSet("exec") {
+		t.Errorf("expected exec to be set")
+	}
+	if !config.WasSet("exec.command") {
+		t.Errorf("expected exec.command to be set")
+	}
+}
+
+func TestParseFlags_execKillSignal(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-exec-kill-signal", "SIGINT",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := syscall.SIGINT
+	if config.Exec.KillSignal != expected {
+		t.Errorf("expected %v to be %v", config.Exec.KillSignal, expected)
+	}
+	if !config.WasSet("exec.kill_signal") {
+		t.Errorf("expected exec.kill_signal to be set")
+	}
+}
+
+func TestParseFlags_execKillTimeout(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-exec-kill-timeout", "30s",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := 30 * time.Second
+	if config.Exec.KillTimeout != expected {
+		t.Errorf("expected %v to be %v", config.Exec.KillTimeout, expected)
+	}
+	if !config.WasSet("exec.kill_timeout") {
+		t.Errorf("expected exec.kill_timeout to be set")
+	}
+}
+
+func TestParseFlags_execReloadSignal(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-exec-reload-signal", "SIGUSR2",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := syscall.SIGUSR2
+	if config.Exec.ReloadSignal != expected {
+		t.Errorf("expected %v to be %v", config.Exec.ReloadSignal, expected)
+	}
+	if !config.WasSet("exec.reload_signal") {
+		t.Errorf("expected exec.reload_signal to be set")
+	}
+}
+
+func TestParseFlags_execSplay(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-exec-splay", "100ms",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := 100 * time.Millisecond
+	if config.Exec.Splay != expected {
+		t.Errorf("expected %v to be %v", config.Exec.Splay, expected)
+	}
+	if !config.WasSet("exec.splay") {
+		t.Errorf("expected exec.splay to be set")
+	}
+}
+
 func TestParseFlags_syslog(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
 	config, _, _, _, err := cli.parseFlags([]string{

@@ -1353,3 +1353,185 @@ func TestRunner_dedup(t *testing.T) {
 		t.Fatalf("too many watchers: %d", total)
 	}
 }
+
+func TestRunner_execReload(t *testing.T) {
+	t.Parallel()
+
+	consul := testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
+		c.Stdout = ioutil.Discard
+		c.Stderr = ioutil.Discard
+	})
+	defer consul.Stop()
+
+	out := test.CreateTempfile(nil, t)
+	defer test.DeleteTempfile(out, t)
+
+	tmpl := test.CreateTempfile([]byte(`{{ key "foo" }}`), t)
+	defer test.DeleteTempfile(tmpl, t)
+
+	// Create a tiny bash script for us to run as a "program"
+	script := test.CreateTempfile([]byte(strings.TrimSpace(fmt.Sprintf(`
+#!/usr/bin/env bash
+trap "echo 'one' >> %s" SIGUSR1
+trap "echo 'two' >> %s" SIGUSR2
+
+while true; do
+	: # Hang
+done
+	`, out.Name(), out.Name()))), t)
+	if err := os.Chmod(script.Name(), 0700); err != nil {
+		t.Fatal(err)
+	}
+	defer test.DeleteTempfile(script, t)
+
+	config := testConfig(fmt.Sprintf(`
+		consul = "%s"
+
+		template {
+			source = "%s"
+		}
+
+		exec {
+			command       = "%s"
+			reload_signal = "sigusr1"
+			kill_signal   = "sigusr2"
+
+			# We used SIGUSR2 to check, so there's force-kill shortly to make the
+			# test faster.
+			kill_timeout  = "10ms"
+		}
+	`, consul.HTTPAddr, tmpl.Name(), script.Name()), t)
+
+	runner, err := NewRunner(config, true, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	go runner.Start()
+	defer runner.Stop()
+
+	doneCh := make(chan struct{}, 1)
+	go func() {
+		for {
+			if runner.child != nil {
+				close(doneCh)
+				return
+			}
+			time.Sleep(50 * time.Millisecond)
+		}
+	}()
+
+	select {
+	case err := <-runner.ErrCh:
+		t.Fatal(err)
+	case <-doneCh:
+		// Childprocess is started, we can send it signals now
+	case <-time.After(2 * time.Second):
+		t.Fatal("child process should have started")
+	}
+
+	// Grab the current child pid - this will help us confirm the child was not
+	// restarted on template change.
+	opid := runner.child.Pid()
+
+	// Change a dependent value in Consul, which will force the runner to cycle.
+	consul.SetKV("foo", []byte("bar"))
+
+	// Check that the reload signal was sent.
+	test.WaitForFileContents(out.Name(), []byte("one\n"), t)
+
+	npid := runner.child.Pid()
+	if opid != npid {
+		t.Errorf("expected %d to be the same as %d", opid, npid)
+	}
+
+	// Kill the child to check that the kill signal is properly sent.
+	runner.child.Stop()
+
+	test.WaitForFileContents(out.Name(), []byte("one\ntwo\n"), t)
+}
+
+func TestRunner_execRestart(t *testing.T) {
+	t.Parallel()
+
+	consul := testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
+		c.Stdout = ioutil.Discard
+		c.Stderr = ioutil.Discard
+	})
+	defer consul.Stop()
+
+	tmpl := test.CreateTempfile([]byte(`{{ key "foo" }}`), t)
+	defer test.DeleteTempfile(tmpl, t)
+
+	out := test.CreateTempfile(nil, t)
+	defer test.DeleteTempfile(out, t)
+
+	// Create a tiny bash script for us to run as a "program"
+	script := test.CreateTempfile([]byte(strings.TrimSpace(`
+#!/usr/bin/env bash
+while true; do
+	: # Hang
+done
+	`)), t)
+	if err := os.Chmod(script.Name(), 0700); err != nil {
+		t.Fatal(err)
+	}
+	defer test.DeleteTempfile(script, t)
+
+	config := testConfig(fmt.Sprintf(`
+		consul = "%s"
+
+		template {
+			source      = "%s"
+			destination = "%s"
+		}
+
+		exec {
+			command      = "%s"
+			kill_timeout = "10ms" # Faster tests
+		}
+	`, consul.HTTPAddr, tmpl.Name(), out.Name(), script.Name()), t)
+
+	runner, err := NewRunner(config, true, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	go runner.Start()
+	defer runner.Stop()
+
+	doneCh := make(chan struct{}, 1)
+	go func() {
+		for {
+			if runner.child != nil {
+				close(doneCh)
+				return
+			}
+			time.Sleep(50 * time.Millisecond)
+		}
+	}()
+
+	select {
+	case err := <-runner.ErrCh:
+		t.Fatal(err)
+	case <-doneCh:
+		// Childprocess is started, we can send it signals now
+	case <-time.After(2 * time.Second):
+		t.Fatal("child process should have started")
+	}
+
+	// Grab the current child pid - this will help us confirm the child was
+	// restarted on template change.
+	opid := runner.child.Pid()
+
+	// Change a dependent value in Consul, which will force the runner to cycle.
+	consul.SetKV("foo", []byte("bar"))
+
+	// Give the runner time to do its thing.
+	time.Sleep(1 * time.Second)
+
+	npid := runner.child.Pid()
+	if opid == npid {
+		t.Errorf("expected %d to be different from %d", opid, npid)
+	}
+}

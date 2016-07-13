@@ -7,6 +7,7 @@ import (
 	"path"
 	"reflect"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -210,6 +211,34 @@ func TestMerge_SSL(t *testing.T) {
 	}
 }
 
+func TestMerge_Exec(t *testing.T) {
+	config := testConfig(`
+		exec {
+			command       = "a"
+			splay         = "100s"
+			kill_signal   = "SIGUSR2"
+			kill_timeout  = "10s"
+		}
+	`, t)
+	config.Merge(testConfig(`
+		exec {
+			command = "b"
+			splay   = "50s"
+		}
+	`, t))
+
+	expected := &ExecConfig{
+		Command:     "b",
+		Splay:       50 * time.Second,
+		KillSignal:  syscall.SIGUSR2,
+		KillTimeout: 10 * time.Second,
+	}
+
+	if !reflect.DeepEqual(config.Exec, expected) {
+		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config.Exec, expected)
+	}
+}
+
 func TestMerge_syslog(t *testing.T) {
 	config := testConfig(`
 		syslog {
@@ -403,6 +432,12 @@ func TestParseConfig_correctValues(t *testing.T) {
 			facility = "LOCAL5"
 		}
 
+		exec {
+			reload_signal = "SIGUSR1"
+			kill_signal = "SIGUSR2"
+			kill_timeout = "100ms"
+		}
+
 		template {
 			source = "nginx.conf.ctmpl"
 			destination  = "/etc/nginx/nginx.conf"
@@ -464,6 +499,11 @@ func TestParseConfig_correctValues(t *testing.T) {
 		Wait: &watch.Wait{
 			Min: time.Second * 5,
 			Max: time.Second * 10,
+		},
+		Exec: &ExecConfig{
+			ReloadSignal: syscall.SIGUSR1,
+			KillSignal:   syscall.SIGUSR2,
+			KillTimeout:  100 * time.Millisecond,
 		},
 		Retry:    10 * time.Second,
 		LogLevel: "warn",

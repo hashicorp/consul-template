@@ -1,6 +1,7 @@
 package logical
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"time"
@@ -34,6 +35,14 @@ type WrapInfo struct {
 
 	// The token containing the wrapped response
 	Token string
+
+	// The creation time. This can be used with the TTL to figure out an
+	// expected expiration.
+	CreationTime time.Time
+
+	// If the contained response is the output of a token creation call, the
+	// created token's accessor will be accessible here
+	WrappedAccessor string
 }
 
 // Response is a struct that stores the response of a request.
@@ -144,6 +153,19 @@ func (r *Response) CloneWarnings(other *Response) {
 // IsError returns true if this response seems to indicate an error.
 func (r *Response) IsError() bool {
 	return r != nil && len(r.Data) == 1 && r.Data["error"] != nil
+}
+
+func (r *Response) Error() error {
+	if !r.IsError() {
+		return nil
+	}
+	switch r.Data["error"].(type) {
+	case string:
+		return errors.New(r.Data["error"].(string))
+	case error:
+		return r.Data["error"].(error)
+	}
+	return nil
 }
 
 // HelpResponse is used to format a help response

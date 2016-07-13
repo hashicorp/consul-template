@@ -3,13 +3,14 @@ package main
 import (
 	"os"
 	"reflect"
+	"syscall"
 	"testing"
 
 	"github.com/mitchellh/mapstructure"
 )
 
-func TestStringToFileMode(t *testing.T) {
-	f := StringToFileMode()
+func TestStringToFileModeFunc(t *testing.T) {
+	f := StringToFileModeFunc()
 	strType := reflect.TypeOf("")
 	fmType := reflect.TypeOf(os.FileMode(0))
 	u32Type := reflect.TypeOf(uint32(0))
@@ -35,6 +36,35 @@ func TestStringToFileMode(t *testing.T) {
 		// Different type
 		{strType, strType, "0600", "0600", false},
 		{strType, u32Type, "0600", "0600", false},
+	}
+
+	for i, tc := range cases {
+		actual, err := mapstructure.DecodeHookExec(f, tc.f, tc.t, tc.data)
+		if (err != nil) != tc.err {
+			t.Errorf("case %d: %s", i, err)
+		}
+		if !reflect.DeepEqual(actual, tc.expected) {
+			t.Errorf("case %d: expected %#v to be %#v", i, actual, tc.expected)
+		}
+	}
+}
+
+func TestStringToSignalFunc(t *testing.T) {
+	f := StringToSignalFunc()
+	strType := reflect.TypeOf("")
+	sigType := reflect.TypeOf((*os.Signal)(nil)).Elem()
+
+	cases := []struct {
+		f, t     reflect.Type
+		data     interface{}
+		expected interface{}
+		err      bool
+	}{
+		{strType, sigType, "SIGTERM", syscall.SIGTERM, false},
+		{strType, sigType, "SIGINT", syscall.SIGINT, false},
+
+		// Invalid signal name
+		{strType, sigType, "BACON", nil, true},
 	}
 
 	for i, tc := range cases {

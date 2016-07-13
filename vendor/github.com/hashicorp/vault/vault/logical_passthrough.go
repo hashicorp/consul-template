@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
 
+	"github.com/hashicorp/vault/helper/duration"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
 )
@@ -33,17 +33,6 @@ func LeaseSwitchedPassthroughBackend(conf *logical.BackendConfig, leases bool) (
 		Paths: []*framework.Path{
 			&framework.Path{
 				Pattern: ".*",
-				Fields: map[string]*framework.FieldSchema{
-					//TODO: Deprecated in 0.3; remove in 0.4
-					"lease": &framework.FieldSchema{
-						Type:        framework.TypeString,
-						Description: "Lease time for this key when read. Ex: 1h",
-					},
-					"ttl": &framework.FieldSchema{
-						Type:        framework.TypeString,
-						Description: "TTL time for this key when read. Ex: 1h",
-					},
-				},
 
 				Callbacks: map[logical.Operation]framework.OperationFunc{
 					logical.ReadOperation:   b.handleRead,
@@ -142,12 +131,11 @@ func (b *PassthroughBackend) handleRead(
 	}
 	ttlDuration := b.System().DefaultLeaseTTL()
 	if len(ttl) != 0 {
-		parsedDuration, err := time.ParseDuration(ttl)
-		if err != nil {
-			resp.AddWarning(fmt.Sprintf("failed to parse stored ttl '%s' for entry; using default", ttl))
-		} else {
-			ttlDuration = parsedDuration
+		dur, err := duration.ParseDurationSecond(ttl)
+		if err == nil {
+			ttlDuration = dur
 		}
+
 		if b.generateLeases {
 			resp.Secret.Renewable = true
 		}
@@ -163,23 +151,6 @@ func (b *PassthroughBackend) handleWrite(
 	// Check that some fields are given
 	if len(req.Data) == 0 {
 		return logical.ErrorResponse("missing data fields"), nil
-	}
-
-	// Check if there is a ttl key; verify parseability if so
-	var ttl string
-	ttl = data.Get("ttl").(string)
-	if len(ttl) == 0 {
-		ttl = data.Get("lease").(string)
-	}
-	if len(ttl) != 0 {
-		_, err := time.ParseDuration(ttl)
-		if err != nil {
-			return logical.ErrorResponse("failed to parse ttl for entry"), nil
-		}
-		// Verify that ttl isn't the *only* thing we have
-		if len(req.Data) == 1 {
-			return nil, fmt.Errorf("missing data; only ttl found")
-		}
 	}
 
 	// JSON encode the data
