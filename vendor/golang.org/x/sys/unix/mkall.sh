@@ -161,7 +161,7 @@ freebsd_arm)
 	mkerrors="$mkerrors"
 	mksyscall="./mksyscall.pl -l32 -arm"
 	mksysnum="curl -s 'http://svn.freebsd.org/base/stable/10/sys/kern/syscalls.master' | ./mksysnum_freebsd.pl"
-	# Let the type of C char be singed for making the bare syscall
+	# Let the type of C char be signed for making the bare syscall
 	# API consistent across over platforms.
 	mktypes="GOARCH=$GOARCH go tool cgo -godefs -- -fsigned-char"
 	;;
@@ -194,7 +194,7 @@ linux_arm64)
 		exit 1
 	fi
 	mksysnum="./mksysnum_linux.pl $unistd_h"
-	# Let the type of C char be singed for making the bare syscall
+	# Let the type of C char be signed for making the bare syscall
 	# API consistent across over platforms.
 	mktypes="GOARCH=$GOARCH go tool cgo -godefs -- -fsigned-char"
 	;;

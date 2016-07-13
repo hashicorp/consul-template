@@ -119,6 +119,7 @@ type BlobProperties struct {
 	CopyProgress          string   `xml:"CopyProgress"`
 	CopyCompletionTime    string   `xml:"CopyCompletionTime"`
 	CopyStatusDescription string   `xml:"CopyStatusDescription"`
+	LeaseStatus           string   `xml:"LeaseStatus"`
 }
 
 // BlobListResponse contains the response fields from ListBlobs call.
@@ -597,6 +598,7 @@ func (b BlobStorageClient) GetBlobProperties(container, name string) (*BlobPrope
 		CopySource:            resp.headers.Get("x-ms-copy-source"),
 		CopyStatus:            resp.headers.Get("x-ms-copy-status"),
 		BlobType:              BlobType(resp.headers.Get("x-ms-blob-type")),
+		LeaseStatus:           resp.headers.Get("x-ms-lease-status"),
 	}, nil
 }
 

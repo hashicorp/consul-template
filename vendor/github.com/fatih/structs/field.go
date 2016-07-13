@@ -117,7 +117,16 @@ func (f *Field) Field(name string) *Field {
 // FieldOk returns the field from a nested struct. The boolean returns whether
 // the field was found (true) or not (false).
 func (f *Field) FieldOk(name string) (*Field, bool) {
-	v := strctVal(f.value.Interface())
+	value := &f.value
+	// value must be settable so we need to make sure it holds the address of the
+	// variable and not a copy, so we can pass the pointer to strctVal instead of a
+	// copy (which is not assigned to any variable, hence not settable).
+	// see "https://blog.golang.org/laws-of-reflection#TOC_8."
+	if f.value.Kind() != reflect.Ptr {
+		a := f.value.Addr()
+		value = &a
+	}
+	v := strctVal(value.Interface())
 	t := v.Type()
 
 	field, ok := t.FieldByName(name)

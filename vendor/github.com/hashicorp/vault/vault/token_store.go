@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
-	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -93,8 +91,7 @@ func NewTokenStore(c *Core, config *logical.BackendConfig) (*TokenStore, error) 
 
 	t.tokenLocks = map[string]*sync.RWMutex{}
 	for i := int64(0); i < 256; i++ {
-		t.tokenLocks[fmt.Sprintf("%2x",
-			strconv.FormatInt(i, 16))] = &sync.RWMutex{}
+		t.tokenLocks[fmt.Sprintf("%02x", i)] = &sync.RWMutex{}
 	}
 	t.tokenLocks["custom"] = &sync.RWMutex{}
 
@@ -156,6 +153,12 @@ func NewTokenStore(c *Core, config *logical.BackendConfig) (*TokenStore, error) 
 						Type:        framework.TypeDurationSecond,
 						Default:     0,
 						Description: tokenExplicitMaxTTLHelp,
+					},
+
+					"renewable": &framework.FieldSchema{
+						Type:        framework.TypeBool,
+						Default:     true,
+						Description: tokenRenewableHelp,
 					},
 				},
 
@@ -445,6 +448,9 @@ type tsRoleEntry struct {
 	// revoke using 'revoke-prefix'
 	PathSuffix string `json:"path_suffix" mapstructure:"path_suffix" structs:"path_suffix"`
 
+	// If set, controls whether created tokens are marked as being renewable
+	Renewable bool `json:"renewable" mapstructure:"renewable" structs:"renewable"`
+
 	// If set, the token entry will have an explicit maximum TTL set, rather
 	// than deferring to role/mount values
 	ExplicitMaxTTL time.Duration `json:"explicit_max_ttl" mapstructure:"explicit_max_ttl" structs:"explicit_max_ttl"`
@@ -509,6 +515,8 @@ func (ts *TokenStore) create(entry *TokenEntry) error {
 		}
 		entry.ID = entryUUID
 	}
+
+	entry.Policies = policyutil.SanitizePolicies(entry.Policies, false)
 
 	err := ts.createAccessor(entry)
 	if err != nil {
@@ -934,6 +942,8 @@ func (ts *TokenStore) handleCreateCommon(
 		NoDefaultPolicy bool              `mapstructure:"no_default_policy"`
 		Lease           string
 		TTL             string
+		Renewable       *bool
+		ExplicitMaxTTL  string `mapstructure:"explicit_max_ttl"`
 		DisplayName     string `mapstructure:"display_name"`
 		NumUses         int    `mapstructure:"num_uses"`
 	}
@@ -963,6 +973,11 @@ func (ts *TokenStore) handleCreateCommon(
 		CreationTime: time.Now().Unix(),
 	}
 
+	renewable := true
+	if data.Renewable != nil {
+		renewable = *data.Renewable
+	}
+
 	// If the role is not nil, we add the role name as part of the token's
 	// path. This makes it much easier to later revoke tokens that were issued
 	// by a role (using revoke-prefix). Users can further specify a PathSuffix
@@ -970,6 +985,12 @@ func (ts *TokenStore) handleCreateCommon(
 	// role revisions, and revoke only tokens issued with a previous revision.
 	if role != nil {
 		te.Role = role.Name
+
+		// If renewable hasn't been disabled in the call and the role has
+		// renewability disabled, set renewable false
+		if renewable && !role.Renewable {
+			renewable = false
+		}
 
 		if role.PathSuffix != "" {
 			te.Path = fmt.Sprintf("%s/%s", te.Path, role.PathSuffix)
@@ -1001,8 +1022,8 @@ func (ts *TokenStore) handleCreateCommon(
 			data.Policies = role.AllowedPolicies
 		} else {
 			// Sanitize passed-in and role policies before comparison
-			sanitizedInputPolicies := policyutil.SanitizePolicies(data.Policies)
-			sanitizedRolePolicies := policyutil.SanitizePolicies(role.AllowedPolicies)
+			sanitizedInputPolicies := policyutil.SanitizePolicies(data.Policies, true)
+			sanitizedRolePolicies := policyutil.SanitizePolicies(role.AllowedPolicies, true)
 
 			if !strutil.StrListSubset(sanitizedRolePolicies, sanitizedInputPolicies) {
 				return logical.ErrorResponse(fmt.Sprintf("token policies (%v) must be subset of the role's allowed policies (%v)", sanitizedInputPolicies, sanitizedRolePolicies)), logical.ErrInvalidRequest
@@ -1016,33 +1037,16 @@ func (ts *TokenStore) handleCreateCommon(
 	// the client has root or sudo privileges
 	case !isSudo:
 		// Sanitize passed-in and parent policies before comparison
-		sanitizedInputPolicies := policyutil.SanitizePolicies(data.Policies)
-		sanitizedParentPolicies := policyutil.SanitizePolicies(parent.Policies)
+		sanitizedInputPolicies := policyutil.SanitizePolicies(data.Policies, true)
+		sanitizedParentPolicies := policyutil.SanitizePolicies(parent.Policies, true)
 
 		if !strutil.StrListSubset(sanitizedParentPolicies, sanitizedInputPolicies) {
 			return logical.ErrorResponse("child policies must be subset of parent"), logical.ErrInvalidRequest
 		}
 	}
 
-	// Use a map to filter out/prevent duplicates
-	policyMap := map[string]bool{}
-	for _, policy := range data.Policies {
-		if policy == "" {
-			// Don't allow a policy with no name, even though it is a valid
-			// slice member
-			continue
-		}
-		policyMap[policy] = true
-	}
-	if !policyMap["root"] &&
-		!data.NoDefaultPolicy {
-		policyMap["default"] = true
-	}
-
-	for k, _ := range policyMap {
-		te.Policies = append(te.Policies, k)
-	}
-	sort.Strings(te.Policies)
+	// Do not add the 'default' policy if requested not to.
+	te.Policies = policyutil.SanitizePolicies(data.Policies, !data.NoDefaultPolicy)
 
 	switch {
 	case role != nil:
@@ -1066,64 +1070,94 @@ func (ts *TokenStore) handleCreateCommon(
 		}
 	}
 
-	if role != nil && role.Period > 0 {
-		te.TTL = role.Period
-	} else {
-		// Parse the TTL/lease if any
-		if data.TTL != "" {
-			dur, err := time.ParseDuration(data.TTL)
-			if err != nil {
-				return logical.ErrorResponse(err.Error()), logical.ErrInvalidRequest
+	if data.ExplicitMaxTTL != "" {
+		dur, err := time.ParseDuration(data.ExplicitMaxTTL)
+		if err != nil {
+			return logical.ErrorResponse(err.Error()), logical.ErrInvalidRequest
+		}
+		if dur < 0 {
+			return logical.ErrorResponse("explicit_max_ttl must be positive"), logical.ErrInvalidRequest
+		}
+		te.ExplicitMaxTTL = dur
+	}
+
+	// Parse the TTL/lease if any
+	if data.TTL != "" {
+		dur, err := time.ParseDuration(data.TTL)
+		if err != nil {
+			return logical.ErrorResponse(err.Error()), logical.ErrInvalidRequest
+		}
+		if dur < 0 {
+			return logical.ErrorResponse("ttl must be positive"), logical.ErrInvalidRequest
+		}
+		te.TTL = dur
+	} else if data.Lease != "" {
+		// This block is compatibility
+		dur, err := time.ParseDuration(data.Lease)
+		if err != nil {
+			return logical.ErrorResponse(err.Error()), logical.ErrInvalidRequest
+		}
+		if dur < 0 {
+			return logical.ErrorResponse("lease must be positive"), logical.ErrInvalidRequest
+		}
+		te.TTL = dur
+	}
+
+	resp := &logical.Response{}
+
+	// Set the lesser explicit max TTL if defined
+	if role != nil && role.ExplicitMaxTTL != 0 {
+		switch {
+		case te.ExplicitMaxTTL == 0:
+			te.ExplicitMaxTTL = role.ExplicitMaxTTL
+		default:
+			if role.ExplicitMaxTTL < te.ExplicitMaxTTL {
+				te.ExplicitMaxTTL = role.ExplicitMaxTTL
 			}
-			if dur < 0 {
-				return logical.ErrorResponse("ttl must be positive"), logical.ErrInvalidRequest
-			}
-			te.TTL = dur
-		} else if data.Lease != "" {
-			// This block is compatibility
-			dur, err := time.ParseDuration(data.Lease)
-			if err != nil {
-				return logical.ErrorResponse(err.Error()), logical.ErrInvalidRequest
-			}
-			if dur < 0 {
-				return logical.ErrorResponse("lease must be positive"), logical.ErrInvalidRequest
-			}
-			te.TTL = dur
+			resp.AddWarning(fmt.Sprintf("Explicit max TTL specified both during creation call and in role; using the lesser value of %d seconds", int64(te.ExplicitMaxTTL.Seconds())))
+		}
+	}
+
+	sysView := ts.System()
+
+	// Run some bounding checks if the explicit max TTL is set
+	if te.ExplicitMaxTTL > 0 {
+		// Limit the lease duration
+		if sysView.MaxLeaseTTL() != 0 && te.ExplicitMaxTTL > sysView.MaxLeaseTTL() {
+			resp.AddWarning(fmt.Sprintf(
+				"Explicit max TTL of %d seconds is greater than system/mount allowed value; value is being capped to %d seconds",
+				int64(te.ExplicitMaxTTL.Seconds()), int64(sysView.MaxLeaseTTL().Seconds())))
+			te.ExplicitMaxTTL = sysView.MaxLeaseTTL()
 		}
 
-		sysView := ts.System()
+		if te.TTL == 0 {
+			te.TTL = te.ExplicitMaxTTL
+		} else {
+			if te.TTL > te.ExplicitMaxTTL {
+				resp.AddWarning(fmt.Sprintf(
+					"Requested TTL of %d seconds higher than explicit max TTL; value being capped to %d seconds",
+					int64(te.TTL.Seconds()), int64(te.ExplicitMaxTTL.Seconds())))
+				te.TTL = te.ExplicitMaxTTL
+			}
+		}
+	}
 
-		// Set the default lease if non-provided, root tokens are exempt
+	if role != nil && role.Period > 0 {
+		// Periodic tokens are allowed to escape max TTL confines so don't check limits
+		if te.ExplicitMaxTTL > 0 {
+			return logical.ErrorResponse("using an explicit max TTL not supported when using periodic token roles"), nil
+		}
+		te.TTL = role.Period
+	} else {
+		// Set the default lease if not provided, root tokens are exempt
 		if te.TTL == 0 && !strutil.StrListContains(te.Policies, "root") {
 			te.TTL = sysView.DefaultLeaseTTL()
 		}
 
 		// Limit the lease duration
-		if te.TTL > sysView.MaxLeaseTTL() && sysView.MaxLeaseTTL() != time.Duration(0) {
+		if te.TTL > sysView.MaxLeaseTTL() && sysView.MaxLeaseTTL() != 0 {
 			te.TTL = sysView.MaxLeaseTTL()
 		}
-	}
-
-	resp := &logical.Response{}
-
-	if role != nil && role.ExplicitMaxTTL != 0 {
-		sysView := ts.System()
-
-		// Limit the lease duration
-		if sysView.MaxLeaseTTL() != time.Duration(0) && role.ExplicitMaxTTL > sysView.MaxLeaseTTL() {
-			return logical.ErrorResponse(fmt.Sprintf(
-				"role explicit max TTL of %d is greater than system/mount allowed value of %d seconds",
-				role.ExplicitMaxTTL.Seconds(), sysView.MaxLeaseTTL().Seconds())), logical.ErrInvalidRequest
-		}
-
-		if te.TTL > role.ExplicitMaxTTL {
-			resp.AddWarning(fmt.Sprintf(
-				"Requested TTL higher than role explicit max TTL; value being capped to %d seconds",
-				role.ExplicitMaxTTL.Seconds()))
-			te.TTL = role.ExplicitMaxTTL
-		}
-
-		te.ExplicitMaxTTL = role.ExplicitMaxTTL
 	}
 
 	// Create the token
@@ -1138,7 +1172,7 @@ func (ts *TokenStore) handleCreateCommon(
 		Metadata:    te.Meta,
 		LeaseOptions: logical.LeaseOptions{
 			TTL:       te.TTL,
-			Renewable: true,
+			Renewable: renewable,
 		},
 		ClientToken: te.ID,
 		Accessor:    te.Accessor,
@@ -1295,6 +1329,11 @@ func (ts *TokenStore) handleLookup(
 		}
 		if !leaseTimes.ExpireTime.IsZero() {
 			resp.Data["ttl"] = int64(leaseTimes.ExpireTime.Sub(time.Now().Round(time.Second)).Seconds())
+		}
+		if err := leaseTimes.renewable(); err == nil {
+			resp.Data["renewable"] = true
+		} else {
+			resp.Data["renewable"] = false
 		}
 	}
 
@@ -1454,6 +1493,7 @@ func (ts *TokenStore) tokenStoreRoleRead(
 			"name":             role.Name,
 			"orphan":           role.Orphan,
 			"path_suffix":      role.PathSuffix,
+			"renewable":        role.Renewable,
 		},
 	}
 
@@ -1510,6 +1550,13 @@ func (ts *TokenStore) tokenStoreRoleCreateUpdate(
 		entry.Period = time.Second * time.Duration(data.Get("period").(int))
 	}
 
+	renewableInt, ok := data.GetOk("renewable")
+	if ok {
+		entry.Renewable = renewableInt.(bool)
+	} else if req.Operation == logical.CreateOperation {
+		entry.Renewable = data.Get("renewable").(bool)
+	}
+
 	var resp *logical.Response
 
 	explicitMaxTTLInt, ok := data.GetOk("explicit_max_ttl")
@@ -1547,14 +1594,11 @@ func (ts *TokenStore) tokenStoreRoleCreateUpdate(
 		entry.PathSuffix = data.Get("path_suffix").(string)
 	}
 
-	allowedPoliciesInt, ok := data.GetOk("allowed_policies")
+	allowedPoliciesStr, ok := data.GetOk("allowed_policies")
 	if ok {
-		allowedPolicies := allowedPoliciesInt.(string)
-		if allowedPolicies != "" {
-			entry.AllowedPolicies = strings.Split(allowedPolicies, ",")
-		}
+		entry.AllowedPolicies = policyutil.ParsePolicies(allowedPoliciesStr.(string))
 	} else if req.Operation == logical.CreateOperation {
-		entry.AllowedPolicies = strings.Split(data.Get("allowed_policies").(string), ",")
+		entry.AllowedPolicies = policyutil.ParsePolicies(data.Get("allowed_policies").(string))
 	}
 
 	// Explicit max TTLs and periods cannot be used at the same time since the
@@ -1618,4 +1662,7 @@ the current maximum TTL values of the role
 and the mount are not checked for changes,
 and any updates to these values will have
 no effect on the token being renewed.`
+	tokenRenewableHelp = `Tokens created via this role will be
+renewable or not according to this value.
+Defaults to "true".`
 )
