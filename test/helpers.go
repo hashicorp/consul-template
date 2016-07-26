@@ -1,9 +1,9 @@
 package test
 
 import (
-	"bytes"
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -30,32 +30,43 @@ func DeleteTempfile(f *os.File, t *testing.T) {
 	}
 }
 
-func WaitForFileContents(path string, expected []byte, t *testing.T) {
-	readCh := make(chan struct{})
-	var last []byte
+func WaitForContents(t *testing.T, d time.Duration, p, c string) {
+	errCh := make(chan error, 1)
+	matchCh := make(chan struct{}, 1)
+	stopCh := make(chan struct{}, 1)
+	var last string
 
-	go func(ch chan struct{}, path string, expected []byte) {
+	go func() {
 		for {
-			actual, err := ioutil.ReadFile(path)
+			select {
+			case <-stopCh:
+				return
+			default:
+			}
+
+			actual, err := ioutil.ReadFile(p)
 			if err != nil && !os.IsNotExist(err) {
-				t.Fatal(err)
+				errCh <- err
 				return
 			}
 
-			last = actual
-			if bytes.Equal(actual, expected) {
-				close(readCh)
+			last = string(actual)
+			if strings.EqualFold(last, c) {
+				close(matchCh)
 				return
 			}
 
-			time.Sleep(50 * time.Millisecond)
+			time.Sleep(10 * time.Millisecond)
 		}
-	}(readCh, path, expected)
+	}()
 
 	select {
-	case <-readCh:
-	case <-time.After(2 * time.Second):
-		t.Errorf("contents not present after 2 seconds, expected: %q, actual: %q",
-			expected, last)
+	case <-matchCh:
+	case err := <-errCh:
+		t.Fatal(err)
+	case <-time.After(d):
+		close(stopCh)
+		t.Errorf("contents not present after %s, expected: %q, actual: %q",
+			d, c, last)
 	}
 }
