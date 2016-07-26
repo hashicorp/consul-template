@@ -16,6 +16,9 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * Allow variadic template function for `secret` [GH-660, GH-662]
+  * Always log in UTC time
+  * Log milliseconds [GH-676, GH-674]
+
 
 ## v0.15.0.dev (June 9, 2016)
 
