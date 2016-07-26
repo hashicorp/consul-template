@@ -14,9 +14,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/burntsushi/toml"
 	dep "github.com/hashicorp/consul-template/dependency"
 	yaml "gopkg.in/yaml.v2"
-	"github.com/burntsushi/toml"
 )
 
 // now is function that represents the current time in UTC. This is here
@@ -782,8 +782,7 @@ func toYAML(m map[string]interface{}) (string, error) {
 func toTOML(m map[string]interface{}) (string, error) {
 	buf := bytes.NewBuffer([]byte{})
 	enc := toml.NewEncoder(buf)
-	err := enc.Encode(m)
-	if err != nil {
+	if err := enc.Encode(m); err != nil {
 		return "", fmt.Errorf("toTOML: %s", err)
 	}
 	result, err := ioutil.ReadAll(buf)
