@@ -213,10 +213,9 @@ func (c *Child) Stop() {
 		log.Printf("[WARN] (child) already stopped")
 		return
 	}
+	c.kill()
 	close(c.stopCh)
 	c.stopped = true
-
-	c.kill()
 }
 
 func (c *Child) start() error {
