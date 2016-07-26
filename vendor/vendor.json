@@ -185,6 +185,12 @@
 			"revisionTime": "2016-07-08T00:08:20Z"
 		},
 		{
+			"checksumSHA1": "InIrfOI7Ys1QqZpCgTB4yW1G32M=",
+			"path": "github.com/burntsushi/toml",
+			"revision": "99064174e013895bbd9b025c31100bd1d9b590ca",
+			"revisionTime": "2016-07-17T15:07:09Z"
+		},
+		{
 			"checksumSHA1": "wWY6CCkwUvbCiE1s7ti/pm8eefY=",
 			"path": "github.com/coreos/etcd/client",
 			"revision": "7114a273452024f834a500aa826e61b2615aed3b",
@@ -665,5 +671,5 @@
 			"revisionTime": "2016-03-01T20:40:22Z"
 		}
 	],
-	"rootPath": "github.com/hashicorp/consul-template"
+	"rootPath": "github.com/hashicorp"
 }
