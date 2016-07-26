@@ -1438,7 +1438,7 @@ done
 	consul.SetKV("foo", []byte("bar"))
 
 	// Check that the reload signal was sent.
-	test.WaitForFileContents(out.Name(), []byte("one\n"), t)
+	test.WaitForContents(t, 500*time.Millisecond, out.Name(), "one\n")
 
 	npid := runner.child.Pid()
 	if opid != npid {
@@ -1448,7 +1448,7 @@ done
 	// Kill the child to check that the kill signal is properly sent.
 	runner.child.Stop()
 
-	test.WaitForFileContents(out.Name(), []byte("one\ntwo\n"), t)
+	test.WaitForContents(t, 500*time.Millisecond, out.Name(), "one\ntwo\n")
 }
 
 func TestRunner_execRestart(t *testing.T) {

@@ -744,11 +744,11 @@ func TestReload_sighup(t *testing.T) {
 	defer cli.stop()
 
 	// Ensure we have run at least once
-	test.WaitForFileContents(out.Name(), []byte("initial value"), t)
+	test.WaitForContents(t, 500*time.Millisecond, out.Name(), "initial value")
 
 	newValue := []byte("new value")
 	ioutil.WriteFile(template.Name(), newValue, 0644)
 	syscall.Kill(syscall.Getpid(), syscall.SIGHUP)
 
-	test.WaitForFileContents(out.Name(), []byte("new value"), t)
+	test.WaitForContents(t, 500*time.Millisecond, out.Name(), "new value")
 }
