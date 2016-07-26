@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/consul-template/child"
@@ -75,6 +76,9 @@ type Runner struct {
 	// child is the child process under management. This may be nil if not running
 	// in exec mode.
 	child *child.Child
+
+	// childLock is the internal lock around the child process.
+	childLock sync.RWMutex
 
 	// quiescenceMap is the map of templates to their quiescence timers.
 	// quiescenceCh is the channel where templates report returns from quiescence
@@ -811,6 +815,9 @@ func (r *Runner) deletePid() error {
 
 // spawnChild creates a new child process and stores it on the runner object.
 func (r *Runner) spawnChild() error {
+	r.childLock.Lock()
+	defer r.childLock.Unlock()
+
 	p := shellwords.NewParser()
 	p.ParseEnv = true
 	p.ParseBacktick = true

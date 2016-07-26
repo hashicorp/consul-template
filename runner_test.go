@@ -1413,10 +1413,15 @@ done
 	doneCh := make(chan struct{}, 1)
 	go func() {
 		for {
-			if runner.child != nil {
+			runner.childLock.RLock()
+			child := runner.child
+			runner.childLock.RUnlock()
+
+			if child != nil {
 				close(doneCh)
 				return
 			}
+
 			time.Sleep(50 * time.Millisecond)
 		}
 	}()
@@ -1503,7 +1508,11 @@ done
 	doneCh := make(chan struct{}, 1)
 	go func() {
 		for {
-			if runner.child != nil {
+			runner.childLock.RLock()
+			child := runner.child
+			runner.childLock.RUnlock()
+
+			if child != nil {
 				close(doneCh)
 				return
 			}
