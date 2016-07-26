@@ -336,12 +336,12 @@ func TestKill_signal(t *testing.T) {
 	defer c.Stop()
 
 	// For some reason bash doesn't start immediately
-	time.Sleep(250 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
 
 	c.Kill()
 
 	// Give time for the file to flush
-	time.Sleep(250 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
 
 	// Stop the child now
 	c.Stop()
