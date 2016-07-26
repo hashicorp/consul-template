@@ -1584,6 +1584,32 @@ func TestToYAML(t *testing.T) {
 	}
 }
 
+func TestToTOML(t *testing.T) {
+	list := map[string]interface{}{
+		"a": map[string]interface{}{
+			"b": map[string]interface{}{
+				"c": "d",
+				"e": "f",
+			},
+			"g": "h",
+		},
+	}
+
+	result, err := toTOML(list)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := `[a]
+  g = "h"
+  [a.b]
+    c = "d"
+    e = "f"`
+	if result != expected {
+		t.Errorf("expected %q to be %q", result, expected)
+	}
+}
+
 func TestSplit(t *testing.T) {
 	result, err := split("\n", "foo bar\nbaz")
 	if err != nil {

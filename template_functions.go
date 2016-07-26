@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -15,6 +16,7 @@ import (
 
 	dep "github.com/hashicorp/consul-template/dependency"
 	yaml "gopkg.in/yaml.v2"
+	"github.com/burntsushi/toml"
 )
 
 // now is function that represents the current time in UTC. This is here
@@ -772,6 +774,21 @@ func toYAML(m map[string]interface{}) (string, error) {
 	result, err := yaml.Marshal(m)
 	if err != nil {
 		return "", fmt.Errorf("toYAML: %s", err)
+	}
+	return string(bytes.TrimSpace(result)), nil
+}
+
+// toTOML converts the given structure into a deeply nested TOML string.
+func toTOML(m map[string]interface{}) (string, error) {
+	buf := bytes.NewBuffer([]byte{})
+	enc := toml.NewEncoder(buf)
+	err := enc.Encode(m)
+	if err != nil {
+		return "", fmt.Errorf("toTOML: %s", err)
+	}
+	result, err := ioutil.ReadAll(buf)
+	if err != nil {
+		return "", fmt.Errorf("toTOML: %s", err)
 	}
 	return string(bytes.TrimSpace(result)), nil
 }
