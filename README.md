@@ -509,7 +509,7 @@ If additional arguments are passed to the function, then the operation is assume
 The parameters must be `key=value` pairs, and each pair must be its own argument to the function:
 
 ```liquid
-{{ secret "path/" "a=b", "c=d", "e=f" }}
+{{ secret "path/" "a=b" "c=d" "e=f" }}
 ```
 
 Please always consider the security implications of having the contents of a secret in plain-text on disk. If an attacker is able to get access to the file, they will have access to plain-text secrets.
