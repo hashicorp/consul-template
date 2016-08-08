@@ -62,6 +62,9 @@ func (cli *CLI) Run(args []string) int {
 	// Parse the flags
 	config, once, dry, version, err := cli.parseFlags(args[1:])
 	if err != nil {
+		if err == flag.ErrHelp {
+			return 0
+		}
 		return cli.handleError(err, ExitCodeParseFlagsError)
 	}
 
