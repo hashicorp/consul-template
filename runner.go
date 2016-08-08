@@ -543,7 +543,7 @@ func (r *Runner) init() error {
 	}
 	r.watcher = watcher
 
-	templatesMap := make(map[string]*Template)
+	templates := make([]*Template, 0, len(r.config.ConfigTemplates))
 	ctemplatesMap := make(map[string][]*ConfigTemplate)
 
 	// Iterate over each ConfigTemplate, creating a new Template resource for each
@@ -556,8 +556,8 @@ func (r *Runner) init() error {
 			return err
 		}
 
-		if _, ok := templatesMap[tmpl.Path]; !ok {
-			templatesMap[tmpl.Path] = tmpl
+		if _, ok := ctemplatesMap[tmpl.Path]; !ok {
+			templates = append(templates, tmpl)
 		}
 
 		if _, ok := ctemplatesMap[tmpl.Path]; !ok {
@@ -568,10 +568,6 @@ func (r *Runner) init() error {
 
 	// Convert the map of templates (which was only used to ensure uniqueness)
 	// back into an array of templates.
-	templates := make([]*Template, 0, len(templatesMap))
-	for _, tmpl := range templatesMap {
-		templates = append(templates, tmpl)
-	}
 	r.templates = templates
 
 	r.renderedTemplates = make(map[string]struct{})

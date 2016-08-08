@@ -60,6 +60,17 @@ func TestNewRunner_initialize(t *testing.T) {
 		t.Errorf("expected %d to be %d", len(runner.templates), 3)
 	}
 
+	// Check maintain order
+	if runner.templates[0].Path != in1.Name() {
+		t.Errorf("expected %s to be %s", runner.templates[0].Path, in1.Name())
+	}
+	if runner.templates[1].Path != in2.Name() {
+		t.Errorf("expected %s to be %s", runner.templates[1].Path, in1.Name())
+	}
+	if runner.templates[2].Path != in3.Name() {
+		t.Errorf("expected %s to be %s", runner.templates[2].Path, in1.Name())
+	}
+
 	if runner.renderedTemplates == nil {
 		t.Errorf("expected %#v to be %#v", runner.renderedTemplates, nil)
 	}
