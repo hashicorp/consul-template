@@ -1,15 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
-# Get the name from the command line.
-NAME=$1
-if [ -z $NAME ]; then
-  echo "Please specify a name."
-  exit 1
-fi
-
 # Get the version from the command line.
-VERSION=$2
+VERSION=$1
 if [ -z $VERSION ]; then
   echo "Please specify a version."
   exit 1
@@ -22,6 +15,9 @@ DIR="$(cd -P "$(dirname "$SOURCE")/.." && pwd)"
 
 # Change into that dir because we expect that.
 cd "$DIR"
+
+# Get the name from the directory
+NAME=${NAME:-"$(basename $(pwd))"}
 
 # Build
 if [ -z $NOBUILD ]; then

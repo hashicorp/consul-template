@@ -4,13 +4,6 @@
 # to avoid any auxillary dependencies that sneak into GOPATH.
 set -e
 
-# Get the name from the command line
-NAME=$1
-if [ -z $NAME ]; then
-  echo "Please specify a name."
-  exit 1
-fi
-
 # Get the parent directory of where this script is.
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ] ; do SOURCE="$(readlink "$SOURCE")"; done
@@ -18,6 +11,9 @@ DIR="$(cd -P "$(dirname "$SOURCE")/.." && pwd)"
 
 # Change into that directory
 cd "$DIR"
+
+# Get the name from the directory
+NAME=${NAME:-"$(basename $(pwd))"}
 
 # Announce
 echo "==> Updating dependencies..."

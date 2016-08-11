@@ -3,13 +3,6 @@
 # This script builds the application from source for multiple platforms.
 set -e
 
-# Get the name from the command line
-NAME=$1
-if [ -z $NAME ]; then
-  echo "Please specify a name."
-  exit 1
-fi
-
 # Get the parent directory of where this script is.
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ] ; do SOURCE="$(readlink "$SOURCE")"; done
@@ -17,6 +10,9 @@ DIR="$(cd -P "$(dirname "$SOURCE")/.." && pwd)"
 
 # Change into that directory
 cd "$DIR"
+
+# Get the name from the directory
+NAME=${NAME:-"$(basename $(pwd))"}
 
 # Get the git commit
 GIT_COMMIT=$(git rev-parse HEAD)
@@ -48,7 +44,6 @@ gox \
   -osarch="${XC_EXCLUDE}" \
   -ldflags "-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY}" \
   -output "pkg/{{.OS}}_{{.Arch}}/${NAME}" \
-  -tags="${BUILD_TAGS}"
   .
 
 # Move all the compiled things to the $GOPATH/bin
