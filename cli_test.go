@@ -51,6 +51,111 @@ func TestParseFlags_token(t *testing.T) {
 	}
 }
 
+func TestParseFlags_reloadSignal(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-reload-signal", "SIGHUP",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := syscall.SIGHUP
+	if config.ReloadSignal != expected {
+		t.Errorf("expected %#v to be %#v", config.ReloadSignal, expected)
+	}
+	if !config.WasSet("reload_signal") {
+		t.Errorf("expected reload_signal to be set")
+	}
+}
+
+func TestParseFlags_reloadSignal_empty(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-reload-signal", "",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if config.ReloadSignal != nil {
+		t.Errorf("expected %#v to be %#v", config.ReloadSignal, nil)
+	}
+	if !config.WasSet("reload_signal") {
+		t.Errorf("expected reload_signal to be set")
+	}
+}
+
+func TestParseFlags_dumpSignal(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-dump-signal", "SIGHUP",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := syscall.SIGHUP
+	if config.DumpSignal != expected {
+		t.Errorf("expected %#v to be %#v", config.DumpSignal, expected)
+	}
+	if !config.WasSet("dump_signal") {
+		t.Errorf("expected dump_signal to be set")
+	}
+}
+
+func TestParseFlags_dumpSignal_empty(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-dump-signal", "",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if config.DumpSignal != nil {
+		t.Errorf("expected %#v to be %#v", config.DumpSignal, nil)
+	}
+	if !config.WasSet("dump_signal") {
+		t.Errorf("expected dump_signal to be set")
+	}
+}
+
+func TestParseFlags_killSignal(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-kill-signal", "SIGHUP",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := syscall.SIGHUP
+	if config.KillSignal != expected {
+		t.Errorf("expected %#v to be %#v", config.KillSignal, expected)
+	}
+	if !config.WasSet("kill_signal") {
+		t.Errorf("expected kill_signal to be set")
+	}
+}
+
+func TestParseFlags_killSignal_empty(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-kill-signal", "",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if config.KillSignal != nil {
+		t.Errorf("expected %#v to be %#v", config.KillSignal, nil)
+	}
+	if !config.WasSet("kill_signal") {
+		t.Errorf("expected kill_signal to be set")
+	}
+}
+
 func TestParseFlags_authUsername(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
 	config, _, _, _, err := cli.parseFlags([]string{

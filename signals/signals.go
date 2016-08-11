@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+var SIGNIL os.Signal = new(NilSignal)
+
 var ValidSignals []string
 
 func init() {

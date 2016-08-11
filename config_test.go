@@ -47,6 +47,9 @@ func TestMerge_topLevel(t *testing.T) {
 	config1 := testConfig(`
 		consul = "consul-1"
 		token = "token-1"
+		reload_signal = "SIGUSR1"
+		dump_signal = "SIGUSR2"
+		kill_signal = "SIGTERM"
 		max_stale = "1s"
 		retry = "1s"
 		wait = "1s"
@@ -56,6 +59,9 @@ func TestMerge_topLevel(t *testing.T) {
 	config2 := testConfig(`
 		consul = "consul-2"
 		token = "token-2"
+		reload_signal = "SIGINT"
+		dump_signal = "SIGQUIT"
+		kill_signal = "SIGKILL"
 		max_stale = "2s"
 		retry = "2s"
 		wait = "2s"
@@ -337,6 +343,16 @@ func TestMerge_wait(t *testing.T) {
 	}
 }
 
+func TestParseConfig_emptySignal(t *testing.T) {
+	config := testConfig(`
+		reload_signal = ""
+	`, t)
+
+	if config.ReloadSignal != nil {
+		t.Errorf("expected %#v to be %#v", config.ReloadSignal, nil)
+	}
+}
+
 // There is a custom mapstructure function that tests this as well, so this is
 // more of an integration test to ensure we are parsing permissions correctly.
 func TestParseConfig_jsonFilePerms(t *testing.T) {
@@ -400,6 +416,9 @@ func TestParseConfig_correctValues(t *testing.T) {
 		consul = "nyc1.demo.consul.io"
 		max_stale = "5s"
 		token = "abcd1234"
+		reload_signal = "SIGUSR1"
+		dump_signal = "SIGUSR2"
+		kill_signal = "SIGTERM"
 		wait = "5s:10s"
 		retry = "10s"
 		pid_file = "/var/run/ct"
@@ -465,10 +484,13 @@ func TestParseConfig_correctValues(t *testing.T) {
 	}
 
 	expected := &Config{
-		Path:     configFile.Name(),
-		PidFile:  "/var/run/ct",
-		Consul:   "nyc1.demo.consul.io",
-		MaxStale: time.Second * 5,
+		Path:         configFile.Name(),
+		PidFile:      "/var/run/ct",
+		Consul:       "nyc1.demo.consul.io",
+		ReloadSignal: syscall.SIGUSR1,
+		DumpSignal:   syscall.SIGUSR2,
+		KillSignal:   syscall.SIGTERM,
+		MaxStale:     time.Second * 5,
 		Vault: &VaultConfig{
 			Address: "vault.service.consul",
 			Token:   "efgh5678",

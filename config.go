@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/hashicorp/consul-template/signals"
 	"github.com/hashicorp/consul-template/watch"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
@@ -30,6 +31,15 @@ const defaultDedupPrefix = "consul-template/dedup/"
 // commandTimeout is the amount of time to wait for a command to return.
 const defaultCommandTimeout = 30 * time.Second
 
+// defaultReloadSignal is the default signal for reload.
+const defaultReloadSignal = syscall.SIGHUP
+
+// defaultDumpSignal is the default signal for a core dump.
+const defaultDumpSignal = syscall.SIGQUIT
+
+// defaultKillSignal is the default signal for termination.
+const defaultKillSignal = syscall.SIGINT
+
 // Config is used to configure Consul Template
 type Config struct {
 	// Path is the path to this configuration file on disk. This value is not
@@ -43,6 +53,15 @@ type Config struct {
 
 	// Token is the Consul API token.
 	Token string `mapstructure:"token"`
+
+	// ReloadSignal is the signal to listen for a reload event.
+	ReloadSignal os.Signal `mapstructure:"reload_signal"`
+
+	// DumpSignal is the signal to listen for a core dump event.
+	DumpSignal os.Signal `mapstructure:"dump_signal"`
+
+	// KillSignal is the signal to listen for a graceful terminate event.
+	KillSignal os.Signal `mapstructure:"kill_signal"`
 
 	// Auth is the HTTP basic authentication for communicating with Consul.
 	Auth *AuthConfig `mapstructure:"auth"`
@@ -95,6 +114,9 @@ func (c *Config) Copy() *Config {
 	config.Path = c.Path
 	config.Consul = c.Consul
 	config.Token = c.Token
+	config.ReloadSignal = c.ReloadSignal
+	config.DumpSignal = c.DumpSignal
+	config.KillSignal = c.KillSignal
 
 	if c.Auth != nil {
 		config.Auth = &AuthConfig{
@@ -204,6 +226,18 @@ func (c *Config) Merge(config *Config) {
 
 	if config.WasSet("token") {
 		c.Token = config.Token
+	}
+
+	if config.WasSet("reload_signal") {
+		c.ReloadSignal = config.ReloadSignal
+	}
+
+	if config.WasSet("dump_signal") {
+		c.DumpSignal = config.DumpSignal
+	}
+
+	if config.WasSet("kill_signal") {
+		c.KillSignal = config.KillSignal
 	}
 
 	if config.WasSet("vault") {
@@ -440,7 +474,7 @@ func ParseConfig(path string) (*Config, error) {
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
 			StringToFileModeFunc(),
-			StringToSignalFunc(),
+			signals.StringToSignalFunc(),
 			watch.StringToWaitDurationHookFunc(),
 			mapstructure.StringToSliceHookFunc(","),
 			mapstructure.StringToTimeDurationHookFunc(),
@@ -460,6 +494,25 @@ func ParseConfig(path string) (*Config, error) {
 
 	// Store a reference to the path where this config was read from
 	config.Path = path
+
+	// Explicitly check for the nil signal and set the value back to nil
+	if config.ReloadSignal == signals.SIGNIL {
+		config.ReloadSignal = nil
+	}
+	if config.DumpSignal == signals.SIGNIL {
+		config.DumpSignal = nil
+	}
+	if config.KillSignal == signals.SIGNIL {
+		config.KillSignal = nil
+	}
+	if config.Exec != nil {
+		if config.Exec.ReloadSignal == signals.SIGNIL {
+			config.Exec.ReloadSignal = nil
+		}
+		if config.Exec.KillSignal == signals.SIGNIL {
+			config.Exec.KillSignal = nil
+		}
+	}
 
 	// Setup default values for templates
 	for _, t := range config.ConfigTemplates {
@@ -575,6 +628,9 @@ func DefaultConfig() *Config {
 		Auth: &AuthConfig{
 			Enabled: false,
 		},
+		ReloadSignal: defaultReloadSignal,
+		DumpSignal:   defaultDumpSignal,
+		KillSignal:   defaultKillSignal,
 		SSL: &SSLConfig{
 			Enabled: false,
 			Verify:  true,
