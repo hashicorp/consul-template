@@ -10,6 +10,7 @@ import (
 	"runtime/debug"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/hashicorp/consul-template/logging"
@@ -113,7 +114,7 @@ func (cli *CLI) Run(args []string) int {
 		case <-runner.DoneCh:
 			return ExitCodeOK
 		case s := <-signalCh:
-			log.Printf("[DEBUG] (cli) receiving signal: %q", s)
+			log.Printf("[DEBUG] (cli) receiving signal %q", s)
 
 			switch s {
 			case config.ReloadSignal:
@@ -139,6 +140,10 @@ func (cli *CLI) Run(args []string) int {
 				fmt.Fprintf(cli.errStream, "Cleaning up...\n")
 				runner.Stop()
 				return ExitCodeInterrupt
+			case syscall.SIGCHLD:
+				// The SIGCHLD signal is sent to the parent of a child process when it
+				// exits, is interrupted, or resumes after being interrupted. We ignore
+				// this signal because the child process is monitored on its own.
 			default:
 				// Propogate the signal to the child process
 				runner.Signal(s)
@@ -421,7 +426,7 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 // handleError outputs the given error's Error() to the errStream and returns
 // the given exit status.
 func (cli *CLI) handleError(err error, status int) int {
-	fmt.Fprintf(cli.errStream, "Consul Template returned errors:\n%s", err)
+	fmt.Fprintf(cli.errStream, "Consul Template returned errors:\n%s\n", err)
 	return status
 }
 
