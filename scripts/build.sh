@@ -48,6 +48,7 @@ gox \
   -osarch="${XC_EXCLUDE}" \
   -ldflags "-X main.GitCommit=${GIT_COMMIT}${GIT_DIRTY}" \
   -output "pkg/{{.OS}}_{{.Arch}}/${NAME}" \
+  -tags="${BUILD_TAGS}"
   .
 
 # Move all the compiled things to the $GOPATH/bin
