@@ -9,9 +9,18 @@ NEW FEATURES:
       applications. Please see the [Exec Mode](README.md#exec-mode)
       documentation for more information.
 
+BREAKING CHANGES:
+
+  * Consul Template no longer terminates on SIGTERM or SIGQUIT. Previous
+      versions were hard-coded to listen for SIGINT, SIGTERM, and SIGQUIT. This
+      value is now configurable, and the default is SIGINT. SIGQUIT will trigger
+      a core dump in accordance with similar programs. SIGTERM is no longer
+      listened.
+
 IMPROVEMENTS:
 
   * Permit commas in key prefix names [GH-669]
+  * Add configurable kill and reload signals [GH-686]
 
 BUG FIXES:
 
