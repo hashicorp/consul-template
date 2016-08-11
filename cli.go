@@ -400,7 +400,7 @@ Usage: %s [options]
 
 Options:
 
-  -auth=<user[:pass]>
+  -auth=<username[:password]>
       Set the basic authentication username (and password)
 
   -config=<path>
