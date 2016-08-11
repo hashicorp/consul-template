@@ -113,7 +113,7 @@ func (cli *CLI) Run(args []string) int {
 		case <-runner.DoneCh:
 			return ExitCodeOK
 		case s := <-signalCh:
-			log.Printf("[DEBUG] (cli) receiving signal: %s", s)
+			log.Printf("[DEBUG] (cli) receiving signal: %q", s)
 
 			switch s {
 			case config.ReloadSignal:
