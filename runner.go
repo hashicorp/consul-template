@@ -202,6 +202,21 @@ func (r *Runner) Start() {
 			// then we should exit here.
 			if r.once {
 				log.Printf("[INFO] (runner) once mode and all templates rendered")
+
+				if r.child != nil {
+					r.stopDedup()
+					r.stopWatcher()
+
+					log.Printf("[INFO] (runner) waiting for child process to exit")
+					select {
+					case c := <-childExitCh:
+						log.Printf("[INFO] (runner) child process died")
+						r.ErrCh <- NewErrChildDied(c)
+						return
+					case <-r.DoneCh:
+					}
+				}
+
 				r.Stop()
 				return
 			}
@@ -280,16 +295,9 @@ func (r *Runner) Start() {
 // Stop halts the execution of this runner and its subprocesses.
 func (r *Runner) Stop() {
 	log.Printf("[INFO] (runner) stopping")
-	if r.dedup != nil {
-		r.dedup.Stop()
-	}
-	r.watcher.Stop()
-
-	r.childLock.RLock()
-	defer r.childLock.RUnlock()
-	if r.child != nil {
-		r.child.Stop()
-	}
+	r.stopDedup()
+	r.stopWatcher()
+	r.stopChild()
 
 	if err := r.deletePid(); err != nil {
 		log.Printf("[WARN] (runner) could not remove pid at %q: %s",
@@ -297,6 +305,36 @@ func (r *Runner) Stop() {
 	}
 
 	close(r.DoneCh)
+}
+
+func (r *Runner) stopDedup() {
+	if r.dedup != nil {
+		log.Printf("[DEBUG] (runner) stopping de-duplication manager")
+		r.dedup.Stop()
+	} else {
+		log.Printf("[DEBUG] (runner) de-duplication manager is not running")
+	}
+}
+
+func (r *Runner) stopWatcher() {
+	if r.watcher != nil {
+		log.Printf("[DEBUG] (runner) stopping watcher")
+		r.watcher.Stop()
+	} else {
+		log.Printf("[DEBUG] (runner) watcher is not running")
+	}
+}
+
+func (r *Runner) stopChild() {
+	r.childLock.RLock()
+	defer r.childLock.RUnlock()
+
+	if r.child != nil {
+		log.Printf("[DEBUG] (runner) stopping child process")
+		r.child.Stop()
+	} else {
+		log.Printf("[DEBUG] (runner) child is not running")
+	}
 }
 
 // Receive accepts a Dependency and data for that dep. This data is
