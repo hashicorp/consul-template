@@ -38,7 +38,7 @@ func TestNew(t *testing.T) {
 	args := []string{"hello", "world"}
 	reloadSignal := os.Interrupt
 	killSignal := os.Kill
-	killTimeout := 1 * time.Second
+	killTimeout := 2 * time.Second
 	splay := 2 * time.Second
 
 	c, err := New(&NewInput{
@@ -93,7 +93,7 @@ func TestNew(t *testing.T) {
 	}
 
 	if c.stopCh == nil {
-		t.Errorf("expected %q to be", c.stopCh)
+		t.Errorf("expected %#v to be", c.stopCh)
 	}
 }
 
@@ -116,7 +116,7 @@ func TestExitCh_noProcess(t *testing.T) {
 	c := testChild(t)
 	ch := c.ExitCh()
 	if ch != nil {
-		t.Errorf("expected %q to be nil", ch)
+		t.Errorf("expected %#v to be nil", ch)
 	}
 }
 
@@ -206,14 +206,14 @@ func TestSignal(t *testing.T) {
 	defer c.Stop()
 
 	// For some reason bash doesn't start immediately
-	time.Sleep(250 * time.Millisecond)
+	time.Sleep(2 * time.Second)
 
 	if err := c.Signal(syscall.SIGUSR1); err != nil {
 		t.Fatal(err)
 	}
 
 	// Give time for the file to flush
-	time.Sleep(250 * time.Millisecond)
+	time.Sleep(2 * time.Second)
 
 	// Stop the child now
 	c.Stop()
@@ -251,14 +251,14 @@ func TestReload_signal(t *testing.T) {
 	defer c.Stop()
 
 	// For some reason bash doesn't start immediately
-	time.Sleep(250 * time.Millisecond)
+	time.Sleep(2 * time.Second)
 
 	if err := c.Reload(); err != nil {
 		t.Fatal(err)
 	}
 
 	// Give time for the file to flush
-	time.Sleep(250 * time.Millisecond)
+	time.Sleep(2 * time.Second)
 
 	// Stop the child now
 	c.Stop()
@@ -286,7 +286,7 @@ func TestReload_noSignal(t *testing.T) {
 	defer c.Stop()
 
 	// For some reason bash doesn't start immediately
-	time.Sleep(250 * time.Millisecond)
+	time.Sleep(2 * time.Second)
 
 	// Grab the original pid
 	opid := c.cmd.Process.Pid
@@ -296,7 +296,7 @@ func TestReload_noSignal(t *testing.T) {
 	}
 
 	// Give time for the file to flush
-	time.Sleep(250 * time.Millisecond)
+	time.Sleep(2 * time.Second)
 
 	// Get the new pid
 	npid := c.cmd.Process.Pid
@@ -369,12 +369,12 @@ func TestKill_noSignal(t *testing.T) {
 	defer c.Stop()
 
 	// For some reason bash doesn't start immediately
-	time.Sleep(250 * time.Millisecond)
+	time.Sleep(2 * time.Second)
 
 	c.Kill()
 
 	// Give time for the file to flush
-	time.Sleep(250 * time.Millisecond)
+	time.Sleep(2 * time.Second)
 
 	if c.cmd != nil {
 		t.Errorf("expected cmd to be nil")

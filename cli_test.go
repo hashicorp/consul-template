@@ -788,6 +788,8 @@ func TestRun_parseError(t *testing.T) {
 }
 
 func TestRun_onceFlag(t *testing.T) {
+	t.Parallel()
+
 	consul := testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
 		c.Stdout = ioutil.Discard
 		c.Stderr = ioutil.Discard
@@ -822,13 +824,15 @@ func TestRun_onceFlag(t *testing.T) {
 			t.Errorf("expected %d to eq %d", status, ExitCodeOK)
 			t.Errorf("out: %s", outStream.String())
 		}
-	case <-time.After(500 * time.Millisecond):
-		t.Errorf("expected exit, did not exit after 500ms")
+	case <-time.After(2 * time.Second):
+		t.Errorf("expected exit, did not exit after 2s")
 		t.Errorf("out: %s", outStream.String())
 	}
 }
 
 func TestReload_sighup(t *testing.T) {
+	t.Parallel()
+
 	template := test.CreateTempfile([]byte("initial value"), t)
 	defer test.DeleteTempfile(template, t)
 
@@ -849,16 +853,18 @@ func TestReload_sighup(t *testing.T) {
 	defer cli.stop()
 
 	// Ensure we have run at least once
-	test.WaitForContents(t, 500*time.Millisecond, out.Name(), "initial value")
+	test.WaitForContents(t, 2*time.Second, out.Name(), "initial value")
 
 	newValue := []byte("new value")
 	ioutil.WriteFile(template.Name(), newValue, 0644)
 	syscall.Kill(syscall.Getpid(), syscall.SIGHUP)
 
-	test.WaitForContents(t, 500*time.Millisecond, out.Name(), "new value")
+	test.WaitForContents(t, 2*time.Second, out.Name(), "new value")
 }
 
 func TestErr_exitStatus(t *testing.T) {
+	t.Parallel()
+
 	out := gatedio.NewByteBuffer()
 	cli := NewCLI(out, out)
 
