@@ -263,9 +263,13 @@ func NewSystemBackend(core *Core, config *logical.BackendConfig) logical.Backend
 			},
 
 			&framework.Path{
-				Pattern: "renew/(?P<lease_id>.+)",
+				Pattern: "renew" + framework.OptionalParamRegex("url_lease_id"),
 
 				Fields: map[string]*framework.FieldSchema{
+					"url_lease_id": &framework.FieldSchema{
+						Type:        framework.TypeString,
+						Description: strings.TrimSpace(sysHelp["lease_id"][0]),
+					},
 					"lease_id": &framework.FieldSchema{
 						Type:        framework.TypeString,
 						Description: strings.TrimSpace(sysHelp["lease_id"][0]),
@@ -572,12 +576,12 @@ func (b *SystemBackend) handleCapabilitiesAccessor(req *logical.Request, d *fram
 		return logical.ErrorResponse("missing accessor"), nil
 	}
 
-	token, err := b.Core.tokenStore.lookupByAccessor(accessor)
+	aEntry, err := b.Core.tokenStore.lookupByAccessor(accessor)
 	if err != nil {
 		return nil, err
 	}
 
-	capabilities, err := b.Core.Capabilities(token, d.Get("path").(string))
+	capabilities, err := b.Core.Capabilities(aEntry.TokenID, d.Get("path").(string))
 	if err != nil {
 		return nil, err
 	}
@@ -968,6 +972,9 @@ func (b *SystemBackend) handleRenew(
 	req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 	// Get all the options
 	leaseID := data.Get("lease_id").(string)
+	if leaseID == "" {
+		leaseID = data.Get("url_lease_id").(string)
+	}
 	incrementRaw := data.Get("increment").(int)
 
 	// Convert the increment
@@ -1349,7 +1356,7 @@ func (b *SystemBackend) handleKeyStatus(
 	resp := &logical.Response{
 		Data: map[string]interface{}{
 			"term":         info.Term,
-			"install_time": info.InstallTime.Format(time.RFC3339),
+			"install_time": info.InstallTime.Format(time.RFC3339Nano),
 		},
 	}
 	return resp, nil

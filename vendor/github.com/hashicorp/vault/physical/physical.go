@@ -3,6 +3,7 @@ package physical
 import (
 	"fmt"
 	"log"
+	"sync"
 )
 
 const DefaultParallelOperations = 128
@@ -38,6 +39,9 @@ type Backend interface {
 type HABackend interface {
 	// LockWith is used for mutual exclusion based on the given key.
 	LockWith(key, value string) (Lock, error)
+
+	// Whether or not HA functionality is enabled
+	HAEnabled() bool
 }
 
 // AdvertiseDetect is an optional interface that an HABackend
@@ -68,7 +72,7 @@ type ServiceDiscovery interface {
 
 	// Run executes any background service discovery tasks until the
 	// shutdown channel is closed.
-	RunServiceDiscovery(shutdownCh ShutdownChannel, advertiseAddr string, activeFunc activeFunction, sealedFunc sealedFunction) error
+	RunServiceDiscovery(waitGroup *sync.WaitGroup, shutdownCh ShutdownChannel, advertiseAddr string, activeFunc activeFunction, sealedFunc sealedFunction) error
 }
 
 type Lock interface {

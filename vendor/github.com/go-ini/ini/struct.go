@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 	"unicode"
 )
@@ -323,6 +324,28 @@ func reflectWithProperType(t reflect.Type, key *Key, field reflect.Value, delim 
 	return nil
 }
 
+// CR: copied from encoding/json/encode.go with modifications of time.Time support.
+// TODO: add more test coverage.
+func isEmptyValue(v reflect.Value) bool {
+	switch v.Kind() {
+	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
+		return v.Len() == 0
+	case reflect.Bool:
+		return !v.Bool()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return v.Int() == 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return v.Uint() == 0
+	case reflect.Float32, reflect.Float64:
+		return v.Float() == 0
+	case reflectTime:
+		return v.Interface().(time.Time).IsZero()
+	case reflect.Interface, reflect.Ptr:
+		return v.IsNil()
+	}
+	return false
+}
+
 func (s *Section) reflectFrom(val reflect.Value) error {
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
@@ -338,13 +361,18 @@ func (s *Section) reflectFrom(val reflect.Value) error {
 			continue
 		}
 
-		fieldName := s.parseFieldName(tpField.Name, tag)
+		opts := strings.SplitN(tag, ",", 2)
+		if len(opts) == 2 && opts[1] == "omitempty" && isEmptyValue(field) {
+			continue
+		}
+
+		fieldName := s.parseFieldName(tpField.Name, opts[0])
 		if len(fieldName) == 0 || !field.CanSet() {
 			continue
 		}
 
 		if (tpField.Type.Kind() == reflect.Ptr && tpField.Anonymous) ||
-			(tpField.Type.Kind() == reflect.Struct && tpField.Type.Kind() != reflectTime) {
+			(tpField.Type.Kind() == reflect.Struct && tpField.Type.Name() != "Time") {
 			// Note: The only error here is section doesn't exist.
 			sec, err := s.f.GetSection(fieldName)
 			if err != nil {
@@ -352,7 +380,7 @@ func (s *Section) reflectFrom(val reflect.Value) error {
 				sec, _ = s.f.NewSection(fieldName)
 			}
 			if err = sec.reflectFrom(field); err != nil {
-				return fmt.Errorf("error reflecting field(%s): %v", fieldName, err)
+				return fmt.Errorf("error reflecting field (%s): %v", fieldName, err)
 			}
 			continue
 		}
@@ -363,7 +391,7 @@ func (s *Section) reflectFrom(val reflect.Value) error {
 			key, _ = s.NewKey(fieldName, "")
 		}
 		if err = reflectWithProperType(tpField.Type, key, field, parseDelim(tpField.Tag.Get("delim"))); err != nil {
-			return fmt.Errorf("error reflecting field(%s): %v", fieldName, err)
+			return fmt.Errorf("error reflecting field (%s): %v", fieldName, err)
 		}
 
 	}

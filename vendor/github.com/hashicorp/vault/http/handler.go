@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/vault/helper/duration"
+	"github.com/hashicorp/vault/helper/jsonutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/vault"
 )
@@ -33,6 +34,7 @@ func Handler(core *vault.Core) http.Handler {
 	mux.Handle("/v1/sys/seal", handleSysSeal(core))
 	mux.Handle("/v1/sys/step-down", handleSysStepDown(core))
 	mux.Handle("/v1/sys/unseal", handleSysUnseal(core))
+	mux.Handle("/v1/sys/renew", handleLogical(core, false, nil))
 	mux.Handle("/v1/sys/renew/", handleLogical(core, false, nil))
 	mux.Handle("/v1/sys/leader", handleSysLeader(core))
 	mux.Handle("/v1/sys/health", handleSysHealth(core))
@@ -80,8 +82,7 @@ func stripPrefix(prefix, path string) (string, bool) {
 }
 
 func parseRequest(r *http.Request, out interface{}) error {
-	dec := json.NewDecoder(r.Body)
-	err := dec.Decode(out)
+	err := jsonutil.DecodeJSONFromReader(r.Body, out)
 	if err != nil && err != io.EOF {
 		return fmt.Errorf("Failed to parse JSON input: %s", err)
 	}
@@ -232,7 +233,7 @@ func respondErrorCommon(w http.ResponseWriter, resp *logical.Response, err error
 		}
 	}
 
-	if resp != nil {
+	if resp != nil && resp.IsError() {
 		err = fmt.Errorf("%s", resp.Data["error"].(string))
 	}
 

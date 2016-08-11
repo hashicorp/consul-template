@@ -15,7 +15,7 @@ func GenerateRandomBytes(size int) ([]byte, error) {
 	return buf, nil
 }
 
-// GenerateUUID is used to generate a random UUID v4 that is defined by RFC 4122 ("Leach-Salz")
+// GenerateUUID is used to generate a random UUID
 func GenerateUUID() (string, error) {
 	buf, err := GenerateRandomBytes(16)
 	if err != nil {

@@ -512,8 +512,8 @@ Why not?
 ```go
 type Embeded struct {
 	Dates  []time.Time `delim:"|"`
-	Places []string
-	None   []int
+	Places []string    `ini:"places,omitempty"`
+	None   []int       `ini:",omitempty"`
 }
 
 type Author struct {
@@ -548,8 +548,7 @@ GPA = 2.8
 
 [Embeded]
 Dates = 2015-08-07T22:14:22+08:00|2015-08-07T22:14:22+08:00
-Places = HangZhou,Boston
-None =
+places = HangZhou,Boston
 ```
 
 #### Name Mapper

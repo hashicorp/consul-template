@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/vault/helper/jsonutil"
 	"github.com/hashicorp/vault/logical"
 )
 
@@ -205,7 +206,7 @@ func (c *Core) mount(me *MountEntry) error {
 	newTable := c.mounts.ShallowClone()
 	newTable.Entries = append(newTable.Entries, me)
 	if err := c.persistMounts(newTable); err != nil {
-		return errors.New("failed to update mount table")
+		return logical.CodedError(500, "failed to update mount table")
 	}
 	c.mounts = newTable
 
@@ -289,7 +290,7 @@ func (c *Core) removeMountEntry(path string) error {
 
 	// Update the mount table
 	if err := c.persistMounts(newTable); err != nil {
-		return errors.New("failed to update mount table")
+		return logical.CodedError(500, "failed to update mount table")
 	}
 
 	c.mounts = newTable
@@ -304,7 +305,7 @@ func (c *Core) taintMountEntry(path string) error {
 
 	// Update the mount table
 	if err := c.persistMounts(c.mounts); err != nil {
-		return errors.New("failed to update mount table")
+		return logical.CodedError(500, "failed to update mount table")
 	}
 
 	return nil
@@ -373,7 +374,7 @@ func (c *Core) remount(src, dst string) error {
 	if err := c.persistMounts(c.mounts); err != nil {
 		ent.Path = src
 		ent.Tainted = true
-		return errors.New("failed to update mount table")
+		return logical.CodedError(500, "failed to update mount table")
 	}
 
 	// Remount the backend
@@ -404,9 +405,12 @@ func (c *Core) loadMounts() error {
 	defer c.mountsLock.Unlock()
 
 	if raw != nil {
-		if err := json.Unmarshal(raw.Value, mountTable); err != nil {
-			c.logger.Printf("[ERR] core: failed to decode mount table: %v", err)
-			return errLoadMountsFailed
+		// Check if the persisted value has canary in the beginning. If
+		// yes, decompress the table and then JSON decode it. If not,
+		// simply JSON decode it.
+		if err := jsonutil.DecodeJSON(raw.Value, mountTable); err != nil {
+			c.logger.Printf("[ERR] core: failed to decompress and/or decode the mount table: %v", err)
+			return err
 		}
 		c.mounts = mountTable
 	}
@@ -483,17 +487,17 @@ func (c *Core) persistMounts(table *MountTable) error {
 		}
 	}
 
-	// Marshal the table
-	raw, err := json.Marshal(table)
+	// Encode the mount table into JSON and compress it (lzw).
+	compressedBytes, err := jsonutil.EncodeJSONAndCompress(table, nil)
 	if err != nil {
-		c.logger.Printf("[ERR] core: failed to encode mount table: %v", err)
+		c.logger.Printf("[ERR] core: failed to encode and/or compress the mount table: %v", err)
 		return err
 	}
 
 	// Create an entry
 	entry := &Entry{
 		Key:   coreMountConfigPath,
-		Value: raw,
+		Value: compressedBytes,
 	}
 
 	// Write to the physical backend

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/vault/helper/errutil"
 	"github.com/hashicorp/vault/logical"
 )
 
@@ -128,7 +129,7 @@ func (b *Backend) HandleExistenceCheck(req *logical.Request) (checkFound bool, e
 
 	err = fd.Validate()
 	if err != nil {
-		return false, false, err
+		return false, false, errutil.UserError{Err: err.Error()}
 	}
 
 	// Call the callback with the request and the data
@@ -450,9 +451,9 @@ func (b *Backend) handleWALRollback(
 	if age == 0 {
 		age = 10 * time.Minute
 	}
-	minAge := time.Now().UTC().Add(-1 * age)
+	minAge := time.Now().Add(-1 * age)
 	if _, ok := req.Data["immediate"]; ok {
-		minAge = time.Now().UTC().Add(1000 * time.Hour)
+		minAge = time.Now().Add(1000 * time.Hour)
 	}
 
 	for _, k := range keys {

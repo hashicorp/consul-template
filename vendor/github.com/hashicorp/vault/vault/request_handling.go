@@ -2,12 +2,12 @@ package vault
 
 import (
 	"encoding/json"
-	"sort"
 	"strings"
 	"time"
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/vault/helper/policyutil"
 	"github.com/hashicorp/vault/helper/strutil"
 	"github.com/hashicorp/vault/logical"
 )
@@ -66,9 +66,9 @@ func (c *Core) HandleRequest(req *logical.Request) (resp *logical.Response, err 
 	}
 
 	// Create an audit trail of the response
-	if err := c.auditBroker.LogResponse(auth, req, resp, err); err != nil {
+	if auditErr := c.auditBroker.LogResponse(auth, req, resp, err); auditErr != nil {
 		c.logger.Printf("[ERR] core: failed to audit response (request path: %s): %v",
-			req.Path, err)
+			req.Path, auditErr)
 		return nil, ErrInternalError
 	}
 
@@ -174,7 +174,7 @@ func (c *Core) handleRequest(req *logical.Request) (retResp *logical.Response, r
 
 	// If there is a secret, we must register it with the expiration manager.
 	// We exclude renewal of a lease, since it does not need to be re-registered
-	if resp != nil && resp.Secret != nil && !strings.HasPrefix(req.Path, "sys/renew/") {
+	if resp != nil && resp.Secret != nil && !strings.HasPrefix(req.Path, "sys/renew") {
 		// Get the SystemView for the mount
 		sysView := c.router.MatchingSystemView(req.Path)
 		if sysView == nil {
@@ -271,6 +271,15 @@ func (c *Core) handleLoginRequest(req *logical.Request) (*logical.Response, *log
 		return nil, nil, ErrInternalError
 	}
 
+	// The token store uses authentication even when creating a new token,
+	// so it's handled in handleRequest. It should not be reached here.
+	if strings.HasPrefix(req.Path, "auth/token/") {
+		c.logger.Printf(
+			"[ERR] core: unexpected login request for token backend "+
+				"(request path: %s)", req.Path)
+		return nil, nil, ErrInternalError
+	}
+
 	// Route the request
 	resp, err := c.router.Route(req)
 	if resp != nil {
@@ -296,6 +305,10 @@ func (c *Core) handleLoginRequest(req *logical.Request) (*logical.Response, *log
 	if resp != nil && resp.Auth != nil {
 		auth = resp.Auth
 
+		if strutil.StrListSubset(auth.Policies, []string{"root"}) {
+			return logical.ErrorResponse("authentication backends cannot create root tokens"), nil, logical.ErrInvalidRequest
+		}
+
 		// Determine the source of the login
 		source := c.router.MatchingMount(req.Path)
 		source = strings.TrimPrefix(source, credentialRoutePrefix)
@@ -311,8 +324,8 @@ func (c *Core) handleLoginRequest(req *logical.Request) (*logical.Response, *log
 			return nil, nil, ErrInternalError
 		}
 
-		// Set the default lease if non-provided, root tokens are exempt
-		if auth.TTL == 0 && !strutil.StrListContains(auth.Policies, "root") {
+		// Set the default lease if not provided
+		if auth.TTL == 0 {
 			auth.TTL = sysView.DefaultLeaseTTL()
 		}
 
@@ -331,30 +344,7 @@ func (c *Core) handleLoginRequest(req *logical.Request) (*logical.Response, *log
 			TTL:          auth.TTL,
 		}
 
-		if strutil.StrListSubset(te.Policies, []string{"root"}) {
-			te.Policies = []string{"root"}
-		} else {
-			// Use a map to filter out/prevent duplicates
-			policyMap := map[string]bool{}
-			for _, policy := range te.Policies {
-				if policy == "" {
-					// Don't allow a policy with no name, even though it is a valid
-					// slice member
-					continue
-				}
-				policyMap[policy] = true
-			}
-
-			// Add the default policy
-			policyMap["default"] = true
-
-			te.Policies = []string{}
-			for k, _ := range policyMap {
-				te.Policies = append(te.Policies, k)
-			}
-
-			sort.Strings(te.Policies)
-		}
+		te.Policies = policyutil.SanitizePolicies(te.Policies, true)
 
 		if err := c.tokenStore.create(&te); err != nil {
 			c.logger.Printf("[ERR] core: failed to create token: %v", err)
@@ -410,6 +400,9 @@ func (c *Core) wrapInCubbyhole(req *logical.Request, resp *logical.Response) (*l
 	}
 
 	httpResponse := logical.SanitizeResponse(resp)
+
+	// Add the unique identifier of the original request to the response
+	httpResponse.RequestID = req.ID
 
 	// Because of the way that JSON encodes (likely just in Go) we actually get
 	// mixed-up values for ints if we simply put this object in the response

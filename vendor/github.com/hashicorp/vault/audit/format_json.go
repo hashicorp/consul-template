@@ -30,7 +30,7 @@ func (f *FormatJSON) FormatRequest(
 	// Encode!
 	enc := json.NewEncoder(w)
 	return enc.Encode(&JSONRequestEntry{
-		Time:  time.Now().UTC().Format(time.RFC3339),
+		Time:  time.Now().UTC().Format(time.RFC3339Nano),
 		Type:  "request",
 		Error: errString,
 
@@ -42,6 +42,7 @@ func (f *FormatJSON) FormatRequest(
 
 		Request: JSONRequest{
 			ClientToken: req.ClientToken,
+			ID:          req.ID,
 			Operation:   req.Operation,
 			Path:        req.Path,
 			Data:        req.Data,
@@ -100,7 +101,7 @@ func (f *FormatJSON) FormatResponse(
 	// Encode!
 	enc := json.NewEncoder(w)
 	return enc.Encode(&JSONResponseEntry{
-		Time:  time.Now().UTC().Format(time.RFC3339),
+		Time:  time.Now().UTC().Format(time.RFC3339Nano),
 		Type:  "response",
 		Error: errString,
 
@@ -112,6 +113,7 @@ func (f *FormatJSON) FormatResponse(
 
 		Request: JSONRequest{
 			ClientToken: req.ClientToken,
+			ID:          req.ID,
 			Operation:   req.Operation,
 			Path:        req.Path,
 			Data:        req.Data,
@@ -149,6 +151,7 @@ type JSONResponseEntry struct {
 }
 
 type JSONRequest struct {
+	ID          string                 `json:"id"`
 	Operation   logical.Operation      `json:"operation"`
 	ClientToken string                 `json:"client_token"`
 	Path        string                 `json:"path"`

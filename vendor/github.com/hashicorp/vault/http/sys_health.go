@@ -2,11 +2,13 @@ package http
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/hashicorp/vault/vault"
+	"github.com/hashicorp/vault/version"
 )
 
 func handleSysHealth(core *vault.Core) http.Handler {
@@ -113,19 +115,39 @@ func getSysHealth(core *vault.Core, r *http.Request) (int, *HealthResponse, erro
 		code = standbyCode
 	}
 
+	// Fetch the local cluster name and identifier
+	var clusterName, clusterID string
+	if !sealed {
+		cluster, err := core.Cluster()
+		if err != nil {
+			return http.StatusInternalServerError, nil, err
+		}
+		if cluster == nil {
+			return http.StatusInternalServerError, nil, fmt.Errorf("failed to fetch cluster details")
+		}
+		clusterName = cluster.Name
+		clusterID = cluster.ID
+	}
+
 	// Format the body
 	body := &HealthResponse{
 		Initialized:   init,
 		Sealed:        sealed,
 		Standby:       standby,
 		ServerTimeUTC: time.Now().UTC().Unix(),
+		Version:       version.GetVersion().String(),
+		ClusterName:   clusterName,
+		ClusterID:     clusterID,
 	}
 	return code, body, nil
 }
 
 type HealthResponse struct {
-	Initialized   bool  `json:"initialized"`
-	Sealed        bool  `json:"sealed"`
-	Standby       bool  `json:"standby"`
-	ServerTimeUTC int64 `json:"server_time_utc"`
+	Initialized   bool   `json:"initialized"`
+	Sealed        bool   `json:"sealed"`
+	Standby       bool   `json:"standby"`
+	ServerTimeUTC int64  `json:"server_time_utc"`
+	Version       string `json:"version"`
+	ClusterName   string `json:"cluster_name,omitempty"`
+	ClusterID     string `json:"cluster_id,omitempty"`
 }

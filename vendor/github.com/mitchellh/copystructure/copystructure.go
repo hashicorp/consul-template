@@ -95,7 +95,9 @@ func (w *walker) Exit(l reflectwalk.Location) error {
 		if v.IsValid() {
 			s := w.cs[len(w.cs)-1]
 			sf := reflect.Indirect(s).FieldByName(f.Name)
-			sf.Set(v)
+			if sf.CanSet() {
+				sf.Set(v)
+			}
 		}
 	case reflectwalk.WalkLoc:
 		// Clear out the slices for GC

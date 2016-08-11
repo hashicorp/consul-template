@@ -34,27 +34,30 @@ import (
 	"github.com/coreos/etcd/pkg/tlsutil"
 )
 
-func NewListener(addr string, scheme string, tlscfg *tls.Config) (l net.Listener, err error) {
-	if scheme == "unix" || scheme == "unixs" {
-		// unix sockets via unix://laddr
-		l, err = NewUnixListener(addr)
-	} else {
-		l, err = net.Listen("tcp", addr)
-	}
-
-	if err != nil {
+func NewListener(addr, scheme string, tlscfg *tls.Config) (l net.Listener, err error) {
+	if l, err = newListener(addr, scheme); err != nil {
 		return nil, err
 	}
+	return wrapTLS(addr, scheme, tlscfg, l)
+}
 
-	if scheme == "https" || scheme == "unixs" {
-		if tlscfg == nil {
-			return nil, fmt.Errorf("cannot listen on TLS for %s: KeyFile and CertFile are not presented", scheme+"://"+addr)
-		}
-
-		l = tls.NewListener(l, tlscfg)
+func newListener(addr string, scheme string) (net.Listener, error) {
+	if scheme == "unix" || scheme == "unixs" {
+		// unix sockets via unix://laddr
+		return NewUnixListener(addr)
 	}
+	return net.Listen("tcp", addr)
+}
 
-	return l, nil
+func wrapTLS(addr, scheme string, tlscfg *tls.Config, l net.Listener) (net.Listener, error) {
+	if scheme != "https" && scheme != "unixs" {
+		return l, nil
+	}
+	if tlscfg == nil {
+		l.Close()
+		return nil, fmt.Errorf("cannot listen on TLS for %s: KeyFile and CertFile are not presented", scheme+"://"+addr)
+	}
+	return tls.NewListener(l, tlscfg), nil
 }
 
 type TLSInfo struct {
@@ -63,6 +66,9 @@ type TLSInfo struct {
 	CAFile         string
 	TrustedCAFile  string
 	ClientCertAuth bool
+
+	// ServerName ensures the cert matches the given host in case of discovery / virtual hosting
+	ServerName string
 
 	selfCert bool
 
@@ -164,6 +170,7 @@ func (info TLSInfo) baseConfig() (*tls.Config, error) {
 	cfg := &tls.Config{
 		Certificates: []tls.Certificate{*tlsCert},
 		MinVersion:   tls.VersionTLS12,
+		ServerName:   info.ServerName,
 	}
 	return cfg, nil
 }
@@ -215,7 +222,7 @@ func (info TLSInfo) ClientConfig() (*tls.Config, error) {
 			return nil, err
 		}
 	} else {
-		cfg = &tls.Config{}
+		cfg = &tls.Config{ServerName: info.ServerName}
 	}
 
 	CAFiles := info.cafiles()
@@ -224,6 +231,8 @@ func (info TLSInfo) ClientConfig() (*tls.Config, error) {
 		if err != nil {
 			return nil, err
 		}
+		// if given a CA, trust any host with a cert signed by the CA
+		cfg.ServerName = ""
 	}
 
 	if info.selfCert {
