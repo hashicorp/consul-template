@@ -291,7 +291,7 @@ func TestParseFlags_configTemplates(t *testing.T) {
 		Wait:           &watch.Wait{},
 	}
 	if !reflect.DeepEqual(config.ConfigTemplates[0], expected) {
-		t.Errorf("expected %q to be %q", config.ConfigTemplates[0], expected)
+		t.Errorf("expected %#v to be %#v", config.ConfigTemplates[0], expected)
 	}
 }
 
@@ -751,4 +751,15 @@ func TestReload_sighup(t *testing.T) {
 	syscall.Kill(syscall.Getpid(), syscall.SIGHUP)
 
 	test.WaitForContents(t, 500*time.Millisecond, out.Name(), "new value")
+}
+
+func TestErr_exitStatus(t *testing.T) {
+	out := gatedio.NewByteBuffer()
+	cli := NewCLI(out, out)
+
+	args := []string{"", "-exec", "bash -c 'exit 123'"}
+	exit := cli.Run(args)
+	if exit != 123 {
+		t.Errorf("expected %d to be %d\n\n%s", exit, 123, out.String())
+	}
 }

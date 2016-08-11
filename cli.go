@@ -103,7 +103,13 @@ func (cli *CLI) Run(args []string) int {
 	for {
 		select {
 		case err := <-runner.ErrCh:
-			return cli.handleError(err, ExitCodeRunnerError)
+			// Check if the runner's error returned a specific exit status, and return
+			// that value. If no value was given, return a generic exit status.
+			code := ExitCodeRunnerError
+			if typed, ok := err.(ErrExitable); ok {
+				code = typed.ExitStatus()
+			}
+			return cli.handleError(err, code)
 		case <-runner.DoneCh:
 			return ExitCodeOK
 		case s := <-signalCh:

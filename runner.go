@@ -260,7 +260,7 @@ func (r *Runner) Start() {
 
 		case c := <-childExitCh:
 			log.Printf("[INFO] (runner) child process died")
-			r.ErrCh <- fmt.Errorf("child process died with exit code %d", c)
+			r.ErrCh <- NewErrChildDied(c)
 			return
 
 		case <-r.DoneCh:
