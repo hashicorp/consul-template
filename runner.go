@@ -260,7 +260,7 @@ func (r *Runner) Start() {
 
 		case c := <-childExitCh:
 			log.Printf("[INFO] (runner) child process died")
-			r.ErrCh <- fmt.Errorf("child process died with exit code %d", c)
+			r.ErrCh <- NewErrChildDied(c)
 			return
 
 		case <-r.DoneCh:
@@ -285,6 +285,8 @@ func (r *Runner) Stop() {
 	}
 	r.watcher.Stop()
 
+	r.childLock.RLock()
+	defer r.childLock.RUnlock()
 	if r.child != nil {
 		r.child.Stop()
 	}
@@ -324,6 +326,8 @@ func (r *Runner) Receive(d dep.Dependency, data interface{}) {
 // Signal sends a signal to the child process, if it exists. Any errors that
 // occur are returned.
 func (r *Runner) Signal(s os.Signal) error {
+	r.childLock.RLock()
+	defer r.childLock.RUnlock()
 	if r.child == nil {
 		return nil
 	}
@@ -496,9 +500,11 @@ func (r *Runner) Run() error {
 	// If we got this far and have a child process, we need to send the reload
 	// signal to the child process.
 	if renderedAny && r.child != nil {
+		r.childLock.RLock()
 		if err := r.child.Reload(); err != nil {
 			errs = append(errs, err)
 		}
+		r.childLock.RUnlock()
 	}
 
 	// If any errors were returned, convert them to an ErrorList for human
