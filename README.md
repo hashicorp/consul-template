@@ -23,35 +23,11 @@ You can download a released `consul-template` artifact from [the Consul Template
 Usage
 -----
 ### Options
-|       Option      | Description |
-| ----------------- |------------ |
-| `auth`            | The basic authentication username (and optional password), separated by a colon. There is no default value.
-| `config`          | The path to a configuration file or directory of configuration files on disk, relative to the current working directory. Values specified on the CLI take precedence over values specified in the configuration file. There is no default value.
-| `consul`*         | The location of the Consul instance to query (may be an IP address or FQDN) with port.
-| `deduplicate`     | Enable de-duplication of template rendering. If many instances of consul-template render the same template this reduces the load on Consul. Please see the "De-Duplication Mode" section in caveats for more information.
-| `dry`             | Dump generated templates to the console. If specified, generated templates are not committed to disk and commands are not invoked. _(CLI-only)_
-| `exec`            | Start the given command as a child process and proxy signals to that child. See [Exec mode](#exec-mode) below for more information.
-| `exec-kill-signal` | The signal to send to gracefully stop the child process.
-| `exec-kill-timeout` | The duration to wait before force-killing the child process.
-| `exec-reload-signal` | The signal to send to notify the child process that templates have changed. The default value is nil, which tells Consul Template to restart the child process instead of sending a reload signal.
-| `exec-splay` | Amount of time (random max) to wait before sending signals to the child process.
-| `log-level`       | The log level for output. This applies to the stdout/stderr logging as well as syslog logging (if enabled). Valid values are "debug", "info", "warn", and "err". The default value is "warn".
-| `max-stale`       | The maximum staleness of a query. If specified, Consul will distribute work among all servers instead of just the leader. The default value is 1s.
-| `once`            | Run Consul Template once and exit (as opposed to the default behavior of daemon). _(CLI-only)_
-| `pid-file`        | The path on disk to write Consul Template's PID file.
-| `retry`           | The amount of time to wait if Consul returns an error when communicating with the API. The default value is 5 seconds.
-| `ssl`             | Use HTTPS while talking to Consul. Requires the Consul server to be configured to serve secure connections. The default value is false.
-| `ssl-ca-cert`     | Path to a CA certificate file, containing one or more CA certificates to use to validate the certificate sent by the consul server to us. This is a handy alternative to setting ```--ssl-verify=false``` if you are using your own CA.
-| `ssl-cert`        | Path to an SSL client certificate to use to authenticate to the consul server. Useful if the consul server "verify_incoming" option is set.
-| `ssl-verify`      | Verify certificates when connecting via SSL. This requires the use of `-ssl`. The default value is true.
-| `syslog`          | Send log output to syslog (in addition to stdout and stderr). The default value is false.
-| `syslog-facility` | The facility to use when sending to syslog. This requires the use of `-syslog`. The default value is `LOCAL0`.
-| `template`*       | The input template, output path, and optional command separated by a colon (`:`). This option is additive and may be specified multiple times for multiple templates.
-| `token`           | The [Consul API token][Consul ACLs]. There is no default value.
-| `version`         | Output version information and quit. _(CLI-only)_
-| `wait`            | The `minimum(:maximum)` to wait before rendering a new template to disk and triggering a command, separated by a colon (`:`). If the optional maximum value is omitted, it is assumed to be 4x the required minimum value. This is a numeric time with a unit suffix ("5s"). There is no default value. Note that templates may override this setting with a template-specific wait using configuration files; this is described below.
+For the full list of options that correspond with your release, run:
 
-\* = Required parameter
+```shell
+consul-template -h
+```
 
 ### Command Line
 The CLI interface supports all of the options detailed above.
@@ -136,6 +112,21 @@ consul = "127.0.0.1:8500"
 //
 // This option is also available via the environment variable CONSUL_TOKEN.
 token = "abcd1234"
+
+// This is the signal to listen for to trigger a reload event. The default
+// value is shown below. Setting this value to the empty string will cause CT
+// to not listen for any reload signals.
+reload_signal = "SIGHUP"
+
+// This is the signal to listen for to trigger a core dump event. The default
+// value is shown below. Setting this value to the empty string will cause CT
+// to not listen for any core dump signals.
+dump_signal = "SIGQUIT"
+
+// This is the signal to listen for to trigger a graceful stop. The default
+// value is shown below. Setting this value to the empty string will cause CT
+// to not listen for any graceful stop signals.
+kill_signal = "SIGINT"
 
 // This is the amount of time to wait before retrying a connection to Consul.
 // Consul Template is highly fault tolerant, meaning it does not exit in the
@@ -1216,12 +1207,13 @@ There are some additional caveats with Exec Mode, which should be considered car
 - The exec command will only start after _all_ templates have been rendered at least once. One may have multiple templates for a single Consul Template process, all of which must be rendered before the process starts. Consider something like an nginx or apache configuration where both the process configuration file and individual site configuration must be written in order for the service to successfully start.
 - After the child process is started, any change to any dependent template will cause the reload signal to be sent to the child process. This reload signal defaults to nil, in which Consul Template will not kill and respawn the child. The reload signal can be specified and customized via the CLI or configuration file.
 - When Consul Template is stopped gracefully, it will send the configurable kill signal to the child process. The default value is SIGTERM, but it can be customized via the CLI or configuration file.
+- Consul Template will forward all signals it receives to the child process **except** its defined `reload_signal`, `dump_signal`, and `kill_signal`. If you disable these signals, Consul Template will forward them to the child process.
 - It is not possible to have more than one exec command (although each template can still have its own reload command).
 - Individual template reload commands still fire independently of the exec command.
 
 ### De-Duplication Mode
 
-Consul Template works by parsing templates to determine what data is needed and then watching Consul for any changes to that data. This allows Consul Template to efficiently re-render templates when a change occurs. However, if there are many instances of Consul Template rendering a common template there is a linear duplicaiton of work as each instance is querying the same data.
+Consul Template works by parsing templates to determine what data is needed and then watching Consul for any changes to that data. This allows Consul Template to efficiently re-render templates when a change occurs. However, if there are many instances of Consul Template rendering a common template there is a linear duplication of work as each instance is querying the same data.
 
 To make this pattern more efficient Consul Template supports work de-duplication across instances. This can be enabled with the `-dedup` flag or via the `deduplicate` configuration block. Once enabled, Consul Template uses [leader election](https://consul.io/docs/guides/leader-election.html) on a per-template basis to have only a single node perform the queries. Results are shared among other instances rendering the same template by passing compressed data through the Consul K/V store.
 
