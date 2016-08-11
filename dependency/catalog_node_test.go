@@ -55,6 +55,9 @@ func TestCatalogNodeFetch(t *testing.T) {
 	if s.Port != 0 {
 		t.Errorf("expecting %d to be 0", s.Port)
 	}
+	if s.Address != "" {
+		t.Errorf("expecting %q to be \"\"", s.Address)
+	}
 	if len(s.Tags) != 2 {
 		t.Fatalf("expecting %d to be 2", len(s.Tags))
 	}
