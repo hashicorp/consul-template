@@ -325,6 +325,97 @@ func TestKeyWithDefaultFunc_missingData(t *testing.T) {
 	}
 }
 
+func TestKeyOrIgnoreFunc_emptyString(t *testing.T) {
+	brain := NewBrain()
+	used := make(map[string]dep.Dependency)
+	missing := make(map[string]dep.Dependency)
+
+	f := keyOrIgnoreFunc(brain, used, missing)
+	result, err := f("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != "" {
+		t.Errorf("expected %q to be %q", result, "")
+	}
+}
+
+
+func TestKeyOrIgnoreFunc_hasData(t *testing.T) {
+	d, err := dep.ParseStoreKey("existing")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	brain := NewBrain()
+	brain.Remember(d, "contents")
+
+	used := make(map[string]dep.Dependency)
+	missing := make(map[string]dep.Dependency)
+
+	f := keyOrIgnoreFunc(brain, used, missing)
+	result, err := f("existing")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != "contents" {
+		t.Errorf("expected %q to be %q", result, "contents")
+	}
+
+	if len(missing) != 0 {
+		t.Errorf("expected missing to have 0 elements, but had %d", len(missing))
+	}
+
+	var d2 dep.Dependency
+	d2, ok := used[d.HashCode()]
+	if !ok {
+		t.Errorf("expected dep to be used")
+	}
+
+	if (d2.(*dep.StoreKey).IsSuppressWarning()) != true {
+		t.Errorf("expected suppressWarning to be true")
+	}
+}
+
+func TestKeyOrIgnoreFunc_missingData(t *testing.T) {
+	d, err := dep.ParseStoreKey("non-existing")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	brain := NewBrain()
+
+	used := make(map[string]dep.Dependency)
+	missing := make(map[string]dep.Dependency)
+
+	f := keyOrIgnoreFunc(brain, used, missing)
+	result, err := f("non-existing")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != "" {
+		t.Errorf("expected %q to be %q", result, "")
+	}
+
+	var d2 dep.Dependency
+	d2, ok := used[d.HashCode()]
+	if !ok {
+		t.Errorf("expected dep to be used")
+	}
+
+	if (d2.(*dep.StoreKey).IsSuppressWarning()) != true {
+		t.Errorf("expected suppressWarning to be true")
+	}
+
+	if _, ok := missing[d.HashCode()]; !ok {
+		t.Errorf("expected dep to be missing")
+	}
+}
+
+
 func TestLsFunc_emptyString(t *testing.T) {
 	brain := NewBrain()
 	used := make(map[string]dep.Dependency)

@@ -19,7 +19,7 @@ NAME=${NAME:-"$(basename $(pwd))"}
 echo "==> Updating dependencies..."
 
 echo "--> Making tmpdir..."
-tmpdir=$(mktemp -d)
+tmpdir=$(mktemp -d 2>/dev/null || mktemp -d -t 'tmpdir')
 function cleanup {
   rm -rf "${tmpdir}"
 }
