@@ -132,6 +132,36 @@ func keyWithDefaultFunc(brain *Brain,
 	}
 }
 
+// keyOrIgnoreFunc returns or accumulates key dependencies that have are
+// ignored and not logged as warnings if they have no value.
+func keyOrIgnoreFunc(brain *Brain,
+	used, missing map[string]dep.Dependency) func(string) (string, error) {
+	return func(s string) (string, error) {
+		if len(s) == 0 {
+			return "", nil
+		}
+
+		d, err := dep.ParseStoreKey(s)
+		if err != nil {
+			return "", err
+		}
+
+		d.SetSuppressWarning(true)
+		addDependency(used, d)
+
+		if value, ok := brain.Recall(d); ok {
+			if value == nil {
+				return "", nil
+			}
+			return value.(string), nil
+		}
+
+		addDependency(missing, d)
+
+		return "", nil
+	}
+}
+
 // lsFunc returns or accumulates keyPrefix dependencies.
 func lsFunc(brain *Brain,
 	used, missing map[string]dep.Dependency) func(string) ([]*dep.KeyPair, error) {

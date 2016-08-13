@@ -253,6 +253,7 @@ func TestExecute_renders(t *testing.T) {
 		key: {{ key "config/redis/maxconns" }}
 		key_or_default (exists): {{ key_or_default "config/redis/minconns" "100" }}
 		key_or_default (missing): {{ key_or_default "config/redis/maxconns" "200" }}
+		key_or_ignore: {{ key_or_ignore "config/redis/maxconns" }}
 		ls:{{ range ls "config/redis" }}
 			{{.Key}}={{.Value}}{{ end }}
 		node:{{ with node }}
@@ -501,6 +502,7 @@ func TestExecute_renders(t *testing.T) {
 		key: 5
 		key_or_default (exists): 150
 		key_or_default (missing): 200
+		key_or_ignore: 5
 		ls:
 			maxconns=5
 			minconns=2

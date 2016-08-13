@@ -108,6 +108,7 @@ func funcMap(brain *Brain, used, missing map[string]dep.Dependency) template.Fun
 		"file":           fileFunc(brain, used, missing),
 		"key":            keyFunc(brain, used, missing),
 		"key_or_default": keyWithDefaultFunc(brain, used, missing),
+		"key_or_ignore":  keyOrIgnoreFunc(brain, used, missing),
 		"ls":             lsFunc(brain, used, missing),
 		"node":           nodeFunc(brain, used, missing),
 		"nodes":          nodesFunc(brain, used, missing),

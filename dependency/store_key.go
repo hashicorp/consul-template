@@ -20,6 +20,7 @@ type StoreKey struct {
 
 	defaultValue string
 	defaultGiven bool
+	suppressWarning bool
 
 	stopped bool
 	stopCh  chan struct{}
@@ -80,8 +81,10 @@ func (d *StoreKey) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *
 			return d.defaultValue, rm, nil
 		}
 
-		log.Printf("[WARN] (%s) Consul returned no data (does the path exist?)",
-			d.Display())
+		if !d.suppressWarning {
+			log.Printf("[WARN] (%s) Consul returned no data (does the path exist?)",
+				d.Display())
+		}
 		return "", rm, nil
 	}
 
@@ -94,6 +97,16 @@ func (d *StoreKey) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *
 func (d *StoreKey) SetDefault(s string) {
 	d.defaultGiven = true
 	d.defaultValue = s
+}
+
+// SetSuppressWarning is used to set whether to suppress logging of a key not being found.
+func (d *StoreKey) SetSuppressWarning(b bool) {
+	d.suppressWarning = b
+}
+
+// IsSuppressWarning returns whether the dependency has been set to ignore key not found warnings
+func (d *StoreKey) IsSuppressWarning() bool {
+	return d.suppressWarning
 }
 
 // CanShare returns a boolean if this dependency is shareable.

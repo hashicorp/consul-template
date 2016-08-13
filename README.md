@@ -410,6 +410,18 @@ Query Consul for the value at the given key. If no key exists at the given path,
 Please note that Consul Template uses a multi-phase evaluation. During the first phase of evaluation, Consul Template will have no data from Consul and thus will _always_ fall back to the default value. Subsequent reads from Consul will pull in the real value from Consul (if the key exists) on the next template pass. This is important because it means that Consul Template will never "block" the rendering of a template due to a missing key from a `key_or_default`. Even if the key exists, if Consul has not yet returned data for the key, the
 default value will be used instead.
 
+##### `key_or_ignore`
+Query Consul for the value at the given key. If no key exists at the given path, no warning will be logged. The existing constraints and usage for keys apply:
+
+```liquid
+{{key_or_ignore "service/redis/maxconns"}}
+```
+
+In the event that the key is not found, logs like this will *not* be generated:
+```liquid
+[WARN] ("key(service/redis/maxconns)") Consul returned no data (does the path exist?)
+```
+
 ##### `ls`
 Query Consul for all top-level key-value pairs at the given prefix. If any of the values cannot be converted to a string-like value, an error will occur:
 

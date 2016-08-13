@@ -60,6 +60,18 @@ func TestStoreKeyFetch_stopped(t *testing.T) {
 	}
 }
 
+func TestStoreKey_SetSuppressWarning(t *testing.T) {
+	dep, err := ParseStoreKey("conns")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dep.SetSuppressWarning(true)
+
+	if dep.suppressWarning != true {
+		t.Errorf("expected %q to be %q", dep.suppressWarning, true)
+	}
+}
+
 func TestStoreKeySetDefault(t *testing.T) {
 	dep, err := ParseStoreKey("conns")
 	if err != nil {
