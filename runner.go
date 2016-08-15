@@ -963,7 +963,14 @@ func atomicWrite(path string, contents []byte, perms os.FileMode, backup bool) e
 		}
 	}
 
-	f, err := ioutil.TempFile(parent, "")
+	workingdir := filepath.Join(parent, ".ctmpl")
+	if _, err := os.Stat(workingdir); os.IsNotExist(err) {
+		if err := os.Mkdir(workingdir, 0700); err != nil {
+			return err
+		}
+	}
+
+	f, err := ioutil.TempFile(workingdir, filepath.Base(path)+"-")
 	if err != nil {
 		return err
 	}

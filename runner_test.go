@@ -455,12 +455,14 @@ func TestRun_multipleTemplatesRunsCommands(t *testing.T) {
 				Destination:    out1.Name(),
 				Command:        fmt.Sprintf("touch %s", touch1.Name()),
 				CommandTimeout: 1 * time.Second,
+				Perms:          defaultFilePerms,
 			},
 			&ConfigTemplate{
 				Source:         in2.Name(),
 				Destination:    out2.Name(),
 				Command:        fmt.Sprintf("touch %s", touch2.Name()),
 				CommandTimeout: 1 * time.Second,
+				Perms:          defaultFilePerms,
 			},
 		},
 	})
@@ -927,6 +929,7 @@ func TestRun_executesCommand(t *testing.T) {
 				Destination:    outTemplate.Name(),
 				Command:        fmt.Sprintf("echo 'foo' > %s", outFile.Name()),
 				CommandTimeout: 1 * time.Second,
+				Perms:          defaultFilePerms,
 			},
 		},
 	})
@@ -986,12 +989,14 @@ func TestRun_doesNotExecuteCommandMoreThanOnce(t *testing.T) {
 				Destination:    outTemplateA.Name(),
 				Command:        fmt.Sprintf("echo 'foo' >> %s", outFile.Name()),
 				CommandTimeout: 1 * time.Second,
+				Perms:          defaultFilePerms,
 			},
 			&ConfigTemplate{
 				Source:         inTemplate.Name(),
 				Destination:    outTemplateB.Name(),
 				Command:        fmt.Sprintf("echo 'foo' >> %s", outFile.Name()),
 				CommandTimeout: 1 * time.Second,
+				Perms:          defaultFilePerms,
 			},
 		},
 	})
