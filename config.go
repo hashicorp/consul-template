@@ -777,7 +777,7 @@ type ConfigTemplate struct {
 // VaultConfig is the configuration for connecting to a vault server.
 type VaultConfig struct {
 	Address string `mapstructure:"address"`
-	Token   string `mapstructure:"token"`
+	Token   string `mapstructure:"token" json:"-"`
 	Renew   bool   `mapstructure:"renew"`
 
 	// SSL indicates we should use a secure connection while talking to Vault.
