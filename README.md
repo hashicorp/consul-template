@@ -1553,6 +1553,28 @@ Or to run a specific test in the suite:
 go test ./... -run SomeTestFunction_name
 ```
 
+### Building in docker
+If you don't have a modern [Go][] (Go 1.5+) environment, but you have docker, you can build consul-template with docker.
+
+First, clone the repo:
+
+```shell
+$ git clone https://github.com/hashicorp/consul-template.git
+```
+
+Next, build the docker image:
+
+```shell
+$ make docker-maker
+```
+
+Finally, use the standard make targets through the little docker wrapper:
+
+```shell
+$ ./dmake dev
+```
+
+
 Submit Pull Requests and Issues to the [Consul Template project on GitHub][Consul Template].
 
 

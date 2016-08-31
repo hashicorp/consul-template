@@ -1,0 +1,2 @@
+#!/bin/sh
+docker run --rm -v $(pwd):/go/src/github.com/hashicorp/consul-template make-consul-template $@
