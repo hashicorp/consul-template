@@ -53,4 +53,8 @@ bootstrap:
 		go get -u "$$t"; \
 	done
 
+docker-maker:
+	@echo "==> Building Dockerized build env"
+	@docker build -t make-consul-template .
+
 .PHONY: default bin dev dist test testrace updatedeps vet generate bootstrap
