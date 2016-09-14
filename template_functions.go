@@ -485,8 +485,21 @@ func in(l, v interface{}) (bool, error) {
 
 	switch lv.Kind() {
 	case reflect.Array, reflect.Slice:
+		// if the slice contains 'interface' elements, then the element needs to be extracted directly to examine its type,
+		// otherwise it will just resolve to 'interface'.
+		var interfaceSlice []interface{}
+		if reflect.TypeOf(l).Elem().Kind() == reflect.Interface {
+			interfaceSlice = l.([]interface{})
+		}
+
 		for i := 0; i < lv.Len(); i++ {
-			lvv := lv.Index(i)
+			var lvv reflect.Value
+			if interfaceSlice != nil {
+				lvv = reflect.ValueOf(interfaceSlice[i])
+			} else {
+				lvv = lv.Index(i)
+			}
+
 			switch lvv.Kind() {
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 				switch vv.Kind() {
