@@ -1270,6 +1270,29 @@ func TestIn_string(t *testing.T) {
 	}
 }
 
+func TestIn_string_interfaceSlice(t *testing.T) {
+	var list []interface{}
+	list = append(list, "a", "b", "c", 1, 2, 3)
+
+	result, err := in(list, "a")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != true {
+		t.Errorf("expected %#v to contain %s", list, "a")
+	}
+
+	result, err = in(list, "z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != false {
+		t.Errorf("expected %#v to not contain %s", list, "z")
+	}
+}
+
 func TestIn_int(t *testing.T) {
 	list := []int{1, 2, 3}
 
@@ -1292,6 +1315,29 @@ func TestIn_int(t *testing.T) {
 	}
 }
 
+func TestIn_int_interfaceSlice(t *testing.T) {
+	var list []interface{}
+	list = append(list, "a", "b", "c", 1, 2, 3)
+
+	result, err := in(list, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != true {
+		t.Errorf("expected %#v to contain %s", list, "1")
+	}
+
+	result, err = in(list, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != false {
+		t.Errorf("expected %#v to not contain %s", list, "5")
+	}
+}
+
 func TestIn_float32(t *testing.T) {
 	list := []float32{1.0, 2.0, 3.0}
 
@@ -1301,7 +1347,7 @@ func TestIn_float32(t *testing.T) {
 	}
 
 	if result != true {
-		t.Errorf("expected %#v to contain %s", list, "a")
+		t.Errorf("expected %#v to contain %s", list, "1.0")
 	}
 
 	result, err = in(list, 5.0)
@@ -1310,7 +1356,30 @@ func TestIn_float32(t *testing.T) {
 	}
 
 	if result != false {
-		t.Errorf("expected %#v to not contain %s", list, "z")
+		t.Errorf("expected %#v to not contain %s", list, "5.0")
+	}
+}
+
+func TestIn_float32_interfaceSlice(t *testing.T) {
+	var list []interface{}
+	list = append(list, "a", "b", "c", 1.0, 2.0, 3.0)
+
+	result, err := in(list, 1.0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != true {
+		t.Errorf("expected %#v to contain %s", list, "1.0")
+	}
+
+	result, err = in(list, 5.0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != false {
+		t.Errorf("expected %#v to not contain %s", list, "5.0")
 	}
 }
 
