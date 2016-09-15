@@ -1323,7 +1323,7 @@ $ consul-template \
   -dry
 ```
 
-Depending on the state of the demo Consul instance and assuming that the only service registered with Consul here is the one which needs to be load balanced by NGINX, you could see the following output:
+Depending on the state of the demo Consul instance, you could see the following output:
 
 ```text
 upstream service {
