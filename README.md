@@ -1289,6 +1289,75 @@ This will still add the dependency to the list of watches, but Go will not evalu
 
 Examples
 --------
+### NGINX
+NGINX is one of the most popular open source web server, reverse proxy and load balancer for high‑traffic sites. You can read more about NGINX configuration file syntax and all the different available NGINX modules in its [documentation](http://nginx.org/en/docs/), but here is an example template for rendering an NGINX configuration file with Consul Template:
+
+```liquid
+{{range services}} {{$name := .Name}} {{$service := service .Name}}
+upstream {{$name}} {
+  zone upstream-{{$name}} 64k;
+  {{range $service}}server {{.Address}}:{{.Port}} max_fails=3 fail_timeout=60 weight=1;
+  {{else}}server 127.0.0.1:65535; # force a 502{{end}}
+} {{end}}
+
+server {
+  listen 80 default_server;
+
+  location / {
+    root /usr/share/nginx/html/;
+    index index.html;
+  }
+
+  location /stub_status {
+    stub_status;
+  }
+
+{{range services}} {{$name := .Name}}
+  location /{{$name}} {
+    proxy_pass http://{{$name}};
+  }
+{{end}}
+}
+```
+
+Save this file to disk as `nginx.ctmpl` and  run the `consul-template` daemon:
+
+```shell
+$ consul-template \
+  -consul demo.consul.io \
+  -template nginx.ctmpl:/etc/nginx/conf.d/default.conf
+  -dry
+```
+
+Depending on the state of the demo Consul instance and assuming that the only service registered with Consul here is the one which needs to be load balanced by NGINX, you could see the following output:
+
+```text
+upstream service {
+  zone upstream-service 64k;
+  least_conn;
+  server 172.17.0.3:80 max_fails=3 fail_timeout=60 weight=1;
+}
+
+server {
+  listen 80 default_server;
+
+  location / {
+    root /usr/share/nginx/html/;
+    index index.html;
+  }
+
+  location /stub_status {
+    stub_status;
+  }
+
+  location /service {
+    proxy_pass http://service;
+  }
+}
+```
+
+For more information on how to save this result to disk or for the full list of functionality available inside a Consul template file, please consult the API documentation.
+
 ### HAProxy
 HAProxy is a very common load balancer. You can read more about the HAProxy configuration file syntax in the HAProxy documentation, but here is an example template for rendering an HAProxy configuration file with Consul Template:
 
