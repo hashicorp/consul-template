@@ -553,6 +553,41 @@ func TestParseFlags_syslogFacility(t *testing.T) {
 	}
 }
 
+func TestParseFlags_vaultToken(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-vault-token", "abcd1234",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "abcd1234"
+	if config.Vault.Token != expected {
+		t.Errorf("expected %v to be %v", config.Vault.Token, expected)
+	}
+	if !config.WasSet("vault.token") {
+		t.Errorf("expected vault.token to be set")
+	}
+}
+
+func TestParseFlags_vaultUnwrapToken(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-vault-unwrap-token",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if config.Vault.UnwrapToken != true {
+		t.Errorf("expected %v to be %v", config.Vault.UnwrapToken, true)
+	}
+	if !config.WasSet("vault.unwrap_token") {
+		t.Errorf("expected vault.unwrap_token to be set")
+	}
+}
+
 func TestParseFlags_wait(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
 	config, _, _, _, err := cli.parseFlags([]string{
