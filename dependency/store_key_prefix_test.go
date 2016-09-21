@@ -114,7 +114,7 @@ func TestParseStoreKeyPrefix_name(t *testing.T) {
 		t.Errorf("expected %q to be %q", kpd.rawKey, "config/redis")
 	}
 
-	if kpd.Prefix != "config/redis/" {
+	if kpd.Prefix != "config/redis" {
 		t.Errorf("expected %q to be %q", kpd.Prefix, "config/redis")
 	}
 
@@ -133,7 +133,7 @@ func TestParseStoreKeyPrefix_nameColon(t *testing.T) {
 		t.Errorf("expected %q to be %q", kpd.rawKey, "config/redis:magic:80")
 	}
 
-	if kpd.Prefix != "config/redis:magic:80/" {
+	if kpd.Prefix != "config/redis:magic:80" {
 		t.Errorf("expected %q to be %q", kpd.Prefix, "config/redis:magic:80")
 	}
 
@@ -152,7 +152,7 @@ func TestParseStoreKeyPrefix_nameTagDataCenter(t *testing.T) {
 		t.Errorf("expected %q to be %q", kpd.rawKey, "config/redis@nyc1")
 	}
 
-	if kpd.Prefix != "config/redis/" {
+	if kpd.Prefix != "config/redis" {
 		t.Errorf("expected %q to be %q", kpd.Prefix, "config/redis")
 	}
 
@@ -190,23 +190,8 @@ func TestParseStoreKeyPrefix_leadingSlash(t *testing.T) {
 		t.Errorf("expected %q to be %q", kpd.rawKey, "/config")
 	}
 
-	if kpd.Prefix != "config/" {
-		t.Errorf("expected %q to be %q", kpd.Prefix, "config/")
-	}
-}
-
-func TestParseStoreKeyPrefix_tailingSlash(t *testing.T) {
-	kpd, err := ParseStoreKeyPrefix("config")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if kpd.rawKey != "config" {
-		t.Errorf("expected %q to be %q", kpd.rawKey, "config")
-	}
-
-	if kpd.Prefix != "config/" {
-		t.Errorf("expected %q to be %q", kpd.Prefix, "config/")
+	if kpd.Prefix != "config" {
+		t.Errorf("expected %q to be %q", kpd.Prefix, "config")
 	}
 }
 
