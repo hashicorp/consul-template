@@ -47,13 +47,13 @@ func (d *VaultSecrets) Fetch(clients *ClientSet, opts *QueryOptions) (interface{
 	// Grab the vault client
 	vault, err := clients.Vault()
 	if err != nil {
-		return nil, nil, fmt.Errorf("vault secrets: %s", err)
+		return nil, nil, ErrWithExitf("vault secrets: %s", err)
 	}
 
 	// Get the list as a secret
 	vaultSecret, err := vault.Logical().List(d.Path)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error listing secrets from vault: %s", err)
+		return nil, nil, ErrWithExitf("error listing secrets from vault: %s", err)
 	}
 
 	// If the secret or data data is nil, return an empty list of strings.
@@ -70,7 +70,7 @@ func (d *VaultSecrets) Fetch(clients *ClientSet, opts *QueryOptions) (interface{
 	// Convert the interface into a list of interfaces.
 	list, ok := keys.([]interface{})
 	if !ok {
-		return nil, nil, fmt.Errorf("vault returned an unexpected payload for %q", d.Display())
+		return nil, nil, ErrWithExitf("vault returned an unexpected payload for %q", d.Display())
 	}
 
 	// Pull each item out of the list and safely cast to a string.
@@ -78,7 +78,7 @@ func (d *VaultSecrets) Fetch(clients *ClientSet, opts *QueryOptions) (interface{
 	for i, v := range list {
 		typed, ok := v.(string)
 		if !ok {
-			return nil, nil, fmt.Errorf("vault returned a non-string when listing secrets for %q", d.Display())
+			return nil, nil, ErrWithExitf("vault returned a non-string when listing secrets for %q", d.Display())
 		}
 		result[i] = typed
 	}

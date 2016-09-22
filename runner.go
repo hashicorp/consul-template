@@ -254,6 +254,16 @@ func (r *Runner) Start() {
 			break OUTER
 
 		case err := <-r.watcher.ErrCh:
+			// If this is our own internal error, see if we should hard exit.
+			if derr, ok := err.(*dep.FetchError); ok {
+				log.Printf("[DEBUG] (runner) detected custom error type")
+				if derr.ShouldExit() {
+					log.Printf("[DEBUG] (runner) custom error asked for hard exit")
+					r.ErrCh <- derr.OriginalError()
+					return
+				}
+			}
+
 			// Intentionally do not send the error back up to the runner. Eventually,
 			// once Consul API implements errwrap and multierror, we can check the
 			// "type" of error and conditionally alert back.

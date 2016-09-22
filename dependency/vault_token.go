@@ -1,7 +1,6 @@
 package dependency
 
 import (
-	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -55,12 +54,12 @@ func (d *VaultToken) Fetch(clients *ClientSet, opts *QueryOptions) (interface{},
 	// Grab the vault client
 	vault, err := clients.Vault()
 	if err != nil {
-		return nil, nil, fmt.Errorf("vault_token: %s", err)
+		return nil, nil, ErrWithExitf("vault_token: %s", err)
 	}
 
 	token, err := vault.Auth().Token().RenewSelf(0)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error renewing vault token: %s", err)
+		return nil, nil, ErrWithExitf("error renewing vault token: %s", err)
 	}
 
 	// Create our cloned secret
