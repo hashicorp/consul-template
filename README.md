@@ -1559,6 +1559,14 @@ server {
 }
 ```
 
+### Memcached
+Memcached is a popular and simple network cache. Clients can partition data across many memcache instances. However, this means that each should (optimally) needs to have the same list of servers in the same order. This list is often passed as a comma delimited environmental variable to applications. Since the golang template language doesn't quite have the concept of mapping, we need to use a few tricks to format things.
+
+The below example will generate such a comma delimited environmental variable that you can source.
+```liquid
+export MEMCACHED_SERVERS="{{range $index, $service := service "memcached" }}{{if ne $index 0}},{{end}}{{$service.Address}}:{{$service.Port}}{{end}}"
+```
+
 Running and Process Lifecycle
 -----------------------------
 While there are multiple ways to run Consul Template, the most common pattern is to run Consul Template as a system service. When Consul Template first starts, it reads any configuration files and templates from disk and loads them into memory. From that point forward, changes to the files on disk do not propagate to running process without a reload.
