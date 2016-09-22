@@ -403,6 +403,18 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 		return nil
 	}), "log-level", "")
 
+	flags.Var((funcVar)(func(s string) error {
+		config.Vault.Token = s
+		config.set("vault.token")
+		return nil
+	}), "vault-token", "")
+
+	flags.Var((funcBoolVar)(func(b bool) error {
+		config.Vault.UnwrapToken = b
+		config.set("vault.unwrap_token")
+		return nil
+	}), "vault-unwrap-token", "")
+
 	flags.BoolVar(&once, "once", false, "")
 	flags.BoolVar(&dry, "dry", false, "")
 	flags.BoolVar(&version, "v", false, "")
@@ -553,6 +565,13 @@ Options:
 
   -token=<token>
       Sets the Consul API token
+
+  -vault-token=<token>
+      Sets the Vault API token
+
+  -vault-unwrap-token
+      Unwrap the provided Vault API token (see Vault documentation for more
+      information on this feature)
 
   -wait=<duration>
       Sets the 'min(:max)' amount of time to wait before writing a template (and

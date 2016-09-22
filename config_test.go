@@ -105,6 +105,7 @@ func TestMerge_vault(t *testing.T) {
 		vault {
 			address = "1.1.1.1"
 			token = "1"
+			unwrap_token = true
 			renew = true
 		}
 	`, t)
@@ -116,9 +117,10 @@ func TestMerge_vault(t *testing.T) {
 	`, t))
 
 	expected := &VaultConfig{
-		Address: "2.2.2.2",
-		Token:   "1",
-		Renew:   false,
+		Address:     "2.2.2.2",
+		Token:       "1",
+		UnwrapToken: true,
+		Renew:       false,
 		SSL: &SSLConfig{
 			Enabled: true,
 			Verify:  true,

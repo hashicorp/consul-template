@@ -128,9 +128,10 @@ func (c *Config) Copy() *Config {
 
 	if c.Vault != nil {
 		config.Vault = &VaultConfig{
-			Address: c.Vault.Address,
-			Token:   c.Vault.Token,
-			Renew:   c.Vault.Renew,
+			Address:     c.Vault.Address,
+			Token:       c.Vault.Token,
+			UnwrapToken: c.Vault.UnwrapToken,
+			Renew:       c.Vault.Renew,
 		}
 
 		if c.Vault.SSL != nil {
@@ -249,6 +250,9 @@ func (c *Config) Merge(config *Config) {
 		}
 		if config.WasSet("vault.token") {
 			c.Vault.Token = config.Vault.Token
+		}
+		if config.WasSet("vault.unwrap_token") {
+			c.Vault.UnwrapToken = config.Vault.UnwrapToken
 		}
 		if config.WasSet("vault.renew") {
 			c.Vault.Renew = config.Vault.Renew
@@ -672,6 +676,10 @@ func DefaultConfig() *Config {
 		config.Vault.Token = v
 	}
 
+	if v := os.Getenv("VAULT_UNWRAP_TOKEN"); v != "" {
+		config.Vault.UnwrapToken = true
+	}
+
 	if v := os.Getenv("VAULT_CAPATH"); v != "" {
 		config.Vault.SSL.Cert = v
 	}
@@ -776,9 +784,10 @@ type ConfigTemplate struct {
 
 // VaultConfig is the configuration for connecting to a vault server.
 type VaultConfig struct {
-	Address string `mapstructure:"address"`
-	Token   string `mapstructure:"token" json:"-"`
-	Renew   bool   `mapstructure:"renew"`
+	Address     string `mapstructure:"address"`
+	Token       string `mapstructure:"token" json:"-"`
+	UnwrapToken bool   `mapstructure:"unwrap_token"`
+	Renew       bool   `mapstructure:"renew"`
 
 	// SSL indicates we should use a secure connection while talking to Vault.
 	SSL *SSLConfig `mapstructure:"ssl"`

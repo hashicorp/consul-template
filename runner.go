@@ -1060,13 +1060,14 @@ func newClientSet(config *Config) (*dep.ClientSet, error) {
 	}
 
 	if err := clients.CreateVaultClient(&dep.CreateVaultClientInput{
-		Address:    config.Vault.Address,
-		Token:      config.Vault.Token,
-		SSLEnabled: config.Vault.SSL.Enabled,
-		SSLVerify:  config.Vault.SSL.Verify,
-		SSLCert:    config.Vault.SSL.Cert,
-		SSLKey:     config.Vault.SSL.Key,
-		SSLCACert:  config.Vault.SSL.CaCert,
+		Address:     config.Vault.Address,
+		Token:       config.Vault.Token,
+		UnwrapToken: config.Vault.UnwrapToken,
+		SSLEnabled:  config.Vault.SSL.Enabled,
+		SSLVerify:   config.Vault.SSL.Verify,
+		SSLCert:     config.Vault.SSL.Cert,
+		SSLKey:      config.Vault.SSL.Key,
+		SSLCACert:   config.Vault.SSL.CaCert,
 	}); err != nil {
 		return nil, fmt.Errorf("runner: %s", err)
 	}
