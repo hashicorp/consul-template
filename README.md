@@ -1,10 +1,8 @@
 Consul Template
 ===============
-[![Latest Version](http://img.shields.io/github/release/hashicorp/consul-template.svg?style=flat-square)][release]
 [![Build Status](http://img.shields.io/travis/hashicorp/consul-template.svg?style=flat-square)][travis]
 [![Go Documentation](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)][godocs]
 
-[release]: https://github.com/hashicorp/consul-template/releases
 [travis]: https://travis-ci.org/hashicorp/consul-template
 [godocs]: https://godoc.org/github.com/hashicorp/consul-template
 
