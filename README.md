@@ -1365,18 +1365,12 @@ A: Configuration management tools are designed to be used in unison with Consul 
 
 Contributing
 ------------
-To build and install Consul Template locally, you will need a modern [Go][] (Go 1.5+) environment.
+To build and install Consul Template locally, you will need a modern [Go][] (Go 1.6+) environment.
 
 First, clone the repo:
 
 ```shell
 $ git clone https://github.com/hashicorp/consul-template.git
-```
-
-Next, download/update all the dependencies:
-
-```shell
-$ make updatedeps
 ```
 
 To compile the `consul-template` binary and run the test suite:
