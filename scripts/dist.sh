@@ -26,7 +26,7 @@ if [ -z $NOBUILD ]; then
     --rm \
     --workdir="/go/src/github.com/hashicorp/${NAME}" \
     --volume="$(pwd):/go/src/github.com/hashicorp/${NAME}" \
-    golang:1.6.2 /bin/sh -c "make bootstrap && make bin"
+    golang:1.7 /bin/sh -c "make bootstrap && make bin"
 fi
 
 # Generate the tag.
