@@ -190,7 +190,7 @@ vault {
   // Note that secrets specified in a template (using {{secret}} for example)
   // are always renewed, even if this option is set to false. This option only
   // applies to the top-level Vault token itself.
-  renew = true
+  renew_token = true
 
   // This section details the SSL options for connecting to the Vault server.
   // Please see the SSL options below for more information (they are the same).

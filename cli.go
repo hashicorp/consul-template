@@ -410,6 +410,12 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	}), "vault-token", "")
 
 	flags.Var((funcBoolVar)(func(b bool) error {
+		config.Vault.RenewToken = b
+		config.set("vault.renew")
+		return nil
+	}), "vault-renew-token", "")
+
+	flags.Var((funcBoolVar)(func(b bool) error {
 		config.Vault.UnwrapToken = b
 		config.set("vault.unwrap_token")
 		return nil
@@ -568,6 +574,10 @@ Options:
 
   -vault-token=<token>
       Sets the Vault API token
+
+  -vault-renew-token
+      Periodically renew the provided Vault API token - this defaults to "true"
+      and will renew the token at half of the lease duration
 
   -vault-unwrap-token
       Unwrap the provided Vault API token (see Vault documentation for more

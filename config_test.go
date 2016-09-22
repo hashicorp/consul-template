@@ -120,7 +120,7 @@ func TestMerge_vault(t *testing.T) {
 		Address:     "2.2.2.2",
 		Token:       "1",
 		UnwrapToken: true,
-		Renew:       false,
+		RenewToken:  false,
 		SSL: &SSLConfig{
 			Enabled: true,
 			Verify:  true,
@@ -413,6 +413,28 @@ func TestParseConfig_readFileError(t *testing.T) {
 	}
 }
 
+func TestParseConfig_vaultDeprecation(t *testing.T) {
+	configFile := test.CreateTempfile([]byte(`
+		vault {
+			address = "vault.service.consul"
+			token   = "abcd1234"
+
+			// "renew" is renamed to "renew_token"
+			renew = true
+		}
+`), t)
+	defer test.DeleteTempfile(configFile, t)
+
+	config, err := ParseConfig(configFile.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if config.Vault.RenewToken != true {
+		t.Errorf("expected renew to be true")
+	}
+}
+
 func TestParseConfig_correctValues(t *testing.T) {
 	configFile := test.CreateTempfile([]byte(`
 		consul = "nyc1.demo.consul.io"
@@ -429,7 +451,8 @@ func TestParseConfig_correctValues(t *testing.T) {
 		vault {
 			address = "vault.service.consul"
 			token = "efgh5678"
-			renew = true
+			renew_token = true
+			unwrap_token = true
 			ssl {
 				enabled = false
 			}
@@ -494,9 +517,10 @@ func TestParseConfig_correctValues(t *testing.T) {
 		KillSignal:   syscall.SIGTERM,
 		MaxStale:     time.Second * 5,
 		Vault: &VaultConfig{
-			Address: "vault.service.consul",
-			Token:   "efgh5678",
-			Renew:   true,
+			Address:     "vault.service.consul",
+			Token:       "efgh5678",
+			RenewToken:  true,
+			UnwrapToken: true,
 			SSL: &SSLConfig{
 				Enabled: false,
 				Verify:  true,

@@ -571,6 +571,23 @@ func TestParseFlags_vaultToken(t *testing.T) {
 	}
 }
 
+func TestParseFlags_vaultRenewToken(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-vault-renew-token",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if config.Vault.RenewToken != true {
+		t.Errorf("expected %v to be %v", config.Vault.RenewToken, true)
+	}
+	if !config.WasSet("vault.renew") {
+		t.Errorf("expected vault.renew to be set")
+	}
+}
+
 func TestParseFlags_vaultUnwrapToken(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
 	config, _, _, _, err := cli.parseFlags([]string{

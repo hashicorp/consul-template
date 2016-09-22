@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -131,7 +132,7 @@ func (c *Config) Copy() *Config {
 			Address:     c.Vault.Address,
 			Token:       c.Vault.Token,
 			UnwrapToken: c.Vault.UnwrapToken,
-			Renew:       c.Vault.Renew,
+			RenewToken:  c.Vault.RenewToken,
 		}
 
 		if c.Vault.SSL != nil {
@@ -254,8 +255,8 @@ func (c *Config) Merge(config *Config) {
 		if config.WasSet("vault.unwrap_token") {
 			c.Vault.UnwrapToken = config.Vault.UnwrapToken
 		}
-		if config.WasSet("vault.renew") {
-			c.Vault.Renew = config.Vault.Renew
+		if config.WasSet("vault.renew_token") {
+			c.Vault.RenewToken = config.Vault.RenewToken
 		}
 		if config.WasSet("vault.ssl") {
 			if c.Vault.SSL == nil {
@@ -470,6 +471,16 @@ func ParseConfig(path string) (*Config, error) {
 		"deduplicate",
 	})
 
+	// Deprecations
+	if vault, ok := parsed["vault"].(map[string]interface{}); ok {
+		if val, ok := vault["renew"]; ok {
+			log.Println(`[WARN] vault.renew has been renamed to vault.renew_token. ` +
+				`Update your configuration files and change "renew" to "renew_token".`)
+			vault["renew_token"] = val
+			delete(vault, "renew")
+		}
+	}
+
 	// Create a new, empty config
 	config := new(Config)
 
@@ -623,7 +634,7 @@ func DefaultConfig() *Config {
 
 	config := &Config{
 		Vault: &VaultConfig{
-			Renew: true,
+			RenewToken: true,
 			SSL: &SSLConfig{
 				Enabled: true,
 				Verify:  true,
@@ -787,7 +798,7 @@ type VaultConfig struct {
 	Address     string `mapstructure:"address"`
 	Token       string `mapstructure:"token" json:"-"`
 	UnwrapToken bool   `mapstructure:"unwrap_token"`
-	Renew       bool   `mapstructure:"renew"`
+	RenewToken  bool   `mapstructure:"renew_token"`
 
 	// SSL indicates we should use a secure connection while talking to Vault.
 	SSL *SSLConfig `mapstructure:"ssl"`
