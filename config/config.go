@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"errors"
@@ -433,8 +433,8 @@ func (c *Config) WasSet(key string) bool {
 	return false
 }
 
-// set is a helper function for marking a key as set.
-func (c *Config) set(key string) {
+// Set is a helper function for marking a key as set.
+func (c *Config) Set(key string) {
 	if _, ok := c.setKeys[key]; !ok {
 		c.setKeys[key] = struct{}{}
 	}

@@ -1,4 +1,4 @@
-package main
+package manager
 
 import (
 	"bytes"
@@ -17,7 +17,9 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul-template/child"
+	"github.com/hashicorp/consul-template/config"
 	dep "github.com/hashicorp/consul-template/dependency"
+	"github.com/hashicorp/consul-template/template"
 	"github.com/hashicorp/consul-template/watch"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mattn/go-shellwords"
@@ -37,7 +39,7 @@ type Runner struct {
 
 	// config is the Config that created this Runner. It is used internally to
 	// construct other objects and pass data.
-	config *Config
+	config *config.Config
 
 	// dry signals that output should be sent to stdout instead of committed to
 	// disk. once indicates the runner should execute each template exactly one
@@ -54,10 +56,10 @@ type Runner struct {
 
 	// ctemplatesMap is a map of each template to the ConfigTemplates
 	// that made it.
-	ctemplatesMap map[string][]*ConfigTemplate
+	ctemplatesMap map[string][]*config.ConfigTemplate
 
 	// templates is the list of calculated templates.
-	templates []*Template
+	templates []*template.Template
 
 	// renderedTemplates is a map of templates we have successfully rendered to
 	// disk. It is used for once mode and internal tracking. The key is the Path
@@ -71,7 +73,7 @@ type Runner struct {
 	watcher *watch.Watcher
 
 	// brain is the internal storage database of returned dependency data.
-	brain *Brain
+	brain *template.Brain
 
 	// child is the child process under management. This may be nil if not running
 	// in exec mode.
@@ -84,7 +86,7 @@ type Runner struct {
 	// quiescenceCh is the channel where templates report returns from quiescence
 	// fires.
 	quiescenceMap map[string]*quiescence
-	quiescenceCh  chan *Template
+	quiescenceCh  chan *template.Template
 
 	// dedup is the deduplication manager if enabled
 	dedup *DedupManager
@@ -92,7 +94,7 @@ type Runner struct {
 
 // NewRunner accepts a slice of ConfigTemplates and returns a pointer to the new
 // Runner and any error that occurred during creation.
-func NewRunner(config *Config, dry, once bool) (*Runner, error) {
+func NewRunner(config *config.Config, dry, once bool) (*Runner, error) {
 	log.Printf("[INFO] (runner) creating new runner (dry: %v, once: %v)", dry, once)
 
 	runner := &Runner{
@@ -393,7 +395,7 @@ func (r *Runner) Run() error {
 	log.Printf("[INFO] (runner) running")
 
 	var renderedAny bool
-	var commands []*ConfigTemplate
+	var commands []*config.ConfigTemplate
 	depsMap := make(map[string]dep.Dependency)
 
 	for _, tmpl := range r.templates {
@@ -572,9 +574,9 @@ func (r *Runner) Run() error {
 // if any problems occur.
 func (r *Runner) init() error {
 	// Ensure we have default vaults
-	config := DefaultConfig()
-	config.Merge(r.config)
-	r.config = config
+	conf := config.DefaultConfig()
+	conf.Merge(r.config)
+	r.config = conf
 
 	// Print the final config for debugging
 	result, err := json.MarshalIndent(r.config, "", "  ")
@@ -597,15 +599,15 @@ func (r *Runner) init() error {
 	}
 	r.watcher = watcher
 
-	templates := make([]*Template, 0, len(r.config.ConfigTemplates))
-	ctemplatesMap := make(map[string][]*ConfigTemplate)
+	templates := make([]*template.Template, 0, len(r.config.ConfigTemplates))
+	ctemplatesMap := make(map[string][]*config.ConfigTemplate)
 
 	// Iterate over each ConfigTemplate, creating a new Template resource for each
 	// entry. Templates are parsed and saved, and a map of templates to their
 	// config templates is kept so templates can lookup their commands and output
 	// destinations.
 	for _, ctmpl := range r.config.ConfigTemplates {
-		tmpl, err := NewTemplate(ctmpl.Source, ctmpl.LeftDelim, ctmpl.RightDelim)
+		tmpl, err := template.NewTemplate(ctmpl.Source, ctmpl.LeftDelim, ctmpl.RightDelim)
 		if err != nil {
 			return err
 		}
@@ -615,7 +617,7 @@ func (r *Runner) init() error {
 		}
 
 		if _, ok := ctemplatesMap[tmpl.Path]; !ok {
-			ctemplatesMap[tmpl.Path] = make([]*ConfigTemplate, 0, 1)
+			ctemplatesMap[tmpl.Path] = make([]*config.ConfigTemplate, 0, 1)
 		}
 		ctemplatesMap[tmpl.Path] = append(ctemplatesMap[tmpl.Path], ctmpl)
 	}
@@ -631,13 +633,13 @@ func (r *Runner) init() error {
 	r.inStream = os.Stdin
 	r.outStream = os.Stdout
 	r.errStream = os.Stderr
-	r.brain = NewBrain()
+	r.brain = template.NewBrain()
 
 	r.ErrCh = make(chan error)
 	r.DoneCh = make(chan struct{})
 
 	r.quiescenceMap = make(map[string]*quiescence)
-	r.quiescenceCh = make(chan *Template)
+	r.quiescenceCh = make(chan *template.Template)
 
 	// Setup the dedup manager if needed. This is
 	if r.config.Deduplicate.Enabled {
@@ -677,7 +679,7 @@ func (r *Runner) diffAndUpdateDeps(depsMap map[string]dep.Dependency) {
 }
 
 // ConfigTemplateFor returns the ConfigTemplate for the given Template
-func (r *Runner) configTemplatesFor(tmpl *Template) []*ConfigTemplate {
+func (r *Runner) configTemplatesFor(tmpl *template.Template) []*config.ConfigTemplate {
 	return r.ctemplatesMap[tmpl.Path]
 }
 
@@ -901,16 +903,16 @@ func (r *Runner) spawnChild() error {
 // quiescence is an internal representation of a single template's quiescence
 // state.
 type quiescence struct {
-	template *Template
+	template *template.Template
 	min      time.Duration
 	max      time.Duration
-	ch       chan *Template
+	ch       chan *template.Template
 	timer    *time.Timer
 	deadline time.Time
 }
 
 // newQuiescence creates a new quiescence timer for the given template.
-func newQuiescence(ch chan *Template, min, max time.Duration, t *Template) *quiescence {
+func newQuiescence(ch chan *template.Template, min, max time.Duration, t *template.Template) *quiescence {
 	return &quiescence{
 		template: t,
 		min:      min,
@@ -1039,7 +1041,7 @@ func copyFile(src, dst string) error {
 
 // Checks if a ConfigTemplate with the given data exists in the list of Config
 // Templates.
-func commandExists(c *ConfigTemplate, templates []*ConfigTemplate) bool {
+func commandExists(c *config.ConfigTemplate, templates []*config.ConfigTemplate) bool {
 	needle := strings.TrimSpace(c.Command)
 	for _, t := range templates {
 		if needle == strings.TrimSpace(t.Command) {
@@ -1051,7 +1053,7 @@ func commandExists(c *ConfigTemplate, templates []*ConfigTemplate) bool {
 }
 
 // newClientSet creates a new client set from the given config.
-func newClientSet(config *Config) (*dep.ClientSet, error) {
+func newClientSet(config *config.Config) (*dep.ClientSet, error) {
 	clients := dep.NewClientSet()
 
 	if err := clients.CreateConsulClient(&dep.CreateConsulClientInput{
@@ -1086,7 +1088,7 @@ func newClientSet(config *Config) (*dep.ClientSet, error) {
 }
 
 // newWatcher creates a new watcher.
-func newWatcher(config *Config, clients *dep.ClientSet, once bool) (*watch.Watcher, error) {
+func newWatcher(config *config.Config, clients *dep.ClientSet, once bool) (*watch.Watcher, error) {
 	log.Printf("[INFO] (runner) creating Watcher")
 
 	watcher, err := watch.NewWatcher(&watch.WatcherConfig{

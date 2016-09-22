@@ -13,7 +13,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/hashicorp/consul-template/config"
 	"github.com/hashicorp/consul-template/logging"
+	"github.com/hashicorp/consul-template/manager"
 	"github.com/hashicorp/consul-template/signals"
 	"github.com/hashicorp/consul-template/watch"
 )
@@ -91,7 +93,7 @@ func (cli *CLI) Run(args []string) int {
 	}
 
 	// Initial runner
-	runner, err := NewRunner(config, dry, once)
+	runner, err := manager.NewRunner(config, dry, once)
 	if err != nil {
 		return cli.handleError(err, ExitCodeRunnerError)
 	}
@@ -107,7 +109,7 @@ func (cli *CLI) Run(args []string) int {
 			// Check if the runner's error returned a specific exit status, and return
 			// that value. If no value was given, return a generic exit status.
 			code := ExitCodeRunnerError
-			if typed, ok := err.(ErrExitable); ok {
+			if typed, ok := err.(manager.ErrExitable); ok {
 				code = typed.ExitStatus()
 			}
 			return cli.handleError(err, code)
@@ -127,7 +129,7 @@ func (cli *CLI) Run(args []string) int {
 					return cli.handleError(err, ExitCodeConfigError)
 				}
 
-				runner, err = NewRunner(config, dry, once)
+				runner, err = manager.NewRunner(config, dry, once)
 				if err != nil {
 					return cli.handleError(err, ExitCodeRunnerError)
 				}
@@ -171,9 +173,9 @@ func (cli *CLI) stop() {
 // Flag library. This is extracted into a helper to keep the main function
 // small, but it also makes writing tests for parsing command line arguments
 // much easier and cleaner.
-func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
+func (cli *CLI) parseFlags(args []string) (*config.Config, bool, bool, bool, error) {
 	var dry, once, version bool
-	config := DefaultConfig()
+	conf := config.DefaultConfig()
 
 	// Parse the flags and options
 	flags := flag.NewFlagSet(Name, flag.ContinueOnError)
@@ -181,21 +183,21 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 	flags.Usage = func() { fmt.Fprintf(cli.errStream, usage, Name) }
 
 	flags.Var((funcVar)(func(s string) error {
-		config.Consul = s
-		config.set("consul")
+		conf.Consul = s
+		conf.Set("consul")
 		return nil
 	}), "consul", "")
 
 	flags.Var((funcVar)(func(s string) error {
-		config.Token = s
-		config.set("token")
+		conf.Token = s
+		conf.Set("token")
 		return nil
 	}), "token", "")
 
 	flags.Var((funcVar)(func(s string) error {
 		if s == "" {
-			config.ReloadSignal = nil
-			config.set("reload_signal")
+			conf.ReloadSignal = nil
+			conf.Set("reload_signal")
 			return nil
 		}
 
@@ -203,15 +205,15 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 		if err != nil {
 			return err
 		}
-		config.ReloadSignal = sig
-		config.set("reload_signal")
+		conf.ReloadSignal = sig
+		conf.Set("reload_signal")
 		return nil
 	}), "reload-signal", "")
 
 	flags.Var((funcVar)(func(s string) error {
 		if s == "" {
-			config.DumpSignal = nil
-			config.set("dump_signal")
+			conf.DumpSignal = nil
+			conf.Set("dump_signal")
 			return nil
 		}
 
@@ -219,15 +221,15 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 		if err != nil {
 			return err
 		}
-		config.DumpSignal = sig
-		config.set("dump_signal")
+		conf.DumpSignal = sig
+		conf.Set("dump_signal")
 		return nil
 	}), "dump-signal", "")
 
 	flags.Var((funcVar)(func(s string) error {
 		if s == "" {
-			config.KillSignal = nil
-			config.set("kill_signal")
+			conf.KillSignal = nil
+			conf.Set("kill_signal")
 			return nil
 		}
 
@@ -235,110 +237,110 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 		if err != nil {
 			return err
 		}
-		config.KillSignal = sig
-		config.set("kill_signal")
+		conf.KillSignal = sig
+		conf.Set("kill_signal")
 		return nil
 	}), "kill-signal", "")
 
 	flags.Var((funcVar)(func(s string) error {
-		config.Auth.Enabled = true
-		config.set("auth.enabled")
+		conf.Auth.Enabled = true
+		conf.Set("auth.enabled")
 		if strings.Contains(s, ":") {
 			split := strings.SplitN(s, ":", 2)
-			config.Auth.Username = split[0]
-			config.set("auth.username")
-			config.Auth.Password = split[1]
-			config.set("auth.password")
+			conf.Auth.Username = split[0]
+			conf.Set("auth.username")
+			conf.Auth.Password = split[1]
+			conf.Set("auth.password")
 		} else {
-			config.Auth.Username = s
-			config.set("auth.username")
+			conf.Auth.Username = s
+			conf.Set("auth.username")
 		}
 		return nil
 	}), "auth", "")
 
 	flags.Var((funcBoolVar)(func(b bool) error {
-		config.SSL.Enabled = b
-		config.set("ssl")
-		config.set("ssl.enabled")
+		conf.SSL.Enabled = b
+		conf.Set("ssl")
+		conf.Set("ssl.enabled")
 		return nil
 	}), "ssl", "")
 
 	flags.Var((funcBoolVar)(func(b bool) error {
-		config.SSL.Verify = b
-		config.set("ssl")
-		config.set("ssl.verify")
+		conf.SSL.Verify = b
+		conf.Set("ssl")
+		conf.Set("ssl.verify")
 		return nil
 	}), "ssl-verify", "")
 
 	flags.Var((funcVar)(func(s string) error {
-		config.SSL.Cert = s
-		config.set("ssl")
-		config.set("ssl.cert")
+		conf.SSL.Cert = s
+		conf.Set("ssl")
+		conf.Set("ssl.cert")
 		return nil
 	}), "ssl-cert", "")
 
 	flags.Var((funcVar)(func(s string) error {
-		config.SSL.Key = s
-		config.set("ssl")
-		config.set("ssl.key")
+		conf.SSL.Key = s
+		conf.Set("ssl")
+		conf.Set("ssl.key")
 		return nil
 	}), "ssl-key", "")
 
 	flags.Var((funcVar)(func(s string) error {
-		config.SSL.CaCert = s
-		config.set("ssl")
-		config.set("ssl.ca_cert")
+		conf.SSL.CaCert = s
+		conf.Set("ssl")
+		conf.Set("ssl.ca_cert")
 		return nil
 	}), "ssl-ca-cert", "")
 
 	flags.Var((funcDurationVar)(func(d time.Duration) error {
-		config.MaxStale = d
-		config.set("max_stale")
+		conf.MaxStale = d
+		conf.Set("max_stale")
 		return nil
 	}), "max-stale", "")
 
 	flags.Var((funcVar)(func(s string) error {
-		t, err := ParseConfigTemplate(s)
+		t, err := config.ParseConfigTemplate(s)
 		if err != nil {
 			return err
 		}
-		if config.ConfigTemplates == nil {
-			config.ConfigTemplates = make([]*ConfigTemplate, 0, 1)
+		if conf.ConfigTemplates == nil {
+			conf.ConfigTemplates = make([]*config.ConfigTemplate, 0, 1)
 		}
-		config.ConfigTemplates = append(config.ConfigTemplates, t)
+		conf.ConfigTemplates = append(conf.ConfigTemplates, t)
 		return nil
 	}), "template", "")
 
 	flags.Var((funcBoolVar)(func(b bool) error {
-		config.Syslog.Enabled = b
-		config.set("syslog")
-		config.set("syslog.enabled")
+		conf.Syslog.Enabled = b
+		conf.Set("syslog")
+		conf.Set("syslog.enabled")
 		return nil
 	}), "syslog", "")
 
 	flags.Var((funcVar)(func(s string) error {
-		config.Syslog.Facility = s
-		config.set("syslog.facility")
+		conf.Syslog.Facility = s
+		conf.Set("syslog.facility")
 		return nil
 	}), "syslog-facility", "")
 
 	flags.Var((funcBoolVar)(func(b bool) error {
-		config.Deduplicate.Enabled = b
-		config.set("deduplicate")
-		config.set("deduplicate.enabled")
+		conf.Deduplicate.Enabled = b
+		conf.Set("deduplicate")
+		conf.Set("deduplicate.enabled")
 		return nil
 	}), "dedup", "")
 
 	flags.Var((funcVar)(func(s string) error {
-		config.Exec.Command = s
-		config.set("exec")
-		config.set("exec.command")
+		conf.Exec.Command = s
+		conf.Set("exec")
+		conf.Set("exec.command")
 		return nil
 	}), "exec", "")
 
 	flags.Var((funcDurationVar)(func(d time.Duration) error {
-		config.Exec.Splay = d
-		config.set("exec.splay")
+		conf.Exec.Splay = d
+		conf.Set("exec.splay")
 		return nil
 	}), "exec-splay", "")
 
@@ -347,8 +349,8 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 		if err != nil {
 			return err
 		}
-		config.Exec.ReloadSignal = sig
-		config.set("exec.reload_signal")
+		conf.Exec.ReloadSignal = sig
+		conf.Set("exec.reload_signal")
 		return nil
 	}), "exec-reload-signal", "")
 
@@ -357,14 +359,14 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 		if err != nil {
 			return err
 		}
-		config.Exec.KillSignal = sig
-		config.set("exec.kill_signal")
+		conf.Exec.KillSignal = sig
+		conf.Set("exec.kill_signal")
 		return nil
 	}), "exec-kill-signal", "")
 
 	flags.Var((funcDurationVar)(func(d time.Duration) error {
-		config.Exec.KillTimeout = d
-		config.set("exec.kill_timeout")
+		conf.Exec.KillTimeout = d
+		conf.Set("exec.kill_timeout")
 		return nil
 	}), "exec-kill-timeout", "")
 
@@ -373,33 +375,33 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 		if err != nil {
 			return err
 		}
-		config.Wait.Min = w.Min
-		config.Wait.Max = w.Max
-		config.set("wait")
+		conf.Wait.Min = w.Min
+		conf.Wait.Max = w.Max
+		conf.Set("wait")
 		return nil
 	}), "wait", "")
 
 	flags.Var((funcDurationVar)(func(d time.Duration) error {
-		config.Retry = d
-		config.set("retry")
+		conf.Retry = d
+		conf.Set("retry")
 		return nil
 	}), "retry", "")
 
 	flags.Var((funcVar)(func(s string) error {
-		config.Path = s
-		config.set("path")
+		conf.Path = s
+		conf.Set("path")
 		return nil
 	}), "config", "")
 
 	flags.Var((funcVar)(func(s string) error {
-		config.PidFile = s
-		config.set("pid_file")
+		conf.PidFile = s
+		conf.Set("pid_file")
 		return nil
 	}), "pid-file", "")
 
 	flags.Var((funcVar)(func(s string) error {
-		config.LogLevel = s
-		config.set("log_level")
+		conf.LogLevel = s
+		conf.Set("log_level")
 		return nil
 	}), "log-level", "")
 
@@ -441,7 +443,7 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 			args)
 	}
 
-	return config, once, dry, version, nil
+	return conf, once, dry, version, nil
 }
 
 // handleError outputs the given error's Error() to the errStream and returns
@@ -451,30 +453,30 @@ func (cli *CLI) handleError(err error, status int) int {
 	return status
 }
 
-func (cli *CLI) setup(config *Config) (*Config, error) {
-	if config.Path != "" {
-		newConfig, err := ConfigFromPath(config.Path)
+func (cli *CLI) setup(conf *config.Config) (*config.Config, error) {
+	if conf.Path != "" {
+		newConfig, err := config.ConfigFromPath(conf.Path)
 		if err != nil {
 			return nil, err
 		}
 
 		// Merge ensuring that the CLI options still take precedence
-		newConfig.Merge(config)
-		config = newConfig
+		newConfig.Merge(conf)
+		conf = newConfig
 	}
 
 	// Setup the logging
 	if err := logging.Setup(&logging.Config{
 		Name:           Name,
-		Level:          config.LogLevel,
-		Syslog:         config.Syslog.Enabled,
-		SyslogFacility: config.Syslog.Facility,
+		Level:          conf.LogLevel,
+		Syslog:         conf.Syslog.Enabled,
+		SyslogFacility: conf.Syslog.Facility,
 		Writer:         cli.errStream,
 	}); err != nil {
 		return nil, err
 	}
 
-	return config, nil
+	return conf, nil
 }
 
 const usage = `
