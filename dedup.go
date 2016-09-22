@@ -161,6 +161,7 @@ START:
 	// Renew our session periodically
 	if err := session.RenewPeriodic("15s", id, nil, d.stopCh); err != nil {
 		log.Printf("[ERR] (dedup) failed to renew session: %v", err)
+		d.wg.Wait()
 	}
 	close(sessionCh)
 
