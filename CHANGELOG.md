@@ -8,6 +8,10 @@ NEW FEATURES:
   * **Exec Mode!** Consul Template can now act as a faux-supervisor for
       applications. Please see the [Exec Mode](README.md#exec-mode)
       documentation for more information.
+  * **Vault Token Unwrapping!** Consul Template can now unwrap Vault tokens that
+      have been wrapped using Vault's cubbyhole response wrapping. Simply add
+      the `unwrap_token` option to your Vault configuration stanza or pass in
+      the `-vault-unwrap-token` command line flag.
 
 BREAKING CHANGES:
 
