@@ -21,10 +21,19 @@ BREAKING CHANGES:
       a core dump in accordance with similar programs. SIGTERM is no longer
       listened.
 
+DEPRECATIONS:
+
+  * The `vault.renew` option has been renamed to `vault.renew_token` for added
+      clarity. This is backwards-compatible for this release, but will be
+      removed in a future release, so please update your configurations
+      accordingly.
+
 IMPROVEMENTS:
 
   * Permit commas in key prefix names [GH-669]
   * Add configurable kill and reload signals [GH-686]
+  * Add a command line flag for controlling whether a provided Vault token will
+      be renewed [GH-718]
 
 BUG FIXES:
 
