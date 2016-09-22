@@ -1166,8 +1166,31 @@ func main() {
 
 Caveats
 -------
-### Exec Mode
+### Once Mode
+In Once mode, Consul Template will wait for all dependencies to be rendered. If a template specifies a dependency (a request) that does not exist in Consul, once mode will wait until Consul returns data for that dependency. Please note that "returned data" and "empty data" are not mutually exclusive.
 
+When you query for all healthy services named "foo" (`{{ service "foo" }}`), you are asking Consul - "give me all the healthy services named foo". If there are no services named foo, the response is the empty array. This is also the same response if there are no _healthy_ services named foo.
+
+Consul template processes input templates multiple times, since the first result could impact later dependencies:
+
+```liquid
+{{ range services }}
+{{ range service .Name }}
+{{ end }}
+{{ end }}
+```
+
+In this example, we have to process the output of `services` before we can lookup each `service`, since the inner loops cannot be evaluated until the outer loop returns a response. Consul Template waits until it gets a response from Consul for all dependencies before rendering a template. It does not wait until that response is non-empty though.
+
+The most common point of confusion here is with the `key` API. In all modes (not just once), Consul Template will **not** block if a key does not exist:
+
+```liquid
+{{ key "foo" }}
+```
+
+This is because Consul returns a result for the key named "foo", but that result is the empty string (no value).
+
+### Exec Mode
 As of version 0.16.0, Consul Template has the ability to maintain an arbitrary child process (similar to [envconsul](https://github.com/hashicorp/envconsul)). This mode is most beneficial when running Consul Template in a container or on a scheduler like [Nomad](https://www.nomadproject.io) or Kubernetes. When activated, Consul Template will spawn and manage the lifecycle of the child process.
 
 This mode is best-explained through example. Consider a simple application that reads a configuration file from disk and spawns a server from that configuration.
