@@ -29,6 +29,7 @@ BUG FIXES:
   * Log milliseconds [GH-676, GH-674]
   * Maintain template ordering [GH-683]
   * Add `Service` address to catalog node response [GH-687]
+  * Do not require trailing slashes [GH-706, GH-713]
 
 
 ## v0.15.0.dev (June 9, 2016)
