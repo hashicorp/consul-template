@@ -11,8 +11,8 @@ var (
 
 	// Version is the major version. VersionPrerelease is the prerelease version.
 	// If VersionPrerelease is empty, this is an official release.
-	Version           string = "0.16.0"
-	VersionPrerelease string = ""
+	Version           string = "0.17.0"
+	VersionPrerelease string = "dev"
 
 	// GitCommit is the commit. It will be filled in by the compier.
 	GitCommit string
