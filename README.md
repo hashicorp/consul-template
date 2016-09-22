@@ -174,6 +174,12 @@ vault {
   // This value can also be specified via the environment variable VAULT_TOKEN.
   token = "abcd1234"
 
+  // This tells Consul Template that the provided token is actually a wrapped
+  // token that should be unwrapped using Vault's cubbyhole response wrapping
+  // before being used. Please see Vault's cubbyhole response wrapping
+  // documentation for more information.
+  unwrap_token = true
+
   // This option tells Consul Template to automatically renew the Vault token
   // given. If you are unfamiliar with Vault's architecture, Vault requires
   // tokens be renewed at some regular interval or they will be revoked. Consul
