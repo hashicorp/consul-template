@@ -173,11 +173,6 @@ func ParseStoreKeyPrefix(s string) (*StoreKeyPrefix, error) {
 		prefix = prefix[1:len(prefix)]
 	}
 
-	// Ensure a trailing slash
-	if prefix[len(prefix)-1] != '/' {
-		prefix = fmt.Sprintf("%s/", prefix)
-	}
-
 	kpd := &StoreKeyPrefix{
 		rawKey:     s,
 		Prefix:     prefix,
