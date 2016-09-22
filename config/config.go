@@ -22,24 +22,26 @@ import (
 // The pattern to split the config template syntax on
 var configTemplateRe = regexp.MustCompile("([a-zA-Z]:)?([^:]+)")
 
-// defaultFilePerms are the default file permissions for templates rendered
-// onto disk when a specific file permission has not already been specified.
-const defaultFilePerms = 0644
+const (
+	// DefaultFilePerms are the default file permissions for templates rendered
+	// onto disk when a specific file permission has not already been specified.
+	DefaultFilePerms = 0644
 
-// defaultDedupPrefix is the default prefix used for de-duplication mode
-const defaultDedupPrefix = "consul-template/dedup/"
+	// DefaultDedupPrefix is the default prefix used for de-duplication mode
+	DefaultDedupPrefix = "consul-template/dedup/"
 
-// commandTimeout is the amount of time to wait for a command to return.
-const defaultCommandTimeout = 30 * time.Second
+	// DefaultCommandTimeout is the amount of time to wait for a command to return.
+	DefaultCommandTimeout = 30 * time.Second
 
-// defaultReloadSignal is the default signal for reload.
-const defaultReloadSignal = syscall.SIGHUP
+	// DefaultReloadSignal is the default signal for reload.
+	DefaultReloadSignal = syscall.SIGHUP
 
-// defaultDumpSignal is the default signal for a core dump.
-const defaultDumpSignal = syscall.SIGQUIT
+	// DefaultDumpSignal is the default signal for a core dump.
+	DefaultDumpSignal = syscall.SIGQUIT
 
-// defaultKillSignal is the default signal for termination.
-const defaultKillSignal = syscall.SIGINT
+	// DefaultKillSignal is the default signal for termination.
+	DefaultKillSignal = syscall.SIGINT
+)
 
 // Config is used to configure Consul Template
 type Config struct {
@@ -533,12 +535,12 @@ func ParseConfig(path string) (*Config, error) {
 	for _, t := range config.ConfigTemplates {
 		// Ensure there's a default value for the template's file permissions
 		if t.Perms == 0000 {
-			t.Perms = defaultFilePerms
+			t.Perms = DefaultFilePerms
 		}
 
 		// Ensure we have a default command timeout
 		if t.CommandTimeout == 0 {
-			t.CommandTimeout = defaultCommandTimeout
+			t.CommandTimeout = DefaultCommandTimeout
 		}
 
 		// Set up a default zero wait, which disables it for this
@@ -643,9 +645,9 @@ func DefaultConfig() *Config {
 		Auth: &AuthConfig{
 			Enabled: false,
 		},
-		ReloadSignal: defaultReloadSignal,
-		DumpSignal:   defaultDumpSignal,
-		KillSignal:   defaultKillSignal,
+		ReloadSignal: DefaultReloadSignal,
+		DumpSignal:   DefaultDumpSignal,
+		KillSignal:   DefaultKillSignal,
 		SSL: &SSLConfig{
 			Enabled: false,
 			Verify:  true,
@@ -656,7 +658,7 @@ func DefaultConfig() *Config {
 		},
 		Deduplicate: &DeduplicateConfig{
 			Enabled: false,
-			Prefix:  defaultDedupPrefix,
+			Prefix:  DefaultDedupPrefix,
 			TTL:     15 * time.Second,
 		},
 		Exec: &ExecConfig{
@@ -828,8 +830,8 @@ func ParseConfigTemplate(s string) (*ConfigTemplate, error) {
 		Source:         source,
 		Destination:    destination,
 		Command:        command,
-		CommandTimeout: defaultCommandTimeout,
-		Perms:          defaultFilePerms,
+		CommandTimeout: DefaultCommandTimeout,
+		Perms:          DefaultFilePerms,
 		Wait:           &watch.Wait{},
 	}, nil
 }

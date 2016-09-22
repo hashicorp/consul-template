@@ -11,7 +11,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul-template/config"
 	dep "github.com/hashicorp/consul-template/dependency"
+	"github.com/hashicorp/consul-template/template"
 	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul-template/watch"
 	"github.com/hashicorp/consul/testutil"
@@ -29,17 +31,17 @@ func TestNewRunner_initialize(t *testing.T) {
 	defer test.DeleteTempfile(in3, t)
 
 	dry, once := true, true
-	config := DefaultConfig()
-	config.Merge(&Config{
-		ConfigTemplates: []*ConfigTemplate{
-			&ConfigTemplate{Source: in1.Name(), Command: "1", CommandTimeout: 1 * time.Second},
-			&ConfigTemplate{Source: in1.Name(), Command: "1.1", CommandTimeout: 1 * time.Second},
-			&ConfigTemplate{Source: in2.Name(), Command: "2", CommandTimeout: 1 * time.Second},
-			&ConfigTemplate{Source: in3.Name(), Command: "3", CommandTimeout: 1 * time.Second},
+	conf := config.DefaultConfig()
+	conf.Merge(&config.Config{
+		ConfigTemplates: []*config.ConfigTemplate{
+			&config.ConfigTemplate{Source: in1.Name(), Command: "1", CommandTimeout: 1 * time.Second},
+			&config.ConfigTemplate{Source: in1.Name(), Command: "1.1", CommandTimeout: 1 * time.Second},
+			&config.ConfigTemplate{Source: in2.Name(), Command: "2", CommandTimeout: 1 * time.Second},
+			&config.ConfigTemplate{Source: in3.Name(), Command: "3", CommandTimeout: 1 * time.Second},
 		},
 	})
 
-	runner, err := NewRunner(config, dry, once)
+	runner, err := NewRunner(conf, dry, once)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +94,7 @@ func TestNewRunner_initialize(t *testing.T) {
 		t.Errorf("expected %#v to be %#v", runner.errStream, os.Stderr)
 	}
 
-	brain := NewBrain()
+	brain := template.NewBrain()
 	if !reflect.DeepEqual(runner.brain, brain) {
 		t.Errorf("expected %#v to be %#v", runner.brain, brain)
 	}
@@ -107,20 +109,20 @@ func TestNewRunner_initialize(t *testing.T) {
 }
 
 func TestNewRunner_badTemplate(t *testing.T) {
-	config := DefaultConfig()
-	config.Merge(&Config{
-		ConfigTemplates: []*ConfigTemplate{
-			&ConfigTemplate{Source: "/not/a/real/path"},
+	conf := config.DefaultConfig()
+	conf.Merge(&config.Config{
+		ConfigTemplates: []*config.ConfigTemplate{
+			&config.ConfigTemplate{Source: "/not/a/real/path"},
 		},
 	})
 
-	if _, err := NewRunner(config, false, false); err == nil {
+	if _, err := NewRunner(conf, false, false); err == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
 }
 
 func TestReceive_addsToBrain(t *testing.T) {
-	runner, err := NewRunner(DefaultConfig(), false, false)
+	runner, err := NewRunner(config.DefaultConfig(), false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,7 +145,7 @@ func TestReceive_addsToBrain(t *testing.T) {
 }
 
 func TestReceive_storesBrain(t *testing.T) {
-	runner, err := NewRunner(DefaultConfig(), false, false)
+	runner, err := NewRunner(config.DefaultConfig(), false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,7 +160,7 @@ func TestReceive_storesBrain(t *testing.T) {
 }
 
 func TestReceive_doesNotStoreIfNotWatching(t *testing.T) {
-	runner, err := NewRunner(DefaultConfig(), false, false)
+	runner, err := NewRunner(config.DefaultConfig(), false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -177,14 +179,14 @@ func TestRun_noopIfMissingData(t *testing.T) {
   `), t)
 	defer test.DeleteTempfile(in, t)
 
-	config := DefaultConfig()
-	config.Merge(&Config{
-		ConfigTemplates: []*ConfigTemplate{
-			&ConfigTemplate{Source: in.Name()},
+	conf := config.DefaultConfig()
+	conf.Merge(&config.Config{
+		ConfigTemplates: []*config.ConfigTemplate{
+			&config.ConfigTemplate{Source: in.Name()},
 		},
 	})
 
-	runner, err := NewRunner(config, false, false)
+	runner, err := NewRunner(conf, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -207,17 +209,17 @@ func TestRun_dry(t *testing.T) {
   `), t)
 	defer test.DeleteTempfile(in, t)
 
-	config := DefaultConfig()
-	config.Merge(&Config{
-		ConfigTemplates: []*ConfigTemplate{
-			&ConfigTemplate{
+	conf := config.DefaultConfig()
+	conf.Merge(&config.Config{
+		ConfigTemplates: []*config.ConfigTemplate{
+			&config.ConfigTemplate{
 				Source:      in.Name(),
 				Destination: "/out/file.txt",
 			},
 		},
 	})
 
-	runner, err := NewRunner(config, true, false)
+	runner, err := NewRunner(conf, true, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -260,14 +262,14 @@ func TestRun_singlePass(t *testing.T) {
   `), t)
 	defer test.DeleteTempfile(in, t)
 
-	config := DefaultConfig()
-	config.Merge(&Config{
-		ConfigTemplates: []*ConfigTemplate{
-			&ConfigTemplate{Source: in.Name()},
+	conf := config.DefaultConfig()
+	conf.Merge(&config.Config{
+		ConfigTemplates: []*config.ConfigTemplate{
+			&config.ConfigTemplate{Source: in.Name()},
 		},
 	})
 
-	runner, err := NewRunner(config, true, false)
+	runner, err := NewRunner(conf, true, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -297,14 +299,14 @@ func TestRun_singlePassDuplicates(t *testing.T) {
   `), t)
 	defer test.DeleteTempfile(in, t)
 
-	config := DefaultConfig()
-	config.Merge(&Config{
-		ConfigTemplates: []*ConfigTemplate{
-			&ConfigTemplate{Source: in.Name()},
+	conf := config.DefaultConfig()
+	conf.Merge(&config.Config{
+		ConfigTemplates: []*config.ConfigTemplate{
+			&config.ConfigTemplate{Source: in.Name()},
 		},
 	})
 
-	runner, err := NewRunner(config, true, false)
+	runner, err := NewRunner(conf, true, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -332,14 +334,14 @@ func TestRun_doublePass(t *testing.T) {
   `), t)
 	defer test.DeleteTempfile(in, t)
 
-	config := DefaultConfig()
-	config.Merge(&Config{
-		ConfigTemplates: []*ConfigTemplate{
-			&ConfigTemplate{Source: in.Name()},
+	conf := config.DefaultConfig()
+	conf.Merge(&config.Config{
+		ConfigTemplates: []*config.ConfigTemplate{
+			&config.ConfigTemplate{Source: in.Name()},
 		},
 	})
 
-	runner, err := NewRunner(config, true, false)
+	runner, err := NewRunner(conf, true, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -380,14 +382,14 @@ func TestRun_removesUnusedDependencies(t *testing.T) {
 	in := test.CreateTempfile([]byte(nil), t)
 	defer test.DeleteTempfile(in, t)
 
-	config := DefaultConfig()
-	config.Merge(&Config{
-		ConfigTemplates: []*ConfigTemplate{
-			&ConfigTemplate{Source: in.Name()},
+	conf := config.DefaultConfig()
+	conf.Merge(&config.Config{
+		ConfigTemplates: []*config.ConfigTemplate{
+			&config.ConfigTemplate{Source: in.Name()},
 		},
 	})
 
-	runner, err := NewRunner(config, true, false)
+	runner, err := NewRunner(conf, true, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -447,16 +449,16 @@ func TestRun_multipleTemplatesRunsCommands(t *testing.T) {
 	os.Remove(touch2.Name())
 	defer os.Remove(touch2.Name())
 
-	config := DefaultConfig()
-	config.Merge(&Config{
-		ConfigTemplates: []*ConfigTemplate{
-			&ConfigTemplate{
+	conf := config.DefaultConfig()
+	conf.Merge(&config.Config{
+		ConfigTemplates: []*config.ConfigTemplate{
+			&config.ConfigTemplate{
 				Source:         in1.Name(),
 				Destination:    out1.Name(),
 				Command:        fmt.Sprintf("touch %s", touch1.Name()),
 				CommandTimeout: 1 * time.Second,
 			},
-			&ConfigTemplate{
+			&config.ConfigTemplate{
 				Source:         in2.Name(),
 				Destination:    out2.Name(),
 				Command:        fmt.Sprintf("touch %s", touch2.Name()),
@@ -465,7 +467,7 @@ func TestRun_multipleTemplatesRunsCommands(t *testing.T) {
 		},
 	})
 
-	runner, err := NewRunner(config, false, false)
+	runner, err := NewRunner(conf, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -496,13 +498,13 @@ func TestRun_multipleTemplatesRunsCommands(t *testing.T) {
 }
 
 func TestRunner_quiescence(t *testing.T) {
-	template := &Template{}
+	templ := &template.Template{}
 
 	// Basic min case.
 	{
-		ch := make(chan *Template, 1)
+		ch := make(chan *template.Template, 1)
 		q := newQuiescence(ch,
-			50*time.Millisecond, 250*time.Millisecond, template)
+			50*time.Millisecond, 250*time.Millisecond, templ)
 
 		// Should not fire until we tick() it.
 		select {
@@ -529,9 +531,9 @@ func TestRunner_quiescence(t *testing.T) {
 
 	// Single snooze case.
 	{
-		ch := make(chan *Template, 1)
+		ch := make(chan *template.Template, 1)
 		q := newQuiescence(ch,
-			50*time.Millisecond, 250*time.Millisecond, template)
+			50*time.Millisecond, 250*time.Millisecond, templ)
 
 		// Tick once with a small delay to simulate an update coming
 		// in.
@@ -555,9 +557,9 @@ func TestRunner_quiescence(t *testing.T) {
 
 	// Max time case.
 	{
-		ch := make(chan *Template, 1)
+		ch := make(chan *template.Template, 1)
 		q := newQuiescence(ch,
-			50*time.Millisecond, 250*time.Millisecond, template)
+			50*time.Millisecond, 250*time.Millisecond, templ)
 
 		// Keep ticking to service the min timer and make sure we get
 		// cut off at the max time.
@@ -600,7 +602,7 @@ func TestRunner_quiescenceIntegrated(t *testing.T) {
 		test.DeleteTempfile(out[i], t)
 	}
 
-	config := testConfig(fmt.Sprintf(`
+	config := config.TestConfig(fmt.Sprintf(`
 		consul = "%s"
 		wait = "100ms:200ms"
 
@@ -693,10 +695,10 @@ func TestRender_sameContentsDoesNotExecuteCommand(t *testing.T) {
   `), t)
 	defer test.DeleteTempfile(outTemplate, t)
 
-	config := DefaultConfig()
-	config.Merge(&Config{
-		ConfigTemplates: []*ConfigTemplate{
-			&ConfigTemplate{
+	conf := config.DefaultConfig()
+	conf.Merge(&config.Config{
+		ConfigTemplates: []*config.ConfigTemplate{
+			&config.ConfigTemplate{
 				Source:      inTemplate.Name(),
 				Destination: outTemplate.Name(),
 				Command:     fmt.Sprintf("echo 'foo' > %s", outFile.Name()),
@@ -704,7 +706,7 @@ func TestRender_sameContentsDoesNotExecuteCommand(t *testing.T) {
 		},
 	})
 
-	runner, err := NewRunner(config, false, false)
+	runner, err := NewRunner(conf, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -880,10 +882,10 @@ func TestRun_doesNotExecuteCommandMissingDependencies(t *testing.T) {
 	outTemplate := test.CreateTempfile(nil, t)
 	defer test.DeleteTempfile(outTemplate, t)
 
-	config := DefaultConfig()
-	config.Merge(&Config{
-		ConfigTemplates: []*ConfigTemplate{
-			&ConfigTemplate{
+	conf := config.DefaultConfig()
+	conf.Merge(&config.Config{
+		ConfigTemplates: []*config.ConfigTemplate{
+			&config.ConfigTemplate{
 				Source:      inTemplate.Name(),
 				Destination: outTemplate.Name(),
 				Command:     fmt.Sprintf("echo 'foo' > %s", outFile.Name()),
@@ -891,7 +893,7 @@ func TestRun_doesNotExecuteCommandMissingDependencies(t *testing.T) {
 		},
 	})
 
-	runner, err := NewRunner(config, false, false)
+	runner, err := NewRunner(conf, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -919,10 +921,10 @@ func TestRun_executesCommand(t *testing.T) {
 	outTemplate := test.CreateTempfile(nil, t)
 	defer test.DeleteTempfile(outTemplate, t)
 
-	config := DefaultConfig()
-	config.Merge(&Config{
-		ConfigTemplates: []*ConfigTemplate{
-			&ConfigTemplate{
+	conf := config.DefaultConfig()
+	conf.Merge(&config.Config{
+		ConfigTemplates: []*config.ConfigTemplate{
+			&config.ConfigTemplate{
 				Source:         inTemplate.Name(),
 				Destination:    outTemplate.Name(),
 				Command:        fmt.Sprintf("echo 'foo' > %s", outFile.Name()),
@@ -931,7 +933,7 @@ func TestRun_executesCommand(t *testing.T) {
 		},
 	})
 
-	runner, err := NewRunner(config, false, false)
+	runner, err := NewRunner(conf, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -978,16 +980,16 @@ func TestRun_doesNotExecuteCommandMoreThanOnce(t *testing.T) {
 	outTemplateB := test.CreateTempfile(nil, t)
 	defer test.DeleteTempfile(outTemplateB, t)
 
-	config := DefaultConfig()
-	config.Merge(&Config{
-		ConfigTemplates: []*ConfigTemplate{
-			&ConfigTemplate{
+	conf := config.DefaultConfig()
+	conf.Merge(&config.Config{
+		ConfigTemplates: []*config.ConfigTemplate{
+			&config.ConfigTemplate{
 				Source:         inTemplate.Name(),
 				Destination:    outTemplateA.Name(),
 				Command:        fmt.Sprintf("echo 'foo' >> %s", outFile.Name()),
 				CommandTimeout: 1 * time.Second,
 			},
-			&ConfigTemplate{
+			&config.ConfigTemplate{
 				Source:         inTemplate.Name(),
 				Destination:    outTemplateB.Name(),
 				Command:        fmt.Sprintf("echo 'foo' >> %s", outFile.Name()),
@@ -996,7 +998,7 @@ func TestRun_doesNotExecuteCommandMoreThanOnce(t *testing.T) {
 		},
 	})
 
-	runner, err := NewRunner(config, false, false)
+	runner, err := NewRunner(conf, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1041,7 +1043,7 @@ func TestRunner_pidCreate(t *testing.T) {
 	os.Remove(pidfile.Name())
 	defer os.Remove(pidfile.Name())
 
-	config := testConfig(fmt.Sprintf(`
+	config := config.TestConfig(fmt.Sprintf(`
 		pid_file = "%s"
 	`, pidfile.Name()), t)
 
@@ -1070,7 +1072,7 @@ func TestRunner_pidDelete(t *testing.T) {
 	os.Remove(pidfile.Name())
 	defer os.Remove(pidfile.Name())
 
-	config := testConfig(fmt.Sprintf(`
+	config := config.TestConfig(fmt.Sprintf(`
 		pid_file = "%s"
 	`, pidfile.Name()), t)
 
@@ -1122,10 +1124,10 @@ func TestRunner_onceAlreadyRenderedDoesNotHangOrRunCommands(t *testing.T) {
 	outTemplateA := test.CreateTempfile(nil, t)
 	defer test.DeleteTempfile(outTemplateA, t)
 
-	config := DefaultConfig()
-	config.Merge(&Config{
-		ConfigTemplates: []*ConfigTemplate{
-			&ConfigTemplate{
+	conf := config.DefaultConfig()
+	conf.Merge(&config.Config{
+		ConfigTemplates: []*config.ConfigTemplate{
+			&config.ConfigTemplate{
 				Source:      in.Name(),
 				Destination: out.Name(),
 				Command:     fmt.Sprintf("echo 'foo' >> %s", outFile.Name()),
@@ -1134,7 +1136,7 @@ func TestRunner_onceAlreadyRenderedDoesNotHangOrRunCommands(t *testing.T) {
 		},
 	})
 
-	runner, err := NewRunner(config, false, true)
+	runner, err := NewRunner(conf, false, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1172,7 +1174,7 @@ func TestExecute_setsEnv(t *testing.T) {
 	tmpfile := test.CreateTempfile(nil, t)
 	defer test.DeleteTempfile(tmpfile, t)
 
-	config := testConfig(`
+	config := config.TestConfig(`
 		consul = "1.2.3.4:5678"
 		token = "abcd1234"
 
@@ -1243,7 +1245,7 @@ func TestExecute_timeout(t *testing.T) {
 	tmpfile := test.CreateTempfile(nil, t)
 	defer test.DeleteTempfile(tmpfile, t)
 
-	config := testConfig(`
+	config := config.TestConfig(`
 		consul = "1.2.3.4:5678"
 		token = "abcd1234"
 
@@ -1297,32 +1299,32 @@ func TestRunner_dedup(t *testing.T) {
 	defer consul.Stop()
 
 	// Setup the runner config
-	config := DefaultConfig()
-	config.Merge(&Config{
-		ConfigTemplates: []*ConfigTemplate{
-			&ConfigTemplate{Source: in.Name(), Destination: out1.Name(), Wait: &watch.Wait{}},
+	conf := config.DefaultConfig()
+	conf.Merge(&config.Config{
+		ConfigTemplates: []*config.ConfigTemplate{
+			&config.ConfigTemplate{Source: in.Name(), Destination: out1.Name(), Wait: &watch.Wait{}},
 		},
 	})
-	config.Deduplicate.Enabled = true
-	config.Consul = consul.HTTPAddr
-	config.set("consul")
-	config.set("deduplicate")
-	config.set("deduplicate.enabled")
+	conf.Deduplicate.Enabled = true
+	conf.Consul = consul.HTTPAddr
+	conf.Set("consul")
+	conf.Set("deduplicate")
+	conf.Set("deduplicate.enabled")
 
-	config2 := DefaultConfig()
-	config2.Merge(&Config{
-		ConfigTemplates: []*ConfigTemplate{
-			&ConfigTemplate{Source: in.Name(), Destination: out2.Name(), Wait: &watch.Wait{}},
+	config2 := config.DefaultConfig()
+	config2.Merge(&config.Config{
+		ConfigTemplates: []*config.ConfigTemplate{
+			&config.ConfigTemplate{Source: in.Name(), Destination: out2.Name(), Wait: &watch.Wait{}},
 		},
 	})
 	config2.Deduplicate.Enabled = true
 	config2.Consul = consul.HTTPAddr
-	config2.set("consul")
-	config2.set("deduplicate")
-	config2.set("deduplicate.enabled")
+	config2.Set("consul")
+	config2.Set("deduplicate")
+	config2.Set("deduplicate.enabled")
 
 	// Create the runners
-	r1, err := NewRunner(config, false, false)
+	r1, err := NewRunner(conf, false, false)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -1395,7 +1397,7 @@ done
 	}
 	defer test.DeleteTempfile(script, t)
 
-	config := testConfig(fmt.Sprintf(`
+	config := config.TestConfig(fmt.Sprintf(`
 		consul = "%s"
 
 		template {
@@ -1494,7 +1496,7 @@ done
 	}
 	defer test.DeleteTempfile(script, t)
 
-	config := testConfig(fmt.Sprintf(`
+	config := config.TestConfig(fmt.Sprintf(`
 		consul = "%s"
 
 		template {

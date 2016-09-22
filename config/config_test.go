@@ -15,24 +15,6 @@ import (
 	"github.com/hashicorp/consul-template/watch"
 )
 
-func testConfig(contents string, t *testing.T) *Config {
-	f, err := ioutil.TempFile(os.TempDir(), "")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = f.Write([]byte(contents))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	config, err := ParseConfig(f.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
-	return config
-}
-
 func TestMerge_emptyConfig(t *testing.T) {
 	config := DefaultConfig()
 	config.Merge(&Config{})
@@ -44,7 +26,7 @@ func TestMerge_emptyConfig(t *testing.T) {
 }
 
 func TestMerge_topLevel(t *testing.T) {
-	config1 := testConfig(`
+	config1 := TestConfig(`
 		consul = "consul-1"
 		token = "token-1"
 		reload_signal = "SIGUSR1"
@@ -56,7 +38,7 @@ func TestMerge_topLevel(t *testing.T) {
 		pid_file = "/pid-1"
 		log_level = "log_level-1"
 	`, t)
-	config2 := testConfig(`
+	config2 := TestConfig(`
 		consul = "consul-2"
 		token = "token-2"
 		reload_signal = "SIGINT"
@@ -76,13 +58,13 @@ func TestMerge_topLevel(t *testing.T) {
 }
 
 func TestMerge_deduplicate(t *testing.T) {
-	config := testConfig(`
+	config := TestConfig(`
 		deduplicate {
 			prefix = "foobar/"
 			enabled = true
 		}
 	`, t)
-	config.Merge(testConfig(`
+	config.Merge(TestConfig(`
 		deduplicate {
 			prefix = "abc/"
 			enabled = true
@@ -101,7 +83,7 @@ func TestMerge_deduplicate(t *testing.T) {
 }
 
 func TestMerge_vault(t *testing.T) {
-	config := testConfig(`
+	config := TestConfig(`
 		vault {
 			address = "1.1.1.1"
 			token = "1"
@@ -109,7 +91,7 @@ func TestMerge_vault(t *testing.T) {
 			renew = true
 		}
 	`, t)
-	config.Merge(testConfig(`
+	config.Merge(TestConfig(`
 		vault {
 			address = "2.2.2.2"
 			renew = false
@@ -135,7 +117,7 @@ func TestMerge_vault(t *testing.T) {
 }
 
 func TestMerge_vaultSSL(t *testing.T) {
-	config := testConfig(`
+	config := TestConfig(`
 		vault {
 			ssl {
 				enabled = true
@@ -145,7 +127,7 @@ func TestMerge_vaultSSL(t *testing.T) {
 			}
 		}
 	`, t)
-	config.Merge(testConfig(`
+	config.Merge(TestConfig(`
 		vault {
 			ssl {
 				enabled = false
@@ -168,14 +150,14 @@ func TestMerge_vaultSSL(t *testing.T) {
 }
 
 func TestMerge_auth(t *testing.T) {
-	config := testConfig(`
+	config := TestConfig(`
 		auth {
 			enabled = true
 			username = "1"
 			password = "1"
 		}
 	`, t)
-	config.Merge(testConfig(`
+	config.Merge(TestConfig(`
 		auth {
 			password = "2"
 		}
@@ -193,7 +175,7 @@ func TestMerge_auth(t *testing.T) {
 }
 
 func TestMerge_SSL(t *testing.T) {
-	config := testConfig(`
+	config := TestConfig(`
 		ssl {
 			enabled = true
 			verify = true
@@ -201,7 +183,7 @@ func TestMerge_SSL(t *testing.T) {
 			ca_cert = "ca-1.pem"
 		}
 	`, t)
-	config.Merge(testConfig(`
+	config.Merge(TestConfig(`
 		ssl {
 			enabled = false
 		}
@@ -220,7 +202,7 @@ func TestMerge_SSL(t *testing.T) {
 }
 
 func TestMerge_Exec(t *testing.T) {
-	config := testConfig(`
+	config := TestConfig(`
 		exec {
 			command       = "a"
 			splay         = "100s"
@@ -228,7 +210,7 @@ func TestMerge_Exec(t *testing.T) {
 			kill_timeout  = "10s"
 		}
 	`, t)
-	config.Merge(testConfig(`
+	config.Merge(TestConfig(`
 		exec {
 			command = "b"
 			splay   = "50s"
@@ -248,13 +230,13 @@ func TestMerge_Exec(t *testing.T) {
 }
 
 func TestMerge_syslog(t *testing.T) {
-	config := testConfig(`
+	config := TestConfig(`
 		syslog {
 			enabled = true
 			facility = "1"
 		}
 	`, t)
-	config.Merge(testConfig(`
+	config.Merge(TestConfig(`
 		syslog {
 			facility = "2"
 		}
@@ -271,7 +253,7 @@ func TestMerge_syslog(t *testing.T) {
 }
 
 func TestMerge_configTemplates(t *testing.T) {
-	config := testConfig(`
+	config := TestConfig(`
 		template {
 			source = "1"
 			destination = "1"
@@ -283,7 +265,7 @@ func TestMerge_configTemplates(t *testing.T) {
 			right_delimiter = "%>"
 		}
 	`, t)
-	config.Merge(testConfig(`
+	config.Merge(TestConfig(`
 		template {
 			source = "2"
 			destination = "2"
@@ -328,10 +310,10 @@ func TestMerge_configTemplates(t *testing.T) {
 }
 
 func TestMerge_wait(t *testing.T) {
-	config := testConfig(`
+	config := TestConfig(`
 		wait = "1s:1s"
 	`, t)
-	config.Merge(testConfig(`
+	config.Merge(TestConfig(`
 		wait = "2s:2s"
 	`, t))
 
@@ -346,7 +328,7 @@ func TestMerge_wait(t *testing.T) {
 }
 
 func TestParseConfig_emptySignal(t *testing.T) {
-	config := testConfig(`
+	config := TestConfig(`
 		reload_signal = ""
 	`, t)
 
@@ -358,7 +340,7 @@ func TestParseConfig_emptySignal(t *testing.T) {
 // There is a custom mapstructure function that tests this as well, so this is
 // more of an integration test to ensure we are parsing permissions correctly.
 func TestParseConfig_jsonFilePerms(t *testing.T) {
-	config := testConfig(`
+	config := TestConfig(`
 		{
 			"template": {
 				"perms": "0600"
@@ -378,7 +360,7 @@ func TestParseConfig_jsonFilePerms(t *testing.T) {
 }
 
 func TestParseConfig_hclFilePerms(t *testing.T) {
-	config := testConfig(`
+	config := TestConfig(`
 		template {
 			perms = 0600
 		}
@@ -559,7 +541,7 @@ func TestParseConfig_correctValues(t *testing.T) {
 			&ConfigTemplate{
 				Source:         "nginx.conf.ctmpl",
 				Destination:    "/etc/nginx/nginx.conf",
-				CommandTimeout: defaultCommandTimeout,
+				CommandTimeout: DefaultCommandTimeout,
 				Perms:          0644,
 				Wait:           &watch.Wait{},
 			},
@@ -606,7 +588,7 @@ func TestParseConfig_mapstructureError(t *testing.T) {
 }
 
 func TestParseConfig_ssh_key_should_enable_ssl(t *testing.T) {
-	config := testConfig(`
+	config := TestConfig(`
 		ssl {
 			key = "private-key.pem"
 			verify = true
@@ -884,7 +866,7 @@ func TestParseConfigurationTemplate_windowsDrives(t *testing.T) {
 		Source:         `C:\abc\123`,
 		Destination:    `D:\xyz\789`,
 		Command:        "some command",
-		CommandTimeout: defaultCommandTimeout,
+		CommandTimeout: DefaultCommandTimeout,
 		Perms:          0644,
 		Wait:           &watch.Wait{},
 	}
