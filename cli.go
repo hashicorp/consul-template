@@ -405,18 +405,21 @@ func (cli *CLI) parseFlags(args []string) (*Config, bool, bool, bool, error) {
 
 	flags.Var((funcVar)(func(s string) error {
 		config.Vault.Token = s
+		config.set("vault")
 		config.set("vault.token")
 		return nil
 	}), "vault-token", "")
 
 	flags.Var((funcBoolVar)(func(b bool) error {
 		config.Vault.RenewToken = b
+		config.set("vault")
 		config.set("vault.renew")
 		return nil
 	}), "vault-renew-token", "")
 
 	flags.Var((funcBoolVar)(func(b bool) error {
 		config.Vault.UnwrapToken = b
+		config.set("vault")
 		config.set("vault.unwrap_token")
 		return nil
 	}), "vault-unwrap-token", "")

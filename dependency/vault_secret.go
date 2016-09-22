@@ -65,7 +65,7 @@ func (d *VaultSecret) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 	// Grab the vault client
 	vault, err := clients.Vault()
 	if err != nil {
-		return nil, nil, fmt.Errorf("vault secret: %s", err)
+		return nil, nil, ErrWithExitf("vault secret: %s", err)
 	}
 
 	// Attempt to renew the secret. If we do not have a secret or if that secret
@@ -104,7 +104,7 @@ func (d *VaultSecret) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 		vaultSecret, err = vault.Logical().Write(d.Path, d.data)
 	}
 	if err != nil {
-		return nil, nil, fmt.Errorf("error obtaining from vault: %s", err)
+		return nil, nil, ErrWithExitf("error obtaining from vault: %s", err)
 	}
 
 	// The secret could be nil (maybe it does not exist yet). This is not an error

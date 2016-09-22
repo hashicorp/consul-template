@@ -1,7 +1,6 @@
 package dependency
 
 import (
-	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -37,6 +36,13 @@ func (d *VaultToken) Fetch(clients *ClientSet, opts *QueryOptions) (interface{},
 	// try to renew.
 	if opts.WaitIndex != 0 && d.leaseDuration != 0 {
 		duration := time.Duration(d.leaseDuration/2.0) * time.Second
+
+		if duration < 1*time.Second {
+			log.Printf("[DEBUG] (%s) increasing sleep to 1s (was %q)",
+				d.Display(), duration)
+			duration = 1 * time.Second
+		}
+
 		log.Printf("[DEBUG] (%s) sleeping for %q", d.Display(), duration)
 		select {
 		case <-d.stopCh:
@@ -48,12 +54,12 @@ func (d *VaultToken) Fetch(clients *ClientSet, opts *QueryOptions) (interface{},
 	// Grab the vault client
 	vault, err := clients.Vault()
 	if err != nil {
-		return nil, nil, fmt.Errorf("vault_token: %s", err)
+		return nil, nil, ErrWithExitf("vault_token: %s", err)
 	}
 
 	token, err := vault.Auth().Token().RenewSelf(0)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error renewing vault token: %s", err)
+		return nil, nil, ErrWithExitf("error renewing vault token: %s", err)
 	}
 
 	// Create our cloned secret
@@ -64,15 +70,15 @@ func (d *VaultToken) Fetch(clients *ClientSet, opts *QueryOptions) (interface{},
 		Data:          token.Data,
 	}
 
-	leaseDuration := secret.LeaseDuration
+	leaseDuration := token.Auth.LeaseDuration
 	if leaseDuration == 0 {
-		log.Printf("[WARN] (%s) lease duration is 0, setting to 5m", d.Display())
-		leaseDuration = 5 * 60
+		log.Printf("[WARN] (%s) lease duration is 0, setting to 5s", d.Display())
+		leaseDuration = 5
 	}
 
 	d.Lock()
 	d.leaseID = secret.LeaseID
-	d.leaseDuration = secret.LeaseDuration
+	d.leaseDuration = leaseDuration
 	d.Unlock()
 
 	log.Printf("[DEBUG] (%s) successfully renewed token", d.Display())
