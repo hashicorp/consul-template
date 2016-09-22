@@ -20,6 +20,8 @@ BREAKING CHANGES:
       value is now configurable, and the default is SIGINT. SIGQUIT will trigger
       a core dump in accordance with similar programs. SIGTERM is no longer
       listened.
+  * Consul Template now exits on irrecoverable Vault errors such as failing to
+      renew a token or lease.
 
 DEPRECATIONS:
 
