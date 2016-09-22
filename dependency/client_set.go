@@ -51,13 +51,14 @@ type CreateConsulClientInput struct {
 
 // CreateVaultClientInput is used as input to the CreateVaultClient function.
 type CreateVaultClientInput struct {
-	Address    string
-	Token      string
-	SSLEnabled bool
-	SSLVerify  bool
-	SSLCert    string
-	SSLKey     string
-	SSLCACert  string
+	Address     string
+	Token       string
+	UnwrapToken bool
+	SSLEnabled  bool
+	SSLVerify   bool
+	SSLCert     string
+	SSLKey      string
+	SSLCACert   string
 }
 
 // NewClientSet creates a new client set that is ready to accept clients.
@@ -234,6 +235,29 @@ func (c *ClientSet) CreateVaultClient(i *CreateVaultClientInput) error {
 	if i.Token != "" {
 		log.Printf("[DEBUG] (clients) setting vault token")
 		client.SetToken(i.Token)
+	}
+
+	// Check if we are unwrapping
+	if i.UnwrapToken {
+		log.Printf("[INFO] (clients) unwrapping vault token")
+		secret, err := client.Logical().Unwrap(i.Token)
+		if err != nil {
+			return fmt.Errorf("client set: vault unwrap: %s", err)
+		}
+
+		if secret == nil {
+			return fmt.Errorf("client set: vault unwrap: no secret")
+		}
+
+		if secret.Auth == nil {
+			return fmt.Errorf("client set: vault unwrap: no secret auth")
+		}
+
+		if secret.Auth.ClientToken == "" {
+			return fmt.Errorf("client set: vault unwrap: no token returned")
+		}
+
+		client.SetToken(secret.Auth.ClientToken)
 	}
 
 	// Save the data on ourselves

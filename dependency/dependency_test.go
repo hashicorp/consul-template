@@ -65,7 +65,8 @@ func testConsulServer(t *testing.T) (*ClientSet, *testutil.TestServer) {
 }
 
 type vaultServer struct {
-	Token string
+	Address string
+	Token   string
 
 	core *vault.Core
 	ln   net.Listener
@@ -103,5 +104,12 @@ func testVaultServer(t *testing.T) (*ClientSet, *vaultServer) {
 		t.Fatal(err)
 	}
 
-	return clients, &vaultServer{Token: token, core: core, ln: ln}
+	server := &vaultServer{
+		Address: addr,
+		Token:   token,
+		core:    core,
+		ln:      ln,
+	}
+
+	return clients, server
 }
