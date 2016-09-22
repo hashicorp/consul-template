@@ -245,7 +245,7 @@ func NewTokenStore(c *Core, config *logical.BackendConfig) (*TokenStore, error) 
 				Fields: map[string]*framework.FieldSchema{
 					"urltoken": &framework.FieldSchema{
 						Type:        framework.TypeString,
-						Description: "Token to lookup (GET/POST URL parameter)",
+						Description: "Token to lookup (URL parameter)",
 					},
 					"token": &framework.FieldSchema{
 						Type:        framework.TypeString,
@@ -290,12 +290,13 @@ func NewTokenStore(c *Core, config *logical.BackendConfig) (*TokenStore, error) 
 				Fields: map[string]*framework.FieldSchema{
 					"token": &framework.FieldSchema{
 						Type:        framework.TypeString,
-						Description: "Token to look up (unused)",
+						Description: "Token to look up (unused, does not need to be set)",
 					},
 				},
 
 				Callbacks: map[logical.Operation]framework.OperationFunc{
-					logical.ReadOperation: t.handleLookupSelf,
+					logical.UpdateOperation: t.handleLookupSelf,
+					logical.ReadOperation:   t.handleLookupSelf,
 				},
 
 				HelpSynopsis:    strings.TrimSpace(tokenLookupHelp),
@@ -308,7 +309,7 @@ func NewTokenStore(c *Core, config *logical.BackendConfig) (*TokenStore, error) 
 				Fields: map[string]*framework.FieldSchema{
 					"urlaccessor": &framework.FieldSchema{
 						Type:        framework.TypeString,
-						Description: "Accessor of the token (in URL)",
+						Description: "Accessor of the token (URL parameter)",
 					},
 					"accessor": &framework.FieldSchema{
 						Type:        framework.TypeString,
@@ -341,7 +342,7 @@ func NewTokenStore(c *Core, config *logical.BackendConfig) (*TokenStore, error) 
 				Fields: map[string]*framework.FieldSchema{
 					"urltoken": &framework.FieldSchema{
 						Type:        framework.TypeString,
-						Description: "Token to revoke (in URL)",
+						Description: "Token to revoke (URL parameter)",
 					},
 					"token": &framework.FieldSchema{
 						Type:        framework.TypeString,
@@ -363,7 +364,7 @@ func NewTokenStore(c *Core, config *logical.BackendConfig) (*TokenStore, error) 
 				Fields: map[string]*framework.FieldSchema{
 					"urltoken": &framework.FieldSchema{
 						Type:        framework.TypeString,
-						Description: "Token to revoke (in URL)",
+						Description: "Token to revoke (URL parameter)",
 					},
 					"token": &framework.FieldSchema{
 						Type:        framework.TypeString,
@@ -385,7 +386,7 @@ func NewTokenStore(c *Core, config *logical.BackendConfig) (*TokenStore, error) 
 				Fields: map[string]*framework.FieldSchema{
 					"token": &framework.FieldSchema{
 						Type:        framework.TypeString,
-						Description: "Token to renew (unused)",
+						Description: "Token to renew (unused, does not need to be set)",
 					},
 					"increment": &framework.FieldSchema{
 						Type:        framework.TypeDurationSecond,
@@ -408,7 +409,7 @@ func NewTokenStore(c *Core, config *logical.BackendConfig) (*TokenStore, error) 
 				Fields: map[string]*framework.FieldSchema{
 					"urltoken": &framework.FieldSchema{
 						Type:        framework.TypeString,
-						Description: "Token to renew (in URL)",
+						Description: "Token to renew (URL parameter)",
 					},
 					"token": &framework.FieldSchema{
 						Type:        framework.TypeString,
@@ -473,6 +474,11 @@ type TokenEntry struct {
 
 	// If set, the role that was used for parameters at creation time
 	Role string `json:"role" mapstructure:"role" structs:"role"`
+
+	// If set, the period of the token. This is only used when created directly
+	// through the create endpoint; periods managed by roles or other auth
+	// backends are subject to those renewal rules.
+	Period time.Duration `json:"period" mapstructure:"period" structs:"period"`
 }
 
 // tsRoleEntry contains token store role information
@@ -950,12 +956,14 @@ func (ts *TokenStore) lookupBySaltedAccessor(saltedAccessor string) (accessorEnt
 // handleUpdateLookupAccessor handles the auth/token/lookup-accessor path for returning
 // the properties of the token associated with the accessor
 func (ts *TokenStore) handleUpdateLookupAccessor(req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	var urlaccessor bool
 	accessor := data.Get("accessor").(string)
 	if accessor == "" {
 		accessor = data.Get("urlaccessor").(string)
 		if accessor == "" {
 			return nil, &StatusBadRequest{Err: "missing accessor"}
 		}
+		urlaccessor = true
 	}
 
 	aEntry, err := ts.lookupByAccessor(accessor)
@@ -992,18 +1000,24 @@ func (ts *TokenStore) handleUpdateLookupAccessor(req *logical.Request, data *fra
 		resp.Data["id"] = ""
 	}
 
+	if urlaccessor {
+		resp.AddWarning(`Using an accessor in the path is unsafe as the accessor can be logged in many places. Please use POST or PUT with the accessor passed in via the "accessor" parameter.`)
+	}
+
 	return resp, nil
 }
 
 // handleUpdateRevokeAccessor handles the auth/token/revoke-accessor path for revoking
 // the token associated with the accessor
 func (ts *TokenStore) handleUpdateRevokeAccessor(req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	var urlaccessor bool
 	accessor := data.Get("accessor").(string)
 	if accessor == "" {
 		accessor = data.Get("urlaccessor").(string)
 		if accessor == "" {
 			return nil, &StatusBadRequest{Err: "missing accessor"}
 		}
+		urlaccessor = true
 	}
 
 	aEntry, err := ts.lookupByAccessor(accessor)
@@ -1015,6 +1029,13 @@ func (ts *TokenStore) handleUpdateRevokeAccessor(req *logical.Request, data *fra
 	if err := ts.RevokeTree(aEntry.TokenID); err != nil {
 		return logical.ErrorResponse(err.Error()), logical.ErrInvalidRequest
 	}
+
+	if urlaccessor {
+		resp := &logical.Response{}
+		resp.AddWarning(`Using an accessor in the path is unsafe as the accessor can be logged in many places. Please use POST or PUT with the accessor passed in via the "accessor" parameter.`)
+		return resp, nil
+	}
+
 	return nil, nil
 }
 
@@ -1064,6 +1085,7 @@ func (ts *TokenStore) handleCreateCommon(
 		ExplicitMaxTTL  string `mapstructure:"explicit_max_ttl"`
 		DisplayName     string `mapstructure:"display_name"`
 		NumUses         int    `mapstructure:"num_uses"`
+		Period          string
 	}
 	if err := mapstructure.WeakDecode(req.Data, &data); err != nil {
 		return logical.ErrorResponse(fmt.Sprintf(
@@ -1186,6 +1208,24 @@ func (ts *TokenStore) handleCreateCommon(
 	// Do not add the 'default' policy if requested not to.
 	te.Policies = policyutil.SanitizePolicies(data.Policies, !data.NoDefaultPolicy)
 
+	// Prevent internal policies from being assigned to tokens
+	for _, policy := range te.Policies {
+		if strutil.StrListContains(nonAssignablePolicies, policy) {
+			return logical.ErrorResponse(fmt.Sprintf("cannot assign %s policy", policy)), nil
+		}
+	}
+
+	// Prevent attempts to create a root token without an actual root token as parent.
+	// This is to thwart privilege escalation by tokens having 'sudo' privileges.
+	if strutil.StrListContains(data.Policies, "root") && !strutil.StrListContains(parent.Policies, "root") {
+		return logical.ErrorResponse("root tokens may not be created without parent token being root"), logical.ErrInvalidRequest
+	}
+
+	//
+	// NOTE: Do not modify policies below this line. We need the checks above
+	// to be the last checks as they must look at the final policy set.
+	//
+
 	switch {
 	case role != nil:
 		if role.Orphan {
@@ -1219,6 +1259,23 @@ func (ts *TokenStore) handleCreateCommon(
 		te.ExplicitMaxTTL = dur
 	}
 
+	var periodToUse time.Duration
+	if data.Period != "" {
+		if !isSudo {
+			return logical.ErrorResponse("root or sudo privileges required to create periodic token"),
+				logical.ErrInvalidRequest
+		}
+		dur, err := duration.ParseDurationSecond(data.Period)
+		if err != nil {
+			return logical.ErrorResponse(err.Error()), logical.ErrInvalidRequest
+		}
+		if dur < 0 {
+			return logical.ErrorResponse("period must be positive"), logical.ErrInvalidRequest
+		}
+		te.Period = dur
+		periodToUse = dur
+	}
+
 	// Parse the TTL/lease if any
 	if data.TTL != "" {
 		dur, err := duration.ParseDurationSecond(data.TTL)
@@ -1241,55 +1298,36 @@ func (ts *TokenStore) handleCreateCommon(
 		te.TTL = dur
 	}
 
-	// Prevent attempts to create a root token without an actual root token as parent.
-	// This is to thwart privilege escalation by tokens having 'sudo' privileges.
-	if strutil.StrListContains(data.Policies, "root") && !strutil.StrListContains(parent.Policies, "root") {
-		return logical.ErrorResponse("root tokens may not be created without parent token being root"), logical.ErrInvalidRequest
-	}
-
-	// Set the lesser explicit max TTL if defined
-	if role != nil && role.ExplicitMaxTTL != 0 {
-		switch {
-		case te.ExplicitMaxTTL == 0:
-			te.ExplicitMaxTTL = role.ExplicitMaxTTL
-		default:
-			if role.ExplicitMaxTTL < te.ExplicitMaxTTL {
+	// Set the lesser period/explicit max TTL if defined both in arguments and in role
+	if role != nil {
+		if role.ExplicitMaxTTL != 0 {
+			switch {
+			case te.ExplicitMaxTTL == 0:
 				te.ExplicitMaxTTL = role.ExplicitMaxTTL
+			default:
+				if role.ExplicitMaxTTL < te.ExplicitMaxTTL {
+					te.ExplicitMaxTTL = role.ExplicitMaxTTL
+				}
+				resp.AddWarning(fmt.Sprintf("Explicit max TTL specified both during creation call and in role; using the lesser value of %d seconds", int64(te.ExplicitMaxTTL.Seconds())))
 			}
-			resp.AddWarning(fmt.Sprintf("Explicit max TTL specified both during creation call and in role; using the lesser value of %d seconds", int64(te.ExplicitMaxTTL.Seconds())))
+		}
+		if role.Period != 0 {
+			switch {
+			case periodToUse == 0:
+				periodToUse = role.Period
+			default:
+				if role.Period < periodToUse {
+					periodToUse = role.Period
+				}
+				resp.AddWarning(fmt.Sprintf("Period specified both during creation call and in role; using the lesser value of %d seconds", int64(periodToUse.Seconds())))
+			}
 		}
 	}
 
 	sysView := ts.System()
 
-	// Run some bounding checks if the explicit max TTL is set
-	if te.ExplicitMaxTTL > 0 {
-		// Limit the lease duration
-		if sysView.MaxLeaseTTL() != 0 && te.ExplicitMaxTTL > sysView.MaxLeaseTTL() {
-			resp.AddWarning(fmt.Sprintf(
-				"Explicit max TTL of %d seconds is greater than system/mount allowed value; value is being capped to %d seconds",
-				int64(te.ExplicitMaxTTL.Seconds()), int64(sysView.MaxLeaseTTL().Seconds())))
-			te.ExplicitMaxTTL = sysView.MaxLeaseTTL()
-		}
-
-		if te.TTL == 0 {
-			te.TTL = te.ExplicitMaxTTL
-		} else {
-			if te.TTL > te.ExplicitMaxTTL {
-				resp.AddWarning(fmt.Sprintf(
-					"Requested TTL of %d seconds higher than explicit max TTL; value being capped to %d seconds",
-					int64(te.TTL.Seconds()), int64(te.ExplicitMaxTTL.Seconds())))
-				te.TTL = te.ExplicitMaxTTL
-			}
-		}
-	}
-
-	if role != nil && role.Period > 0 {
-		// Periodic tokens are allowed to escape max TTL confines so don't check limits
-		if te.ExplicitMaxTTL > 0 {
-			return logical.ErrorResponse("using an explicit max TTL not supported when using periodic token roles"), nil
-		}
-		te.TTL = role.Period
+	if periodToUse > 0 {
+		te.TTL = periodToUse
 	} else {
 		// Set the default lease if not provided, root tokens are exempt
 		if te.TTL == 0 && !strutil.StrListContains(te.Policies, "root") {
@@ -1302,19 +1340,37 @@ func (ts *TokenStore) handleCreateCommon(
 		}
 	}
 
+	// Run some bounding checks if the explicit max TTL is set; we do not check
+	// period as it's defined to escape the max TTL
+	if te.ExplicitMaxTTL > 0 {
+		// Limit the lease duration, except for periodic tokens -- in that case the explicit max limits the period, which itself can escape normal max
+		if sysView.MaxLeaseTTL() != 0 && te.ExplicitMaxTTL > sysView.MaxLeaseTTL() && periodToUse == 0 {
+			resp.AddWarning(fmt.Sprintf(
+				"Explicit max TTL of %d seconds is greater than system/mount allowed value; value is being capped to %d seconds",
+				int64(te.ExplicitMaxTTL.Seconds()), int64(sysView.MaxLeaseTTL().Seconds())))
+			te.ExplicitMaxTTL = sysView.MaxLeaseTTL()
+		}
+
+		if te.TTL == 0 {
+			// This won't be the case if it's periodic -- it will be set above
+			te.TTL = te.ExplicitMaxTTL
+		} else {
+			// Limit even in the periodic case
+			if te.TTL > te.ExplicitMaxTTL {
+				resp.AddWarning(fmt.Sprintf(
+					"Requested TTL of %d seconds higher than explicit max TTL; value being capped to %d seconds",
+					int64(te.TTL.Seconds()), int64(te.ExplicitMaxTTL.Seconds())))
+				te.TTL = te.ExplicitMaxTTL
+			}
+		}
+	}
+
 	// Don't advertise non-expiring root tokens as renewable, as attempts to renew them are denied
 	if te.TTL == 0 {
 		if parent.TTL != 0 {
 			return logical.ErrorResponse("expiring root tokens cannot create non-expiring root tokens"), logical.ErrInvalidRequest
 		}
 		renewable = false
-	}
-
-	// Prevent internal policies from being assigned to tokens
-	for _, policy := range te.Policies {
-		if strutil.StrListContains(nonAssignablePolicies, policy) {
-			return logical.ErrorResponse(fmt.Sprintf("cannot assign %s policy", policy)), nil
-		}
 	}
 
 	// Create the token
@@ -1367,18 +1423,27 @@ func (ts *TokenStore) handleRevokeSelf(
 // the token and all children anyways, but that is only available when there is a lease.
 func (ts *TokenStore) handleRevokeTree(
 	req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	var urltoken bool
 	id := data.Get("token").(string)
 	if id == "" {
 		id = data.Get("urltoken").(string)
 		if id == "" {
 			return logical.ErrorResponse("missing token ID"), logical.ErrInvalidRequest
 		}
+		urltoken = true
 	}
 
 	// Revoke the token and its children
 	if err := ts.RevokeTree(id); err != nil {
 		return logical.ErrorResponse(err.Error()), logical.ErrInvalidRequest
 	}
+
+	if urltoken {
+		resp := &logical.Response{}
+		resp.AddWarning(`Using a token in the path is unsafe as the token can be logged in many places. Please use POST or PUT with the token passed in via the "token" parameter.`)
+		return resp, nil
+	}
+
 	return nil, nil
 }
 
@@ -1387,6 +1452,7 @@ func (ts *TokenStore) handleRevokeTree(
 // the token and all children.
 func (ts *TokenStore) handleRevokeOrphan(
 	req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	var urltoken bool
 	// Parse the id
 	id := data.Get("token").(string)
 	if id == "" {
@@ -1394,6 +1460,7 @@ func (ts *TokenStore) handleRevokeOrphan(
 		if id == "" {
 			return logical.ErrorResponse("missing token ID"), logical.ErrInvalidRequest
 		}
+		urltoken = true
 	}
 
 	parent, err := ts.Lookup(req.ClientToken)
@@ -1416,6 +1483,13 @@ func (ts *TokenStore) handleRevokeOrphan(
 	if err := ts.Revoke(id); err != nil {
 		return logical.ErrorResponse(err.Error()), logical.ErrInvalidRequest
 	}
+
+	if urltoken {
+		resp := &logical.Response{}
+		resp.AddWarning(`Using a token in the path is unsafe as the token can be logged in many places. Please use POST or PUT with the token passed in via the "token" parameter.`)
+		return resp, nil
+	}
+
 	return nil, nil
 }
 
@@ -1429,9 +1503,13 @@ func (ts *TokenStore) handleLookupSelf(
 // a particular token. This can be used to see which policies are applicable.
 func (ts *TokenStore) handleLookup(
 	req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	var urltoken bool
 	id := data.Get("token").(string)
 	if id == "" {
 		id = data.Get("urltoken").(string)
+		if id != "" {
+			urltoken = true
+		}
 	}
 	if id == "" {
 		id = req.ClientToken
@@ -1466,13 +1544,19 @@ func (ts *TokenStore) handleLookup(
 			"creation_time":    int64(out.CreationTime),
 			"creation_ttl":     int64(out.TTL.Seconds()),
 			"ttl":              int64(0),
-			"role":             out.Role,
 			"explicit_max_ttl": int64(out.ExplicitMaxTTL.Seconds()),
 		},
 	}
 
 	if out.Parent == "" {
 		resp.Data["orphan"] = true
+	}
+
+	if out.Role != "" {
+		resp.Data["role"] = out.Role
+	}
+	if out.Period != 0 {
+		resp.Data["period"] = int64(out.Period.Seconds())
 	}
 
 	// Fetch the last renewal time
@@ -1494,6 +1578,10 @@ func (ts *TokenStore) handleLookup(
 		}
 	}
 
+	if urltoken {
+		resp.AddWarning(`Using a token in the path is unsafe as the token can be logged in many places. Please use POST or PUT with the token passed in via the "token" parameter.`)
+	}
+
 	return resp, nil
 }
 
@@ -1507,12 +1595,14 @@ func (ts *TokenStore) handleRenewSelf(
 // This is used to prevent token expiration and revocation.
 func (ts *TokenStore) handleRenew(
 	req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	var urltoken bool
 	id := data.Get("token").(string)
 	if id == "" {
 		id = data.Get("urltoken").(string)
 		if id == "" {
 			return logical.ErrorResponse("missing token ID"), logical.ErrInvalidRequest
 		}
+		urltoken = true
 	}
 	incrementRaw := data.Get("increment").(int)
 
@@ -1531,7 +1621,13 @@ func (ts *TokenStore) handleRenew(
 	}
 
 	// Renew the token and its children
-	return ts.expiration.RenewToken(req, te.Path, te.ID, increment)
+	resp, err := ts.expiration.RenewToken(req, te.Path, te.ID, increment)
+
+	if urltoken {
+		resp.AddWarning(`Using a token in the path is unsafe as the token can be logged in many places. Please use POST or PUT with the token passed in via the "token" parameter.`)
+	}
+
+	return resp, err
 }
 
 func (ts *TokenStore) destroyCubbyhole(saltedID string) error {
@@ -1558,8 +1654,33 @@ func (ts *TokenStore) authRenew(
 
 	f := framework.LeaseExtend(req.Auth.Increment, te.ExplicitMaxTTL, ts.System())
 
-	// No role? Use normal LeaseExtend semantics
+	// If (te/role).Period is not zero, this is a periodic token. The TTL for a
+	// periodic token is always the same (the period value). It is not subject
+	// to normal maximum TTL checks that would come from calling LeaseExtend,
+	// so we fast path it.
+	//
+	// The one wrinkle here is if the token has an explicit max TTL. If both
+	// are set, we treat it as a regular token and use the periodic value as
+	// the increment.
+
+	// No role? Use normal LeaseExtend semantics, taking into account
+	// TokenEntry properties
 	if te.Role == "" {
+		//Explicit max TTL overrides the period, if both are set
+		if te.Period != 0 {
+			if te.ExplicitMaxTTL == 0 {
+				req.Auth.TTL = te.Period
+				return &logical.Response{Auth: req.Auth}, nil
+			} else {
+				maxTime := time.Unix(te.CreationTime, 0).Add(te.ExplicitMaxTTL)
+				if time.Now().Add(te.Period).After(maxTime) {
+					req.Auth.TTL = maxTime.Sub(time.Now())
+				} else {
+					req.Auth.TTL = te.Period
+				}
+				return &logical.Response{Auth: req.Auth}, nil
+			}
+		}
 		return f(req, d)
 	}
 
@@ -1572,19 +1693,24 @@ func (ts *TokenStore) authRenew(
 		return nil, fmt.Errorf("original token role (%s) could not be found, not renewing", te.Role)
 	}
 
-	// If role.Period is not zero, this is a periodic token. The TTL for a
-	// periodic token is always the same (the role's period value). It is not
-	// subject to normal maximum TTL checks that would come from calling
-	// LeaseExtend, so we fast path it.
-	//
-	// The one wrinkle here is if the token has an explicit max TTL. Roles
-	// don't support having both configured, but they could be changed. We
-	// don't support tokens that are both periodic and have an explicit max
-	// TTL, so if the token has one, we treat it as a regular token even if the
-	// role is periodic.
-	if role.Period != 0 && te.ExplicitMaxTTL == 0 {
-		req.Auth.TTL = role.Period
-		return &logical.Response{Auth: req.Auth}, nil
+	// Same deal here, but using the role period
+	if role.Period != 0 {
+		periodToUse := role.Period
+		if te.Period > 0 && te.Period < role.Period {
+			periodToUse = te.Period
+		}
+		if te.ExplicitMaxTTL == 0 {
+			req.Auth.TTL = periodToUse
+			return &logical.Response{Auth: req.Auth}, nil
+		} else {
+			maxTime := time.Unix(te.CreationTime, 0).Add(te.ExplicitMaxTTL)
+			if time.Now().Add(periodToUse).After(maxTime) {
+				req.Auth.TTL = maxTime.Sub(time.Now())
+			} else {
+				req.Auth.TTL = periodToUse
+			}
+			return &logical.Response{Auth: req.Auth}, nil
+		}
 	}
 
 	return f(req, d)
@@ -1771,12 +1897,6 @@ func (ts *TokenStore) tokenStoreRoleCreateUpdate(
 			resp = &logical.Response{}
 		}
 		resp.AddWarning("Both 'allowed_policies' and 'disallowed_policies' are set; only 'allowed_policies' will take effect")
-	}
-
-	// Explicit max TTLs and periods cannot be used at the same time since the
-	// purpose of a periodic token is to escape max TTL semantics
-	if entry.Period > 0 && entry.ExplicitMaxTTL > 0 {
-		return logical.ErrorResponse("a role cannot be used to issue both periodic tokens and tokens with explicit max TTLs"), logical.ErrInvalidRequest
 	}
 
 	// Store it

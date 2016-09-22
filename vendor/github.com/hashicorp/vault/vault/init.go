@@ -1,12 +1,21 @@
 package vault
 
 import (
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 
 	"github.com/hashicorp/vault/helper/pgpkeys"
 	"github.com/hashicorp/vault/shamir"
 )
+
+// InitParams keeps the init function from being littered with too many
+// params, that's it!
+type InitParams struct {
+	BarrierConfig   *SealConfig
+	RecoveryConfig  *SealConfig
+	RootTokenPGPKey string
+}
 
 // InitResult is used to provide the key parts back after
 // they are generated as part of the initialization.
@@ -21,11 +30,11 @@ func (c *Core) Initialized() (bool, error) {
 	// Check the barrier first
 	init, err := c.barrier.Initialized()
 	if err != nil {
-		c.logger.Printf("[ERR] core: barrier init check failed: %v", err)
+		c.logger.Error("core: barrier init check failed", "error", err)
 		return false, err
 	}
 	if !init {
-		c.logger.Printf("[INFO] core: security barrier not initialized")
+		c.logger.Info("core: security barrier not initialized")
 		return false, nil
 	}
 
@@ -35,7 +44,7 @@ func (c *Core) Initialized() (bool, error) {
 		return false, err
 	}
 	if sealConf == nil {
-		return false, fmt.Errorf("[ERR] core: barrier reports initialized but no seal configuration found")
+		return false, fmt.Errorf("core: barrier reports initialized but no seal configuration found")
 	}
 
 	return true, nil
@@ -56,7 +65,7 @@ func (c *Core) generateShares(sc *SealConfig) ([]byte, [][]byte, error) {
 		// Split the master key using the Shamir algorithm
 		shares, err := shamir.Split(masterKey, sc.SecretShares, sc.SecretThreshold)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to generate shares: %v", err)
+			return nil, nil, fmt.Errorf("failed to generate barrier shares: %v", err)
 		}
 		unsealKeys = shares
 	}
@@ -79,7 +88,10 @@ func (c *Core) generateShares(sc *SealConfig) ([]byte, [][]byte, error) {
 
 // Initialize is used to initialize the Vault with the given
 // configurations.
-func (c *Core) Initialize(barrierConfig, recoveryConfig *SealConfig) (*InitResult, error) {
+func (c *Core) Initialize(initParams *InitParams) (*InitResult, error) {
+	barrierConfig := initParams.BarrierConfig
+	recoveryConfig := initParams.RecoveryConfig
+
 	if c.seal.RecoveryKeySupported() {
 		if recoveryConfig == nil {
 			return nil, fmt.Errorf("recovery configuration must be supplied")
@@ -91,14 +103,14 @@ func (c *Core) Initialize(barrierConfig, recoveryConfig *SealConfig) (*InitResul
 
 		// Check if the seal configuration is valid
 		if err := recoveryConfig.Validate(); err != nil {
-			c.logger.Printf("[ERR] core: invalid recovery configuration: %v", err)
+			c.logger.Error("core: invalid recovery configuration", "error", err)
 			return nil, fmt.Errorf("invalid recovery configuration: %v", err)
 		}
 	}
 
 	// Check if the seal configuration is valid
 	if err := barrierConfig.Validate(); err != nil {
-		c.logger.Printf("[ERR] core: invalid seal configuration: %v", err)
+		c.logger.Error("core: invalid seal configuration", "error", err)
 		return nil, fmt.Errorf("invalid seal configuration: %v", err)
 	}
 
@@ -117,19 +129,19 @@ func (c *Core) Initialize(barrierConfig, recoveryConfig *SealConfig) (*InitResul
 
 	err = c.seal.Init()
 	if err != nil {
-		c.logger.Printf("[ERR] core: failed to initialize seal: %v", err)
+		c.logger.Error("core: failed to initialize seal", "error", err)
 		return nil, fmt.Errorf("error initializing seal: %v", err)
 	}
 
 	err = c.seal.SetBarrierConfig(barrierConfig)
 	if err != nil {
-		c.logger.Printf("[ERR] core: failed to save barrier configuration: %v", err)
+		c.logger.Error("core: failed to save barrier configuration", "error", err)
 		return nil, fmt.Errorf("barrier configuration saving failed: %v", err)
 	}
 
 	barrierKey, barrierUnsealKeys, err := c.generateShares(barrierConfig)
 	if err != nil {
-		c.logger.Printf("[ERR] core: %v", err)
+		c.logger.Error("core: error generating shares", "error", err)
 		return nil, err
 	}
 
@@ -142,7 +154,7 @@ func (c *Core) Initialize(barrierConfig, recoveryConfig *SealConfig) (*InitResul
 			barrierUnsealKeys = barrierUnsealKeys[1:]
 		}
 		if err := c.seal.SetStoredKeys(keysToStore); err != nil {
-			c.logger.Printf("[ERR] core: failed to store keys: %v", err)
+			c.logger.Error("core: failed to store keys", "error", err)
 			return nil, fmt.Errorf("failed to store keys: %v", err)
 		}
 	}
@@ -153,28 +165,34 @@ func (c *Core) Initialize(barrierConfig, recoveryConfig *SealConfig) (*InitResul
 
 	// Initialize the barrier
 	if err := c.barrier.Initialize(barrierKey); err != nil {
-		c.logger.Printf("[ERR] core: failed to initialize barrier: %v", err)
+		c.logger.Error("core: failed to initialize barrier", "error", err)
 		return nil, fmt.Errorf("failed to initialize barrier: %v", err)
 	}
-	c.logger.Printf("[INFO] core: security barrier initialized (shares: %d, threshold %d)",
-		barrierConfig.SecretShares, barrierConfig.SecretThreshold)
+	if c.logger.IsInfo() {
+		c.logger.Info("core: security barrier initialized", "shares", barrierConfig.SecretShares, "threshold", barrierConfig.SecretThreshold)
+	}
 
 	// Unseal the barrier
 	if err := c.barrier.Unseal(barrierKey); err != nil {
-		c.logger.Printf("[ERR] core: failed to unseal barrier: %v", err)
+		c.logger.Error("core: failed to unseal barrier", "error", err)
 		return nil, fmt.Errorf("failed to unseal barrier: %v", err)
 	}
 
 	// Ensure the barrier is re-sealed
 	defer func() {
 		if err := c.barrier.Seal(); err != nil {
-			c.logger.Printf("[ERR] core: failed to seal barrier: %v", err)
+			c.logger.Error("core: failed to seal barrier", "error", err)
 		}
 	}()
 
 	// Perform initial setup
+	if err := c.setupCluster(); err != nil {
+		c.stateLock.Unlock()
+		c.logger.Error("core: cluster setup failed during init", "error", err)
+		return nil, err
+	}
 	if err := c.postUnseal(); err != nil {
-		c.logger.Printf("[ERR] core: post-unseal setup failed: %v", err)
+		c.logger.Error("core: post-unseal setup failed during init", "error", err)
 		return nil, err
 	}
 
@@ -184,14 +202,14 @@ func (c *Core) Initialize(barrierConfig, recoveryConfig *SealConfig) (*InitResul
 	if c.seal.RecoveryKeySupported() {
 		err = c.seal.SetRecoveryConfig(recoveryConfig)
 		if err != nil {
-			c.logger.Printf("[ERR] core: failed to save recovery configuration: %v", err)
+			c.logger.Error("core: failed to save recovery configuration", "error", err)
 			return nil, fmt.Errorf("recovery configuration saving failed: %v", err)
 		}
 
 		if recoveryConfig.SecretShares > 0 {
 			recoveryKey, recoveryUnsealKeys, err := c.generateShares(recoveryConfig)
 			if err != nil {
-				c.logger.Printf("[ERR] core: %v", err)
+				c.logger.Error("core: failed to generate recovery shares", "error", err)
 				return nil, err
 			}
 
@@ -207,15 +225,24 @@ func (c *Core) Initialize(barrierConfig, recoveryConfig *SealConfig) (*InitResul
 	// Generate a new root token
 	rootToken, err := c.tokenStore.rootToken()
 	if err != nil {
-		c.logger.Printf("[ERR] core: root token generation failed: %v", err)
+		c.logger.Error("core: root token generation failed", "error", err)
 		return nil, err
 	}
 	results.RootToken = rootToken.ID
-	c.logger.Printf("[INFO] core: root token generated")
+	c.logger.Info("core: root token generated")
+
+	if initParams.RootTokenPGPKey != "" {
+		_, encryptedVals, err := pgpkeys.EncryptShares([][]byte{[]byte(results.RootToken)}, []string{initParams.RootTokenPGPKey})
+		if err != nil {
+			c.logger.Error("core: root token encryption failed", "error", err)
+			return nil, err
+		}
+		results.RootToken = base64.StdEncoding.EncodeToString(encryptedVals[0])
+	}
 
 	// Prepare to re-seal
 	if err := c.preSeal(); err != nil {
-		c.logger.Printf("[ERR] core: pre-seal teardown failed: %v", err)
+		c.logger.Error("core: pre-seal teardown failed", "error", err)
 		return nil, err
 	}
 
@@ -229,28 +256,28 @@ func (c *Core) UnsealWithStoredKeys() error {
 
 	sealed, err := c.Sealed()
 	if err != nil {
-		c.logger.Printf("[ERR] core: error checking sealed status in auto-unseal: %s", err)
+		c.logger.Error("core: error checking sealed status in auto-unseal", "error", err)
 		return fmt.Errorf("error checking sealed status in auto-unseal: %s", err)
 	}
 	if !sealed {
 		return nil
 	}
 
-	c.logger.Printf("[INFO] core: stored unseal keys supported, attempting fetch")
+	c.logger.Info("core: stored unseal keys supported, attempting fetch")
 	keys, err := c.seal.GetStoredKeys()
 	if err != nil {
-		c.logger.Printf("[ERR] core: fetching stored unseal keys failed: %v", err)
+		c.logger.Error("core: fetching stored unseal keys failed", "error", err)
 		return &NonFatalError{Err: fmt.Errorf("fetching stored unseal keys failed: %v", err)}
 	}
 	if len(keys) == 0 {
-		c.logger.Printf("[WARN] core: stored unseal key(s) supported but none found")
+		c.logger.Warn("core: stored unseal key(s) supported but none found")
 	} else {
 		unsealed := false
 		keysUsed := 0
 		for _, key := range keys {
 			unsealed, err = c.Unseal(key)
 			if err != nil {
-				c.logger.Printf("[ERR] core: unseal with stored unseal key failed: %v", err)
+				c.logger.Error("core: unseal with stored unseal key failed", "error", err)
 				return &NonFatalError{Err: fmt.Errorf("unseal with stored key failed: %v", err)}
 			}
 			keysUsed += 1
@@ -259,9 +286,13 @@ func (c *Core) UnsealWithStoredKeys() error {
 			}
 		}
 		if !unsealed {
-			c.logger.Printf("[WARN] core: %d stored unseal key(s) used but Vault not unsealed yet", keysUsed)
+			if c.logger.IsWarn() {
+				c.logger.Warn("core: stored unseal key(s) used but Vault not unsealed yet", "stored_keys_used", keysUsed)
+			}
 		} else {
-			c.logger.Printf("[INFO] core: successfully unsealed with %d stored key(s)", keysUsed)
+			if c.logger.IsInfo() {
+				c.logger.Info("core: successfully unsealed with stored key(s)", "stored_keys_used", keysUsed)
+			}
 		}
 	}
 

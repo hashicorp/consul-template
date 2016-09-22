@@ -3,9 +3,10 @@ package physical
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"strings"
 	"time"
+
+	log "github.com/mgutz/logxi/v1"
 
 	"github.com/armon/go-metrics"
 	"github.com/lib/pq"
@@ -20,12 +21,12 @@ type PostgreSQLBackend struct {
 	get_query    string
 	delete_query string
 	list_query   string
-	logger     *log.Logger
+	logger       log.Logger
 }
 
 // newPostgreSQLBackend constructs a PostgreSQL backend using the given
 // API client, server address, credentials, and database.
-func newPostgreSQLBackend(conf map[string]string, logger *log.Logger) (Backend, error) {
+func newPostgreSQLBackend(conf map[string]string, logger log.Logger) (Backend, error) {
 	// Get the PostgreSQL credentials to perform read/write operations.
 	connURL, ok := conf["connection_url"]
 	if !ok || connURL == "" {
@@ -69,9 +70,9 @@ func newPostgreSQLBackend(conf map[string]string, logger *log.Logger) (Backend, 
 		put_query:    put_query,
 		get_query:    "SELECT value FROM " + quoted_table + " WHERE path = $1 AND key = $2",
 		delete_query: "DELETE FROM " + quoted_table + " WHERE path = $1 AND key = $2",
-		list_query:  "SELECT key FROM " + quoted_table + " WHERE path = $1" +
+		list_query: "SELECT key FROM " + quoted_table + " WHERE path = $1" +
 			"UNION SELECT substr(path, length($1)+1) FROM " + quoted_table + "WHERE parent_path = $1",
-		logger:     logger,
+		logger: logger,
 	}
 
 	return m, nil
@@ -154,7 +155,7 @@ func (m *PostgreSQLBackend) Delete(fullPath string) error {
 func (m *PostgreSQLBackend) List(prefix string) ([]string, error) {
 	defer metrics.MeasureSince([]string{"postgres", "list"}, time.Now())
 
-	rows, err := m.client.Query(m.list_query, "/" + prefix)
+	rows, err := m.client.Query(m.list_query, "/"+prefix)
 	if err != nil {
 		return nil, err
 	}

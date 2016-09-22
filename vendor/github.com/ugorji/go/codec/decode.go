@@ -91,10 +91,12 @@ type decDriver interface {
 	uncacheRead()
 }
 
-type decNoSeparator struct{}
+type decNoSeparator struct {
+}
 
-func (_ decNoSeparator) ReadEnd()     {}
-func (_ decNoSeparator) uncacheRead() {}
+func (_ decNoSeparator) ReadEnd() {}
+
+// func (_ decNoSeparator) uncacheRead() {}
 
 type DecodeOptions struct {
 	// MapType specifies type to use during schema-less decoding of a map in the stream.
@@ -161,6 +163,12 @@ type DecodeOptions struct {
 	// Note: Handles will be smart when using the intern functionality.
 	// So everything will not be interned.
 	InternString bool
+
+	// PreferArrayOverSlice controls whether to decode to an array or a slice.
+	//
+	// This only impacts decoding into a nil interface{}.
+	// Consequently, it has no effect on codecgen.
+	PreferArrayOverSlice bool
 }
 
 // ------------------------------------
@@ -433,6 +441,10 @@ func (f *decFnInfo) rawExt(rv reflect.Value) {
 	f.d.d.DecodeExt(rv.Addr().Interface(), 0, nil)
 }
 
+func (f *decFnInfo) raw(rv reflect.Value) {
+	rv.SetBytes(f.d.raw())
+}
+
 func (f *decFnInfo) ext(rv reflect.Value) {
 	f.d.d.DecodeExt(rv.Addr().Interface(), f.xfTag, f.xfFn)
 }
@@ -605,8 +617,13 @@ func (f *decFnInfo) kInterfaceNaked() (rvn reflect.Value) {
 			n.ss = append(n.ss, nil)
 			var v2 interface{} = &n.ss[l]
 			d.decode(v2)
-			rvn = reflect.ValueOf(v2).Elem()
 			n.ss = n.ss[:l]
+			rvn = reflect.ValueOf(v2).Elem()
+			if d.stid == 0 && d.h.PreferArrayOverSlice {
+				rvn2 := reflect.New(reflect.ArrayOf(rvn.Len(), intfTyp)).Elem()
+				reflect.Copy(rvn2, rvn)
+				rvn = rvn2
+			}
 		} else {
 			rvn = reflect.New(d.h.SliceType).Elem()
 			d.decodeValue(rvn, nil)
@@ -1507,6 +1524,8 @@ func (d *Decoder) decode(iv interface{}) {
 			*v = 0
 		case *[]uint8:
 			*v = nil
+		case *Raw:
+			*v = nil
 		case reflect.Value:
 			if v.Kind() != reflect.Ptr || v.IsNil() {
 				d.errNotValidPtrValue(v)
@@ -1575,6 +1594,9 @@ func (d *Decoder) decode(iv interface{}) {
 		*v = d.d.DecodeFloat(false)
 	case *[]uint8:
 		*v = d.d.DecodeBytes(*v, false, false)
+
+	case *Raw:
+		*v = d.raw()
 
 	case *interface{}:
 		d.decodeValueNotNil(reflect.ValueOf(iv).Elem(), nil)
@@ -1697,6 +1719,8 @@ func (d *Decoder) getDecFn(rt reflect.Type, checkFastpath, checkCodecSelfer bool
 		fn.f = (*decFnInfo).selferUnmarshal
 	} else if rtid == rawExtTypId {
 		fn.f = (*decFnInfo).rawExt
+	} else if rtid == rawTypId {
+		fn.f = (*decFnInfo).raw
 	} else if d.d.IsBuiltinType(rtid) {
 		fn.f = (*decFnInfo).builtin
 	} else if xfFn := d.h.getExt(rtid); xfFn != nil {
@@ -1871,6 +1895,15 @@ func (d *Decoder) nextValueBytes() []byte {
 	d.r.track()
 	d.swallow()
 	return d.r.stopTrack()
+}
+
+func (d *Decoder) raw() []byte {
+	// ensure that this is not a view into the bytes
+	// i.e. make new copy always.
+	bs := d.nextValueBytes()
+	bs2 := make([]byte, len(bs))
+	copy(bs2, bs)
+	return bs2
 }
 
 // --------------------------------------------------
