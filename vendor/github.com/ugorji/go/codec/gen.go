@@ -27,6 +27,7 @@ import (
 // ---------------------------------------------------
 // codecgen supports the full cycle of reflection-based codec:
 //    - RawExt
+//    - Raw
 //    - Builtins
 //    - Extensions
 //    - (Binary|Text|JSON)(Unm|M)arshal
@@ -701,13 +702,17 @@ func (x *genRunner) enc(varname string, t reflect.Type) {
 	}
 
 	// check if
-	//   - type is RawExt
+	//   - type is RawExt, Raw
 	//   - the type implements (Text|JSON|Binary)(Unm|M)arshal
 	x.linef("%sm%s := z.EncBinary()", genTempVarPfx, mi)
 	x.linef("_ = %sm%s", genTempVarPfx, mi)
 	x.line("if false {")           //start if block
 	defer func() { x.line("}") }() //end if block
 
+	if t == rawTyp {
+		x.linef("} else { z.EncRaw(%v)", varname)
+		return
+	}
 	if t == rawExtTyp {
 		x.linef("} else { r.EncodeRawExt(%v, e)", varname)
 		return
@@ -987,6 +992,14 @@ func (x *genRunner) encStruct(varname string, rtid uintptr, t reflect.Type) {
 }
 
 func (x *genRunner) encListFallback(varname string, t reflect.Type) {
+	if t.AssignableTo(uint8SliceTyp) {
+		x.linef("r.EncodeStringBytes(codecSelferC_RAW%s, []byte(%s))", x.xs, varname)
+		return
+	}
+	if t.Kind() == reflect.Array && t.Elem().Kind() == reflect.Uint8 {
+		x.linef("r.EncodeStringBytes(codecSelferC_RAW%s, ([%v]byte(%s))[:])", x.xs, t.Len(), varname)
+		return
+	}
 	i := x.varsfx()
 	g := genTempVarPfx
 	x.line("r.EncodeArrayStart(len(" + varname + "))")
@@ -1123,7 +1136,7 @@ func (x *genRunner) dec(varname string, t reflect.Type) {
 	}
 
 	// check if
-	//   - type is RawExt
+	//   - type is Raw, RawExt
 	//   - the type implements (Text|JSON|Binary)(Unm|M)arshal
 	mi := x.varsfx()
 	x.linef("%sm%s := z.DecBinary()", genTempVarPfx, mi)
@@ -1131,6 +1144,10 @@ func (x *genRunner) dec(varname string, t reflect.Type) {
 	x.line("if false {")           //start if block
 	defer func() { x.line("}") }() //end if block
 
+	if t == rawTyp {
+		x.linef("} else { *%v = z.DecRaw()", varname)
+		return
+	}
 	if t == rawExtTyp {
 		x.linef("} else { r.DecodeExt(%v, 0, nil)", varname)
 		return
@@ -1306,6 +1323,14 @@ func (x *genRunner) decTryAssignPrimitive(varname string, t reflect.Type) (tryAs
 }
 
 func (x *genRunner) decListFallback(varname string, rtid uintptr, t reflect.Type) {
+	if t.AssignableTo(uint8SliceTyp) {
+		x.line("*" + varname + " = r.DecodeBytes(*((*[]byte)(" + varname + ")), false, false)")
+		return
+	}
+	if t.Kind() == reflect.Array && t.Elem().Kind() == reflect.Uint8 {
+		x.linef("r.DecodeBytes( ((*[%s]byte)(%s))[:], false, true)", t.Len(), varname)
+		return
+	}
 	type tstruc struct {
 		TempVar   string
 		Rand      string

@@ -10,8 +10,8 @@ var (
 	GitCommit   string
 	GitDescribe string
 
-	Version           string = "unknown"
-	VersionPrerelease        = "unknown"
+	Version           = "unknown"
+	VersionPrerelease = "unknown"
 )
 
 // VersionInfo
@@ -38,8 +38,26 @@ func GetVersion() *VersionInfo {
 	}
 }
 
-func (c *VersionInfo) String() string {
+func (c *VersionInfo) VersionNumber() string {
+	if Version == "unknown" && VersionPrerelease == "unknown" {
+		return "(version unknown)"
+	}
+
+	version := fmt.Sprintf("%s", c.Version)
+
+	if c.VersionPrerelease != "" {
+		version = fmt.Sprintf("%s-%s", version, c.VersionPrerelease)
+	}
+
+	return version
+}
+
+func (c *VersionInfo) FullVersionNumber() string {
 	var versionString bytes.Buffer
+
+	if Version == "unknown" && VersionPrerelease == "unknown" {
+		return "Vault (version unknown)"
+	}
 
 	fmt.Fprintf(&versionString, "Vault v%s", c.Version)
 	if c.VersionPrerelease != "" {
