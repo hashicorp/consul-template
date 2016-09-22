@@ -30,6 +30,7 @@ BUG FIXES:
   * Maintain template ordering [GH-683]
   * Add `Service` address to catalog node response [GH-687]
   * Do not require trailing slashes [GH-706, GH-713]
+  * Wait for all existing dedup acquire attempts to finish [GH-716, GH-677]
 
 
 ## v0.15.0.dev (June 9, 2016)
