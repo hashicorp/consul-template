@@ -66,6 +66,15 @@ type Runner struct {
 	// of the template.
 	renderedTemplates map[string]struct{}
 
+	// allRenderedCh is used to signal that all templates have been rendered
+	allRenderedCh chan struct{}
+
+	// Marks whether we have delivered the all delivered signal
+	allRenderedDelivered bool
+
+	// renderedCh is used to signal that a template has been rendered
+	renderedCh chan string
+
 	// dependencies is the list of dependencies this runner is watching.
 	dependencies map[string]dep.Dependency
 
@@ -319,6 +328,18 @@ func (r *Runner) Stop() {
 	close(r.DoneCh)
 }
 
+// AllRenderedCh returns a channel that will be closed once all templates are
+// delivered.
+func (r *Runner) AllRenderedCh() <-chan struct{} {
+	return r.allRenderedCh
+}
+
+// TemplateRenderedCh returns a channel that will return the path of the
+// template when it is rendered.
+func (r *Runner) TemplateRenderedCh() <-chan string {
+	return r.renderedCh
+}
+
 func (r *Runner) stopDedup() {
 	if r.dedup != nil {
 		log.Printf("[DEBUG] (runner) stopping de-duplication manager")
@@ -513,6 +534,12 @@ func (r *Runner) Run() error {
 				// Record that at least one template was rendered.
 				renderedAny = true
 
+				// Send the signal that the template got rendered
+				select {
+				case r.renderedCh <- tmpl.Path:
+				default:
+				}
+
 				if !r.dry {
 					// If the template was rendered (changed) and we are not in dry-run mode,
 					// aggregate commands, ignoring previously known commands
@@ -529,6 +556,14 @@ func (r *Runner) Run() error {
 					}
 				}
 			}
+		}
+	}
+
+	// Check if we need to deliver the all template rendered signal
+	if renderedAny && !r.allRenderedDelivered {
+		if r.allTemplatesRendered() {
+			r.allRenderedDelivered = true
+			close(r.allRenderedCh)
 		}
 	}
 
@@ -599,7 +634,8 @@ func (r *Runner) init() error {
 	}
 	r.watcher = watcher
 
-	templates := make([]*template.Template, 0, len(r.config.ConfigTemplates))
+	numTemplates := len(r.config.ConfigTemplates)
+	templates := make([]*template.Template, 0, numTemplates)
 	ctemplatesMap := make(map[string][]*config.ConfigTemplate)
 
 	// Iterate over each ConfigTemplate, creating a new Template resource for each
@@ -628,6 +664,9 @@ func (r *Runner) init() error {
 
 	r.renderedTemplates = make(map[string]struct{})
 	r.dependencies = make(map[string]dep.Dependency)
+
+	r.renderedCh = make(chan string, numTemplates)
+	r.allRenderedCh = make(chan struct{})
 
 	r.ctemplatesMap = ctemplatesMap
 	r.inStream = os.Stdin

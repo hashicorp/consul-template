@@ -106,6 +106,14 @@ func TestNewRunner_initialize(t *testing.T) {
 	if runner.DoneCh == nil {
 		t.Errorf("expected %#v to be %#v", runner.DoneCh, nil)
 	}
+
+	if runner.allRenderedCh == nil {
+		t.Errorf("allRenderedCh should be initialized")
+	}
+
+	if runner.renderedCh == nil {
+		t.Errorf("renderedCh should be initialized")
+	}
 }
 
 func TestNewRunner_badTemplate(t *testing.T) {
@@ -251,6 +259,13 @@ func TestRun_dry(t *testing.T) {
   `))
 	if !bytes.Equal(actual, expected) {
 		t.Errorf("expected \n%q\n to equal \n%q\n", actual, expected)
+	}
+
+	// All should be marked as rendered even in dry mode
+	select {
+	case <-runner.AllRenderedCh():
+	case <-time.After(1 * time.Second):
+		t.Fatalf("All templates should be rendered")
 	}
 }
 
@@ -486,6 +501,27 @@ func TestRun_multipleTemplatesRunsCommands(t *testing.T) {
 
 	if err := runner.Run(); err != nil {
 		t.Fatal(err)
+	}
+
+	select {
+	case <-runner.AllRenderedCh():
+		t.Fatalf("All templates should not be rendered")
+	case <-time.After(1 * time.Second):
+	}
+
+	var rendered []string
+OUTER:
+	for {
+		select {
+		case path := <-runner.TemplateRenderedCh():
+			rendered = append(rendered, path)
+		default:
+			break OUTER
+		}
+	}
+
+	if len(rendered) != 1 && rendered[0] != out1.Name() {
+		t.Fatalf("Unexpected templates rendered: %#v", rendered)
 	}
 
 	if _, err := os.Stat(touch1.Name()); err != nil {
@@ -961,6 +997,12 @@ func TestRun_executesCommand(t *testing.T) {
 	_, err = os.Stat(outFile.Name())
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	select {
+	case <-runner.AllRenderedCh():
+	case <-time.After(1 * time.Second):
+		t.Fatalf("All templates should be rendered")
 	}
 }
 
