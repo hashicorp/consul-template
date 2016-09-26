@@ -1,4 +1,4 @@
-package main
+package manager
 
 import (
 	"bytes"
@@ -11,7 +11,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/consul-template/config"
 	dep "github.com/hashicorp/consul-template/dependency"
+	"github.com/hashicorp/consul-template/template"
 	consulapi "github.com/hashicorp/consul/api"
 )
 
@@ -56,23 +58,23 @@ type templateData struct {
 //
 type DedupManager struct {
 	// config is the consul-template configuration
-	config *Config
+	config *config.Config
 
 	// clients is used to access the underlying clinets
 	clients *dep.ClientSet
 
 	// Brain is where we inject udpates
-	brain *Brain
+	brain *template.Brain
 
 	// templates is the set of templates we are trying to dedup
-	templates []*Template
+	templates []*template.Template
 
 	// leader tracks if we are currently the leader
-	leader     map[*Template]<-chan struct{}
+	leader     map[*template.Template]<-chan struct{}
 	leaderLock sync.RWMutex
 
 	// lastWrite tracks the hash of the data paths
-	lastWrite     map[*Template][]byte
+	lastWrite     map[*template.Template][]byte
 	lastWriteLock sync.RWMutex
 
 	// updateCh is used to indicate an update watched data
@@ -87,14 +89,14 @@ type DedupManager struct {
 }
 
 // NewDedupManager creates a new Dedup manager
-func NewDedupManager(config *Config, clients *dep.ClientSet, brain *Brain, templates []*Template) (*DedupManager, error) {
+func NewDedupManager(config *config.Config, clients *dep.ClientSet, brain *template.Brain, templates []*template.Template) (*DedupManager, error) {
 	d := &DedupManager{
 		config:    config,
 		clients:   clients,
 		brain:     brain,
 		templates: templates,
-		leader:    make(map[*Template]<-chan struct{}),
-		lastWrite: make(map[*Template][]byte),
+		leader:    make(map[*template.Template]<-chan struct{}),
+		lastWrite: make(map[*template.Template][]byte),
 		updateCh:  make(chan struct{}, 1),
 		stopCh:    make(chan struct{}),
 	}
@@ -175,7 +177,7 @@ WAIT:
 }
 
 // IsLeader checks if we are currently the leader instance
-func (d *DedupManager) IsLeader(tmpl *Template) bool {
+func (d *DedupManager) IsLeader(tmpl *template.Template) bool {
 	d.leaderLock.RLock()
 	defer d.leaderLock.RUnlock()
 
@@ -192,9 +194,9 @@ func (d *DedupManager) IsLeader(tmpl *Template) bool {
 }
 
 // UpdateDeps is used to update the values of the dependencies for a template
-func (d *DedupManager) UpdateDeps(t *Template, deps []dep.Dependency) error {
+func (d *DedupManager) UpdateDeps(t *template.Template, deps []dep.Dependency) error {
 	// Calculate the path to write updates to
-	dataPath := path.Join(d.config.Deduplicate.Prefix, t.hexMD5, "data")
+	dataPath := path.Join(d.config.Deduplicate.Prefix, t.HexMD5, "data")
 
 	// Package up the dependency data
 	td := templateData{
@@ -259,7 +261,7 @@ func (d *DedupManager) UpdateCh() <-chan struct{} {
 }
 
 // setLeader sets if we are currently the leader instance
-func (d *DedupManager) setLeader(tmpl *Template, lockCh <-chan struct{}) {
+func (d *DedupManager) setLeader(tmpl *template.Template, lockCh <-chan struct{}) {
 	// Update the lock state
 	d.leaderLock.Lock()
 	if lockCh != nil {
@@ -283,9 +285,9 @@ func (d *DedupManager) setLeader(tmpl *Template, lockCh <-chan struct{}) {
 	}
 }
 
-func (d *DedupManager) watchTemplate(client *consulapi.Client, t *Template) {
-	log.Printf("[INFO] (dedup) starting watch for template hash %s", t.hexMD5)
-	path := path.Join(d.config.Deduplicate.Prefix, t.hexMD5, "data")
+func (d *DedupManager) watchTemplate(client *consulapi.Client, t *template.Template) {
+	log.Printf("[INFO] (dedup) starting watch for template hash %s", t.HexMD5)
+	path := path.Join(d.config.Deduplicate.Prefix, t.HexMD5, "data")
 
 	// Determine if stale queries are allowed
 	var allowStale bool
@@ -321,7 +323,7 @@ START:
 	}
 
 	// Block for updates on the data key
-	log.Printf("[INFO] (dedup) listing data for template hash %s", t.hexMD5)
+	log.Printf("[INFO] (dedup) listing data for template hash %s", t.HexMD5)
 	pair, meta, err := client.KV().Get(path, opts)
 	if err != nil {
 		log.Printf("[ERR] (dedup) failed to get '%s': %v", path, err)
@@ -403,11 +405,11 @@ func (d *DedupManager) parseData(path string, raw []byte) {
 	}
 }
 
-func (d *DedupManager) attemptLock(client *consulapi.Client, session string, sessionCh chan struct{}, t *Template) {
+func (d *DedupManager) attemptLock(client *consulapi.Client, session string, sessionCh chan struct{}, t *template.Template) {
 	defer d.wg.Done()
 START:
-	log.Printf("[INFO] (dedup) attempting lock for template hash %s", t.hexMD5)
-	basePath := path.Join(d.config.Deduplicate.Prefix, t.hexMD5)
+	log.Printf("[INFO] (dedup) attempting lock for template hash %s", t.HexMD5)
+	basePath := path.Join(d.config.Deduplicate.Prefix, t.HexMD5)
 	lopts := &consulapi.LockOptions{
 		Key:              path.Join(basePath, "lock"),
 		Session:          session,

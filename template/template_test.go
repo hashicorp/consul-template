@@ -1,4 +1,4 @@
-package main
+package template
 
 import (
 	"bytes"
@@ -59,8 +59,8 @@ func TestNewTemplate_setsPathAndMD5(t *testing.T) {
 	}
 
 	expect := "9893532233caff98cd083a116b013c0b"
-	if tmpl.hexMD5 != expect {
-		t.Errorf("expected %q to be %q", tmpl.hexMD5, expect)
+	if tmpl.HexMD5 != expect {
+		t.Errorf("expected %q to be %q", tmpl.HexMD5, expect)
 	}
 }
 

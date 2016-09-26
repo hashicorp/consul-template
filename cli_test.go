@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul-template/config"
 	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul-template/watch"
 	"github.com/hashicorp/consul/testutil"
@@ -376,27 +377,27 @@ func TestParseFlags_maxStale(t *testing.T) {
 
 func TestParseFlags_configTemplates(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
-	config, _, _, _, err := cli.parseFlags([]string{
+	conf, _, _, _, err := cli.parseFlags([]string{
 		"-template", "in.ctmpl:out.txt:some command",
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if len(config.ConfigTemplates) != 1 {
+	if len(conf.ConfigTemplates) != 1 {
 		t.Fatal("expected 1 config template")
 	}
 
-	expected := &ConfigTemplate{
+	expected := &config.ConfigTemplate{
 		Source:         "in.ctmpl",
 		Destination:    "out.txt",
 		Command:        "some command",
-		CommandTimeout: defaultCommandTimeout,
-		Perms:          defaultFilePerms,
+		CommandTimeout: config.DefaultCommandTimeout,
+		Perms:          config.DefaultFilePerms,
 		Wait:           &watch.Wait{},
 	}
-	if !reflect.DeepEqual(config.ConfigTemplates[0], expected) {
-		t.Errorf("expected %#v to be %#v", config.ConfigTemplates[0], expected)
+	if !reflect.DeepEqual(conf.ConfigTemplates[0], expected) {
+		t.Errorf("expected %#v to be %#v", conf.ConfigTemplates[0], expected)
 	}
 }
 
