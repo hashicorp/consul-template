@@ -8,7 +8,7 @@ Consul Template
 
 This project provides a convenient way to populate values from [Consul][] into the file system using the `consul-template` daemon.
 
-The daemon `consul-template` queries a [Consul][] instance and updates any number of specified templates on the file system. As an added bonus, `consul-template` can optionally run arbitrary commands when the update process completes. See the [Examples](/tree/master/child) fikder for some scenarios where this functionality might prove useful.
+The daemon `consul-template` queries a [Consul][] instance and updates any number of specified templates on the file system. As an added bonus, `consul-template` can optionally run arbitrary commands when the update process completes. See the [Examples](/tree/master/child) folder for some scenarios where this functionality might prove useful.
 
 **The documentation in this README corresponds to the master branch of Consul Template. It may contain unreleased features or different APIs than the most recently released version. Please see the Git tag that corresponds to your version of Consul Template for the proper documentation.**
 
