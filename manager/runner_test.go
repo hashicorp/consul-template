@@ -73,8 +73,8 @@ func TestNewRunner_initialize(t *testing.T) {
 		t.Errorf("expected %s to be %s", runner.templates[2].Path, in1.Name())
 	}
 
-	if runner.renderedTemplates == nil {
-		t.Errorf("expected %#v to be %#v", runner.renderedTemplates, nil)
+	if runner.renderedTimes == nil {
+		t.Errorf("expected %#v to be %#v", runner.renderedTimes, nil)
 	}
 
 	if num := len(runner.ctemplatesMap); num != 3 {
@@ -499,6 +499,8 @@ func TestRun_multipleTemplatesRunsCommands(t *testing.T) {
 	runner.watcher.ForceWatching(d, true)
 	runner.Receive(d, data)
 
+	start := time.Now()
+
 	if err := runner.Run(); err != nil {
 		t.Fatal(err)
 	}
@@ -509,19 +511,18 @@ func TestRun_multipleTemplatesRunsCommands(t *testing.T) {
 	case <-time.After(1 * time.Second):
 	}
 
-	var rendered []string
-OUTER:
-	for {
-		select {
-		case path := <-runner.TemplateRenderedCh():
-			rendered = append(rendered, path)
-		default:
-			break OUTER
-		}
+	select {
+	case <-runner.TemplateRenderedCh():
+	case <-time.After(1 * time.Second):
+		t.Fatalf("A template should have rendered")
 	}
 
-	if len(rendered) != 1 && rendered[0] != out1.Name() {
-		t.Fatalf("Unexpected templates rendered: %#v", rendered)
+	times := runner.RenderedTimes()
+	if l := len(times); l != 1 {
+		t.Fatalf("Unexpected number of rendered templates: %d vs 1", l)
+	}
+	if rtime, ok := times[out1.Name()]; !ok || !rtime.After(start) {
+		t.Fatalf("Bad render time for rendered template: %v %v", rtime, ok)
 	}
 
 	if _, err := os.Stat(touch1.Name()); err != nil {
