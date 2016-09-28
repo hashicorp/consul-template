@@ -235,6 +235,24 @@ func (c *ClientSet) CreateVaultClient(i *CreateVaultClientInput) error {
 	if i.Token != "" {
 		log.Printf("[DEBUG] (clients) setting vault token")
 		client.SetToken(i.Token)
+	} else if i.SSLCert != "" {
+		log.Printf("[DEBUG] (clients) attempting to authenticate with certificate")
+
+		secret, err := client.Logical().Write("auth/cert/login", nil)
+		if err != nil {
+			return fmt.Errorf("client set: certificate authentication: %s", err)
+		}
+		if secret == nil {
+			return fmt.Errorf("client set: certificate authentication: no secret")
+		}
+		if secret.Auth == nil {
+			return fmt.Errorf("client set: certificate authentication: no secret auth")
+		}
+		if secret.Auth.ClientToken == "" {
+			return fmt.Errorf("client set: certificate authentication: no token returned")
+		}
+		log.Printf("[DEBUG] (clients) setting vault token")
+		client.SetToken(secret.Auth.ClientToken)
 	}
 
 	// Check if we are unwrapping
