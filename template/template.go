@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -19,8 +20,9 @@ type Template struct {
 	// LeftDelim and RightDelim are the left and right delimiters to use.
 	LeftDelim, RightDelim string
 
-	// contents is string contents for this file when read from disk.
-	contents string
+	// Contents is the string contents for the template. It is either given
+	// during template creation or read from disk when initialized.
+	Contents string
 
 	// HexMD5 stores the hex version of the MD5
 	HexMD5 string
@@ -30,9 +32,18 @@ type Template struct {
 // path. If the template does not exist, an error is returned. During
 // initialization, the template is read and is parsed for dependencies. Any
 // errors that occur are returned.
-func NewTemplate(path, leftDelim, rightDelim string) (*Template, error) {
+func NewTemplate(path, contents, leftDelim, rightDelim string) (*Template, error) {
+	// Validate that we are either given the path or the explicit contents
+	pathEmpty, contentsEmpty := path == "", contents == ""
+	if !pathEmpty && !contentsEmpty {
+		return nil, errors.New("Either specify template path or content, not both")
+	} else if pathEmpty && contentsEmpty {
+		return nil, errors.New("Must specify template path or content")
+	}
+
 	template := &Template{
 		Path:       path,
+		Contents:   contents,
 		LeftDelim:  leftDelim,
 		RightDelim: rightDelim,
 	}
@@ -41,6 +52,11 @@ func NewTemplate(path, leftDelim, rightDelim string) (*Template, error) {
 	}
 
 	return template, nil
+}
+
+// ID returns an identifier for the template
+func (t *Template) ID() string {
+	return t.Path + t.HexMD5
 }
 
 // Execute evaluates this template in the context of the given brain.
@@ -58,7 +74,7 @@ func (t *Template) Execute(brain *Brain) ([]dep.Dependency, []dep.Dependency, []
 	tmpl, err := template.New(name).
 		Delims(t.LeftDelim, t.RightDelim).
 		Funcs(funcs).
-		Parse(t.contents)
+		Parse(t.Contents)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("template: %s", err)
 	}
@@ -87,14 +103,16 @@ func (t *Template) Execute(brain *Brain) ([]dep.Dependency, []dep.Dependency, []
 // init reads the template file and initializes required variables.
 func (t *Template) init() error {
 	// Render the template
-	contents, err := ioutil.ReadFile(t.Path)
-	if err != nil {
-		return err
+	if t.Contents == "" {
+		contents, err := ioutil.ReadFile(t.Path)
+		if err != nil {
+			return err
+		}
+		t.Contents = string(contents)
 	}
-	t.contents = string(contents)
 
 	// Compute the MD5, encode as hex
-	hash := md5.Sum(contents)
+	hash := md5.Sum([]byte(t.Contents))
 	t.HexMD5 = hex.EncodeToString(hash[:])
 
 	return nil

@@ -671,19 +671,19 @@ func (r *Runner) init() error {
 	// config templates is kept so templates can lookup their commands and output
 	// destinations.
 	for _, ctmpl := range r.config.ConfigTemplates {
-		tmpl, err := template.NewTemplate(ctmpl.Source, ctmpl.LeftDelim, ctmpl.RightDelim)
+		tmpl, err := template.NewTemplate(ctmpl.Source, ctmpl.EmbeddedTemplate, ctmpl.LeftDelim, ctmpl.RightDelim)
 		if err != nil {
 			return err
 		}
 
-		if _, ok := ctemplatesMap[tmpl.Path]; !ok {
+		if _, ok := ctemplatesMap[tmpl.ID()]; !ok {
 			templates = append(templates, tmpl)
 		}
 
-		if _, ok := ctemplatesMap[tmpl.Path]; !ok {
-			ctemplatesMap[tmpl.Path] = make([]*config.ConfigTemplate, 0, 1)
+		if _, ok := ctemplatesMap[tmpl.ID()]; !ok {
+			ctemplatesMap[tmpl.ID()] = make([]*config.ConfigTemplate, 0, 1)
 		}
-		ctemplatesMap[tmpl.Path] = append(ctemplatesMap[tmpl.Path], ctmpl)
+		ctemplatesMap[tmpl.ID()] = append(ctemplatesMap[tmpl.ID()], ctmpl)
 	}
 
 	// Convert the map of templates (which was only used to ensure uniqueness)
@@ -747,7 +747,7 @@ func (r *Runner) diffAndUpdateDeps(depsMap map[string]dep.Dependency) {
 
 // ConfigTemplateFor returns the ConfigTemplate for the given Template
 func (r *Runner) configTemplatesFor(tmpl *template.Template) []*config.ConfigTemplate {
-	return r.ctemplatesMap[tmpl.Path]
+	return r.ctemplatesMap[tmpl.ID()]
 }
 
 // allTemplatesRendered returns true if all the templates in this Runner have

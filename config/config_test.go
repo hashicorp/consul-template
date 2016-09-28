@@ -257,6 +257,7 @@ func TestMerge_configTemplates(t *testing.T) {
 		template {
 			source = "1"
 			destination = "1"
+			embedded_template = "foo"
 			command = "1"
 			command_timeout = "60s"
 			perms = 0600
@@ -269,6 +270,7 @@ func TestMerge_configTemplates(t *testing.T) {
 		template {
 			source = "2"
 			destination = "2"
+			embedded_template = "bar"
 			command = "2"
 			command_timeout = "2h"
 			perms = 0755
@@ -279,23 +281,25 @@ func TestMerge_configTemplates(t *testing.T) {
 
 	expected := []*ConfigTemplate{
 		&ConfigTemplate{
-			Source:         "1",
-			Destination:    "1",
-			Command:        "1",
-			CommandTimeout: 60 * time.Second,
-			Perms:          0600,
-			Backup:         false,
-			LeftDelim:      "<%",
-			RightDelim:     "%>",
-			Wait:           &watch.Wait{},
+			Source:           "1",
+			Destination:      "1",
+			EmbeddedTemplate: "foo",
+			Command:          "1",
+			CommandTimeout:   60 * time.Second,
+			Perms:            0600,
+			Backup:           false,
+			LeftDelim:        "<%",
+			RightDelim:       "%>",
+			Wait:             &watch.Wait{},
 		},
 		&ConfigTemplate{
-			Source:         "2",
-			Destination:    "2",
-			Command:        "2",
-			CommandTimeout: 2 * time.Hour,
-			Perms:          0755,
-			Backup:         true,
+			Source:           "2",
+			Destination:      "2",
+			EmbeddedTemplate: "bar",
+			Command:          "2",
+			CommandTimeout:   2 * time.Hour,
+			Perms:            0755,
+			Backup:           true,
 			Wait: &watch.Wait{
 				Min: 6 * time.Second,
 				Max: 24 * time.Second,
@@ -478,6 +482,11 @@ func TestParseConfig_correctValues(t *testing.T) {
 			wait = "3s:7s"
 		}
 
+		template {
+			embedded_template = "foo"
+			destination  = "embedded.conf"
+		}
+
 		deduplicate {
 			prefix = "my-prefix/"
 			enabled = true
@@ -555,6 +564,13 @@ func TestParseConfig_correctValues(t *testing.T) {
 					Min: 3 * time.Second,
 					Max: 7 * time.Second,
 				},
+			},
+			&ConfigTemplate{
+				EmbeddedTemplate: "foo",
+				Destination:      "embedded.conf",
+				CommandTimeout:   DefaultCommandTimeout,
+				Perms:            0644,
+				Wait:             &watch.Wait{},
 			},
 		},
 		Deduplicate: &DeduplicateConfig{

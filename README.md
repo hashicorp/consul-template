@@ -301,13 +301,20 @@ exec {
 // It is also possible to configure templates via the CLI directly.
 template {
   // This is the source file on disk to use as the input template. This is often
-  // called the "Consul Template template". This option is required.
+  // called the "Consul Template template". This option is required if not using
+  // the `embedded_template` option.
   source = "/path/on/disk/to/template.ctmpl"
 
   // This is the destination path on disk where the source template will render.
   // If the parent directories do not exist, Consul Template will attempt to
   // create them.
   destination = "/path/on/disk/where/template/will/render.txt"
+
+  // This option allows embedding a template in the configuration file rather
+  // then supplying the `source` path to the template file. This is useful for
+  // short templates. This option can is mutually exclusive with the `source`
+  // option.
+  embedded_template = "{{key_or_default \"service/redis/maxconns@east-aws\" \"5\"}}"
 
   // This is the optional command to run when the template is rendered. The
   // command will only run if the resulting template changes. The command must
