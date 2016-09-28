@@ -61,10 +61,21 @@ type Runner struct {
 	// templates is the list of calculated templates.
 	templates []*template.Template
 
-	// renderedTemplates is a map of templates we have successfully rendered to
-	// disk. It is used for once mode and internal tracking. The key is the Path
-	// of the template.
-	renderedTemplates map[string]struct{}
+	// renderedTimes is a mapping of the destination of a template to the time
+	// it was rendered.
+	renderedTimes map[string]time.Time
+
+	// renderedTimesLock protects access into the renderedTimes slice
+	renderedTimesLock sync.RWMutex
+
+	// allRenderedCh is used to signal that all templates have been rendered
+	allRenderedCh chan struct{}
+
+	// Marks whether we have delivered the all delivered signal
+	allRenderedDelivered bool
+
+	// renderedCh is used to signal that a template has been rendered
+	renderedCh chan struct{}
 
 	// dependencies is the list of dependencies this runner is watching.
 	dependencies map[string]dep.Dependency
@@ -319,6 +330,31 @@ func (r *Runner) Stop() {
 	close(r.DoneCh)
 }
 
+// AllRenderedCh returns a channel that will be closed once all templates are
+// delivered.
+func (r *Runner) AllRenderedCh() <-chan struct{} {
+	return r.allRenderedCh
+}
+
+// TemplateRenderedCh returns a channel that will return the path of the
+// template when it is rendered.
+func (r *Runner) TemplateRenderedCh() <-chan struct{} {
+	return r.renderedCh
+}
+
+// RenderedTimes returns the times each template was rendered. If the time is
+// zero, the template has yet to be rendered. The map is keyed by template
+// destination.
+func (r *Runner) RenderedTimes() map[string]time.Time {
+	r.renderedTimesLock.RLock()
+	defer r.renderedTimesLock.RUnlock()
+	times := make(map[string]time.Time, len(r.renderedTimes))
+	for k, v := range r.renderedTimes {
+		times[k] = v
+	}
+	return times
+}
+
 func (r *Runner) stopDedup() {
 	if r.dedup != nil {
 		log.Printf("[DEBUG] (runner) stopping de-duplication manager")
@@ -411,7 +447,17 @@ func (r *Runner) Run() error {
 		// onto the next one. We do not want to re-render the template if we are
 		// in once mode, and we certainly do not want to re-run any commands.
 		if r.once {
-			if _, rendered := r.renderedTemplates[tmpl.Path]; rendered {
+			r.renderedTimesLock.RLock()
+			numRendered := 0
+			ctmpls := r.configTemplatesFor(tmpl)
+			for _, ctmpl := range ctmpls {
+				if _, rendered := r.renderedTimes[ctmpl.Destination]; rendered {
+					numRendered++
+				}
+			}
+			r.renderedTimesLock.RUnlock()
+
+			if numRendered == len(ctmpls) {
 				log.Printf("[DEBUG] (runner) once mode and already rendered")
 				continue
 			}
@@ -504,7 +550,9 @@ func (r *Runner) Run() error {
 			if wouldRender {
 				// Make a note that we have rendered this template (required for once
 				// mode and just generally nice for debugging purposes).
-				r.renderedTemplates[tmpl.Path] = struct{}{}
+				r.renderedTimesLock.Lock()
+				r.renderedTimes[ctemplate.Destination] = time.Now()
+				r.renderedTimesLock.Unlock()
 			}
 
 			// If we _actually_ rendered the template to disk, we want to run the
@@ -529,6 +577,21 @@ func (r *Runner) Run() error {
 					}
 				}
 			}
+		}
+	}
+
+	// Check if we need to deliver any rendered signals
+	if renderedAny {
+		// Send the signal that a template got rendered
+		select {
+		case r.renderedCh <- struct{}{}:
+		default:
+		}
+
+		// Send the all delivered signal if appropriate
+		if !r.allRenderedDelivered && r.allTemplatesRendered() {
+			r.allRenderedDelivered = true
+			close(r.allRenderedCh)
 		}
 	}
 
@@ -599,7 +662,8 @@ func (r *Runner) init() error {
 	}
 	r.watcher = watcher
 
-	templates := make([]*template.Template, 0, len(r.config.ConfigTemplates))
+	numTemplates := len(r.config.ConfigTemplates)
+	templates := make([]*template.Template, 0, numTemplates)
 	ctemplatesMap := make(map[string][]*config.ConfigTemplate)
 
 	// Iterate over each ConfigTemplate, creating a new Template resource for each
@@ -626,8 +690,11 @@ func (r *Runner) init() error {
 	// back into an array of templates.
 	r.templates = templates
 
-	r.renderedTemplates = make(map[string]struct{})
+	r.renderedTimes = make(map[string]time.Time, numTemplates)
 	r.dependencies = make(map[string]dep.Dependency)
+
+	r.renderedCh = make(chan struct{}, 1)
+	r.allRenderedCh = make(chan struct{})
 
 	r.ctemplatesMap = ctemplatesMap
 	r.inStream = os.Stdin
@@ -686,11 +753,17 @@ func (r *Runner) configTemplatesFor(tmpl *template.Template) []*config.ConfigTem
 // allTemplatesRendered returns true if all the templates in this Runner have
 // been rendered at least one time.
 func (r *Runner) allTemplatesRendered() bool {
-	for _, t := range r.templates {
-		if _, ok := r.renderedTemplates[t.Path]; !ok {
-			return false
+	r.renderedTimesLock.RLock()
+	defer r.renderedTimesLock.RUnlock()
+
+	for _, tmpl := range r.templates {
+		for _, ctmpl := range r.configTemplatesFor(tmpl) {
+			if _, rendered := r.renderedTimes[ctmpl.Destination]; !rendered {
+				return false
+			}
 		}
 	}
+
 	return true
 }
 

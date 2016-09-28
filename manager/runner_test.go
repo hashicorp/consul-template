@@ -73,8 +73,8 @@ func TestNewRunner_initialize(t *testing.T) {
 		t.Errorf("expected %s to be %s", runner.templates[2].Path, in1.Name())
 	}
 
-	if runner.renderedTemplates == nil {
-		t.Errorf("expected %#v to be %#v", runner.renderedTemplates, nil)
+	if runner.renderedTimes == nil {
+		t.Errorf("expected %#v to be %#v", runner.renderedTimes, nil)
 	}
 
 	if num := len(runner.ctemplatesMap); num != 3 {
@@ -105,6 +105,14 @@ func TestNewRunner_initialize(t *testing.T) {
 
 	if runner.DoneCh == nil {
 		t.Errorf("expected %#v to be %#v", runner.DoneCh, nil)
+	}
+
+	if runner.allRenderedCh == nil {
+		t.Errorf("allRenderedCh should be initialized")
+	}
+
+	if runner.renderedCh == nil {
+		t.Errorf("renderedCh should be initialized")
 	}
 }
 
@@ -251,6 +259,13 @@ func TestRun_dry(t *testing.T) {
   `))
 	if !bytes.Equal(actual, expected) {
 		t.Errorf("expected \n%q\n to equal \n%q\n", actual, expected)
+	}
+
+	// All should be marked as rendered even in dry mode
+	select {
+	case <-runner.AllRenderedCh():
+	case <-time.After(1 * time.Second):
+		t.Fatalf("All templates should be rendered")
 	}
 }
 
@@ -484,8 +499,30 @@ func TestRun_multipleTemplatesRunsCommands(t *testing.T) {
 	runner.watcher.ForceWatching(d, true)
 	runner.Receive(d, data)
 
+	start := time.Now()
+
 	if err := runner.Run(); err != nil {
 		t.Fatal(err)
+	}
+
+	select {
+	case <-runner.AllRenderedCh():
+		t.Fatalf("All templates should not be rendered")
+	case <-time.After(1 * time.Second):
+	}
+
+	select {
+	case <-runner.TemplateRenderedCh():
+	case <-time.After(1 * time.Second):
+		t.Fatalf("A template should have rendered")
+	}
+
+	times := runner.RenderedTimes()
+	if l := len(times); l != 1 {
+		t.Fatalf("Unexpected number of rendered templates: %d vs 1", l)
+	}
+	if rtime, ok := times[out1.Name()]; !ok || !rtime.After(start) {
+		t.Fatalf("Bad render time for rendered template: %v %v", rtime, ok)
 	}
 
 	if _, err := os.Stat(touch1.Name()); err != nil {
@@ -961,6 +998,12 @@ func TestRun_executesCommand(t *testing.T) {
 	_, err = os.Stat(outFile.Name())
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	select {
+	case <-runner.AllRenderedCh():
+	case <-time.After(1 * time.Second):
+		t.Fatalf("All templates should be rendered")
 	}
 }
 
