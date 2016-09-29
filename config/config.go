@@ -788,7 +788,7 @@ type SyslogConfig struct {
 type ConfigTemplate struct {
 	Source           string        `mapstructure:"source"`
 	Destination      string        `mapstructure:"destination"`
-	EmbeddedTemplate string        `mapstructure:"embedded_template"`
+	EmbeddedTemplate string        `mapstructure:"contents"`
 	Command          string        `mapstructure:"command"`
 	CommandTimeout   time.Duration `mapstructure:"command_timeout"`
 	Perms            os.FileMode   `mapstructure:"perms"`

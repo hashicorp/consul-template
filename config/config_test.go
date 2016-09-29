@@ -257,7 +257,7 @@ func TestMerge_configTemplates(t *testing.T) {
 		template {
 			source = "1"
 			destination = "1"
-			embedded_template = "foo"
+			contents = "foo"
 			command = "1"
 			command_timeout = "60s"
 			perms = 0600
@@ -270,7 +270,7 @@ func TestMerge_configTemplates(t *testing.T) {
 		template {
 			source = "2"
 			destination = "2"
-			embedded_template = "bar"
+			contents = "bar"
 			command = "2"
 			command_timeout = "2h"
 			perms = 0755
@@ -483,7 +483,7 @@ func TestParseConfig_correctValues(t *testing.T) {
 		}
 
 		template {
-			embedded_template = "foo"
+			contents = "foo"
 			destination  = "embedded.conf"
 		}
 

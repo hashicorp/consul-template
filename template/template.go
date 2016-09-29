@@ -103,7 +103,7 @@ func (t *Template) Execute(brain *Brain) ([]dep.Dependency, []dep.Dependency, []
 // init reads the template file and initializes required variables.
 func (t *Template) init() error {
 	// Render the template
-	if t.Contents == "" {
+	if t.Path != "" {
 		contents, err := ioutil.ReadFile(t.Path)
 		if err != nil {
 			return err
