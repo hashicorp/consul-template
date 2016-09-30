@@ -160,22 +160,22 @@ func (r *Runner) Start() {
 		// intervals.
 	NEXT_Q:
 		for _, t := range r.templates {
-			if _, ok := r.quiescenceMap[t.Path]; ok {
+			if _, ok := r.quiescenceMap[t.ID()]; ok {
 				continue NEXT_Q
 			}
 
 			for _, c := range r.configTemplatesFor(t) {
 				if c.Wait.IsActive() {
-					log.Printf("[DEBUG] (runner) enabling template-specific quiescence for %q", t.Path)
-					r.quiescenceMap[t.Path] = newQuiescence(
+					log.Printf("[DEBUG] (runner) enabling template-specific quiescence for %q", t.ID())
+					r.quiescenceMap[t.ID()] = newQuiescence(
 						r.quiescenceCh, c.Wait.Min, c.Wait.Max, t)
 					continue NEXT_Q
 				}
 			}
 
 			if r.config.Wait.IsActive() {
-				log.Printf("[DEBUG] (runner) enabling global quiescence for %q", t.Path)
-				r.quiescenceMap[t.Path] = newQuiescence(
+				log.Printf("[DEBUG] (runner) enabling global quiescence for %q", t.ID())
+				r.quiescenceMap[t.ID()] = newQuiescence(
 					r.quiescenceCh, r.config.Wait.Min, r.config.Wait.Max, t)
 				continue NEXT_Q
 			}
@@ -293,8 +293,8 @@ func (r *Runner) Start() {
 		case tmpl := <-r.quiescenceCh:
 			// Remove the quiescence for this template from the map. This will force
 			// the upcoming Run call to actually evaluate and render the template.
-			log.Printf("[INFO] (runner) received template %q from quiescence", tmpl.Path)
-			delete(r.quiescenceMap, tmpl.Path)
+			log.Printf("[INFO] (runner) received template %q from quiescence", tmpl.ID())
+			delete(r.quiescenceMap, tmpl.ID())
 
 		case c := <-childExitCh:
 			log.Printf("[INFO] (runner) child process died")
@@ -435,7 +435,7 @@ func (r *Runner) Run() error {
 	depsMap := make(map[string]dep.Dependency)
 
 	for _, tmpl := range r.templates {
-		log.Printf("[DEBUG] (runner) checking template %s", tmpl.Path)
+		log.Printf("[DEBUG] (runner) checking template %s", tmpl.ID())
 
 		// Check if we are currently the leader instance
 		isLeader := true
@@ -523,7 +523,7 @@ func (r *Runner) Run() error {
 
 		// If quiescence is activated, start/update the timers and loop back around.
 		// We do not want to render the templates yet.
-		if q, ok := r.quiescenceMap[tmpl.Path]; ok {
+		if q, ok := r.quiescenceMap[tmpl.ID()]; ok {
 			q.tick()
 			continue
 		}
@@ -536,7 +536,7 @@ func (r *Runner) Run() error {
 			// Render the template, taking dry mode into account
 			wouldRender, didRender, err := r.render(contents, ctemplate.Destination, ctemplate.Perms, ctemplate.Backup)
 			if err != nil {
-				log.Printf("[DEBUG] (runner) error rendering %s", tmpl.Path)
+				log.Printf("[DEBUG] (runner) error rendering %s", tmpl.ID())
 				return err
 			}
 
@@ -671,19 +671,19 @@ func (r *Runner) init() error {
 	// config templates is kept so templates can lookup their commands and output
 	// destinations.
 	for _, ctmpl := range r.config.ConfigTemplates {
-		tmpl, err := template.NewTemplate(ctmpl.Source, ctmpl.LeftDelim, ctmpl.RightDelim)
+		tmpl, err := template.NewTemplate(ctmpl.Source, ctmpl.EmbeddedTemplate, ctmpl.LeftDelim, ctmpl.RightDelim)
 		if err != nil {
 			return err
 		}
 
-		if _, ok := ctemplatesMap[tmpl.Path]; !ok {
+		if _, ok := ctemplatesMap[tmpl.ID()]; !ok {
 			templates = append(templates, tmpl)
 		}
 
-		if _, ok := ctemplatesMap[tmpl.Path]; !ok {
-			ctemplatesMap[tmpl.Path] = make([]*config.ConfigTemplate, 0, 1)
+		if _, ok := ctemplatesMap[tmpl.ID()]; !ok {
+			ctemplatesMap[tmpl.ID()] = make([]*config.ConfigTemplate, 0, 1)
 		}
-		ctemplatesMap[tmpl.Path] = append(ctemplatesMap[tmpl.Path], ctmpl)
+		ctemplatesMap[tmpl.ID()] = append(ctemplatesMap[tmpl.ID()], ctmpl)
 	}
 
 	// Convert the map of templates (which was only used to ensure uniqueness)
@@ -747,7 +747,7 @@ func (r *Runner) diffAndUpdateDeps(depsMap map[string]dep.Dependency) {
 
 // ConfigTemplateFor returns the ConfigTemplate for the given Template
 func (r *Runner) configTemplatesFor(tmpl *template.Template) []*config.ConfigTemplate {
-	return r.ctemplatesMap[tmpl.Path]
+	return r.ctemplatesMap[tmpl.ID()]
 }
 
 // allTemplatesRendered returns true if all the templates in this Runner have

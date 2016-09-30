@@ -180,15 +180,16 @@ func (c *Config) Copy() *Config {
 	config.ConfigTemplates = make([]*ConfigTemplate, len(c.ConfigTemplates))
 	for i, t := range c.ConfigTemplates {
 		config.ConfigTemplates[i] = &ConfigTemplate{
-			Source:         t.Source,
-			Destination:    t.Destination,
-			Command:        t.Command,
-			CommandTimeout: t.CommandTimeout,
-			Perms:          t.Perms,
-			Backup:         t.Backup,
-			LeftDelim:      t.LeftDelim,
-			RightDelim:     t.RightDelim,
-			Wait:           t.Wait,
+			Source:           t.Source,
+			Destination:      t.Destination,
+			EmbeddedTemplate: t.EmbeddedTemplate,
+			Command:          t.Command,
+			CommandTimeout:   t.CommandTimeout,
+			Perms:            t.Perms,
+			Backup:           t.Backup,
+			LeftDelim:        t.LeftDelim,
+			RightDelim:       t.RightDelim,
+			Wait:             t.Wait,
 		}
 	}
 
@@ -372,15 +373,16 @@ func (c *Config) Merge(config *Config) {
 		}
 		for _, template := range config.ConfigTemplates {
 			c.ConfigTemplates = append(c.ConfigTemplates, &ConfigTemplate{
-				Source:         template.Source,
-				Destination:    template.Destination,
-				Command:        template.Command,
-				CommandTimeout: template.CommandTimeout,
-				Perms:          template.Perms,
-				Backup:         template.Backup,
-				LeftDelim:      template.LeftDelim,
-				RightDelim:     template.RightDelim,
-				Wait:           template.Wait,
+				Source:           template.Source,
+				Destination:      template.Destination,
+				EmbeddedTemplate: template.EmbeddedTemplate,
+				Command:          template.Command,
+				CommandTimeout:   template.CommandTimeout,
+				Perms:            template.Perms,
+				Backup:           template.Backup,
+				LeftDelim:        template.LeftDelim,
+				RightDelim:       template.RightDelim,
+				Wait:             template.Wait,
 			})
 		}
 	}
@@ -437,6 +439,9 @@ func (c *Config) WasSet(key string) bool {
 
 // Set is a helper function for marking a key as set.
 func (c *Config) Set(key string) {
+	if c.setKeys == nil {
+		c.setKeys = make(map[string]struct{})
+	}
 	if _, ok := c.setKeys[key]; !ok {
 		c.setKeys[key] = struct{}{}
 	}
@@ -784,15 +789,16 @@ type SyslogConfig struct {
 // ConfigTemplate is the representation of an input template, output location,
 // and optional command to execute when rendered
 type ConfigTemplate struct {
-	Source         string        `mapstructure:"source"`
-	Destination    string        `mapstructure:"destination"`
-	Command        string        `mapstructure:"command"`
-	CommandTimeout time.Duration `mapstructure:"command_timeout"`
-	Perms          os.FileMode   `mapstructure:"perms"`
-	Backup         bool          `mapstructure:"backup"`
-	LeftDelim      string        `mapstructure:"left_delimiter"`
-	RightDelim     string        `mapstructure:"right_delimiter"`
-	Wait           *watch.Wait   `mapstructure:"wait"`
+	Source           string        `mapstructure:"source"`
+	Destination      string        `mapstructure:"destination"`
+	EmbeddedTemplate string        `mapstructure:"contents"`
+	Command          string        `mapstructure:"command"`
+	CommandTimeout   time.Duration `mapstructure:"command_timeout"`
+	Perms            os.FileMode   `mapstructure:"perms"`
+	Backup           bool          `mapstructure:"backup"`
+	LeftDelim        string        `mapstructure:"left_delimiter"`
+	RightDelim       string        `mapstructure:"right_delimiter"`
+	Wait             *watch.Wait   `mapstructure:"wait"`
 }
 
 // VaultConfig is the configuration for connecting to a vault server.

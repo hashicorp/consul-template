@@ -81,9 +81,15 @@ func TestNewRunner_initialize(t *testing.T) {
 		t.Errorf("expected %d to be %d", len(runner.ctemplatesMap), 3)
 	}
 
-	ctemplates := runner.ctemplatesMap[in1.Name()]
-	if num := len(ctemplates); num != 2 {
-		t.Errorf("expected %d to be %d", len(ctemplates), 2)
+	maxDedupped := 0
+	for _, ctmpls := range runner.ctemplatesMap {
+		if l := len(ctmpls); l > maxDedupped {
+			maxDedupped = l
+		}
+	}
+
+	if maxDedupped != 2 {
+		t.Errorf("expected %d to be %d", maxDedupped, 2)
 	}
 
 	if runner.outStream != os.Stdout {
