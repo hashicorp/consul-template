@@ -439,6 +439,9 @@ func (c *Config) WasSet(key string) bool {
 
 // Set is a helper function for marking a key as set.
 func (c *Config) Set(key string) {
+	if c.setKeys == nil {
+		c.setKeys = make(map[string]struct{})
+	}
 	if _, ok := c.setKeys[key]; !ok {
 		c.setKeys[key] = struct{}{}
 	}
