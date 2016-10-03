@@ -344,6 +344,7 @@ func (r *Runner) TemplateRenderedCh() <-chan struct{} {
 func (r *Runner) RenderEvents() map[string]*RenderEvent {
 	r.renderEventsLock.RLock()
 	defer r.renderEventsLock.RUnlock()
+
 	times := make(map[string]*RenderEvent, len(r.renderEvents))
 	for k, v := range r.renderEvents {
 		times[k] = v
@@ -769,17 +770,23 @@ func (r *Runner) allTemplatesRendered() bool {
 // stores it as would have been rendered.
 func (r *Runner) markRenderTime(tmplID string, didRender bool) {
 	r.renderEventsLock.Lock()
+	defer r.renderEventsLock.Unlock()
+
+	// Get the current time
+	now := time.Now()
+
+	// Create the event for the template ID if it is the first time
 	event, ok := r.renderEvents[tmplID]
 	if !ok {
 		event = &RenderEvent{}
 		r.renderEvents[tmplID] = event
 	}
+
 	if didRender {
-		event.LastDidRender = time.Now()
+		event.LastDidRender = now
 	} else {
-		event.LastWouldRender = time.Now()
+		event.LastWouldRender = now
 	}
-	r.renderEventsLock.Unlock()
 }
 
 // Render accepts a Template and a destination on disk. The first return
