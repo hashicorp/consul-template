@@ -21,13 +21,13 @@ import (
 )
 
 func TestNewRunner_initialize(t *testing.T) {
-	in1 := test.CreateTempfile(nil, t)
+	in1 := test.CreateTempfile([]byte{0x1}, t)
 	defer test.DeleteTempfile(in1, t)
 
-	in2 := test.CreateTempfile(nil, t)
+	in2 := test.CreateTempfile([]byte{0x2}, t)
 	defer test.DeleteTempfile(in2, t)
 
-	in3 := test.CreateTempfile(nil, t)
+	in3 := test.CreateTempfile([]byte{0x3}, t)
 	defer test.DeleteTempfile(in3, t)
 
 	dry, once := true, true
@@ -73,8 +73,8 @@ func TestNewRunner_initialize(t *testing.T) {
 		t.Errorf("expected %s to be %s", runner.templates[2].Path, in1.Name())
 	}
 
-	if runner.renderedTimes == nil {
-		t.Errorf("expected %#v to be %#v", runner.renderedTimes, nil)
+	if runner.renderEvents == nil {
+		t.Errorf("expected %#v to be %#v", runner.renderEvents, nil)
 	}
 
 	if num := len(runner.ctemplatesMap); num != 3 {
@@ -111,10 +111,6 @@ func TestNewRunner_initialize(t *testing.T) {
 
 	if runner.DoneCh == nil {
 		t.Errorf("expected %#v to be %#v", runner.DoneCh, nil)
-	}
-
-	if runner.allRenderedCh == nil {
-		t.Errorf("allRenderedCh should be initialized")
 	}
 
 	if runner.renderedCh == nil {
@@ -265,13 +261,6 @@ func TestRun_dry(t *testing.T) {
   `))
 	if !bytes.Equal(actual, expected) {
 		t.Errorf("expected \n%q\n to equal \n%q\n", actual, expected)
-	}
-
-	// All should be marked as rendered even in dry mode
-	select {
-	case <-runner.AllRenderedCh():
-	case <-time.After(1 * time.Second):
-		t.Fatalf("All templates should be rendered")
 	}
 }
 
@@ -512,23 +501,20 @@ func TestRun_multipleTemplatesRunsCommands(t *testing.T) {
 	}
 
 	select {
-	case <-runner.AllRenderedCh():
-		t.Fatalf("All templates should not be rendered")
-	case <-time.After(1 * time.Second):
-	}
-
-	select {
 	case <-runner.TemplateRenderedCh():
 	case <-time.After(1 * time.Second):
 		t.Fatalf("A template should have rendered")
 	}
 
-	times := runner.RenderedTimes()
+	times := runner.RenderEvents()
 	if l := len(times); l != 1 {
 		t.Fatalf("Unexpected number of rendered templates: %d vs 1", l)
 	}
-	if rtime, ok := times[out1.Name()]; !ok || !rtime.After(start) {
-		t.Fatalf("Bad render time for rendered template: %v %v", rtime, ok)
+
+	for _, event := range times {
+		if !event.LastDidRender.After(start) {
+			t.Fatalf("Bad render time for rendered template: %v", event.LastDidRender)
+		}
 	}
 
 	if _, err := os.Stat(touch1.Name()); err != nil {
@@ -636,9 +622,12 @@ func TestRunner_quiescenceIntegrated(t *testing.T) {
 
 	in, out := make([]*os.File, 2), make([]*os.File, 2)
 	for i := 0; i < 2; i++ {
-		in[i] = test.CreateTempfile([]byte(`
+
+		// The template contents need to be unique so that they don't get
+		// dedupped since we use the hash as an identifier
+		in[i] = test.CreateTempfile([]byte(fmt.Sprintf(`
     {{ range service "consul" "any" }}{{.Node}}{{ end }}
-  `), t)
+	Count: %d`, i)), t)
 		defer test.DeleteTempfile(in[i], t)
 
 		out[i] = test.CreateTempfile(nil, t)
@@ -1004,12 +993,6 @@ func TestRun_executesCommand(t *testing.T) {
 	_, err = os.Stat(outFile.Name())
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	select {
-	case <-runner.AllRenderedCh():
-	case <-time.After(1 * time.Second):
-		t.Fatalf("All templates should be rendered")
 	}
 }
 

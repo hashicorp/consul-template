@@ -56,7 +56,7 @@ func NewTemplate(path, contents, leftDelim, rightDelim string) (*Template, error
 
 // ID returns an identifier for the template
 func (t *Template) ID() string {
-	return t.Path + t.HexMD5
+	return t.HexMD5
 }
 
 // Execute evaluates this template in the context of the given brain.
