@@ -447,27 +447,20 @@ func (c *Config) Set(key string) {
 	}
 }
 
-// ParseConfig reads the configuration file at the given path and returns a new
-// Config struct with the data populated.
-func ParseConfig(path string) (*Config, error) {
+// Parse parses the given string contents as a config
+func Parse(s string) (*Config, error) {
 	var errs *multierror.Error
-
-	// Read the contents of the file
-	contents, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("error reading config at %q: %s", path, err)
-	}
 
 	// Parse the file (could be HCL or JSON)
 	var shadow interface{}
-	if err := hcl.Decode(&shadow, string(contents)); err != nil {
-		return nil, fmt.Errorf("error decoding config at %q: %s", path, err)
+	if err := hcl.Decode(&shadow, s); err != nil {
+		return nil, fmt.Errorf("error decoding config: %s", err)
 	}
 
 	// Convert to a map and flatten the keys we want to flatten
 	parsed, ok := shadow.(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("error converting config at %q", path)
+		return nil, fmt.Errorf("error converting config")
 	}
 	flattenKeys(parsed, []string{
 		"auth",
@@ -513,9 +506,6 @@ func ParseConfig(path string) (*Config, error) {
 		errs = multierror.Append(errs, err)
 		return nil, errs.ErrorOrNil()
 	}
-
-	// Store a reference to the path where this config was read from
-	config.Path = path
 
 	// Explicitly check for the nil signal and set the value back to nil
 	if config.ReloadSignal == signals.SIGNIL {
@@ -573,9 +563,30 @@ func ParseConfig(path string) (*Config, error) {
 	return config, errs.ErrorOrNil()
 }
 
-// ConfigFromPath iterates and merges all configuration files in a given
+// Must returns a config object that must compile. If there are any errors, this
+// function will panic. This is most useful in testing or constants.
+func Must(s string) *Config {
+	c, err := Parse(s)
+	if err != nil {
+		panic(err)
+	}
+	return c
+}
+
+// FromFile reads the configuration file at the given path and returns a new
+// Config struct with the data populated.
+func FromFile(path string) (*Config, error) {
+	c, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("error reading config at %q: %s", path, err)
+	}
+
+	return Parse(string(c))
+}
+
+// FromPath iterates and merges all configuration files in a given
 // directory, returning the resulting config.
-func ConfigFromPath(path string) (*Config, error) {
+func FromPath(path string) (*Config, error) {
 	// Ensure the given filepath exists
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return nil, fmt.Errorf("config: missing file/folder: %s", path)
@@ -611,7 +622,7 @@ func ConfigFromPath(path string) (*Config, error) {
 			}
 
 			// Parse and merge the config
-			newConfig, err := ParseConfig(path)
+			newConfig, err := FromFile(path)
 			if err != nil {
 				return err
 			}
@@ -626,7 +637,7 @@ func ConfigFromPath(path string) (*Config, error) {
 
 		return config, nil
 	} else if stat.Mode().IsRegular() {
-		return ParseConfig(path)
+		return FromFile(path)
 	}
 
 	return nil, fmt.Errorf("config: unknown filetype: %q", stat.Mode().String())
