@@ -18,8 +18,9 @@ type StoreKey struct {
 	Path       string
 	DataCenter string
 
-	defaultValue string
-	defaultGiven bool
+	defaultValue   string
+	defaultGiven   bool
+	existenceCheck bool
 
 	stopped bool
 	stopCh  chan struct{}
@@ -82,6 +83,10 @@ func (d *StoreKey) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *
 			LastContact: resp.meta.LastContact,
 		}
 
+		if d.existenceCheck {
+			return (resp.pair != nil), rm, nil
+		}
+
 		if resp.pair == nil {
 			if d.defaultGiven {
 				log.Printf("[DEBUG] (%s) Consul returned no data (using default of %q)",
@@ -97,6 +102,12 @@ func (d *StoreKey) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *
 	}
 }
 
+// SetExistenceCheck sets this keys as an existence check instead of a value
+// check.
+func (d *StoreKey) SetExistenceCheck(b bool) {
+	d.existenceCheck = true
+}
+
 // SetDefault is used to set the default value.
 func (d *StoreKey) SetDefault(s string) {
 	d.defaultGiven = true
@@ -110,17 +121,27 @@ func (d *StoreKey) CanShare() bool {
 
 // HashCode returns a unique identifier.
 func (d *StoreKey) HashCode() string {
+	if d.existenceCheck {
+		return fmt.Sprintf("StoreKeyExists|%s", d.rawKey)
+	}
+
 	if d.defaultGiven {
 		return fmt.Sprintf("StoreKey|%s|%s", d.rawKey, d.defaultValue)
 	}
+
 	return fmt.Sprintf("StoreKey|%s", d.rawKey)
 }
 
 // Display prints the human-friendly output.
 func (d *StoreKey) Display() string {
+	if d.existenceCheck {
+		return fmt.Sprintf(`"key_exists(%s)"`, d.rawKey)
+	}
+
 	if d.defaultGiven {
 		return fmt.Sprintf(`"key_or_default(%s, %q)"`, d.rawKey, d.defaultValue)
 	}
+
 	return fmt.Sprintf(`"key(%s)"`, d.rawKey)
 }
 

@@ -291,6 +291,8 @@ func TestExecute_renders(t *testing.T) {
 			{{.}}{{ end }}
 		file: {{ file "/path/to/file" }}
 		key: {{ key "config/redis/maxconns" }}
+		key_exists (exists): {{ key_exists "config/redis/minconns" }}
+		key_exists (missing): {{ key_exists "config/redis/maxconns" }}
 		key_or_default (exists): {{ key_or_default "config/redis/minconns" "100" }}
 		key_or_default (missing): {{ key_or_default "config/redis/maxconns" "200" }}
 		ls:{{ range ls "config/redis" }}
@@ -409,6 +411,13 @@ func TestExecute_renders(t *testing.T) {
 	}
 	d.(*dep.StoreKey).SetDefault("100")
 	brain.Remember(d, "150")
+
+	d, err = dep.ParseStoreKey("config/redis/minconns")
+	if err != nil {
+		t.Fatal(err)
+	}
+	d.(*dep.StoreKey).SetExistenceCheck(true)
+	brain.Remember(d, true)
 
 	d, err = dep.ParseStoreKey("config/redis/maxconns")
 	if err != nil {
@@ -539,6 +548,8 @@ func TestExecute_renders(t *testing.T) {
 			dc2
 		file: some content
 		key: 5
+		key_exists (exists): true
+		key_exists (missing): false
 		key_or_default (exists): 150
 		key_or_default (missing): 200
 		ls:
