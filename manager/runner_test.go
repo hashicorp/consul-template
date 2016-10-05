@@ -1376,11 +1376,10 @@ func TestRunner_execReload(t *testing.T) {
 	})
 	defer consul.Stop()
 
+	consul.SetKV("foo", []byte("bar"))
+
 	out := test.CreateTempfile(nil, t)
 	defer test.DeleteTempfile(out, t)
-
-	tmpl := test.CreateTempfile([]byte(`{{ key "foo" }}`), t)
-	defer test.DeleteTempfile(tmpl, t)
 
 	// Create a tiny bash script for us to run as a "program"
 	script := test.CreateTempfile([]byte(strings.TrimSpace(fmt.Sprintf(`
@@ -1401,7 +1400,7 @@ done
 		consul = "%s"
 
 		template {
-			source = "%s"
+			contents = "{{ key \"foo\" }}"
 		}
 
 		exec {
@@ -1413,7 +1412,7 @@ done
 			# test faster.
 			kill_timeout  = "10ms"
 		}
-	`, consul.HTTPAddr, tmpl.Name(), script.Name()))
+	`, consul.HTTPAddr, script.Name()))
 
 	runner, err := NewRunner(config, true, false)
 	if err != nil {
@@ -1453,7 +1452,7 @@ done
 	opid := runner.child.Pid()
 
 	// Change a dependent value in Consul, which will force the runner to cycle.
-	consul.SetKV("foo", []byte("bar"))
+	consul.SetKV("foo", []byte("baz"))
 
 	// Check that the reload signal was sent.
 	test.WaitForContents(t, 500*time.Millisecond, out.Name(), "one\n")
@@ -1478,8 +1477,7 @@ func TestRunner_execRestart(t *testing.T) {
 	})
 	defer consul.Stop()
 
-	tmpl := test.CreateTempfile([]byte(`{{ key "foo" }}`), t)
-	defer test.DeleteTempfile(tmpl, t)
+	consul.SetKV("foo", []byte("bar"))
 
 	out := test.CreateTempfile(nil, t)
 	defer test.DeleteTempfile(out, t)
@@ -1500,7 +1498,7 @@ done
 		consul = "%s"
 
 		template {
-			source      = "%s"
+			contents    = "{{ key \"foo\" }}"
 			destination = "%s"
 		}
 
@@ -1508,7 +1506,7 @@ done
 			command      = "%s"
 			kill_timeout = "10ms" # Faster tests
 		}
-	`, consul.HTTPAddr, tmpl.Name(), out.Name(), script.Name()))
+	`, consul.HTTPAddr, out.Name(), script.Name()))
 
 	runner, err := NewRunner(config, true, false)
 	if err != nil {
@@ -1547,7 +1545,7 @@ done
 	opid := runner.child.Pid()
 
 	// Change a dependent value in Consul, which will force the runner to cycle.
-	consul.SetKV("foo", []byte("bar"))
+	consul.SetKV("foo", []byte("baz"))
 
 	// Give the runner time to do its thing.
 	time.Sleep(1 * time.Second)
