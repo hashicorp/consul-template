@@ -22,16 +22,14 @@ dist:
 # test runs the test suite and vets the code.
 test: generate
 	@echo "==> Running tests..."
-	@go list $(TEST) \
-		| grep -v "/vendor/" \
-		| xargs -n1 go test -timeout=60s -parallel=10 ${TESTARGS}
+	@go test -timeout=60s -parallel=10 \
+		$(shell go list $(TEST) | grep -v /vendor/) ${TESTARGS}
 
 # testrace runs the race checker
 testrace: generate
 	@echo "==> Running tests (race)..."
-	@go list $(TEST) \
-		| grep -v "/vendor/" \
-		| xargs -n1 go test -timeout=60s -race ${TESTARGS}
+	@go test -timeout=60s -race \
+		$(shell go list $(TEST) | grep -v /vendor/) ${TESTARGS}
 
 # updatedeps installs all the dependencies needed to run and build.
 updatedeps:
@@ -41,9 +39,7 @@ updatedeps:
 generate:
 	@echo "==> Generating..."
 	@find . -type f -name '.DS_Store' -delete
-	@go list ./... \
-		| grep -v "/vendor/" \
-		| xargs -n1 go generate
+	@go generate $(shell go list ./... | grep -v /vendor/) ${TESTARGS}
 
 # bootstrap installs the necessary go tools for development/build.
 bootstrap:
