@@ -246,6 +246,54 @@ func TestKeyFunc_missingData(t *testing.T) {
 	}
 }
 
+func TestKeyExistsFunc_emptyString(t *testing.T) {
+	brain := NewBrain()
+	used := make(map[string]dep.Dependency)
+	missing := make(map[string]dep.Dependency)
+
+	f := keyExistsFunc(brain, used, missing)
+	result, err := f("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != false {
+		t.Errorf("expected %v to be %v", result, false)
+	}
+}
+
+func TestKeyExistsFunc_hasData(t *testing.T) {
+	d, err := dep.ParseStoreKey("existing")
+	if err != nil {
+		t.Fatal(err)
+	}
+	d.SetExistenceCheck(true)
+
+	brain := NewBrain()
+	brain.Remember(d, true)
+
+	used := make(map[string]dep.Dependency)
+	missing := make(map[string]dep.Dependency)
+
+	f := keyExistsFunc(brain, used, missing)
+	result, err := f("existing")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result != true {
+		t.Errorf("expected %v to be %v", result, true)
+	}
+
+	if len(missing) != 0 {
+		t.Errorf("expected missing to have 0 elements, but had %d", len(missing))
+	}
+
+	if _, ok := used[d.HashCode()]; !ok {
+		t.Errorf("expected dep to be used")
+	}
+}
+
 func TestKeyWithDefaultFunc_emptyString(t *testing.T) {
 	brain := NewBrain()
 	used := make(map[string]dep.Dependency)
