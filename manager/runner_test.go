@@ -610,9 +610,7 @@ func TestRunner_quiescence(t *testing.T) {
 	}
 }
 
-// Warning: this is a super fragile and time-dependent test. If it's failing,
-// check the demo Consul cluster and your own sanity before you assume your
-// code broke something...
+// Warning: this is a super fragile and time-dependent test
 func TestRunner_quiescenceIntegrated(t *testing.T) {
 	consul := testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
 		c.Stdout = ioutil.Discard
@@ -634,22 +632,22 @@ func TestRunner_quiescenceIntegrated(t *testing.T) {
 		test.DeleteTempfile(out[i], t)
 	}
 
-	config := config.TestConfig(fmt.Sprintf(`
+	config := config.Must(fmt.Sprintf(`
 		consul = "%s"
-		wait = "100ms:200ms"
+		wait   = "100ms:200ms"
 
 		template {
-			source = "%s"
+			source      = "%s"
 			destination = "%s"
 		}
 
 		template {
-			source = "%s"
+			source      = "%s"
 			destination = "%s"
-                        wait = "300ms:400ms"
+			wait        = "300ms:400ms"
 		}
 	`, consul.HTTPAddr, in[0].Name(), out[0].Name(),
-		in[1].Name(), out[1].Name()), t)
+		in[1].Name(), out[1].Name()))
 
 	runner, err := NewRunner(config, false, false)
 	if err != nil {
@@ -1070,43 +1068,13 @@ func TestRun_doesNotExecuteCommandMoreThanOnce(t *testing.T) {
 	}
 }
 
-func TestRunner_pidCreate(t *testing.T) {
+func TestRunner_pid(t *testing.T) {
 	pidfile := test.CreateTempfile(nil, t)
 	os.Remove(pidfile.Name())
 	defer os.Remove(pidfile.Name())
 
-	config := config.TestConfig(fmt.Sprintf(`
-		pid_file = "%s"
-	`, pidfile.Name()), t)
-
-	runner, err := NewRunner(config, false, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	go runner.Start()
-	defer runner.Stop()
-
-	select {
-	case err := <-runner.ErrCh:
-		t.Fatal(err)
-	case <-time.After(100 * time.Millisecond):
-	}
-
-	_, err = os.Stat(pidfile.Name())
-	if err != nil {
-		t.Fatal("expected pidfile to exist")
-	}
-}
-
-func TestRunner_pidDelete(t *testing.T) {
-	pidfile := test.CreateTempfile(nil, t)
-	os.Remove(pidfile.Name())
-	defer os.Remove(pidfile.Name())
-
-	config := config.TestConfig(fmt.Sprintf(`
-		pid_file = "%s"
-	`, pidfile.Name()), t)
+	contents := fmt.Sprintf(`pid_file = "%s"`, pidfile.Name())
+	config := config.Must(contents)
 
 	runner, err := NewRunner(config, false, false)
 	if err != nil {
@@ -1206,7 +1174,7 @@ func TestExecute_setsEnv(t *testing.T) {
 	tmpfile := test.CreateTempfile(nil, t)
 	defer test.DeleteTempfile(tmpfile, t)
 
-	config := config.TestConfig(`
+	config := config.Must(`
 		consul = "1.2.3.4:5678"
 		token = "abcd1234"
 
@@ -1226,7 +1194,7 @@ func TestExecute_setsEnv(t *testing.T) {
 			enabled = true
 			verify = false
 		}
-	`, t)
+	`)
 
 	runner, err := NewRunner(config, false, false)
 	if err != nil {
@@ -1277,7 +1245,7 @@ func TestExecute_timeout(t *testing.T) {
 	tmpfile := test.CreateTempfile(nil, t)
 	defer test.DeleteTempfile(tmpfile, t)
 
-	config := config.TestConfig(`
+	config := config.Must(`
 		consul = "1.2.3.4:5678"
 		token = "abcd1234"
 
@@ -1290,7 +1258,7 @@ func TestExecute_timeout(t *testing.T) {
 			enabled = true
 			verify = false
 		}
-	`, t)
+	`)
 
 	runner, err := NewRunner(config, false, false)
 	if err != nil {
@@ -1429,7 +1397,7 @@ done
 	}
 	defer test.DeleteTempfile(script, t)
 
-	config := config.TestConfig(fmt.Sprintf(`
+	config := config.Must(fmt.Sprintf(`
 		consul = "%s"
 
 		template {
@@ -1445,7 +1413,7 @@ done
 			# test faster.
 			kill_timeout  = "10ms"
 		}
-	`, consul.HTTPAddr, tmpl.Name(), script.Name()), t)
+	`, consul.HTTPAddr, tmpl.Name(), script.Name()))
 
 	runner, err := NewRunner(config, true, false)
 	if err != nil {
@@ -1528,7 +1496,7 @@ done
 	}
 	defer test.DeleteTempfile(script, t)
 
-	config := config.TestConfig(fmt.Sprintf(`
+	config := config.Must(fmt.Sprintf(`
 		consul = "%s"
 
 		template {
@@ -1540,7 +1508,7 @@ done
 			command      = "%s"
 			kill_timeout = "10ms" # Faster tests
 		}
-	`, consul.HTTPAddr, tmpl.Name(), out.Name(), script.Name()), t)
+	`, consul.HTTPAddr, tmpl.Name(), out.Name(), script.Name()))
 
 	runner, err := NewRunner(config, true, false)
 	if err != nil {

@@ -26,30 +26,30 @@ func TestMerge_emptyConfig(t *testing.T) {
 }
 
 func TestMerge_topLevel(t *testing.T) {
-	config1 := TestConfig(`
-		consul = "consul-1"
-		token = "token-1"
+	config1 := Must(`
+		consul        = "consul-1"
+		token         = "token-1"
 		reload_signal = "SIGUSR1"
-		dump_signal = "SIGUSR2"
-		kill_signal = "SIGTERM"
-		max_stale = "1s"
-		retry = "1s"
-		wait = "1s"
-		pid_file = "/pid-1"
-		log_level = "log_level-1"
-	`, t)
-	config2 := TestConfig(`
-		consul = "consul-2"
-		token = "token-2"
+		dump_signal   = "SIGUSR2"
+		kill_signal   = "SIGTERM"
+		max_stale     = "1s"
+		retry         = "1s"
+		wait          = "1s"
+		pid_file      = "/pid-1"
+		log_level     = "log_level-1"
+	`)
+	config2 := Must(`
+		consul        = "consul-2"
+		token         = "token-2"
 		reload_signal = "SIGINT"
-		dump_signal = "SIGQUIT"
-		kill_signal = "SIGKILL"
-		max_stale = "2s"
-		retry = "2s"
-		wait = "2s"
-		pid_file = "/pid-2"
-		log_level = "log_level-2"
-	`, t)
+		dump_signal   = "SIGQUIT"
+		kill_signal   = "SIGKILL"
+		max_stale     = "2s"
+		retry         = "2s"
+		wait          = "2s"
+		pid_file      = "/pid-2"
+		log_level     = "log_level-2"
+	`)
 	config1.Merge(config2)
 
 	if !reflect.DeepEqual(config1, config2) {
@@ -58,18 +58,18 @@ func TestMerge_topLevel(t *testing.T) {
 }
 
 func TestMerge_deduplicate(t *testing.T) {
-	config := TestConfig(`
+	config := Must(`
 		deduplicate {
-			prefix = "foobar/"
+			prefix  = "foobar/"
 			enabled = true
 		}
-	`, t)
-	config.Merge(TestConfig(`
+	`)
+	config.Merge(Must(`
 		deduplicate {
-			prefix = "abc/"
+			prefix  = "abc/"
 			enabled = true
 		}
-	`, t))
+	`))
 
 	expected := &DeduplicateConfig{
 		Prefix:  "abc/",
@@ -83,20 +83,20 @@ func TestMerge_deduplicate(t *testing.T) {
 }
 
 func TestMerge_vault(t *testing.T) {
-	config := TestConfig(`
+	config := Must(`
 		vault {
 			address = "1.1.1.1"
 			token = "1"
 			unwrap_token = true
 			renew = true
 		}
-	`, t)
-	config.Merge(TestConfig(`
+	`)
+	config.Merge(Must(`
 		vault {
 			address = "2.2.2.2"
 			renew = false
 		}
-	`, t))
+	`))
 
 	expected := &VaultConfig{
 		Address:     "2.2.2.2",
@@ -117,7 +117,7 @@ func TestMerge_vault(t *testing.T) {
 }
 
 func TestMerge_vaultSSL(t *testing.T) {
-	config := TestConfig(`
+	config := Must(`
 		vault {
 			ssl {
 				enabled = true
@@ -126,14 +126,14 @@ func TestMerge_vaultSSL(t *testing.T) {
 				ca_cert = "ca-1.pem"
 			}
 		}
-	`, t)
-	config.Merge(TestConfig(`
+	`)
+	config.Merge(Must(`
 		vault {
 			ssl {
 				enabled = false
 			}
 		}
-	`, t))
+	`))
 
 	expected := &VaultConfig{
 		SSL: &SSLConfig{
@@ -150,18 +150,18 @@ func TestMerge_vaultSSL(t *testing.T) {
 }
 
 func TestMerge_auth(t *testing.T) {
-	config := TestConfig(`
+	config := Must(`
 		auth {
 			enabled = true
 			username = "1"
 			password = "1"
 		}
-	`, t)
-	config.Merge(TestConfig(`
+	`)
+	config.Merge(Must(`
 		auth {
 			password = "2"
 		}
-	`, t))
+	`))
 
 	expected := &AuthConfig{
 		Enabled:  true,
@@ -175,19 +175,19 @@ func TestMerge_auth(t *testing.T) {
 }
 
 func TestMerge_SSL(t *testing.T) {
-	config := TestConfig(`
+	config := Must(`
 		ssl {
 			enabled = true
-			verify = true
-			cert = "1.pem"
+			verify  = true
+			cert    = "1.pem"
 			ca_cert = "ca-1.pem"
 		}
-	`, t)
-	config.Merge(TestConfig(`
+	`)
+	config.Merge(Must(`
 		ssl {
 			enabled = false
 		}
-	`, t))
+	`))
 
 	expected := &SSLConfig{
 		Enabled: false,
@@ -202,20 +202,20 @@ func TestMerge_SSL(t *testing.T) {
 }
 
 func TestMerge_Exec(t *testing.T) {
-	config := TestConfig(`
+	config := Must(`
 		exec {
-			command       = "a"
-			splay         = "100s"
-			kill_signal   = "SIGUSR2"
-			kill_timeout  = "10s"
+			command      = "a"
+			splay        = "100s"
+			kill_signal  = "SIGUSR2"
+			kill_timeout = "10s"
 		}
-	`, t)
-	config.Merge(TestConfig(`
+	`)
+	config.Merge(Must(`
 		exec {
 			command = "b"
 			splay   = "50s"
 		}
-	`, t))
+	`))
 
 	expected := &ExecConfig{
 		Command:     "b",
@@ -230,17 +230,17 @@ func TestMerge_Exec(t *testing.T) {
 }
 
 func TestMerge_syslog(t *testing.T) {
-	config := TestConfig(`
+	config := Must(`
 		syslog {
-			enabled = true
+			enabled  = true
 			facility = "1"
 		}
-	`, t)
-	config.Merge(TestConfig(`
+	`)
+	config.Merge(Must(`
 		syslog {
 			facility = "2"
 		}
-	`, t))
+	`))
 
 	expected := &SyslogConfig{
 		Enabled:  true,
@@ -253,31 +253,31 @@ func TestMerge_syslog(t *testing.T) {
 }
 
 func TestMerge_configTemplates(t *testing.T) {
-	config := TestConfig(`
+	config := Must(`
 		template {
-			source = "1"
-			destination = "1"
-			contents = "foo"
-			command = "1"
+			source          = "1"
+			destination     = "1"
+			contents        = "foo"
+			command         = "1"
 			command_timeout = "60s"
-			perms = 0600
-			backup = false
-			left_delimiter = "<%"
+			perms           = 0600
+			backup          = false
+			left_delimiter  = "<%"
 			right_delimiter = "%>"
 		}
-	`, t)
-	config.Merge(TestConfig(`
+	`)
+	config.Merge(Must(`
 		template {
-			source = "2"
-			destination = "2"
-			contents = "bar"
-			command = "2"
+			source          = "2"
+			destination     = "2"
+			contents        = "bar"
+			command         = "2"
 			command_timeout = "2h"
-			perms = 0755
-			backup = true
-			wait = "6s"
+			perms           = 0755
+			backup          = true
+			wait            = "6s"
 		}
-	`, t))
+	`))
 
 	expected := []*ConfigTemplate{
 		&ConfigTemplate{
@@ -314,12 +314,12 @@ func TestMerge_configTemplates(t *testing.T) {
 }
 
 func TestMerge_wait(t *testing.T) {
-	config := TestConfig(`
+	config := Must(`
 		wait = "1s:1s"
-	`, t)
-	config.Merge(TestConfig(`
+	`)
+	config.Merge(Must(`
 		wait = "2s:2s"
-	`, t))
+	`))
 
 	expected := &watch.Wait{
 		Min: 2 * time.Second,
@@ -331,10 +331,10 @@ func TestMerge_wait(t *testing.T) {
 	}
 }
 
-func TestParseConfig_emptySignal(t *testing.T) {
-	config := TestConfig(`
+func TestParse_emptySignal(t *testing.T) {
+	config := Must(`
 		reload_signal = ""
-	`, t)
+	`)
 
 	if config.ReloadSignal != nil {
 		t.Errorf("expected %#v to be %#v", config.ReloadSignal, nil)
@@ -343,14 +343,14 @@ func TestParseConfig_emptySignal(t *testing.T) {
 
 // There is a custom mapstructure function that tests this as well, so this is
 // more of an integration test to ensure we are parsing permissions correctly.
-func TestParseConfig_jsonFilePerms(t *testing.T) {
-	config := TestConfig(`
+func TestParse_jsonFilePerms(t *testing.T) {
+	config := Must(`
 		{
 			"template": {
 				"perms": "0600"
 			}
 		}
-	`, t)
+	`)
 
 	if len(config.ConfigTemplates) != 1 {
 		t.Fatalf("expected %d to be %d", len(config.ConfigTemplates), 1)
@@ -363,8 +363,8 @@ func TestParseConfig_jsonFilePerms(t *testing.T) {
 	}
 }
 
-func TestParseConfig_hclFilePerms(t *testing.T) {
-	config := TestConfig(`
+func TestParse_hclFilePerms(t *testing.T) {
+	config := Must(`
 		template {
 			perms = 0600
 		}
@@ -372,7 +372,7 @@ func TestParseConfig_hclFilePerms(t *testing.T) {
 		template {
 			perms = "0600"
 		}
-	`, t)
+	`)
 
 	if len(config.ConfigTemplates) != 2 {
 		t.Fatalf("expected %d to be %d", len(config.ConfigTemplates), 1)
@@ -387,8 +387,8 @@ func TestParseConfig_hclFilePerms(t *testing.T) {
 	}
 }
 
-func TestParseConfig_readFileError(t *testing.T) {
-	_, err := ParseConfig(path.Join(os.TempDir(), "config.json"))
+func TestFromFile_readFileError(t *testing.T) {
+	_, err := FromFile(path.Join(os.TempDir(), "config.json"))
 	if err == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
@@ -399,8 +399,8 @@ func TestParseConfig_readFileError(t *testing.T) {
 	}
 }
 
-func TestParseConfig_vaultDeprecation(t *testing.T) {
-	configFile := test.CreateTempfile([]byte(`
+func TestParse_vaultDeprecation(t *testing.T) {
+	config := Must(`
 		vault {
 			address = "vault.service.consul"
 			token   = "abcd1234"
@@ -408,36 +408,30 @@ func TestParseConfig_vaultDeprecation(t *testing.T) {
 			// "renew" is renamed to "renew_token"
 			renew = true
 		}
-`), t)
-	defer test.DeleteTempfile(configFile, t)
-
-	config, err := ParseConfig(configFile.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
+	`)
 
 	if config.Vault.RenewToken != true {
 		t.Errorf("expected renew to be true")
 	}
 }
 
-func TestParseConfig_correctValues(t *testing.T) {
-	configFile := test.CreateTempfile([]byte(`
-		consul = "nyc1.demo.consul.io"
-		max_stale = "5s"
-		token = "abcd1234"
+func TestParse_correctValues(t *testing.T) {
+	config := Must(`
+		consul        = "nyc1.demo.consul.io"
+		max_stale     = "5s"
+		token         = "abcd1234"
 		reload_signal = "SIGUSR1"
-		dump_signal = "SIGUSR2"
-		kill_signal = "SIGTERM"
-		wait = "5s:10s"
-		retry = "10s"
-		pid_file = "/var/run/ct"
-		log_level = "warn"
+		dump_signal   = "SIGUSR2"
+		kill_signal   = "SIGTERM"
+		wait          = "5s:10s"
+		retry         = "10s"
+		pid_file      = "/var/run/ct"
+		log_level     = "warn"
 
 		vault {
-			address = "vault.service.consul"
-			token = "efgh5678"
-			renew_token = true
+			address      = "vault.service.consul"
+			token        = "efgh5678"
+			renew_token  = true
 			unwrap_token = true
 			ssl {
 				enabled = false
@@ -445,62 +439,55 @@ func TestParseConfig_correctValues(t *testing.T) {
 		}
 
 		auth {
-			enabled = true
+			enabled  = true
 			username = "test"
 			password = "test"
 		}
 
 		ssl {
 			enabled = true
-			verify = false
-			cert = "c1.pem"
+			verify  = false
+			cert    = "c1.pem"
 			ca_cert = "c2.pem"
 		}
 
 		syslog {
-			enabled = true
+			enabled  = true
 			facility = "LOCAL5"
 		}
 
 		exec {
 			reload_signal = "SIGUSR1"
-			kill_signal = "SIGUSR2"
-			kill_timeout = "100ms"
+			kill_signal   = "SIGUSR2"
+			kill_timeout  = "100ms"
 		}
 
 		template {
-			source = "nginx.conf.ctmpl"
-			destination  = "/etc/nginx/nginx.conf"
+			source      = "nginx.conf.ctmpl"
+			destination = "/etc/nginx/nginx.conf"
 		}
 
 		template {
-			source = "redis.conf.ctmpl"
-			destination  = "/etc/redis/redis.conf"
-			command = "service redis restart"
+			source          = "redis.conf.ctmpl"
+			destination     = "/etc/redis/redis.conf"
+			command         = "service redis restart"
 			command_timeout = "60s"
-			perms = 0755
-			wait = "3s:7s"
+			perms           = 0755
+			wait            = "3s:7s"
 		}
 
 		template {
-			contents = "foo"
-			destination  = "embedded.conf"
+			contents    = "foo"
+			destination = "embedded.conf"
 		}
 
 		deduplicate {
-			prefix = "my-prefix/"
+			prefix  = "my-prefix/"
 			enabled = true
 		}
-  `), t)
-	defer test.DeleteTempfile(configFile, t)
-
-	config, err := ParseConfig(configFile.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
+  `)
 
 	expected := &Config{
-		Path:         configFile.Name(),
 		PidFile:      "/var/run/ct",
 		Consul:       "nyc1.demo.consul.io",
 		ReloadSignal: syscall.SIGUSR1,
@@ -586,13 +573,8 @@ func TestParseConfig_correctValues(t *testing.T) {
 	}
 }
 
-func TestParseConfig_mapstructureError(t *testing.T) {
-	configFile := test.CreateTempfile([]byte(`
-    consul = true
-  `), t)
-	defer test.DeleteTempfile(configFile, t)
-
-	_, err := ParseConfig(configFile.Name())
+func TestParse_mapstructureError(t *testing.T) {
+	_, err := Parse("consul = true")
 	if err == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
@@ -603,15 +585,15 @@ func TestParseConfig_mapstructureError(t *testing.T) {
 	}
 }
 
-func TestParseConfig_ssh_key_should_enable_ssl(t *testing.T) {
-	config := TestConfig(`
+func TestParse_ssh_key_should_enable_ssl(t *testing.T) {
+	config := Must(`
 		ssl {
-			key = "private-key.pem"
-			verify = true
-			cert = "1.pem"
+			key     = "private-key.pem"
+			verify  = true
+			cert    = "1.pem"
 			ca_cert = "ca-1.pem"
 		}
-	`, t)
+	`)
 
 	expected := &SSLConfig{
 		Enabled: true,
@@ -626,14 +608,11 @@ func TestParseConfig_ssh_key_should_enable_ssl(t *testing.T) {
 	}
 }
 
-func TestParseConfig_extraKeys(t *testing.T) {
-	configFile := test.CreateTempfile([]byte(`
-		fake_key = "nope"
+func TestParse_extraKeys(t *testing.T) {
+	_, err := Parse(`
+		fake_key         = "nope"
 		another_fake_key = "never"
-	`), t)
-	defer test.DeleteTempfile(configFile, t)
-
-	_, err := ParseConfig(configFile.Name())
+	`)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -644,13 +623,10 @@ func TestParseConfig_extraKeys(t *testing.T) {
 	}
 }
 
-func TestParseConfig_parseMaxStaleError(t *testing.T) {
-	configFile := test.CreateTempfile([]byte(`
-    max_stale = "bacon pants"
-  `), t)
-	defer test.DeleteTempfile(configFile, t)
-
-	_, err := ParseConfig(configFile.Name())
+func TestParse_parseMaxStaleError(t *testing.T) {
+	_, err := Parse(`
+		max_stale = "bacon pants"
+	`)
 	if err == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
@@ -661,13 +637,10 @@ func TestParseConfig_parseMaxStaleError(t *testing.T) {
 	}
 }
 
-func TestParseConfig_parseRetryError(t *testing.T) {
-	configFile := test.CreateTempfile([]byte(`
-    retry = "bacon pants"
-  `), t)
-	defer test.DeleteTempfile(configFile, t)
-
-	_, err := ParseConfig(configFile.Name())
+func TestParse_parseRetryError(t *testing.T) {
+	_, err := Parse(`
+		retry = "bacon pants"
+	`)
 	if err == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
@@ -678,13 +651,10 @@ func TestParseConfig_parseRetryError(t *testing.T) {
 	}
 }
 
-func TestParseConfig_parseWaitError(t *testing.T) {
-	configFile := test.CreateTempfile([]byte(`
-    wait = "not_valid:duration"
-  `), t)
-	defer test.DeleteTempfile(configFile, t)
-
-	_, err := ParseConfig(configFile.Name())
+func TestParse_parseWaitError(t *testing.T) {
+	_, err := Parse(`
+		wait = "not_valid:duration"
+	`)
 	if err == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
@@ -695,13 +665,13 @@ func TestParseConfig_parseWaitError(t *testing.T) {
 	}
 }
 
-func TestConfigFromPath_singleFile(t *testing.T) {
+func TestFromPath_singleFile(t *testing.T) {
 	configFile := test.CreateTempfile([]byte(`
 		consul = "127.0.0.1"
 	`), t)
 	defer test.DeleteTempfile(configFile, t)
 
-	config, err := ConfigFromPath(configFile.Name())
+	config, err := FromPath(configFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -712,7 +682,7 @@ func TestConfigFromPath_singleFile(t *testing.T) {
 	}
 }
 
-func TestConfigFromPath_NonExistentDirectory(t *testing.T) {
+func TestFromPath_NonExistentDirectory(t *testing.T) {
 	// Create a directory and then delete it
 	configDir, err := ioutil.TempDir(os.TempDir(), "")
 	if err != nil {
@@ -722,7 +692,7 @@ func TestConfigFromPath_NonExistentDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = ConfigFromPath(configDir)
+	_, err = FromPath(configDir)
 	if err == nil {
 		t.Fatalf("expected error, but nothing was returned")
 	}
@@ -733,7 +703,7 @@ func TestConfigFromPath_NonExistentDirectory(t *testing.T) {
 	}
 }
 
-func TestConfigFromPath_EmptyDirectory(t *testing.T) {
+func TestFromPath_EmptyDirectory(t *testing.T) {
 	// Create a directory with no files
 	configDir, err := ioutil.TempDir(os.TempDir(), "")
 	if err != nil {
@@ -741,13 +711,13 @@ func TestConfigFromPath_EmptyDirectory(t *testing.T) {
 	}
 	defer os.RemoveAll(configDir)
 
-	_, err = ConfigFromPath(configDir)
+	_, err = FromPath(configDir)
 	if err != nil {
 		t.Fatalf("empty directories are allowed")
 	}
 }
 
-func TestConfigFromPath_configDir(t *testing.T) {
+func TestFromPath_configDir(t *testing.T) {
 	configDir, err := ioutil.TempDir(os.TempDir(), "")
 	if err != nil {
 		t.Fatal(err)
@@ -779,7 +749,7 @@ func TestConfigFromPath_configDir(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	config, err := ConfigFromPath(configDir)
+	config, err := FromPath(configDir)
 	if err != nil {
 		t.Fatal(err)
 	}

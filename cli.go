@@ -457,7 +457,7 @@ func (cli *CLI) handleError(err error, status int) int {
 
 func (cli *CLI) setup(conf *config.Config) (*config.Config, error) {
 	if conf.Path != "" {
-		newConfig, err := config.ConfigFromPath(conf.Path)
+		newConfig, err := config.FromPath(conf.Path)
 		if err != nil {
 			return nil, err
 		}
