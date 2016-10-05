@@ -3,6 +3,22 @@ Consul Template Changelog
 
 ## v0.17.0.dev (Unreleased)
 
+NEW FEATURES:
+
+  * Add new template function `key_exists` for determining if a key is present.
+      See the breaking change notice before for more information about the
+      motivation for this change.
+
+BREAKING CHANGES:
+
+  * Consul Template now **blocks on `key` queries**. The previous behavior was
+      to always pass through, allowing users to use the existence of a key as
+      a source of control flow. This caused confusion among many users, so we
+      have restored the expected behavior of blocking on a `key` query, but have
+      added `key_exists` to check for the existence of a key. Note that the
+      `key_or_default` function remains unchanged and will not block if the
+      value is nil, as expected.
+
 ## v0.16.0 (September 22, 2016)
 
 NEW FEATURES:
