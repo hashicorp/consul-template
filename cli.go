@@ -417,7 +417,7 @@ func (cli *CLI) parseFlags(args []string) (*config.Config, bool, bool, bool, err
 	flags.Var((funcBoolVar)(func(b bool) error {
 		conf.Vault.RenewToken = b
 		conf.Set("vault")
-		conf.Set("vault.renew")
+		conf.Set("vault.renew_token")
 		return nil
 	}), "vault-renew-token", "")
 
