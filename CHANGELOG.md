@@ -9,9 +9,6 @@ NEW FEATURES:
       See the breaking change notice before for more information about the
       motivation for this change.
 
-  * Add support for `server_name` option for TLS configurations to allow
-      specification of the expected certificate common name.
-
 BREAKING CHANGES:
 
   * Consul Template now **blocks on `key` queries**. The previous behavior was
@@ -21,6 +18,13 @@ BREAKING CHANGES:
       added `key_exists` to check for the existence of a key. Note that the
       `key_or_default` function remains unchanged and will not block if the
       value is nil, as expected.
+
+IMPROVEMENTS:
+
+  * Add support for `server_name` option for TLS configurations to allow
+      specification of the expected certificate common name.
+  * Add `-vault-addr` CLI option for specifying the Vault server address
+      [GH-740, GH-747]
 
 BUG FIXES:
 
