@@ -873,8 +873,8 @@ func (r *Runner) execute(command string, timeout time.Duration) error {
 		customEnv["VAULT_CACERT"] = r.config.Vault.SSL.CaCert
 	}
 
-	if r.Config.Vault.SSL.ServerName != "" {
-		customEnv["VAULT_TLS_SERVER_NAME"] = r.Config.Vault.SSL.ServerName
+	if r.config.Vault.SSL.ServerName != "" {
+		customEnv["VAULT_TLS_SERVER_NAME"] = r.config.Vault.SSL.ServerName
 	}
 
 	currentEnv := os.Environ()
