@@ -141,7 +141,8 @@ func (c *ClientSet) CreateConsulClient(i *CreateConsulClientInput) error {
 			tlsConfig.ServerName = i.ServerName
 			tlsConfig.InsecureSkipVerify = false
 			log.Printf("[DEBUG] (clients) using explicit consul TLS server host name: %s", tlsConfig.ServerName)
-		} else if !i.SSLVerify {
+		}
+		if !i.SSLVerify {
 			log.Printf("[WARN] (clients) disabling consul SSL verification")
 			tlsConfig.InsecureSkipVerify = true
 		}
@@ -223,7 +224,8 @@ func (c *ClientSet) CreateVaultClient(i *CreateVaultClientInput) error {
 			tlsConfig.ServerName = i.ServerName
 			tlsConfig.InsecureSkipVerify = false
 			log.Printf("[DEBUG] (clients) using explicit vault TLS server host name: %s", tlsConfig.ServerName)
-		} else if !i.SSLVerify {
+		}
+		if !i.SSLVerify {
 			log.Printf("[WARN] (clients) disabling vault SSL verification")
 			tlsConfig.InsecureSkipVerify = true
 		}
