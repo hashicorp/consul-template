@@ -408,6 +408,13 @@ func (cli *CLI) parseFlags(args []string) (*config.Config, bool, bool, bool, err
 	}), "log-level", "")
 
 	flags.Var((funcVar)(func(s string) error {
+		conf.Vault.Address = s
+		conf.Set("vault")
+		conf.Set("vault.address")
+		return nil
+	}), "vault-addr", "")
+
+	flags.Var((funcVar)(func(s string) error {
 		conf.Vault.Token = s
 		conf.Set("vault")
 		conf.Set("vault.token")
@@ -578,6 +585,9 @@ Options:
 
   -token=<token>
       Sets the Consul API token
+
+  -vault-addr=<address>
+      Sets the address of the Vault server
 
   -vault-token=<token>
       Sets the Vault API token
