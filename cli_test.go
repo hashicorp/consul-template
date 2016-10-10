@@ -554,6 +554,27 @@ func TestParseFlags_syslogFacility(t *testing.T) {
 	}
 }
 
+func TestParseFlags_vaultAddr(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-vault-addr", "1.2.3.4",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "1.2.3.4"
+	if config.Vault.Address != expected {
+		t.Errorf("expected %v to be %v", config.Vault.Address, expected)
+	}
+	if !config.WasSet("vault") {
+		t.Errorf("expected vault to be set")
+	}
+	if !config.WasSet("vault.address") {
+		t.Errorf("expected vault.address to be set")
+	}
+}
+
 func TestParseFlags_vaultToken(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
 	config, _, _, _, err := cli.parseFlags([]string{
@@ -566,6 +587,9 @@ func TestParseFlags_vaultToken(t *testing.T) {
 	expected := "abcd1234"
 	if config.Vault.Token != expected {
 		t.Errorf("expected %v to be %v", config.Vault.Token, expected)
+	}
+	if !config.WasSet("vault") {
+		t.Errorf("expected vault to be set")
 	}
 	if !config.WasSet("vault.token") {
 		t.Errorf("expected vault.token to be set")
@@ -584,6 +608,9 @@ func TestParseFlags_vaultRenewToken(t *testing.T) {
 	if config.Vault.RenewToken != true {
 		t.Errorf("expected %v to be %v", config.Vault.RenewToken, true)
 	}
+	if !config.WasSet("vault") {
+		t.Errorf("expected vault to be set")
+	}
 	if !config.WasSet("vault.renew_token") {
 		t.Errorf("expected vault.renew_token to be set")
 	}
@@ -600,6 +627,9 @@ func TestParseFlags_vaultUnwrapToken(t *testing.T) {
 
 	if config.Vault.UnwrapToken != true {
 		t.Errorf("expected %v to be %v", config.Vault.UnwrapToken, true)
+	}
+	if !config.WasSet("vault") {
+		t.Errorf("expected vault to be set")
 	}
 	if !config.WasSet("vault.unwrap_token") {
 		t.Errorf("expected vault.unwrap_token to be set")
