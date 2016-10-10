@@ -139,22 +139,24 @@ func (c *Config) Copy() *Config {
 
 		if c.Vault.SSL != nil {
 			config.Vault.SSL = &SSLConfig{
-				Enabled: c.Vault.SSL.Enabled,
-				Verify:  c.Vault.SSL.Verify,
-				Cert:    c.Vault.SSL.Cert,
-				Key:     c.Vault.SSL.Key,
-				CaCert:  c.Vault.SSL.CaCert,
+				Enabled:    c.Vault.SSL.Enabled,
+				Verify:     c.Vault.SSL.Verify,
+				Cert:       c.Vault.SSL.Cert,
+				Key:        c.Vault.SSL.Key,
+				CaCert:     c.Vault.SSL.CaCert,
+				ServerName: c.Vault.SSL.ServerName,
 			}
 		}
 	}
 
 	if c.SSL != nil {
 		config.SSL = &SSLConfig{
-			Enabled: c.SSL.Enabled,
-			Verify:  c.SSL.Verify,
-			Cert:    c.SSL.Cert,
-			Key:     c.SSL.Key,
-			CaCert:  c.SSL.CaCert,
+			Enabled:    c.SSL.Enabled,
+			Verify:     c.SSL.Verify,
+			Cert:       c.SSL.Cert,
+			Key:        c.SSL.Key,
+			CaCert:     c.SSL.CaCert,
+			ServerName: c.SSL.ServerName,
 		}
 	}
 
@@ -284,6 +286,9 @@ func (c *Config) Merge(config *Config) {
 			if config.WasSet("vault.ssl.enabled") {
 				c.Vault.SSL.Enabled = config.Vault.SSL.Enabled
 			}
+			if config.WasSet("vault.ssl.server_name") {
+				c.Vault.SSL.ServerName = config.Vault.SSL.ServerName
+			}
 		}
 	}
 
@@ -326,6 +331,9 @@ func (c *Config) Merge(config *Config) {
 		}
 		if config.WasSet("ssl.enabled") {
 			c.SSL.Enabled = config.SSL.Enabled
+		}
+		if config.WasSet("ssl.server_name") {
+			c.SSL.ServerName = config.SSL.ServerName
 		}
 	}
 
@@ -721,6 +729,10 @@ func DefaultConfig() *Config {
 		config.Vault.SSL.Verify = false
 	}
 
+	if v := os.Getenv("VAULT_TLS_SERVER_NAME"); v != "" {
+		config.Vault.SSL.ServerName = v
+	}
+
 	return config
 }
 
@@ -784,11 +796,12 @@ type DeduplicateConfig struct {
 
 // SSLConfig is the configuration for SSL.
 type SSLConfig struct {
-	Enabled bool   `mapstructure:"enabled"`
-	Verify  bool   `mapstructure:"verify"`
-	Cert    string `mapstructure:"cert"`
-	Key     string `mapstructure:"key"`
-	CaCert  string `mapstructure:"ca_cert"`
+	Enabled    bool   `mapstructure:"enabled"`
+	Verify     bool   `mapstructure:"verify"`
+	Cert       string `mapstructure:"cert"`
+	Key        string `mapstructure:"key"`
+	CaCert     string `mapstructure:"ca_cert"`
+	ServerName string `mapstructure:"server_name"`
 }
 
 // SyslogConfig is the configuration for syslog.

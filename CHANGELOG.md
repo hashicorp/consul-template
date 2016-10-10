@@ -9,6 +9,10 @@ NEW FEATURES:
       See the breaking change notice before for more information about the
       motivation for this change.
 
+  * Add full support for `VAULT_TLS_SERVER_NAME` (also copied to child process
+      environment), and `server_name` option for TLS configurations to allow
+      specification of the expected certificate common name.
+
 BREAKING CHANGES:
 
   * Consul Template now **blocks on `key` queries**. The previous behavior was
