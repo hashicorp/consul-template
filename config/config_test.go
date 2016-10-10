@@ -131,16 +131,18 @@ func TestMerge_vaultSSL(t *testing.T) {
 		vault {
 			ssl {
 				enabled = false
+				server_name = "vault.local"
 			}
 		}
 	`))
 
 	expected := &VaultConfig{
 		SSL: &SSLConfig{
-			Enabled: false,
-			Verify:  true,
-			Cert:    "1.pem",
-			CaCert:  "ca-1.pem",
+			Enabled:    false,
+			Verify:     true,
+			Cert:       "1.pem",
+			CaCert:     "ca-1.pem",
+			ServerName: "vault.local",
 		},
 	}
 
@@ -186,14 +188,16 @@ func TestMerge_SSL(t *testing.T) {
 	config.Merge(Must(`
 		ssl {
 			enabled = false
+			server_name = "consul.local"
 		}
 	`))
 
 	expected := &SSLConfig{
-		Enabled: false,
-		Verify:  true,
-		Cert:    "1.pem",
-		CaCert:  "ca-1.pem",
+		Enabled:    false,
+		Verify:     true,
+		Cert:       "1.pem",
+		CaCert:     "ca-1.pem",
+		ServerName: "consul.local",
 	}
 
 	if !reflect.DeepEqual(config.SSL, expected) {
@@ -445,10 +449,11 @@ func TestParse_correctValues(t *testing.T) {
 		}
 
 		ssl {
-			enabled = true
-			verify  = false
-			cert    = "c1.pem"
-			ca_cert = "c2.pem"
+			enabled     = true
+			verify      = false
+			cert        = "c1.pem"
+			ca_cert     = "c2.pem"
+			server_name = "consul.local"
 		}
 
 		syslog {
@@ -512,10 +517,11 @@ func TestParse_correctValues(t *testing.T) {
 			Password: "test",
 		},
 		SSL: &SSLConfig{
-			Enabled: true,
-			Verify:  false,
-			Cert:    "c1.pem",
-			CaCert:  "c2.pem",
+			Enabled:    true,
+			Verify:     false,
+			Cert:       "c1.pem",
+			CaCert:     "c2.pem",
+			ServerName: "consul.local",
 		},
 		Syslog: &SyslogConfig{
 			Enabled:  true,
