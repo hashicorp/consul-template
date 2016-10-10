@@ -19,6 +19,10 @@ BREAKING CHANGES:
       `key_or_default` function remains unchanged and will not block if the
       value is nil, as expected.
 
+BUG FIXES:
+
+  * Fix `-renew-token` flag not begin honored on the CLI [GH-741, GH-745]
+
 ## v0.16.0 (September 22, 2016)
 
 NEW FEATURES:
