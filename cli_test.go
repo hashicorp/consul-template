@@ -584,8 +584,8 @@ func TestParseFlags_vaultRenewToken(t *testing.T) {
 	if config.Vault.RenewToken != true {
 		t.Errorf("expected %v to be %v", config.Vault.RenewToken, true)
 	}
-	if !config.WasSet("vault.renew") {
-		t.Errorf("expected vault.renew to be set")
+	if !config.WasSet("vault.renew_token") {
+		t.Errorf("expected vault.renew_token to be set")
 	}
 }
 
