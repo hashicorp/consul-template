@@ -1012,6 +1012,22 @@ Takes the argument as a string and converts it to titlecase.
 
 See Go's [strings.Title()](http://golang.org/pkg/strings/#Title) for more information.
 
+##### `toTOML`
+Takes the result from a `tree` or `ls` call and converts it into a TOML object.
+
+```liquid
+{{ tree "config" | explode | toTOML }}
+/*
+maxconns = "5"
+minconns = "2"
+
+[admin]
+  port = "1134"
+*/
+```
+
+Note: This functionality should be considered final. If you need to manipulate keys, combine values, or perform mutations, that should be done _outside_ of Consul. In order to keep the API scope limited, we likely will not accept Pull Requests that focus on customizing the `toTOML` functionality.
+
 ##### `toUpper`
 Takes the argument as a string and converts it to uppercase.
 
