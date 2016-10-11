@@ -161,6 +161,7 @@ func funcMap(brain *Brain, used, missing map[string]dep.Dependency) template.Fun
 		"toJSON":          toJSON,
 		"toJSONPretty":    toJSONPretty,
 		"toTitle":         toTitle,
+		"toTOML":          toTOML,
 		"toUpper":         toUpper,
 		"toYAML":          toYAML,
 		"split":           split,

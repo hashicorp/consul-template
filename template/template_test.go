@@ -365,6 +365,8 @@ func TestExecute_renders(t *testing.T) {
 		toJSONPretty:
 {{ tree "config/redis" | explode | toJSONPretty }}
 		toTitle: {{ file "/path/to/file" | toTitle }}
+		toTOML:
+{{ tree "config/redis" | explode | toTOML }}
 		toUpper: {{ file "/path/to/file" | toUpper }}
 		toYAML:
 {{ tree "config/redis" | explode | toYAML }}
@@ -655,6 +657,12 @@ func TestExecute_renders(t *testing.T) {
   "minconns": "2"
 }
 		toTitle: Some Content
+		toTOML:
+maxconns = "5"
+minconns = "2"
+
+[admin]
+  port = "1134"
 		toUpper: SOME CONTENT
 		toYAML:
 admin:
