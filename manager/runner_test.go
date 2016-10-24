@@ -67,10 +67,10 @@ func TestNewRunner_initialize(t *testing.T) {
 		t.Errorf("expected %s to be %s", runner.templates[0].Path, in1.Name())
 	}
 	if runner.templates[1].Path != in2.Name() {
-		t.Errorf("expected %s to be %s", runner.templates[1].Path, in1.Name())
+		t.Errorf("expected %s to be %s", runner.templates[1].Path, in2.Name())
 	}
 	if runner.templates[2].Path != in3.Name() {
-		t.Errorf("expected %s to be %s", runner.templates[2].Path, in1.Name())
+		t.Errorf("expected %s to be %s", runner.templates[2].Path, in3.Name())
 	}
 
 	if runner.renderEvents == nil {
