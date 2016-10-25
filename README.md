@@ -230,6 +230,10 @@ ssl {
   // useful for self-signed certificates or for organizations using their own
   // internal certificate authority.
   ca_cert = "/path/to/ca"
+
+  // This is the path to a directory of PEM-encoded CA cert files. If both
+  // `ca_cert` and `ca_path` is specified, `ca_cert` is preferred.
+  ca_path = "path/to/certs/"
 }
 
 // This block defines the configuration for connecting to a syslog server for
