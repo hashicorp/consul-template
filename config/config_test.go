@@ -108,6 +108,7 @@ func TestMerge_vault(t *testing.T) {
 			Verify:  true,
 			Cert:    "",
 			CaCert:  "",
+			CaPath:  "",
 		},
 	}
 
@@ -124,6 +125,7 @@ func TestMerge_vaultSSL(t *testing.T) {
 				verify = true
 				cert = "1.pem"
 				ca_cert = "ca-1.pem"
+				ca_path = "/path/to/certs/"
 			}
 		}
 	`)
@@ -142,6 +144,7 @@ func TestMerge_vaultSSL(t *testing.T) {
 			Verify:     true,
 			Cert:       "1.pem",
 			CaCert:     "ca-1.pem",
+			CaPath:     "/path/to/certs/",
 			ServerName: "vault.local",
 		},
 	}
@@ -183,6 +186,7 @@ func TestMerge_SSL(t *testing.T) {
 			verify  = true
 			cert    = "1.pem"
 			ca_cert = "ca-1.pem"
+			ca_path = "/path/to/certs/"
 		}
 	`)
 	config.Merge(Must(`
@@ -197,6 +201,7 @@ func TestMerge_SSL(t *testing.T) {
 		Verify:     true,
 		Cert:       "1.pem",
 		CaCert:     "ca-1.pem",
+		CaPath:     "/path/to/certs/",
 		ServerName: "consul.local",
 	}
 
@@ -453,6 +458,7 @@ func TestParse_correctValues(t *testing.T) {
 			verify      = false
 			cert        = "c1.pem"
 			ca_cert     = "c2.pem"
+			ca_path     = "/path/to/certs/"
 			server_name = "consul.local"
 		}
 
@@ -509,6 +515,7 @@ func TestParse_correctValues(t *testing.T) {
 				Verify:  true,
 				Cert:    "",
 				CaCert:  "",
+				CaPath:  "",
 			},
 		},
 		Auth: &AuthConfig{
@@ -521,6 +528,7 @@ func TestParse_correctValues(t *testing.T) {
 			Verify:     false,
 			Cert:       "c1.pem",
 			CaCert:     "c2.pem",
+			CaPath:     "/path/to/certs/",
 			ServerName: "consul.local",
 		},
 		Syslog: &SyslogConfig{
@@ -598,6 +606,7 @@ func TestParse_ssh_key_should_enable_ssl(t *testing.T) {
 			verify  = true
 			cert    = "1.pem"
 			ca_cert = "ca-1.pem"
+			ca_path = "/path/to/certs"
 		}
 	`)
 
@@ -607,6 +616,7 @@ func TestParse_ssh_key_should_enable_ssl(t *testing.T) {
 		Cert:    "1.pem",
 		Key:     "private-key.pem",
 		CaCert:  "ca-1.pem",
+		CaPath:  "/path/to/certs",
 	}
 
 	if !reflect.DeepEqual(config.SSL, expected) {
