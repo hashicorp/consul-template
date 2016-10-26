@@ -137,6 +137,9 @@ func funcMap(brain *Brain, used, missing map[string]dep.Dependency) template.Fun
 		"tree":           treeFunc(brain, used, missing),
 		"vault":          vaultFunc(brain, used, missing),
 
+		// Structure as map to transport data
+		"NewMap":          NewMap,
+
 		// Helper functions
 		"byKey":           byKey,
 		"byTag":           byTag,
