@@ -30,7 +30,6 @@ func NewMapFromJSON(s string) *Map {
 
   if err := json.Unmarshal([]byte(s), &m.data); err != nil {
     fmt.Printf("err, %+v", err);
-    return nil, err
   }
 
   return m
