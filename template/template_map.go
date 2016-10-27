@@ -21,6 +21,21 @@ func NewMap() *Map {
   }
 }
 
+func NewMapFromJSON(s string) *Map {
+	m := NewMap()
+
+  if s == "" {
+    m.data = map[string]interface{}{}
+  }
+
+  if err := json.Unmarshal([]byte(s), &m.data); err != nil {
+    fmt.Printf("err, %+v", err);
+    return nil, err
+  }
+
+  return m
+}
+
 
 /**
 Java Map Interface
@@ -129,6 +144,11 @@ func (m *Map) KeySet() []string {
 func (m *Map) Put(k string, v interface{}) interface{} {
   m.data[k] = v
   return v
+}
+
+func (m *Map) PutReturnBlank(k string, v interface{}) interface{} {
+  m.data[k] = v
+  return "" 
 }
 
 func (m *Map) PutAll(m2 Map) {
