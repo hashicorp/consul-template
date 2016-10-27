@@ -139,6 +139,7 @@ func funcMap(brain *Brain, used, missing map[string]dep.Dependency) template.Fun
 
 		// Structure as map to transport data
 		"NewMap":          NewMap,
+		"NewMapFromJSON":  NewMapFromJSON,
 
 		// Helper functions
 		"byKey":           byKey,
