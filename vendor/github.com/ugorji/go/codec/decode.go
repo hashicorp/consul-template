@@ -168,6 +168,9 @@ type DecodeOptions struct {
 	//
 	// This only impacts decoding into a nil interface{}.
 	// Consequently, it has no effect on codecgen.
+	//
+	// *Note*: This only applies if using go1.5 and above,
+	// as it requires reflect.ArrayOf support which was absent before go1.5.
 	PreferArrayOverSlice bool
 }
 
@@ -619,10 +622,8 @@ func (f *decFnInfo) kInterfaceNaked() (rvn reflect.Value) {
 			d.decode(v2)
 			n.ss = n.ss[:l]
 			rvn = reflect.ValueOf(v2).Elem()
-			if d.stid == 0 && d.h.PreferArrayOverSlice {
-				rvn2 := reflect.New(reflect.ArrayOf(rvn.Len(), intfTyp)).Elem()
-				reflect.Copy(rvn2, rvn)
-				rvn = rvn2
+			if reflectArrayOfSupported && d.stid == 0 && d.h.PreferArrayOverSlice {
+				rvn = reflectArrayOf(rvn)
 			}
 		} else {
 			rvn = reflect.New(d.h.SliceType).Elem()

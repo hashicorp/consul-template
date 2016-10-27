@@ -270,7 +270,16 @@ func DialContext(ctx context.Context, target string, opts ...DialOption) (conn *
 	if cc.dopts.bs == nil {
 		cc.dopts.bs = DefaultBackoffConfig
 	}
-
+	creds := cc.dopts.copts.TransportCredentials
+	if creds != nil && creds.Info().ServerName != "" {
+		cc.authority = creds.Info().ServerName
+	} else {
+		colonPos := strings.LastIndex(target, ":")
+		if colonPos == -1 {
+			colonPos = len(target)
+		}
+		cc.authority = target[:colonPos]
+	}
 	var ok bool
 	waitC := make(chan error, 1)
 	go func() {
@@ -279,7 +288,14 @@ func DialContext(ctx context.Context, target string, opts ...DialOption) (conn *
 			// Connect to target directly if balancer is nil.
 			addrs = append(addrs, Address{Addr: target})
 		} else {
-			if err := cc.dopts.balancer.Start(target); err != nil {
+			var credsClone credentials.TransportCredentials
+			if creds != nil {
+				credsClone = creds.Clone()
+			}
+			config := BalancerConfig{
+				DialCreds: credsClone,
+			}
+			if err := cc.dopts.balancer.Start(target, config); err != nil {
 				waitC <- err
 				return
 			}
@@ -321,16 +337,6 @@ func DialContext(ctx context.Context, target string, opts ...DialOption) (conn *
 	// The lbWatcher goroutine will not be created.
 	if ok {
 		go cc.lbWatcher()
-	}
-	creds := cc.dopts.copts.TransportCredentials
-	if creds != nil && creds.Info().ServerName != "" {
-		cc.authority = creds.Info().ServerName
-	} else {
-		colonPos := strings.LastIndex(target, ":")
-		if colonPos == -1 {
-			colonPos = len(target)
-		}
-		cc.authority = target[:colonPos]
 	}
 	return cc, nil
 }
@@ -678,7 +684,11 @@ func (ac *addrConn) resetTransport(closeTransport bool) error {
 		}
 		ctx, cancel := context.WithTimeout(ac.ctx, timeout)
 		connectTime := time.Now()
-		newTransport, err := transport.NewClientTransport(ctx, ac.addr.Addr, ac.dopts.copts)
+		sinfo := transport.TargetInfo{
+			Addr:     ac.addr.Addr,
+			Metadata: ac.addr.Metadata,
+		}
+		newTransport, err := transport.NewClientTransport(ctx, sinfo, ac.dopts.copts)
 		if err != nil {
 			cancel()
 
@@ -797,7 +807,7 @@ func (ac *addrConn) transportMonitor() {
 }
 
 // wait blocks until i) the new transport is up or ii) ctx is done or iii) ac is closed or
-// iv) transport is in TransientFailure and there's no balancer/failfast is true.
+// iv) transport is in TransientFailure and there is a balancer/failfast is true.
 func (ac *addrConn) wait(ctx context.Context, hasBalancer, failfast bool) (transport.ClientTransport, error) {
 	for {
 		ac.mu.Lock()
