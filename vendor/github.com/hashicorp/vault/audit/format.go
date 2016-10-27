@@ -225,7 +225,7 @@ func (f *AuditFormatter) FormatResponse(
 		respWrapInfo = &AuditWrapInfo{
 			TTL:             int(resp.WrapInfo.TTL / time.Second),
 			Token:           resp.WrapInfo.Token,
-			CreationTime:    resp.WrapInfo.CreationTime,
+			CreationTime:    resp.WrapInfo.CreationTime.Format(time.RFC3339Nano),
 			WrappedAccessor: resp.WrapInfo.WrappedAccessor,
 		}
 	}
@@ -297,15 +297,15 @@ type AuditRequest struct {
 
 type AuditResponse struct {
 	Auth     *AuditAuth             `json:"auth,omitempty"`
-	Secret   *AuditSecret           `json:"secret,emitempty"`
-	Data     map[string]interface{} `json:"data"`
-	Redirect string                 `json:"redirect"`
+	Secret   *AuditSecret           `json:"secret,omitempty"`
+	Data     map[string]interface{} `json:"data,omitempty"`
+	Redirect string                 `json:"redirect,omitempty"`
 	WrapInfo *AuditWrapInfo         `json:"wrap_info,omitempty"`
 }
 
 type AuditAuth struct {
-	ClientToken string            `json:"client_token,omitempty"`
-	Accessor    string            `json:"accessor,omitempty"`
+	ClientToken string            `json:"client_token"`
+	Accessor    string            `json:"accessor"`
 	DisplayName string            `json:"display_name"`
 	Policies    []string          `json:"policies"`
 	Metadata    map[string]string `json:"metadata"`
@@ -316,10 +316,10 @@ type AuditSecret struct {
 }
 
 type AuditWrapInfo struct {
-	TTL             int       `json:"ttl"`
-	Token           string    `json:"token"`
-	CreationTime    time.Time `json:"creation_time"`
-	WrappedAccessor string    `json:"wrapped_accessor,omitempty"`
+	TTL             int    `json:"ttl"`
+	Token           string `json:"token"`
+	CreationTime    string `json:"creation_time"`
+	WrappedAccessor string `json:"wrapped_accessor,omitempty"`
 }
 
 // getRemoteAddr safely gets the remote address avoiding a nil pointer

@@ -2,11 +2,13 @@ package vault
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/vault/helper/jsonutil"
 	"github.com/hashicorp/vault/helper/policyutil"
 	"github.com/hashicorp/vault/helper/strutil"
 	"github.com/hashicorp/vault/logical"
@@ -53,32 +55,57 @@ func (c *Core) HandleRequest(req *logical.Request) (resp *logical.Response, err 
 	}
 
 	// We are wrapping if there is anything to wrap (not a nil response) and a
-	// TTL was specified for the token
-	wrapping := resp != nil && resp.WrapInfo != nil && resp.WrapInfo.TTL != 0
+	// TTL was specified for the token. Errors on a call should be returned to
+	// the caller, so wrapping is turned off if an error is hit and the error
+	// is logged to the audit log.
+	wrapping := resp != nil &&
+		err == nil &&
+		!resp.IsError() &&
+		resp.WrapInfo != nil &&
+		resp.WrapInfo.TTL != 0
 
 	if wrapping {
-		cubbyResp, err := c.wrapInCubbyhole(req, resp)
+		cubbyResp, cubbyErr := c.wrapInCubbyhole(req, resp)
 		// If not successful, returns either an error response from the
-		// cubbyhole backend or an error; if either is set, return
-		if cubbyResp != nil || err != nil {
-			return cubbyResp, err
+		// cubbyhole backend or an error; if either is set, set resp and err to
+		// those and continue so that that's what we audit log. Otherwise
+		// finish the wrapping and audit log that.
+		if cubbyResp != nil || cubbyErr != nil {
+			resp = cubbyResp
+			err = cubbyErr
+		} else {
+			wrappingResp := &logical.Response{
+				WrapInfo: resp.WrapInfo,
+			}
+			wrappingResp.CloneWarnings(resp)
+			resp = wrappingResp
 		}
+	}
+
+	auditResp := resp
+	// When unwrapping we want to log the actual response that will be written
+	// out. We still want to return the raw value to avoid automatic updating
+	// to any of it.
+	if req.Path == "sys/wrapping/unwrap" &&
+		resp != nil &&
+		resp.Data != nil &&
+		resp.Data[logical.HTTPRawBody] != nil {
+
+		// Decode the JSON
+		httpResp := &logical.HTTPResponse{}
+		err := jsonutil.DecodeJSON(resp.Data[logical.HTTPRawBody].([]byte), httpResp)
+		if err != nil {
+			c.logger.Error("core: failed to unmarshal wrapped HTTP response for audit logging", "error", err)
+			return nil, ErrInternalError
+		}
+
+		auditResp = logical.HTTPResponseToLogicalResponse(httpResp)
 	}
 
 	// Create an audit trail of the response
-	if auditErr := c.auditBroker.LogResponse(auth, req, resp, err); auditErr != nil {
+	if auditErr := c.auditBroker.LogResponse(auth, req, auditResp, err); auditErr != nil {
 		c.logger.Error("core: failed to audit response", "request_path", req.Path, "error", auditErr)
 		return nil, ErrInternalError
-	}
-
-	// If we are wrapping, now is when we create a new response object with the
-	// wrapped information, since the original response has been audit logged
-	if wrapping {
-		wrappingResp := &logical.Response{
-			WrapInfo: resp.WrapInfo,
-		}
-		wrappingResp.CloneWarnings(resp)
-		resp = wrappingResp
 	}
 
 	return
@@ -244,6 +271,13 @@ func (c *Core) handleRequest(req *logical.Request) (retResp *logical.Response, r
 		}
 	}
 
+	if resp != nil &&
+		req.Path == "cubbyhole/response" &&
+		len(te.Policies) == 1 &&
+		te.Policies[0] == responseWrappingPolicyName {
+		resp.AddWarning("Reading from 'cubbyhole/response' is deprecated. Please use sys/wrapping/unwrap to unwrap responses, as it provides additional security checks and other benefits.")
+	}
+
 	// Return the response and error
 	if err != nil {
 		retErr = multierror.Append(retErr, err)
@@ -333,6 +367,13 @@ func (c *Core) handleLoginRequest(req *logical.Request) (*logical.Response, *log
 
 		te.Policies = policyutil.SanitizePolicies(te.Policies, true)
 
+		// Prevent internal policies from being assigned to tokens
+		for _, policy := range te.Policies {
+			if strutil.StrListContains(nonAssignablePolicies, policy) {
+				return logical.ErrorResponse(fmt.Sprintf("cannot assign policy %q", policy)), nil, logical.ErrInvalidRequest
+			}
+		}
+
 		if err := c.tokenStore.create(&te); err != nil {
 			c.logger.Error("core: failed to create token", "error", err)
 			return nil, auth, ErrInternalError
@@ -404,31 +445,39 @@ func (c *Core) wrapInCubbyhole(req *logical.Request, resp *logical.Response) (*l
 		resp.WrapInfo.WrappedAccessor = resp.Auth.Accessor
 	}
 
-	httpResponse := logical.SanitizeResponse(resp)
-
-	// Add the unique identifier of the original request to the response
-	httpResponse.RequestID = req.ID
-
-	// Because of the way that JSON encodes (likely just in Go) we actually get
-	// mixed-up values for ints if we simply put this object in the response
-	// and encode the whole thing; so instead we marshal it first, then store
-	// the string response. This actually ends up making it easier on the
-	// client side, too, as it becomes a straight read-string-pass-to-unmarshal
-	// operation.
-
-	marshaledResponse, err := json.Marshal(httpResponse)
-	if err != nil {
-		c.logger.Error("core: failed to marshal wrapped response", "error", err)
-		return nil, ErrInternalError
-	}
-
 	cubbyReq := &logical.Request{
 		Operation:   logical.CreateOperation,
 		Path:        "cubbyhole/response",
 		ClientToken: te.ID,
-		Data: map[string]interface{}{
+	}
+
+	// During a rewrap, store the original response, don't wrap it again.
+	if req.Path == "sys/wrapping/rewrap" {
+		cubbyReq.Data = map[string]interface{}{
+			"response": resp.Data["response"],
+		}
+	} else {
+		httpResponse := logical.LogicalResponseToHTTPResponse(resp)
+
+		// Add the unique identifier of the original request to the response
+		httpResponse.RequestID = req.ID
+
+		// Because of the way that JSON encodes (likely just in Go) we actually get
+		// mixed-up values for ints if we simply put this object in the response
+		// and encode the whole thing; so instead we marshal it first, then store
+		// the string response. This actually ends up making it easier on the
+		// client side, too, as it becomes a straight read-string-pass-to-unmarshal
+		// operation.
+
+		marshaledResponse, err := json.Marshal(httpResponse)
+		if err != nil {
+			c.logger.Error("core: failed to marshal wrapped response", "error", err)
+			return nil, ErrInternalError
+		}
+
+		cubbyReq.Data = map[string]interface{}{
 			"response": string(marshaledResponse),
-		},
+		}
 	}
 
 	cubbyResp, err := c.router.Route(cubbyReq)
@@ -441,6 +490,25 @@ func (c *Core) wrapInCubbyhole(req *logical.Request, resp *logical.Response) (*l
 	if cubbyResp != nil && cubbyResp.IsError() {
 		c.tokenStore.Revoke(te.ID)
 		c.logger.Error("core: failed to store wrapped response information", "error", cubbyResp.Data["error"])
+		return cubbyResp, nil
+	}
+
+	// Store info for lookup
+	cubbyReq.Path = "cubbyhole/wrapinfo"
+	cubbyReq.Data = map[string]interface{}{
+		"creation_ttl":  resp.WrapInfo.TTL,
+		"creation_time": creationTime,
+	}
+	cubbyResp, err = c.router.Route(cubbyReq)
+	if err != nil {
+		// Revoke since it's not yet being tracked for expiration
+		c.tokenStore.Revoke(te.ID)
+		c.logger.Error("core: failed to store wrapping information", "error", err)
+		return nil, ErrInternalError
+	}
+	if cubbyResp != nil && cubbyResp.IsError() {
+		c.tokenStore.Revoke(te.ID)
+		c.logger.Error("core: failed to store wrapping information", "error", cubbyResp.Data["error"])
 		return cubbyResp, nil
 	}
 

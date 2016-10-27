@@ -206,7 +206,7 @@ func (e *jsonEncDriver) EncodeFloat64(f float64) {
 }
 
 func (e *jsonEncDriver) encodeFloat(f float64, numbits int) {
-	x := strconv.AppendFloat(e.b[:0], float64(f), 'G', -1, numbits)
+	x := strconv.AppendFloat(e.b[:0], f, 'G', -1, numbits)
 	e.w.writeb(x)
 	if bytes.IndexByte(x, 'E') == -1 && bytes.IndexByte(x, '.') == -1 {
 		e.w.writen2('.', '0')

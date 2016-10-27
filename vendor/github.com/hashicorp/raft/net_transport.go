@@ -56,7 +56,7 @@ is not known if there is an error.
 
 */
 type NetworkTransport struct {
-	connPool     map[ServerAddress][]*netConn
+	connPool     map[string][]*netConn
 	connPoolLock sync.Mutex
 
 	consumeCh chan RPC
@@ -84,11 +84,11 @@ type StreamLayer interface {
 	net.Listener
 
 	// Dial is used to create a new outgoing connection
-	Dial(address ServerAddress, timeout time.Duration) (net.Conn, error)
+	Dial(address string, timeout time.Duration) (net.Conn, error)
 }
 
 type netConn struct {
-	target ServerAddress
+	target string
 	conn   net.Conn
 	r      *bufio.Reader
 	w      *bufio.Writer
@@ -142,7 +142,7 @@ func NewNetworkTransportWithLogger(
 		logger = log.New(os.Stderr, "", log.LstdFlags)
 	}
 	trans := &NetworkTransport{
-		connPool:     make(map[ServerAddress][]*netConn),
+		connPool:     make(map[string][]*netConn),
 		consumeCh:    make(chan RPC),
 		logger:       logger,
 		maxPool:      maxPool,
@@ -183,8 +183,8 @@ func (n *NetworkTransport) Consumer() <-chan RPC {
 }
 
 // LocalAddr implements the Transport interface.
-func (n *NetworkTransport) LocalAddr() ServerAddress {
-	return ServerAddress(n.stream.Addr().String())
+func (n *NetworkTransport) LocalAddr() string {
+	return n.stream.Addr().String()
 }
 
 // IsShutdown is used to check if the transport is shutdown.
@@ -198,7 +198,7 @@ func (n *NetworkTransport) IsShutdown() bool {
 }
 
 // getExistingConn is used to grab a pooled connection.
-func (n *NetworkTransport) getPooledConn(target ServerAddress) *netConn {
+func (n *NetworkTransport) getPooledConn(target string) *netConn {
 	n.connPoolLock.Lock()
 	defer n.connPoolLock.Unlock()
 
@@ -215,7 +215,7 @@ func (n *NetworkTransport) getPooledConn(target ServerAddress) *netConn {
 }
 
 // getConn is used to get a connection from the pool.
-func (n *NetworkTransport) getConn(target ServerAddress) (*netConn, error) {
+func (n *NetworkTransport) getConn(target string) (*netConn, error) {
 	// Check for a pooled conn
 	if conn := n.getPooledConn(target); conn != nil {
 		return conn, nil
@@ -260,7 +260,7 @@ func (n *NetworkTransport) returnConn(conn *netConn) {
 
 // AppendEntriesPipeline returns an interface that can be used to pipeline
 // AppendEntries requests.
-func (n *NetworkTransport) AppendEntriesPipeline(target ServerAddress) (AppendPipeline, error) {
+func (n *NetworkTransport) AppendEntriesPipeline(target string) (AppendPipeline, error) {
 	// Get a connection
 	conn, err := n.getConn(target)
 	if err != nil {
@@ -272,17 +272,17 @@ func (n *NetworkTransport) AppendEntriesPipeline(target ServerAddress) (AppendPi
 }
 
 // AppendEntries implements the Transport interface.
-func (n *NetworkTransport) AppendEntries(target ServerAddress, args *AppendEntriesRequest, resp *AppendEntriesResponse) error {
+func (n *NetworkTransport) AppendEntries(target string, args *AppendEntriesRequest, resp *AppendEntriesResponse) error {
 	return n.genericRPC(target, rpcAppendEntries, args, resp)
 }
 
 // RequestVote implements the Transport interface.
-func (n *NetworkTransport) RequestVote(target ServerAddress, args *RequestVoteRequest, resp *RequestVoteResponse) error {
+func (n *NetworkTransport) RequestVote(target string, args *RequestVoteRequest, resp *RequestVoteResponse) error {
 	return n.genericRPC(target, rpcRequestVote, args, resp)
 }
 
 // genericRPC handles a simple request/response RPC.
-func (n *NetworkTransport) genericRPC(target ServerAddress, rpcType uint8, args interface{}, resp interface{}) error {
+func (n *NetworkTransport) genericRPC(target string, rpcType uint8, args interface{}, resp interface{}) error {
 	// Get a conn
 	conn, err := n.getConn(target)
 	if err != nil {
@@ -308,7 +308,7 @@ func (n *NetworkTransport) genericRPC(target ServerAddress, rpcType uint8, args 
 }
 
 // InstallSnapshot implements the Transport interface.
-func (n *NetworkTransport) InstallSnapshot(target ServerAddress, args *InstallSnapshotRequest, resp *InstallSnapshotResponse, data io.Reader) error {
+func (n *NetworkTransport) InstallSnapshot(target string, args *InstallSnapshotRequest, resp *InstallSnapshotResponse, data io.Reader) error {
 	// Get a conn, always close for InstallSnapshot
 	conn, err := n.getConn(target)
 	if err != nil {
@@ -346,13 +346,13 @@ func (n *NetworkTransport) InstallSnapshot(target ServerAddress, args *InstallSn
 }
 
 // EncodePeer implements the Transport interface.
-func (n *NetworkTransport) EncodePeer(p ServerAddress) []byte {
+func (n *NetworkTransport) EncodePeer(p string) []byte {
 	return []byte(p)
 }
 
 // DecodePeer implements the Transport interface.
-func (n *NetworkTransport) DecodePeer(buf []byte) ServerAddress {
-	return ServerAddress(buf)
+func (n *NetworkTransport) DecodePeer(buf []byte) string {
+	return string(buf)
 }
 
 // listen is used to handling incoming connections.
