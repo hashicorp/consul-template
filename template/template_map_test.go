@@ -1,11 +1,7 @@
 package template
 
 import (
-//	"reflect"
 	"testing"
-//	"fmt"
-
-//	"github.com/hashicorp/consul-template/template"
 )
 
 func TestNewMap (t *testing.T) {
