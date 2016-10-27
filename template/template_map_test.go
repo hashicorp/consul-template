@@ -270,12 +270,12 @@ func TestMapPutPutContainsKey (t *testing.T) {
 
 	rt := m.ContainsKey("a")
 	if rt != true {
-		t.Errorf("expected value is not be correct. Expected: 'XYZ' Got: %s", rt )
+		t.Errorf("expected value is not be correct. Expected: true Got: %s", rt )
 	}
 
 	rt = m.ContainsKey("1")
 	if rt != true {
-		t.Errorf("expected value is not be correct. Expected: 789 Got: %s ", rt )
+		t.Errorf("expected value is not be correct. Expected: true Got: %s ", rt )
 	}
 }
 
@@ -288,6 +288,115 @@ func TestMapEmptyContainsKey (t *testing.T) {
 	}
 
 	rt = m.ContainsKey("1")
+	if rt != false {
+		t.Errorf("expected value is not be correct. Expected: false Got: %s", rt )
+	}
+}
+
+// *****************
+
+func TestMapPutContainsValue (t *testing.T) {
+	m := NewMap()
+	m.Put("a", "ABC")
+	m.Put("1", 123)
+
+	rt := m.ContainsValue("ABC")
+	if rt != true {
+		t.Errorf("expected value is not be correct. Expected: true Got: %s" , rt )
+	}
+
+	rt = m.ContainsValue(123)
+	if rt != true {
+		t.Errorf("expected value is not be correct. Expected: true Got: %s", rt )
+	}
+
+}
+
+func TestMapPutClearContainsValue (t *testing.T) {
+	m := NewMap()
+	m.Put("a", "ABC")
+	m.Put("1", 123)
+
+	m.Clear()
+
+	rt := m.ContainsValue("ABC")
+	if rt != false {
+		t.Errorf("expected value is not be correct. Expected: false Got: %s", rt)
+	}
+	rt = m.ContainsValue(123)
+	if rt != false {
+		t.Errorf("expected value is not be correct. Expected: false Got: %s", rt)
+	}
+}
+
+func TestMapPutRemoveContainsValue (t *testing.T) {
+	m := NewMap()
+	m.Put("a", "ABC")
+	m.Put("1", 123)
+
+	m.Remove("a")
+	m.Remove("1")
+
+	rt := m.ContainsValue("ABC")
+	if rt != false {
+		t.Errorf("expected value is not be correct. Expected: false Got: %s", rt)
+	}
+
+	rt = m.ContainsValue(123)
+	if rt != false {
+		t.Errorf("expected value is not be correct. Expected: false Got: %s", rt )
+	}
+}
+
+func TestMapPutClearPutContainsValue (t *testing.T) {
+	m := NewMap()
+	m.Put("a", "ABC")
+	m.Put("1", 123)
+
+	m.Clear()
+
+	m.Put("a", "XYZ")
+	m.Put("1", 789)
+
+	rt := m.ContainsValue("XYZ")
+	if rt != true {
+		t.Errorf("expected value is not be correct. Expected: true Got: %s", rt)
+	}
+	rt = m.ContainsValue(789)
+	if rt != true {
+		t.Errorf("expected value is not be correct. Expected: true Got: %s", rt)
+	}
+}
+
+func TestMapPutPutContainsValue (t *testing.T) {
+	m := NewMap()
+	m.Put("a", "ABC")
+	m.Put("a", "MNO")
+	m.Put("a", "XYZ")
+	m.Put("1", 123)
+	m.Put("1", 456)
+	m.Put("1", 789)
+
+	rt := m.ContainsValue("XYZ")
+	if rt != true {
+		t.Errorf("expected value is not be correct. Expected: true Got: %s", rt )
+	}
+
+	rt = m.ContainsValue(789)
+	if rt != true {
+		t.Errorf("expected value is not be correct. Expected: true Got: %s ", rt )
+	}
+}
+
+func TestMapEmptyContainsValue (t *testing.T) {
+	m := NewMap()
+
+	rt := m.ContainsValue("ABC")
+	if rt != false {
+		t.Errorf("expected value is not be correct. Expected: false Got: %s", rt )
+	}
+
+	rt = m.ContainsValue(123)
 	if rt != false {
 		t.Errorf("expected value is not be correct. Expected: false Got: %s", rt )
 	}
