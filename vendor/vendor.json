@@ -451,10 +451,12 @@
 			"revisionTime": "2015-06-09T07:04:31Z"
 		},
 		{
-			"checksumSHA1": "ZpqwBCoIc/KpD6F75ffK7lyAgd4=",
+			"checksumSHA1": "tHzyGCXkf8PnmBrTk1Z01JIv/5Q=",
 			"path": "github.com/hashicorp/raft",
-			"revision": "5f09c4ffdbcd2a53768e78c47717415de12b6728",
-			"revisionTime": "2016-08-24T02:31:12Z"
+			"revision": "e1d3debe52b9152e8db5c3a77b7f7cf9b2a8b404",
+			"revisionTime": "2016-10-26T00:17:15Z",
+			"version": "library-v2-stage-one",
+			"versionExact": "library-v2-stage-one"
 		},
 		{
 			"checksumSHA1": "E3Xcanc9ouQwL+CZGOUyA/+giLg=",
