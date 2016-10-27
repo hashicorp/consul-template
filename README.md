@@ -1392,16 +1392,19 @@ Contributing
 ------------
 To build and install Consul Template locally, you will need a modern [Go][] (Go 1.6+) environment.
 
-First, clone the repo:
+First, clone the repo into $GOPATH/src/github.com/hashicorp:
 
 ```shell
+$ mkdir -p $GOPATH/src/github.com/hashicorp
+$ cd $GOPATH/src/github.com/hashicorp
 $ git clone https://github.com/hashicorp/consul-template.git
 ```
 
 To compile the `consul-template` binary and run the test suite:
 
 ```shell
-$ make dev
+$ cd $GOPATH/src/github.com/hashicorp/consul-template
+$ make bootstrap dev test
 ```
 
 This will compile the `consul-template` binary into `bin/consul-template` as well as your `$GOPATH` and run the test suite.
