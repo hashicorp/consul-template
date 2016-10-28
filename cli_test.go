@@ -838,22 +838,6 @@ func TestRun_printsErrors(t *testing.T) {
 	}
 }
 
-func TestRun_versionFlag(t *testing.T) {
-	outStream, errStream := gatedio.NewByteBuffer(), gatedio.NewByteBuffer()
-	cli := NewCLI(outStream, errStream)
-	args := strings.Split("consul-template -version", " ")
-
-	status := cli.Run(args)
-	if status != ExitCodeOK {
-		t.Errorf("expected %q to eq %q", status, ExitCodeOK)
-	}
-
-	expected := fmt.Sprintf("consul-template v%s", Version)
-	if !strings.Contains(errStream.String(), expected) {
-		t.Errorf("expected %q to eq %q", errStream.String(), expected)
-	}
-}
-
 func TestRun_parseError(t *testing.T) {
 	outStream, errStream := gatedio.NewByteBuffer(), gatedio.NewByteBuffer()
 	cli := NewCLI(outStream, errStream)
