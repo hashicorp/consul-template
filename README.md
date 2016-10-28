@@ -314,7 +314,7 @@ template {
   // create them.
   destination = "/path/on/disk/where/template/will/render.txt"
 
-  // This option allows embedding the contents of a template in the configuration 
+  // This option allows embedding the contents of a template in the configuration
   // file rather then supplying the `source` path to the template file. This is
   // useful for short templates. This option is mutually exclusive with the
   // `source` option.
@@ -1390,21 +1390,31 @@ A: Configuration management tools are designed to be used in unison with Consul 
 
 Contributing
 ------------
-To build and install Consul Template locally, you will need a modern [Go][] (Go 1.6+) environment.
+To build and install Consul Template locally, you will need to install the Docker engine:
 
-First, clone the repo:
+- [Docker for Mac](https://docs.docker.com/engine/installation/mac/)
+- [Docker for Windows](https://docs.docker.com/engine/installation/windows/)
+- [Docker for Linux](https://docs.docker.com/engine/installation/linux/ubuntulinux/)
+
+Clone the repository:
 
 ```shell
 $ git clone https://github.com/hashicorp/consul-template.git
 ```
 
-To compile the `consul-template` binary and run the test suite:
+To compile the `consul-template` binary for your local machine:
 
 ```shell
 $ make dev
 ```
 
 This will compile the `consul-template` binary into `bin/consul-template` as well as your `$GOPATH` and run the test suite.
+
+If you want to compile a specific binary, set `XC_OS` and `XC_ARCH` or run the following to generate all binaries:
+
+```shell
+$ make bin
+```
 
 If you just want to run the tests:
 
