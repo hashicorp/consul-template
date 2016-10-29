@@ -26,6 +26,7 @@ IMPROVEMENTS:
   * Add `-vault-addr` CLI option for specifying the Vault server address
       [GH-740, GH-747]
   * Add tagged addresses to Node structs
+  * Add support for multiple `-config` flags [GH-773, GH-751]
 
 BUG FIXES:
 
