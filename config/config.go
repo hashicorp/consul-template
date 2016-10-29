@@ -45,11 +45,6 @@ const (
 
 // Config is used to configure Consul Template
 type Config struct {
-	// Path is the path to this configuration file on disk. This value is not
-	// read from disk by rather dynamically populated by the code so the Config
-	// has a reference to the path to the file on disk that created it.
-	Path string `mapstructure:"-"`
-
 	// Consul is the location of the Consul instance to query (may be an IP
 	// address or FQDN) with port.
 	Consul string `mapstructure:"consul"`
@@ -114,7 +109,6 @@ type Config struct {
 // the nested data structures may be shared.
 func (c *Config) Copy() *Config {
 	config := new(Config)
-	config.Path = c.Path
 	config.Consul = c.Consul
 	config.Token = c.Token
 	config.ReloadSignal = c.ReloadSignal
@@ -225,10 +219,6 @@ func (c *Config) Copy() *Config {
 // Merge merges the values in config into this config object. Values in the
 // config object overwrite the values in c.
 func (c *Config) Merge(config *Config) {
-	if config.WasSet("path") {
-		c.Path = config.Path
-	}
-
 	if config.WasSet("consul") {
 		c.Consul = config.Consul
 	}
@@ -572,7 +562,6 @@ func Parse(s string) (*Config, error) {
 			config.setKeys[key] = struct{}{}
 		}
 	}
-	config.setKeys["path"] = struct{}{}
 
 	d := DefaultConfig()
 	d.Merge(config)
