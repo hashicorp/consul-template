@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"reflect"
 	"strings"
 	"syscall"
@@ -14,6 +15,7 @@ import (
 	"github.com/hashicorp/consul-template/watch"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/go-gatedio"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseFlags_consul(t *testing.T) {
@@ -673,21 +675,64 @@ func TestParseFlags_waitError(t *testing.T) {
 }
 
 func TestParseFlags_config(t *testing.T) {
+	f, err := ioutil.TempFile("", "parse-flags-config")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(f.Name())
+
+	if _, err := f.WriteString(`consul = "1.2.3.4"`); err != nil {
+		t.Fatal(err)
+	}
+
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
 	config, _, _, _, err := cli.parseFlags([]string{
-		"-config", "/path/to/file",
+		"-config", f.Name(),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expected := "/path/to/file"
-	if config.Path != expected {
-		t.Errorf("expected %v to be %v", config.Path, expected)
+	assert := assert.New(t)
+	assert.Equal(config.Consul, "1.2.3.4")
+	assert.True(config.WasSet("consul"))
+}
+
+func TestParseFlags_configMultiple(t *testing.T) {
+	f1, err := ioutil.TempFile("", "parse-flags-config")
+	if err != nil {
+		t.Fatal(err)
 	}
-	if !config.WasSet("path") {
-		t.Errorf("expected path to be set")
+	defer os.Remove(f1.Name())
+
+	if _, err := f1.WriteString(`consul = "1.2.3.4"`); err != nil {
+		t.Fatal(err)
 	}
+
+	f2, err := ioutil.TempFile("", "parse-flags-config")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(f2.Name())
+
+	if _, err := f2.WriteString(`token = "abcd1234"`); err != nil {
+		t.Fatal(err)
+	}
+
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-config", f1.Name(),
+		"-config", f2.Name(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert := assert.New(t)
+	assert.Equal(config.Consul, "1.2.3.4")
+	assert.True(config.WasSet("consul"))
+	assert.Equal(config.Token, "abcd1234")
+	assert.True(config.WasSet("token"))
 }
 
 func TestParseFlags_retry(t *testing.T) {
