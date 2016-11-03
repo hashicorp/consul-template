@@ -167,6 +167,10 @@ func (c *Config) Copy() *Config {
 		config.Exec = &ExecConfig{
 			Command:      c.Exec.Command,
 			Splay:        c.Exec.Splay,
+			PristineEnv:  c.Exec.PristineEnv,
+			CustomEnv:    append([]string{}, c.Exec.CustomEnv...),
+			WhitelistEnv: append([]string{}, c.Exec.WhitelistEnv...),
+			BlacklistEnv: append([]string{}, c.Exec.BlacklistEnv...),
 			ReloadSignal: c.Exec.ReloadSignal,
 			KillSignal:   c.Exec.KillSignal,
 			KillTimeout:  c.Exec.KillTimeout,
@@ -359,6 +363,18 @@ func (c *Config) Merge(config *Config) {
 		}
 		if config.WasSet("exec.splay") {
 			c.Exec.Splay = config.Exec.Splay
+		}
+		if config.WasSet("exec.pristine_env") {
+			c.Exec.PristineEnv = config.Exec.PristineEnv
+		}
+		if config.WasSet("exec.custom_env") {
+			c.Exec.CustomEnv = append(c.Exec.CustomEnv, config.Exec.CustomEnv...)
+		}
+		if config.WasSet("exec.whitelist_env") {
+			c.Exec.WhitelistEnv = append(c.Exec.WhitelistEnv, config.Exec.WhitelistEnv...)
+		}
+		if config.WasSet("exec.blacklist_env") {
+			c.Exec.BlacklistEnv = append(c.Exec.BlacklistEnv, config.Exec.BlacklistEnv...)
 		}
 		if config.WasSet("exec.reload_signal") {
 			c.Exec.ReloadSignal = config.Exec.ReloadSignal
@@ -766,6 +782,28 @@ type ExecConfig struct {
 	// Splay is the maximum amount of time to wait to kill the process.
 	Splay time.Duration `mapstructure:"splay"`
 
+	// PristineEnv specifies if the child process should inherit the parent's
+	// environment.
+	PristineEnv bool `mapstructure:"pristine_env"`
+
+	// CustomEnv specifies custom environment variables to pass to the child
+	// process. These are provided programatically, override any environment
+	// variables of the same name, are ignored from whitelist/blacklist, and
+	// are still included even if PristineEnv is set to true.
+	CustomEnv []string `mapstructure:"custom_env"`
+
+	// WhitelistEnv specifies a list of environment variables to exclusively
+	// include in the list of environment variables populated to the child.
+	// BlacklistEnv specifies a list of environment variables to explicitly
+	// disclude from the list of environment variables populated to the child.
+	// If both WhitelistEnv and BlacklistEnv are provided, BlacklistEnv takes
+	// precedence over the values in WhitelistEnv.
+	//
+	// Both values are specified as an []string, but they are treated as globs,
+	// so it is possible to have values like "FOO_*" or "*_FOO".
+	WhitelistEnv []string `mapstructure:"whitelist_env"`
+	BlacklistEnv []string `mapstructure:"blacklist_env"`
+
 	// ReloadSignal is the signal to send to the child process when a template
 	// changes. This tells the child process that templates have
 	ReloadSignal os.Signal `mapstructure:"reload_signal"`
@@ -777,6 +815,76 @@ type ExecConfig struct {
 	// KillTimeout is the amount of time to give the process to cleanup before
 	// hard-killing it.
 	KillTimeout time.Duration `mapstructure:"kill_timeout"`
+}
+
+// Env calculates and returns the finalized environment for this exec
+// configuration. It takes into account pristine, custom environment, whitelist,
+// and blacklist values.
+func (c *ExecConfig) Env() []string {
+	// In pristine mode, just return the custom environment. If the user did not
+	// specify a custom environment, just return the empty slice to force an
+	// empty environment. We cannot return nil here because the later call to
+	// os/exec will think we want to inherit the parent.
+	if c.PristineEnv {
+		if len(c.CustomEnv) > 0 {
+			return c.CustomEnv
+		}
+		return []string{}
+	}
+
+	// Pull all the key-value pairs out of the environment
+	environ := os.Environ()
+	keys := make([]string, len(environ))
+	env := make(map[string]string, len(environ))
+	for i, v := range environ {
+		list := strings.SplitN(v, "=", 2)
+		keys[i] = list[0]
+		env[list[0]] = list[1]
+	}
+
+	// anyGlobMatch is a helper function which checks if any of the given globs
+	// match the string.
+	anyGlobMatch := func(s string, patterns []string) bool {
+		for _, pattern := range patterns {
+			if matched, _ := filepath.Match(pattern, s); matched {
+				return true
+			}
+		}
+		return false
+	}
+
+	// Pull out any envvars that match the whitelist.
+	if len(c.WhitelistEnv) > 0 {
+		newKeys := make([]string, 0, len(keys))
+		for _, k := range keys {
+			if anyGlobMatch(k, c.WhitelistEnv) {
+				newKeys = append(newKeys, k)
+			}
+		}
+		keys = newKeys
+	}
+
+	// Remove any envvars that match the blacklist.
+	if len(c.BlacklistEnv) > 0 {
+		newKeys := make([]string, 0, len(keys))
+		for _, k := range keys {
+			if !anyGlobMatch(k, c.BlacklistEnv) {
+				newKeys = append(newKeys, k)
+			}
+		}
+		keys = newKeys
+	}
+
+	// Build the final list using only the filtered keys.
+	finalEnv := make([]string, 0, len(keys)+len(c.CustomEnv))
+	for _, k := range keys {
+		finalEnv = append(finalEnv, k+"="+env[k])
+	}
+
+	// Append remaining custom environment.
+	finalEnv = append(finalEnv, c.CustomEnv...)
+
+	return finalEnv
 }
 
 // DeduplicateConfig is used to enable the de-duplication mode, which depends

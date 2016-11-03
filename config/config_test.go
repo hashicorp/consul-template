@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul-template/watch"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMerge_emptyConfig(t *testing.T) {
@@ -215,20 +216,25 @@ func TestMerge_Exec(t *testing.T) {
 		exec {
 			command      = "a"
 			splay        = "100s"
+			pristine_env = true
+			custom_env   = ["a=b"]
 			kill_signal  = "SIGUSR2"
 			kill_timeout = "10s"
 		}
 	`)
 	config.Merge(Must(`
 		exec {
-			command = "b"
-			splay   = "50s"
+			command    = "b"
+			splay      = "50s"
+			custom_env = ["c=d"]
 		}
 	`))
 
 	expected := &ExecConfig{
 		Command:     "b",
 		Splay:       50 * time.Second,
+		PristineEnv: true,
+		CustomEnv:   []string{"a=b", "c=d"},
 		KillSignal:  syscall.SIGUSR2,
 		KillTimeout: 10 * time.Second,
 	}
@@ -468,6 +474,10 @@ func TestParse_correctValues(t *testing.T) {
 		}
 
 		exec {
+			pristine_env  = true
+			custom_env    = ["a=b"]
+			whitelist_env = ["*"]
+			blacklist_env = ["PATH"]
 			reload_signal = "SIGUSR1"
 			kill_signal   = "SIGUSR2"
 			kill_timeout  = "100ms"
@@ -542,6 +552,10 @@ func TestParse_correctValues(t *testing.T) {
 		},
 		Exec: &ExecConfig{
 			ReloadSignal: syscall.SIGUSR1,
+			PristineEnv:  true,
+			CustomEnv:    []string{"a=b"},
+			WhitelistEnv: []string{"*"},
+			BlacklistEnv: []string{"PATH"},
 			KillSignal:   syscall.SIGUSR2,
 			KillTimeout:  100 * time.Millisecond,
 		},
@@ -924,4 +938,66 @@ func TestParseConfigurationTemplate_command(t *testing.T) {
 	if template.Command != command {
 		t.Errorf("expected %q to equal %q", template.Command, command)
 	}
+}
+
+func TestExecEnv(t *testing.T) {
+	exec := &ExecConfig{}
+	assert.Equal(t, os.Environ(), exec.Env())
+}
+
+func TestExecEnv_pristine(t *testing.T) {
+	exec := &ExecConfig{
+		PristineEnv: true,
+	}
+	assert.Empty(t, exec.Env())
+}
+
+func TestExecEnv_pristineCustom(t *testing.T) {
+	customEnv := []string{"a=b", "c=d"}
+	exec := &ExecConfig{
+		PristineEnv: true,
+		CustomEnv:   customEnv,
+	}
+	assert.Equal(t, customEnv, exec.Env())
+}
+
+func TestExecEnv_whitelist(t *testing.T) {
+	exec := &ExecConfig{
+		WhitelistEnv: []string{"GOPATH"},
+	}
+	assert.Len(t, exec.Env(), 1)
+	assert.Regexp(t, "GOPATH=.*", exec.Env()[0])
+}
+
+func TestExecEnv_blacklist(t *testing.T) {
+	exec := &ExecConfig{
+		BlacklistEnv: []string{"GOPATH"},
+	}
+	assert.NotContains(t, exec.Env(), "GOPATH="+os.Getenv("GOPATH"))
+}
+
+func TestExecEnv_blacklistWhitelist(t *testing.T) {
+	exec := &ExecConfig{
+		WhitelistEnv: []string{"GOPATH"},
+		BlacklistEnv: []string{"GOPATH"},
+	}
+	assert.Len(t, exec.Env(), 0)
+}
+
+func TestExecEnv_custom(t *testing.T) {
+	exec := &ExecConfig{
+		CustomEnv: []string{"HELLO=goodbyte"},
+	}
+	assert.Contains(t, exec.Env(), "HELLO=goodbyte")
+	assert.Contains(t, exec.Env(), "GOPATH="+os.Getenv("GOPATH"))
+}
+
+func TestExecEnv_customBlacklistWhitelist(t *testing.T) {
+	exec := &ExecConfig{
+		WhitelistEnv: []string{"GOPATH"},
+		BlacklistEnv: []string{"GOPATH"},
+		CustomEnv:    []string{"HELLO=goodbyte"},
+	}
+	assert.Len(t, exec.Env(), 1)
+	assert.Equal(t, "HELLO=goodbyte", exec.Env()[0])
 }
