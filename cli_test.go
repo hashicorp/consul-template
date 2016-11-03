@@ -362,6 +362,27 @@ func TestParseFlags_SSLCaCert(t *testing.T) {
 	}
 }
 
+func TestParseFlags_SSLCaPath(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-ssl-ca-path", "/path/to/certs",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "/path/to/certs"
+	if config.SSL.CaPath != expected {
+		t.Errorf("expected %v to be %v", config.SSL.CaPath, expected)
+	}
+	if !config.WasSet("ssl") {
+		t.Errorf("expected ssl to be set")
+	}
+	if !config.WasSet("ssl.ca_path") {
+		t.Errorf("expected ssl.ca_path to be set")
+	}
+}
+
 func TestParseFlags_maxStale(t *testing.T) {
 	cli := NewCLI(ioutil.Discard, ioutil.Discard)
 	config, _, _, _, err := cli.parseFlags([]string{
@@ -635,6 +656,198 @@ func TestParseFlags_vaultUnwrapToken(t *testing.T) {
 	}
 	if !config.WasSet("vault.unwrap_token") {
 		t.Errorf("expected vault.unwrap_token to be set")
+	}
+}
+
+func TestParseFlags_vaultSSL(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-vault-ssl",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := true
+	if config.Vault.SSL.Enabled != expected {
+		t.Errorf("expected %v to be %v", config.Vault.SSL.Enabled, expected)
+	}
+	if !config.WasSet("vault") {
+		t.Errorf("expected vault to be set")
+	}
+	if !config.WasSet("vault.ssl") {
+		t.Errorf("expected vault.ssl to be set")
+	}
+	if !config.WasSet("vault.ssl.enabled") {
+		t.Errorf("expected vault.ssl.enabled to be set")
+	}
+}
+
+func TestParseFlags_vaultNoSSL(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-vault-ssl=false",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := false
+	if config.Vault.SSL.Enabled != expected {
+		t.Errorf("expected %v to be %v", config.Vault.SSL.Enabled, expected)
+	}
+	if !config.WasSet("vault") {
+		t.Errorf("expected vault to be set")
+	}
+	if !config.WasSet("vault.ssl") {
+		t.Errorf("expected vault.ssl to be set")
+	}
+	if !config.WasSet("vault.ssl.enabled") {
+		t.Errorf("expected vault.ssl.enabled to be set")
+	}
+}
+
+func TestParseFlags_vaultSSLVerify(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-vault-ssl-verify",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := true
+	if config.Vault.SSL.Verify != expected {
+		t.Errorf("expected %v to be %v", config.Vault.SSL.Verify, expected)
+	}
+	if !config.WasSet("vault") {
+		t.Errorf("expected vault to be set")
+	}
+	if !config.WasSet("vault.ssl") {
+		t.Errorf("expected vault.ssl to be set")
+	}
+	if !config.WasSet("vault.ssl.verify") {
+		t.Errorf("expected vault.ssl.verify to be set")
+	}
+}
+
+func TestParseFlags_vaultNoSSLVerify(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-vault-ssl-verify=false",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := false
+	if config.Vault.SSL.Verify != expected {
+		t.Errorf("expected %v to be %v", config.Vault.SSL.Verify, expected)
+	}
+	if !config.WasSet("vault") {
+		t.Errorf("expected vault to be set")
+	}
+	if !config.WasSet("vault.ssl") {
+		t.Errorf("expected vault.ssl to be set")
+	}
+	if !config.WasSet("vault.ssl.verify") {
+		t.Errorf("expected vault.ssl.verify to be set")
+	}
+}
+
+func TestParseFlags_vaultSSLCert(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-vault-ssl-cert", "/path/to/c1.pem",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "/path/to/c1.pem"
+	if config.Vault.SSL.Cert != expected {
+		t.Errorf("expected %v to be %v", config.Vault.SSL.Cert, expected)
+	}
+	if !config.WasSet("vault") {
+		t.Errorf("expected vault to be set")
+	}
+	if !config.WasSet("vault.ssl") {
+		t.Errorf("expected vault.ssl to be set")
+	}
+	if !config.WasSet("vault.ssl.cert") {
+		t.Errorf("expected vault.ssl.cert to be set")
+	}
+}
+
+func TestParseFlags_vaultSSLKey(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-vault-ssl-key", "/path/to/client-key.pem",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "/path/to/client-key.pem"
+	if config.Vault.SSL.Key != expected {
+		t.Errorf("expected %v to be %v", config.Vault.SSL.Key, expected)
+	}
+	if !config.WasSet("vault") {
+		t.Errorf("expected vault to be set")
+	}
+	if !config.WasSet("vault.ssl") {
+		t.Errorf("expected vault.ssl to be set")
+	}
+	if !config.WasSet("vault.ssl.key") {
+		t.Errorf("expected vault.ssl.key to be set")
+	}
+}
+
+func TestParseFlags_vaultSSLCaCert(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-vault-ssl-ca-cert", "/path/to/c2.pem",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "/path/to/c2.pem"
+	if config.Vault.SSL.CaCert != expected {
+		t.Errorf("expected %v to be %v", config.Vault.SSL.CaCert, expected)
+	}
+	if !config.WasSet("vault") {
+		t.Errorf("expected vault to be set")
+	}
+	if !config.WasSet("vault.ssl") {
+		t.Errorf("expected vault.ssl to be set")
+	}
+	if !config.WasSet("vault.ssl.ca_cert") {
+		t.Errorf("expected vault.ssl.ca_cert to be set")
+	}
+}
+
+func TestParseFlags_vaultSSLCaPath(t *testing.T) {
+	cli := NewCLI(ioutil.Discard, ioutil.Discard)
+	config, _, _, _, err := cli.parseFlags([]string{
+		"-vault-ssl-ca-path", "/path/to/certs",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "/path/to/certs"
+	if config.Vault.SSL.CaPath != expected {
+		t.Errorf("expected %v to be %v", config.Vault.SSL.CaPath, expected)
+	}
+	if !config.WasSet("vault") {
+		t.Errorf("expected vault to be set")
+	}
+	if !config.WasSet("vault.ssl") {
+		t.Errorf("expected vault.ssl to be set")
+	}
+	if !config.WasSet("vault.ssl.ca_path") {
+		t.Errorf("expected vault.ssl.ca_path to be set")
 	}
 }
 

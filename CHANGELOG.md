@@ -21,6 +21,19 @@ BREAKING CHANGES:
 
 IMPROVEMENTS:
 
+  * Add CLI support for all SSL configuration options for both Consul and Vault.
+    Vault options are identical to Consul but with `vault-` prefix. Includes
+    the addition of `ssl-ca-path` to be consistent with file-based configuration
+    options.
+
+    * `ssl` `vault-ssl` (Enable)
+    * `ssl-verify` `vault-ssl-verify`
+    * `ssl-cert` `vault-ssl-cert`
+    * `ssl-key` `vault-ssl-key`
+    * `ssl-ca-cert` `vault-ssl-ca-cert`
+    * `ssl-ca-path` `vault-ssl-ca-path`
+    * `ssl-server-name` `vault-ssl-server-name`
+
   * Add support for `server_name` option for TLS configurations to allow
       specification of the expected certificate common name.
   * Add `-vault-addr` CLI option for specifying the Vault server address
