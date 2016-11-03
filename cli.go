@@ -299,6 +299,20 @@ func (cli *CLI) parseFlags(args []string) (*config.Config, bool, bool, bool, err
 		return nil
 	}), "ssl-ca-cert", "")
 
+	flags.Var((funcVar)(func(s string) error {
+		cliConfig.SSL.CaPath = s
+		cliConfig.Set("ssl")
+		cliConfig.Set("ssl.ca_path")
+		return nil
+	}), "ssl-ca-path", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		cliConfig.SSL.ServerName = s
+		cliConfig.Set("ssl")
+		cliConfig.Set("ssl.server_name")
+		return nil
+	}), "ssl-server-name", "")
+
 	flags.Var((funcDurationVar)(func(d time.Duration) error {
 		cliConfig.MaxStale = d
 		cliConfig.Set("max_stale")
@@ -442,6 +456,62 @@ func (cli *CLI) parseFlags(args []string) (*config.Config, bool, bool, bool, err
 		cliConfig.Set("vault.unwrap_token")
 		return nil
 	}), "vault-unwrap-token", "")
+
+	flags.Var((funcBoolVar)(func(b bool) error {
+		cliConfig.Vault.SSL.Enabled = b
+		cliConfig.Set("vault")
+		cliConfig.Set("vault.ssl")
+		cliConfig.Set("vault.ssl.enabled")
+		return nil
+	}), "vault-ssl", "")
+
+	flags.Var((funcBoolVar)(func(b bool) error {
+		cliConfig.Vault.SSL.Verify = b
+		cliConfig.Set("vault")
+		cliConfig.Set("vault.ssl")
+		cliConfig.Set("vault.ssl.verify")
+		return nil
+	}), "vault-ssl-verify", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		cliConfig.Vault.SSL.Cert = s
+		cliConfig.Set("vault")
+		cliConfig.Set("vault.ssl")
+		cliConfig.Set("vault.ssl.cert")
+		return nil
+	}), "vault-ssl-cert", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		cliConfig.Vault.SSL.Key = s
+		cliConfig.Set("vault")
+		cliConfig.Set("vault.ssl")
+		cliConfig.Set("vault.ssl.key")
+		return nil
+	}), "vault-ssl-key", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		cliConfig.Vault.SSL.CaCert = s
+		cliConfig.Set("vault")
+		cliConfig.Set("vault.ssl")
+		cliConfig.Set("vault.ssl.ca_cert")
+		return nil
+	}), "vault-ssl-ca-cert", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		cliConfig.Vault.SSL.CaPath = s
+		cliConfig.Set("vault")
+		cliConfig.Set("vault.ssl")
+		cliConfig.Set("vault.ssl.ca_path")
+		return nil
+	}), "vault-ssl-ca-path", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		cliConfig.Vault.SSL.ServerName = s
+		cliConfig.Set("vault")
+		cliConfig.Set("vault.ssl")
+		cliConfig.Set("vault.ssl.server_name")
+		return nil
+	}), "vault-ssl-server-name", "")
 
 	flags.BoolVar(&once, "once", false, "")
 	flags.BoolVar(&dry, "dry", false, "")
