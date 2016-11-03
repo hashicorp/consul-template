@@ -38,6 +38,7 @@ func TestNew(t *testing.T) {
 	stderr := gatedio.NewByteBuffer()
 	command := "echo"
 	args := []string{"hello", "world"}
+	env := []string{"a=b", "c=d"}
 	reloadSignal := os.Interrupt
 	killSignal := os.Kill
 	killTimeout := fileWaitSleepDelay
@@ -49,6 +50,7 @@ func TestNew(t *testing.T) {
 		Stderr:       stderr,
 		Command:      command,
 		Args:         args,
+		Env:          env,
 		ReloadSignal: reloadSignal,
 		KillSignal:   killSignal,
 		KillTimeout:  killTimeout,
@@ -76,6 +78,10 @@ func TestNew(t *testing.T) {
 
 	if !reflect.DeepEqual(c.args, args) {
 		t.Errorf("expected %q to be %q", c.args, args)
+	}
+
+	if !reflect.DeepEqual(c.env, env) {
+		t.Errorf("expected %q to be %q", c.env, env)
 	}
 
 	if c.reloadSignal != reloadSignal {
@@ -175,6 +181,11 @@ func TestStart(t *testing.T) {
 	c.stdout = stdout
 	c.stderr = stderr
 
+	// Custom env and command
+	c.env = []string{"a=b", "c=d"}
+	c.command = "env"
+	c.args = nil
+
 	if err := c.Start(); err != nil {
 		t.Fatal(err)
 	}
@@ -186,7 +197,7 @@ func TestStart(t *testing.T) {
 		t.Fatal("process should have exited")
 	}
 
-	expected := "hello world\n"
+	expected := "a=b\nc=d\n"
 	if stdout.String() != expected {
 		t.Errorf("expected %q to be %q", stdout.String(), expected)
 	}

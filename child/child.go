@@ -34,6 +34,7 @@ type Child struct {
 	stdout, stderr io.Writer
 	command        string
 	args           []string
+	env            []string
 
 	reloadSignal os.Signal
 
@@ -68,6 +69,12 @@ type NewInput struct {
 	// arguments to pass when starting the command.
 	Command string
 	Args    []string
+
+	// Env represents the condition of the child processes' environment
+	// variables. Only these environment variables will be given to the child, so
+	// it is the responsibility of the caller to include the parent processes
+	// environment, if required. This should be in the key=value format.
+	Env []string
 
 	// ReloadSignal is the signal to send to reload this process. This value may
 	// be nil.
@@ -107,6 +114,7 @@ func New(i *NewInput) (*Child, error) {
 		stderr:       i.Stderr,
 		command:      i.Command,
 		args:         i.Args,
+		env:          i.Env,
 		reloadSignal: i.ReloadSignal,
 		killSignal:   i.KillSignal,
 		killTimeout:  i.KillTimeout,
@@ -223,6 +231,7 @@ func (c *Child) start() error {
 	cmd.Stdin = c.stdin
 	cmd.Stdout = c.stdout
 	cmd.Stderr = c.stderr
+	cmd.Env = c.env
 	if err := cmd.Start(); err != nil {
 		return err
 	}
