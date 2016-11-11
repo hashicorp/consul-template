@@ -314,7 +314,7 @@ template {
   // create them.
   destination = "/path/on/disk/where/template/will/render.txt"
 
-  // This option allows embedding the contents of a template in the configuration 
+  // This option allows embedding the contents of a template in the configuration
   // file rather then supplying the `source` path to the template file. This is
   // useful for short templates. This option is mutually exclusive with the
   // `source` option.
@@ -401,7 +401,7 @@ Read and output the contents of a local file on disk. If the file cannot be read
 This example will out the entire contents of the file at `/path/to/local/file` into the template. Note: this does not process nested templates.
 
 ##### `key`
-Query Consul for the value at the given key. If the key cannot be converted to a string-like value, an error will occur. Keys are queried using the following syntax:
+Query Consul for the value at the given key. If the key cannot be converted to a string-like value, an error will occur. If the key does not exist, Consul Template will block until the key is present. To avoid blocking, see `key_or_default` or `key_exists`. Keys are queried using the following syntax:
 
 ```liquid
 {{key "service/redis/maxconns@east-aws"}}
@@ -415,15 +415,25 @@ The example above is querying Consul for the `service/redis/maxconns` in the eas
 
 The beauty of Consul is that the key-value structure is entirely up to you!
 
+##### `key_exists`
+Query Consul for the key. If the key exists, this function will return true, false otherwise. This function does not block if the key does not exist. This is useful for controlling flow:
+
+```liquid
+{{if key_exists "app/beta_active"}}
+  # ...
+{{else}}
+  # ...
+{{end}}
+```
+
 ##### `key_or_default`
-Query Consul for the value at the given key. If no key exists at the given path, the default value will be used instead. The existing constraints and usage for keys apply:
+Query Consul for the value at the given key. If no key exists at the given path, the default value will be used instead. Unlike `key`, this function will not block if the key does not exist. The existing constraints and usage for keys apply:
 
 ```liquid
 {{key_or_default "service/redis/maxconns@east-aws" "5"}}
 ```
 
-Please note that Consul Template uses a multi-phase evaluation. During the first phase of evaluation, Consul Template will have no data from Consul and thus will _always_ fall back to the default value. Subsequent reads from Consul will pull in the real value from Consul (if the key exists) on the next template pass. This is important because it means that Consul Template will never "block" the rendering of a template due to a missing key from a `key_or_default`. Even if the key exists, if Consul has not yet returned data for the key, the
-default value will be used instead.
+Please note that Consul Template uses a multi-phase evaluation. During the first phase of evaluation, Consul Template will have no data from Consul and thus will _always_ fall back to the default value. Subsequent reads from Consul will pull in the real value from Consul (if the key exists) on the next template pass. This is important because it means that Consul Template will never "block" the rendering of a template due to a missing key from a `key_or_default`. Even if the key exists, if Consul has not yet returned data for the key, the default value will be used instead.
 
 ##### `ls`
 Query Consul for all top-level key-value pairs at the given prefix. If any of the values cannot be converted to a string-like value, an error will occur:
@@ -1207,14 +1217,6 @@ Consul template processes input templates multiple times, since the first result
 
 In this example, we have to process the output of `services` before we can lookup each `service`, since the inner loops cannot be evaluated until the outer loop returns a response. Consul Template waits until it gets a response from Consul for all dependencies before rendering a template. It does not wait until that response is non-empty though.
 
-The most common point of confusion here is with the `key` API. In all modes (not just once), Consul Template will **not** block if a key does not exist:
-
-```liquid
-{{ key "foo" }}
-```
-
-This is because Consul returns a result for the key named "foo", but that result is the empty string (no value).
-
 ### Exec Mode
 As of version 0.16.0, Consul Template has the ability to maintain an arbitrary child process (similar to [envconsul](https://github.com/hashicorp/envconsul)). This mode is most beneficial when running Consul Template in a container or on a scheduler like [Nomad](https://www.nomadproject.io) or Kubernetes. When activated, Consul Template will spawn and manage the lifecycle of the child process.
 
@@ -1390,21 +1392,31 @@ A: Configuration management tools are designed to be used in unison with Consul 
 
 Contributing
 ------------
-To build and install Consul Template locally, you will need a modern [Go][] (Go 1.6+) environment.
+To build and install Consul Template locally, you will need to install the Docker engine:
 
-First, clone the repo:
+- [Docker for Mac](https://docs.docker.com/engine/installation/mac/)
+- [Docker for Windows](https://docs.docker.com/engine/installation/windows/)
+- [Docker for Linux](https://docs.docker.com/engine/installation/linux/ubuntulinux/)
+
+Clone the repository:
 
 ```shell
 $ git clone https://github.com/hashicorp/consul-template.git
 ```
 
-To compile the `consul-template` binary and run the test suite:
+To compile the `consul-template` binary for your local machine:
 
 ```shell
 $ make dev
 ```
 
 This will compile the `consul-template` binary into `bin/consul-template` as well as your `$GOPATH` and run the test suite.
+
+If you want to compile a specific binary, set `XC_OS` and `XC_ARCH` or run the following to generate all binaries:
+
+```shell
+$ make bin
+```
 
 If you just want to run the tests:
 
