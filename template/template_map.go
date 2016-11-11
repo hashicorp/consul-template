@@ -1,10 +1,10 @@
 package template
 
 import (
-  "sync"
-  "encoding/json"
-  "bytes"
-  "fmt"
+	"sync"
+	"encoding/json"
+	"bytes"
+	"fmt"
 	"reflect"
 	"errors"
 )
@@ -16,33 +16,33 @@ var (
 )
 
 type Map struct {
-    mu sync.RWMutex
+	mu sync.RWMutex
 
-    // data is the map of everything
-    data map[string]interface{}
+	// data is the map of everything
+	data map[string]interface{}
 
 }
 
 func NewMap() *Map {
-  return &Map{
-    data: make(map[string]interface{}),
-  }
+	return &Map{
+		data: make(map[string]interface{}),
+	}
 }
 
 func NewMapFromJSON(s string) *Map {
 	m := NewMap()
 	m.mu.Lock()
 
-  if s == "" {
-    m.data = map[string]interface{}{}
-  }
+	if s == "" {
+		m.data = map[string]interface{}{}
+	}
 	m.mu.Unlock()
 
-  if err := json.Unmarshal([]byte(s), &m.data); err != nil {
-    fmt.Printf("err, %+v", err);
-  }
+	if err := json.Unmarshal([]byte(s), &m.data); err != nil {
+		fmt.Printf("err, %+v", err);
+	}
 
-  return m
+	return m
 }
 
 
@@ -50,33 +50,33 @@ func NewMapFromJSON(s string) *Map {
 Java Map Interface
 
 void  clear()
-    Removes all of the mappings from this map (optional operation).
+	Removes all of the mappings from this map (optional operation).
 boolean   containsKey(Object key)
-    Returns true if this map contains a mapping for the specified key.
+	Returns true if this map contains a mapping for the specified key.
 boolean   containsValue(Object value)
-    Returns true if this map maps one or more keys to the specified value.
+	Returns true if this map maps one or more keys to the specified value.
 Set<Map.Entry<K,V>>   entrySet()
-    Returns a Set view of the mappings contained in this map.
+	Returns a Set view of the mappings contained in this map.
 boolean   equals(Object o)
-    Compares the specified object with this map for equality.
+	Compares the specified object with this map for equality.
 V   get(Object key)
-    Returns the value to which the specified key is mapped, or null if this map contains no mapping for the key.
+	Returns the value to which the specified key is mapped, or null if this map contains no mapping for the key.
 int   hashCode()
-    Returns the hash code value for this map.
+	Returns the hash code value for this map.
 boolean   isEmpty()
-    Returns true if this map contains no key-value mappings.
+	Returns true if this map contains no key-value mappings.
 Set<K>  keySet()
-    Returns a Set view of the keys contained in this map.
+	Returns a Set view of the keys contained in this map.
 V   put(K key, V value)
-    Associates the specified value with the specified key in this map (optional operation).
+	Associates the specified value with the specified key in this map (optional operation).
 void  putAll(Map<? extends K,? extends V> m)
-    Copies all of the mappings from the specified map to this map (optional operation).
+	Copies all of the mappings from the specified map to this map (optional operation).
 V   remove(Object key)
-    Removes the mapping for a key from this map if it is present (optional operation).
+	Removes the mapping for a key from this map if it is present (optional operation).
 int   size()
-    Returns the number of key-value mappings in this map.
+	Returns the number of key-value mappings in this map.
 Collection<V>   values()
-    Returns a Collection view of the values contained in this map.
+	Returns a Collection view of the values contained in this map.
 */
 
 
@@ -84,53 +84,53 @@ Collection<V>   values()
 //    Removes all of the mappings from this map (optional operation).
 func (m Map) Clear () {
 	m.mu.Lock()
-  for k := range m.data {
-    delete(m.data, k)
-  }
+	for k := range m.data {
+		delete(m.data, k)
+	}
 	m.mu.Unlock()
 
-  // m.data = make(map[string]interface{}) // not working?
+	// m.data = make(map[string]interface{}) // not working?
 }
 
 // same as Clear()
 // Template requires a return, this version returns data
 func (m Map) ClearReturnData () map[string]interface{}{
-  m.Clear()
+	m.Clear()
 
-  return m.data
+	return m.data
 }
 
 // same as Clear()
 // Template requires a return, this version returns nothing
 func (m Map) ClearReturnBlank () string {
-  m.Clear()
-  return ""
+	m.Clear()
+	return ""
 }
 
 // boolean   containsKey(Object key)
 //    Returns true if this map contains a mapping for the specified key.
 func (m *Map) ContainsKey(k string) bool {
 	m.mu.RLock()
-  if _, ok := m.data[k]; ok {
+	if _, ok := m.data[k]; ok {
 		m.mu.RUnlock()
-    return true
-  }
+		return true
+	}
 	m.mu.RUnlock()
-  return false
+	return false
 }
 
 // boolean   containsValue(Object value)
 //    Returns true if this map maps one or more keys to the specified value.
 func (m *Map) ContainsValue(v interface{}) bool {
 	m.mu.RLock()
-  for k := range m.data {
-    if v ==  m.data[k] {
+	for k := range m.data {
+		if v ==  m.data[k] {
 			m.mu.RUnlock()
-      return true
-    }
-  }
+			return true
+		}
+	}
 	m.mu.RUnlock()
-  return false
+	return false
 }
 
 /*
@@ -138,7 +138,7 @@ func (m *Map) ContainsValue(v interface{}) bool {
 // Set<Map.Entry<K,V>>   entrySet()
 //     Returns a Set view of the mappings contained in this map.
 func (m *Map) EntrySet() []interface{} {
-  // not yet implemented
+	// not yet implemented
 }
 
 */
@@ -165,7 +165,7 @@ func (m *Map) Get(k string) interface{} {
 	value := m.data[k]
 	m.mu.RUnlock()
 
-  return value
+	return value
 }
 
 // as Get
@@ -186,7 +186,7 @@ func (m *Map) GetString(k string) string {
 		return ""
 	}
 
-  return value.(string)
+	return value.(string)
 }
 
 /*
@@ -194,7 +194,7 @@ func (m *Map) GetString(k string) string {
 // int   hashCode()
 //    Returns the hash code value for this map.
 func (m *Map) HashCode() int {
-  // not yet implemented
+	// not yet implemented
 }
 
 */
@@ -203,33 +203,33 @@ func (m *Map) HashCode() int {
 //    Returns true if this map contains no key-value mappings.
 func (m *Map) IsEmpty() bool {
 	m.mu.RLock()
-  if len(m.data) > 0 {
+	if len(m.data) > 0 {
 		m.mu.RUnlock()
-    return false
-  }
+		return false
+	}
 	m.mu.RUnlock()
-  return true
+	return true
 }
 
 // Set<K>  keySet()
 //    Returns a Set view of the keys contained in this map.
 func (m *Map) KeySet() []string {
 	m.mu.RLock()
-  keys := make([]string, 0, len(m.data))
-  for k := range m.data {
-    keys = append(keys, k)
-  }
+	keys := make([]string, 0, len(m.data))
+	for k := range m.data {
+		keys = append(keys, k)
+	}
 	m.mu.RUnlock()
-  return keys
+	return keys
 }
 
 // V   put(K key, V value)
 //    Associates the specified value with the specified key in this map (optional operation).
 func (m *Map) Put(k string, v interface{}) interface{} {
 	m.mu.Lock()
-  m.data[k] = v
+	m.data[k] = v
 	m.mu.Unlock()
-  return v
+	return v
 }
 
 
@@ -238,48 +238,48 @@ func (m *Map) Put(k string, v interface{}) interface{} {
 //   since Put returns $value
 func (m *Map) PutReturnBlank(k string, v interface{}) interface{} {
 	m.mu.Lock()
-  m.data[k] = v
+	m.data[k] = v
 	m.mu.Unlock()
-  return "" 
+	return ""
 }
 
 // void  putAll(Map<? extends K,? extends V> m)
 //    Copies all of the mappings from the specified map to this map (optional operation).
 func (m *Map) PutAll(m2 Map) {
 	m.mu.Lock()
-  for k := range m2.data {
-    m.data[k] = m2.data[k]
-  }
+	for k := range m2.data {
+		m.data[k] = m2.data[k]
+	}
 	m.mu.Unlock()
 }
 
 // as PutAll
 // Template requires a return, this version returns data
 func (m *Map) PutAllReturnData(m2 Map) map[string]interface{} {
-  m.PutAll(m2)
+	m.PutAll(m2)
 
 	m.mu.RLock()
 	rt := m.data
 	m.mu.RUnlock()
 
-  return rt
+	return rt
 }
 
 // as PutAll
 // Template requires a return, this version returns blank
 func (m Map) PutAllReturnBlank (m2 Map) string {
-  m.PutAll(m2)
-  return ""
+	m.PutAll(m2)
+	return ""
 }
 
 // V   remove(Object key)
 //     Removes the mapping for a key from this map if it is present (optional operation).
 func (m *Map) Remove(k string) interface{} {
 	m.mu.Lock()
-  var rt = m.data[k]
-  delete(m.data, k)
+	var rt = m.data[k]
+	delete(m.data, k)
 	m.mu.Unlock()
-  return rt
+	return rt
 }
 
 // as remove()
@@ -297,54 +297,54 @@ func (m *Map) Size() int  {
 	size := len(m.data)
 	m.mu.RUnlock()
 
-  return size
+	return size
 }
 
 // Collection<V>   values()
 //    Returns a Collection view of the values contained in this map.
 func (m *Map) Values() []interface{} {
 	m.mu.RLock()
-  values := make([]interface{}, 0, len(m.data))
-  for k := range m.data {
-    values = append(values, m.data[k])
-  }
+	values := make([]interface{}, 0, len(m.data))
+	for k := range m.data {
+		values = append(values, m.data[k])
+	}
 	m.mu.RUnlock()
 
-  return values
+	return values
 }
 
 
-// parses a json string and replaces the Map
+// parses a JSON string and replaces the Map data
 func (m *Map) ParseJSON(s string) (interface{}, error) {
-  if s == "" {
+	if s == "" {
 		m.mu.Lock()
-    m.data = map[string]interface{}{}
+		m.data = map[string]interface{}{}
 		m.mu.Unlock()
-  	return m.data, nil
-  }
+		return m.data, nil
+	}
 
 	m.mu.Lock()
-  if err := json.Unmarshal([]byte(s), &m.data); err != nil {
-    fmt.Printf("err, %+v", err);
+	if err := json.Unmarshal([]byte(s), &m.data); err != nil {
+		fmt.Printf("err, %+v", err);
 		m.mu.Unlock()
-    return nil, err
-  }
+		return nil, err
+	}
 	m.mu.Unlock()
 
-  return m.data, nil
+	return m.data, nil
 }
 
-// exports the map to a json string
+// exports the map to a JSON string
 func (m *Map) ToJSON() (string, error) {
 	m.mu.RLock()
-  result, err := json.Marshal(m.data)
-  if err != nil {
-    fmt.Printf("toJSON: %s", err)
+	result, err := json.Marshal(m.data)
+	if err != nil {
+		fmt.Printf("toJSON: %s", err)
 		m.mu.RUnlock()
-    return "", fmt.Errorf("toJSON: %s", err)
-  }
+		return "", fmt.Errorf("toJSON: %s", err)
+	}
 	m.mu.RUnlock()
 
-  return string(bytes.TrimSpace(result)), err
+	return string(bytes.TrimSpace(result)), err
 }
 
