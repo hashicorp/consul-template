@@ -397,3 +397,69 @@ func TestMapEmptyContainsValue (t *testing.T) {
 		t.Errorf("expected value is not be correct. Expected: false Got: %s", rt )
 	}
 }
+
+func TestMapEquals (t *testing.T) {
+	m := NewMap()
+	m2 := NewMap()
+
+	m.Put("a", "abc")
+	m2.Put("a", "abc")
+	m.Put("x", "xyz")
+	m2.Put("x", "xyz")
+	m.Put("1", 123)
+	m2.Put("1", 123)
+
+	if ! m.Equals(m2) {
+		t.Errorf("expected value is not equal. Got: %s | %s", m, m2 )
+	}
+
+	if ! m2.Equals(m) {
+		t.Errorf("expected value is not equal. Got: %s | %s", m, m2 )
+	}
+}
+
+func TestMapNotEquals (t *testing.T) {
+	m := NewMap()
+	m2 := NewMap()
+
+	m.Put("a", "abc")
+	m2.Put("a", "abc")
+	m.Put("x", "xyz")
+	m2.Put("x", "xyz")
+	m.Put("1", 123)
+
+	if m.Equals(m2) {
+		t.Errorf("expected value is equal. Got: %s | %s", m, m2 )
+	}
+
+	if m2.Equals(m) {
+		t.Errorf("expected value is equal. Got: %s | %s", m, m2 )
+	}
+}
+
+func TestMapEmptyEquals (t *testing.T) {
+	m := NewMap()
+	m2 := NewMap()
+
+	if ! m.Equals(m2) {
+		t.Errorf("expected value is equal. Got: %s | %s", m, m2 )
+	}
+
+	if ! m2.Equals(m) {
+		t.Errorf("expected value is equal. Got: %s | %s", m, m2 )
+	}
+}
+
+func TestMapEmptyNotEquals (t *testing.T) {
+	m := NewMap()
+	m2 := NewMap()
+	m2.Put("a", "abc")
+
+	if m.Equals(m2) {
+		t.Errorf("expected value is not equal. Got: %s | %s", m, m2 )
+	}
+
+	if m2.Equals(m) {
+		t.Errorf("expected value is not equal. Got: %s | %s", m, m2 )
+	}
+}
