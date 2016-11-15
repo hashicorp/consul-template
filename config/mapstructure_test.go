@@ -1,9 +1,11 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/mitchellh/mapstructure"
 )
@@ -38,12 +40,82 @@ func TestStringToFileModeFunc(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		actual, err := mapstructure.DecodeHookExec(f, tc.f, tc.t, tc.data)
-		if (err != nil) != tc.err {
-			t.Errorf("case %d: %s", i, err)
-		}
-		if !reflect.DeepEqual(actual, tc.expected) {
-			t.Errorf("case %d: expected %#v to be %#v", i, actual, tc.expected)
-		}
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			actual, err := mapstructure.DecodeHookExec(f, tc.f, tc.t, tc.data)
+			if (err != nil) != tc.err {
+				t.Fatalf("%s", err)
+			}
+			if !reflect.DeepEqual(actual, tc.expected) {
+				t.Errorf("\nexp: %#v\nact: %#v", tc.expected, actual)
+			}
+		})
+	}
+}
+
+func TestStringToWaitDurationHookFunc(t *testing.T) {
+	f := StringToWaitDurationHookFunc()
+	strType := reflect.TypeOf("")
+	waitType := reflect.TypeOf(WaitConfig{})
+
+	cases := []struct {
+		name     string
+		f, t     reflect.Type
+		data     interface{}
+		expected interface{}
+		err      bool
+	}{
+		{
+			"min",
+			strType, waitType,
+			"5s",
+			&WaitConfig{
+				Min: TimeDuration(5 * time.Second),
+				Max: TimeDuration(20 * time.Second),
+			},
+			false,
+		},
+		{
+			"min_max",
+			strType, waitType,
+			"5s:10s",
+			&WaitConfig{
+				Min: TimeDuration(5 * time.Second),
+				Max: TimeDuration(10 * time.Second),
+			},
+			false,
+		},
+		{
+			"not_string",
+			waitType, waitType,
+			&WaitConfig{},
+			&WaitConfig{},
+			false,
+		},
+		{
+			"not_wait",
+			strType, strType,
+			"test",
+			"test",
+			false,
+		},
+		{
+			"bad_wait",
+			strType, waitType,
+			"nope",
+			(*WaitConfig)(nil),
+			true,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			actual, err := mapstructure.DecodeHookExec(f, tc.f, tc.t, tc.data)
+			if (err != nil) != tc.err {
+				t.Fatalf("%s", err)
+			}
+			if !reflect.DeepEqual(tc.expected, actual) {
+				t.Errorf("\nexp: %#v\nact: %#v", tc.expected, actual)
+			}
+		})
 	}
 }

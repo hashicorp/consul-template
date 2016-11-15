@@ -4,1000 +4,1649 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
 	"reflect"
-	"strings"
 	"syscall"
 	"testing"
 	"time"
-
-	"github.com/hashicorp/consul-template/test"
-	"github.com/hashicorp/consul-template/watch"
-	"github.com/stretchr/testify/assert"
 )
 
-func TestMerge_emptyConfig(t *testing.T) {
-	config := DefaultConfig()
-	config.Merge(&Config{})
-
-	expected := DefaultConfig()
-	if !reflect.DeepEqual(config, expected) {
-		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config, expected)
-	}
-}
-
-func TestMerge_topLevel(t *testing.T) {
-	config1 := Must(`
-		consul        = "consul-1"
-		token         = "token-1"
-		reload_signal = "SIGUSR1"
-		dump_signal   = "SIGUSR2"
-		kill_signal   = "SIGTERM"
-		max_stale     = "1s"
-		retry         = "1s"
-		wait          = "1s"
-		pid_file      = "/pid-1"
-		log_level     = "log_level-1"
-	`)
-	config2 := Must(`
-		consul        = "consul-2"
-		token         = "token-2"
-		reload_signal = "SIGINT"
-		dump_signal   = "SIGQUIT"
-		kill_signal   = "SIGKILL"
-		max_stale     = "2s"
-		retry         = "2s"
-		wait          = "2s"
-		pid_file      = "/pid-2"
-		log_level     = "log_level-2"
-	`)
-	config1.Merge(config2)
-
-	if !reflect.DeepEqual(config1, config2) {
-		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config1, config2)
-	}
-}
-
-func TestMerge_deduplicate(t *testing.T) {
-	config := Must(`
-		deduplicate {
-			prefix  = "foobar/"
-			enabled = true
-		}
-	`)
-	config.Merge(Must(`
-		deduplicate {
-			prefix  = "abc/"
-			enabled = true
-		}
-	`))
-
-	expected := &DeduplicateConfig{
-		Prefix:  "abc/",
-		Enabled: true,
-		TTL:     15 * time.Second,
-	}
-
-	if !reflect.DeepEqual(config.Deduplicate, expected) {
-		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config.Deduplicate, expected)
-	}
-}
-
-func TestMerge_vault(t *testing.T) {
-	config := Must(`
-		vault {
-			address = "1.1.1.1"
-			token = "1"
-			unwrap_token = true
-			renew = true
-		}
-	`)
-	config.Merge(Must(`
-		vault {
-			address = "2.2.2.2"
-			renew = false
-		}
-	`))
-
-	expected := &VaultConfig{
-		Address:     "2.2.2.2",
-		Token:       "1",
-		UnwrapToken: true,
-		RenewToken:  false,
-		SSL: &SSLConfig{
-			Enabled: true,
-			Verify:  true,
-			Cert:    "",
-			CaCert:  "",
-			CaPath:  "",
-		},
-	}
-
-	if !reflect.DeepEqual(config.Vault, expected) {
-		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config.Vault, expected)
-	}
-}
-
-func TestMerge_vaultSSL(t *testing.T) {
-	config := Must(`
-		vault {
-			ssl {
-				enabled = true
-				verify = true
-				cert = "1.pem"
-				ca_cert = "ca-1.pem"
-				ca_path = "/path/to/certs/"
-			}
-		}
-	`)
-	config.Merge(Must(`
-		vault {
-			ssl {
-				enabled = false
-				server_name = "vault.local"
-			}
-		}
-	`))
-
-	expected := &VaultConfig{
-		SSL: &SSLConfig{
-			Enabled:    false,
-			Verify:     true,
-			Cert:       "1.pem",
-			CaCert:     "ca-1.pem",
-			CaPath:     "/path/to/certs/",
-			ServerName: "vault.local",
-		},
-	}
-
-	if !reflect.DeepEqual(config.Vault.SSL, expected.SSL) {
-		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config.Vault.SSL, expected.SSL)
-	}
-}
-
-func TestMerge_auth(t *testing.T) {
-	config := Must(`
-		auth {
-			enabled = true
-			username = "1"
-			password = "1"
-		}
-	`)
-	config.Merge(Must(`
-		auth {
-			password = "2"
-		}
-	`))
-
-	expected := &AuthConfig{
-		Enabled:  true,
-		Username: "1",
-		Password: "2",
-	}
-
-	if !reflect.DeepEqual(config.Auth, expected) {
-		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config.Auth, expected)
-	}
-}
-
-func TestMerge_SSL(t *testing.T) {
-	config := Must(`
-		ssl {
-			enabled = true
-			verify  = true
-			cert    = "1.pem"
-			ca_cert = "ca-1.pem"
-			ca_path = "/path/to/certs/"
-		}
-	`)
-	config.Merge(Must(`
-		ssl {
-			enabled = false
-			server_name = "consul.local"
-		}
-	`))
-
-	expected := &SSLConfig{
-		Enabled:    false,
-		Verify:     true,
-		Cert:       "1.pem",
-		CaCert:     "ca-1.pem",
-		CaPath:     "/path/to/certs/",
-		ServerName: "consul.local",
-	}
-
-	if !reflect.DeepEqual(config.SSL, expected) {
-		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config.SSL, expected)
-	}
-}
-
-func TestMerge_Exec(t *testing.T) {
-	config := Must(`
-		exec {
-			command      = "a"
-			splay        = "100s"
-			pristine_env = true
-			custom_env   = ["a=b"]
-			kill_signal  = "SIGUSR2"
-			kill_timeout = "10s"
-		}
-	`)
-	config.Merge(Must(`
-		exec {
-			command    = "b"
-			splay      = "50s"
-			custom_env = ["c=d"]
-		}
-	`))
-
-	expected := &ExecConfig{
-		Command:     "b",
-		Splay:       50 * time.Second,
-		PristineEnv: true,
-		CustomEnv:   []string{"a=b", "c=d"},
-		KillSignal:  syscall.SIGUSR2,
-		KillTimeout: 10 * time.Second,
-	}
-
-	if !reflect.DeepEqual(config.Exec, expected) {
-		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config.Exec, expected)
-	}
-}
-
-func TestMerge_syslog(t *testing.T) {
-	config := Must(`
-		syslog {
-			enabled  = true
-			facility = "1"
-		}
-	`)
-	config.Merge(Must(`
-		syslog {
-			facility = "2"
-		}
-	`))
-
-	expected := &SyslogConfig{
-		Enabled:  true,
-		Facility: "2",
-	}
-
-	if !reflect.DeepEqual(config.Syslog, expected) {
-		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config.Syslog, expected)
-	}
-}
-
-func TestMerge_configTemplates(t *testing.T) {
-	config := Must(`
-		template {
-			source          = "1"
-			destination     = "1"
-			contents        = "foo"
-			command         = "1"
-			command_timeout = "60s"
-			perms           = 0600
-			backup          = false
-			left_delimiter  = "<%"
-			right_delimiter = "%>"
-		}
-	`)
-	config.Merge(Must(`
-		template {
-			source          = "2"
-			destination     = "2"
-			contents        = "bar"
-			command         = "2"
-			command_timeout = "2h"
-			perms           = 0755
-			backup          = true
-			wait            = "6s"
-		}
-	`))
-
-	expected := []*ConfigTemplate{
-		&ConfigTemplate{
-			Source:           "1",
-			Destination:      "1",
-			EmbeddedTemplate: "foo",
-			Command:          "1",
-			CommandTimeout:   60 * time.Second,
-			Perms:            0600,
-			Backup:           false,
-			LeftDelim:        "<%",
-			RightDelim:       "%>",
-			Wait:             &watch.Wait{},
-		},
-		&ConfigTemplate{
-			Source:           "2",
-			Destination:      "2",
-			EmbeddedTemplate: "bar",
-			Command:          "2",
-			CommandTimeout:   2 * time.Hour,
-			Perms:            0755,
-			Backup:           true,
-			Wait: &watch.Wait{
-				Min: 6 * time.Second,
-				Max: 24 * time.Second,
-			},
-		},
-	}
-
-	if !reflect.DeepEqual(config.ConfigTemplates, expected) {
-		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config.ConfigTemplates[0], expected[0])
-		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config.ConfigTemplates[1], expected[1])
-	}
-}
-
-func TestMerge_wait(t *testing.T) {
-	config := Must(`
-		wait = "1s:1s"
-	`)
-	config.Merge(Must(`
-		wait = "2s:2s"
-	`))
-
-	expected := &watch.Wait{
-		Min: 2 * time.Second,
-		Max: 2 * time.Second,
-	}
-
-	if !reflect.DeepEqual(config.Wait, expected) {
-		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config.Wait, expected)
-	}
-}
-
-func TestParse_emptySignal(t *testing.T) {
-	config := Must(`
-		reload_signal = ""
-	`)
-
-	if config.ReloadSignal != nil {
-		t.Errorf("expected %#v to be %#v", config.ReloadSignal, nil)
-	}
-}
-
-// There is a custom mapstructure function that tests this as well, so this is
-// more of an integration test to ensure we are parsing permissions correctly.
-func TestParse_jsonFilePerms(t *testing.T) {
-	config := Must(`
+func TestParse(t *testing.T) {
+	cases := []struct {
+		name string
+		i    string
+		e    *Config
+		err  bool
+	}{
 		{
-			"template": {
-				"perms": "0600"
-			}
-		}
-	`)
-
-	if len(config.ConfigTemplates) != 1 {
-		t.Fatalf("expected %d to be %d", len(config.ConfigTemplates), 1)
-	}
-
-	tpl := config.ConfigTemplates[0]
-	expected := os.FileMode(0600)
-	if tpl.Perms != expected {
-		t.Errorf("expected %q to to be %q", tpl.Perms, expected)
-	}
-}
-
-func TestParse_hclFilePerms(t *testing.T) {
-	config := Must(`
-		template {
-			perms = 0600
-		}
-
-		template {
-			perms = "0600"
-		}
-	`)
-
-	if len(config.ConfigTemplates) != 2 {
-		t.Fatalf("expected %d to be %d", len(config.ConfigTemplates), 1)
-	}
-
-	expected := os.FileMode(0600)
-
-	for i, tpl := range config.ConfigTemplates {
-		if tpl.Perms != expected {
-			t.Errorf("case %d: expected %q to be %q", i, tpl.Perms, expected)
-		}
-	}
-}
-
-func TestFromFile_readFileError(t *testing.T) {
-	_, err := FromFile(path.Join(os.TempDir(), "config.json"))
-	if err == nil {
-		t.Fatal("expected error, but nothing was returned")
-	}
-
-	expected := "no such file or directory"
-	if !strings.Contains(err.Error(), expected) {
-		t.Fatalf("expected %q to include %q", err.Error(), expected)
-	}
-}
-
-func TestParse_vaultDeprecation(t *testing.T) {
-	config := Must(`
-		vault {
-			address = "vault.service.consul"
-			token   = "abcd1234"
-
-			// "renew" is renamed to "renew_token"
-			renew = true
-		}
-	`)
-
-	if config.Vault.RenewToken != true {
-		t.Errorf("expected renew to be true")
-	}
-}
-
-func TestParse_correctValues(t *testing.T) {
-	config := Must(`
-		consul        = "nyc1.demo.consul.io"
-		max_stale     = "5s"
-		token         = "abcd1234"
-		reload_signal = "SIGUSR1"
-		dump_signal   = "SIGUSR2"
-		kill_signal   = "SIGTERM"
-		wait          = "5s:10s"
-		retry         = "10s"
-		pid_file      = "/var/run/ct"
-		log_level     = "warn"
-
-		vault {
-			address      = "vault.service.consul"
-			token        = "efgh5678"
-			renew_token  = true
-			unwrap_token = true
-			ssl {
-				enabled = false
-			}
-		}
-
-		auth {
-			enabled  = true
-			username = "test"
-			password = "test"
-		}
-
-		ssl {
-			enabled     = true
-			verify      = false
-			cert        = "c1.pem"
-			ca_cert     = "c2.pem"
-			ca_path     = "/path/to/certs/"
-			server_name = "consul.local"
-		}
-
-		syslog {
-			enabled  = true
-			facility = "LOCAL5"
-		}
-
-		exec {
-			pristine_env  = true
-			custom_env    = ["a=b"]
-			whitelist_env = ["*"]
-			blacklist_env = ["PATH"]
-			reload_signal = "SIGUSR1"
-			kill_signal   = "SIGUSR2"
-			kill_timeout  = "100ms"
-		}
-
-		template {
-			source      = "nginx.conf.ctmpl"
-			destination = "/etc/nginx/nginx.conf"
-		}
-
-		template {
-			source          = "redis.conf.ctmpl"
-			destination     = "/etc/redis/redis.conf"
-			command         = "service redis restart"
-			command_timeout = "60s"
-			perms           = 0755
-			wait            = "3s:7s"
-		}
-
-		template {
-			contents    = "foo"
-			destination = "embedded.conf"
-		}
-
-		deduplicate {
-			prefix  = "my-prefix/"
-			enabled = true
-		}
-  `)
-
-	expected := &Config{
-		PidFile:      "/var/run/ct",
-		Consul:       "nyc1.demo.consul.io",
-		ReloadSignal: syscall.SIGUSR1,
-		DumpSignal:   syscall.SIGUSR2,
-		KillSignal:   syscall.SIGTERM,
-		MaxStale:     time.Second * 5,
-		Vault: &VaultConfig{
-			Address:     "vault.service.consul",
-			Token:       "efgh5678",
-			RenewToken:  true,
-			UnwrapToken: true,
-			SSL: &SSLConfig{
-				Enabled: false,
-				Verify:  true,
-				Cert:    "",
-				CaCert:  "",
-				CaPath:  "",
-			},
-		},
-		Auth: &AuthConfig{
-			Enabled:  true,
-			Username: "test",
-			Password: "test",
-		},
-		SSL: &SSLConfig{
-			Enabled:    true,
-			Verify:     false,
-			Cert:       "c1.pem",
-			CaCert:     "c2.pem",
-			CaPath:     "/path/to/certs/",
-			ServerName: "consul.local",
-		},
-		Syslog: &SyslogConfig{
-			Enabled:  true,
-			Facility: "LOCAL5",
-		},
-		Token: "abcd1234",
-		Wait: &watch.Wait{
-			Min: time.Second * 5,
-			Max: time.Second * 10,
-		},
-		Exec: &ExecConfig{
-			ReloadSignal: syscall.SIGUSR1,
-			PristineEnv:  true,
-			CustomEnv:    []string{"a=b"},
-			WhitelistEnv: []string{"*"},
-			BlacklistEnv: []string{"PATH"},
-			KillSignal:   syscall.SIGUSR2,
-			KillTimeout:  100 * time.Millisecond,
-		},
-		Retry:    10 * time.Second,
-		LogLevel: "warn",
-		ConfigTemplates: []*ConfigTemplate{
-			&ConfigTemplate{
-				Source:         "nginx.conf.ctmpl",
-				Destination:    "/etc/nginx/nginx.conf",
-				CommandTimeout: DefaultCommandTimeout,
-				Perms:          0644,
-				Wait:           &watch.Wait{},
-			},
-			&ConfigTemplate{
-				Source:         "redis.conf.ctmpl",
-				Destination:    "/etc/redis/redis.conf",
-				Command:        "service redis restart",
-				CommandTimeout: 60 * time.Second,
-				Perms:          0755,
-				Wait: &watch.Wait{
-					Min: 3 * time.Second,
-					Max: 7 * time.Second,
+			"auth",
+			`auth {
+				username = "username"
+				password = "password"
+			}`,
+			&Config{
+				Auth: &AuthConfig{
+					Username: String("username"),
+					Password: String("password"),
 				},
 			},
-			&ConfigTemplate{
-				EmbeddedTemplate: "foo",
-				Destination:      "embedded.conf",
-				CommandTimeout:   DefaultCommandTimeout,
-				Perms:            0644,
-				Wait:             &watch.Wait{},
+			false,
+		},
+		{
+			"consul",
+			`consul = "1.2.3.4"`,
+			&Config{
+				Consul: String("1.2.3.4"),
+			},
+			false,
+		},
+		{
+			"deduplicate",
+			`deduplicate {
+				enabled = true
+				TTL     = "5s"
+			}`,
+			&Config{
+				Dedup: &DedupConfig{
+					Enabled: Bool(true),
+					TTL:     TimeDuration(5 * time.Second),
+				},
+			},
+			false,
+		},
+		{
+			"exec",
+			`exec {}`,
+			&Config{
+				Exec: &ExecConfig{},
+			},
+			false,
+		},
+		{
+			"exec_command",
+			`exec {
+				command = "command"
+			}`,
+			&Config{
+				Exec: &ExecConfig{
+					Command: String("command"),
+				},
+			},
+			false,
+		},
+		{
+			"exec_enabled",
+			`exec {
+				enabled = true
+			 }`,
+			&Config{
+				Exec: &ExecConfig{
+					Enabled: Bool(true),
+				},
+			},
+			false,
+		},
+		{
+			"exec_env",
+			`exec {
+				env {}
+			 }`,
+			&Config{
+				Exec: &ExecConfig{
+					Env: &EnvConfig{},
+				},
+			},
+			false,
+		},
+		{
+			"exec_env_blacklist",
+			`exec {
+				env {
+					blacklist = ["a", "b"]
+				}
+			 }`,
+			&Config{
+				Exec: &ExecConfig{
+					Env: &EnvConfig{
+						Blacklist: []string{"a", "b"},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"exec_env_custom",
+			`exec {
+				env {
+					custom = ["a=b", "c=d"]
+				}
+			}`,
+			&Config{
+				Exec: &ExecConfig{
+					Env: &EnvConfig{
+						Custom: []string{"a=b", "c=d"},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"exec_env_pristine",
+			`exec {
+				env {
+					pristine = true
+				}
+			 }`,
+			&Config{
+				Exec: &ExecConfig{
+					Env: &EnvConfig{
+						Pristine: Bool(true),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"exec_env_whitelist",
+			`exec {
+				env {
+					whitelist = ["a", "b"]
+				}
+			 }`,
+			&Config{
+				Exec: &ExecConfig{
+					Env: &EnvConfig{
+						Whitelist: []string{"a", "b"},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"exec_kill_signal",
+			`exec {
+				kill_signal = "SIGUSR1"
+			 }`,
+			&Config{
+				Exec: &ExecConfig{
+					KillSignal: Signal(syscall.SIGUSR1),
+				},
+			},
+			false,
+		},
+		{
+			"exec_kill_timeout",
+			`exec {
+				kill_timeout = "30s"
+			 }`,
+			&Config{
+				Exec: &ExecConfig{
+					KillTimeout: TimeDuration(30 * time.Second),
+				},
+			},
+			false,
+		},
+		{
+			"exec_reload_signal",
+			`exec {
+				reload_signal = "SIGUSR1"
+			 }`,
+			&Config{
+				Exec: &ExecConfig{
+					ReloadSignal: Signal(syscall.SIGUSR1),
+				},
+			},
+			false,
+		},
+		{
+			"exec_splay",
+			`exec {
+				splay = "30s"
+			 }`,
+			&Config{
+				Exec: &ExecConfig{
+					Splay: TimeDuration(30 * time.Second),
+				},
+			},
+			false,
+		},
+		{
+			"exec_timeout",
+			`exec {
+				timeout = "30s"
+			 }`,
+			&Config{
+				Exec: &ExecConfig{
+					Timeout: TimeDuration(30 * time.Second),
+				},
+			},
+			false,
+		},
+		{
+			"kill_signal",
+			`kill_signal = "SIGUSR1"`,
+			&Config{
+				KillSignal: Signal(syscall.SIGUSR1),
+			},
+			false,
+		},
+		{
+			"log_level",
+			`log_level = "WARN"`,
+			&Config{
+				LogLevel: String("WARN"),
+			},
+			false,
+		},
+		{
+			"max_stale",
+			`max_stale = "10s"`,
+			&Config{
+				MaxStale: TimeDuration(10 * time.Second),
+			},
+			false,
+		},
+		{
+			"pid_file",
+			`pid_file = "/var/pid"`,
+			&Config{
+				PidFile: String("/var/pid"),
+			},
+			false,
+		},
+		{
+			"reload_signal",
+			`reload_signal = "SIGUSR1"`,
+			&Config{
+				ReloadSignal: Signal(syscall.SIGUSR1),
+			},
+			false,
+		},
+		{
+			"retry",
+			`retry = "10s"`,
+			&Config{
+				Retry: TimeDuration(10 * time.Second),
+			},
+			false,
+		},
+		{
+			"ssl",
+			`ssl {}`,
+			&Config{
+				SSL: &SSLConfig{},
+			},
+			false,
+		},
+		{
+			"ssl_enabled",
+			`ssl {
+				enabled = true
+			}`,
+			&Config{
+				SSL: &SSLConfig{
+					Enabled: Bool(true),
+				},
+			},
+			false,
+		},
+		{
+			"ssl_verify",
+			`ssl {
+				verify = true
+			}`,
+			&Config{
+				SSL: &SSLConfig{
+					Verify: Bool(true),
+				},
+			},
+			false,
+		},
+		{
+			"ssl_cert",
+			`ssl {
+				cert = "cert"
+			}`,
+			&Config{
+				SSL: &SSLConfig{
+					Cert: String("cert"),
+				},
+			},
+			false,
+		},
+		{
+			"ssl_key",
+			`ssl {
+				key = "key"
+			}`,
+			&Config{
+				SSL: &SSLConfig{
+					Key: String("key"),
+				},
+			},
+			false,
+		},
+		{
+			"ssl_ca_cert",
+			`ssl {
+				ca_cert = "ca_cert"
+			}`,
+			&Config{
+				SSL: &SSLConfig{
+					CaCert: String("ca_cert"),
+				},
+			},
+			false,
+		},
+		{
+			"ssl_ca_path",
+			`ssl {
+				ca_path = "ca_path"
+			}`,
+			&Config{
+				SSL: &SSLConfig{
+					CaPath: String("ca_path"),
+				},
+			},
+			false,
+		},
+		{
+			"ssl_server_name",
+			`ssl {
+				server_name = "server_name"
+			}`,
+			&Config{
+				SSL: &SSLConfig{
+					ServerName: String("server_name"),
+				},
+			},
+			false,
+		},
+		{
+			"syslog",
+			`syslog {}`,
+			&Config{
+				Syslog: &SyslogConfig{},
+			},
+			false,
+		},
+		{
+			"syslog_enabled",
+			`syslog {
+				enabled = true
+			}`,
+			&Config{
+				Syslog: &SyslogConfig{
+					Enabled: Bool(true),
+				},
+			},
+			false,
+		},
+		{
+			"syslog_facility",
+			`syslog {
+				facility = "facility"
+			}`,
+			&Config{
+				Syslog: &SyslogConfig{
+					Facility: String("facility"),
+				},
+			},
+			false,
+		},
+		{
+			"template",
+			`template {}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{},
+				},
+			},
+			false,
+		},
+		{
+			"template_multi",
+			`template {}
+			template {}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{},
+					&TemplateConfig{},
+				},
+			},
+			false,
+		},
+		{
+			"template_backup",
+			`template {
+				backup = true
+			}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Backup: Bool(true),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_command",
+			`template {
+				command = "command"
+			}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Command: String("command"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_command_timeout",
+			`template {
+				command_timeout = "10s"
+			}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						CommandTimeout: TimeDuration(10 * time.Second),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_contents",
+			`template {
+				contents = "contents"
+			}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Contents: String("contents"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_destination",
+			`template {
+				destination = "destination"
+			}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Destination: String("destination"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_exec",
+			`template {
+				exec {}
+			}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Exec: &ExecConfig{},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_exec_command",
+			`template {
+				exec {
+					command = "command"
+				}
+			}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Exec: &ExecConfig{
+							Command: String("command"),
+						},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_exec_enabled",
+			`template {
+				exec {
+					enabled = true
+				}
+			 }`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Exec: &ExecConfig{
+							Enabled: Bool(true),
+						},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_exec_env",
+			`template {
+				exec {
+					env {}
+				}
+			 }`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Exec: &ExecConfig{
+							Env: &EnvConfig{},
+						},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_exec_env_blacklist",
+			`template {
+				exec {
+					env {
+						blacklist = ["a", "b"]
+					}
+				}
+			 }`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Exec: &ExecConfig{
+							Env: &EnvConfig{
+								Blacklist: []string{"a", "b"},
+							},
+						},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_exec_env_custom",
+			`template {
+				exec {
+					env {
+						custom = ["a=b", "c=d"]
+					}
+				}
+			 }`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Exec: &ExecConfig{
+							Env: &EnvConfig{
+								Custom: []string{"a=b", "c=d"},
+							},
+						},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_exec_env_pristine",
+			`template {
+				exec {
+					env {
+						pristine = true
+					}
+				}
+			 }`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Exec: &ExecConfig{
+							Env: &EnvConfig{
+								Pristine: Bool(true),
+							},
+						},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_exec_env_whitelist",
+			`template {
+				exec {
+					env {
+						whitelist = ["a", "b"]
+					}
+				}
+			 }`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Exec: &ExecConfig{
+							Env: &EnvConfig{
+								Whitelist: []string{"a", "b"},
+							},
+						},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_exec_kill_signal",
+			`template {
+				exec {
+					kill_signal = "SIGUSR1"
+				}
+			 }`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Exec: &ExecConfig{
+							KillSignal: Signal(syscall.SIGUSR1),
+						},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_exec_kill_timeout",
+			`template {
+				exec {
+					kill_timeout = "30s"
+				}
+			 }`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Exec: &ExecConfig{
+							KillTimeout: TimeDuration(30 * time.Second),
+						},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_exec_reload_signal",
+			`template {
+				exec {
+					reload_signal = "SIGUSR1"
+				}
+			 }`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Exec: &ExecConfig{
+							ReloadSignal: Signal(syscall.SIGUSR1),
+						},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_exec_splay",
+			`template {
+				exec {
+					splay = "30s"
+				}
+			 }`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Exec: &ExecConfig{
+							Splay: TimeDuration(30 * time.Second),
+						},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_exec_timeout",
+			`template {
+				exec {
+					timeout = "30s"
+				}
+			 }`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Exec: &ExecConfig{
+							Timeout: TimeDuration(30 * time.Second),
+						},
+					},
+				},
+			},
+			false,
+		},
+
+		{
+			"template_perms",
+			`template {
+				perms = "0600"
+			}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Perms: FileMode(0600),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_source",
+			`template {
+				source = "source"
+			}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Source: String("source"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_wait",
+			`template {
+				wait {
+					min = "10s"
+					max = "20s"
+				}
+			}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Wait: &WaitConfig{
+							Min: TimeDuration(10 * time.Second),
+							Max: TimeDuration(20 * time.Second),
+						},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_wait_as_string",
+			`template {
+				wait = "10s:20s"
+			}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Wait: &WaitConfig{
+							Min: TimeDuration(10 * time.Second),
+							Max: TimeDuration(20 * time.Second),
+						},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_left_delimiter",
+			`template {
+				left_delimiter = "<"
+			}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						LeftDelim: String("<"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_right_delimiter",
+			`template {
+				right_delimiter = ">"
+			}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						RightDelim: String(">"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"token",
+			`token = "token"`,
+			&Config{
+				Token: String("token"),
+			},
+			false,
+		},
+		{
+			"vault",
+			`vault {}`,
+			&Config{
+				Vault: &VaultConfig{},
+			},
+			false,
+		},
+		{
+			"vault_enabled",
+			`vault {
+				enabled = true
+			}`,
+			&Config{
+				Vault: &VaultConfig{
+					Enabled: Bool(true),
+				},
+			},
+			false,
+		},
+		{
+			"vault_address",
+			`vault {
+				address = "address"
+			}`,
+			&Config{
+				Vault: &VaultConfig{
+					Address: String("address"),
+				},
+			},
+			false,
+		},
+		{
+			"vault_token",
+			`vault {
+				token = "token"
+			}`,
+			&Config{
+				Vault: &VaultConfig{
+					Token: String("token"),
+				},
+			},
+			false,
+		},
+		{
+			"vault_unwrap_token",
+			`vault {
+				unwrap_token = true
+			}`,
+			&Config{
+				Vault: &VaultConfig{
+					UnwrapToken: Bool(true),
+				},
+			},
+			false,
+		},
+		{
+			"vault_renew_deprecated", // Deprecation
+			`vault {
+				renew = true
+			}`,
+			&Config{
+				Vault: &VaultConfig{
+					RenewToken: Bool(true),
+				},
+			},
+			false,
+		},
+		{
+			"vault_renew_token",
+			`vault {
+				renew_token = true
+			}`,
+			&Config{
+				Vault: &VaultConfig{
+					RenewToken: Bool(true),
+				},
+			},
+			false,
+		},
+		{
+			"vault_ssl",
+			`vault {
+				ssl {}
+			}`,
+			&Config{
+				Vault: &VaultConfig{
+					SSL: &SSLConfig{},
+				},
+			},
+			false,
+		},
+		{
+			"vault_ssl_enabled",
+			`vault {
+				ssl {
+					enabled = true
+				}
+			}`,
+			&Config{
+				Vault: &VaultConfig{
+					SSL: &SSLConfig{
+						Enabled: Bool(true),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"vault_ssl_verify",
+			`vault {
+				ssl {
+					verify = true
+				}
+			}`,
+			&Config{
+				Vault: &VaultConfig{
+					SSL: &SSLConfig{
+						Verify: Bool(true),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"vault_ssl_cert",
+			`vault {
+				ssl {
+					cert = "cert"
+				}
+			}`,
+			&Config{
+				Vault: &VaultConfig{
+					SSL: &SSLConfig{
+						Cert: String("cert"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"vault_ssl_key",
+			`vault {
+				ssl {
+					key = "key"
+				}
+			}`,
+			&Config{
+				Vault: &VaultConfig{
+					SSL: &SSLConfig{
+						Key: String("key"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"vault_ssl_ca_cert",
+			`vault {
+				ssl {
+					ca_cert = "ca_cert"
+				}
+			}`,
+			&Config{
+				Vault: &VaultConfig{
+					SSL: &SSLConfig{
+						CaCert: String("ca_cert"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"vault_ssl_ca_path",
+			`vault {
+				ssl {
+					ca_path = "ca_path"
+				}
+			}`,
+			&Config{
+				Vault: &VaultConfig{
+					SSL: &SSLConfig{
+						CaPath: String("ca_path"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"vault_ssl_server_name",
+			`vault {
+				ssl {
+					server_name = "server_name"
+				}
+			}`,
+			&Config{
+				Vault: &VaultConfig{
+					SSL: &SSLConfig{
+						ServerName: String("server_name"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"wait",
+			`wait {
+				min = "10s"
+				max = "20s"
+			}`,
+			&Config{
+				Wait: &WaitConfig{
+					Min: TimeDuration(10 * time.Second),
+					Max: TimeDuration(20 * time.Second),
+				},
+			},
+			false,
+		},
+		{
+			// Previous wait declarations used this syntax, but now use the stanza
+			// syntax. Keep this around for backwards-compat.
+			"wait_as_string",
+			`wait = "10s:20s"`,
+			&Config{
+				Wait: &WaitConfig{
+					Min: TimeDuration(10 * time.Second),
+					Max: TimeDuration(20 * time.Second),
+				},
+			},
+			false,
+		},
+
+		// Parse JSON file permissions as a string. There is a mapstructure
+		// function for testing this, but this is double-tested because it has
+		// regressed twice.
+		{
+			"json_file_perms",
+			`{
+				"template": {
+					"perms": "0600"
+				}
+			}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Perms: FileMode(0600),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"hcl_file_perms",
+			`template {
+				perms = "0600"
+			}
+
+			template {
+				perms = 0600
+			}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Perms: FileMode(0600),
+					},
+					&TemplateConfig{
+						Perms: FileMode(0600),
+					},
+				},
+			},
+			false,
+		},
+
+		// General validation
+		{
+			"invalid_key",
+			`not_a_valid_key = "hello"`,
+			nil,
+			true,
+		},
+		{
+			"invalid_stanza",
+			`not_a_valid_stanza {
+				a = "b"
+			}`,
+			nil,
+			true,
+		},
+		{
+			"mapstructure_error",
+			`consul = true`,
+			nil,
+			true,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			c, err := Parse(tc.i)
+			if (err != nil) != tc.err {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(tc.e, c) {
+				t.Errorf("\nexp: %#v\nact: %#v", tc.e, c)
+			}
+		})
+	}
+}
+
+func TestConfig_Merge(t *testing.T) {
+	cases := []struct {
+		name string
+		a    *Config
+		b    *Config
+		r    *Config
+	}{
+		{
+			"nil_a",
+			nil,
+			&Config{},
+			&Config{},
+		},
+		{
+			"nil_b",
+			&Config{},
+			nil,
+			&Config{},
+		},
+		{
+			"nil_both",
+			nil,
+			nil,
+			nil,
+		},
+		{
+			"empty",
+			&Config{},
+			&Config{},
+			&Config{},
+		},
+		{
+			"auth",
+			&Config{
+				Auth: &AuthConfig{
+					Enabled:  Bool(false),
+					Username: String("username"),
+					Password: String("password"),
+				},
+			},
+			&Config{
+				Auth: &AuthConfig{
+					Enabled:  Bool(true),
+					Username: String("username-diff"),
+					Password: String("password-diff"),
+				},
+			},
+			&Config{
+				Auth: &AuthConfig{
+					Enabled:  Bool(true),
+					Username: String("username-diff"),
+					Password: String("password-diff"),
+				},
 			},
 		},
-		Deduplicate: &DeduplicateConfig{
-			Prefix:  "my-prefix/",
-			Enabled: true,
-			TTL:     15 * time.Second,
+		{
+			"consul",
+			&Config{
+				Consul: String("consul"),
+			},
+			&Config{
+				Consul: String("consul-diff"),
+			},
+			&Config{
+				Consul: String("consul-diff"),
+			},
 		},
-		setKeys: config.setKeys,
+		{
+			"deduplicate",
+			&Config{
+				Dedup: &DedupConfig{
+					Enabled: Bool(true),
+				},
+			},
+			&Config{
+				Dedup: &DedupConfig{
+					Enabled: Bool(false),
+				},
+			},
+			&Config{
+				Dedup: &DedupConfig{
+					Enabled: Bool(false),
+				},
+			},
+		},
+		{
+			"exec",
+			&Config{
+				Exec: &ExecConfig{
+					Command: String("command"),
+				},
+			},
+			&Config{
+				Exec: &ExecConfig{
+					Command: String("command-diff"),
+				},
+			},
+			&Config{
+				Exec: &ExecConfig{
+					Command: String("command-diff"),
+				},
+			},
+		},
+		{
+			"kill_signal",
+			&Config{
+				KillSignal: Signal(syscall.SIGUSR1),
+			},
+			&Config{
+				KillSignal: Signal(syscall.SIGUSR2),
+			},
+			&Config{
+				KillSignal: Signal(syscall.SIGUSR2),
+			},
+		},
+		{
+			"log_level",
+			&Config{
+				LogLevel: String("log_level"),
+			},
+			&Config{
+				LogLevel: String("log_level-diff"),
+			},
+			&Config{
+				LogLevel: String("log_level-diff"),
+			},
+		},
+		{
+			"max_stale",
+			&Config{
+				MaxStale: TimeDuration(10 * time.Second),
+			},
+			&Config{
+				MaxStale: TimeDuration(20 * time.Second),
+			},
+			&Config{
+				MaxStale: TimeDuration(20 * time.Second),
+			},
+		},
+		{
+			"pid_file",
+			&Config{
+				PidFile: String("pid_file"),
+			},
+			&Config{
+				PidFile: String("pid_file-diff"),
+			},
+			&Config{
+				PidFile: String("pid_file-diff"),
+			},
+		},
+		{
+			"reload_signal",
+			&Config{
+				ReloadSignal: Signal(syscall.SIGUSR1),
+			},
+			&Config{
+				ReloadSignal: Signal(syscall.SIGUSR2),
+			},
+			&Config{
+				ReloadSignal: Signal(syscall.SIGUSR2),
+			},
+		},
+		{
+			"retry",
+			&Config{
+				Retry: TimeDuration(10 * time.Second),
+			},
+			&Config{
+				Retry: TimeDuration(20 * time.Second),
+			},
+			&Config{
+				Retry: TimeDuration(20 * time.Second),
+			},
+		},
+		{
+			"ssl",
+			&Config{
+				SSL: &SSLConfig{
+					Enabled: Bool(true),
+				},
+			},
+			&Config{
+				SSL: &SSLConfig{
+					Enabled: Bool(false),
+				},
+			},
+			&Config{
+				SSL: &SSLConfig{
+					Enabled: Bool(false),
+				},
+			},
+		},
+		{
+			"syslog",
+			&Config{
+				Syslog: &SyslogConfig{
+					Enabled: Bool(true),
+				},
+			},
+			&Config{
+				Syslog: &SyslogConfig{
+					Enabled: Bool(false),
+				},
+			},
+			&Config{
+				Syslog: &SyslogConfig{
+					Enabled: Bool(false),
+				},
+			},
+		},
+		{
+			"template_configs",
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Source: String("one"),
+					},
+				},
+			},
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Source: String("two"),
+					},
+				},
+			},
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Source: String("one"),
+					},
+					&TemplateConfig{
+						Source: String("two"),
+					},
+				},
+			},
+		},
+		{
+			"token",
+			&Config{
+				Token: String("token"),
+			},
+			&Config{
+				Token: String("token-diff"),
+			},
+			&Config{
+				Token: String("token-diff"),
+			},
+		},
+		{
+			"vault",
+			&Config{
+				Vault: &VaultConfig{
+					Enabled: Bool(true),
+				},
+			},
+			&Config{
+				Vault: &VaultConfig{
+					Enabled: Bool(false),
+				},
+			},
+			&Config{
+				Vault: &VaultConfig{
+					Enabled: Bool(false),
+				},
+			},
+		},
+		{
+			"wait",
+			&Config{
+				Wait: &WaitConfig{
+					Min: TimeDuration(10 * time.Second),
+					Max: TimeDuration(20 * time.Second),
+				},
+			},
+			&Config{
+				Wait: &WaitConfig{
+					Min: TimeDuration(20 * time.Second),
+					Max: TimeDuration(50 * time.Second),
+				},
+			},
+			&Config{
+				Wait: &WaitConfig{
+					Min: TimeDuration(20 * time.Second),
+					Max: TimeDuration(50 * time.Second),
+				},
+			},
+		},
 	}
 
-	if !reflect.DeepEqual(config, expected) {
-		t.Fatalf("expected \n%#v\n to be \n%#v\n", config, expected)
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			r := tc.a.Merge(tc.b)
+			if !reflect.DeepEqual(tc.r, r) {
+				t.Errorf("\nexp: %#v\nact: %#v", tc.r, r)
+			}
+		})
 	}
 }
 
-func TestParse_mapstructureError(t *testing.T) {
-	_, err := Parse("consul = true")
-	if err == nil {
-		t.Fatal("expected error, but nothing was returned")
-	}
-
-	expectedErr := "unconvertible type 'bool'"
-	if !strings.Contains(err.Error(), expectedErr) {
-		t.Fatalf("expected error %q to contain %q", err.Error(), expectedErr)
-	}
-}
-
-func TestParse_ssh_key_should_enable_ssl(t *testing.T) {
-	config := Must(`
-		ssl {
-			key     = "private-key.pem"
-			verify  = true
-			cert    = "1.pem"
-			ca_cert = "ca-1.pem"
-			ca_path = "/path/to/certs"
-		}
-	`)
-
-	expected := &SSLConfig{
-		Enabled: true,
-		Verify:  true,
-		Cert:    "1.pem",
-		Key:     "private-key.pem",
-		CaCert:  "ca-1.pem",
-		CaPath:  "/path/to/certs",
-	}
-
-	if !reflect.DeepEqual(config.SSL, expected) {
-		t.Errorf("expected \n\n%#v\n\n to be \n\n%#v\n\n", config.SSL, expected)
-	}
-}
-
-func TestParse_extraKeys(t *testing.T) {
-	_, err := Parse(`
-		fake_key         = "nope"
-		another_fake_key = "never"
-	`)
-	if err == nil {
-		t.Fatal("expected error")
-	}
-
-	expected := "invalid keys: another_fake_key, fake_key"
-	if !strings.Contains(err.Error(), expected) {
-		t.Errorf("expected %q to be %q", err.Error(), expected)
-	}
-}
-
-func TestParse_parseMaxStaleError(t *testing.T) {
-	_, err := Parse(`
-		max_stale = "bacon pants"
-	`)
-	if err == nil {
-		t.Fatal("expected error, but nothing was returned")
-	}
-
-	expectedErr := "time: invalid duration"
-	if !strings.Contains(err.Error(), expectedErr) {
-		t.Fatalf("expected error %q to contain %q", err.Error(), expectedErr)
-	}
-}
-
-func TestParse_parseRetryError(t *testing.T) {
-	_, err := Parse(`
-		retry = "bacon pants"
-	`)
-	if err == nil {
-		t.Fatal("expected error, but nothing was returned")
-	}
-
-	expectedErr := "time: invalid duration"
-	if !strings.Contains(err.Error(), expectedErr) {
-		t.Fatalf("expected error %q to contain %q", err.Error(), expectedErr)
-	}
-}
-
-func TestParse_parseWaitError(t *testing.T) {
-	_, err := Parse(`
-		wait = "not_valid:duration"
-	`)
-	if err == nil {
-		t.Fatal("expected error, but nothing was returned")
-	}
-
-	expectedErr := "time: invalid duration"
-	if !strings.Contains(err.Error(), expectedErr) {
-		t.Fatalf("expected error %q to contain %q", err.Error(), expectedErr)
-	}
-}
-
-func TestFromPath_singleFile(t *testing.T) {
-	configFile := test.CreateTempfile([]byte(`
-		consul = "127.0.0.1"
-	`), t)
-	defer test.DeleteTempfile(configFile, t)
-
-	config, err := FromPath(configFile.Name())
+func TestFromPath(t *testing.T) {
+	f, err := ioutil.TempFile("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer os.Remove(f.Name())
 
-	expected := "127.0.0.1"
-	if config.Consul != expected {
-		t.Errorf("expected %q to be %q", config.Consul, expected)
-	}
-}
-
-func TestFromPath_NonExistentDirectory(t *testing.T) {
-	// Create a directory and then delete it
-	configDir, err := ioutil.TempDir(os.TempDir(), "")
+	emptyDir, err := ioutil.TempDir(os.TempDir(), "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.RemoveAll(configDir); err != nil {
-		t.Fatal(err)
-	}
+	defer os.RemoveAll(emptyDir)
 
-	_, err = FromPath(configDir)
-	if err == nil {
-		t.Fatalf("expected error, but nothing was returned")
-	}
-
-	expected := "missing file/folder"
-	if !strings.Contains(err.Error(), expected) {
-		t.Fatalf("expected %q to contain %q", err.Error(), expected)
-	}
-}
-
-func TestFromPath_EmptyDirectory(t *testing.T) {
-	// Create a directory with no files
 	configDir, err := ioutil.TempDir(os.TempDir(), "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(configDir)
-
-	_, err = FromPath(configDir)
-	if err != nil {
-		t.Fatalf("empty directories are allowed")
-	}
-}
-
-func TestFromPath_configDir(t *testing.T) {
-	configDir, err := ioutil.TempDir(os.TempDir(), "")
+	cf1, err := ioutil.TempFile(configDir, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	configFile1, err := ioutil.TempFile(configDir, "")
+	if err := ioutil.WriteFile(cf1.Name(), []byte(`consul = "1.2.3.4"`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	cf2, err := ioutil.TempFile(configDir, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	config1 := []byte(`
-		consul = "127.0.0.1:8500"
-	`)
-	_, err = configFile1.Write(config1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	configFile2, err := ioutil.TempFile(configDir, "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	config2 := []byte(`
-		template {
-		  source = "/path/on/disk/to/template"
-		  destination = "/path/on/disk/where/template/will/render"
-		  command = "optional command to run when the template is updated"
-		}
-	`)
-	_, err = configFile2.Write(config2)
-	if err != nil {
+	if err := ioutil.WriteFile(cf2.Name(), []byte(`token = "token"`), 0644); err != nil {
 		t.Fatal(err)
 	}
 
-	config, err := FromPath(configDir)
-	if err != nil {
-		t.Fatal(err)
+	cases := []struct {
+		name string
+		path string
+		e    *Config
+		err  bool
+	}{
+		{
+			"missing_dir",
+			"/not/a/real/dir",
+			nil,
+			true,
+		},
+		{
+			"file",
+			f.Name(),
+			&Config{},
+			false,
+		},
+		{
+			"empty_dir",
+			emptyDir,
+			nil,
+			false,
+		},
+		{
+			"config_dir",
+			configDir,
+			&Config{
+				Consul: String("1.2.3.4"),
+				Token:  String("token"),
+			},
+			false,
+		},
 	}
 
-	expectedConfig := Config{
-		Consul: "127.0.0.1:8500",
-		ConfigTemplates: []*ConfigTemplate{{
-			Source:      "/path/on/disk/to/template",
-			Destination: "/path/on/disk/where/template/will/render",
-			Command:     "optional command to run when the template is updated",
-		}},
-	}
-	if expectedConfig.Consul != config.Consul {
-		t.Fatalf("Config files failed to combine. Expected Consul to be %s but got %s", expectedConfig.Consul, config.Consul)
-	}
-	if len(config.ConfigTemplates) != len(expectedConfig.ConfigTemplates) {
-		t.Fatalf("Expected %d ConfigTemplate but got %d", len(expectedConfig.ConfigTemplates), len(config.ConfigTemplates))
-	}
-	for i, expectTemplate := range expectedConfig.ConfigTemplates {
-		actualTemplate := config.ConfigTemplates[i]
-		if actualTemplate.Source != expectTemplate.Source {
-			t.Fatalf("Expected template Source to be %s but got %s", expectTemplate.Source, actualTemplate.Source)
-		}
-		if actualTemplate.Destination != expectTemplate.Destination {
-			t.Fatalf("Expected template Destination to be %s but got %s", expectTemplate.Destination, actualTemplate.Destination)
-		}
-		if actualTemplate.Command != expectTemplate.Command {
-			t.Fatalf("Expected template Command to be %s but got %s", expectTemplate.Command, actualTemplate.Command)
-		}
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			c, err := FromPath(tc.path)
+			if (err != nil) != tc.err {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(tc.e, c) {
+				t.Errorf("\nexp: %#v\nact: %#v", tc.e, c)
+			}
+		})
 	}
 }
 
-func TestAuthString_disabled(t *testing.T) {
-	a := &AuthConfig{Enabled: false}
-	expected := ""
-	if a.String() != expected {
-		t.Errorf("expected %q to be %q", a.String(), expected)
-	}
-}
-
-func TestAuthString_enabledNoPassword(t *testing.T) {
-	a := &AuthConfig{Enabled: true, Username: "username"}
-	expected := "username"
-	if a.String() != expected {
-		t.Errorf("expected %q to be %q", a.String(), expected)
-	}
-}
-
-func TestAuthString_enabled(t *testing.T) {
-	a := &AuthConfig{Enabled: true, Username: "username", Password: "password"}
-	expected := "username:password"
-	if a.String() != expected {
-		t.Errorf("expected %q to be %q", a.String(), expected)
-	}
-}
-
-func TestParseConfigTemplate_emptyStringArgs(t *testing.T) {
-	_, err := ParseConfigTemplate("")
-	if err == nil {
-		t.Fatal("expected error, but nothing was returned")
-	}
-
-	expectedErr := "cannot specify empty template declaration"
-	if !strings.Contains(err.Error(), expectedErr) {
-		t.Fatalf("expected error %q to contain %q", err.Error(), expectedErr)
-	}
-}
-
-func TestParseConfigTemplate_stringWithSpacesArgs(t *testing.T) {
-	_, err := ParseConfigTemplate("  ")
-	if err == nil {
-		t.Fatal("expected error, but nothing was returned")
-	}
-
-	expectedErr := "cannot specify empty template declaration"
-	if !strings.Contains(err.Error(), expectedErr) {
-		t.Fatalf("expected error %q to contain %q", err.Error(), expectedErr)
-	}
-}
-
-func TestParseConfigurationTemplate_tooManyArgs(t *testing.T) {
-	_, err := ParseConfigTemplate("foo:bar:blitz:baz")
-	if err == nil {
-		t.Fatal("expected error, but nothing was returned")
-	}
-
-	expectedErr := "invalid template declaration format"
-	if !strings.Contains(err.Error(), expectedErr) {
-		t.Fatalf("expected error %q to contain %q", err.Error(), expectedErr)
-	}
-}
-
-func TestParseConfigurationTemplate_windowsDrives(t *testing.T) {
-	ct, err := ParseConfigTemplate(`C:\abc\123:D:\xyz\789:some command`)
-	if err != nil {
-		t.Fatalf("failed parsing windows drive letters: %s", err)
-	}
-
-	expected := &ConfigTemplate{
-		Source:         `C:\abc\123`,
-		Destination:    `D:\xyz\789`,
-		Command:        "some command",
-		CommandTimeout: DefaultCommandTimeout,
-		Perms:          0644,
-		Wait:           &watch.Wait{},
-	}
-
-	if !reflect.DeepEqual(ct, expected) {
-		t.Fatalf("unexpected result parsing windows drives: %#v", ct)
-	}
-}
-
-func TestParseConfigurationTemplate_source(t *testing.T) {
-	source := "/tmp/config.ctmpl"
-	template, err := ParseConfigTemplate(source)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if template.Source != source {
-		t.Errorf("expected %q to equal %q", template.Source, source)
-	}
-}
-
-func TestParseConfigurationTemplate_destination(t *testing.T) {
-	source, destination := "/tmp/config.ctmpl", "/tmp/out"
-	template, err := ParseConfigTemplate(fmt.Sprintf("%s:%s", source, destination))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if template.Source != source {
-		t.Errorf("expected %q to equal %q", template.Source, source)
-	}
-
-	if template.Destination != destination {
-		t.Errorf("expected %q to equal %q", template.Destination, destination)
-	}
-}
-
-func TestParseConfigurationTemplate_command(t *testing.T) {
-	source, destination, command := "/tmp/config.ctmpl", "/tmp/out", "reboot"
-	template, err := ParseConfigTemplate(fmt.Sprintf("%s:%s:%s", source, destination, command))
-	if err != nil {
-		t.Fatal(err)
+func TestDefaultConfig(t *testing.T) {
+	cases := []struct {
+		env string
+		val string
+		e   *Config
+		err bool
+	}{
+		{
+			"CONSUL_HTTP_ADDR",
+			"1.2.3.4",
+			&Config{
+				Consul: String("1.2.3.4"),
+			},
+			false,
+		},
+		{
+			"CONSUL_TEMPLATE_LOG",
+			"DEBUG",
+			&Config{
+				LogLevel: String("DEBUG"),
+			},
+			false,
+		},
+		{
+			"CONSUL_TOKEN",
+			"token",
+			&Config{
+				Token: String("token"),
+			},
+			false,
+		},
+		{
+			"VAULT_ADDR",
+			"http://1.2.3.4:8200",
+			&Config{
+				Vault: &VaultConfig{
+					Address: String("http://1.2.3.4:8200"),
+				},
+			},
+			false,
+		},
+		{
+			"VAULT_TOKEN",
+			"abcd1234",
+			&Config{
+				Vault: &VaultConfig{
+					Token: String("abcd1234"),
+				},
+			},
+			false,
+		},
+		{
+			"VAULT_UNWRAP_TOKEN",
+			"true",
+			&Config{
+				Vault: &VaultConfig{
+					UnwrapToken: Bool(true),
+				},
+			},
+			false,
+		},
+		{
+			"VAULT_UNWRAP_TOKEN",
+			"false",
+			&Config{
+				Vault: &VaultConfig{
+					UnwrapToken: Bool(false),
+				},
+			},
+			false,
+		},
+		{
+			"VAULT_CA_PATH",
+			"ca_path",
+			&Config{
+				Vault: &VaultConfig{
+					SSL: &SSLConfig{
+						CaPath: String("ca_path"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"VAULT_CA_CERT",
+			"ca_cert",
+			&Config{
+				Vault: &VaultConfig{
+					SSL: &SSLConfig{
+						CaCert: String("ca_cert"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"VAULT_TLS_SERVER_NAME",
+			"server_name",
+			&Config{
+				Vault: &VaultConfig{
+					SSL: &SSLConfig{
+						ServerName: String("server_name"),
+					},
+				},
+			},
+			false,
+		},
 	}
 
-	if template.Source != source {
-		t.Errorf("expected %q to equal %q", template.Source, source)
-	}
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.env), func(t *testing.T) {
+			if err := os.Setenv(tc.env, tc.val); err != nil {
+				t.Fatal(err)
+			}
+			defer os.Unsetenv(tc.env)
 
-	if template.Destination != destination {
-		t.Errorf("expected %q to equal %q", template.Destination, destination)
-	}
+			r := DefaultConfig()
+			r.Merge(tc.e)
 
-	if template.Command != command {
-		t.Errorf("expected %q to equal %q", template.Command, command)
+			c := DefaultConfig()
+			if !reflect.DeepEqual(r, c) {
+				t.Errorf("\nexp: %#v\nact: %#v", r, c)
+			}
+		})
 	}
-}
-
-func TestExecEnv(t *testing.T) {
-	exec := &ExecConfig{}
-	assert.Equal(t, os.Environ(), exec.Env())
-}
-
-func TestExecEnv_pristine(t *testing.T) {
-	exec := &ExecConfig{
-		PristineEnv: true,
-	}
-	assert.Empty(t, exec.Env())
-}
-
-func TestExecEnv_pristineCustom(t *testing.T) {
-	customEnv := []string{"a=b", "c=d"}
-	exec := &ExecConfig{
-		PristineEnv: true,
-		CustomEnv:   customEnv,
-	}
-	assert.Equal(t, customEnv, exec.Env())
-}
-
-func TestExecEnv_whitelist(t *testing.T) {
-	exec := &ExecConfig{
-		WhitelistEnv: []string{"GOPATH"},
-	}
-	assert.Len(t, exec.Env(), 1)
-	assert.Regexp(t, "GOPATH=.*", exec.Env()[0])
-}
-
-func TestExecEnv_blacklist(t *testing.T) {
-	exec := &ExecConfig{
-		BlacklistEnv: []string{"GOPATH"},
-	}
-	assert.NotContains(t, exec.Env(), "GOPATH="+os.Getenv("GOPATH"))
-}
-
-func TestExecEnv_blacklistWhitelist(t *testing.T) {
-	exec := &ExecConfig{
-		WhitelistEnv: []string{"GOPATH"},
-		BlacklistEnv: []string{"GOPATH"},
-	}
-	assert.Len(t, exec.Env(), 0)
-}
-
-func TestExecEnv_custom(t *testing.T) {
-	exec := &ExecConfig{
-		CustomEnv: []string{"HELLO=goodbyte"},
-	}
-	assert.Contains(t, exec.Env(), "HELLO=goodbyte")
-	assert.Contains(t, exec.Env(), "GOPATH="+os.Getenv("GOPATH"))
-}
-
-func TestExecEnv_customBlacklistWhitelist(t *testing.T) {
-	exec := &ExecConfig{
-		WhitelistEnv: []string{"GOPATH"},
-		BlacklistEnv: []string{"GOPATH"},
-		CustomEnv:    []string{"HELLO=goodbyte"},
-	}
-	assert.Len(t, exec.Env(), 1)
-	assert.Equal(t, "HELLO=goodbyte", exec.Env()[0])
 }
