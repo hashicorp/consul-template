@@ -126,6 +126,13 @@ dump_signal = "SIGQUIT"
 // to not listen for any graceful stop signals.
 kill_signal = "SIGINT"
 
+// This is customization around the environment in which template commands are
+// executed. See the "exec" block for more information on the specific
+// configuration options.
+env {
+  // ...
+}
+
 // This is the amount of time to wait before retrying a connection to Consul.
 // Consul Template is highly fault tolerant, meaning it does not exit in the
 // face of failure. Instead, it uses exponential back-off and retry functions to
@@ -155,7 +162,10 @@ pid_file = "/path/to/pid"
 // time to wait for the cluster to reach a consistent state before rendering a
 // template. This is useful to enable in systems that have a lot of flapping,
 // because it will reduce the the number of times a template is rendered.
-wait = "5s:10s"
+wait {
+  min = "5s"
+  max = "10s"
+}
 
 // This denotes the start of the configuration section for Vault. All values
 // contained in this section pertain to Vault.
@@ -277,6 +287,38 @@ exec {
   // herd problem on applications that do not gracefully reload.
   splay = "5s"
 
+  env {
+    // This specifies if the child process should not inherit the parent
+    // process's environment. By default, the child will have full access to the
+    // environment variables of the parent. Setting this to true will send only
+    // the values specified in `custom_env` to the child process.
+    pristine = false
+
+    // This specifies additional custom environment variables in the form shown
+    // below to inject into the child's runtime environment. If a custom
+    // environment variable shares its name with a system environment variable,
+    // the custom environment variable takes precedence. Even if pristine,
+    // whitelist, or blacklist is specified, all values in this option
+    // are given to the child process.
+    custom = ["PATH=$PATH:/etc/myapp/bin"]
+
+    // This specifies a list of environment variables to exclusively include in
+    // the list of environment variables exposed to the child process. If
+    // specified, only those environment variables matching the given patterns
+    // are exposed to the child process. These strings are matched using Go's
+    // glob function, so wildcards are permitted.
+    whitelist = ["CONSUL_*"]
+
+    // This specifies a list of environment variables to exclusively prohibit in
+    // the list of environment variables exposed to the child process. If
+    // specified, any environment variables matching the given patterns will not
+    // be exposed to the child process, even if they are whitelisted. The values
+    // in this option take precedence over the values in the whitelist.
+    // These strings are matched using Go's glob function, so wildcards are
+    // permitted.
+    blacklist = ["VAULT_*"]
+  }
+
   // This defines the signal that will be sent to the child process when a
   // change occurs in a watched template. The signal will only be sent after
   // the process is started, and the process will only be started after all
@@ -318,7 +360,7 @@ template {
   // file rather then supplying the `source` path to the template file. This is
   // useful for short templates. This option is mutually exclusive with the
   // `source` option.
-  contents = "{{key_or_default \"service/redis/maxconns@east-aws\" \"5\"}}"
+  contents = "{{ keyOrDefault \"service/redis/maxconns@east-aws\" \"5\" }}"
 
   // This is the optional command to run when the template is rendered. The
   // command will only run if the resulting template changes. The command must
@@ -354,7 +396,10 @@ template {
   // This is a numeric time with a unit suffix ("5s"). There is no default value.
   // The wait value for a template takes precedence over any globally-configured
   // wait.
-  wait = "2s:6s"
+  wait {
+    min = "2s"
+    max = "10s"
+  }
 }
 ```
 
@@ -401,7 +446,7 @@ Read and output the contents of a local file on disk. If the file cannot be read
 This example will out the entire contents of the file at `/path/to/local/file` into the template. Note: this does not process nested templates.
 
 ##### `key`
-Query Consul for the value at the given key. If the key cannot be converted to a string-like value, an error will occur. If the key does not exist, Consul Template will block until the key is present. To avoid blocking, see `key_or_default` or `key_exists`. Keys are queried using the following syntax:
+Query Consul for the value at the given key. If the key cannot be converted to a string-like value, an error will occur. If the key does not exist, Consul Template will block until the key is present. To avoid blocking, see `keyOrDefault` or `keyExists`. Keys are queried using the following syntax:
 
 ```liquid
 {{key "service/redis/maxconns@east-aws"}}
@@ -415,25 +460,25 @@ The example above is querying Consul for the `service/redis/maxconns` in the eas
 
 The beauty of Consul is that the key-value structure is entirely up to you!
 
-##### `key_exists`
+##### `keyExists`
 Query Consul for the key. If the key exists, this function will return true, false otherwise. This function does not block if the key does not exist. This is useful for controlling flow:
 
 ```liquid
-{{if key_exists "app/beta_active"}}
+{{if keyExists "app/beta_active"}}
   # ...
 {{else}}
   # ...
 {{end}}
 ```
 
-##### `key_or_default`
+##### `keyOrDefault`
 Query Consul for the value at the given key. If no key exists at the given path, the default value will be used instead. Unlike `key`, this function will not block if the key does not exist. The existing constraints and usage for keys apply:
 
 ```liquid
-{{key_or_default "service/redis/maxconns@east-aws" "5"}}
+{{keyOrDefault "service/redis/maxconns@east-aws" "5"}}
 ```
 
-Please note that Consul Template uses a multi-phase evaluation. During the first phase of evaluation, Consul Template will have no data from Consul and thus will _always_ fall back to the default value. Subsequent reads from Consul will pull in the real value from Consul (if the key exists) on the next template pass. This is important because it means that Consul Template will never "block" the rendering of a template due to a missing key from a `key_or_default`. Even if the key exists, if Consul has not yet returned data for the key, the default value will be used instead.
+Please note that Consul Template uses a multi-phase evaluation. During the first phase of evaluation, Consul Template will have no data from Consul and thus will _always_ fall back to the default value. Subsequent reads from Consul will pull in the real value from Consul (if the key exists) on the next template pass. This is important because it means that Consul Template will never "block" the rendering of a template due to a missing key from a `keyOrDefault`. Even if the key exists, if Consul has not yet returned data for the key, the default value will be used instead.
 
 ##### `ls`
 Query Consul for all top-level key-value pairs at the given prefix. If any of the values cannot be converted to a string-like value, an error will occur:
