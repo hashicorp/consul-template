@@ -25,7 +25,7 @@ XC_EXCLUDE ?= darwin/arm solaris/386 solaris/arm windows/arm
 GPG_KEY ?=
 
 # List of tests to run
-TEST = ./...
+TEST ?= ./...
 
 # List all our actual files, excluding vendor
 GOFILES = $(shell go list $(TEST) | grep -v /vendor/)
