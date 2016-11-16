@@ -3,6 +3,7 @@ package dependency
 import (
 	"errors"
 	"fmt"
+	"log"
 	"sort"
 	"time"
 
@@ -60,7 +61,10 @@ func ErrWithExitf(s string, i ...interface{}) *FetchError {
 type ServiceTags []string
 
 // Contains returns true if the tags exists in the ServiceTags slice.
+// This is deprecated and should not be used.
 func (t ServiceTags) Contains(s string) bool {
+	log.Printf("[WARN] .Tags.Contains is deprecated. Use the built-in\n" +
+		"functions 'in' or 'contains' with a pipe instead.")
 	for _, v := range t {
 		if v == s {
 			return true
