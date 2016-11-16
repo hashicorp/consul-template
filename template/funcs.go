@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"reflect"
@@ -373,16 +372,6 @@ func treeFunc(brain *Brain,
 		addDependency(missing, d)
 
 		return result, nil
-	}
-}
-
-// vaultFunc is deprecated. Use secretFunc instead.
-func vaultFunc(brain *Brain,
-	used, missing map[string]dep.Dependency) func(string) (*dep.Secret, error) {
-	return func(s string) (*dep.Secret, error) {
-		log.Printf("[WARN] the `vault' template function has been deprecated. " +
-			"Please use `secret` instead!")
-		return secretFunc(brain, used, missing)(s)
 	}
 }
 
