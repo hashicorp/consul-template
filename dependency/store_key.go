@@ -135,11 +135,11 @@ func (d *StoreKey) HashCode() string {
 // Display prints the human-friendly output.
 func (d *StoreKey) Display() string {
 	if d.existenceCheck {
-		return fmt.Sprintf(`"key_exists(%s)"`, d.rawKey)
+		return fmt.Sprintf(`"keyExists(%s)"`, d.rawKey)
 	}
 
 	if d.defaultGiven {
-		return fmt.Sprintf(`"key_or_default(%s, %q)"`, d.rawKey, d.defaultValue)
+		return fmt.Sprintf(`"keyOrDefault(%s, %q)"`, d.rawKey, d.defaultValue)
 	}
 
 	return fmt.Sprintf(`"key(%s)"`, d.rawKey)

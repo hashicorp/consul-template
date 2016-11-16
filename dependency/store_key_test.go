@@ -79,7 +79,7 @@ func TestStoreKeyDisplay_includesDefault(t *testing.T) {
 	}
 	dep.SetDefault("3")
 
-	expected := `"key_or_default(conns, "3")"`
+	expected := `"keyOrDefault(conns, "3")"`
 	if dep.Display() != expected {
 		t.Errorf("expected %q to be %q", dep.Display(), expected)
 	}
