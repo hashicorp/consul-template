@@ -5,7 +5,7 @@ Consul Template Changelog
 
 NEW FEATURES:
 
-  * Add new template function `key_exists` for determining if a key is present.
+  * Add new template function `keyExists` for determining if a key is present.
       See the breaking change notice before for more information about the
       motivation for this change.
 
@@ -15,9 +15,53 @@ BREAKING CHANGES:
       to always pass through, allowing users to use the existence of a key as
       a source of control flow. This caused confusion among many users, so we
       have restored the expected behavior of blocking on a `key` query, but have
-      added `key_exists` to check for the existence of a key. Note that the
-      `key_or_default` function remains unchanged and will not block if the
-      value is nil, as expected.
+      added `keyExists` to check for the existence of a key. Note that the
+      `keyOrDefault` function remains unchanged and will not block if the value
+      is nil, as expected.
+
+  * The `vault` template function has been removed. This has been deprecated
+      with a warning since v0.14.0.
+
+  * A shell is no longer assumed for Template commands. Previous versions of
+      Consul Template assumed `/bin/sh` (`cmd` on Windows) as the parent
+      process for the template command. Due to user requests and a desire to
+      customize the shell, Consul Template no longer wraps the command in a
+      shell. For most commands, this change will be transparent. If you were
+      utilizing shell-specific functions like `&&`, `||`, or conditionals, you
+      will need to wrap you command in a shell, for example:
+
+    ```shell
+    -template "in.tpl:out.tpl:/bin/bash -c 'echo a || b'"
+    ```
+
+    or
+
+    ```hcl
+    template {
+      command = "/bin/bash -c 'echo a || b'"
+    }
+    ```
+
+DEPRECATIONS:
+
+  * `.Tags.Contains` is deprecated. Templates should make use of the built-in
+      `in` and `contains` functions instead. For example:
+
+    ```liquid
+    {{ if .Tags.Contains "foo" }}
+    ```
+
+    becomes:
+
+    ```liquid
+    {{ if .Tags | contains "foo" }}
+    ```
+
+    or:
+
+    ```liquid
+    {{ if "foo" | in .Tags }}
+    ```
 
 IMPROVEMENTS:
 
