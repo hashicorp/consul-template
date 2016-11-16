@@ -464,9 +464,20 @@ func contains(v, l interface{}) (bool, error) {
 	return in(l, v)
 }
 
-// env returns the value of the environment variable set
-func env(s string) (string, error) {
-	return os.Getenv(s), nil
+// envFunc returns a function which checks the value of an environment variable.
+// Invokers can specify their own environment, which takes precedences over any
+// real environment variables
+func envFunc(env []string) func(string) (string, error) {
+	return func(s string) (string, error) {
+		for _, e := range env {
+			split := strings.SplitN(e, "=", 2)
+			k, v := split[0], split[1]
+			if k == s {
+				return v, nil
+			}
+		}
+		return os.Getenv(s), nil
+	}
 }
 
 // explode is used to expand a list of keypairs into a deeply-nested hash.

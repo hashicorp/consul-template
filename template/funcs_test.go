@@ -8,6 +8,7 @@ import (
 	"time"
 
 	dep "github.com/hashicorp/consul-template/dependency"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestDatacentersFunc_emptyString(t *testing.T) {
@@ -490,7 +491,7 @@ func TestNodeFunc_hasData(t *testing.T) {
 
 	expected := data
 	if !reflect.DeepEqual(result, expected) {
-		t.Errorf("expected %q to be %q", result, expected)
+		t.Errorf("expected %#v to be %#v", result, expected)
 	}
 
 	if len(missing) != 0 {
@@ -520,7 +521,7 @@ func TestNodeFunc_missingData(t *testing.T) {
 	}
 
 	if result != nil {
-		t.Errorf("expected %q to be nil", result)
+		t.Errorf("expected %#v to be nil", result)
 	}
 
 	if _, ok := used[d.HashCode()]; !ok {
@@ -1049,93 +1050,6 @@ func TestTreeFunc_missingData(t *testing.T) {
 	}
 }
 
-func TestVaultFunc_emptyString(t *testing.T) {
-	brain := NewBrain()
-	used := make(map[string]dep.Dependency)
-	missing := make(map[string]dep.Dependency)
-
-	f := vaultFunc(brain, used, missing)
-	result, err := f("")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected := &dep.Secret{}
-	if !reflect.DeepEqual(result, expected) {
-		t.Errorf("expected %#v to be %#v", result, expected)
-	}
-}
-
-func TestVaultFunc_hasData(t *testing.T) {
-	d, err := dep.ParseVaultSecret("secret/foo/bar")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	data := &dep.Secret{
-		LeaseID:       "abcd1234",
-		LeaseDuration: 120,
-		Renewable:     true,
-		Data:          map[string]interface{}{"zip": "zap"},
-	}
-
-	brain := NewBrain()
-	brain.Remember(d, data)
-
-	used := make(map[string]dep.Dependency)
-	missing := make(map[string]dep.Dependency)
-
-	f := vaultFunc(brain, used, missing)
-	result, err := f("secret/foo/bar")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !reflect.DeepEqual(result, data) {
-		t.Errorf("expected %#v to be %#v", result, data)
-	}
-
-	if len(missing) != 0 {
-		t.Errorf("expected missing to have 0 elements, but had %d", len(missing))
-	}
-
-	if _, ok := used[d.HashCode()]; !ok {
-		t.Errorf("expected dep to be used")
-	}
-}
-
-func TestVaultFunc_missingData(t *testing.T) {
-	d, err := dep.ParseVaultSecret("secret/foo/bar")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	brain := NewBrain()
-
-	used := make(map[string]dep.Dependency)
-	missing := make(map[string]dep.Dependency)
-
-	f := vaultFunc(brain, used, missing)
-	result, err := f("secret/foo/bar")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected := &dep.Secret{}
-
-	if !reflect.DeepEqual(result, expected) {
-		t.Errorf("expected %#v to be %#v", result, expected)
-	}
-
-	if _, ok := used[d.HashCode()]; !ok {
-		t.Errorf("expected dep to be used")
-	}
-
-	if _, ok := missing[d.HashCode()]; !ok {
-		t.Errorf("expected dep to be missing")
-	}
-}
-
 func TestByTag_emptyList(t *testing.T) {
 	result, err := byTag(nil)
 	if err != nil {
@@ -1239,19 +1153,49 @@ func TestByKey_topLevel(t *testing.T) {
 	}
 }
 
-func TestEnv(t *testing.T) {
-	if err := os.Setenv("foo", "bar"); err != nil {
-		t.Fatal(err)
+func envSet(t *testing.T, env map[string]string) func() {
+	original := make(map[string]string, len(env))
+	for k, v := range env {
+		original[k] = os.Getenv(k)
+		if err := os.Setenv(k, v); err != nil {
+			t.Fatalf("error setting %q to %q: %s", k, v, err)
+		}
 	}
 
-	result, err := env("foo")
+	return func() {
+		for k, v := range original {
+			if err := os.Setenv(k, v); err != nil {
+				t.Fatalf("error restoring %q to %q: %s", k, v, err)
+			}
+		}
+	}
+}
+
+func TestEnv(t *testing.T) {
+	assert := assert.New(t)
+
+	env := map[string]string{
+		"foo": "bar",
+		"zip": "zap",
+	}
+
+	restoreEnv := envSet(t, env)
+	defer restoreEnv()
+
+	overrides := []string{"zip=banana"}
+	f := envFunc(overrides)
+
+	result, err := f("foo")
 	if err != nil {
 		t.Fatal(err)
 	}
+	assert.Equal("bar", result)
 
-	if result != "bar" {
-		t.Errorf("expected %#v to be %#v", result, "bar")
+	result, err = f("zip")
+	if err != nil {
+		t.Fatal(err)
 	}
+	assert.Equal("banana", result)
 }
 
 func TestExplode(t *testing.T) {
