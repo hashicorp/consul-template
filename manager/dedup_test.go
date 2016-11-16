@@ -8,44 +8,24 @@ import (
 	"github.com/hashicorp/consul-template/config"
 	"github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul-template/template"
-	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul/testutil"
 )
 
-func testDedupManager(t *testing.T, templ []*template.Template) (*testutil.TestServer, *DedupManager) {
-	consul := testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
+func testConsulServer(t *testing.T) *testutil.TestServer {
+	return testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
 		c.Stdout = ioutil.Discard
 		c.Stderr = ioutil.Discard
 	})
-
-	// Setup the configuration
-	conf := config.DefaultConfig()
-	conf.Consul = consul.HTTPAddr
-
-	// Create the clientset
-	clients, err := newClientSet(conf)
-	if err != nil {
-		t.Fatalf("runner: %s", err)
-	}
-
-	// Setup a brain
-	brain := template.NewBrain()
-
-	// Create the dedup manager
-	dedup, err := NewDedupManager(conf, clients, brain, templ)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	return consul, dedup
 }
 
-func testDedupFollower(t *testing.T, leader *DedupManager) *DedupManager {
+func testDedupManager(t *testing.T, addr string, tmpls []*template.Template) *DedupManager {
 	// Setup the configuration
-	conf := config.DefaultConfig()
-	conf.Consul = leader.config.Consul
+	c := config.TestConfig(&config.Config{
+		Consul: config.String(addr),
+	})
 
 	// Create the clientset
-	clients, err := newClientSet(conf)
+	clients, err := newClientSet(c)
 	if err != nil {
 		t.Fatalf("runner: %s", err)
 	}
@@ -54,9 +34,9 @@ func testDedupFollower(t *testing.T, leader *DedupManager) *DedupManager {
 	brain := template.NewBrain()
 
 	// Create the dedup manager
-	dedup, err := NewDedupManager(conf, clients, brain, leader.templates)
+	dedup, err := NewDedupManager(c.Dedup, clients, brain, tmpls)
 	if err != nil {
-		t.Fatalf("err: %v", err)
+		t.Fatal(err)
 	}
 	return dedup
 }
@@ -64,15 +44,17 @@ func testDedupFollower(t *testing.T, leader *DedupManager) *DedupManager {
 func TestDedup_StartStop(t *testing.T) {
 	t.Parallel()
 
-	consul, dedup := testDedupManager(t, nil)
+	consul := testConsulServer(t)
 	defer consul.Stop()
+
+	dedup := testDedupManager(t, consul.HTTPAddr, nil)
 
 	// Start and stop
 	if err := dedup.Start(); err != nil {
-		t.Fatalf("err: %v", err)
+		t.Fatal(err)
 	}
 	if err := dedup.Stop(); err != nil {
-		t.Fatalf("err: %v", err)
+		t.Fatal(err)
 	}
 }
 
@@ -80,20 +62,19 @@ func TestDedup_IsLeader(t *testing.T) {
 	t.Parallel()
 
 	// Create a template
-	content := `
-    {{ range service "consul" }}{{.Node}}{{ end }}
-    `
-	tmpl, err := template.NewTemplate("", content, "", "")
+	tmpl, err := template.NewTemplate(&template.NewTemplateInput{
+		Contents: `{{ range service "consul" }}{{ .Node }}{{ end }}`,
+	})
 	if err != nil {
-		t.Fatalf("err: %v", err)
+		t.Fatal(err)
 	}
 
-	consul, dedup := testDedupManager(t, []*template.Template{tmpl})
+	consul := testConsulServer(t)
 	defer consul.Stop()
 
-	// Start dedup
+	dedup := testDedupManager(t, consul.HTTPAddr, []*template.Template{tmpl})
 	if err := dedup.Start(); err != nil {
-		t.Fatalf("err: %v", err)
+		t.Fatal(err)
 	}
 	defer dedup.Stop()
 
@@ -114,21 +95,19 @@ func TestDedup_UpdateDeps(t *testing.T) {
 	t.Parallel()
 
 	// Create a template
-	in := test.CreateTempfile([]byte(`
-    {{ range service "consul" }}{{.Node}}{{ end }}
-  `), t)
-	defer test.DeleteTempfile(in, t)
-	tmpl, err := template.NewTemplate(in.Name(), "", "", "")
+	tmpl, err := template.NewTemplate(&template.NewTemplateInput{
+		Contents: `{{ range service "consul" }}{{ .Node }}{{ end }}`,
+	})
 	if err != nil {
-		t.Fatalf("err: %v", err)
+		t.Fatal(err)
 	}
 
-	consul, dedup := testDedupManager(t, []*template.Template{tmpl})
+	consul := testConsulServer(t)
 	defer consul.Stop()
 
-	// Start dedup
+	dedup := testDedupManager(t, consul.HTTPAddr, []*template.Template{tmpl})
 	if err := dedup.Start(); err != nil {
-		t.Fatalf("err: %v", err)
+		t.Fatal(err)
 	}
 	defer dedup.Stop()
 
@@ -142,7 +121,7 @@ func TestDedup_UpdateDeps(t *testing.T) {
 	// Create the dependency
 	dep, err := dependency.ParseHealthServices("consul")
 	if err != nil {
-		t.Fatalf("err: %v", err)
+		t.Fatal(err)
 	}
 
 	// Inject data into the brain
@@ -151,7 +130,7 @@ func TestDedup_UpdateDeps(t *testing.T) {
 	// Update the dependencies
 	err = dedup.UpdateDeps(tmpl, []dependency.Dependency{dep})
 	if err != nil {
-		t.Fatalf("err: %v", err)
+		t.Fatal(err)
 	}
 }
 
@@ -159,27 +138,25 @@ func TestDedup_FollowerUpdate(t *testing.T) {
 	t.Parallel()
 
 	// Create a template
-	in := test.CreateTempfile([]byte(`
-    {{ range service "consul" }}{{.Node}}{{ end }}
-  `), t)
-	defer test.DeleteTempfile(in, t)
-	tmpl, err := template.NewTemplate(in.Name(), "", "", "")
+	tmpl, err := template.NewTemplate(&template.NewTemplateInput{
+		Contents: `{{ range service "consul" }}{{ .Node }}{{ end }}`,
+	})
 	if err != nil {
-		t.Fatalf("err: %v", err)
+		t.Fatal(err)
 	}
 
-	consul, dedup1 := testDedupManager(t, []*template.Template{tmpl})
+	consul := testConsulServer(t)
 	defer consul.Stop()
 
-	dedup2 := testDedupFollower(t, dedup1)
-
-	// Start dedups
+	dedup1 := testDedupManager(t, consul.HTTPAddr, []*template.Template{tmpl})
 	if err := dedup1.Start(); err != nil {
-		t.Fatalf("err: %v", err)
+		t.Fatal(err)
 	}
 	defer dedup1.Stop()
+
+	dedup2 := testDedupManager(t, consul.HTTPAddr, []*template.Template{tmpl})
 	if err := dedup2.Start(); err != nil {
-		t.Fatalf("err: %v", err)
+		t.Fatal(err)
 	}
 	defer dedup2.Stop()
 
@@ -203,7 +180,7 @@ func TestDedup_FollowerUpdate(t *testing.T) {
 	// Create the dependency
 	dep, err := dependency.ParseHealthServices("consul")
 	if err != nil {
-		t.Fatalf("err: %v", err)
+		t.Fatal(err)
 	}
 
 	// Inject data into the brain
@@ -212,7 +189,7 @@ func TestDedup_FollowerUpdate(t *testing.T) {
 	// Update the dependencies
 	err = leader.UpdateDeps(tmpl, []dependency.Dependency{dep})
 	if err != nil {
-		t.Fatalf("err: %v", err)
+		t.Fatal(err)
 	}
 
 	// Follower should get an update
