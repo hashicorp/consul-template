@@ -6,7 +6,7 @@ CURRENT_DIR := $(CURRENT_DIR:/=)
 # Get the project metadata
 GOVERSION := 1.7.3
 VERSION := 0.17.0
-PROJECT := $(shell echo $(CURRENT_DIR) | rev | cut -d'/' -f1 -f2 -f3 | rev)
+PROJECT := github.com/hashicorp/consul-template
 OWNER := $(dir $(PROJECT))
 OWNER := $(notdir $(OWNER:/=))
 NAME := $(notdir $(PROJECT))
