@@ -2,11 +2,13 @@ package child
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"math/rand"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -35,6 +37,8 @@ type Child struct {
 	command        string
 	args           []string
 	env            []string
+
+	timeout time.Duration
 
 	reloadSignal os.Signal
 
@@ -69,6 +73,10 @@ type NewInput struct {
 	// arguments to pass when starting the command.
 	Command string
 	Args    []string
+
+	// Timeout is the maximum amount of time to allow the command to execute. If
+	// set to 0, the command is permitted to run infinitely.
+	Timeout time.Duration
 
 	// Env represents the condition of the child processes' environment
 	// variables. Only these environment variables will be given to the child, so
@@ -115,6 +123,7 @@ func New(i *NewInput) (*Child, error) {
 		command:      i.Command,
 		args:         i.Args,
 		env:          i.Env,
+		timeout:      i.Timeout,
 		reloadSignal: i.ReloadSignal,
 		killSignal:   i.KillSignal,
 		killTimeout:  i.KillTimeout,
@@ -142,13 +151,19 @@ func (c *Child) Pid() int {
 	return c.pid()
 }
 
+// Command returns the human-formatted command with arguments.
+func (c *Child) Command() string {
+	list := append([]string{c.command}, c.args...)
+	return strings.Join(list, " ")
+}
+
 // Start starts and begins execution of the child process. A buffered channel
 // is returned which is where the command's exit code will be returned upon
 // exit. Any errors that occur prior to starting the command will be returned
 // as the second error argument, but any errors returned by the command after
 // execution will be returned as a non-zero value over the exit code channel.
 func (c *Child) Start() error {
-	log.Printf("[INFO] (child) spawning %q %q", c.command, c.args)
+	log.Printf("[INFO] (child) spawning: %s", c.Command())
 	c.Lock()
 	defer c.Unlock()
 	return c.start()
@@ -266,10 +281,47 @@ func (c *Child) start() error {
 		case <-c.stopCh:
 		case exitCh <- code:
 		}
-
 	}()
 
 	c.exitCh = exitCh
+
+	// If a timeout was given, start the timer to wait for the child to exit
+	if c.timeout != 0 {
+		select {
+		case code := <-exitCh:
+			if code != 0 {
+				return fmt.Errorf(
+					"command exited with a non-zero exit status:\n"+
+						"\n"+
+						"    %s\n"+
+						"\n"+
+						"This is assumed to be a failure. Please ensure the command\n"+
+						"exits with a zero exit status.",
+					c.Command(),
+				)
+			}
+		case <-time.After(c.timeout):
+			// Force-kill the process
+			c.stopLock.Lock()
+			defer c.stopLock.Unlock()
+			if c.cmd != nil && c.cmd.Process != nil {
+				c.cmd.Process.Kill()
+			}
+
+			return fmt.Errorf(
+				"command did not exit within %q:\n"+
+					"\n"+
+					"    %s\n"+
+					"\n"+
+					"Commands must exit in a timely manner in order for processing to\n"+
+					"continue. Consider using a process supervisor or utilizing the\n"+
+					"built-in exec mode instead.",
+				c.timeout,
+				c.Command(),
+			)
+		}
+	}
+
 	return nil
 }
 
