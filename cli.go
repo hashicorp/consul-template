@@ -7,8 +7,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"runtime/debug"
-	"strings"
 	"sync"
 	"time"
 
@@ -16,7 +14,6 @@ import (
 	"github.com/hashicorp/consul-template/logging"
 	"github.com/hashicorp/consul-template/manager"
 	"github.com/hashicorp/consul-template/signals"
-	"github.com/hashicorp/consul-template/watch"
 )
 
 // Exit codes are int values that represent an exit code for a particular error.
@@ -34,15 +31,16 @@ const (
 	ExitCodeConfigError
 )
 
-/// ------------------------- ///
-
-// CLI is the main entry point for Consul Template.
+// CLI is the main entry point.
 type CLI struct {
 	sync.Mutex
 
 	// outSteam and errStream are the standard out and standard error streams to
 	// write messages from the CLI.
 	outStream, errStream io.Writer
+
+	// signalCh is the channel where the cli receives signals.
+	signalCh chan os.Signal
 
 	// stopCh is an internal channel used to trigger a shutdown of the CLI.
 	stopCh  chan struct{}
@@ -54,6 +52,7 @@ func NewCLI(out, err io.Writer) *CLI {
 	return &CLI{
 		outStream: out,
 		errStream: err,
+		signalCh:  make(chan os.Signal, 1),
 		stopCh:    make(chan struct{}),
 	}
 }
@@ -62,7 +61,7 @@ func NewCLI(out, err io.Writer) *CLI {
 // status from the command.
 func (cli *CLI) Run(args []string) int {
 	// Parse the flags
-	config, once, dry, version, err := cli.parseFlags(args[1:])
+	config, once, dry, version, err := cli.ParseFlags(args[1:])
 	if err != nil {
 		if err == flag.ErrHelp {
 			return 0
@@ -99,8 +98,7 @@ func (cli *CLI) Run(args []string) int {
 	go runner.Start()
 
 	// Listen for signals
-	signalCh := make(chan os.Signal, 1)
-	signal.Notify(signalCh)
+	signal.Notify(cli.signalCh)
 
 	for {
 		select {
@@ -114,11 +112,11 @@ func (cli *CLI) Run(args []string) int {
 			return cli.handleError(err, code)
 		case <-runner.DoneCh:
 			return ExitCodeOK
-		case s := <-signalCh:
+		case s := <-cli.signalCh:
 			log.Printf("[DEBUG] (cli) receiving signal %q", s)
 
 			switch s {
-			case config.ReloadSignal:
+			case *config.ReloadSignal:
 				fmt.Fprintf(cli.errStream, "Reloading configuration...\n")
 				runner.Stop()
 
@@ -133,11 +131,7 @@ func (cli *CLI) Run(args []string) int {
 					return cli.handleError(err, ExitCodeRunnerError)
 				}
 				go runner.Start()
-			case config.DumpSignal:
-				runner.Stop()
-				debug.PrintStack()
-				return ExitCodeInterrupt
-			case config.KillSignal:
+			case *config.KillSignal:
 				fmt.Fprintf(cli.errStream, "Cleaning up...\n")
 				runner.Stop()
 				return ExitCodeInterrupt
@@ -171,13 +165,14 @@ func (cli *CLI) stop() {
 	cli.stopped = true
 }
 
-// parseFlags is a helper function for parsing command line flags using Go's
+// ParseFlags is a helper function for parsing command line flags using Go's
 // Flag library. This is extracted into a helper to keep the main function
 // small, but it also makes writing tests for parsing command line arguments
 // much easier and cleaner.
-func (cli *CLI) parseFlags(args []string) (*config.Config, bool, bool, bool, error) {
+func (cli *CLI) ParseFlags(args []string) (*config.Config, bool, bool, bool, error) {
 	var dry, once, version bool
-	cliConfig := config.DefaultConfig()
+
+	c := config.DefaultConfig()
 
 	// configPaths stores the list of configuration paths on disk
 	configPaths := make([]string, 0, 6)
@@ -188,181 +183,62 @@ func (cli *CLI) parseFlags(args []string) (*config.Config, bool, bool, bool, err
 	flags.Usage = func() { fmt.Fprintf(cli.errStream, usage, Name) }
 
 	flags.Var((funcVar)(func(s string) error {
-		cliConfig.Consul = s
-		cliConfig.Set("consul")
-		return nil
-	}), "consul", "")
-
-	flags.Var((funcVar)(func(s string) error {
-		cliConfig.Token = s
-		cliConfig.Set("token")
-		return nil
-	}), "token", "")
-
-	flags.Var((funcVar)(func(s string) error {
-		if s == "" {
-			cliConfig.ReloadSignal = nil
-			cliConfig.Set("reload_signal")
-			return nil
-		}
-
-		sig, err := signals.Parse(s)
+		a, err := config.ParseAuthConfig(s)
 		if err != nil {
 			return err
 		}
-		cliConfig.ReloadSignal = sig
-		cliConfig.Set("reload_signal")
-		return nil
-	}), "reload-signal", "")
-
-	flags.Var((funcVar)(func(s string) error {
-		if s == "" {
-			cliConfig.DumpSignal = nil
-			cliConfig.Set("dump_signal")
-			return nil
-		}
-
-		sig, err := signals.Parse(s)
-		if err != nil {
-			return err
-		}
-		cliConfig.DumpSignal = sig
-		cliConfig.Set("dump_signal")
-		return nil
-	}), "dump-signal", "")
-
-	flags.Var((funcVar)(func(s string) error {
-		if s == "" {
-			cliConfig.KillSignal = nil
-			cliConfig.Set("kill_signal")
-			return nil
-		}
-
-		sig, err := signals.Parse(s)
-		if err != nil {
-			return err
-		}
-		cliConfig.KillSignal = sig
-		cliConfig.Set("kill_signal")
-		return nil
-	}), "kill-signal", "")
-
-	flags.Var((funcVar)(func(s string) error {
-		cliConfig.Auth.Enabled = true
-		cliConfig.Set("auth")
-		cliConfig.Set("auth.enabled")
-		if strings.Contains(s, ":") {
-			split := strings.SplitN(s, ":", 2)
-			cliConfig.Auth.Username = split[0]
-			cliConfig.Set("auth.username")
-			cliConfig.Auth.Password = split[1]
-			cliConfig.Set("auth.password")
-		} else {
-			cliConfig.Auth.Username = s
-			cliConfig.Set("auth.username")
-		}
+		c.Auth = a
 		return nil
 	}), "auth", "")
 
-	flags.Var((funcBoolVar)(func(b bool) error {
-		cliConfig.SSL.Enabled = b
-		cliConfig.Set("ssl")
-		cliConfig.Set("ssl.enabled")
+	flags.Var((funcVar)(func(s string) error {
+		configPaths = append(configPaths, s)
 		return nil
-	}), "ssl", "")
-
-	flags.Var((funcBoolVar)(func(b bool) error {
-		cliConfig.SSL.Verify = b
-		cliConfig.Set("ssl")
-		cliConfig.Set("ssl.verify")
-		return nil
-	}), "ssl-verify", "")
+	}), "config", "")
 
 	flags.Var((funcVar)(func(s string) error {
-		cliConfig.SSL.Cert = s
-		cliConfig.Set("ssl")
-		cliConfig.Set("ssl.cert")
+		c.Consul = config.String(s)
 		return nil
-	}), "ssl-cert", "")
-
-	flags.Var((funcVar)(func(s string) error {
-		cliConfig.SSL.Key = s
-		cliConfig.Set("ssl")
-		cliConfig.Set("ssl.key")
-		return nil
-	}), "ssl-key", "")
-
-	flags.Var((funcVar)(func(s string) error {
-		cliConfig.SSL.CaCert = s
-		cliConfig.Set("ssl")
-		cliConfig.Set("ssl.ca_cert")
-		return nil
-	}), "ssl-ca-cert", "")
-
-	flags.Var((funcVar)(func(s string) error {
-		cliConfig.SSL.CaPath = s
-		cliConfig.Set("ssl")
-		cliConfig.Set("ssl.ca_path")
-		return nil
-	}), "ssl-ca-path", "")
-
-	flags.Var((funcVar)(func(s string) error {
-		cliConfig.SSL.ServerName = s
-		cliConfig.Set("ssl")
-		cliConfig.Set("ssl.server_name")
-		return nil
-	}), "ssl-server-name", "")
-
-	flags.Var((funcDurationVar)(func(d time.Duration) error {
-		cliConfig.MaxStale = d
-		cliConfig.Set("max_stale")
-		return nil
-	}), "max-stale", "")
-
-	flags.Var((funcVar)(func(s string) error {
-		t, err := config.ParseConfigTemplate(s)
-		if err != nil {
-			return err
-		}
-		if cliConfig.ConfigTemplates == nil {
-			cliConfig.ConfigTemplates = make([]*config.ConfigTemplate, 0, 1)
-		}
-		cliConfig.ConfigTemplates = append(cliConfig.ConfigTemplates, t)
-		return nil
-	}), "template", "")
+	}), "consul", "")
 
 	flags.Var((funcBoolVar)(func(b bool) error {
-		cliConfig.Syslog.Enabled = b
-		cliConfig.Set("syslog")
-		cliConfig.Set("syslog.enabled")
-		return nil
-	}), "syslog", "")
-
-	flags.Var((funcVar)(func(s string) error {
-		cliConfig.Syslog.Facility = s
-		cliConfig.Set("syslog")
-		cliConfig.Set("syslog.facility")
-		return nil
-	}), "syslog-facility", "")
-
-	flags.Var((funcBoolVar)(func(b bool) error {
-		cliConfig.Deduplicate.Enabled = b
-		cliConfig.Set("deduplicate")
-		cliConfig.Set("deduplicate.enabled")
+		c.Dedup.Enabled = config.Bool(b)
 		return nil
 	}), "dedup", "")
 
+	flags.BoolVar(&dry, "dry", false, "")
+
 	flags.Var((funcVar)(func(s string) error {
-		cliConfig.Exec.Command = s
-		cliConfig.Set("exec")
-		cliConfig.Set("exec.command")
+		c.Exec.Enabled = config.Bool(true)
+		c.Exec.Command = config.String(s)
 		return nil
 	}), "exec", "")
 
+	flags.Var((funcVar)(func(s string) error {
+		sig, err := signals.Parse(s)
+		if err != nil {
+			return err
+		}
+		c.Exec.KillSignal = config.Signal(sig)
+		return nil
+	}), "exec-kill-signal", "")
+
 	flags.Var((funcDurationVar)(func(d time.Duration) error {
-		cliConfig.Exec.Splay = d
-		cliConfig.Set("exec")
-		cliConfig.Set("exec.splay")
+		c.Exec.KillTimeout = config.TimeDuration(d)
+		return nil
+	}), "exec-kill-timeout", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		sig, err := signals.Parse(s)
+		if err != nil {
+			return err
+		}
+		c.Exec.ReloadSignal = config.Signal(sig)
+		return nil
+	}), "exec-reload-signal", "")
+
+	flags.Var((funcDurationVar)(func(d time.Duration) error {
+		c.Exec.Splay = config.TimeDuration(d)
 		return nil
 	}), "exec-splay", "")
 
@@ -371,150 +247,163 @@ func (cli *CLI) parseFlags(args []string) (*config.Config, bool, bool, bool, err
 		if err != nil {
 			return err
 		}
-		cliConfig.Exec.ReloadSignal = sig
-		cliConfig.Set("exec")
-		cliConfig.Set("exec.reload_signal")
+		c.KillSignal = config.Signal(sig)
 		return nil
-	}), "exec-reload-signal", "")
+	}), "kill-signal", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		c.LogLevel = config.String(s)
+		return nil
+	}), "log-level", "")
+
+	flags.Var((funcDurationVar)(func(d time.Duration) error {
+		c.MaxStale = config.TimeDuration(d)
+		return nil
+	}), "max-stale", "")
+
+	flags.BoolVar(&once, "once", false, "")
+	flags.Var((funcVar)(func(s string) error {
+		c.PidFile = config.String(s)
+		return nil
+	}), "pid-file", "")
 
 	flags.Var((funcVar)(func(s string) error {
 		sig, err := signals.Parse(s)
 		if err != nil {
 			return err
 		}
-		cliConfig.Exec.KillSignal = sig
-		cliConfig.Set("exec")
-		cliConfig.Set("exec.kill_signal")
+		c.ReloadSignal = config.Signal(sig)
 		return nil
-	}), "exec-kill-signal", "")
+	}), "reload-signal", "")
 
 	flags.Var((funcDurationVar)(func(d time.Duration) error {
-		cliConfig.Exec.KillTimeout = d
-		cliConfig.Set("exec")
-		cliConfig.Set("exec.kill_timeout")
-		return nil
-	}), "exec-kill-timeout", "")
-
-	flags.Var((funcVar)(func(s string) error {
-		w, err := watch.ParseWait(s)
-		if err != nil {
-			return err
-		}
-		cliConfig.Wait.Min = w.Min
-		cliConfig.Wait.Max = w.Max
-		cliConfig.Set("wait")
-		return nil
-	}), "wait", "")
-
-	flags.Var((funcDurationVar)(func(d time.Duration) error {
-		cliConfig.Retry = d
-		cliConfig.Set("retry")
+		c.Retry = config.TimeDuration(d)
 		return nil
 	}), "retry", "")
 
-	flags.Var((funcVar)(func(s string) error {
-		configPaths = append(configPaths, s)
+	flags.Var((funcBoolVar)(func(b bool) error {
+		c.SSL.Enabled = config.Bool(b)
 		return nil
-	}), "config", "")
+	}), "ssl", "")
 
 	flags.Var((funcVar)(func(s string) error {
-		cliConfig.PidFile = s
-		cliConfig.Set("pid_file")
+		c.SSL.CaCert = config.String(s)
 		return nil
-	}), "pid-file", "")
+	}), "ssl-ca-cert", "")
 
 	flags.Var((funcVar)(func(s string) error {
-		cliConfig.LogLevel = s
-		cliConfig.Set("log_level")
+		c.SSL.CaPath = config.String(s)
 		return nil
-	}), "log-level", "")
+	}), "ssl-ca-path", "")
 
 	flags.Var((funcVar)(func(s string) error {
-		cliConfig.Vault.Address = s
-		cliConfig.Set("vault")
-		cliConfig.Set("vault.address")
+		c.SSL.Cert = config.String(s)
+		return nil
+	}), "ssl-cert", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		c.SSL.Key = config.String(s)
+		return nil
+	}), "ssl-key", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		c.SSL.ServerName = config.String(s)
+		return nil
+	}), "ssl-server-name", "")
+
+	flags.Var((funcBoolVar)(func(b bool) error {
+		c.SSL.Verify = config.Bool(b)
+		return nil
+	}), "ssl-verify", "")
+
+	flags.Var((funcBoolVar)(func(b bool) error {
+		c.Syslog.Enabled = config.Bool(b)
+		return nil
+	}), "syslog", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		c.Syslog.Facility = config.String(s)
+		return nil
+	}), "syslog-facility", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		t, err := config.ParseTemplateConfig(s)
+		if err != nil {
+			return err
+		}
+		*c.Templates = append(*c.Templates, t)
+		return nil
+	}), "template", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		c.Token = config.String(s)
+		return nil
+	}), "token", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		c.Vault.Address = config.String(s)
 		return nil
 	}), "vault-addr", "")
 
-	flags.Var((funcVar)(func(s string) error {
-		cliConfig.Vault.Token = s
-		cliConfig.Set("vault")
-		cliConfig.Set("vault.token")
-		return nil
-	}), "vault-token", "")
-
 	flags.Var((funcBoolVar)(func(b bool) error {
-		cliConfig.Vault.RenewToken = b
-		cliConfig.Set("vault")
-		cliConfig.Set("vault.renew_token")
+		c.Vault.RenewToken = config.Bool(b)
 		return nil
 	}), "vault-renew-token", "")
 
 	flags.Var((funcBoolVar)(func(b bool) error {
-		cliConfig.Vault.UnwrapToken = b
-		cliConfig.Set("vault")
-		cliConfig.Set("vault.unwrap_token")
-		return nil
-	}), "vault-unwrap-token", "")
-
-	flags.Var((funcBoolVar)(func(b bool) error {
-		cliConfig.Vault.SSL.Enabled = b
-		cliConfig.Set("vault")
-		cliConfig.Set("vault.ssl")
-		cliConfig.Set("vault.ssl.enabled")
+		c.Vault.SSL.Enabled = config.Bool(b)
 		return nil
 	}), "vault-ssl", "")
 
-	flags.Var((funcBoolVar)(func(b bool) error {
-		cliConfig.Vault.SSL.Verify = b
-		cliConfig.Set("vault")
-		cliConfig.Set("vault.ssl")
-		cliConfig.Set("vault.ssl.verify")
-		return nil
-	}), "vault-ssl-verify", "")
-
 	flags.Var((funcVar)(func(s string) error {
-		cliConfig.Vault.SSL.Cert = s
-		cliConfig.Set("vault")
-		cliConfig.Set("vault.ssl")
-		cliConfig.Set("vault.ssl.cert")
-		return nil
-	}), "vault-ssl-cert", "")
-
-	flags.Var((funcVar)(func(s string) error {
-		cliConfig.Vault.SSL.Key = s
-		cliConfig.Set("vault")
-		cliConfig.Set("vault.ssl")
-		cliConfig.Set("vault.ssl.key")
-		return nil
-	}), "vault-ssl-key", "")
-
-	flags.Var((funcVar)(func(s string) error {
-		cliConfig.Vault.SSL.CaCert = s
-		cliConfig.Set("vault")
-		cliConfig.Set("vault.ssl")
-		cliConfig.Set("vault.ssl.ca_cert")
+		c.Vault.SSL.CaCert = config.String(s)
 		return nil
 	}), "vault-ssl-ca-cert", "")
 
 	flags.Var((funcVar)(func(s string) error {
-		cliConfig.Vault.SSL.CaPath = s
-		cliConfig.Set("vault")
-		cliConfig.Set("vault.ssl")
-		cliConfig.Set("vault.ssl.ca_path")
+		c.Vault.SSL.CaPath = config.String(s)
 		return nil
 	}), "vault-ssl-ca-path", "")
 
 	flags.Var((funcVar)(func(s string) error {
-		cliConfig.Vault.SSL.ServerName = s
-		cliConfig.Set("vault")
-		cliConfig.Set("vault.ssl")
-		cliConfig.Set("vault.ssl.server_name")
+		c.Vault.SSL.Cert = config.String(s)
+		return nil
+	}), "vault-ssl-cert", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		c.Vault.SSL.Key = config.String(s)
+		return nil
+	}), "vault-ssl-key", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		c.Vault.SSL.ServerName = config.String(s)
 		return nil
 	}), "vault-ssl-server-name", "")
 
-	flags.BoolVar(&once, "once", false, "")
-	flags.BoolVar(&dry, "dry", false, "")
+	flags.Var((funcBoolVar)(func(b bool) error {
+		c.Vault.SSL.Verify = config.Bool(b)
+		return nil
+	}), "vault-ssl-verify", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		c.Vault.Token = config.String(s)
+		return nil
+	}), "vault-token", "")
+
+	flags.Var((funcBoolVar)(func(b bool) error {
+		c.Vault.UnwrapToken = config.Bool(b)
+		return nil
+	}), "vault-unwrap-token", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		w, err := config.ParseWaitConfig(s)
+		if err != nil {
+			return err
+		}
+		c.Wait = w
+		return nil
+	}), "wait", "")
+
 	flags.BoolVar(&version, "v", false, "")
 	flags.BoolVar(&version, "version", false, "")
 
@@ -523,29 +412,31 @@ func (cli *CLI) parseFlags(args []string) (*config.Config, bool, bool, bool, err
 		return nil, false, false, false, err
 	}
 
-	// Create the final configuration
-	finalConfig := config.DefaultConfig()
-
-	// Merge all the provided configurations in the order supplied
-	for _, configPath := range configPaths {
-		config, err := config.FromPath(configPath)
-		if err != nil {
-			return nil, false, false, false, err
-		}
-		finalConfig.Merge(config)
-	}
-
-	// Add any CLI configuration options, since that takes maximum precedence
-	finalConfig.Merge(cliConfig)
-
 	// Error if extra arguments are present
 	args = flags.Args()
 	if len(args) > 0 {
-		return nil, false, false, false, fmt.Errorf("cli: extra argument(s): %q",
-			args)
+		return nil, false, false, false, fmt.Errorf("cli: extra args: %q", args)
 	}
 
-	return finalConfig, once, dry, version, nil
+	// Create the final configuration
+	finalC := config.DefaultConfig()
+
+	// Merge all the provided configurations in the order supplied
+	for _, path := range configPaths {
+		c, err := config.FromPath(path)
+		if err != nil {
+			return nil, false, false, false, err
+		}
+		finalC = finalC.Merge(c)
+	}
+
+	// Add any CLI configuration options, since that's highest precedence
+	finalC = finalC.Merge(c)
+
+	// Finalize the configuration
+	finalC.Finalize()
+
+	return finalC, once, dry, version, nil
 }
 
 // handleError outputs the given error's Error() to the errStream and returns
@@ -556,12 +447,11 @@ func (cli *CLI) handleError(err error, status int) int {
 }
 
 func (cli *CLI) setup(conf *config.Config) (*config.Config, error) {
-	// Setup the logging
 	if err := logging.Setup(&logging.Config{
 		Name:           Name,
-		Level:          conf.LogLevel,
-		Syslog:         conf.Syslog.Enabled,
-		SyslogFacility: conf.Syslog.Facility,
+		Level:          config.StringVal(conf.LogLevel),
+		Syslog:         config.BoolVal(conf.Syslog.Enabled),
+		SyslogFacility: config.StringVal(conf.Syslog.Facility),
 		Writer:         cli.errStream,
 	}); err != nil {
 		return nil, err
@@ -597,9 +487,6 @@ Options:
 
   -dry
       Print generated templates to stdout instead of rendering
-
-  -dump-signal=<signal>
-      Signal to listen to initiate a core dump and terminate the process
 
   -exec=<command>
       Enable exec mode to run as a supervisor-like process - the given command
@@ -674,12 +561,33 @@ Options:
   -vault-addr=<address>
       Sets the address of the Vault server
 
-  -vault-token=<token>
-      Sets the Vault API token
-
   -vault-renew-token
       Periodically renew the provided Vault API token - this defaults to "true"
       and will renew the token at half of the lease duration
+
+  -vault-ssl
+      Specifies is communications with Vault should be done via SSL
+
+  -vault-ssl-ca-cert=<string>
+      Sets the path to the CA certificate to use for TLS verification
+
+  -vault-ssl-ca-path=<string>
+      Sets the path to the CA to use for TLS verification
+
+  -vault-ssl-cert=<string>
+      Sets the path to the certificate to use for TLS verification
+
+  -vault-ssl-key=<string>
+      Sets the path to the key to use for TLS verification
+
+  -vault-ssl-server-name=<string>
+      Sets the name of the server to use when validating TLS.
+
+  -vault-ssl-verify
+      Enable SSL verification for communications with Vault.
+
+  -vault-token=<token>
+      Sets the Vault API token
 
   -vault-unwrap-token
       Unwrap the provided Vault API token (see Vault documentation for more
