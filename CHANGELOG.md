@@ -84,6 +84,7 @@ IMPROVEMENTS:
       [GH-740, GH-747]
   * Add tagged addresses to Node structs
   * Add support for multiple `-config` flags [GH-773, GH-751]
+  * Add more control over template command execution
 
 BUG FIXES:
 
