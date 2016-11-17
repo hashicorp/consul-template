@@ -313,7 +313,7 @@ func (r *Runner) Start() {
 		case tmpl := <-r.quiescenceCh:
 			// Remove the quiescence for this template from the map. This will force
 			// the upcoming Run call to actually evaluate and render the template.
-			log.Printf("[INFO] (runner) received template %q from quiescence", tmpl.ID())
+			log.Printf("[DEBUG] (runner) received template %q from quiescence", tmpl.ID())
 			delete(r.quiescenceMap, tmpl.ID())
 
 		case c := <-childExitCh:
@@ -442,7 +442,7 @@ func (r *Runner) Signal(s os.Signal) error {
 // Please note that all templates are rendered **and then** any commands are
 // executed.
 func (r *Runner) Run() error {
-	log.Printf("[INFO] (runner) running")
+	log.Printf("[INFO] (runner) initiating run")
 
 	var wouldRenderAny, renderedAny bool
 	var commands []*config.TemplateConfig
@@ -509,7 +509,7 @@ func (r *Runner) Run() error {
 		// If there are unwatched dependencies, start the watcher and move onto the
 		// next one.
 		if len(unwatched) > 0 {
-			log.Printf("[INFO] (runner) was not watching %d dependencies", len(unwatched))
+			log.Printf("[DEBUG] (runner) was not watching %d dependencies", len(unwatched))
 			for _, d := range unwatched {
 				// If we are deduplicating, we must still handle non-sharable
 				// dependencies, since those will be ignored.
@@ -523,7 +523,7 @@ func (r *Runner) Run() error {
 		// If the template is missing data for some dependencies then we are not
 		// ready to render and need to move on to the next one.
 		if len(missing) > 0 {
-			log.Printf("[INFO] (runner) missing data for %d dependencies", len(missing))
+			log.Printf("[DEBUG] (runner) missing data for %d dependencies", len(missing))
 			continue
 		}
 
@@ -544,6 +544,8 @@ func (r *Runner) Run() error {
 		// For each template configuration that is tied to this template, attempt to
 		// render it to disk and accumulate commands for later use.
 		for _, templateConfig := range r.templateConfigsFor(tmpl) {
+			log.Printf("[DEBUG] (runner) rendering %s", templateConfig.Display())
+
 			// Render the template, taking dry mode into account
 			result, err := Render(&RenderInput{
 				Backup:    config.BoolVal(templateConfig.Backup),
@@ -554,11 +556,8 @@ func (r *Runner) Run() error {
 				Perms:     config.FileModeVal(templateConfig.Perms),
 			})
 			if err != nil {
-				return errors.Wrap(err, fmt.Sprintf("error rendering %s", tmpl.ID()))
+				return errors.Wrap(err, "error rendering "+templateConfig.Display())
 			}
-
-			log.Printf("[DEBUG] (runner) WouldRender: %t, DidRender: %t",
-				result.WouldRender, result.DidRender)
 
 			// If we would have rendered this template (but we did not because the
 			// contents were the same or something), we should consider this template
@@ -577,6 +576,8 @@ func (r *Runner) Run() error {
 			// If we _actually_ rendered the template to disk, we want to run the
 			// appropriate commands.
 			if result.DidRender {
+				log.Printf("[INFO] (runner) rendered %s", templateConfig.Display())
+
 				// Record that at least one template was rendered.
 				renderedAny = true
 
@@ -594,9 +595,16 @@ func (r *Runner) Run() error {
 					// definitions. If we inserted commands into a map, we would lose that
 					// relative ordering and people would be unhappy.
 					// if config.StringPresent(ctemplate.Command)
-					if config.StringVal(templateConfig.Exec.Command) != "" && !commandExists(templateConfig, commands) {
-						log.Println("[TRACE] appending command " + config.StringVal(templateConfig.Exec.Command))
-						commands = append(commands, templateConfig)
+					if c := config.StringVal(templateConfig.Exec.Command); c != "" {
+						existing := findCommand(templateConfig, commands)
+						if existing != nil {
+							log.Printf("[DEBUG] (runner) skipping command %q from %s (already appended from %s)",
+								c, templateConfig.Display(), existing.Display())
+						} else {
+							log.Printf("[DEBUG] (runner) appending command %q from %s",
+								c, templateConfig.Display())
+							commands = append(commands, templateConfig)
+						}
 					}
 				}
 			}
@@ -619,13 +627,15 @@ func (r *Runner) Run() error {
 	// ensures all commands execute at least once.
 	var errs []error
 	for _, t := range commands {
+		command := config.StringVal(t.Exec.Command)
+		log.Printf("[INFO] (runner) executing command %q from %s", command, t.Display())
 		env := t.Exec.Env.Copy()
 		env.Custom = append(r.childEnv(), env.Custom...)
 		if _, err := spawnChild(&spawnChildInput{
 			Stdin:        r.inStream,
 			Stdout:       r.outStream,
 			Stderr:       r.errStream,
-			Command:      config.StringVal(t.Exec.Command),
+			Command:      command,
 			Env:          env.Env(),
 			Timeout:      config.TimeDurationVal(t.Exec.Timeout),
 			ReloadSignal: config.SignalVal(t.Exec.ReloadSignal),
@@ -633,7 +643,8 @@ func (r *Runner) Run() error {
 			KillTimeout:  config.TimeDurationVal(t.Exec.KillTimeout),
 			Splay:        config.TimeDurationVal(t.Exec.Splay),
 		}); err != nil {
-			errs = append(errs, err)
+			s := fmt.Sprintf("failed to execute command %q from %s", command, t.Display())
+			errs = append(errs, errors.Wrap(err, s))
 		}
 	}
 
@@ -980,7 +991,7 @@ func spawnChild(i *spawnChildInput) (*child.Child, error) {
 	}
 
 	if err := child.Start(); err != nil {
-		return nil, errors.Wrap(err, "error starting child")
+		return nil, errors.Wrap(err, "child")
 	}
 	return child, nil
 }
@@ -1037,17 +1048,16 @@ func (q *quiescence) tick() {
 	}
 }
 
-// Checks if a TemplateConfig with the given data exists in the list of Config
-// Templates.
-func commandExists(c *config.TemplateConfig, templates []*config.TemplateConfig) bool {
+// findCommand searches the list of template configs for the given command and
+// returns it if it exists.
+func findCommand(c *config.TemplateConfig, templates []*config.TemplateConfig) *config.TemplateConfig {
 	needle := config.StringVal(c.Exec.Command)
 	for _, t := range templates {
 		if needle == config.StringVal(t.Exec.Command) {
-			return true
+			return t
 		}
 	}
-
-	return false
+	return nil
 }
 
 // newClientSet creates a new client set from the given config.

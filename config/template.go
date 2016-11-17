@@ -272,6 +272,22 @@ func (c *TemplateConfig) GoString() string {
 	)
 }
 
+func (c *TemplateConfig) Display() string {
+	if c == nil {
+		return ""
+	}
+
+	source := c.Source
+	if StringPresent(c.Contents) {
+		source = String("(dynamic)")
+	}
+
+	return fmt.Sprintf("%q => %q",
+		StringVal(source),
+		StringVal(c.Destination),
+	)
+}
+
 // TemplateConfigs is a collection of TemplateConfigs
 type TemplateConfigs []*TemplateConfig
 
