@@ -9,6 +9,11 @@ NEW FEATURES:
       See the breaking change notice before for more information about the
       motivation for this change.
 
+  * Add `scratch` for storing information across a template invocation. Scratch
+      is especially useful when saving a computed value to use it across a
+      template. Scratch values are not shared across multiple templates and are
+      not persisted between template invocations
+
 BREAKING CHANGES:
 
   * Consul Template now **blocks on `key` queries**. The previous behavior was
