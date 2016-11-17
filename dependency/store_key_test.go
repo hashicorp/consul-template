@@ -154,6 +154,25 @@ func TestParseStoreKey_nameSpecialCharacters(t *testing.T) {
 	}
 }
 
+func TestParseStoreKey_nameSplatCharacter(t *testing.T) {
+	sd, err := ParseStoreKey("config/*/timeouts/")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if sd.rawKey != "config/*/timeouts/" {
+		t.Errorf("expected %q to be %q", sd.rawKey, "config/*/timeouts/")
+	}
+
+	if sd.Path != "config/*/timeouts/" {
+		t.Errorf("expected %q to be %q", sd.Path, "config/*/timeouts/")
+	}
+
+	if sd.DataCenter != "" {
+		t.Errorf("expected %q to be %q", sd.DataCenter, "")
+	}
+}
+
 func TestParseStoreKey_nameTagDataCenter(t *testing.T) {
 	sd, err := ParseStoreKey("config/redis/maxconns@nyc1")
 	if err != nil {

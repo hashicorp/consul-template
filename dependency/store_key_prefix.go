@@ -142,7 +142,7 @@ func (d *StoreKeyPrefix) Stop() {
 func ParseStoreKeyPrefix(s string) (*StoreKeyPrefix, error) {
 	// a(/b(/c))(@datacenter)
 	re := regexp.MustCompile(`\A` +
-		`(?P<prefix>[[:word:],\.\:\-\/]+)?` +
+		`(?P<prefix>[[:word:],\.\*\:\-\/]+)?` +
 		`(@(?P<datacenter>[[:word:]\.\-]+))?` +
 		`\z`)
 	names := re.SubexpNames()
