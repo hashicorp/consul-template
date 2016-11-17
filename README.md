@@ -733,6 +733,76 @@ If you omit the data center attribute on `tree`, the local Consul data center wi
 
 - - -
 
+#### Scratch
+
+The scratchpad (or "scratch" for short) is available within the context of a template to store temporary data or computations. Scratch data is not shared between templates and is not cached between invocations.
+
+All scratch functions are prefixed with an underscore.
+
+##### `scratch.Key`
+
+Returns a boolean if data exists in the scratchpad at the named key. Even if the
+data at that key is "nil", this still returns true.
+
+```liquid
+{{ scratch.Key "foo" }}
+```
+
+##### `scratch.Get`
+
+Returns the value in the scratchpad at the named key. If the data does not
+exist, this will return "nil".
+
+```liquid
+{{ scratch.Key "foo" }}
+```
+
+##### `scratch.Set`
+
+Saves the given value at the given key. If data already exists at that key, it
+is overwritten.
+
+```liquid
+{{ scratch.Set "foo" "bar" }}
+```
+
+##### `scratch.SetX`
+
+This behaves exactly the same as `Set`, but does not overwrite if the value
+already exists.
+
+```liquid
+{{ scratch.SetX "foo" "bar" }}
+```
+
+##### `scratch.MapSet`
+
+Saves a value in a named key in the map. If data already exists at that key, it
+is overwritten.
+
+```liquid
+{{ scratch.MapSet "vars" "foo" "bar" }}
+```
+
+##### `scratch.MapSetX`
+
+This behaves exactly the same as `MapSet`, but does not overwrite if the value
+already exists.
+
+```liquid
+{{ scratch.MapSetX "vars" "foo" "bar" }}
+```
+
+##### `scratch.MapValues`
+
+Returns a sorted list (by key) of all values in the named map.
+
+```liquid
+{{ scratch.MapValues "vars" }}
+```
+
+- - -
+
 #### Helper Functions
 
 ##### `byKey`

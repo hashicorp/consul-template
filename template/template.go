@@ -169,6 +169,8 @@ type funcMapInput struct {
 
 // funcMap is the map of template functions to their respective functions.
 func funcMap(i *funcMapInput) template.FuncMap {
+	var scratch Scratch
+
 	return template.FuncMap{
 		// API functions
 		"datacenters":  datacentersFunc(i.brain, i.used, i.missing),
@@ -184,6 +186,9 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"service":      serviceFunc(i.brain, i.used, i.missing),
 		"services":     servicesFunc(i.brain, i.used, i.missing),
 		"tree":         treeFunc(i.brain, i.used, i.missing),
+
+		// Scratch
+		"scratch": func() *Scratch { return &scratch },
 
 		// Helper functions
 		"byKey":           byKey,

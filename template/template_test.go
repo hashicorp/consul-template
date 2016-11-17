@@ -147,6 +147,8 @@ func TestTemplate_Execute(t *testing.T) {
 			"",
 			false,
 		},
+
+		// funcs
 		{
 			"func_datacenters",
 			`{{ datacenters }}`,
@@ -410,6 +412,55 @@ func TestTemplate_Execute(t *testing.T) {
 			"admin/port=1134maxconns=5minconns=2",
 			false,
 		},
+
+		// scratch
+		{
+			"scratch.Key",
+			`{{ scratch.Set "a" "2" }}{{ scratch.Key "a" }}`,
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"true",
+			false,
+		},
+		{
+			"scratch.Get",
+			`{{ scratch.Set "a" "2" }}{{ scratch.Get "a" }}`,
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"2",
+			false,
+		},
+		{
+			"scratch.SetX",
+			`{{ scratch.SetX "a" "2" }}{{ scratch.SetX "a" "1" }}{{ scratch.Get "a" }}`,
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"2",
+			false,
+		},
+		{
+			"scratch.MapSet",
+			`{{ scratch.MapSet "a" "foo" "bar" }}{{ scratch.MapValues "a" }}`,
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"[bar]",
+			false,
+		},
+		{
+			"scratch.MapSetX",
+			`{{ scratch.MapSetX "a" "foo" "bar" }}{{ scratch.MapSetX "a" "foo" "baz" }}{{ scratch.MapValues "a" }}`,
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"[bar]",
+			false,
+		},
+
+		// helpers
 		{
 			"helper_by_key",
 			`{{ range $key, $pairs := tree "list" | byKey }}{{ $key }}:{{ range $pairs }}{{ .Key }}={{ .Value }}{{ end }}{{ end }}`,
@@ -807,7 +858,7 @@ func TestTemplate_Execute(t *testing.T) {
 				t.Fatal(err)
 			}
 			if a != nil && !bytes.Equal([]byte(tc.e), a.Output) {
-				t.Errorf("\nexp: %#v\nact: %#v", tc.e, a.Output)
+				t.Errorf("\nexp: %#v\nact: %#v", tc.e, string(a.Output))
 			}
 		})
 	}
