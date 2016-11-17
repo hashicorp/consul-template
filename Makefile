@@ -73,7 +73,9 @@ dev:
 		XC_ARCH="${ME_ARCH}" \
 		$(MAKE) -f "${MKFILE_PATH}" bin
 	@echo "--> Moving into PATH"
+	@mkdir -p "${CURRENT_DIR}/bin/"
 	@cp "${CURRENT_DIR}/pkg/${ME_OS}_${ME_ARCH}/${NAME}" "${CURRENT_DIR}/bin/"
+	@mkdir -p "${GOPATH}/bin/"
 	@cp "${CURRENT_DIR}/pkg/${ME_OS}_${ME_ARCH}/${NAME}" "${GOPATH}/bin/"
 
 # dist builds the binaries and then signs and packages them for distribution
