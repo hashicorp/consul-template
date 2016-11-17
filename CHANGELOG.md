@@ -14,6 +14,8 @@ NEW FEATURES:
       template. Scratch values are not shared across multiple templates and are
       not persisted between template invocations
 
+  * Add `executeTemplate` function for executing a defined template.
+
 BREAKING CHANGES:
 
   * Consul Template now **blocks on `key` queries**. The previous behavior was
