@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/burntsushi/toml"
@@ -42,6 +43,18 @@ func datacentersFunc(brain *Brain,
 		addDependency(missing, d)
 
 		return result, nil
+	}
+}
+
+// executeTemplateFunc executes the given template in the context of the
+// parent. This can be used for nested template definitions.
+func executeTemplateFunc(t *template.Template) func(string) (string, error) {
+	return func(s string) (string, error) {
+		var b bytes.Buffer
+		if err := t.ExecuteTemplate(&b, s, nil); err != nil {
+			return "", err
+		}
+		return b.String(), nil
 	}
 }
 

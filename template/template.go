@@ -120,17 +120,18 @@ func (t *Template) Execute(i *ExecuteInput) (*ExecuteResult, error) {
 
 	usedMap := make(map[string]dep.Dependency)
 	missingMap := make(map[string]dep.Dependency)
-	funcs := funcMap(&funcMapInput{
+
+	tmpl := template.New("")
+	tmpl.Delims(t.leftDelim, t.rightDelim)
+	tmpl.Funcs(funcMap(&funcMapInput{
+		t:       tmpl,
 		brain:   i.Brain,
 		env:     i.Env,
 		used:    usedMap,
 		missing: missingMap,
-	})
+	}))
 
-	tmpl, err := template.New("").
-		Delims(t.leftDelim, t.rightDelim).
-		Funcs(funcs).
-		Parse(t.contents)
+	tmpl, err := tmpl.Parse(t.contents)
 	if err != nil {
 		return nil, errors.Wrap(err, "template")
 	}
@@ -162,6 +163,7 @@ func (t *Template) Execute(i *ExecuteInput) (*ExecuteResult, error) {
 
 // funcMapInput is input to the funcMap, which builds the template functions.
 type funcMapInput struct {
+	t             *template.Template
 	brain         *Brain
 	env           []string
 	used, missing map[string]dep.Dependency
@@ -195,6 +197,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"byTag":           byTag,
 		"contains":        contains,
 		"env":             envFunc(i.env),
+		"executeTemplate": executeTemplateFunc(i.t),
 		"explode":         explode,
 		"in":              in,
 		"loop":            loop,
