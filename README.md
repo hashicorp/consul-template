@@ -436,22 +436,6 @@ Query Consul for all data centers in the catalog. Data centers are queried using
 {{datacenters}}
 ```
 
-##### `executeTemplate`
-Executes and returns a defined template.
-
-```liquid
-{{define "custom"}}my custom template{{end}}
-
-This is my other template:
-{{executeTemplate "custom"}}
-
-And I can call it multiple times:
-{{executeTemplate "custom"}}
-
-Or save it to a variable:
-{{$var := executeTemplate "custom"}}
-```
-
 ##### `file`
 Read and output the contents of a local file on disk. If the file cannot be read, an error will occur. Files are read using the following syntax:
 
@@ -889,6 +873,22 @@ This function can be chained to manipulate the output:
 
 ```liquid
 {{env "CLUSTER_ID" | toLower}}
+```
+
+##### `executeTemplate`
+Executes and returns a defined template.
+
+```liquid
+{{define "custom"}}my custom template{{end}}
+
+This is my other template:
+{{executeTemplate "custom"}}
+
+And I can call it multiple times:
+{{executeTemplate "custom"}}
+
+Or save it to a variable:
+{{$var := executeTemplate "custom"}}
 ```
 
 ##### `explode`
