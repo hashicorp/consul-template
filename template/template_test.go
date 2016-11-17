@@ -562,6 +562,23 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"helper_executeTemplate",
+			`{{ define "custom" }}{{ key "foo" }}{{ end }}{{ executeTemplate "custom" }}`,
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.ParseStoreKey("foo")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, "bar")
+					return b
+				}(),
+			},
+			"bar",
+			false,
+		},
+		{
 			"helper_explode",
 			`{{ range $k, $v := tree "list" | explode }}{{ $k }}{{ $v }}{{ end }}`,
 			&ExecuteInput{
