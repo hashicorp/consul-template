@@ -96,6 +96,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * Fix `-renew-token` flag not begin honored on the CLI [GH-741, GH-745]
+  * Allow `*` in key names [GH-789, GH-755]
 
 ## v0.16.0 (September 22, 2016)
 
