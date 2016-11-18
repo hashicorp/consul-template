@@ -22,6 +22,10 @@ type Template struct {
 	// during template creation or read from disk when initialized.
 	contents string
 
+	// source is the original location of the template. This may be undefined if
+	// the template was dynamically defined.
+	source string
+
 	// leftDelim and rightDelim are the template delimiters.
 	leftDelim  string
 	rightDelim string
@@ -60,6 +64,7 @@ func NewTemplate(i *NewTemplateInput) (*Template, error) {
 	}
 
 	var t Template
+	t.source = i.Source
 	t.contents = i.Contents
 	t.leftDelim = i.LeftDelim
 	t.rightDelim = i.RightDelim
@@ -87,6 +92,14 @@ func (t *Template) ID() string {
 // Contents returns the raw contents of the template.
 func (t *Template) Contents() string {
 	return t.contents
+}
+
+// Source returns the filepath source of this template.
+func (t *Template) Source() string {
+	if t.source == "" {
+		return "(dynamic)"
+	}
+	return t.source
 }
 
 // ExecuteInput is used as input to the template's execute function.
