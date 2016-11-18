@@ -202,7 +202,10 @@ func (r *Runner) Start() {
 		if r.allTemplatesRendered() {
 			// If an exec command was given and a command is not currently running,
 			// spawn the child process for supervision.
-			if *r.config.Exec.Command != "" {
+			if config.StringPresent(r.config.Exec.Command) {
+				// Lock the child because we are about to check if it exists.
+				r.childLock.Lock()
+
 				if r.child == nil {
 					env := r.config.Exec.Env.Copy()
 					env.Custom = append(r.childEnv(), env.Custom...)
@@ -224,6 +227,8 @@ func (r *Runner) Start() {
 					}
 					r.child = child
 				}
+
+				// Unlock the child, we are done now.
 				r.childLock.Unlock()
 
 				// It's possible that we didn't start a process, in which case no
