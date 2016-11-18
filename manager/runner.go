@@ -393,8 +393,6 @@ func (r *Runner) stopDedup() {
 	if r.dedup != nil {
 		log.Printf("[DEBUG] (runner) stopping de-duplication manager")
 		r.dedup.Stop()
-	} else {
-		log.Printf("[DEBUG] (runner) de-duplication manager is not running")
 	}
 }
 
@@ -402,8 +400,6 @@ func (r *Runner) stopWatcher() {
 	if r.watcher != nil {
 		log.Printf("[DEBUG] (runner) stopping watcher")
 		r.watcher.Stop()
-	} else {
-		log.Printf("[DEBUG] (runner) watcher is not running")
 	}
 }
 
@@ -414,8 +410,6 @@ func (r *Runner) stopChild() {
 	if r.child != nil {
 		log.Printf("[DEBUG] (runner) stopping child process")
 		r.child.Stop()
-	} else {
-		log.Printf("[DEBUG] (runner) child is not running")
 	}
 }
 
