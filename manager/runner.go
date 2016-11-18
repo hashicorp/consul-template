@@ -95,6 +95,12 @@ type Runner struct {
 	// available in both the command's environment as well as the template's
 	// environment.
 	Env map[string]string
+
+	// stopLock is the lock around checking if the runner can be stopped
+	stopLock sync.Mutex
+
+	// stopped is a boolean of whether the runner is stopped
+	stopped bool
 }
 
 // RenderEvent captures the time and events that occurred for a template
@@ -337,6 +343,13 @@ func (r *Runner) Start() {
 
 // Stop halts the execution of this runner and its subprocesses.
 func (r *Runner) Stop() {
+	r.stopLock.Lock()
+	defer r.stopLock.Unlock()
+
+	if r.stopped {
+		return
+	}
+
 	log.Printf("[INFO] (runner) stopping")
 	r.stopDedup()
 	r.stopWatcher()
@@ -346,6 +359,8 @@ func (r *Runner) Stop() {
 		log.Printf("[WARN] (runner) could not remove pid at %q: %s",
 			r.config.PidFile, err)
 	}
+
+	r.stopped = true
 
 	close(r.DoneCh)
 }
