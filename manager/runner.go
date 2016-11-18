@@ -68,6 +68,9 @@ type Runner struct {
 	// dependencies is the list of dependencies this runner is watching.
 	dependencies map[string]dep.Dependency
 
+	// dependenciesLock is a lock around touching the dependencies map.
+	dependenciesLock sync.Mutex
+
 	// watcher is the watcher this runner is using.
 	watcher *watch.Watcher
 
@@ -418,6 +421,9 @@ func (r *Runner) stopChild() {
 // is "renderable" (i.e. all its Dependencies have been downloaded at least
 // once).
 func (r *Runner) Receive(d dep.Dependency, data interface{}) {
+	r.dependenciesLock.Lock()
+	defer r.dependenciesLock.Unlock()
+
 	// Just because we received data, it does not mean that we are actually
 	// watching for that data. How is that possible you may ask? Well, this
 	// Runner's data channel is pooled, meaning it accepts multiple data views
@@ -783,6 +789,9 @@ func (r *Runner) init() error {
 // At the end of this function, the given depsMap is converted to a slice and
 // stored on the runner.
 func (r *Runner) diffAndUpdateDeps(depsMap map[string]dep.Dependency) {
+	r.dependenciesLock.Lock()
+	defer r.dependenciesLock.Unlock()
+
 	// Diff and up the list of dependencies, stopping any unneeded watchers.
 	log.Printf("[INFO] (runner) diffing and updating dependencies")
 
