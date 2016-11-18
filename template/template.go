@@ -146,13 +146,13 @@ func (t *Template) Execute(i *ExecuteInput) (*ExecuteResult, error) {
 
 	tmpl, err := tmpl.Parse(t.contents)
 	if err != nil {
-		return nil, errors.Wrap(err, "template")
+		return nil, errors.Wrap(err, "parse")
 	}
 
 	// Execute the template into the writer
 	var b bytes.Buffer
 	if err := tmpl.Execute(&b, nil); err != nil {
-		return nil, errors.Wrap(err, "template")
+		return nil, errors.Wrap(err, "execute")
 	}
 
 	// Update this list of this template's dependencies
