@@ -191,9 +191,9 @@ func TestDedupConfig_Finalize(t *testing.T) {
 			&DedupConfig{},
 			&DedupConfig{
 				Enabled:  Bool(false),
-				MaxStale: TimeDuration(0 * time.Second),
-				Prefix:   String(""),
-				TTL:      TimeDuration(0 * time.Second),
+				MaxStale: TimeDuration(DefaultDedupMaxStale),
+				Prefix:   String(DefaultDedupPrefix),
+				TTL:      TimeDuration(DefaultDedupTTL),
 			},
 		},
 		{
@@ -204,8 +204,8 @@ func TestDedupConfig_Finalize(t *testing.T) {
 			&DedupConfig{
 				Enabled:  Bool(true),
 				MaxStale: TimeDuration(10 * time.Second),
-				Prefix:   String(""),
-				TTL:      TimeDuration(0 * time.Second),
+				Prefix:   String(DefaultDedupPrefix),
+				TTL:      TimeDuration(DefaultDedupTTL),
 			},
 		},
 		{
@@ -215,9 +215,9 @@ func TestDedupConfig_Finalize(t *testing.T) {
 			},
 			&DedupConfig{
 				Enabled:  Bool(true),
-				MaxStale: TimeDuration(0 * time.Second),
+				MaxStale: TimeDuration(DefaultDedupMaxStale),
 				Prefix:   String("prefix"),
-				TTL:      TimeDuration(0 * time.Second),
+				TTL:      TimeDuration(DefaultDedupTTL),
 			},
 		},
 		{
@@ -227,8 +227,8 @@ func TestDedupConfig_Finalize(t *testing.T) {
 			},
 			&DedupConfig{
 				Enabled:  Bool(true),
-				MaxStale: TimeDuration(0 * time.Second),
-				Prefix:   String(""),
+				MaxStale: TimeDuration(DefaultDedupMaxStale),
+				Prefix:   String(DefaultDedupPrefix),
 				TTL:      TimeDuration(10 * time.Second),
 			},
 		},

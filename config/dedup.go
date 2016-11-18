@@ -101,19 +101,15 @@ func (c *DedupConfig) Finalize() {
 	}
 
 	if c.MaxStale == nil {
-		c.MaxStale = TimeDuration(0 * time.Second)
+		c.MaxStale = TimeDuration(DefaultDedupMaxStale)
 	}
 
 	if c.Prefix == nil {
-		c.Prefix = String("")
+		c.Prefix = String(DefaultDedupPrefix)
 	}
 
 	if c.TTL == nil {
-		c.TTL = TimeDuration(0 * time.Second)
-	}
-
-	if c.Enabled == nil {
-		c.Enabled = Bool(*c.MaxStale > 0 || *c.Prefix != "" || *c.TTL > 0)
+		c.TTL = TimeDuration(DefaultDedupTTL)
 	}
 }
 
