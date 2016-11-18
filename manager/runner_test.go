@@ -23,6 +23,8 @@ func TestRunner_Receive(t *testing.T) {
 	}
 
 	t.Run("adds_to_brain", func(t *testing.T) {
+		t.Parallel()
+
 		d, err := dep.ParseStoreKey("foo")
 		if err != nil {
 			t.Fatal(err)
@@ -41,6 +43,8 @@ func TestRunner_Receive(t *testing.T) {
 	})
 
 	t.Run("skips_brain_if_not_watching", func(t *testing.T) {
+		t.Parallel()
+
 		d, err := dep.ParseStoreKey("zip")
 		if err != nil {
 			t.Fatal(err)
@@ -319,7 +323,10 @@ func TestRunner_Run(t *testing.T) {
 	}
 
 	for i, tc := range cases {
+		tc := tc
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			t.Parallel()
+
 			var out bytes.Buffer
 
 			c := config.DefaultConfig().Merge(tc.c)
@@ -347,10 +354,309 @@ func TestRunner_Run(t *testing.T) {
 	}
 }
 
+func TestRunner_Start(t *testing.T) {
+	t.Parallel()
+
+	t.Run("store_pid", func(t *testing.T) {
+		t.Parallel()
+
+		pid, err := ioutil.TempFile("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.Remove(pid.Name())
+
+		out, err := ioutil.TempFile("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.Remove(out.Name())
+
+		c := config.DefaultConfig().Merge(&config.Config{
+			PidFile: config.String(pid.Name()),
+			Templates: &config.TemplateConfigs{
+				&config.TemplateConfig{
+					Contents:    config.String("test"),
+					Destination: config.String(out.Name()),
+				},
+			},
+		})
+		c.Finalize()
+
+		r, err := NewRunner(c, false, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		go r.Start()
+		defer r.Stop()
+
+		select {
+		case err := <-r.ErrCh:
+			t.Fatal(err)
+		case <-r.renderedCh:
+			c, err := ioutil.ReadFile(pid.Name())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if l := len(c); l == 0 {
+				t.Errorf("\nexp: %#v\nact: %#v", "> 0", l)
+			}
+		case <-time.After(2 * time.Second):
+			t.Fatal("timeout")
+		}
+	})
+
+	t.Run("run_no_deps", func(t *testing.T) {
+		t.Parallel()
+
+		out, err := ioutil.TempFile("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.Remove(out.Name())
+
+		c := config.DefaultConfig().Merge(&config.Config{
+			Templates: &config.TemplateConfigs{
+				&config.TemplateConfig{
+					Contents:    config.String(`test`),
+					Destination: config.String(out.Name()),
+				},
+			},
+		})
+		c.Finalize()
+
+		r, err := NewRunner(c, false, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		go r.Start()
+		defer r.Stop()
+
+		select {
+		case err := <-r.ErrCh:
+			t.Fatal(err)
+		case <-r.renderedCh:
+			act, err := ioutil.ReadFile(out.Name())
+			if err != nil {
+				t.Fatal(err)
+			}
+			exp := "test"
+			if exp != string(act) {
+				t.Errorf("\nexp: %#v\nact: %#v", exp, string(act))
+			}
+		case <-time.After(2 * time.Second):
+			t.Fatal("timeout")
+		}
+	})
+
+	t.Run("single_dependency", func(t *testing.T) {
+		t.Parallel()
+
+		consul := testConsulServer(t)
+		defer consul.Stop()
+
+		consul.SetKV("foo", []byte("bar"))
+
+		out, err := ioutil.TempFile("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.Remove(out.Name())
+
+		c := config.DefaultConfig().Merge(&config.Config{
+			Consul: config.String(consul.HTTPAddr),
+			Templates: &config.TemplateConfigs{
+				&config.TemplateConfig{
+					Contents:    config.String(`{{ key "foo" }}`),
+					Destination: config.String(out.Name()),
+				},
+			},
+		})
+		c.Finalize()
+
+		r, err := NewRunner(c, false, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		go r.Start()
+		defer r.Stop()
+
+		select {
+		case err := <-r.ErrCh:
+			t.Fatal(err)
+		case <-r.renderedCh:
+			act, err := ioutil.ReadFile(out.Name())
+			if err != nil {
+				t.Fatal(err)
+			}
+			exp := "bar"
+			if exp != string(act) {
+				t.Errorf("\nexp: %#v\nact: %#v", exp, string(act))
+			}
+		case <-time.After(2 * time.Second):
+			t.Fatal("timeout")
+		}
+	})
+
+	t.Run("multipass", func(t *testing.T) {
+		t.Parallel()
+
+		consul := testConsulServer(t)
+		defer consul.Stop()
+
+		consul.SetKV("foo", []byte("bar"))
+		consul.SetKV("bar", []byte("zip"))
+
+		out, err := ioutil.TempFile("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.Remove(out.Name())
+
+		c := config.DefaultConfig().Merge(&config.Config{
+			Consul: config.String(consul.HTTPAddr),
+			Templates: &config.TemplateConfigs{
+				&config.TemplateConfig{
+					Contents:    config.String(`{{ key (key "foo") }}`),
+					Destination: config.String(out.Name()),
+				},
+			},
+		})
+		c.Finalize()
+
+		r, err := NewRunner(c, false, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		go r.Start()
+		defer r.Stop()
+
+		select {
+		case err := <-r.ErrCh:
+			t.Fatal(err)
+		case <-r.renderedCh:
+			act, err := ioutil.ReadFile(out.Name())
+			if err != nil {
+				t.Fatal(err)
+			}
+			exp := "zip"
+			if exp != string(act) {
+				t.Errorf("\nexp: %#v\nact: %#v", exp, string(act))
+			}
+		case <-time.After(2 * time.Second):
+			t.Fatal("timeout")
+		}
+	})
+
+	t.Run("exec", func(t *testing.T) {
+		t.Parallel()
+
+		out, err := ioutil.TempFile("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.Remove(out.Name())
+
+		c := config.DefaultConfig().Merge(&config.Config{
+			Exec: &config.ExecConfig{
+				Command: config.String(`sleep 30`),
+			},
+			Templates: &config.TemplateConfigs{
+				&config.TemplateConfig{
+					Contents:    config.String(`test`),
+					Destination: config.String(out.Name()),
+				},
+			},
+		})
+		c.Finalize()
+
+		r, err := NewRunner(c, false, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		go r.Start()
+		defer r.Stop()
+
+		select {
+		case err := <-r.ErrCh:
+			t.Fatal(err)
+		case <-r.renderedCh:
+			found := false
+			for i := 0; i < 5; i++ {
+				if found {
+					break
+				}
+
+				time.Sleep(100 * time.Millisecond)
+
+				r.childLock.RLock()
+				if r.child != nil {
+					found = true
+				}
+				r.childLock.RUnlock()
+			}
+			if !found {
+				t.Error("missing child")
+			}
+		case <-time.After(2 * time.Second):
+			t.Fatal("timeout")
+		}
+	})
+
+	t.Run("exec_once", func(t *testing.T) {
+		t.Parallel()
+
+		out, err := ioutil.TempFile("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.Remove(out.Name())
+
+		c := config.DefaultConfig().Merge(&config.Config{
+			Exec: &config.ExecConfig{
+				Command: config.String(`sleep 30`),
+			},
+			Templates: &config.TemplateConfigs{
+				&config.TemplateConfig{
+					Contents:    config.String(`test`),
+					Destination: config.String(out.Name()),
+				},
+			},
+		})
+		c.Finalize()
+
+		r, err := NewRunner(c, false, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		go r.Start()
+		defer r.Stop()
+
+		select {
+		case err := <-r.ErrCh:
+			t.Fatal(err)
+		case <-r.renderedCh:
+			// Just assert there is no panic
+		case <-time.After(2 * time.Second):
+			t.Fatal("timeout")
+		}
+	})
+}
+
 func TestRunner_quiescence(t *testing.T) {
+	t.Parallel()
+
 	tpl := &template.Template{}
 
 	t.Run("min", func(t *testing.T) {
+		t.Parallel()
+
 		ch := make(chan *template.Template, 1)
 		q := newQuiescence(ch,
 			50*time.Millisecond, 250*time.Millisecond, tpl)
@@ -380,6 +686,8 @@ func TestRunner_quiescence(t *testing.T) {
 
 	// Single snooze case.
 	t.Run("snooze", func(t *testing.T) {
+		t.Parallel()
+
 		ch := make(chan *template.Template, 1)
 		q := newQuiescence(ch,
 			50*time.Millisecond, 250*time.Millisecond, tpl)
@@ -406,6 +714,8 @@ func TestRunner_quiescence(t *testing.T) {
 
 	// Max time case.
 	t.Run("max", func(t *testing.T) {
+		t.Parallel()
+
 		ch := make(chan *template.Template, 1)
 		q := newQuiescence(ch,
 			50*time.Millisecond, 250*time.Millisecond, tpl)
