@@ -47,7 +47,23 @@ bin:
 		--env="DIST=${DIST}" \
 		--workdir="/go/src/${PROJECT}" \
 		--volume="${CURRENT_DIR}:/go/src/${PROJECT}" \
-		"golang:${GOVERSION}" /bin/sh -c "scripts/compile.sh"
+		"golang:${GOVERSION}" /usr/bin/env sh -c "scripts/compile.sh"
+
+# bin-local builds the project using the local go environment. This is only
+# recommended for advanced users or users who do not wish to use the Docker
+# build process.
+bin-local:
+	@echo "==> Building ${PROJECT} (locally)..."
+	@env \
+		VERSION="${VERSION}" \
+		PROJECT="${PROJECT}" \
+		OWNER="${OWNER}" \
+		NAME="${NAME}" \
+		XC_OS="${XC_OS}" \
+		XC_ARCH="${XC_ARCH}" \
+		XC_EXCLUDE="${XC_EXCLUDE}" \
+		DIST="${DIST}" \
+		/usr/bin/env sh -c "scripts/compile.sh"
 
 # bootstrap installs the necessary go tools for development or build
 bootstrap:
@@ -126,4 +142,4 @@ test-race:
 	@echo "==> Testing ${PROJECT} (race)..."
 	@go test -timeout=60s -race ${GOFILES} ${TESTARGS}
 
-.PHONY: bin bootstrap deps dev dist docker docker-push test test-race
+.PHONY: bin bin-local bootstrap deps dev dist docker docker-push test test-race
