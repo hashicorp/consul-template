@@ -135,6 +135,15 @@ Default:        false
 
 `allowCleartextPasswords=true` allows using the [cleartext client side plugin](http://dev.mysql.com/doc/en/cleartext-authentication-plugin.html) if required by an account, such as one defined with the [PAM authentication plugin](http://dev.mysql.com/doc/en/pam-authentication-plugin.html). Sending passwords in clear text may be a security problem in some configurations. To avoid problems if there is any possibility that the password would be intercepted, clients should connect to MySQL Server using a method that protects the password. Possibilities include [TLS / SSL](#tls), IPsec, or a private network.
 
+##### `allowNativePasswords`
+
+```
+Type:           bool
+Valid Values:   true, false
+Default:        false
+```
+`allowNativePasswords=true` allows the usage of the mysql native password method.
+
 ##### `allowOldPasswords`
 
 ```
@@ -306,13 +315,21 @@ I/O write timeout. The value must be a decimal number with an unit suffix ( *"ms
 
 ##### System Variables
 
-All other parameters are interpreted as system variables:
-  * `autocommit`: `"SET autocommit=<value>"`
-  * [`time_zone`](https://dev.mysql.com/doc/refman/5.5/en/time-zone-support.html): `"SET time_zone=<value>"`
-  * [`tx_isolation`](https://dev.mysql.com/doc/refman/5.5/en/server-system-variables.html#sysvar_tx_isolation): `"SET tx_isolation=<value>"`
-  * `param`: `"SET <param>=<value>"`
+Any other parameters are interpreted as system variables:
+  * `<boolean_var>=<value>`: `SET <boolean_var>=<value>`
+  * `<enum_var>=<value>`: `SET <enum_var>=<value>`
+  * `<string_var>=%27<value>%27`: `SET <string_var>='<value>'`
 
-*The values must be [url.QueryEscape](http://golang.org/pkg/net/url/#QueryEscape)'ed!*
+Rules:
+* The values for string variables must be quoted with '
+* The values must also be [url.QueryEscape](http://golang.org/pkg/net/url/#QueryEscape)'ed!
+ (which implies values of string variables must be wrapped with `%27`)
+
+Examples:
+  * `autocommit=1`: `SET autocommit=1`
+  * [`time_zone=%27Europe%2FParis%27`](https://dev.mysql.com/doc/refman/5.5/en/time-zone-support.html): `SET time_zone='Europe/Paris'`
+  * [`tx_isolation=%27REPEATABLE-READ%27`](https://dev.mysql.com/doc/refman/5.5/en/server-system-variables.html#sysvar_tx_isolation): `SET tx_isolation='REPEATABLE-READ'`
+
 
 #### Examples
 ```

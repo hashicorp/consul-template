@@ -135,8 +135,14 @@ func (s *Server) maxConcurrentStreams() uint32 {
 //
 // ConfigureServer must be called before s begins serving.
 func ConfigureServer(s *http.Server, conf *Server) error {
+	if s == nil {
+		panic("nil *http.Server")
+	}
 	if conf == nil {
 		conf = new(Server)
+	}
+	if err := configureServer18(s, conf); err != nil {
+		return err
 	}
 
 	if s.TLSConfig == nil {
@@ -182,9 +188,6 @@ func ConfigureServer(s *http.Server, conf *Server) error {
 	if !haveNPN {
 		s.TLSConfig.NextProtos = append(s.TLSConfig.NextProtos, NextProtoTLS)
 	}
-	// h2-14 is temporary (as of 2015-03-05) while we wait for all browsers
-	// to switch to "h2".
-	s.TLSConfig.NextProtos = append(s.TLSConfig.NextProtos, "h2-14")
 
 	if s.TLSNextProto == nil {
 		s.TLSNextProto = map[string]func(*http.Server, *tls.Conn, http.Handler){}
@@ -199,7 +202,6 @@ func ConfigureServer(s *http.Server, conf *Server) error {
 		})
 	}
 	s.TLSNextProto[NextProtoTLS] = protoHandler
-	s.TLSNextProto["h2-14"] = protoHandler // temporary; see above.
 	return nil
 }
 
@@ -384,17 +386,19 @@ type serverConn struct {
 	advMaxStreams         uint32 // our SETTINGS_MAX_CONCURRENT_STREAMS advertised the client
 	curClientStreams      uint32 // number of open streams initiated by the client
 	curPushedStreams      uint32 // number of open streams initiated by server push
-	maxStreamID           uint32 // max ever seen from client
-	maxPushPromiseID      uint32 // ID of the last push promise, or 0 if there have been no pushes
+	maxClientStreamID     uint32 // max ever seen from client (odd), or 0 if there have been no client requests
+	maxPushPromiseID      uint32 // ID of the last push promise (even), or 0 if there have been no pushes
 	streams               map[uint32]*stream
 	initialWindowSize     int32
 	maxFrameSize          int32
 	headerTableSize       uint32
 	peerMaxHeaderListSize uint32            // zero means unknown (default)
 	canonHeader           map[string]string // http2-lower-case -> Go-Canonical-Case
-	writingFrame          bool              // started write goroutine but haven't heard back on wroteFrameCh
+	writingFrame          bool              // started writing a frame (on serve goroutine or separate)
+	writingFrameAsync     bool              // started a frame on its own goroutine but haven't heard back on wroteFrameCh
 	needsFrameFlush       bool              // last frame write wasn't a flush
 	inGoAway              bool              // we've started to or sent GOAWAY
+	inFrameScheduleLoop   bool              // whether we're in the scheduleFrameWrite loop
 	needToSendGoAway      bool              // we need to schedule a GOAWAY frame write
 	goAwayCode            ErrCode
 	shutdownTimerCh       <-chan time.Time // nil until used
@@ -473,8 +477,14 @@ func (sc *serverConn) state(streamID uint32) (streamState, *stream) {
 	// a client sends a HEADERS frame on stream 7 without ever sending a
 	// frame on stream 5, then stream 5 transitions to the "closed"
 	// state when the first frame for stream 7 is sent or received."
-	if streamID <= sc.maxStreamID {
-		return stateClosed, nil
+	if streamID%2 == 1 {
+		if streamID <= sc.maxClientStreamID {
+			return stateClosed, nil
+		}
+	} else {
+		if streamID <= sc.maxPushPromiseID {
+			return stateClosed, nil
+		}
 	}
 	return stateIdle, nil
 }
@@ -698,6 +708,11 @@ func (sc *serverConn) serve() {
 		sc.idleTimerCh = sc.idleTimer.C
 	}
 
+	var gracefulShutdownCh <-chan struct{}
+	if sc.hs != nil {
+		gracefulShutdownCh = h1ServerShutdownChan(sc.hs)
+	}
+
 	go sc.readFrames() // closed by defer sc.conn.Close above
 
 	settingsTimer := time.NewTimer(firstSettingsTimeout)
@@ -725,6 +740,9 @@ func (sc *serverConn) serve() {
 		case <-settingsTimer.C:
 			sc.logf("timeout waiting for SETTINGS frames from %v", sc.conn.RemoteAddr())
 			return
+		case <-gracefulShutdownCh:
+			gracefulShutdownCh = nil
+			sc.startGracefulShutdown()
 		case <-sc.shutdownTimerCh:
 			sc.vlogf("GOAWAY close timer fired; closing conn from %v", sc.conn.RemoteAddr())
 			return
@@ -733,6 +751,10 @@ func (sc *serverConn) serve() {
 			sc.goAway(ErrCodeNo)
 		case fn := <-sc.testHookCh:
 			fn(loopNum)
+		}
+
+		if sc.inGoAway && sc.curClientStreams == 0 && !sc.needToSendGoAway && !sc.writingFrame {
+			return
 		}
 	}
 }
@@ -893,6 +915,7 @@ func (sc *serverConn) startFrameWrite(wr FrameWriteRequest) {
 		var err error
 		wpp.promisedID, err = wpp.allocatePromisedID()
 		if err != nil {
+			sc.writingFrameAsync = false
 			if wr.done != nil {
 				wr.done <- err
 			}
@@ -903,9 +926,11 @@ func (sc *serverConn) startFrameWrite(wr FrameWriteRequest) {
 	sc.writingFrame = true
 	sc.needsFrameFlush = true
 	if wr.write.staysWithinBuffer(sc.bw.Available()) {
+		sc.writingFrameAsync = false
 		err := wr.write.writeFrame(sc)
 		sc.wroteFrame(frameWriteResult{wr, err})
 	} else {
+		sc.writingFrameAsync = true
 		go sc.writeFrameAsync(wr)
 	}
 }
@@ -923,6 +948,7 @@ func (sc *serverConn) wroteFrame(res frameWriteResult) {
 		panic("internal error: expected to be already writing a frame")
 	}
 	sc.writingFrame = false
+	sc.writingFrameAsync = false
 
 	wr := res.wr
 	st := wr.stream
@@ -982,47 +1008,68 @@ func (sc *serverConn) wroteFrame(res frameWriteResult) {
 // flush the write buffer.
 func (sc *serverConn) scheduleFrameWrite() {
 	sc.serveG.check()
-	if sc.writingFrame {
+	if sc.writingFrame || sc.inFrameScheduleLoop {
 		return
 	}
-	if sc.needToSendGoAway {
-		sc.needToSendGoAway = false
-		sc.startFrameWrite(FrameWriteRequest{
-			write: &writeGoAway{
-				maxStreamID: sc.maxStreamID,
-				code:        sc.goAwayCode,
-			},
-		})
-		return
-	}
-	if sc.needToSendSettingsAck {
-		sc.needToSendSettingsAck = false
-		sc.startFrameWrite(FrameWriteRequest{write: writeSettingsAck{}})
-		return
-	}
-	if !sc.inGoAway {
-		if wr, ok := sc.writeSched.Pop(); ok {
-			sc.startFrameWrite(wr)
-			return
+	sc.inFrameScheduleLoop = true
+	for !sc.writingFrameAsync {
+		if sc.needToSendGoAway {
+			sc.needToSendGoAway = false
+			sc.startFrameWrite(FrameWriteRequest{
+				write: &writeGoAway{
+					maxStreamID: sc.maxClientStreamID,
+					code:        sc.goAwayCode,
+				},
+			})
+			continue
 		}
+		if sc.needToSendSettingsAck {
+			sc.needToSendSettingsAck = false
+			sc.startFrameWrite(FrameWriteRequest{write: writeSettingsAck{}})
+			continue
+		}
+		if !sc.inGoAway || sc.goAwayCode == ErrCodeNo {
+			if wr, ok := sc.writeSched.Pop(); ok {
+				sc.startFrameWrite(wr)
+				continue
+			}
+		}
+		if sc.needsFrameFlush {
+			sc.startFrameWrite(FrameWriteRequest{write: flushFrameWriter{}})
+			sc.needsFrameFlush = false // after startFrameWrite, since it sets this true
+			continue
+		}
+		break
 	}
-	if sc.needsFrameFlush {
-		sc.startFrameWrite(FrameWriteRequest{write: flushFrameWriter{}})
-		sc.needsFrameFlush = false // after startFrameWrite, since it sets this true
-		return
-	}
+	sc.inFrameScheduleLoop = false
+}
+
+// startGracefulShutdown sends a GOAWAY with ErrCodeNo to tell the
+// client we're gracefully shutting down. The connection isn't closed
+// until all current streams are done.
+func (sc *serverConn) startGracefulShutdown() {
+	sc.goAwayIn(ErrCodeNo, 0)
 }
 
 func (sc *serverConn) goAway(code ErrCode) {
 	sc.serveG.check()
+	var forceCloseIn time.Duration
+	if code != ErrCodeNo {
+		forceCloseIn = 250 * time.Millisecond
+	} else {
+		// TODO: configurable
+		forceCloseIn = 1 * time.Second
+	}
+	sc.goAwayIn(code, forceCloseIn)
+}
+
+func (sc *serverConn) goAwayIn(code ErrCode, forceCloseIn time.Duration) {
+	sc.serveG.check()
 	if sc.inGoAway {
 		return
 	}
-	if code != ErrCodeNo {
-		sc.shutDownIn(250 * time.Millisecond)
-	} else {
-		// TODO: configurable
-		sc.shutDownIn(1 * time.Second)
+	if forceCloseIn != 0 {
+		sc.shutDownIn(forceCloseIn)
 	}
 	sc.inGoAway = true
 	sc.needToSendGoAway = true
@@ -1126,6 +1173,8 @@ func (sc *serverConn) processFrame(f Frame) error {
 		return sc.processResetStream(f)
 	case *PriorityFrame:
 		return sc.processPriority(f)
+	case *GoAwayFrame:
+		return sc.processGoAway(f)
 	case *PushPromiseFrame:
 		// A client cannot push. Thus, servers MUST treat the receipt of a PUSH_PROMISE
 		// frame as a connection error (Section 5.4.1) of type PROTOCOL_ERROR.
@@ -1151,7 +1200,7 @@ func (sc *serverConn) processPing(f *PingFrame) error {
 		// PROTOCOL_ERROR."
 		return ConnectionError(ErrCodeProtocol)
 	}
-	if sc.inGoAway {
+	if sc.inGoAway && sc.goAwayCode != ErrCodeNo {
 		return nil
 	}
 	sc.writeFrame(FrameWriteRequest{write: writePingAck{f}})
@@ -1160,9 +1209,6 @@ func (sc *serverConn) processPing(f *PingFrame) error {
 
 func (sc *serverConn) processWindowUpdate(f *WindowUpdateFrame) error {
 	sc.serveG.check()
-	if sc.inGoAway {
-		return nil
-	}
 	switch {
 	case f.StreamID != 0: // stream-level flow control
 		state, st := sc.state(f.StreamID)
@@ -1195,9 +1241,6 @@ func (sc *serverConn) processWindowUpdate(f *WindowUpdateFrame) error {
 
 func (sc *serverConn) processResetStream(f *RSTStreamFrame) error {
 	sc.serveG.check()
-	if sc.inGoAway {
-		return nil
-	}
 
 	state, st := sc.state(f.StreamID)
 	if state == stateIdle {
@@ -1227,12 +1270,15 @@ func (sc *serverConn) closeStream(st *stream, err error) {
 	} else {
 		sc.curClientStreams--
 	}
-	if sc.curClientStreams+sc.curPushedStreams == 0 {
-		sc.setConnState(http.StateIdle)
-	}
 	delete(sc.streams, st.id)
-	if len(sc.streams) == 0 && sc.srv.IdleTimeout != 0 {
-		sc.idleTimer.Reset(sc.srv.IdleTimeout)
+	if len(sc.streams) == 0 {
+		sc.setConnState(http.StateIdle)
+		if sc.srv.IdleTimeout != 0 {
+			sc.idleTimer.Reset(sc.srv.IdleTimeout)
+		}
+		if h1ServerKeepAlivesDisabled(sc.hs) {
+			sc.startGracefulShutdown()
+		}
 	}
 	if p := st.body; p != nil {
 		// Return any buffered unread bytes worth of conn-level flow control.
@@ -1255,9 +1301,6 @@ func (sc *serverConn) processSettings(f *SettingsFrame) error {
 			// hang up on them anyway.
 			return ConnectionError(ErrCodeProtocol)
 		}
-		return nil
-	}
-	if sc.inGoAway {
 		return nil
 	}
 	if err := f.ForeachSetting(sc.processSetting); err != nil {
@@ -1331,7 +1374,7 @@ func (sc *serverConn) processSettingInitialWindowSize(val uint32) error {
 
 func (sc *serverConn) processData(f *DataFrame) error {
 	sc.serveG.check()
-	if sc.inGoAway {
+	if sc.inGoAway && sc.goAwayCode != ErrCodeNo {
 		return nil
 	}
 	data := f.Data()
@@ -1410,6 +1453,20 @@ func (sc *serverConn) processData(f *DataFrame) error {
 	return nil
 }
 
+func (sc *serverConn) processGoAway(f *GoAwayFrame) error {
+	sc.serveG.check()
+	if f.ErrCode != ErrCodeNo {
+		sc.logf("http2: received GOAWAY %+v, starting graceful shutdown", f)
+	} else {
+		sc.vlogf("http2: received GOAWAY %+v, starting graceful shutdown", f)
+	}
+	sc.startGracefulShutdown()
+	// http://tools.ietf.org/html/rfc7540#section-6.8
+	// We should not create any new streams, which means we should disable push.
+	sc.pushEnabled = false
+	return nil
+}
+
 // isPushed reports whether the stream is server-initiated.
 func (st *stream) isPushed() bool {
 	return st.id%2 == 0
@@ -1470,10 +1527,10 @@ func (sc *serverConn) processHeaders(f *MetaHeadersFrame) error {
 	// endpoint has opened or reserved. [...]  An endpoint that
 	// receives an unexpected stream identifier MUST respond with
 	// a connection error (Section 5.4.1) of type PROTOCOL_ERROR.
-	if id <= sc.maxStreamID {
+	if id <= sc.maxClientStreamID {
 		return ConnectionError(ErrCodeProtocol)
 	}
-	sc.maxStreamID = id
+	sc.maxClientStreamID = id
 
 	if sc.idleTimer != nil {
 		sc.idleTimer.Stop()
@@ -1533,12 +1590,10 @@ func (sc *serverConn) processHeaders(f *MetaHeadersFrame) error {
 	// The net/http package sets the read deadline from the
 	// http.Server.ReadTimeout during the TLS handshake, but then
 	// passes the connection off to us with the deadline already
-	// set. Disarm it here after the request headers are read, similar
-	// to how the http1 server works.
-	// Unlike http1, though, we never re-arm it yet, though.
-	// TODO(bradfitz): figure out golang.org/issue/14204
-	// (IdleTimeout) and how this relates. Maybe the default
-	// IdleTimeout is ReadTimeout.
+	// set. Disarm it here after the request headers are read,
+	// similar to how the http1 server works. Here it's
+	// technically more like the http1 Server's ReadHeaderTimeout
+	// (in Go 1.8), though. That's a more sane option anyway.
 	if sc.hs.ReadTimeout != 0 {
 		sc.conn.SetReadDeadline(time.Time{})
 	}
@@ -1811,15 +1866,17 @@ func (sc *serverConn) runHandler(rw *responseWriter, req *http.Request, handler 
 		rw.rws.stream.cancelCtx()
 		if didPanic {
 			e := recover()
-			// Same as net/http:
-			const size = 64 << 10
-			buf := make([]byte, size)
-			buf = buf[:runtime.Stack(buf, false)]
 			sc.writeFrameFromHandler(FrameWriteRequest{
 				write:  handlerPanicRST{rw.rws.stream.id},
 				stream: rw.rws.stream,
 			})
-			sc.logf("http2: panic serving %v: %v\n%s", sc.conn.RemoteAddr(), e, buf)
+			// Same as net/http:
+			if shouldLogPanic(e) {
+				const size = 64 << 10
+				buf := make([]byte, size)
+				buf = buf[:runtime.Stack(buf, false)]
+				sc.logf("http2: panic serving %v: %v\n%s", sc.conn.RemoteAddr(), e, buf)
+			}
 			return
 		}
 		rw.handlerDone()
@@ -2231,8 +2288,9 @@ func (w *responseWriter) CloseNotify() <-chan bool {
 	if ch == nil {
 		ch = make(chan bool, 1)
 		rws.closeNotifierCh = ch
+		cw := rws.stream.cw
 		go func() {
-			rws.stream.cw.Wait() // wait for close
+			cw.Wait() // wait for close
 			ch <- true
 		}()
 	}
@@ -2385,7 +2443,7 @@ func (w *responseWriter) push(target string, opts pushOptions) error {
 	}
 	for k := range opts.Header {
 		if strings.HasPrefix(k, ":") {
-			return fmt.Errorf("promised request headers cannot include psuedo header %q", k)
+			return fmt.Errorf("promised request headers cannot include pseudo header %q", k)
 		}
 		// These headers are meaningful only if the request has a body,
 		// but PUSH_PROMISE requests cannot have a body.
@@ -2478,6 +2536,12 @@ func (sc *serverConn) startPush(msg startPushRequest) {
 
 		// http://tools.ietf.org/html/rfc7540#section-5.1.1.
 		// Streams initiated by the server MUST use even-numbered identifiers.
+		// A server that is unable to establish a new stream identifier can send a GOAWAY
+		// frame so that the client is forced to open a new connection for new streams.
+		if sc.maxPushPromiseID+2 >= 1<<31 {
+			sc.startGracefulShutdown()
+			return 0, ErrPushLimitReached
+		}
 		sc.maxPushPromiseID += 2
 		promisedID := sc.maxPushPromiseID
 
@@ -2598,4 +2662,43 @@ var badTrailer = map[string]bool{
 	"Trailer":             true,
 	"Transfer-Encoding":   true,
 	"Www-Authenticate":    true,
+}
+
+// h1ServerShutdownChan returns a channel that will be closed when the
+// provided *http.Server wants to shut down.
+//
+// This is a somewhat hacky way to get at http1 innards. It works
+// when the http2 code is bundled into the net/http package in the
+// standard library. The alternatives ended up making the cmd/go tool
+// depend on http Servers. This is the lightest option for now.
+// This is tested via the TestServeShutdown* tests in net/http.
+func h1ServerShutdownChan(hs *http.Server) <-chan struct{} {
+	if fn := testh1ServerShutdownChan; fn != nil {
+		return fn(hs)
+	}
+	var x interface{} = hs
+	type I interface {
+		getDoneChan() <-chan struct{}
+	}
+	if hs, ok := x.(I); ok {
+		return hs.getDoneChan()
+	}
+	return nil
+}
+
+// optional test hook for h1ServerShutdownChan.
+var testh1ServerShutdownChan func(hs *http.Server) <-chan struct{}
+
+// h1ServerKeepAlivesDisabled reports whether hs has its keep-alives
+// disabled. See comments on h1ServerShutdownChan above for why
+// the code is written this way.
+func h1ServerKeepAlivesDisabled(hs *http.Server) bool {
+	var x interface{} = hs
+	type I interface {
+		doKeepAlives() bool
+	}
+	if hs, ok := x.(I); ok {
+		return !hs.doKeepAlives()
+	}
+	return false
 }
