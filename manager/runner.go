@@ -95,6 +95,12 @@ type Runner struct {
 	// available in both the command's environment as well as the template's
 	// environment.
 	Env map[string]string
+
+	// stopLock is the lock around checking if the runner can be stopped
+	stopLock sync.Mutex
+
+	// stopped is a boolean of whether the runner is stopped
+	stopped bool
 }
 
 // RenderEvent captures the time and events that occurred for a template
@@ -196,7 +202,10 @@ func (r *Runner) Start() {
 		if r.allTemplatesRendered() {
 			// If an exec command was given and a command is not currently running,
 			// spawn the child process for supervision.
-			if *r.config.Exec.Command != "" {
+			if config.StringPresent(r.config.Exec.Command) {
+				// Lock the child because we are about to check if it exists.
+				r.childLock.Lock()
+
 				if r.child == nil {
 					env := r.config.Exec.Env.Copy()
 					env.Custom = append(r.childEnv(), env.Custom...)
@@ -218,6 +227,8 @@ func (r *Runner) Start() {
 					}
 					r.child = child
 				}
+
+				// Unlock the child, we are done now.
 				r.childLock.Unlock()
 
 				// It's possible that we didn't start a process, in which case no
@@ -337,6 +348,13 @@ func (r *Runner) Start() {
 
 // Stop halts the execution of this runner and its subprocesses.
 func (r *Runner) Stop() {
+	r.stopLock.Lock()
+	defer r.stopLock.Unlock()
+
+	if r.stopped {
+		return
+	}
+
 	log.Printf("[INFO] (runner) stopping")
 	r.stopDedup()
 	r.stopWatcher()
@@ -346,6 +364,8 @@ func (r *Runner) Stop() {
 		log.Printf("[WARN] (runner) could not remove pid at %q: %s",
 			r.config.PidFile, err)
 	}
+
+	r.stopped = true
 
 	close(r.DoneCh)
 }
@@ -373,8 +393,6 @@ func (r *Runner) stopDedup() {
 	if r.dedup != nil {
 		log.Printf("[DEBUG] (runner) stopping de-duplication manager")
 		r.dedup.Stop()
-	} else {
-		log.Printf("[DEBUG] (runner) de-duplication manager is not running")
 	}
 }
 
@@ -382,8 +400,6 @@ func (r *Runner) stopWatcher() {
 	if r.watcher != nil {
 		log.Printf("[DEBUG] (runner) stopping watcher")
 		r.watcher.Stop()
-	} else {
-		log.Printf("[DEBUG] (runner) watcher is not running")
 	}
 }
 
@@ -394,8 +410,6 @@ func (r *Runner) stopChild() {
 	if r.child != nil {
 		log.Printf("[DEBUG] (runner) stopping child process")
 		r.child.Stop()
-	} else {
-		log.Printf("[DEBUG] (runner) child is not running")
 	}
 }
 

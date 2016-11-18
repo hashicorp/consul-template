@@ -70,6 +70,10 @@ func Render(i *RenderInput) (*RenderResult, error) {
 // If no errors occur, the Tempfile is "renamed" (moved) to the destination
 // path.
 func AtomicWrite(path string, contents []byte, perms os.FileMode, backup bool) error {
+	if path == "" {
+		return fmt.Errorf("missing destination")
+	}
+
 	parent := filepath.Dir(path)
 	if _, err := os.Stat(parent); os.IsNotExist(err) {
 		if err := os.MkdirAll(parent, 0755); err != nil {
