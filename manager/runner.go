@@ -498,7 +498,7 @@ func (r *Runner) Run() error {
 			Env:   r.childEnv(),
 		})
 		if err != nil {
-			return err
+			return errors.Wrap(err, tmpl.Source())
 		}
 
 		// Grab the list of used and missing dependencies.

@@ -62,6 +62,7 @@ func TestNewTemplate(t *testing.T) {
 			},
 			&Template{
 				contents: "test",
+				source:   f.Name(),
 				hexMD5:   "098f6bcd4621d373cade4e832627b4f6",
 			},
 			false,
