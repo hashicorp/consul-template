@@ -199,7 +199,7 @@ func (r *Runner) Start() {
 			log.Printf("[WARN] (runner) watching %d dependencies - watching this "+
 				"many dependencies could DDoS your consul cluster", r.watcher.Size())
 		} else {
-			log.Printf("[INFO] (runner) watching %d dependencies", r.watcher.Size())
+			log.Printf("[DEBUG] (runner) watching %d dependencies", r.watcher.Size())
 		}
 
 		if r.allTemplatesRendered() {
@@ -793,7 +793,7 @@ func (r *Runner) diffAndUpdateDeps(depsMap map[string]dep.Dependency) {
 	defer r.dependenciesLock.Unlock()
 
 	// Diff and up the list of dependencies, stopping any unneeded watchers.
-	log.Printf("[INFO] (runner) diffing and updating dependencies")
+	log.Printf("[DEBUG] (runner) diffing and updating dependencies")
 
 	for key, d := range r.dependencies {
 		if _, ok := depsMap[key]; !ok {
