@@ -5,28 +5,31 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/vault/api"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewVaultTokenQuery(t *testing.T) {
+func init() {
+	CatalogDatacentersQuerySleepTime = 50 * time.Millisecond
+}
+
+func TestNewCatalogDatacentersQuery(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
 		name string
-		exp  *VaultTokenQuery
+		exp  *CatalogDatacentersQuery
 		err  bool
 	}{
 		{
-			"default",
-			&VaultTokenQuery{},
+			"empty",
+			&CatalogDatacentersQuery{},
 			false,
 		},
 	}
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-			act, err := NewVaultTokenQuery()
+			act, err := NewCatalogDatacentersQuery()
 			if (err != nil) != tc.err {
 				t.Fatal(err)
 			}
@@ -40,43 +43,40 @@ func TestNewVaultTokenQuery(t *testing.T) {
 	}
 }
 
-func TestVaultTokenQuery_Fetch(t *testing.T) {
+func TestCatalogDatacentersQuery_Fetch(t *testing.T) {
 	t.Parallel()
 
-	clients, server := testVaultServer(t)
-	defer server.Stop()
+	clients, consul := testConsulServer(t)
+	defer consul.Stop()
 
-	// Grab the underlying client
-	vault := clients.vault.client
-
-	// Create a new token - the default token is a root token and is therefore
-	// not renewable
-	secret, err := vault.Auth().Token().Create(&api.TokenCreateRequest{
-		Lease: "1h",
-	})
-	if err != nil {
-		t.Fatal(err)
+	cases := []struct {
+		name string
+		exp  []string
+	}{
+		{
+			"default",
+			[]string{"dc1"},
+		},
 	}
-	vault.SetToken(secret.Auth.ClientToken)
 
-	t.Run("fetches", func(t *testing.T) {
-		d, err := NewVaultTokenQuery()
-		if err != nil {
-			t.Fatal(err)
-		}
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			d, err := NewCatalogDatacentersQuery()
+			if err != nil {
+				t.Fatal(err)
+			}
 
-		data, _, err := d.Fetch(clients, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
+			act, _, err := d.Fetch(clients, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-		if _, ok := data.(*Secret); !ok {
-			t.Error("not *Secret")
-		}
-	})
+			assert.Equal(t, tc.exp, act)
+		})
+	}
 
 	t.Run("stops", func(t *testing.T) {
-		d, err := NewVaultTokenQuery()
+		d, err := NewCatalogDatacentersQuery()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -85,7 +85,7 @@ func TestVaultTokenQuery_Fetch(t *testing.T) {
 		errCh := make(chan error, 1)
 		go func() {
 			for {
-				data, _, err := d.Fetch(clients, nil)
+				data, _, err := d.Fetch(clients, &QueryOptions{WaitIndex: 10})
 				if err != nil {
 					errCh <- err
 					return
@@ -107,13 +107,13 @@ func TestVaultTokenQuery_Fetch(t *testing.T) {
 			if err != ErrStopped {
 				t.Fatal(err)
 			}
-		case <-time.After(500 * time.Millisecond):
+		case <-time.After(100 * time.Millisecond):
 			t.Errorf("did not stop")
 		}
 	})
 
 	t.Run("fires_changes", func(t *testing.T) {
-		d, err := NewVaultTokenQuery()
+		d, err := NewCatalogDatacentersQuery()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -145,7 +145,7 @@ func TestVaultTokenQuery_Fetch(t *testing.T) {
 	})
 }
 
-func TestVaultTokenQuery_String(t *testing.T) {
+func TestCatalogDatacentersQuery_String(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
@@ -153,14 +153,14 @@ func TestVaultTokenQuery_String(t *testing.T) {
 		exp  string
 	}{
 		{
-			"default",
-			"vault.token",
+			"empty",
+			"catalog.datacenters",
 		},
 	}
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-			d, err := NewVaultTokenQuery()
+			d, err := NewCatalogDatacentersQuery()
 			if err != nil {
 				t.Fatal(err)
 			}

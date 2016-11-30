@@ -5,28 +5,53 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/vault/api"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewVaultTokenQuery(t *testing.T) {
+func TestNewVaultReadQuery(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
 		name string
-		exp  *VaultTokenQuery
+		i    string
+		exp  *VaultReadQuery
 		err  bool
 	}{
 		{
-			"default",
-			&VaultTokenQuery{},
+			"empty",
+			"",
+			nil,
+			true,
+		},
+		{
+			"path",
+			"path",
+			&VaultReadQuery{
+				path: "path",
+			},
+			false,
+		},
+		{
+			"leading_slash",
+			"/leading/slash",
+			&VaultReadQuery{
+				path: "leading/slash",
+			},
+			false,
+		},
+		{
+			"trailing_slash",
+			"trailing/slash/",
+			&VaultReadQuery{
+				path: "trailing/slash",
+			},
 			false,
 		},
 	}
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-			act, err := NewVaultTokenQuery()
+			act, err := NewVaultReadQuery(tc.i)
 			if (err != nil) != tc.err {
 				t.Fatal(err)
 			}
@@ -40,43 +65,63 @@ func TestNewVaultTokenQuery(t *testing.T) {
 	}
 }
 
-func TestVaultTokenQuery_Fetch(t *testing.T) {
+func TestVaultReadQuery_Fetch(t *testing.T) {
 	t.Parallel()
 
-	clients, server := testVaultServer(t)
-	defer server.Stop()
+	clients, vault := testVaultServer(t)
+	defer vault.Stop()
 
-	// Grab the underlying client
-	vault := clients.vault.client
-
-	// Create a new token - the default token is a root token and is therefore
-	// not renewable
-	secret, err := vault.Auth().Token().Create(&api.TokenCreateRequest{
-		Lease: "1h",
+	vault.CreateSecret("foo/bar", map[string]interface{}{
+		"ttl": "100ms", // explictly make this a short duration for testing
+		"zip": "zap",
 	})
-	if err != nil {
-		t.Fatal(err)
+
+	cases := []struct {
+		name string
+		i    string
+		exp  interface{}
+	}{
+		{
+			"exists",
+			"secret/foo/bar",
+			&Secret{
+				Data: map[string]interface{}{
+					"ttl": "100ms",
+					"zip": "zap",
+				},
+			},
+		},
+		{
+			"no_exist",
+			"not/a/real/path/like/ever",
+			nil,
+		},
 	}
-	vault.SetToken(secret.Auth.ClientToken)
 
-	t.Run("fetches", func(t *testing.T) {
-		d, err := NewVaultTokenQuery()
-		if err != nil {
-			t.Fatal(err)
-		}
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			d, err := NewVaultReadQuery(tc.i)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-		data, _, err := d.Fetch(clients, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
+			act, _, err := d.Fetch(clients, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-		if _, ok := data.(*Secret); !ok {
-			t.Error("not *Secret")
-		}
-	})
+			if act != nil {
+				act.(*Secret).LeaseID = ""
+				act.(*Secret).LeaseDuration = 0
+				act.(*Secret).Renewable = false
+			}
+
+			assert.Equal(t, tc.exp, act)
+		})
+	}
 
 	t.Run("stops", func(t *testing.T) {
-		d, err := NewVaultTokenQuery()
+		d, err := NewVaultReadQuery("secret/foo/bar")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -113,7 +158,7 @@ func TestVaultTokenQuery_Fetch(t *testing.T) {
 	})
 
 	t.Run("fires_changes", func(t *testing.T) {
-		d, err := NewVaultTokenQuery()
+		d, err := NewVaultReadQuery("secret/foo/bar")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -145,22 +190,24 @@ func TestVaultTokenQuery_Fetch(t *testing.T) {
 	})
 }
 
-func TestVaultTokenQuery_String(t *testing.T) {
+func TestVaultReadQuery_String(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
 		name string
+		i    string
 		exp  string
 	}{
 		{
-			"default",
-			"vault.token",
+			"path",
+			"path",
+			"vault.read(path)",
 		},
 	}
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-			d, err := NewVaultTokenQuery()
+			d, err := NewVaultReadQuery(tc.i)
 			if err != nil {
 				t.Fatal(err)
 			}

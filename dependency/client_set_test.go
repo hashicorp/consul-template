@@ -7,6 +7,8 @@ import (
 )
 
 func TestClientSet_unwrapVaultToken(t *testing.T) {
+	t.Parallel()
+
 	clients, server := testVaultServer(t)
 	defer server.Stop()
 

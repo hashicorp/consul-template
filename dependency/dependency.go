@@ -4,10 +4,23 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/url"
+	"regexp"
 	"sort"
+	"strconv"
 	"time"
 
 	consulapi "github.com/hashicorp/consul/api"
+)
+
+const (
+	dcRe     = `(@(?P<dc>[[:word:]\.\-\_]+))?`
+	keyRe    = `/?(?P<key>[^@]+)`
+	filterRe = `(\|(?P<filter>[[:word:]\,]+))?`
+	nameRe   = `(?P<name>[[:word:]\-\_]+)`
+	nearRe   = `(~(?P<near>[[:word:]\.\-\_]+))?`
+	prefixRe = `/?(?P<prefix>[^@]+)`
+	tagRe    = `((?P<tag>[[:word:]\.\-\_]+)\.)?`
 )
 
 // ErrStopped is a special error that is returned when a dependency is
@@ -20,8 +33,7 @@ var ErrStopped = errors.New("dependency stopped")
 type Dependency interface {
 	Fetch(*ClientSet, *QueryOptions) (interface{}, *ResponseMetadata, error)
 	CanShare() bool
-	HashCode() string
-	Display() string
+	String() string
 	Stop()
 }
 
@@ -77,9 +89,56 @@ func (t ServiceTags) Contains(s string) bool {
 // client-agnostic, and the dependency determines which, if any, of the options
 // to use.
 type QueryOptions struct {
-	AllowStale bool
-	WaitIndex  uint64
-	WaitTime   time.Duration
+	AllowStale        bool
+	Datacenter        string
+	Near              string
+	RequireConsistent bool
+	WaitIndex         uint64
+	WaitTime          time.Duration
+}
+
+func (q *QueryOptions) Merge(o *QueryOptions) *QueryOptions {
+	var r QueryOptions
+
+	if q == nil {
+		if o == nil {
+			return &QueryOptions{}
+		}
+		r = *o
+		return &r
+	}
+
+	r = *q
+
+	if o == nil {
+		return &r
+	}
+
+	if o.AllowStale != false {
+		r.AllowStale = o.AllowStale
+	}
+
+	if o.Datacenter != "" {
+		r.Datacenter = o.Datacenter
+	}
+
+	if o.Near != "" {
+		r.Near = o.Near
+	}
+
+	if o.RequireConsistent != false {
+		r.RequireConsistent = o.RequireConsistent
+	}
+
+	if o.WaitIndex != 0 {
+		r.WaitIndex = o.WaitIndex
+	}
+
+	if o.WaitTime != 0 {
+		r.WaitTime = o.WaitTime
+	}
+
+	return &r
 }
 
 // Converts the query options to Consul API ready query options.
@@ -89,6 +148,47 @@ func (r *QueryOptions) consulQueryOptions() *consulapi.QueryOptions {
 		WaitIndex:  r.WaitIndex,
 		WaitTime:   r.WaitTime,
 	}
+}
+
+func (q *QueryOptions) ToConsulOpts() *consulapi.QueryOptions {
+	return &consulapi.QueryOptions{
+		AllowStale:        q.AllowStale,
+		Datacenter:        q.Datacenter,
+		Near:              q.Near,
+		RequireConsistent: q.RequireConsistent,
+		WaitIndex:         q.WaitIndex,
+		WaitTime:          q.WaitTime,
+	}
+}
+
+func (q *QueryOptions) String() string {
+	u := &url.Values{}
+
+	if q.AllowStale {
+		u.Add("stale", strconv.FormatBool(q.AllowStale))
+	}
+
+	if q.Datacenter != "" {
+		u.Add("dc", q.Datacenter)
+	}
+
+	if q.Near != "" {
+		u.Add("near", q.Near)
+	}
+
+	if q.RequireConsistent {
+		u.Add("consistent", strconv.FormatBool(q.RequireConsistent))
+	}
+
+	if q.WaitIndex != 0 {
+		u.Add("index", strconv.FormatUint(q.WaitIndex, 10))
+	}
+
+	if q.WaitTime != 0 {
+		u.Add("wait", q.WaitTime.String())
+	}
+
+	return u.Encode()
 }
 
 // ResponseMetadata is a struct that contains metadata about the response. This
@@ -116,4 +216,24 @@ func respWithMetadata(i interface{}) (interface{}, *ResponseMetadata, error) {
 		LastContact: 0,
 		LastIndex:   uint64(time.Now().Unix()),
 	}, nil
+}
+
+// regexpMatch matches the given regexp and extracts the match groups into a
+// named map.
+func regexpMatch(re *regexp.Regexp, q string) map[string]string {
+	names := re.SubexpNames()
+	match := re.FindAllStringSubmatch(q, -1)
+
+	if len(match) == 0 {
+		return map[string]string{}
+	}
+
+	m := map[string]string{}
+	for i, n := range match[0] {
+		if names[i] != "" {
+			m[names[i]] = n
+		}
+	}
+
+	return m
 }

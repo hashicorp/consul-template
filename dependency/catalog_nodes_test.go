@@ -1,106 +1,159 @@
 package dependency
 
 import (
+	"fmt"
 	"testing"
-	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestCatalogNodesFetch(t *testing.T) {
+func TestNewCatalogNodesQuery(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		i    string
+		exp  *CatalogNodesQuery
+		err  bool
+	}{
+		{
+			"empty",
+			"",
+			&CatalogNodesQuery{},
+			false,
+		},
+		{
+			"node",
+			"node",
+			nil,
+			true,
+		},
+		{
+			"dc",
+			"@dc1",
+			&CatalogNodesQuery{
+				dc: "dc1",
+			},
+			false,
+		},
+		{
+			"near",
+			"~node1",
+			&CatalogNodesQuery{
+				near: "node1",
+			},
+			false,
+		},
+		{
+			"dc_near",
+			"@dc1~node1",
+			&CatalogNodesQuery{
+				dc:   "dc1",
+				near: "node1",
+			},
+			false,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			act, err := NewCatalogNodesQuery(tc.i)
+			if (err != nil) != tc.err {
+				t.Fatal(err)
+			}
+
+			if act != nil {
+				act.stopCh = nil
+			}
+
+			assert.Equal(t, tc.exp, act)
+		})
+	}
+}
+
+func TestCatalogNodesQuery_Fetch(t *testing.T) {
+	t.Parallel()
+
 	clients, consul := testConsulServer(t)
 	defer consul.Stop()
 
-	dep, err := ParseCatalogNodes("")
-	if err != nil {
-		t.Fatal(err)
+	cases := []struct {
+		name string
+		i    string
+		exp  []*Node
+	}{
+		{
+			"all",
+			"",
+			[]*Node{
+				&Node{
+					Node:    consul.Config.NodeName,
+					Address: consul.Config.Bind,
+				},
+			},
+		},
 	}
 
-	results, _, err := dep.Fetch(clients, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			d, err := NewCatalogNodesQuery(tc.i)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	typed, ok := results.([]*Node)
-	if !ok {
-		t.Fatal("could not convert result to []*Node")
-	}
+			act, _, err := d.Fetch(clients, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	if typed[0].Address != "127.0.0.1" {
-		t.Errorf("expected %q to be %q", typed[0].Address, "127.0.0.1")
-	}
-}
+			if act != nil {
+				for _, n := range act.([]*Node) {
+					n.TaggedAddresses = nil
+				}
+			}
 
-func TestCatalogNodesFetch_stopped(t *testing.T) {
-	clients, consul := testConsulServer(t)
-	defer consul.Stop()
-
-	dep, err := ParseCatalogNodes("")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	errCh := make(chan error)
-	go func() {
-		results, _, err := dep.Fetch(clients, &QueryOptions{WaitIndex: 100})
-		if results != nil {
-			t.Fatalf("should not get results: %#v", results)
-		}
-		errCh <- err
-	}()
-
-	dep.Stop()
-
-	select {
-	case err := <-errCh:
-		if err != ErrStopped {
-			t.Errorf("expected %q to be %q", err, ErrStopped)
-		}
-	case <-time.After(50 * time.Millisecond):
-		t.Errorf("did not return in 50ms")
+			assert.Equal(t, tc.exp, act)
+		})
 	}
 }
 
-func TestCatalogNodesHashCode_isUnique(t *testing.T) {
-	dep1, err := ParseCatalogNodes("")
-	if err != nil {
-		t.Fatal(err)
+func TestCatalogNodesQuery_String(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		i    string
+		exp  string
+	}{
+		{
+			"empty",
+			"",
+			"catalog.nodes",
+		},
+		{
+			"datacenter",
+			"@dc1",
+			"catalog.nodes(@dc1)",
+		},
+		{
+			"near",
+			"~node1",
+			"catalog.nodes(~node1)",
+		},
+		{
+			"datacenter_near",
+			"@dc1~node1",
+			"catalog.nodes(@dc1~node1)",
+		},
 	}
 
-	dep2, err := ParseCatalogNodes("@nyc1")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if dep1.HashCode() == dep2.HashCode() {
-		t.Errorf("expected HashCode to be unique")
-	}
-}
-
-func TestParseCatalogNodes_emptyString(t *testing.T) {
-	nd, err := ParseCatalogNodes("")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if nd.rawKey != "" {
-		t.Errorf("expected %q to be %q", nd.rawKey, "")
-	}
-
-	if nd.DataCenter != "" {
-		t.Errorf("expected %q to be %q", nd.DataCenter, "")
-	}
-}
-
-func TestParseCatalogNodes_dataCenter(t *testing.T) {
-	nd, err := ParseCatalogNodes("@nyc1")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if nd.rawKey != "@nyc1" {
-		t.Errorf("expected %q to be %q", nd.rawKey, "@nyc1")
-	}
-
-	if nd.DataCenter != "nyc1" {
-		t.Errorf("expected %q to be %q", nd.DataCenter, "nyc1")
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			d, err := NewCatalogNodesQuery(tc.i)
+			if err != nil {
+				t.Fatal(err)
+			}
+			assert.Equal(t, tc.exp, d.String())
+		})
 	}
 }

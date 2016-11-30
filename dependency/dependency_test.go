@@ -2,38 +2,44 @@ package dependency
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/vault/builtin/logical/pki"
+	"github.com/hashicorp/vault/builtin/logical/transit"
 	"github.com/hashicorp/vault/http"
 	"github.com/hashicorp/vault/logical"
+	"github.com/hashicorp/vault/physical"
 	"github.com/hashicorp/vault/vault"
+
+	logxi "github.com/mgutz/logxi/v1"
 )
 
 func TestCanShare(t *testing.T) {
-	vs := &VaultSecret{}
-	vt := &VaultToken{}
-	file := &File{}
-	service := &HealthServices{}
+	t.Parallel()
 
-	if vs.CanShare() {
-		t.Fatalf("should not share vault")
+	deps := []Dependency{
+		&CatalogNodeQuery{},
+		&FileQuery{},
+		&VaultListQuery{},
+		&VaultReadQuery{},
+		&VaultTokenQuery{},
+		&VaultWriteQuery{},
 	}
-	if vt.CanShare() {
-		t.Fatalf("should not share vault")
-	}
-	if file.CanShare() {
-		t.Fatalf("should not share file")
-	}
-	if !service.CanShare() {
-		t.Fatalf("should share service")
+
+	for _, d := range deps {
+		if d.CanShare() {
+			t.Errorf("should not share %s", d)
+		}
 	}
 }
 
 func TestDeepCopyAndSortTags(t *testing.T) {
+	t.Parallel()
+
 	tags := []string{"hello", "world", "these", "are", "tags"}
 	expected := []string{"are", "hello", "tags", "these", "world"}
 
@@ -46,11 +52,10 @@ func TestDeepCopyAndSortTags(t *testing.T) {
 // testConsulServer is a helper for creating a Consul server and returning the
 // appropriate configuration to connect to it.
 func testConsulServer(t *testing.T) (*ClientSet, *testutil.TestServer) {
-	t.Parallel()
-
 	consul := testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
-		c.Stdout = ioutil.Discard
-		c.Stderr = ioutil.Discard
+		c.LogLevel = "warn"
+		// c.Stdout = ioutil.Discard
+		// c.Stderr = ioutil.Discard
 	})
 
 	clients := NewClientSet()
@@ -90,11 +95,28 @@ func (s *vaultServer) CreateSecret(path string, data map[string]interface{}) err
 // testVaultServer is a helper for creating a Vault server and returning the
 // appropriate client to connect to it.
 func testVaultServer(t *testing.T) (*ClientSet, *vaultServer) {
-	t.Parallel()
+	core, err := vault.NewCore(&vault.CoreConfig{
+		DisableMlock:    true,
+		DisableCache:    true,
+		DefaultLeaseTTL: 2 * time.Second,
+		MaxLeaseTTL:     3 * time.Second,
+		Logger:          logxi.NullLog,
+		Physical:        physical.NewInmem(logxi.NullLog),
+		LogicalBackends: map[string]logical.Factory{
+			"pki":     pki.Factory,
+			"transit": transit.Factory,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	core, _, token := vault.TestCoreUnsealed(t)
+	key, token := vault.TestCoreInit(t, core)
+	if _, err := vault.TestCoreUnseal(core, vault.TestKeyCopy(key)); err != nil {
+		t.Fatal(err)
+	}
+
 	ln, addr := http.TestServer(t, core)
-
 	clients := NewClientSet()
 	if err := clients.CreateVaultClient(&CreateVaultClientInput{
 		Address: addr,
