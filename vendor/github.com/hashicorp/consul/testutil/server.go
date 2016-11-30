@@ -23,14 +23,10 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"sync/atomic"
 
 	"github.com/hashicorp/consul/consul/structs"
 	"github.com/hashicorp/go-cleanhttp"
 )
-
-// offset is used to atomically increment the port numbers.
-var offset uint64
 
 // TestPerformanceConfig configures the performance parameters.
 type TestPerformanceConfig struct {
@@ -70,7 +66,9 @@ type TestServerConfig struct {
 	ACLMasterToken    string                 `json:"acl_master_token,omitempty"`
 	ACLDatacenter     string                 `json:"acl_datacenter,omitempty"`
 	ACLDefaultPolicy  string                 `json:"acl_default_policy,omitempty"`
+	Encrypt           string                 `json:"encrypt,omitempty"`
 	Stdout, Stderr    io.Writer              `json:"-"`
+	Args              []string               `json:"-"`
 }
 
 // ServerConfigCallback is a function interface which can be
@@ -80,10 +78,8 @@ type ServerConfigCallback func(c *TestServerConfig)
 // defaultServerConfig returns a new TestServerConfig struct
 // with all of the listen ports incremented by one.
 func defaultServerConfig() *TestServerConfig {
-	idx := int(atomic.AddUint64(&offset, 1))
-
 	return &TestServerConfig{
-		NodeName:          fmt.Sprintf("node%d", idx),
+		NodeName:          fmt.Sprintf("node%d", randomPort()),
 		DisableCheckpoint: true,
 		Performance: &TestPerformanceConfig{
 			RaftMultiplier: 1,
@@ -94,14 +90,24 @@ func defaultServerConfig() *TestServerConfig {
 		Bind:      "127.0.0.1",
 		Addresses: &TestAddressConfig{},
 		Ports: &TestPortConfig{
-			DNS:     20000 + idx,
-			HTTP:    21000 + idx,
-			RPC:     22000 + idx,
-			SerfLan: 23000 + idx,
-			SerfWan: 24000 + idx,
-			Server:  25000 + idx,
+			DNS:     randomPort(),
+			HTTP:    randomPort(),
+			RPC:     randomPort(),
+			SerfLan: randomPort(),
+			SerfWan: randomPort(),
+			Server:  randomPort(),
 		},
 	}
+}
+
+// randomPort asks the kernel for a random port to use.
+func randomPort() int {
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		panic(err)
+	}
+	defer l.Close()
+	return l.Addr().(*net.TCPAddr).Port
 }
 
 // TestService is used to serialize a service definition.
@@ -200,7 +206,9 @@ func NewTestServerConfig(t TestingT, cb ServerConfigCallback) *TestServer {
 	}
 
 	// Start the server
-	cmd := exec.Command("consul", "agent", "-config-file", configFile.Name())
+	args := []string{"agent", "-config-file", configFile.Name()}
+	args = append(args, consulConfig.Args...)
+	cmd := exec.Command("consul", args...)
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	if err := cmd.Start(); err != nil {
