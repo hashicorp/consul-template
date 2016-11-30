@@ -139,10 +139,7 @@ func (d *HealthServiceQuery) Fetch(clients *ClientSet, opts *QueryOptions) (inte
 	list := make([]*HealthService, 0, len(entries))
 	for _, entry := range entries {
 		// Get the status of this service from its checks.
-		status, err := statusFromChecks(entry.Checks)
-		if err != nil {
-			return nil, nil, errors.Wrap(err, d.String())
-		}
+		status := entry.Checks.AggregatedStatus()
 
 		// If we are not checking only healthy services, filter out services that do
 		// not match the given filter.
@@ -217,47 +214,6 @@ func (d *HealthServiceQuery) HashCode() string {
 // Display prints the human-friendly output.
 func (d *HealthServiceQuery) Display() string {
 	return d.String()
-}
-
-// statusFromChecks accepts a list of checks and returns the most likely status
-// given those checks. Any "critical" statuses will automatically mark the
-// service as critical. After that, any "unknown" statuses will mark as
-// "unknown". If any warning checks exist, the status will be marked as
-// "warning", and finally "passing". If there are no checks, the service will be
-// marked as "passing".
-func statusFromChecks(checks []*api.HealthCheck) (string, error) {
-	var passing, warning, critical, maintenance bool
-	for _, check := range checks {
-		if check.CheckID == NodeMaint || strings.HasPrefix(check.CheckID, ServiceMaint) {
-			maintenance = true
-			continue
-		}
-
-		switch check.Status {
-		case HealthPassing:
-			passing = true
-		case HealthWarning:
-			warning = true
-		case HealthCritical:
-			critical = true
-		default:
-			return "", fmt.Errorf("unknown status: %q", check.Status)
-		}
-	}
-
-	switch {
-	case maintenance:
-		return HealthMaint, nil
-	case critical:
-		return HealthCritical, nil
-	case warning:
-		return HealthWarning, nil
-	case passing:
-		return HealthPassing, nil
-	default:
-		// No checks
-		return HealthPassing, nil
-	}
 }
 
 // acceptStatus allows us to check if a slice of health checks pass this filter.
