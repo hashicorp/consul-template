@@ -1,7 +1,6 @@
 package dependency
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"net/url"
@@ -22,11 +21,6 @@ const (
 	prefixRe = `/?(?P<prefix>[^@]+)`
 	tagRe    = `((?P<tag>[[:word:]\.\-\_]+)\.)?`
 )
-
-// ErrStopped is a special error that is returned when a dependency is
-// prematurely stopped, usually due to a configuration reload or a process
-// interrupt.
-var ErrStopped = errors.New("dependency stopped")
 
 // Dependency is an interface for a dependency that Consul Template is capable
 // of watching.
