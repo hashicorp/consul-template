@@ -453,7 +453,6 @@ func TestCLI_ParseFlags(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		tc := tc
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
 			var out bytes.Buffer
 			cli := NewCLI(&out, &out)
@@ -515,10 +514,7 @@ func TestCLI_Run(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		tc := tc
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-			t.Parallel()
-
 			var out bytes.Buffer
 			cli := NewCLI(&out, &out)
 
