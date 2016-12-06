@@ -119,7 +119,7 @@ func TestDedup_UpdateDeps(t *testing.T) {
 	}
 
 	// Create the dependency
-	dep, err := dependency.ParseHealthServices("consul")
+	dep, err := dependency.NewHealthServiceQuery("consul")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,7 +178,7 @@ func TestDedup_FollowerUpdate(t *testing.T) {
 	}
 
 	// Create the dependency
-	dep, err := dependency.ParseHealthServices("consul")
+	dep, err := dependency.NewHealthServiceQuery("consul")
 	if err != nil {
 		t.Fatal(err)
 	}

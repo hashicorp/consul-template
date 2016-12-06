@@ -121,13 +121,3 @@ func (d *FileQuery) watch(lastStat os.FileInfo) <-chan *watchResult {
 
 	return ch
 }
-
-// HashCode returns a unique identifier.
-func (d *FileQuery) HashCode() string {
-	return d.String()
-}
-
-// Display prints the human-friendly output.
-func (d *FileQuery) Display() string {
-	return d.String()
-}

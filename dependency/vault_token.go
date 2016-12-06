@@ -95,14 +95,3 @@ func (d *VaultTokenQuery) Stop() {
 func (d *VaultTokenQuery) String() string {
 	return "vault.token"
 }
-
-// HashCode returns the hash code for this dependency.
-func (d *VaultTokenQuery) HashCode() string {
-	return d.String()
-}
-
-// Display returns a string that should be displayed to the user in output (for
-// example).
-func (d *VaultTokenQuery) Display() string {
-	return d.String()
-}

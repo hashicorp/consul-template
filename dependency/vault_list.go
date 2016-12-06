@@ -128,14 +128,3 @@ func (d *VaultListQuery) Stop() {
 func (d *VaultListQuery) String() string {
 	return fmt.Sprintf("vault.list(%s)", d.path)
 }
-
-// HashCode returns the hash code for this dependency.
-func (d *VaultListQuery) HashCode() string {
-	return d.String()
-}
-
-// Display returns a string that should be displayed to the user in output (for
-// example).
-func (d *VaultListQuery) Display() string {
-	return d.String()
-}

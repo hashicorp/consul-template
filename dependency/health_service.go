@@ -206,16 +206,6 @@ func (d *HealthServiceQuery) String() string {
 	return fmt.Sprintf("health.service(%s)", name)
 }
 
-// HashCode returns a unique identifier.
-func (d *HealthServiceQuery) HashCode() string {
-	return d.String()
-}
-
-// Display prints the human-friendly output.
-func (d *HealthServiceQuery) Display() string {
-	return d.String()
-}
-
 // acceptStatus allows us to check if a slice of health checks pass this filter.
 func acceptStatus(list []string, s string) bool {
 	for _, status := range list {

@@ -107,10 +107,7 @@ func NewDedupManager(config *config.DedupConfig, clients *dep.ClientSet, brain *
 func (d *DedupManager) Start() error {
 	log.Printf("[INFO] (dedup) starting de-duplication manager")
 
-	client, err := d.clients.Consul()
-	if err != nil {
-		return err
-	}
+	client := d.clients.Consul()
 	go d.createSession(client)
 
 	// Start to watch each template
@@ -211,7 +208,7 @@ func (d *DedupManager) UpdateDeps(t *template.Template, deps []dep.Dependency) e
 		// Pull the current value from the brain
 		val, ok := d.brain.Recall(dp)
 		if ok {
-			td.Data[dp.HashCode()] = val
+			td.Data[dp.String()] = val
 		}
 	}
 
@@ -241,10 +238,7 @@ func (d *DedupManager) UpdateDeps(t *template.Template, deps []dep.Dependency) e
 		Value: buf.Bytes(),
 		Flags: templateDataFlag,
 	}
-	client, err := d.clients.Consul()
-	if err != nil {
-		return fmt.Errorf("failed to get consul client: %v", err)
-	}
+	client := d.clients.Consul()
 	if _, err := client.KV().Put(&kvPair, nil); err != nil {
 		return fmt.Errorf("failed to write '%s': %v", dataPath, err)
 	}

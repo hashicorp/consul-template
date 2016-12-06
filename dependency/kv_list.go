@@ -117,16 +117,6 @@ func (d *KVListQuery) String() string {
 	return fmt.Sprintf("kv.list(%s)", prefix)
 }
 
-// HashCode returns a unique identifier.
-func (d *KVListQuery) HashCode() string {
-	return d.String()
-}
-
-// Display prints the human-friendly output.
-func (d *KVListQuery) Display() string {
-	return d.String()
-}
-
 // Stop halts the dependency's fetch function.
 func (d *KVListQuery) Stop() {
 	close(d.stopCh)

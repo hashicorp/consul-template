@@ -93,16 +93,6 @@ func (d *KVKeysQuery) String() string {
 	return fmt.Sprintf("kv.keys(%s)", prefix)
 }
 
-// HashCode returns a unique identifier.
-func (d *KVKeysQuery) HashCode() string {
-	return d.String()
-}
-
-// Display prints the human-friendly output.
-func (d *KVKeysQuery) Display() string {
-	return d.String()
-}
-
 // Stop halts the dependency's fetch function.
 func (d *KVKeysQuery) Stop() {
 	close(d.stopCh)

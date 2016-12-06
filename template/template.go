@@ -115,11 +115,11 @@ type ExecuteInput struct {
 
 // ExecuteResult is the result of the template execution.
 type ExecuteResult struct {
-	// Used is the list of dependencies that were used.
-	Used []dep.Dependency
+	// Used is the set of dependencies that were used.
+	Used *dep.Set
 
-	// Missing is the list of dependencies that were missing.
-	Missing []dep.Dependency
+	// Missing is the set of dependencies that were missing.
+	Missing *dep.Set
 
 	// Output is the rendered result.
 	Output []byte
@@ -131,8 +131,7 @@ func (t *Template) Execute(i *ExecuteInput) (*ExecuteResult, error) {
 		i = &ExecuteInput{}
 	}
 
-	usedMap := make(map[string]dep.Dependency)
-	missingMap := make(map[string]dep.Dependency)
+	var used, missing dep.Set
 
 	tmpl := template.New("")
 	tmpl.Delims(t.leftDelim, t.rightDelim)
@@ -140,8 +139,8 @@ func (t *Template) Execute(i *ExecuteInput) (*ExecuteResult, error) {
 		t:       tmpl,
 		brain:   i.Brain,
 		env:     i.Env,
-		used:    usedMap,
-		missing: missingMap,
+		used:    &used,
+		missing: &missing,
 	}))
 
 	tmpl, err := tmpl.Parse(t.contents)
@@ -155,31 +154,20 @@ func (t *Template) Execute(i *ExecuteInput) (*ExecuteResult, error) {
 		return nil, errors.Wrap(err, "execute")
 	}
 
-	// Update this list of this template's dependencies
-	var used []dep.Dependency
-	for _, dep := range usedMap {
-		used = append(used, dep)
-	}
-
-	// Compile the list of missing dependencies
-	var missing []dep.Dependency
-	for _, dep := range missingMap {
-		missing = append(missing, dep)
-	}
-
 	return &ExecuteResult{
-		Used:    used,
-		Missing: missing,
+		Used:    &used,
+		Missing: &missing,
 		Output:  b.Bytes(),
 	}, nil
 }
 
 // funcMapInput is input to the funcMap, which builds the template functions.
 type funcMapInput struct {
-	t             *template.Template
-	brain         *Brain
-	env           []string
-	used, missing map[string]dep.Dependency
+	t       *template.Template
+	brain   *Brain
+	env     []string
+	used    *dep.Set
+	missing *dep.Set
 }
 
 // funcMap is the map of template functions to their respective functions.

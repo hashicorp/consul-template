@@ -135,15 +135,6 @@ func (q *QueryOptions) Merge(o *QueryOptions) *QueryOptions {
 	return &r
 }
 
-// Converts the query options to Consul API ready query options.
-func (r *QueryOptions) consulQueryOptions() *consulapi.QueryOptions {
-	return &consulapi.QueryOptions{
-		AllowStale: r.AllowStale,
-		WaitIndex:  r.WaitIndex,
-		WaitTime:   r.WaitTime,
-	}
-}
-
 func (q *QueryOptions) ToConsulOpts() *consulapi.QueryOptions {
 	return &consulapi.QueryOptions{
 		AllowStale:        q.AllowStale,
@@ -190,6 +181,7 @@ func (q *QueryOptions) String() string {
 type ResponseMetadata struct {
 	LastIndex   uint64
 	LastContact time.Duration
+	Block       bool
 }
 
 // deepCopyAndSortTags deep copies the tags in the given string slice and then

@@ -25,12 +25,12 @@ func TestRunner_Receive(t *testing.T) {
 	t.Run("adds_to_brain", func(t *testing.T) {
 		t.Parallel()
 
-		d, err := dep.ParseStoreKey("foo")
+		d, err := dep.NewKVGetQuery("foo")
 		if err != nil {
 			t.Fatal(err)
 		}
 		data := "bar"
-		r.dependencies[d.HashCode()] = d
+		r.dependencies[d.String()] = d
 		r.Receive(d, data)
 
 		val, ok := r.brain.Recall(d)
@@ -45,7 +45,7 @@ func TestRunner_Receive(t *testing.T) {
 	t.Run("skips_brain_if_not_watching", func(t *testing.T) {
 		t.Parallel()
 
-		d, err := dep.ParseStoreKey("zip")
+		d, err := dep.NewKVGetQuery("zip")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -157,10 +157,11 @@ func TestRunner_Run(t *testing.T) {
 					t.Errorf("\nexp: %#v\nact: %#v\ndeps: %#v", exp, len(r.dependencies), r.dependencies)
 				}
 
-				d, err := dep.ParseStoreKey("foo")
+				d, err := dep.NewKVGetQuery("foo")
 				if err != nil {
 					t.Fatal(err)
 				}
+				d.EnableBlocking()
 				r.Receive(d, "bar")
 
 				if err := r.Run(); err != nil {
@@ -177,7 +178,7 @@ func TestRunner_Run(t *testing.T) {
 		{
 			"remove_unused",
 			func(t *testing.T, r *Runner) {
-				d, err := dep.ParseStoreKey("foo")
+				d, err := dep.NewKVGetQuery("foo")
 				if err != nil {
 					t.Fatal(err)
 				}

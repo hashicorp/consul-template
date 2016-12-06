@@ -88,7 +88,12 @@ func TestNewWatcher_renewVault(t *testing.T) {
 	}
 	defer w.Stop()
 
-	if !w.Watching(&dep.VaultToken{}) {
+	d, err := dep.NewVaultTokenQuery()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !w.Watching(d) {
 		t.Errorf("expected watcher to be renewing vault token")
 	}
 }
@@ -99,12 +104,12 @@ func TestAdd_updatesMap(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	d := &dep.Test{}
+	d := &TestDep{}
 	if _, err := w.Add(d); err != nil {
 		t.Fatal(err)
 	}
 
-	_, exists := w.depViewMap[d.HashCode()]
+	_, exists := w.depViewMap[d.String()]
 	if !exists {
 		t.Errorf("expected Add to append to map")
 	}
@@ -116,8 +121,8 @@ func TestAdd_exists(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	d := &dep.Test{}
-	w.depViewMap[d.HashCode()] = &View{}
+	d := &TestDep{}
+	w.depViewMap[d.String()] = &View{}
 
 	added, err := w.Add(d)
 	if err != nil {
@@ -138,7 +143,7 @@ func TestAdd_error(t *testing.T) {
 	// Set the client to nil to force the view to return an error
 	w.config = nil
 
-	added, err := w.Add(&dep.Test{})
+	added, err := w.Add(&TestDep{})
 	if err == nil {
 		t.Fatal("expected error, but nothing was returned")
 	}
@@ -159,7 +164,7 @@ func TestAdd_startsViewPoll(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	added, err := w.Add(&dep.Test{})
+	added, err := w.Add(&TestDep{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,7 +187,7 @@ func TestWatching_notExists(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	d := &dep.Test{}
+	d := &TestDep{}
 	if w.Watching(d) == true {
 		t.Errorf("expected to not be watching")
 	}
@@ -194,7 +199,7 @@ func TestWatching_exists(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	d := &dep.Test{}
+	d := &TestDep{}
 	if _, err := w.Add(d); err != nil {
 		t.Fatal(err)
 	}
@@ -210,7 +215,7 @@ func TestRemove_exists(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	d := &dep.Test{}
+	d := &TestDep{}
 	if _, err := w.Add(d); err != nil {
 		t.Fatal(err)
 	}
@@ -220,7 +225,7 @@ func TestRemove_exists(t *testing.T) {
 		t.Error("expected Remove to return true")
 	}
 
-	if _, ok := w.depViewMap[d.HashCode()]; ok {
+	if _, ok := w.depViewMap[d.String()]; ok {
 		t.Error("expected dependency to be removed")
 	}
 }
@@ -231,7 +236,7 @@ func TestRemove_doesNotExist(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	removed := w.Remove(&dep.Test{})
+	removed := w.Remove(&TestDep{})
 	if removed != false {
 		t.Fatal("expected Remove to return false")
 	}
@@ -255,7 +260,7 @@ func TestSize_returnsNumViews(t *testing.T) {
 	}
 
 	for i := 0; i < 10; i++ {
-		d := &dep.Test{Name: fmt.Sprintf("%d", i)}
+		d := &TestDep{name: fmt.Sprintf("%d", i)}
 		if _, err := w.Add(d); err != nil {
 			t.Fatal(err)
 		}

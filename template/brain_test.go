@@ -22,12 +22,21 @@ func TestNewBrain(t *testing.T) {
 func TestRecall(t *testing.T) {
 	b := NewBrain()
 
-	d := &dep.CatalogNodes{}
-	nodes := []*dep.Node{&dep.Node{Node: "node", Address: "address"}}
+	d, err := dep.NewCatalogNodesQuery("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	nodes := []*dep.Node{
+		&dep.Node{
+			Node:    "node",
+			Address: "address",
+		},
+	}
 
 	b.Remember(d, nodes)
-	data, ok := b.Recall(d)
 
+	data, ok := b.Recall(d)
 	if !ok {
 		t.Fatal("expected data from brain")
 	}
@@ -41,12 +50,21 @@ func TestRecall(t *testing.T) {
 func TestForceSet(t *testing.T) {
 	b := NewBrain()
 
-	d := &dep.CatalogNodes{}
-	nodes := []*dep.Node{&dep.Node{Node: "node", Address: "address"}}
+	d, err := dep.NewCatalogNodesQuery("")
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	b.ForceSet(d.HashCode(), nodes)
+	nodes := []*dep.Node{
+		&dep.Node{
+			Node:    "node",
+			Address: "address",
+		},
+	}
+
+	b.ForceSet(d.String(), nodes)
+
 	data, ok := b.Recall(d)
-
 	if !ok {
 		t.Fatal("expected data from brain")
 	}
@@ -60,23 +78,22 @@ func TestForceSet(t *testing.T) {
 func TestForget(t *testing.T) {
 	b := NewBrain()
 
-	list := map[dep.Dependency]interface{}{
-		&dep.CatalogNodes{}:    []*dep.Node{},
-		&dep.CatalogServices{}: []*dep.CatalogService{},
-		&dep.File{}:            "",
-		&dep.HealthServices{}:  []*dep.HealthService{},
-		&dep.StoreKey{}:        "",
-		&dep.StoreKeyPrefix{}:  []*dep.KeyPair{},
+	d, err := dep.NewCatalogNodesQuery("")
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	for d, data := range list {
-		b.Remember(d, data)
+	nodes := []*dep.Node{
+		&dep.Node{
+			Node:    "node",
+			Address: "address",
+		},
 	}
 
-	for d, _ := range list {
-		b.Forget(d)
-		if _, ok := b.Recall(d); ok {
-			t.Errorf("expected %#v to not be forgotten", d)
-		}
+	b.Remember(d, nodes)
+	b.Forget(d)
+
+	if _, ok := b.Recall(d); ok {
+		t.Errorf("expected %#v to not be forgotten", d)
 	}
 }

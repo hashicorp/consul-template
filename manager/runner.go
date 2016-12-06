@@ -437,8 +437,8 @@ func (r *Runner) Receive(d dep.Dependency, data interface{}) {
 	//     https://github.com/hashicorp/consul-template/issues/198
 	//
 	// and by "little" bug, I mean really big bug.
-	if _, ok := r.dependencies[d.HashCode()]; ok {
-		log.Printf("[DEBUG] (runner) receiving dependency %s", d.Display())
+	if _, ok := r.dependencies[d.String()]; ok {
+		log.Printf("[DEBUG] (runner) receiving dependency %s", d)
 		r.brain.Remember(d, data)
 	}
 }
@@ -505,22 +505,22 @@ func (r *Runner) Run() error {
 		missing, used := result.Missing, result.Used
 
 		// Add the dependency to the list of dependencies for this runner.
-		for _, d := range used {
+		for _, d := range used.List() {
 			// If we've taken over leadership for a template, we may have data
 			// that is cached, but not have the watcher. We must treat this as
 			// missing so that we create the watcher and re-run the template.
 			if isLeader && !r.watcher.Watching(d) {
-				missing = append(missing, d)
+				missing.Add(d)
 			}
-			if _, ok := depsMap[d.HashCode()]; !ok {
-				depsMap[d.HashCode()] = d
+			if _, ok := depsMap[d.String()]; !ok {
+				depsMap[d.String()] = d
 			}
 		}
 
 		// Diff any missing dependencies the template reported with dependencies
 		// the watcher is watching.
 		var unwatched []dep.Dependency
-		for _, d := range missing {
+		for _, d := range missing.List() {
 			if !r.watcher.Watching(d) {
 				unwatched = append(unwatched, d)
 			}
@@ -542,14 +542,14 @@ func (r *Runner) Run() error {
 
 		// If the template is missing data for some dependencies then we are not
 		// ready to render and need to move on to the next one.
-		if len(missing) > 0 {
-			log.Printf("[DEBUG] (runner) missing data for %d dependencies", len(missing))
+		if l := missing.Len(); l > 0 {
+			log.Printf("[DEBUG] (runner) missing data for %d dependencies", l)
 			continue
 		}
 
 		// Trigger an update of the de-duplicaiton manager
 		if r.dedup != nil && isLeader {
-			if err := r.dedup.UpdateDeps(tmpl, used); err != nil {
+			if err := r.dedup.UpdateDeps(tmpl, used.List()); err != nil {
 				log.Printf("[ERR] (runner) failed to update dependency data for de-duplication: %v", err)
 			}
 		}
@@ -698,12 +698,11 @@ func (r *Runner) init() error {
 	r.config = config.DefaultConfig().Merge(r.config)
 
 	// Print the final config for debugging
-	result, err := json.MarshalIndent(r.config, "", "  ")
+	result, err := json.Marshal(r.config)
 	if err != nil {
 		return err
 	}
-	log.Printf("[DEBUG] (runner) final config (tokens suppressed):\n\n%s\n\n",
-		result)
+	log.Printf("[DEBUG] (runner) final config: %s", result)
 
 	// Create the clientset
 	clients, err := newClientSet(r.config)
@@ -797,11 +796,11 @@ func (r *Runner) diffAndUpdateDeps(depsMap map[string]dep.Dependency) {
 
 	for key, d := range r.dependencies {
 		if _, ok := depsMap[key]; !ok {
-			log.Printf("[DEBUG] (runner) %s is no longer needed", d.Display())
+			log.Printf("[DEBUG] (runner) %s is no longer needed", d)
 			r.watcher.Remove(d)
 			r.brain.Forget(d)
 		} else {
-			log.Printf("[DEBUG] (runner) %s is still needed", d.Display())
+			log.Printf("[DEBUG] (runner) %s is still needed", d)
 		}
 	}
 

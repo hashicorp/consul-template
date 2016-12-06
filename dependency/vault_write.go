@@ -166,14 +166,3 @@ func sha1Map(m map[string]interface{}) string {
 
 	return fmt.Sprintf("%.4x", h.Sum(nil))
 }
-
-// HashCode returns the hash code for this dependency.
-func (d *VaultWriteQuery) HashCode() string {
-	return d.String()
-}
-
-// Display returns a string that should be displayed to the user in output (for
-// example).
-func (d *VaultWriteQuery) Display() string {
-	return d.String()
-}

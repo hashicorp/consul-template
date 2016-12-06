@@ -156,7 +156,7 @@ func TestTemplate_Execute(t *testing.T) {
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
-					d, err := dep.ParseDatacenters()
+					d, err := dep.NewCatalogDatacentersQuery()
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -173,7 +173,7 @@ func TestTemplate_Execute(t *testing.T) {
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
-					d, err := dep.ParseFile("/path/to/file")
+					d, err := dep.NewFileQuery("/path/to/file")
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -190,10 +190,11 @@ func TestTemplate_Execute(t *testing.T) {
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
-					d, err := dep.ParseStoreKey("key")
+					d, err := dep.NewKVGetQuery("key")
 					if err != nil {
 						t.Fatal(err)
 					}
+					d.EnableBlocking()
 					b.Remember(d, "5")
 					return b
 				}(),
@@ -207,11 +208,10 @@ func TestTemplate_Execute(t *testing.T) {
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
-					d, err := dep.ParseStoreKey("key")
+					d, err := dep.NewKVGetQuery("key")
 					if err != nil {
 						t.Fatal(err)
 					}
-					d.SetExistenceCheck(true)
 					b.Remember(d, true)
 					return b
 				}(),
@@ -225,11 +225,10 @@ func TestTemplate_Execute(t *testing.T) {
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
-					d, err := dep.ParseStoreKey("key")
+					d, err := dep.NewKVGetQuery("key")
 					if err != nil {
 						t.Fatal(err)
 					}
-					d.SetDefault("100")
 					b.Remember(d, "150")
 					return b
 				}(),
@@ -243,7 +242,7 @@ func TestTemplate_Execute(t *testing.T) {
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
-					d, err := dep.ParseStoreKeyPrefix("list")
+					d, err := dep.NewKVListQuery("list")
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -264,17 +263,17 @@ func TestTemplate_Execute(t *testing.T) {
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
-					d, err := dep.ParseCatalogNode()
+					d, err := dep.NewCatalogNodeQuery("")
 					if err != nil {
 						t.Fatal(err)
 					}
-					b.Remember(d, &dep.NodeDetail{
+					b.Remember(d, &dep.CatalogNode{
 						Node: &dep.Node{Node: "node1"},
-						Services: dep.NodeServiceList([]*dep.NodeService{
-							&dep.NodeService{
+						Services: []*dep.CatalogNodeService{
+							&dep.CatalogNodeService{
 								Service: "service1",
 							},
-						}),
+						},
 					})
 					return b
 				}(),
@@ -288,7 +287,7 @@ func TestTemplate_Execute(t *testing.T) {
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
-					d, err := dep.ParseCatalogNodes()
+					d, err := dep.NewCatalogNodesQuery("")
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -308,7 +307,7 @@ func TestTemplate_Execute(t *testing.T) {
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
-					d, err := dep.ParseVaultSecret("secret/foo")
+					d, err := dep.NewVaultReadQuery("secret/foo")
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -330,7 +329,7 @@ func TestTemplate_Execute(t *testing.T) {
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
-					d, err := dep.ParseVaultSecrets("secret/")
+					d, err := dep.NewVaultListQuery("secret/")
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -347,7 +346,7 @@ func TestTemplate_Execute(t *testing.T) {
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
-					d, err := dep.ParseHealthServices("webapp")
+					d, err := dep.NewHealthServiceQuery("webapp")
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -373,15 +372,15 @@ func TestTemplate_Execute(t *testing.T) {
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
-					d, err := dep.ParseCatalogServices("")
+					d, err := dep.NewCatalogServicesQuery("")
 					if err != nil {
 						t.Fatal(err)
 					}
-					b.Remember(d, []*dep.CatalogService{
-						&dep.CatalogService{
+					b.Remember(d, []*dep.CatalogSnippet{
+						&dep.CatalogSnippet{
 							Name: "service1",
 						},
-						&dep.CatalogService{
+						&dep.CatalogSnippet{
 							Name: "service2",
 						},
 					})
@@ -397,7 +396,7 @@ func TestTemplate_Execute(t *testing.T) {
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
-					d, err := dep.ParseStoreKeyPrefix("key")
+					d, err := dep.NewKVListQuery("key")
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -468,7 +467,7 @@ func TestTemplate_Execute(t *testing.T) {
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
-					d, err := dep.ParseStoreKeyPrefix("list")
+					d, err := dep.NewKVListQuery("list")
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -489,7 +488,7 @@ func TestTemplate_Execute(t *testing.T) {
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
-					d, err := dep.ParseHealthServices("webapp")
+					d, err := dep.NewHealthServiceQuery("webapp")
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -515,7 +514,7 @@ func TestTemplate_Execute(t *testing.T) {
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
-					d, err := dep.ParseHealthServices("webapp")
+					d, err := dep.NewHealthServiceQuery("webapp")
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -568,10 +567,11 @@ func TestTemplate_Execute(t *testing.T) {
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
-					d, err := dep.ParseStoreKey("foo")
+					d, err := dep.NewKVGetQuery("foo")
 					if err != nil {
 						t.Fatal(err)
 					}
+					d.EnableBlocking()
 					b.Remember(d, "bar")
 					return b
 				}(),
@@ -585,7 +585,7 @@ func TestTemplate_Execute(t *testing.T) {
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
-					d, err := dep.ParseStoreKeyPrefix("list")
+					d, err := dep.NewKVListQuery("list")
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -606,7 +606,7 @@ func TestTemplate_Execute(t *testing.T) {
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
-					d, err := dep.ParseHealthServices("webapp")
+					d, err := dep.NewHealthServiceQuery("webapp")
 					if err != nil {
 						t.Fatal(err)
 					}

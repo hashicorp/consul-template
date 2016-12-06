@@ -21,8 +21,9 @@ var (
 type KVGetQuery struct {
 	stopCh chan struct{}
 
-	dc  string
-	key string
+	dc    string
+	key   string
+	block bool
 }
 
 // NewKVGetQuery parses a string into a dependency.
@@ -64,6 +65,7 @@ func (d *KVGetQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface{},
 	rm := &ResponseMetadata{
 		LastIndex:   qm.LastIndex,
 		LastContact: qm.LastContact,
+		Block:       d.block,
 	}
 
 	if pair == nil {
@@ -74,6 +76,11 @@ func (d *KVGetQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface{},
 	value := string(pair.Value)
 	log.Printf("[TRACE] %s: returned %q", d, value)
 	return value, rm, nil
+}
+
+// EnableBlocking turns this into a blocking KV query.
+func (d *KVGetQuery) EnableBlocking() {
+	d.block = true
 }
 
 // CanShare returns a boolean if this dependency is shareable.
@@ -87,17 +94,11 @@ func (d *KVGetQuery) String() string {
 	if d.dc != "" {
 		key = key + "@" + d.dc
 	}
+
+	if d.block {
+		return fmt.Sprintf("kv.block(%s)", key)
+	}
 	return fmt.Sprintf("kv.get(%s)", key)
-}
-
-// HashCode returns a unique identifier.
-func (d *KVGetQuery) HashCode() string {
-	return d.String()
-}
-
-// Display prints the human-friendly output.
-func (d *KVGetQuery) Display() string {
-	return d.String()
 }
 
 // Stop halts the dependency's fetch function.
