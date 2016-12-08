@@ -580,6 +580,24 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"helper_executeTemplate__dot",
+			`{{ define "custom" }}{{ key . }}{{ end }}{{ executeTemplate "custom" "foo" }}`,
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewKVGetQuery("foo")
+					if err != nil {
+						t.Fatal(err)
+					}
+					d.EnableBlocking()
+					b.Remember(d, "bar")
+					return b
+				}(),
+			},
+			"bar",
+			false,
+		},
+		{
 			"helper_explode",
 			`{{ range $k, $v := tree "list" | explode }}{{ $k }}{{ $v }}{{ end }}`,
 			&ExecuteInput{

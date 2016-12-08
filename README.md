@@ -887,6 +887,9 @@ This is my other template:
 And I can call it multiple times:
 {{executeTemplate "custom"}}
 
+Even with a new context:
+{{executeTemplate "custom" 42}}
+
 Or save it to a variable:
 {{$var := executeTemplate "custom"}}
 ```
