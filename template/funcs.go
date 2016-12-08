@@ -510,7 +510,7 @@ func explodeHelper(m map[string]interface{}, k, v, p string) error {
 	return nil
 }
 
-// in seaches for a given value in a given interface.
+// in searches for a given value in a given interface.
 func in(l, v interface{}) (bool, error) {
 	lv := reflect.ValueOf(l)
 	vv := reflect.ValueOf(v)
