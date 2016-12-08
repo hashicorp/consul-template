@@ -423,6 +423,11 @@ func (sc *serverConn) maxHeaderListSize() uint32 {
 	return uint32(n + typicalHeaders*perFieldOverhead)
 }
 
+func (sc *serverConn) curOpenStreams() uint32 {
+	sc.serveG.check()
+	return sc.curClientStreams + sc.curPushedStreams
+}
+
 // stream represents a stream. This is the minimal metadata needed by
 // the serve goroutine. Most of the actual stream state is owned by
 // the http.Handler's goroutine in the responseWriter. Because the
@@ -753,7 +758,7 @@ func (sc *serverConn) serve() {
 			fn(loopNum)
 		}
 
-		if sc.inGoAway && sc.curClientStreams == 0 && !sc.needToSendGoAway && !sc.writingFrame {
+		if sc.inGoAway && sc.curOpenStreams() == 0 && !sc.needToSendGoAway && !sc.writingFrame {
 			return
 		}
 	}
@@ -1681,7 +1686,7 @@ func (sc *serverConn) newStream(id, pusherID uint32, state streamState) *stream 
 	} else {
 		sc.curClientStreams++
 	}
-	if sc.curClientStreams+sc.curPushedStreams == 1 {
+	if sc.curOpenStreams() == 1 {
 		sc.setConnState(http.StateActive)
 	}
 
