@@ -47,11 +47,22 @@ func datacentersFunc(b *Brain, used, missing *dep.Set) func() ([]string, error) 
 }
 
 // executeTemplateFunc executes the given template in the context of the
-// parent. This can be used for nested template definitions.
-func executeTemplateFunc(t *template.Template) func(string) (string, error) {
-	return func(s string) (string, error) {
+// parent. If an argument is specified, it will be used as the context instead.
+// This can be used for nested template definitions.
+func executeTemplateFunc(t *template.Template) func(string, ...interface{}) (string, error) {
+	return func(s string, data ...interface{}) (string, error) {
+		var dot interface{}
+		switch len(data) {
+		case 0:
+			dot = nil
+		case 1:
+			dot = data[0]
+		default:
+			return "", fmt.Errorf("executeTemplate: wrong number of arguments, expected 1 or 2"+
+				", but got %d", len(data)+1)
+		}
 		var b bytes.Buffer
-		if err := t.ExecuteTemplate(&b, s, nil); err != nil {
+		if err := t.ExecuteTemplate(&b, s, dot); err != nil {
 			return "", err
 		}
 		return b.String(), nil
@@ -510,7 +521,7 @@ func explodeHelper(m map[string]interface{}, k, v, p string) error {
 	return nil
 }
 
-// in seaches for a given value in a given interface.
+// in searches for a given value in a given interface.
 func in(l, v interface{}) (bool, error) {
 	lv := reflect.ValueOf(l)
 	vv := reflect.ValueOf(v)
