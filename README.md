@@ -862,6 +862,50 @@ Determines if a needle is within an iterable element.
 {{ end }}
 ```
 
+#### `containsAll`
+Returns `true` if all needles are within an iterable element,
+or `false` otherwise.
+Returns `true` if the list of needles is empty.
+
+```liquid
+{{ if containsAll $requiredTags .Tags }}
+# ...
+{{ end }}
+```
+
+#### `containsAny`
+Returns `true` if any needle is within an iterable element,
+or `false` otherwise.
+Returns `false` if the list of needles is empty.
+
+```liquid
+{{ if containsAny $acceptableTags .Tags }}
+# ...
+{{ end }}
+```
+
+#### `containsNone`
+Returns `true` if no needles are within an iterable element,
+or `false` otherwise.
+Returns `true` if the list of needles is empty.
+
+```liquid
+{{ if containsNone $forbiddenTags .Tags }}
+# ...
+{{ end }}
+```
+
+#### `containsNotall`
+Returns `true` if some needle is not within an iterable element,
+or `false` otherwise.
+Returns `false` if the list of needles is empty.
+
+```liquid
+{{ if containsNotall $excludingTags .Tags }}
+# ...
+{{ end }}
+```
+
 ##### `env`
 Reads the given environment variable accessible to the current process.
 
