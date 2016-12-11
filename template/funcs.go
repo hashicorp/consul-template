@@ -470,6 +470,26 @@ func contains(v, l interface{}) (bool, error) {
 	return in(l, v)
 }
 
+// containsSomeFunc returns functions to implement each of the following:
+//
+// 1. containsAll    - true if (∀x ∈ v then x ∈ l); false otherwise
+// 2. containsAny    - true if (∃x ∈ v such that x ∈ l); false otherwise
+// 3. containsNone   - true if (∀x ∈ v then x ∉ l); false otherwise
+// 2. containsNotall - true if (∃x ∈ v such that x ∉ l); false otherwise
+//
+// ret_true - return true at end of loop for none/all; false for any/notall
+// invert   - invert block test for all/notall
+func containsSomeFunc(ret_true, invert bool) func([]interface{}, interface{}) (bool, error) {
+	return func(v []interface{}, l interface{}) (bool, error) {
+		for i := 0; i < len(v); i++ {
+			if ok, _ := in(l, v[i]); ok != invert {
+				return !ret_true, nil
+			}
+		}
+		return ret_true, nil
+	}
+}
+
 // envFunc returns a function which checks the value of an environment variable.
 // Invokers can specify their own environment, which takes precedences over any
 // real environment variables

@@ -535,6 +535,214 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"helper_containsAll",
+			`{{ $requiredTags := parseJSON "[\"prod\",\"us-realm\"]" }}{{ range service "webapp" }}{{ if .Tags | containsAll $requiredTags }}{{ .Address }}{{ end }}{{ end }}`,
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewHealthServiceQuery("webapp")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, []*dep.HealthService{
+						&dep.HealthService{
+							Address: "1.2.3.4",
+							Tags:    []string{"prod", "us-realm"},
+						},
+						&dep.HealthService{
+							Address: "5.6.7.8",
+							Tags:    []string{"prod", "ca-realm"},
+						},
+					})
+					return b
+				}(),
+			},
+			"1.2.3.4",
+			false,
+		},
+		{
+			"helper_containsAll__empty",
+			`{{ $requiredTags := parseJSON "[]" }}{{ range service "webapp" }}{{ if .Tags | containsAll $requiredTags }}{{ .Address }}{{ end }}{{ end }}`,
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewHealthServiceQuery("webapp")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, []*dep.HealthService{
+						&dep.HealthService{
+							Address: "1.2.3.4",
+							Tags:    []string{"prod", "us-realm"},
+						},
+						&dep.HealthService{
+							Address: "5.6.7.8",
+							Tags:    []string{"prod", "ca-realm"},
+						},
+					})
+					return b
+				}(),
+			},
+			"1.2.3.45.6.7.8",
+			false,
+		},
+		{
+			"helper_containsAny",
+			`{{ $acceptableTags := parseJSON "[\"v2\",\"v3\"]" }}{{ range service "webapp" }}{{ if .Tags | containsAny $acceptableTags }}{{ .Address }}{{ end }}{{ end }}`,
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewHealthServiceQuery("webapp")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, []*dep.HealthService{
+						&dep.HealthService{
+							Address: "1.2.3.4",
+							Tags:    []string{"prod", "v1"},
+						},
+						&dep.HealthService{
+							Address: "5.6.7.8",
+							Tags:    []string{"prod", "v2"},
+						},
+					})
+					return b
+				}(),
+			},
+			"5.6.7.8",
+			false,
+		},
+		{
+			"helper_containsAny__empty",
+			`{{ $acceptableTags := parseJSON "[]" }}{{ range service "webapp" }}{{ if .Tags | containsAny $acceptableTags }}{{ .Address }}{{ end }}{{ end }}`,
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewHealthServiceQuery("webapp")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, []*dep.HealthService{
+						&dep.HealthService{
+							Address: "1.2.3.4",
+							Tags:    []string{"prod", "v1"},
+						},
+						&dep.HealthService{
+							Address: "5.6.7.8",
+							Tags:    []string{"prod", "v2"},
+						},
+					})
+					return b
+				}(),
+			},
+			"",
+			false,
+		},
+		{
+			"helper_containsNone",
+			`{{ $forbiddenTags := parseJSON "[\"devel\",\"staging\"]" }}{{ range service "webapp" }}{{ if .Tags | containsNone $forbiddenTags }}{{ .Address }}{{ end }}{{ end }}`,
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewHealthServiceQuery("webapp")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, []*dep.HealthService{
+						&dep.HealthService{
+							Address: "1.2.3.4",
+							Tags:    []string{"prod", "v1"},
+						},
+						&dep.HealthService{
+							Address: "5.6.7.8",
+							Tags:    []string{"devel", "v2"},
+						},
+					})
+					return b
+				}(),
+			},
+			"1.2.3.4",
+			false,
+		},
+		{
+			"helper_containsNone__empty",
+			`{{ $forbiddenTags := parseJSON "[]" }}{{ range service "webapp" }}{{ if .Tags | containsNone $forbiddenTags }}{{ .Address }}{{ end }}{{ end }}`,
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewHealthServiceQuery("webapp")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, []*dep.HealthService{
+						&dep.HealthService{
+							Address: "1.2.3.4",
+							Tags:    []string{"staging", "v1"},
+						},
+						&dep.HealthService{
+							Address: "5.6.7.8",
+							Tags:    []string{"devel", "v2"},
+						},
+					})
+					return b
+				}(),
+			},
+			"1.2.3.45.6.7.8",
+			false,
+		},
+		{
+			"helper_containsNotall",
+			`{{ $excludingTags := parseJSON "[\"es-v1\",\"es-v2\"]" }}{{ range service "webapp" }}{{ if .Tags | containsNotall $excludingTags }}{{ .Address }}{{ end }}{{ end }}`,
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewHealthServiceQuery("webapp")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, []*dep.HealthService{
+						&dep.HealthService{
+							Address: "1.2.3.4",
+							Tags:    []string{"prod", "es-v1"},
+						},
+						&dep.HealthService{
+							Address: "5.6.7.8",
+							Tags:    []string{"prod", "hybrid", "es-v1", "es-v2"},
+						},
+					})
+					return b
+				}(),
+			},
+			"1.2.3.4",
+			false,
+		},
+		{
+			"helper_containsNotall__empty",
+			`{{ $excludingTags := parseJSON "[]" }}{{ range service "webapp" }}{{ if .Tags | containsNotall $excludingTags }}{{ .Address }}{{ end }}{{ end }}`,
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewHealthServiceQuery("webapp")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, []*dep.HealthService{
+						&dep.HealthService{
+							Address: "1.2.3.4",
+							Tags:    []string{"prod", "es-v1"},
+						},
+						&dep.HealthService{
+							Address: "5.6.7.8",
+							Tags:    []string{"prod", "hybrid", "es-v1", "es-v2"},
+						},
+					})
+					return b
+				}(),
+			},
+			"",
+			false,
+		},
+		{
 			"helper_env",
 			`{{ env "CT_TEST" }}`,
 			&ExecuteInput{
