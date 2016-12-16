@@ -112,6 +112,7 @@ func (d *FileQuery) watch(lastStat os.FileInfo) <-chan *watchResult {
 				case <-d.stopCh:
 					return
 				case ch <- &watchResult{stat: stat}:
+					return
 				}
 			}
 
