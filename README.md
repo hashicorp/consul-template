@@ -63,7 +63,7 @@ Query a Consul instance that requires authentication, dumping the templates to s
 ```shell
 $ consul-template \
   -consul my.consul.internal:6124 \
-  -template "/tmp/template.ctmpl:/tmp/result:service nginx restart"
+  -template "/tmp/template.ctmpl:/tmp/result:service nginx restart" \
   -dry
 ```
 
