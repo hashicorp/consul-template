@@ -76,6 +76,10 @@ DEPRECATIONS:
     {{ if "foo" | in .Tags }}
     ```
 
+  * `key_or_default` has been renamed to `keyOrDefault` to better align with
+      Go's naming structure. The old method is aliased and will remain until a
+      future release.
+
 IMPROVEMENTS:
 
   * Add CLI support for all SSL configuration options for both Consul and Vault.
