@@ -13,10 +13,19 @@ import (
 )
 
 var (
-	ErrTemplateContentsAndSource        = errors.New("template: cannot specify both 'source' and 'content'")
+	// ErrTemplateContentsAndSource is the error returned when a template
+	// specifies both a "source" and "content" argument, which is not valid.
+	ErrTemplateContentsAndSource = errors.New("template: cannot specify both 'source' and 'content'")
+
+	// ErrTemplateMissingContentsAndSource is the error returned when a template
+	// does not specify either a "source" or "content" argument, which is not
+	// valid.
 	ErrTemplateMissingContentsAndSource = errors.New("template: must specify exactly one of 'source' or 'content'")
 )
 
+// Template is the internal representation of an individual template to process.
+// The template retains the relationship between it's contents and is
+// responsible for it's own execution.
 type Template struct {
 	// contents is the string contents for the template. It is either given
 	// during template creation or read from disk when initialized.

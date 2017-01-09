@@ -6,6 +6,7 @@ import (
 	"sync"
 )
 
+// Scratch is a wrapper around a map which is used by the template.
 type Scratch struct {
 	once sync.Once
 	sync.RWMutex
