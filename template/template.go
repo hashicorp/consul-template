@@ -194,6 +194,10 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"scratch": func() *Scratch { return &scratch },
 
 		// Helper functions
+		"base64Decode":    base64Decode,
+		"base64Encode":    base64Encode,
+		"base64URLDecode": base64URLDecode,
+		"base64URLEncode": base64URLEncode,
 		"byKey":           byKey,
 		"byTag":           byTag,
 		"contains":        contains,

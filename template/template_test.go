@@ -151,6 +151,48 @@ func TestTemplate_Execute(t *testing.T) {
 
 		// funcs
 		{
+			"func_base64Decode",
+			`{{ base64Decode "aGVsbG8=" }}`,
+			nil,
+			"hello",
+			false,
+		},
+		{
+			"func_base64Decode_bad",
+			`{{ base64Decode "aGVsxxbG8=" }}`,
+			nil,
+			"",
+			true,
+		},
+		{
+			"func_base64Encode",
+			`{{ base64Encode "hello" }}`,
+			nil,
+			"aGVsbG8=",
+			false,
+		},
+		{
+			"func_base64URLDecode",
+			`{{ base64URLDecode "dGVzdGluZzEyMw==" }}`,
+			nil,
+			"testing123",
+			false,
+		},
+		{
+			"func_base64URLDecode_bad",
+			`{{ base64URLDecode "aGVsxxbG8=" }}`,
+			nil,
+			"",
+			true,
+		},
+		{
+			"func_base64URLEncode",
+			`{{ base64URLEncode "testing123" }}`,
+			nil,
+			"dGVzdGluZzEyMw==",
+			false,
+		},
+		{
 			"func_datacenters",
 			`{{ datacenters }}`,
 			&ExecuteInput{
