@@ -778,7 +778,7 @@ func plugin(name string, args ...string) (string, error) {
 			}
 		}
 		<-done // Allow the goroutine to exit
-		return "", fmt.Errorf("exec %q: did not finish", name)
+		return "", fmt.Errorf("exec %q: did not finishin 30s", name)
 	case err := <-done:
 		if err != nil {
 			return "", fmt.Errorf("exec %q: %s\n\nstdout:\n\n%s\n\nstderr:\n\n%s",
