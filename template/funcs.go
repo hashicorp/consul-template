@@ -771,7 +771,7 @@ func plugin(name string, args ...string) (string, error) {
 	}()
 
 	select {
-	case <-time.After(5 * time.Second):
+	case <-time.After(30 * time.Second):
 		if cmd.Process != nil {
 			if err := cmd.Process.Kill(); err != nil {
 				return "", fmt.Errorf("exec %q: failed to kill", name)
