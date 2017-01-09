@@ -71,6 +71,37 @@ func FileModePresent(o *os.FileMode) bool {
 	return *o != 0
 }
 
+// Int returns a pointer to the given int.
+func Int(i int) *int {
+	return &i
+}
+
+// IntVal returns the value of the int at the pointer, or 0 if the pointer is
+// nil.
+func IntVal(i *int) int {
+	if i == nil {
+		return 0
+	}
+	return *i
+}
+
+// IntGoString returns the value of the int for printing in a string.
+func IntGoString(i *int) string {
+	if i == nil {
+		return "(*int)(nil)"
+	}
+	return fmt.Sprintf("%d", *i)
+}
+
+// IntPresent returns a boolean indiciating if the pointer is nil, or if the
+// pointer is pointing to the zero value.
+func IntPresent(i *int) bool {
+	if i == nil {
+		return false
+	}
+	return *i != 0
+}
+
 // Signal returns a pointer to the given os.Signal.
 func Signal(s os.Signal) *os.Signal {
 	return &s

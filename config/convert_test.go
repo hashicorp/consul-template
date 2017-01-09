@@ -91,31 +91,6 @@ func TestBoolGoString(t *testing.T) {
 	}
 }
 
-func TestFileMode(t *testing.T) {
-	cases := []struct {
-		name string
-		m    os.FileMode
-	}{
-		{
-			"true",
-			os.FileMode(0644),
-		},
-		{
-			"false",
-			os.FileMode(0000),
-		},
-	}
-
-	for i, tc := range cases {
-		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-			m := FileMode(tc.m)
-			if *m != tc.m {
-				t.Errorf("\nexp: %q\nact: %q", tc.m, *m)
-			}
-		})
-	}
-}
-
 func TestBoolPresent(t *testing.T) {
 	cases := []struct {
 		name string
@@ -139,6 +114,31 @@ func TestBoolPresent(t *testing.T) {
 			a := BoolPresent(tc.b)
 			if tc.e != a {
 				t.Errorf("\nexp: %t\nact: %t", tc.e, a)
+			}
+		})
+	}
+}
+
+func TestFileMode(t *testing.T) {
+	cases := []struct {
+		name string
+		m    os.FileMode
+	}{
+		{
+			"true",
+			os.FileMode(0644),
+		},
+		{
+			"false",
+			os.FileMode(0000),
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			m := FileMode(tc.m)
+			if *m != tc.m {
+				t.Errorf("\nexp: %q\nact: %q", tc.m, *m)
 			}
 		})
 	}
@@ -226,6 +226,120 @@ func TestFileModePresent(t *testing.T) {
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
 			a := FileModePresent(tc.b)
+			if tc.e != a {
+				t.Errorf("\nexp: %t\nact: %t", tc.e, a)
+			}
+		})
+	}
+}
+
+func TestInt(t *testing.T) {
+	cases := []struct {
+		name string
+		i    int
+	}{
+		{
+			"zero",
+			0,
+		},
+		{
+			"present",
+			1,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			a := Int(tc.i)
+			if tc.i != *a {
+				t.Errorf("\nexp: %q\nact: %q", tc.i, *a)
+			}
+		})
+	}
+}
+
+func TestIntVal(t *testing.T) {
+	cases := []struct {
+		name string
+		i    *int
+		e    int
+	}{
+		{
+			"nil",
+			nil,
+			0,
+		},
+		{
+			"present",
+			Int(3),
+			3,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			a := IntVal(tc.i)
+			if tc.e != a {
+				t.Errorf("\nexp: %q\nact: %q", tc.e, a)
+			}
+		})
+	}
+}
+
+func TestIntGoString(t *testing.T) {
+	cases := []struct {
+		name string
+		i    *int
+		e    string
+	}{
+		{
+			"nil",
+			nil,
+			"(*int)(nil)",
+		},
+		{
+			"present",
+			Int(123),
+			"123",
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			s := IntGoString(tc.i)
+			if tc.e != s {
+				t.Errorf("\nexp: %q\nact: %q", tc.e, s)
+			}
+		})
+	}
+}
+
+func TestIntPresent(t *testing.T) {
+	cases := []struct {
+		name string
+		i    *int
+		e    bool
+	}{
+		{
+			"nil",
+			nil,
+			false,
+		},
+		{
+			"present",
+			Int(123),
+			true,
+		},
+		{
+			"present_zero_value",
+			Int(0),
+			false,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			a := IntPresent(tc.i)
 			if tc.e != a {
 				t.Errorf("\nexp: %t\nact: %t", tc.e, a)
 			}
