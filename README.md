@@ -805,6 +805,60 @@ Returns a sorted list (by key) of all values in the named map.
 
 #### Helper Functions
 
+##### `base64Decode`
+Accepts a base64-encoded string and returns the decoded result, or an error if
+the given string is not a valid base64 string.
+
+```liquid
+{{ base64Decode "aGVsbG8=" }}
+```
+
+The result would be:
+
+```text
+hello
+```
+
+##### `base64Encode`
+Accepts a string and returns a base64-encoded string.
+
+```liquid
+{{ base64Encode "hello" }}
+```
+
+The result would be:
+
+```text
+aGVsbG8=
+```
+
+##### `base64URLDecode`
+Accepts a base64-encoded URL-safe string and returns the decoded result, or an
+error if the given string is not a valid base64 URL-safe string.
+
+```liquid
+{{ base64URLDecode "aGVsbG8=" }}
+```
+
+The result would be:
+
+```text
+hello
+```
+
+##### `base64URLEncode`
+Accepts a string and returns a base-64 encoded URL-safe string.
+
+```liquid
+{{ base64Encode "hello" }}
+```
+
+The result would be:
+
+```text
+aGVsbG8=
+```
+
 ##### `byKey`
 Takes the list of key pairs returned from a [`tree`](#tree) function and creates a map that groups pairs by their top-level directory. For example, if the Consul KV store contained the following structure:
 

@@ -16,6 +16,9 @@ NEW FEATURES:
 
   * Add `executeTemplate` function for executing a defined template.
 
+  * Add `base64Decode`, `base64Encode`, `base64URLDecode`, and `base64URLEncode`
+      functions for working with base64 encodings.
+
 BREAKING CHANGES:
 
   * Consul Template now **blocks on `key` queries**. The previous behavior was

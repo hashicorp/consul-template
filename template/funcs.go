@@ -2,6 +2,7 @@ package template
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -386,6 +387,35 @@ func treeFunc(b *Brain, used, missing *dep.Set) func(string) ([]*dep.KeyPair, er
 	}
 }
 
+// base64Decode decodes the given string as a base64 string, returning an error
+// if it fails.
+func base64Decode(s string) (string, error) {
+	v, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		return "", errors.Wrap(err, "base64Decode")
+	}
+	return string(v), nil
+}
+
+// base64Encode encodes the given value into a string represented as base64.
+func base64Encode(s string) (string, error) {
+	return base64.StdEncoding.EncodeToString([]byte(s)), nil
+}
+
+// base64URLDecode decodes the given string as a URL-safe base64 string.
+func base64URLDecode(s string) (string, error) {
+	v, err := base64.URLEncoding.DecodeString(s)
+	if err != nil {
+		return "", errors.Wrap(err, "base64URLDecode")
+	}
+	return string(v), nil
+}
+
+// base64URLEncode encodes the given string to be URL-safe.
+func base64URLEncode(s string) (string, error) {
+	return base64.URLEncoding.EncodeToString([]byte(s)), nil
+}
+
 // byKey accepts a slice of KV pairs and returns a map of the top-level
 // key to all its subkeys. For example:
 //
@@ -479,14 +509,14 @@ func contains(v, l interface{}) (bool, error) {
 //
 // ret_true - return true at end of loop for none/all; false for any/notall
 // invert   - invert block test for all/notall
-func containsSomeFunc(ret_true, invert bool) func([]interface{}, interface{}) (bool, error) {
+func containsSomeFunc(retTrue, invert bool) func([]interface{}, interface{}) (bool, error) {
 	return func(v []interface{}, l interface{}) (bool, error) {
 		for i := 0; i < len(v); i++ {
 			if ok, _ := in(l, v[i]); ok != invert {
-				return !ret_true, nil
+				return !retTrue, nil
 			}
 		}
-		return ret_true, nil
+		return retTrue, nil
 	}
 }
 
@@ -532,10 +562,10 @@ func explodeHelper(m map[string]interface{}, k, v, p string) error {
 			return fmt.Errorf("not a map: %q: %q already has value %q", p, top, m[top])
 		}
 		return explodeHelper(nest, key, v, k)
-	} else {
-		if k != "" {
-			m[k] = v
-		}
+	}
+
+	if k != "" {
+		m[k] = v
 	}
 
 	return nil
