@@ -16,14 +16,16 @@ const (
 	// process to gracefully terminate before force-killing it.
 	DefaultExecKillTimeout = 30 * time.Second
 
-	// DefaultExecReloadSignal is the default signal to send to the process to
-	// tell it to reload its configuration.
-	DefaultExecReloadSignal = syscall.SIGHUP
-
 	// DefaultExecTimeout is the default amount of time to wait for a
 	// command to exit. By default, this is disabled, which means the command
 	// is allowed to run for an infinite amount of time.
 	DefaultExecTimeout = 0 * time.Second
+)
+
+var (
+	// DefaultExecReloadSignal is the default signal to send to the process to
+	// tell it to reload its configuration.
+	DefaultExecReloadSignal = (os.Signal)(nil)
 )
 
 // ExecConfig is used to configure the application when it runs in
