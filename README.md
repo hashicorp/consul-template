@@ -949,13 +949,13 @@ Returns `true` if the list of needles is empty.
 {{ end }}
 ```
 
-#### `containsNotall`
+#### `containsNotAll`
 Returns `true` if some needle is not within an iterable element,
 or `false` otherwise.
 Returns `false` if the list of needles is empty.
 
 ```liquid
-{{ if containsNotall $excludingTags .Tags }}
+{{ if containsNotAll $excludingTags .Tags }}
 # ...
 {{ end }}
 ```

@@ -733,8 +733,8 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
-			"helper_containsNotall",
-			`{{ $excludingTags := parseJSON "[\"es-v1\",\"es-v2\"]" }}{{ range service "webapp" }}{{ if .Tags | containsNotall $excludingTags }}{{ .Address }}{{ end }}{{ end }}`,
+			"helper_containsNotAll",
+			`{{ $excludingTags := parseJSON "[\"es-v1\",\"es-v2\"]" }}{{ range service "webapp" }}{{ if .Tags | containsNotAll $excludingTags }}{{ .Address }}{{ end }}{{ end }}`,
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -759,8 +759,8 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
-			"helper_containsNotall__empty",
-			`{{ $excludingTags := parseJSON "[]" }}{{ range service "webapp" }}{{ if .Tags | containsNotall $excludingTags }}{{ .Address }}{{ end }}{{ end }}`,
+			"helper_containsNotAll__empty",
+			`{{ $excludingTags := parseJSON "[]" }}{{ range service "webapp" }}{{ if .Tags | containsNotAll $excludingTags }}{{ .Address }}{{ end }}{{ end }}`,
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()

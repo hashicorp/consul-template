@@ -19,6 +19,9 @@ NEW FEATURES:
   * Add `base64Decode`, `base64Encode`, `base64URLDecode`, and `base64URLEncode`
       functions for working with base64 encodings.
 
+  * Add `containsAll`, `containsAny`, `containsNone`, and `containsNotAll`
+      functions for easy filtering of multiple tag selections.
+
 BREAKING CHANGES:
 
   * Consul Template now **blocks on `key` queries**. The previous behavior was

@@ -505,7 +505,7 @@ func contains(v, l interface{}) (bool, error) {
 // 1. containsAll    - true if (∀x ∈ v then x ∈ l); false otherwise
 // 2. containsAny    - true if (∃x ∈ v such that x ∈ l); false otherwise
 // 3. containsNone   - true if (∀x ∈ v then x ∉ l); false otherwise
-// 2. containsNotall - true if (∃x ∈ v such that x ∉ l); false otherwise
+// 2. containsNotAll - true if (∃x ∈ v such that x ∉ l); false otherwise
 //
 // ret_true - return true at end of loop for none/all; false for any/notall
 // invert   - invert block test for all/notall

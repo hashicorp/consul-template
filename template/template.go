@@ -213,7 +213,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"containsAll":     containsSomeFunc(true, true),
 		"containsAny":     containsSomeFunc(false, false),
 		"containsNone":    containsSomeFunc(true, false),
-		"containsNotall":  containsSomeFunc(false, true),
+		"containsNotAll":  containsSomeFunc(false, true),
 		"env":             envFunc(i.env),
 		"executeTemplate": executeTemplateFunc(i.t),
 		"explode":         explode,
