@@ -21,13 +21,20 @@ const (
 )
 
 var (
-	ErrTemplateStringEmpty   = errors.New("template: cannot be empty")
+	// ErrTemplateStringEmpty is the error returned with the template contents
+	// are empty.
+	ErrTemplateStringEmpty = errors.New("template: cannot be empty")
+
+	// ErrTemplateInvalidFormat is the error returned with the template is not
+	// a valid format.
 	ErrTemplateInvalidFormat = errors.New("template: invalid format")
 
 	// configTemplateRe is the pattern to split the config template syntax.
 	configTemplateRe = regexp.MustCompile("([a-zA-Z]:)?([^:]+)")
 )
 
+// TemplateConfig is a representation of a template on disk, as well as the
+// associated commands and reload instructions.
 type TemplateConfig struct {
 	// Backup determines if this template should retain a backup. The default
 	// value is false.
@@ -272,6 +279,9 @@ func (c *TemplateConfig) GoString() string {
 	)
 }
 
+// Display is the human-friendly form of this configuration. It tries to
+// describe this template in as much detail as possible in a single line, so
+// log consumers can uniquely identify it.
 func (c *TemplateConfig) Display() string {
 	if c == nil {
 		return ""

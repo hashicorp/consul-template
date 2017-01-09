@@ -1465,7 +1465,7 @@ func TestFromPath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(cf1.Name(), []byte(`consul = "1.2.3.4"`), 0644); err != nil {
+	if err = ioutil.WriteFile(cf1.Name(), []byte(`consul = "1.2.3.4"`), 0644); err != nil {
 		t.Fatal(err)
 	}
 	cf2, err := ioutil.TempFile(configDir, "")

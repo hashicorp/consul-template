@@ -17,14 +17,14 @@ import (
 var (
 	// ErrMissingCommand is the error returned when no command is specified
 	// to run.
-	ErrMissingCommand error = errors.New("missing command")
+	ErrMissingCommand = errors.New("missing command")
 
 	// ExitCodeOK is the default OK exit code.
-	ExitCodeOK int = 0
+	ExitCodeOK = 0
 
 	// ExitCodeError is the default error code returned when the child exits with
 	// an error without a more specific code.
-	ExitCodeError int = 127
+	ExitCodeError = 127
 )
 
 // Child is a wrapper around a child process which can be used to send signals
@@ -193,16 +193,16 @@ func (c *Child) Reload() error {
 
 		c.kill()
 		return c.start()
-	} else {
-		log.Printf("[INFO] (child) reloading process")
-
-		// We only need a read lock here because neither the process nor the exit
-		// channel are changing.
-		c.RLock()
-		defer c.RUnlock()
-
-		return c.reload()
 	}
+
+	log.Printf("[INFO] (child) reloading process")
+
+	// We only need a read lock here because neither the process nor the exit
+	// channel are changing.
+	c.RLock()
+	defer c.RUnlock()
+
+	return c.reload()
 }
 
 // Kill sends the kill signal to the child process and waits for successful

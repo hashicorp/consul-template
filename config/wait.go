@@ -8,10 +8,20 @@ import (
 )
 
 var (
-	ErrWaitStringEmpty   = errors.New("wait: cannot be empty")
+	// ErrWaitStringEmpty is the error returned when wait is specified as an empty
+	// string.
+	ErrWaitStringEmpty = errors.New("wait: cannot be empty")
+
+	// ErrWaitInvalidFormat is the error returned when the wait is specified
+	// incorrectly.
 	ErrWaitInvalidFormat = errors.New("wait: invalid format")
-	ErrWaitNegative      = errors.New("wait: cannot be negative")
-	ErrWaitMinLTMax      = errors.New("wait: min must be less than max")
+
+	// ErrWaitNegative is the error returned with the wait is negative.
+	ErrWaitNegative = errors.New("wait: cannot be negative")
+
+	// ErrWaitMinLTMax is the error returned with the minimum wait time is not
+	// less than the maximum wait time.
+	ErrWaitMinLTMax = errors.New("wait: min must be less than max")
 )
 
 // WaitConfig is the Min/Max duration used by the Watcher

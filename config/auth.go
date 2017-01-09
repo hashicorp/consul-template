@@ -7,6 +7,8 @@ import (
 )
 
 var (
+	// ErrAuthStringEmpty is the error returned with authentication is provided,
+	// but empty.
 	ErrAuthStringEmpty = errors.New("auth: cannot be empty")
 )
 
@@ -127,14 +129,14 @@ func (c *AuthConfig) GoString() string {
 // String is the string representation of this authentication. If authentication
 // is not enabled, this returns the empty string. The username and password will
 // be separated by a colon.
-func (a *AuthConfig) String() string {
-	if !BoolVal(a.Enabled) {
+func (c *AuthConfig) String() string {
+	if !BoolVal(c.Enabled) {
 		return ""
 	}
 
-	if a.Password != nil {
-		return fmt.Sprintf("%s:%s", StringVal(a.Username), StringVal(a.Password))
+	if c.Password != nil {
+		return fmt.Sprintf("%s:%s", StringVal(c.Username), StringVal(c.Password))
 	}
 
-	return StringVal(a.Username)
+	return StringVal(c.Username)
 }

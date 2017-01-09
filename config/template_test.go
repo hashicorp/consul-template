@@ -408,6 +408,51 @@ func TestTemplateConfig_Finalize(t *testing.T) {
 	}
 }
 
+func TestTemplateConfig_Display(t *testing.T) {
+	cases := []struct {
+		name string
+		c    *TemplateConfig
+		e    string
+	}{
+		{
+			"nil",
+			nil,
+			"",
+		},
+		{
+			"with_source",
+			&TemplateConfig{
+				Source: String("/var/my.tpl"),
+			},
+			`"/var/my.tpl" => ""`,
+		},
+		{
+			"with_contents",
+			&TemplateConfig{
+				Contents: String("hello"),
+			},
+			`"(dynamic)" => ""`,
+		},
+		{
+			"with_destination",
+			&TemplateConfig{
+				Source:      String("/var/my.tpl"),
+				Destination: String("/var/my.txt"),
+			},
+			`"/var/my.tpl" => "/var/my.txt"`,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			a := tc.c.Display()
+			if tc.e != a {
+				t.Errorf("\nexp: %#v\nact: %#v", tc.e, a)
+			}
+		})
+	}
+}
+
 func TestParseTemplateConfig(t *testing.T) {
 	cases := []struct {
 		name string
