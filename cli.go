@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"time"
 
@@ -183,23 +184,73 @@ func (cli *CLI) ParseFlags(args []string) (*config.Config, bool, bool, bool, err
 	flags.Usage = func() { fmt.Fprintf(cli.errStream, usage, Name) }
 
 	flags.Var((funcVar)(func(s string) error {
-		a, err := config.ParseAuthConfig(s)
-		if err != nil {
-			return err
-		}
-		c.Auth = a
-		return nil
-	}), "auth", "")
-
-	flags.Var((funcVar)(func(s string) error {
 		configPaths = append(configPaths, s)
 		return nil
 	}), "config", "")
 
 	flags.Var((funcVar)(func(s string) error {
-		c.Consul = config.String(s)
+		c.Consul.Address = config.String(s)
 		return nil
-	}), "consul", "")
+	}), "consul-addr", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		a, err := config.ParseAuthConfig(s)
+		if err != nil {
+			return err
+		}
+		c.Consul.Auth = a
+		return nil
+	}), "consul-auth", "")
+
+	flags.Var((funcBoolVar)(func(b bool) error {
+		c.Consul.Retry.Enabled = config.Bool(b)
+		return nil
+	}), "consul-retry", "")
+
+	flags.Var((funcIntVar)(func(i int) error {
+		c.Consul.Retry.Attempts = config.Int(i)
+		return nil
+	}), "consul-retry-attempts", "")
+
+	flags.Var((funcDurationVar)(func(d time.Duration) error {
+		c.Consul.Retry.Backoff = config.TimeDuration(d)
+		return nil
+	}), "consul-retry-backoff", "")
+
+	flags.Var((funcBoolVar)(func(b bool) error {
+		c.Consul.SSL.Enabled = config.Bool(b)
+		return nil
+	}), "consul-ssl", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		c.Consul.SSL.CaCert = config.String(s)
+		return nil
+	}), "consul-ssl-ca-cert", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		c.Consul.SSL.CaPath = config.String(s)
+		return nil
+	}), "consul-ssl-ca-path", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		c.Consul.SSL.Cert = config.String(s)
+		return nil
+	}), "consul-ssl-cert", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		c.Consul.SSL.Key = config.String(s)
+		return nil
+	}), "consul-ssl-key", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		c.Consul.SSL.ServerName = config.String(s)
+		return nil
+	}), "consul-ssl-server-name", "")
+
+	flags.Var((funcBoolVar)(func(b bool) error {
+		c.Consul.SSL.Verify = config.Bool(b)
+		return nil
+	}), "consul-ssl-verify", "")
 
 	flags.Var((funcBoolVar)(func(b bool) error {
 		c.Dedup.Enabled = config.Bool(b)
@@ -277,44 +328,9 @@ func (cli *CLI) ParseFlags(args []string) (*config.Config, bool, bool, bool, err
 	}), "reload-signal", "")
 
 	flags.Var((funcDurationVar)(func(d time.Duration) error {
-		c.Retry = config.TimeDuration(d)
+		c.Consul.Retry.Backoff = config.TimeDuration(d)
 		return nil
 	}), "retry", "")
-
-	flags.Var((funcBoolVar)(func(b bool) error {
-		c.SSL.Enabled = config.Bool(b)
-		return nil
-	}), "ssl", "")
-
-	flags.Var((funcVar)(func(s string) error {
-		c.SSL.CaCert = config.String(s)
-		return nil
-	}), "ssl-ca-cert", "")
-
-	flags.Var((funcVar)(func(s string) error {
-		c.SSL.CaPath = config.String(s)
-		return nil
-	}), "ssl-ca-path", "")
-
-	flags.Var((funcVar)(func(s string) error {
-		c.SSL.Cert = config.String(s)
-		return nil
-	}), "ssl-cert", "")
-
-	flags.Var((funcVar)(func(s string) error {
-		c.SSL.Key = config.String(s)
-		return nil
-	}), "ssl-key", "")
-
-	flags.Var((funcVar)(func(s string) error {
-		c.SSL.ServerName = config.String(s)
-		return nil
-	}), "ssl-server-name", "")
-
-	flags.Var((funcBoolVar)(func(b bool) error {
-		c.SSL.Verify = config.Bool(b)
-		return nil
-	}), "ssl-verify", "")
 
 	flags.Var((funcBoolVar)(func(b bool) error {
 		c.Syslog.Enabled = config.Bool(b)
@@ -336,7 +352,7 @@ func (cli *CLI) ParseFlags(args []string) (*config.Config, bool, bool, bool, err
 	}), "template", "")
 
 	flags.Var((funcVar)(func(s string) error {
-		c.Token = config.String(s)
+		c.Consul.Token = config.String(s)
 		return nil
 	}), "token", "")
 
@@ -349,6 +365,21 @@ func (cli *CLI) ParseFlags(args []string) (*config.Config, bool, bool, bool, err
 		c.Vault.RenewToken = config.Bool(b)
 		return nil
 	}), "vault-renew-token", "")
+
+	flags.Var((funcBoolVar)(func(b bool) error {
+		c.Vault.Retry.Enabled = config.Bool(b)
+		return nil
+	}), "vault-retry", "")
+
+	flags.Var((funcIntVar)(func(i int) error {
+		c.Vault.Retry.Attempts = config.Int(i)
+		return nil
+	}), "vault-retry-attempts", "")
+
+	flags.Var((funcDurationVar)(func(d time.Duration) error {
+		c.Vault.Retry.Backoff = config.TimeDuration(d)
+		return nil
+	}), "vault-retry-backoff", "")
 
 	flags.Var((funcBoolVar)(func(b bool) error {
 		c.Vault.SSL.Enabled = config.Bool(b)
@@ -406,6 +437,24 @@ func (cli *CLI) ParseFlags(args []string) (*config.Config, bool, bool, bool, err
 
 	flags.BoolVar(&version, "v", false, "")
 	flags.BoolVar(&version, "version", false, "")
+
+	// Deprecations
+	for i, a := range args {
+		if a == "-auth" || strings.HasPrefix(a, "-auth=") {
+			log.Println("[WARN] -auth has been renamed to -consul-auth")
+			args[i] = strings.Replace(a, "-auth", "-consul-auth", 1)
+		}
+
+		if a == "-consul" || strings.HasPrefix(a, "-consul=") {
+			log.Println("[WARN] -consul has been renamed to -consul-addr")
+			args[i] = strings.Replace(a, "-consul", "-consul-addr", 1)
+		}
+
+		if strings.HasPrefix(a, "-ssl") {
+			log.Println("[WARN] -ssl options should be prefixed with -consul")
+			args[i] = strings.Replace(a, "-ssl", "-consul-ssl", 1)
+		}
+	}
 
 	// If there was a parser error, stop
 	if err := flags.Parse(args); err != nil {
@@ -469,9 +518,6 @@ Usage: %s [options]
 
 Options:
 
-  -auth=<username[:password]>
-      Set the basic authentication username (and password)
-
   -config=<path>
       Sets the path to a configuration file or folder on disk. This can be
       specified multiple times to load multiple files or folders. If multiple
@@ -480,6 +526,41 @@ Options:
 
   -consul=<address>
       Sets the address of the Consul instance
+
+  -consul-auth=<username[:password]>
+      Set the basic authentication username and password for communicating
+      with Consul.
+
+  -consul-retry
+      Use retry logic when communication with Consul fails
+
+  -consul-retry-attempts=<int>
+      The number of attempts to use when retrying failed communications
+
+  -consul-retry-backoff=<duration>
+      The base amount to use for the backoff duration. This number will be
+      increased exponentially for each retry attempt.
+
+  -consul-ssl
+      Use SSL when connecting to Consul
+
+  -consul-ssl-ca-cert=<string>
+      Validate server certificate against this CA certificate file list
+
+  -consul-ssl-ca-path=<string>
+      Sets the path to the CA to use for TLS verification
+
+  -consul-ssl-cert=<string>
+      SSL client certificate to send to server
+
+  -consul-ssl-key=<string>
+      SSL/TLS private key for use in client authentication key exchange
+
+  -consul-ssl-server-name=<string>
+      Sets the name of the server to use when validating TLS.
+
+  -consul-ssl-verify
+      Verify certificates when connecting via SSL
 
   -dedup
       Enable de-duplication mode - reduces load on Consul when many instances of
@@ -528,21 +609,6 @@ Options:
       The amount of time to wait if Consul returns an error when communicating
       with the API
 
-  -ssl
-      Use SSL when connecting to Consul
-
-  -ssl-ca-cert
-      Validate server certificate against this CA certificate file list
-
-  -ssl-cert
-      SSL client certificate to send to server
-
-  -ssl-key
-      SSL/TLS private key for use in client authentication key exchange
-
-  -ssl-verify
-      Verify certificates when connecting via SSL
-
   -syslog
       Send the output to syslog instead of standard error and standard out. The
       syslog facility defaults to LOCAL0 and can be changed using a
@@ -564,6 +630,16 @@ Options:
   -vault-renew-token
       Periodically renew the provided Vault API token - this defaults to "true"
       and will renew the token at half of the lease duration
+
+  -vault-retry
+      Use retry logic when communication with Vault fails
+
+  -vault-retry-attempts=<int>
+      The number of attempts to use when retrying failed communications
+
+  -vault-retry-backoff=<duration>
+      The base amount to use for the backoff duration. This number will be
+      increased exponentially for each retry attempt.
 
   -vault-ssl
       Specifies is communications with Vault should be done via SSL

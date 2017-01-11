@@ -38,33 +38,119 @@ func TestCLI_ParseFlags(t *testing.T) {
 		e    *config.Config
 		err  bool
 	}{
+
+		// TODO: Deprecatioons
+
 		{
-			"auth_empty",
-			[]string{"-auth", ""},
-			nil,
-			true,
-		},
-		{
-			"auth_username",
-			[]string{"-auth", "username"},
-			&config.Config{
-				Auth: &config.AuthConfig{
-					Username: config.String("username"),
-				},
-			},
-			false,
-		},
-		{
-			"auth_username_password",
+			"auth",
 			[]string{"-auth", "username:password"},
 			&config.Config{
-				Auth: &config.AuthConfig{
-					Username: config.String("username"),
-					Password: config.String("password"),
+				Consul: &config.ConsulConfig{
+					Auth: &config.AuthConfig{
+						Username: config.String("username"),
+						Password: config.String("password"),
+					},
 				},
 			},
 			false,
 		},
+		{
+			"consul",
+			[]string{"-consul", "1.2.3.4"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					Address: config.String("1.2.3.4"),
+				},
+			},
+			false,
+		},
+		{
+			"ssl",
+			[]string{"-ssl"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					SSL: &config.SSLConfig{
+						Enabled: config.Bool(true),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"ssl-ca-cert",
+			[]string{"-ssl-ca-cert", "ca_cert"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					SSL: &config.SSLConfig{
+						CaCert: config.String("ca_cert"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"ssl-ca-path",
+			[]string{"-ssl-ca-path", "ca_path"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					SSL: &config.SSLConfig{
+						CaPath: config.String("ca_path"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"ssl-cert",
+			[]string{"-ssl-cert", "cert"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					SSL: &config.SSLConfig{
+						Cert: config.String("cert"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"ssl-key",
+			[]string{"-ssl-key", "key"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					SSL: &config.SSLConfig{
+						Key: config.String("key"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"ssl-server-name",
+			[]string{"-ssl-server-name", "server_name"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					SSL: &config.SSLConfig{
+						ServerName: config.String("server_name"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"ssl-verify",
+			[]string{"-ssl-verify"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					SSL: &config.SSLConfig{
+						Verify: config.Bool(true),
+					},
+				},
+			},
+			false,
+		},
+
+		// TODO: End deprecations
+
 		{
 			"config",
 			[]string{"-config", f.Name()},
@@ -78,10 +164,163 @@ func TestCLI_ParseFlags(t *testing.T) {
 			true,
 		},
 		{
-			"consul",
-			[]string{"-consul", "1.2.3.4"},
+			"consul_addr",
+			[]string{"-consul-addr", "1.2.3.4"},
 			&config.Config{
-				Consul: config.String("1.2.3.4"),
+				Consul: &config.ConsulConfig{
+					Address: config.String("1.2.3.4"),
+				},
+			},
+			false,
+		},
+		{
+			"consul_auth_empty",
+			[]string{"-consul-auth", ""},
+			nil,
+			true,
+		},
+		{
+			"consul_auth_username",
+			[]string{"-consul-auth", "username"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					Auth: &config.AuthConfig{
+						Username: config.String("username"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"consul_auth_username_password",
+			[]string{"-consul-auth", "username:password"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					Auth: &config.AuthConfig{
+						Username: config.String("username"),
+						Password: config.String("password"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"consul-retry",
+			[]string{"-consul-retry"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					Retry: &config.RetryConfig{
+						Enabled: config.Bool(true),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"consul-retry-attempts",
+			[]string{"-consul-retry-attempts", "20"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					Retry: &config.RetryConfig{
+						Attempts: config.Int(20),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"consul-retry-backoff",
+			[]string{"-consul-retry-backoff", "30s"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					Retry: &config.RetryConfig{
+						Backoff: config.TimeDuration(30 * time.Second),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"consul-ssl",
+			[]string{"-consul-ssl"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					SSL: &config.SSLConfig{
+						Enabled: config.Bool(true),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"consul-ssl-ca-cert",
+			[]string{"-consul-ssl-ca-cert", "ca_cert"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					SSL: &config.SSLConfig{
+						CaCert: config.String("ca_cert"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"consul-ssl-ca-path",
+			[]string{"-consul-ssl-ca-path", "ca_path"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					SSL: &config.SSLConfig{
+						CaPath: config.String("ca_path"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"consul-ssl-cert",
+			[]string{"-consul-ssl-cert", "cert"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					SSL: &config.SSLConfig{
+						Cert: config.String("cert"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"consul-ssl-key",
+			[]string{"-consul-ssl-key", "key"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					SSL: &config.SSLConfig{
+						Key: config.String("key"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"consul-ssl-server-name",
+			[]string{"-consul-ssl-server-name", "server_name"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					SSL: &config.SSLConfig{
+						ServerName: config.String("server_name"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"consul-ssl-verify",
+			[]string{"-consul-ssl-verify"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					SSL: &config.SSLConfig{
+						Verify: config.Bool(true),
+					},
+				},
 			},
 			false,
 		},
@@ -190,76 +429,10 @@ func TestCLI_ParseFlags(t *testing.T) {
 			"retry",
 			[]string{"-retry", "30s"},
 			&config.Config{
-				Retry: config.TimeDuration(30 * time.Second),
-			},
-			false,
-		},
-		{
-			"ssl",
-			[]string{"-ssl"},
-			&config.Config{
-				SSL: &config.SSLConfig{
-					Enabled: config.Bool(true),
-				},
-			},
-			false,
-		},
-		{
-			"ssl-ca-cert",
-			[]string{"-ssl-ca-cert", "ca_cert"},
-			&config.Config{
-				SSL: &config.SSLConfig{
-					CaCert: config.String("ca_cert"),
-				},
-			},
-			false,
-		},
-		{
-			"ssl-ca-path",
-			[]string{"-ssl-ca-path", "ca_path"},
-			&config.Config{
-				SSL: &config.SSLConfig{
-					CaPath: config.String("ca_path"),
-				},
-			},
-			false,
-		},
-		{
-			"ssl-cert",
-			[]string{"-ssl-cert", "cert"},
-			&config.Config{
-				SSL: &config.SSLConfig{
-					Cert: config.String("cert"),
-				},
-			},
-			false,
-		},
-		{
-			"ssl-key",
-			[]string{"-ssl-key", "key"},
-			&config.Config{
-				SSL: &config.SSLConfig{
-					Key: config.String("key"),
-				},
-			},
-			false,
-		},
-		{
-			"ssl-server-name",
-			[]string{"-ssl-server-name", "server_name"},
-			&config.Config{
-				SSL: &config.SSLConfig{
-					ServerName: config.String("server_name"),
-				},
-			},
-			false,
-		},
-		{
-			"ssl-verify",
-			[]string{"-ssl-verify"},
-			&config.Config{
-				SSL: &config.SSLConfig{
-					Verify: config.Bool(true),
+				Consul: &config.ConsulConfig{
+					Retry: &config.RetryConfig{
+						Backoff: config.TimeDuration(30 * time.Second),
+					},
 				},
 			},
 			false,
@@ -300,7 +473,9 @@ func TestCLI_ParseFlags(t *testing.T) {
 			"token",
 			[]string{"-token", "token"},
 			&config.Config{
-				Token: config.String("token"),
+				Consul: &config.ConsulConfig{
+					Token: config.String("token"),
+				},
 			},
 			false,
 		},
@@ -310,6 +485,42 @@ func TestCLI_ParseFlags(t *testing.T) {
 			&config.Config{
 				Vault: &config.VaultConfig{
 					Address: config.String("vault_addr"),
+				},
+			},
+			false,
+		},
+		{
+			"vault-retry",
+			[]string{"-vault-retry"},
+			&config.Config{
+				Vault: &config.VaultConfig{
+					Retry: &config.RetryConfig{
+						Enabled: config.Bool(true),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"vault-retry-attempts",
+			[]string{"-vault-retry-attempts", "20"},
+			&config.Config{
+				Vault: &config.VaultConfig{
+					Retry: &config.RetryConfig{
+						Attempts: config.Int(20),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"vault-retry-backoff",
+			[]string{"-vault-retry-backoff", "30s"},
+			&config.Config{
+				Vault: &config.VaultConfig{
+					Retry: &config.RetryConfig{
+						Backoff: config.TimeDuration(30 * time.Second),
+					},
 				},
 			},
 			false,

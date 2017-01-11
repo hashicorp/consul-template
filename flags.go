@@ -40,3 +40,17 @@ func (f funcDurationVar) Set(s string) error {
 }
 func (f funcDurationVar) String() string   { return "" }
 func (f funcDurationVar) IsBoolFlag() bool { return false }
+
+// funcIntVar is a type of flag that accepts a function, converts the
+// user's value to a int, and then calls the given function.
+type funcIntVar func(i int) error
+
+func (f funcIntVar) Set(s string) error {
+	v, err := strconv.ParseInt(s, 10, 32)
+	if err != nil {
+		return err
+	}
+	return f(int(v))
+}
+func (f funcIntVar) String() string   { return "" }
+func (f funcIntVar) IsBoolFlag() bool { return false }
