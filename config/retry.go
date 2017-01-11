@@ -96,7 +96,7 @@ func (c *RetryConfig) RetryFunc() RetryFunc {
 			return false, 0
 		}
 
-		if IntVal(c.Attempts) > 0 && retry > IntVal(c.Attempts) {
+		if IntVal(c.Attempts) > 0 && retry > IntVal(c.Attempts)-1 {
 			return false, 0
 		}
 
