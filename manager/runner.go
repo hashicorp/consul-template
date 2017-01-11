@@ -301,28 +301,10 @@ func (r *Runner) Start() {
 			break OUTER
 
 		case err := <-r.watcher.ErrCh():
-			// If this is our own internal error, see if we should hard exit.
-			if derr, ok := err.(*dep.FetchError); ok {
-				log.Printf("[DEBUG] (runner) detected custom error type")
-				if derr.ShouldExit() {
-					log.Printf("[DEBUG] (runner) custom error asked for hard exit")
-					r.ErrCh <- derr.OriginalError()
-					return
-				}
-			}
-
-			// Intentionally do not send the error back up to the runner. Eventually,
-			// once Consul API implements errwrap and multierror, we can check the
-			// "type" of error and conditionally alert back.
-			//
-			// if err.Contains(Something) {
-			//   errCh <- err
-			// }
+			// Push the error back up the stack
 			log.Printf("[ERR] (runner) watcher reported error: %s", err)
-			if r.once {
-				r.ErrCh <- err
-				return
-			}
+			r.ErrCh <- err
+			return
 
 		case tmpl := <-r.quiescenceCh:
 			// Remove the quiescence for this template from the map. This will force
@@ -340,8 +322,8 @@ func (r *Runner) Start() {
 			return
 		}
 
-		// If we got this far, that means we got new data or one of the timers fired,
-		// so attempt to re-render.
+		// If we got this far, that means we got new data or one of the timers
+		// fired, so attempt to re-render.
 		if err := r.Run(); err != nil {
 			r.ErrCh <- err
 			return

@@ -1,7 +1,6 @@
 package dependency
 
 import (
-	"fmt"
 	"log"
 	"net/url"
 	"regexp"
@@ -38,38 +37,6 @@ type Dependency interface {
 	String() string
 	Stop()
 	Type() Type
-}
-
-// FetchError is a special kind of error returned by the Fetch method that
-// contains additional metadata which informs the caller how to respond. This
-// error implements the standard Error interface, so it can be passed as a
-// regular error down the stack.
-type FetchError struct {
-	originalError error
-	shouldExit    bool
-}
-
-func (e *FetchError) Error() string {
-	return e.originalError.Error()
-}
-
-func (e *FetchError) OriginalError() error {
-	return e.originalError
-}
-
-func (e *FetchError) ShouldExit() bool {
-	return e.shouldExit
-}
-
-func ErrWithExit(err error) *FetchError {
-	return &FetchError{
-		originalError: err,
-		shouldExit:    true,
-	}
-}
-
-func ErrWithExitf(s string, i ...interface{}) *FetchError {
-	return ErrWithExit(fmt.Errorf(s, i...))
 }
 
 // ServiceTags is a slice of tags assigned to a Service
