@@ -2,18 +2,27 @@ package config
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/vault/api"
 )
 
 const (
-	// DefaultVaultRenewToken is the default value for it the Vault token should
+	// DefaultVaultRenewToken is the default value for if the Vault token should
 	// be renewed.
 	DefaultVaultRenewToken = true
 
-	// DefaultVaultUnwrapToken is the default value for it the Vault token should
+	// DefaultVaultUnwrapToken is the default value for if the Vault token should
 	// be unwrapped.
 	DefaultVaultUnwrapToken = false
+
+	// DefaultVaultRetryBase is the default value for the base time to use for
+	// exponential backoff.
+	DefaultVaultRetryBase = 250 * time.Millisecond
+
+	// DefaultVaultRetryMaxAttempts is the default maximum number of attempts to
+	// retry before quitting.
+	DefaultVaultRetryMaxAttempts = 5
 )
 
 // VaultConfig is the configuration for connecting to a vault server.
@@ -26,6 +35,9 @@ type VaultConfig struct {
 
 	// RenewToken renews the Vault token.
 	RenewToken *bool `mapstructure:"renew_token"`
+
+	// Retry is the configuration for specifying how to behave on failure.
+	Retry *RetryConfig `mapstructure:"retry"`
 
 	// SSL indicates we should use a secure connection while talking to Vault.
 	SSL *SSLConfig `mapstructure:"ssl"`
@@ -46,6 +58,7 @@ func DefaultVaultConfig() *VaultConfig {
 		Address:     stringFromEnv(api.EnvVaultAddress),
 		RenewToken:  boolFromEnv("VAULT_RENEW_TOKEN"),
 		UnwrapToken: boolFromEnv("VAULT_UNWRAP_TOKEN"),
+		Retry:       DefaultRetryConfig(),
 		SSL: &SSLConfig{
 			CaCert:     stringFromEnv(api.EnvVaultCACert),
 			CaPath:     stringFromEnv(api.EnvVaultCAPath),
@@ -74,6 +87,10 @@ func (c *VaultConfig) Copy() *VaultConfig {
 	o.Enabled = c.Enabled
 
 	o.RenewToken = c.RenewToken
+
+	if c.Retry != nil {
+		o.Retry = c.Retry.Copy()
+	}
 
 	if c.SSL != nil {
 		o.SSL = c.SSL.Copy()
@@ -116,6 +133,10 @@ func (c *VaultConfig) Merge(o *VaultConfig) *VaultConfig {
 		r.RenewToken = o.RenewToken
 	}
 
+	if o.Retry != nil {
+		r.Retry = r.Retry.Merge(o.Retry)
+	}
+
 	if o.SSL != nil {
 		r.SSL = r.SSL.Merge(o.SSL)
 	}
@@ -145,6 +166,11 @@ func (c *VaultConfig) Finalize() {
 		c.RenewToken = Bool(DefaultVaultRenewToken)
 	}
 
+	if c.Retry == nil {
+		c.Retry = DefaultRetryConfig()
+	}
+	c.Retry.Finalize()
+
 	if c.SSL == nil {
 		c.SSL = DefaultSSLConfig()
 	}
@@ -168,16 +194,18 @@ func (c *VaultConfig) GoString() string {
 	return fmt.Sprintf("&VaultConfig{"+
 		"Enabled:%s, "+
 		"Address:%s, "+
-		"Token:%s, "+
+		"Token:%t, "+
 		"UnwrapToken:%s, "+
 		"RenewToken:%s, "+
+		"Retry:%#v, "+
 		"SSL:%#v"+
 		"}",
 		BoolGoString(c.Enabled),
 		StringGoString(c.Address),
-		StringGoString(c.Token),
+		StringPresent(c.Token),
 		BoolGoString(c.UnwrapToken),
 		BoolGoString(c.RenewToken),
+		c.Retry,
 		c.SSL,
 	)
 }
