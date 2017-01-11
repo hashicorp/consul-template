@@ -14,6 +14,11 @@ NEW FEATURES:
       template. Scratch values are not shared across multiple templates and are
       not persisted between template invocations
 
+  * Add support for controlling retry behavior for failed communications to
+      Consul or Vault. By default, Consul Template will now retry 5 times before
+      returning an error. The backoff timing and number of attempts can be tuned
+      using the CLI or a configuration file.
+
   * Add `executeTemplate` function for executing a defined template.
 
   * Add `base64Decode`, `base64Encode`, `base64URLDecode`, and `base64URLEncode`
@@ -80,6 +85,36 @@ DEPRECATIONS:
       Go's naming structure. The old method is aliased and will remain until a
       future release.
 
+  * Consul-specific CLI options are now prefixed with `-consul-`:
+
+    * `-auth` is now `-consul-auth`
+    * `-ssl-(.*)` is now `-consul-ssl-$1`
+    * `-retry` is now `-consul-retry` and has been broken apart into more
+      specific CLI options.
+
+  * Consul-specific configuration options are now nested under a stanza. For
+    example:
+
+    ```hcl
+    auth {
+      username = "foo"
+      password = "bar"
+    }
+    ```
+
+    becomes:
+
+    ```hcl
+    consul {
+      auth {
+        username = "foo"
+        password = "bar"
+      }
+    }
+    ```
+
+    This applies to the `auth`, `retry`, `ssl`, and `token` options.
+
 IMPROVEMENTS:
 
   * Add CLI support for all SSL configuration options for both Consul and Vault.
@@ -95,6 +130,14 @@ IMPROVEMENTS:
     * `ssl-ca-path` `vault-ssl-ca-path`
     * `ssl-server-name` `vault-ssl-server-name`
 
+  * Add `-consul-ssl-server-name`
+  * Add `-consul-ssl-ca-path`
+  * Add `-consul-retry`
+  * Add `-consul-retry-attempts`
+  * Add `-consul-retry-backoff`
+  * Add `-vault-retry`
+  * Add `-vault-retry-attempts`
+  * Add `-vault-retry-backoff`
   * Add support for `server_name` option for TLS configurations to allow
       specification of the expected certificate common name.
   * Add `-vault-addr` CLI option for specifying the Vault server address
