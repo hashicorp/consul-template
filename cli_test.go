@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -14,6 +13,7 @@ import (
 	"github.com/hashicorp/consul-template/config"
 	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul/testutil"
+	gatedio "github.com/hashicorp/go-gatedio"
 )
 
 func testConsulServer(t *testing.T) *testutil.TestServer {
@@ -665,8 +665,8 @@ func TestCLI_ParseFlags(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-			var out bytes.Buffer
-			cli := NewCLI(&out, &out)
+			out := gatedio.NewByteBuffer()
+			cli := NewCLI(out, out)
 
 			a, _, _, _, err := cli.ParseFlags(tc.f)
 			if (err != nil) != tc.err {
@@ -726,8 +726,8 @@ func TestCLI_Run(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-			var out bytes.Buffer
-			cli := NewCLI(&out, &out)
+			out := gatedio.NewByteBuffer()
+			cli := NewCLI(out, out)
 
 			tc.args = append([]string{"consul-template"}, tc.args...)
 			exit := cli.Run(tc.args)
@@ -741,8 +741,6 @@ func TestCLI_Run(t *testing.T) {
 		consul := testConsulServer(t)
 		defer consul.Stop()
 
-		var out bytes.Buffer
-
 		f, err := ioutil.TempFile("", "")
 		if err != nil {
 			t.Fatal(err)
@@ -752,7 +750,8 @@ func TestCLI_Run(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		cli := NewCLI(&out, &out)
+		out := gatedio.NewByteBuffer()
+		cli := NewCLI(out, out)
 
 		ch := make(chan int, 1)
 		go func() {
@@ -785,8 +784,6 @@ func TestCLI_Run(t *testing.T) {
 		consul := testConsulServer(t)
 		defer consul.Stop()
 
-		var out bytes.Buffer
-
 		f, err := ioutil.TempFile("", "")
 		if err != nil {
 			t.Fatal(err)
@@ -796,7 +793,8 @@ func TestCLI_Run(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		cli := NewCLI(&out, &out)
+		out := gatedio.NewByteBuffer()
+		cli := NewCLI(out, out)
 		defer cli.stop()
 
 		ch := make(chan int, 1)
