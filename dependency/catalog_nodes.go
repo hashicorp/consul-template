@@ -122,6 +122,11 @@ func (d *CatalogNodesQuery) Stop() {
 	close(d.stopCh)
 }
 
+// Type returns the type of this dependency.
+func (d *CatalogNodesQuery) Type() Type {
+	return TypeConsul
+}
+
 // ByNode is a sortable list of nodes by name and then IP address.
 type ByNode []*Node
 

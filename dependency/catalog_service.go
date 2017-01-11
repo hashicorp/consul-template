@@ -139,3 +139,8 @@ func (d *CatalogServiceQuery) String() string {
 func (d *CatalogServiceQuery) Stop() {
 	close(d.stopCh)
 }
+
+// Type returns the type of this dependency.
+func (d *CatalogServiceQuery) Type() Type {
+	return TypeConsul
+}

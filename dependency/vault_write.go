@@ -149,6 +149,11 @@ func (d *VaultWriteQuery) String() string {
 	return fmt.Sprintf("vault.write(%s -> %s)", d.path, d.dataHash)
 }
 
+// Type returns the type of this dependency.
+func (d *VaultWriteQuery) Type() Type {
+	return TypeVault
+}
+
 // sha1Map returns the sha1 hash of the data in the map. The reason this data is
 // hashed is because it appears in the output and could contain sensitive
 // information.

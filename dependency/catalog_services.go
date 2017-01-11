@@ -110,6 +110,11 @@ func (d *CatalogServicesQuery) Stop() {
 	close(d.stopCh)
 }
 
+// Type returns the type of this dependency.
+func (d *CatalogServicesQuery) Type() Type {
+	return TypeConsul
+}
+
 // ByName is a sortable slice of CatalogService structs.
 type ByName []*CatalogSnippet
 

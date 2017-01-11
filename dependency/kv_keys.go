@@ -97,3 +97,8 @@ func (d *KVKeysQuery) String() string {
 func (d *KVKeysQuery) Stop() {
 	close(d.stopCh)
 }
+
+// Type returns the type of this dependency.
+func (d *KVKeysQuery) Type() Type {
+	return TypeConsul
+}

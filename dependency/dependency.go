@@ -22,6 +22,14 @@ const (
 	tagRe    = `((?P<tag>[[:word:]\.\-\_]+)\.)?`
 )
 
+type Type int
+
+const (
+	TypeConsul Type = iota
+	TypeVault
+	TypeLocal
+)
+
 // Dependency is an interface for a dependency that Consul Template is capable
 // of watching.
 type Dependency interface {
@@ -29,6 +37,7 @@ type Dependency interface {
 	CanShare() bool
 	String() string
 	Stop()
+	Type() Type
 }
 
 // FetchError is a special kind of error returned by the Fetch method that

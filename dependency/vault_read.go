@@ -140,3 +140,8 @@ func (d *VaultReadQuery) Stop() {
 func (d *VaultReadQuery) String() string {
 	return fmt.Sprintf("vault.read(%s)", d.path)
 }
+
+// Type returns the type of this dependency.
+func (d *VaultReadQuery) Type() Type {
+	return TypeVault
+}

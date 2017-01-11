@@ -82,6 +82,11 @@ func (d *FileQuery) String() string {
 	return fmt.Sprintf("file(%s)", d.path)
 }
 
+// Type returns the type of this dependency.
+func (d *FileQuery) Type() Type {
+	return TypeLocal
+}
+
 type watchResult struct {
 	stat os.FileInfo
 	err  error

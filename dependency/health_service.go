@@ -206,6 +206,11 @@ func (d *HealthServiceQuery) String() string {
 	return fmt.Sprintf("health.service(%s)", name)
 }
 
+// Type returns the type of this dependency.
+func (d *HealthServiceQuery) Type() Type {
+	return TypeConsul
+}
+
 // acceptStatus allows us to check if a slice of health checks pass this filter.
 func acceptStatus(list []string, s string) bool {
 	for _, status := range list {
