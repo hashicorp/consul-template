@@ -119,3 +119,53 @@ func TestStringToWaitDurationHookFunc(t *testing.T) {
 		})
 	}
 }
+
+func TestConsulStringToStructFunc(t *testing.T) {
+	f := ConsulStringToStructFunc()
+	strType := reflect.TypeOf("")
+	consulType := reflect.TypeOf(ConsulConfig{})
+
+	cases := []struct {
+		name     string
+		f, t     reflect.Type
+		data     interface{}
+		expected interface{}
+		err      bool
+	}{
+		{
+			"address",
+			strType, consulType,
+			"1.2.3.4",
+			&ConsulConfig{
+				Address: String("1.2.3.4"),
+			},
+			false,
+		},
+		{
+			"not_string",
+			consulType, consulType,
+			&ConsulConfig{},
+			&ConsulConfig{},
+			false,
+		},
+		{
+			"not_consul",
+			strType, strType,
+			"test",
+			"test",
+			false,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			actual, err := mapstructure.DecodeHookExec(f, tc.f, tc.t, tc.data)
+			if (err != nil) != tc.err {
+				t.Fatalf("%s", err)
+			}
+			if !reflect.DeepEqual(tc.expected, actual) {
+				t.Errorf("\nexp: %#v\nact: %#v", tc.expected, actual)
+			}
+		})
+	}
+}

@@ -29,21 +29,14 @@ const (
 	// DefaultReloadSignal is the default signal for reload.
 	DefaultReloadSignal = syscall.SIGHUP
 
-	// DefaultRetry is the default amount of time to sleep before retrying.
-	DefaultRetry = 5 * time.Second
-
 	// DefaultKillSignal is the default signal for termination.
 	DefaultKillSignal = syscall.SIGINT
 )
 
 // Config is used to configure Consul Template
 type Config struct {
-	// Auth is the HTTP basic authentication for communicating with Consul.
-	Auth *AuthConfig `mapstructure:"auth"`
-
-	// Consul is the location of the Consul instance to query (may be an IP
-	// address or FQDN) with port.
-	Consul *string `mapstructure:"consul"`
+	// Consul is the configuration for connecting to a Consul cluster.
+	Consul *ConsulConfig `mapstructure:"consul"`
 
 	// Dedup is used to configure the dedup settings
 	Dedup *DedupConfig `mapstructure:"deduplicate"`
@@ -69,21 +62,11 @@ type Config struct {
 	// ReloadSignal is the signal to listen for a reload event.
 	ReloadSignal *os.Signal `mapstructure:"reload_signal"`
 
-	// Retry is the duration of time to wait between Consul failures.
-	Retry *time.Duration `mapstructure:"retry"`
-
-	// SSL indicates we should use a secure connection while talking to
-	// Consul. This requires Consul to be configured to serve HTTPS.
-	SSL *SSLConfig `mapstructure:"ssl"`
-
 	// Syslog is the configuration for syslog.
 	Syslog *SyslogConfig `mapstructure:"syslog"`
 
 	// Templates is the list of templates.
 	Templates *TemplateConfigs `mapstructure:"template"`
-
-	// Token is the Consul API token.
-	Token *string `mapstructure:"token"`
 
 	// Vault is the configuration for connecting to a vault server.
 	Vault *VaultConfig `mapstructure:"vault"`
@@ -97,14 +80,10 @@ type Config struct {
 func (c *Config) Copy() *Config {
 	var o Config
 
-	if c.Auth != nil {
-		o.Auth = c.Auth.Copy()
-	}
-
 	o.Consul = c.Consul
 
-	if c.Dedup != nil {
-		o.Dedup = c.Dedup.Copy()
+	if c.Consul != nil {
+		o.Consul = c.Consul.Copy()
 	}
 
 	if c.Exec != nil {
@@ -121,12 +100,6 @@ func (c *Config) Copy() *Config {
 
 	o.ReloadSignal = c.ReloadSignal
 
-	o.Retry = c.Retry
-
-	if c.SSL != nil {
-		o.SSL = c.SSL.Copy()
-	}
-
 	if c.Syslog != nil {
 		o.Syslog = c.Syslog.Copy()
 	}
@@ -134,8 +107,6 @@ func (c *Config) Copy() *Config {
 	if c.Templates != nil {
 		o.Templates = c.Templates.Copy()
 	}
-
-	o.Token = c.Token
 
 	if c.Vault != nil {
 		o.Vault = c.Vault.Copy()
@@ -164,12 +135,8 @@ func (c *Config) Merge(o *Config) *Config {
 
 	r := c.Copy()
 
-	if o.Auth != nil {
-		r.Auth = r.Auth.Merge(o.Auth)
-	}
-
 	if o.Consul != nil {
-		r.Consul = o.Consul
+		r.Consul = r.Consul.Merge(o.Consul)
 	}
 
 	if o.Dedup != nil {
@@ -200,24 +167,12 @@ func (c *Config) Merge(o *Config) *Config {
 		r.ReloadSignal = o.ReloadSignal
 	}
 
-	if o.Retry != nil {
-		r.Retry = o.Retry
-	}
-
-	if o.SSL != nil {
-		r.SSL = r.SSL.Merge(o.SSL)
-	}
-
 	if o.Syslog != nil {
 		r.Syslog = r.Syslog.Merge(o.Syslog)
 	}
 
 	if o.Templates != nil {
 		r.Templates = r.Templates.Merge(o.Templates)
-	}
-
-	if o.Token != nil {
-		r.Token = o.Token
 	}
 
 	if o.Vault != nil {
@@ -246,6 +201,10 @@ func Parse(s string) (*Config, error) {
 
 	flattenKeys(parsed, []string{
 		"auth",
+		"consul",
+		"consul.auth",
+		"consul.retry",
+		"consul.ssl",
 		"deduplicate",
 		"env",
 		"exec",
@@ -253,6 +212,7 @@ func Parse(s string) (*Config, error) {
 		"ssl",
 		"syslog",
 		"vault",
+		"vault.retry",
 		"vault.ssl",
 		"wait",
 	})
@@ -280,6 +240,48 @@ func Parse(s string) (*Config, error) {
 		}
 	}
 
+	if auth, ok := parsed["auth"].(map[string]interface{}); ok {
+		log.Println("[WARN] auth has been moved under the consul stanza. " +
+			"Update your configuration files and place auth inside consul { }.")
+		if _, ok := parsed["consul"]; !ok {
+			parsed["consul"] = make(map[string]interface{})
+		}
+		parsed["consul"].(map[string]interface{})["auth"] = auth
+		delete(parsed, "auth")
+	}
+
+	if retry, ok := parsed["retry"].(string); ok {
+		log.Println("[WARN] retry has been moved under the consul stanza. " +
+			"Update your configuration files and place retry inside consul { }.")
+		if _, ok := parsed["consul"]; !ok {
+			parsed["consul"] = make(map[string]interface{})
+		}
+		parsed["consul"].(map[string]interface{})["retry"] = map[string]interface{}{
+			"backoff": retry,
+		}
+		delete(parsed, "retry")
+	}
+
+	if ssl, ok := parsed["ssl"].(map[string]interface{}); ok {
+		log.Println("[WARN] ssl has been moved under the consul stanza. " +
+			"Update your configuration files and place ssl inside consul { }.")
+		if _, ok := parsed["consul"]; !ok {
+			parsed["consul"] = make(map[string]interface{})
+		}
+		parsed["consul"].(map[string]interface{})["ssl"] = ssl
+		delete(parsed, "ssl")
+	}
+
+	if token, ok := parsed["token"].(string); ok {
+		log.Println("[WARN] token has been moved under the consul stanza. " +
+			"Update your configuration files and place token inside consul { }.")
+		if _, ok := parsed["consul"]; !ok {
+			parsed["consul"] = make(map[string]interface{})
+		}
+		parsed["consul"].(map[string]interface{})["token"] = token
+		delete(parsed, "token")
+	}
+
 	// Create a new, empty config
 	var c Config
 
@@ -287,6 +289,7 @@ func Parse(s string) (*Config, error) {
 	var md mapstructure.Metadata
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			ConsulStringToStructFunc(),
 			StringToFileModeFunc(),
 			signals.StringToSignalFunc(),
 			StringToWaitDurationHookFunc(),
@@ -401,8 +404,7 @@ func (c *Config) GoString() string {
 	}
 
 	return fmt.Sprintf("&Config{"+
-		"Auth:%#v, "+
-		"Consul:%s, "+
+		"Consul:%#v, "+
 		"Dedup:%#v, "+
 		"Exec:%#v, "+
 		"KillSignal:%s, "+
@@ -410,16 +412,12 @@ func (c *Config) GoString() string {
 		"MaxStale:%s, "+
 		"PidFile:%s, "+
 		"ReloadSignal:%s, "+
-		"Retry:%s, "+
-		"SSL:%#v, "+
 		"Syslog:%#v, "+
 		"Templates:%#v, "+
-		"Token:%s, "+
 		"Vault:%#v, "+
 		"Wait:%#v"+
 		"}",
-		c.Auth,
-		StringGoString(c.Consul),
+		c.Consul,
 		c.Dedup,
 		c.Exec,
 		SignalGoString(c.KillSignal),
@@ -427,11 +425,8 @@ func (c *Config) GoString() string {
 		TimeDurationGoString(c.MaxStale),
 		StringGoString(c.PidFile),
 		SignalGoString(c.ReloadSignal),
-		TimeDurationGoString(c.Retry),
-		c.SSL,
 		c.Syslog,
 		c.Templates,
-		StringGoString(c.Token),
 		c.Vault,
 		c.Wait,
 	)
@@ -441,8 +436,7 @@ func (c *Config) GoString() string {
 // variables may be set which control the values for the default configuration.
 func DefaultConfig() *Config {
 	return &Config{
-		Auth:         DefaultAuthConfig(),
-		Consul:       stringFromEnv("CONSUL_HTTP_ADDR"),
+		Consul:       DefaultConsulConfig(),
 		Dedup:        DefaultDedupConfig(),
 		Exec:         DefaultExecConfig(),
 		KillSignal:   Signal(DefaultKillSignal),
@@ -450,11 +444,8 @@ func DefaultConfig() *Config {
 		MaxStale:     TimeDuration(DefaultMaxStale),
 		PidFile:      String(""),
 		ReloadSignal: Signal(DefaultReloadSignal),
-		Retry:        TimeDuration(DefaultRetry),
-		SSL:          DefaultSSLConfig(),
 		Syslog:       DefaultSyslogConfig(),
 		Templates:    DefaultTemplateConfigs(),
-		Token:        stringFromEnv("CONSUL_TOKEN", "CONSUL_HTTP_TOKEN"),
 		Vault:        DefaultVaultConfig(),
 		Wait:         DefaultWaitConfig(),
 	}
@@ -466,14 +457,10 @@ func DefaultConfig() *Config {
 // data was given, but the user did not explicitly add "Enabled: true" to the
 // configuration.
 func (c *Config) Finalize() {
-	if c.Auth == nil {
-		c.Auth = DefaultAuthConfig()
-	}
-	c.Auth.Finalize()
-
 	if c.Consul == nil {
-		c.Consul = String("")
+		c.Consul = DefaultConsulConfig()
 	}
+	c.Consul.Finalize()
 
 	if c.Dedup == nil {
 		c.Dedup = DefaultDedupConfig()
@@ -505,15 +492,6 @@ func (c *Config) Finalize() {
 		c.ReloadSignal = Signal(DefaultReloadSignal)
 	}
 
-	if c.Retry == nil {
-		c.Retry = TimeDuration(DefaultRetry)
-	}
-
-	if c.SSL == nil {
-		c.SSL = DefaultSSLConfig()
-	}
-	c.SSL.Finalize()
-
 	if c.Syslog == nil {
 		c.Syslog = DefaultSyslogConfig()
 	}
@@ -523,10 +501,6 @@ func (c *Config) Finalize() {
 		c.Templates = DefaultTemplateConfigs()
 	}
 	c.Templates.Finalize()
-
-	if c.Token == nil {
-		c.Token = String("")
-	}
 
 	if c.Vault == nil {
 		c.Vault = DefaultVaultConfig()
