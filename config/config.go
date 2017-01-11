@@ -230,7 +230,7 @@ func Parse(s string) (*Config, error) {
 		}
 	}
 
-	// Deprecations
+	// TODO: Deprecations
 	if vault, ok := parsed["vault"].(map[string]interface{}); ok {
 		if val, ok := vault["renew"]; ok {
 			log.Println(`[WARN] vault.renew has been renamed to vault.renew_token. ` +

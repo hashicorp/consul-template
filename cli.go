@@ -438,7 +438,7 @@ func (cli *CLI) ParseFlags(args []string) (*config.Config, bool, bool, bool, err
 	flags.BoolVar(&version, "v", false, "")
 	flags.BoolVar(&version, "version", false, "")
 
-	// Deprecations
+	// TODO: Deprecations
 	for i, a := range args {
 		if a == "-auth" || strings.HasPrefix(a, "-auth=") {
 			log.Println("[WARN] -auth has been renamed to -consul-auth")

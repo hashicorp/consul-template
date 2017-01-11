@@ -17,7 +17,9 @@ func TestParse(t *testing.T) {
 		e    *Config
 		err  bool
 	}{
-		// Deprecations
+
+		// TODO: Deprecations
+
 		{
 			"auth",
 			`auth {
@@ -175,7 +177,8 @@ func TestParse(t *testing.T) {
 			false,
 		},
 
-		// Normal
+		// TODO: End deprecations
+
 		{
 			"consul_address",
 			`consul {
