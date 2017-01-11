@@ -21,7 +21,9 @@ func testConsulServer(t *testing.T) *testutil.TestServer {
 func testDedupManager(t *testing.T, addr string, tmpls []*template.Template) *DedupManager {
 	// Setup the configuration
 	c := config.TestConfig(&config.Config{
-		Consul: config.String(addr),
+		Consul: &config.ConsulConfig{
+			Address: config.String(addr),
+		},
 	})
 
 	// Create the clientset
