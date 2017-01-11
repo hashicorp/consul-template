@@ -2,84 +2,14 @@ package watch
 
 import (
 	"fmt"
-	"reflect"
-	"strings"
 	"testing"
-	"time"
 
 	dep "github.com/hashicorp/consul-template/dependency"
 )
 
-var defaultWatcherConfig = &WatcherConfig{
-	Clients:   dep.NewClientSet(),
-	Once:      true,
-	RetryFunc: func(time.Duration) time.Duration { return 0 },
-}
-
-func TestNewWatcher_noConfig(t *testing.T) {
-	_, err := NewWatcher(nil)
-	if err == nil {
-		t.Fatal("expected error, but nothing was returned")
-	}
-
-	expected := "watcher: missing config"
-	if !strings.Contains(err.Error(), expected) {
-		t.Errorf("expected %q to contain %q", err.Error(), expected)
-	}
-}
-
-func TestNewWatcher_defaultValues(t *testing.T) {
-	w, err := NewWatcher(&WatcherConfig{})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if w.config.RetryFunc == nil {
-		t.Errorf("expected RetryFunc to not be nil")
-	}
-
-	if w.DataCh == nil {
-		t.Errorf("expected DataCh to exist")
-	}
-
-	if size := cap(w.DataCh); size != dataBufferSize {
-		t.Errorf("expected DataCh to have %d buffer, but was %d", dataBufferSize, size)
-	}
-
-	if w.ErrCh == nil {
-		t.Errorf("expected ErrCh to exist")
-	}
-
-	if w.depViewMap == nil {
-		t.Errorf("expected depViewMap to exist")
-	}
-}
-
-func TestNewWatcher_values(t *testing.T) {
-	clients := dep.NewClientSet()
-
-	w, err := NewWatcher(&WatcherConfig{
-		Clients: clients,
-		Once:    true,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !reflect.DeepEqual(w.config.Clients, clients) {
-		t.Errorf("expected %#v to be %#v", w.config.Clients, clients)
-	}
-
-	if w.config.Once != true {
-		t.Errorf("expected w.config.Once to be true")
-	}
-}
-
 func TestNewWatcher_renewVault(t *testing.T) {
-	clients := dep.NewClientSet()
-
-	w, err := NewWatcher(&WatcherConfig{
-		Clients:    clients,
+	w, err := NewWatcher(&NewWatcherInput{
+		Clients:    dep.NewClientSet(),
 		Once:       true,
 		RenewVault: true,
 	})
@@ -99,7 +29,10 @@ func TestNewWatcher_renewVault(t *testing.T) {
 }
 
 func TestAdd_updatesMap(t *testing.T) {
-	w, err := NewWatcher(defaultWatcherConfig)
+	w, err := NewWatcher(&NewWatcherInput{
+		Clients: dep.NewClientSet(),
+		Once:    true,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +49,10 @@ func TestAdd_updatesMap(t *testing.T) {
 }
 
 func TestAdd_exists(t *testing.T) {
-	w, err := NewWatcher(defaultWatcherConfig)
+	w, err := NewWatcher(&NewWatcherInput{
+		Clients: dep.NewClientSet(),
+		Once:    true,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,32 +70,11 @@ func TestAdd_exists(t *testing.T) {
 	}
 }
 
-func TestAdd_error(t *testing.T) {
-	w, err := NewWatcher(defaultWatcherConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Set the client to nil to force the view to return an error
-	w.config = nil
-
-	added, err := w.Add(&TestDep{})
-	if err == nil {
-		t.Fatal("expected error, but nothing was returned")
-	}
-
-	expected := "view: missing config"
-	if err.Error() != expected {
-		t.Errorf("expected %q to be %q", err.Error(), expected)
-	}
-
-	if added != false {
-		t.Errorf("expected Add to return false")
-	}
-}
-
 func TestAdd_startsViewPoll(t *testing.T) {
-	w, err := NewWatcher(defaultWatcherConfig)
+	w, err := NewWatcher(&NewWatcherInput{
+		Clients: dep.NewClientSet(),
+		Once:    true,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,15 +89,18 @@ func TestAdd_startsViewPoll(t *testing.T) {
 	}
 
 	select {
-	case err := <-w.ErrCh:
+	case err := <-w.errCh:
 		t.Fatal(err)
-	case <-w.DataCh:
+	case <-w.dataCh:
 		// Got data, which means the poll was started
 	}
 }
 
 func TestWatching_notExists(t *testing.T) {
-	w, err := NewWatcher(defaultWatcherConfig)
+	w, err := NewWatcher(&NewWatcherInput{
+		Clients: dep.NewClientSet(),
+		Once:    true,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,7 +112,10 @@ func TestWatching_notExists(t *testing.T) {
 }
 
 func TestWatching_exists(t *testing.T) {
-	w, err := NewWatcher(defaultWatcherConfig)
+	w, err := NewWatcher(&NewWatcherInput{
+		Clients: dep.NewClientSet(),
+		Once:    true,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -210,7 +131,10 @@ func TestWatching_exists(t *testing.T) {
 }
 
 func TestRemove_exists(t *testing.T) {
-	w, err := NewWatcher(defaultWatcherConfig)
+	w, err := NewWatcher(&NewWatcherInput{
+		Clients: dep.NewClientSet(),
+		Once:    true,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -231,7 +155,10 @@ func TestRemove_exists(t *testing.T) {
 }
 
 func TestRemove_doesNotExist(t *testing.T) {
-	w, err := NewWatcher(defaultWatcherConfig)
+	w, err := NewWatcher(&NewWatcherInput{
+		Clients: dep.NewClientSet(),
+		Once:    true,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -243,7 +170,10 @@ func TestRemove_doesNotExist(t *testing.T) {
 }
 
 func TestSize_empty(t *testing.T) {
-	w, err := NewWatcher(defaultWatcherConfig)
+	w, err := NewWatcher(&NewWatcherInput{
+		Clients: dep.NewClientSet(),
+		Once:    true,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -254,7 +184,10 @@ func TestSize_empty(t *testing.T) {
 }
 
 func TestSize_returnsNumViews(t *testing.T) {
-	w, err := NewWatcher(defaultWatcherConfig)
+	w, err := NewWatcher(&NewWatcherInput{
+		Clients: dep.NewClientSet(),
+		Once:    true,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
