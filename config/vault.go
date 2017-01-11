@@ -67,6 +67,7 @@ func DefaultVaultConfig() *VaultConfig {
 			ServerName: stringFromEnv(api.EnvVaultTLSServerName),
 			Verify:     antiboolFromEnv(api.EnvVaultInsecure),
 		},
+		Token: stringFromEnv("VAULT_TOKEN"),
 	}
 
 	// Force SSL when communicating with Vault.
