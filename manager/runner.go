@@ -271,9 +271,9 @@ func (r *Runner) Start() {
 
 	OUTER:
 		select {
-		case view := <-r.watcher.DataCh:
+		case view := <-r.watcher.DataCh():
 			// Receive this update
-			r.Receive(view.Dependency, view.Data())
+			r.Receive(view.Dependency(), view.Data())
 
 			// Drain all dependency data. Given a large number of dependencies, it is
 			// feasible that we have data for more than one of them. Instead of
@@ -286,8 +286,8 @@ func (r *Runner) Start() {
 			// more information about this optimization and the entire backstory.
 			for {
 				select {
-				case view := <-r.watcher.DataCh:
-					r.Receive(view.Dependency, view.Data())
+				case view := <-r.watcher.DataCh():
+					r.Receive(view.Dependency(), view.Data())
 				default:
 					break OUTER
 				}
@@ -300,7 +300,7 @@ func (r *Runner) Start() {
 			log.Printf("[INFO] (runner) watcher triggered by de-duplication manager")
 			break OUTER
 
-		case err := <-r.watcher.ErrCh:
+		case err := <-r.watcher.ErrCh():
 			// If this is our own internal error, see if we should hard exit.
 			if derr, ok := err.(*dep.FetchError); ok {
 				log.Printf("[DEBUG] (runner) detected custom error type")
@@ -872,16 +872,16 @@ func (r *Runner) markRenderTime(tmplID string, didRender bool) {
 func (r *Runner) childEnv() []string {
 	var m = make(map[string]string)
 
-	if config.StringPresent(r.config.Consul) {
-		m["CONSUL_HTTP_ADDR"] = config.StringVal(r.config.Consul)
+	if config.StringPresent(r.config.Consul.Address) {
+		m["CONSUL_HTTP_ADDR"] = config.StringVal(r.config.Consul.Address)
 	}
 
-	if config.BoolVal(r.config.Auth.Enabled) {
-		m["CONSUL_HTTP_AUTH"] = r.config.Auth.String()
+	if config.BoolVal(r.config.Consul.Auth.Enabled) {
+		m["CONSUL_HTTP_AUTH"] = r.config.Consul.Auth.String()
 	}
 
-	m["CONSUL_HTTP_SSL"] = strconv.FormatBool(config.BoolVal(r.config.SSL.Enabled))
-	m["CONSUL_HTTP_SSL_VERIFY"] = strconv.FormatBool(config.BoolVal(r.config.SSL.Verify))
+	m["CONSUL_HTTP_SSL"] = strconv.FormatBool(config.BoolVal(r.config.Consul.SSL.Enabled))
+	m["CONSUL_HTTP_SSL_VERIFY"] = strconv.FormatBool(config.BoolVal(r.config.Consul.SSL.Verify))
 
 	if config.StringPresent(r.config.Vault.Address) {
 		m["VAULT_ADDR"] = config.StringVal(r.config.Vault.Address)
@@ -1087,18 +1087,18 @@ func newClientSet(c *config.Config) (*dep.ClientSet, error) {
 	clients := dep.NewClientSet()
 
 	if err := clients.CreateConsulClient(&dep.CreateConsulClientInput{
-		Address:      config.StringVal(c.Consul),
-		Token:        config.StringVal(c.Token),
-		AuthEnabled:  config.BoolVal(c.Auth.Enabled),
-		AuthUsername: config.StringVal(c.Auth.Username),
-		AuthPassword: config.StringVal(c.Auth.Password),
-		SSLEnabled:   config.BoolVal(c.SSL.Enabled),
-		SSLVerify:    config.BoolVal(c.SSL.Verify),
-		SSLCert:      config.StringVal(c.SSL.Cert),
-		SSLKey:       config.StringVal(c.SSL.Key),
-		SSLCACert:    config.StringVal(c.SSL.CaCert),
-		SSLCAPath:    config.StringVal(c.SSL.CaPath),
-		ServerName:   config.StringVal(c.SSL.ServerName),
+		Address:      config.StringVal(c.Consul.Address),
+		Token:        config.StringVal(c.Consul.Token),
+		AuthEnabled:  config.BoolVal(c.Consul.Auth.Enabled),
+		AuthUsername: config.StringVal(c.Consul.Auth.Username),
+		AuthPassword: config.StringVal(c.Consul.Auth.Password),
+		SSLEnabled:   config.BoolVal(c.Consul.SSL.Enabled),
+		SSLVerify:    config.BoolVal(c.Consul.SSL.Verify),
+		SSLCert:      config.StringVal(c.Consul.SSL.Cert),
+		SSLKey:       config.StringVal(c.Consul.SSL.Key),
+		SSLCACert:    config.StringVal(c.Consul.SSL.CaCert),
+		SSLCAPath:    config.StringVal(c.Consul.SSL.CaPath),
+		ServerName:   config.StringVal(c.Consul.SSL.ServerName),
 	}); err != nil {
 		return nil, fmt.Errorf("runner: %s", err)
 	}
@@ -1123,20 +1123,21 @@ func newClientSet(c *config.Config) (*dep.ClientSet, error) {
 
 // newWatcher creates a new watcher.
 func newWatcher(c *config.Config, clients *dep.ClientSet, once bool) (*watch.Watcher, error) {
-	log.Printf("[INFO] (runner) creating Watcher")
+	log.Printf("[INFO] (runner) creating watcher")
 
-	watcher, err := watch.NewWatcher(&watch.WatcherConfig{
-		Clients:  clients,
-		Once:     once,
-		MaxStale: config.TimeDurationVal(c.MaxStale),
-		RetryFunc: func(current time.Duration) time.Duration {
-			return config.TimeDurationVal(c.Retry)
-		},
-		RenewVault: config.StringPresent(c.Vault.Token) && config.BoolVal(c.Vault.RenewToken),
+	w, err := watch.NewWatcher(&watch.NewWatcherInput{
+		Clients:         clients,
+		MaxStale:        config.TimeDurationVal(c.MaxStale),
+		Once:            once,
+		RenewVault:      config.StringPresent(c.Vault.Token) && config.BoolVal(c.Vault.RenewToken),
+		RetryFuncConsul: watch.RetryFunc(c.Consul.Retry.RetryFunc()),
+		// TODO: Add a sane default retry - right now this only affects "local"
+		// dependencies like reading a file from disk.
+		RetryFuncDefault: nil,
+		RetryFuncVault:   watch.RetryFunc(c.Vault.Retry.RetryFunc()),
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "runner")
 	}
-
-	return watcher, err
+	return w, nil
 }
