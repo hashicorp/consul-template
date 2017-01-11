@@ -121,6 +121,9 @@ func SignalGoString(s *os.Signal) string {
 	if s == nil {
 		return "(*os.Signal)(nil)"
 	}
+	if *s == nil {
+		return "<nil>"
+	}
 	return fmt.Sprintf("%q", *s)
 }
 
