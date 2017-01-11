@@ -155,6 +155,11 @@ func (d *CatalogNodeQuery) Stop() {
 	close(d.stopCh)
 }
 
+// Type returns the type of this dependency.
+func (d *CatalogNodeQuery) Type() Type {
+	return TypeConsul
+}
+
 // ByService is a sorter of node services by their service name and then ID.
 type ByService []*CatalogNodeService
 

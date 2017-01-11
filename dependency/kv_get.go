@@ -105,3 +105,8 @@ func (d *KVGetQuery) String() string {
 func (d *KVGetQuery) Stop() {
 	close(d.stopCh)
 }
+
+// Type returns the type of this dependency.
+func (d *KVGetQuery) Type() Type {
+	return TypeConsul
+}

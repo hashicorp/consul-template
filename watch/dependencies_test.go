@@ -30,6 +30,10 @@ func (d *TestDep) String() string {
 
 func (d *TestDep) Stop() {}
 
+func (d *TestDep) Type() dep.Type {
+	return dep.TypeLocal
+}
+
 // TestDepStale is a special dependency that can be used to test what happens when
 // stale data is permitted.
 type TestDepStale struct {
@@ -48,11 +52,11 @@ func (d *TestDepStale) Fetch(clients *dep.ClientSet, opts *dep.QueryOptions) (in
 		data := "this is some stale data"
 		rm := &dep.ResponseMetadata{LastIndex: 1, LastContact: 50 * time.Millisecond}
 		return data, rm, nil
-	} else {
-		data := "this is some fresh data"
-		rm := &dep.ResponseMetadata{LastIndex: 1}
-		return data, rm, nil
 	}
+
+	data := "this is some fresh data"
+	rm := &dep.ResponseMetadata{LastIndex: 1}
+	return data, rm, nil
 }
 
 func (d *TestDepStale) CanShare() bool {
@@ -64,6 +68,10 @@ func (d *TestDepStale) String() string {
 }
 
 func (d *TestDepStale) Stop() {}
+
+func (d *TestDepStale) Type() dep.Type {
+	return dep.TypeLocal
+}
 
 // TestDepFetchError is a special dependency that returns an error while fetching.
 type TestDepFetchError struct {
@@ -85,6 +93,10 @@ func (d *TestDepFetchError) String() string {
 
 func (d *TestDepFetchError) Stop() {}
 
+func (d *TestDepFetchError) Type() dep.Type {
+	return dep.TypeLocal
+}
+
 // TestDepRetry is a special dependency that errors on the first fetch and
 // succeeds on subsequent fetches.
 type TestDepRetry struct {
@@ -103,10 +115,10 @@ func (d *TestDepRetry) Fetch(clients *dep.ClientSet, opts *dep.QueryOptions) (in
 		data := "this is some data"
 		rm := &dep.ResponseMetadata{LastIndex: 1}
 		return data, rm, nil
-	} else {
-		d.retried = true
-		return nil, nil, fmt.Errorf("failed to contact server (try again)")
 	}
+
+	d.retried = true
+	return nil, nil, fmt.Errorf("failed to contact server (try again)")
 }
 
 func (d *TestDepRetry) CanShare() bool {
@@ -118,3 +130,7 @@ func (d *TestDepRetry) String() string {
 }
 
 func (d *TestDepRetry) Stop() {}
+
+func (d *TestDepRetry) Type() dep.Type {
+	return dep.TypeLocal
+}

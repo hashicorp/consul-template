@@ -85,3 +85,8 @@ func (d *CatalogDatacentersQuery) String() string {
 func (d *CatalogDatacentersQuery) Stop() {
 	close(d.stopCh)
 }
+
+// Type returns the type of this dependency.
+func (d *CatalogDatacentersQuery) Type() Type {
+	return TypeConsul
+}

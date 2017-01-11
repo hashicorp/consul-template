@@ -128,3 +128,8 @@ func (d *VaultListQuery) Stop() {
 func (d *VaultListQuery) String() string {
 	return fmt.Sprintf("vault.list(%s)", d.path)
 }
+
+// Type returns the type of this dependency.
+func (d *VaultListQuery) Type() Type {
+	return TypeVault
+}

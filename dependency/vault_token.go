@@ -95,3 +95,8 @@ func (d *VaultTokenQuery) Stop() {
 func (d *VaultTokenQuery) String() string {
 	return "vault.token"
 }
+
+// Type returns the type of this dependency.
+func (d *VaultTokenQuery) Type() Type {
+	return TypeVault
+}

@@ -17,6 +17,9 @@ func TestParse(t *testing.T) {
 		e    *Config
 		err  bool
 	}{
+
+		// TODO: Deprecations
+
 		{
 			"auth",
 			`auth {
@@ -24,9 +27,11 @@ func TestParse(t *testing.T) {
 				password = "password"
 			}`,
 			&Config{
-				Auth: &AuthConfig{
-					Username: String("username"),
-					Password: String("password"),
+				Consul: &ConsulConfig{
+					Auth: &AuthConfig{
+						Username: String("username"),
+						Password: String("password"),
+					},
 				},
 			},
 			false,
@@ -35,7 +40,326 @@ func TestParse(t *testing.T) {
 			"consul",
 			`consul = "1.2.3.4"`,
 			&Config{
-				Consul: String("1.2.3.4"),
+				Consul: &ConsulConfig{
+					Address: String("1.2.3.4"),
+				},
+			},
+			false,
+		},
+		{
+			"retry",
+			`retry = "10s"`,
+			&Config{
+				Consul: &ConsulConfig{
+					Retry: &RetryConfig{
+						Backoff: TimeDuration(10 * time.Second),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"ssl",
+			`ssl {}`,
+			&Config{
+				Consul: &ConsulConfig{
+					SSL: &SSLConfig{},
+				},
+			},
+			false,
+		},
+		{
+			"ssl_enabled",
+			`ssl {
+				enabled = true
+			}`,
+			&Config{
+				Consul: &ConsulConfig{
+					SSL: &SSLConfig{
+						Enabled: Bool(true),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"ssl_verify",
+			`ssl {
+				verify = true
+			}`,
+			&Config{
+				Consul: &ConsulConfig{
+					SSL: &SSLConfig{
+						Verify: Bool(true),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"ssl_cert",
+			`ssl {
+				cert = "cert"
+			}`,
+			&Config{
+				Consul: &ConsulConfig{
+					SSL: &SSLConfig{
+						Cert: String("cert"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"ssl_key",
+			`ssl {
+				key = "key"
+			}`,
+			&Config{
+				Consul: &ConsulConfig{
+					SSL: &SSLConfig{
+						Key: String("key"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"ssl_ca_cert",
+			`ssl {
+				ca_cert = "ca_cert"
+			}`,
+			&Config{
+				Consul: &ConsulConfig{
+					SSL: &SSLConfig{
+						CaCert: String("ca_cert"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"ssl_ca_path",
+			`ssl {
+				ca_path = "ca_path"
+			}`,
+			&Config{
+				Consul: &ConsulConfig{
+					SSL: &SSLConfig{
+						CaPath: String("ca_path"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"ssl_server_name",
+			`ssl {
+				server_name = "server_name"
+			}`,
+			&Config{
+				Consul: &ConsulConfig{
+					SSL: &SSLConfig{
+						ServerName: String("server_name"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"token",
+			`token = "token"`,
+			&Config{
+				Consul: &ConsulConfig{
+					Token: String("token"),
+				},
+			},
+			false,
+		},
+
+		// TODO: End deprecations
+
+		{
+			"consul_address",
+			`consul {
+				address = "1.2.3.4"
+			}`,
+			&Config{
+				Consul: &ConsulConfig{
+					Address: String("1.2.3.4"),
+				},
+			},
+			false,
+		},
+		{
+			"consul_auth",
+			`consul {
+				auth {
+					username = "username"
+					password = "password"
+				}
+			}`,
+			&Config{
+				Consul: &ConsulConfig{
+					Auth: &AuthConfig{
+						Username: String("username"),
+						Password: String("password"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"consul_retry",
+			`consul {
+				retry {
+					backoff  = "2s"
+					attempts = 10
+				}
+			}`,
+			&Config{
+				Consul: &ConsulConfig{
+					Retry: &RetryConfig{
+						Attempts: Int(10),
+						Backoff:  TimeDuration(2 * time.Second),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"consul_ssl",
+			`consul {
+				ssl {}
+			}`,
+			&Config{
+				Consul: &ConsulConfig{
+					SSL: &SSLConfig{},
+				},
+			},
+			false,
+		},
+		{
+			"consul_ssl_enabled",
+			`consul {
+				ssl {
+					enabled = true
+				}
+			}`,
+			&Config{
+				Consul: &ConsulConfig{
+					SSL: &SSLConfig{
+						Enabled: Bool(true),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"consul_ssl_verify",
+			`consul {
+				ssl {
+					verify = true
+				}
+			}`,
+			&Config{
+				Consul: &ConsulConfig{
+					SSL: &SSLConfig{
+						Verify: Bool(true),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"consul_ssl_cert",
+			`consul {
+				ssl {
+					cert = "cert"
+				}
+			}`,
+			&Config{
+				Consul: &ConsulConfig{
+					SSL: &SSLConfig{
+						Cert: String("cert"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"consul_ssl_key",
+			`consul {
+				ssl {
+					key = "key"
+				}
+			}`,
+			&Config{
+				Consul: &ConsulConfig{
+					SSL: &SSLConfig{
+						Key: String("key"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"consul_ssl_ca_cert",
+			`consul {
+				ssl {
+					ca_cert = "ca_cert"
+				}
+			}`,
+			&Config{
+				Consul: &ConsulConfig{
+					SSL: &SSLConfig{
+						CaCert: String("ca_cert"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"consul_ssl_ca_path",
+			`consul {
+				ssl {
+					ca_path = "ca_path"
+				}
+			}`,
+			&Config{
+				Consul: &ConsulConfig{
+					SSL: &SSLConfig{
+						CaPath: String("ca_path"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"consul_ssl_server_name",
+			`consul {
+				ssl {
+					server_name = "server_name"
+				}
+			}`,
+			&Config{
+				Consul: &ConsulConfig{
+					SSL: &SSLConfig{
+						ServerName: String("server_name"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"consul_token",
+			`consul {
+				token = "token"
+			}`,
+			&Config{
+				Consul: &ConsulConfig{
+					Token: String("token"),
+				},
 			},
 			false,
 		},
@@ -258,106 +582,6 @@ func TestParse(t *testing.T) {
 			`reload_signal = "SIGUSR1"`,
 			&Config{
 				ReloadSignal: Signal(syscall.SIGUSR1),
-			},
-			false,
-		},
-		{
-			"retry",
-			`retry = "10s"`,
-			&Config{
-				Retry: TimeDuration(10 * time.Second),
-			},
-			false,
-		},
-		{
-			"ssl",
-			`ssl {}`,
-			&Config{
-				SSL: &SSLConfig{},
-			},
-			false,
-		},
-		{
-			"ssl_enabled",
-			`ssl {
-				enabled = true
-			}`,
-			&Config{
-				SSL: &SSLConfig{
-					Enabled: Bool(true),
-				},
-			},
-			false,
-		},
-		{
-			"ssl_verify",
-			`ssl {
-				verify = true
-			}`,
-			&Config{
-				SSL: &SSLConfig{
-					Verify: Bool(true),
-				},
-			},
-			false,
-		},
-		{
-			"ssl_cert",
-			`ssl {
-				cert = "cert"
-			}`,
-			&Config{
-				SSL: &SSLConfig{
-					Cert: String("cert"),
-				},
-			},
-			false,
-		},
-		{
-			"ssl_key",
-			`ssl {
-				key = "key"
-			}`,
-			&Config{
-				SSL: &SSLConfig{
-					Key: String("key"),
-				},
-			},
-			false,
-		},
-		{
-			"ssl_ca_cert",
-			`ssl {
-				ca_cert = "ca_cert"
-			}`,
-			&Config{
-				SSL: &SSLConfig{
-					CaCert: String("ca_cert"),
-				},
-			},
-			false,
-		},
-		{
-			"ssl_ca_path",
-			`ssl {
-				ca_path = "ca_path"
-			}`,
-			&Config{
-				SSL: &SSLConfig{
-					CaPath: String("ca_path"),
-				},
-			},
-			false,
-		},
-		{
-			"ssl_server_name",
-			`ssl {
-				server_name = "server_name"
-			}`,
-			&Config{
-				SSL: &SSLConfig{
-					ServerName: String("server_name"),
-				},
 			},
 			false,
 		},
@@ -826,14 +1050,6 @@ func TestParse(t *testing.T) {
 			false,
 		},
 		{
-			"token",
-			`token = "token"`,
-			&Config{
-				Token: String("token"),
-			},
-			false,
-		},
-		{
 			"vault",
 			`vault {}`,
 			&Config{
@@ -909,6 +1125,70 @@ func TestParse(t *testing.T) {
 			&Config{
 				Vault: &VaultConfig{
 					RenewToken: Bool(true),
+				},
+			},
+			false,
+		},
+		{
+			"vault_retry_backoff",
+			`vault {
+				retry {
+					backoff = "5s"
+				}
+			}`,
+			&Config{
+				Vault: &VaultConfig{
+					Retry: &RetryConfig{
+						Backoff: TimeDuration(5 * time.Second),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"vault_retry_enabled",
+			`vault {
+				retry {
+					enabled = true
+				}
+			}`,
+			&Config{
+				Vault: &VaultConfig{
+					Retry: &RetryConfig{
+						Enabled: Bool(true),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"vault_retry_disabled",
+			`vault {
+				retry {
+					enabled = false
+				}
+			}`,
+			&Config{
+				Vault: &VaultConfig{
+					Retry: &RetryConfig{
+						Enabled: Bool(false),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"vault_retry_max_attempts",
+			`vault {
+				retry {
+					attempts = 10
+				}
+			}`,
+			&Config{
+				Vault: &VaultConfig{
+					Retry: &RetryConfig{
+						Attempts: Int(10),
+					},
 				},
 			},
 			false,
@@ -1174,39 +1454,21 @@ func TestConfig_Merge(t *testing.T) {
 			&Config{},
 		},
 		{
-			"auth",
-			&Config{
-				Auth: &AuthConfig{
-					Enabled:  Bool(false),
-					Username: String("username"),
-					Password: String("password"),
-				},
-			},
-			&Config{
-				Auth: &AuthConfig{
-					Enabled:  Bool(true),
-					Username: String("username-diff"),
-					Password: String("password-diff"),
-				},
-			},
-			&Config{
-				Auth: &AuthConfig{
-					Enabled:  Bool(true),
-					Username: String("username-diff"),
-					Password: String("password-diff"),
-				},
-			},
-		},
-		{
 			"consul",
 			&Config{
-				Consul: String("consul"),
+				Consul: &ConsulConfig{
+					Address: String("consul"),
+				},
 			},
 			&Config{
-				Consul: String("consul-diff"),
+				Consul: &ConsulConfig{
+					Address: String("consul-diff"),
+				},
 			},
 			&Config{
-				Consul: String("consul-diff"),
+				Consul: &ConsulConfig{
+					Address: String("consul-diff"),
+				},
 			},
 		},
 		{
@@ -1306,36 +1568,6 @@ func TestConfig_Merge(t *testing.T) {
 			},
 		},
 		{
-			"retry",
-			&Config{
-				Retry: TimeDuration(10 * time.Second),
-			},
-			&Config{
-				Retry: TimeDuration(20 * time.Second),
-			},
-			&Config{
-				Retry: TimeDuration(20 * time.Second),
-			},
-		},
-		{
-			"ssl",
-			&Config{
-				SSL: &SSLConfig{
-					Enabled: Bool(true),
-				},
-			},
-			&Config{
-				SSL: &SSLConfig{
-					Enabled: Bool(false),
-				},
-			},
-			&Config{
-				SSL: &SSLConfig{
-					Enabled: Bool(false),
-				},
-			},
-		},
-		{
 			"syslog",
 			&Config{
 				Syslog: &SyslogConfig{
@@ -1378,18 +1610,6 @@ func TestConfig_Merge(t *testing.T) {
 						Source: String("two"),
 					},
 				},
-			},
-		},
-		{
-			"token",
-			&Config{
-				Token: String("token"),
-			},
-			&Config{
-				Token: String("token-diff"),
-			},
-			&Config{
-				Token: String("token-diff"),
 			},
 		},
 		{
@@ -1465,14 +1685,24 @@ func TestFromPath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = ioutil.WriteFile(cf1.Name(), []byte(`consul = "1.2.3.4"`), 0644); err != nil {
+	d := []byte(`
+		consul {
+			address = "1.2.3.4"
+		}
+	`)
+	if err = ioutil.WriteFile(cf1.Name(), d, 0644); err != nil {
 		t.Fatal(err)
 	}
 	cf2, err := ioutil.TempFile(configDir, "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(cf2.Name(), []byte(`token = "token"`), 0644); err != nil {
+	d = []byte(`
+		consul {
+			token = "token"
+		}
+	`)
+	if err := ioutil.WriteFile(cf2.Name(), d, 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -1504,8 +1734,10 @@ func TestFromPath(t *testing.T) {
 			"config_dir",
 			configDir,
 			&Config{
-				Consul: String("1.2.3.4"),
-				Token:  String("token"),
+				Consul: &ConsulConfig{
+					Address: String("1.2.3.4"),
+					Token:   String("token"),
+				},
 			},
 			false,
 		},
@@ -1535,7 +1767,9 @@ func TestDefaultConfig(t *testing.T) {
 			"CONSUL_HTTP_ADDR",
 			"1.2.3.4",
 			&Config{
-				Consul: String("1.2.3.4"),
+				Consul: &ConsulConfig{
+					Address: String("1.2.3.4"),
+				},
 			},
 			false,
 		},
@@ -1551,7 +1785,9 @@ func TestDefaultConfig(t *testing.T) {
 			"CONSUL_TOKEN",
 			"token",
 			&Config{
-				Token: String("token"),
+				Consul: &ConsulConfig{
+					Token: String("token"),
+				},
 			},
 			false,
 		},

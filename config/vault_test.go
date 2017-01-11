@@ -25,6 +25,7 @@ func TestVaultConfig_Copy(t *testing.T) {
 				Address:     String("address"),
 				Enabled:     Bool(true),
 				RenewToken:  Bool(true),
+				Retry:       &RetryConfig{Enabled: Bool(true)},
 				SSL:         &SSLConfig{Enabled: Bool(true)},
 				Token:       String("token"),
 				UnwrapToken: Bool(true),
@@ -194,6 +195,30 @@ func TestVaultConfig_Merge(t *testing.T) {
 			&VaultConfig{RenewToken: Bool(true)},
 		},
 		{
+			"retry_overrides",
+			&VaultConfig{Retry: &RetryConfig{Enabled: Bool(true)}},
+			&VaultConfig{Retry: &RetryConfig{Enabled: Bool(false)}},
+			&VaultConfig{Retry: &RetryConfig{Enabled: Bool(false)}},
+		},
+		{
+			"retry_empty_one",
+			&VaultConfig{Retry: &RetryConfig{Enabled: Bool(true)}},
+			&VaultConfig{},
+			&VaultConfig{Retry: &RetryConfig{Enabled: Bool(true)}},
+		},
+		{
+			"retry_empty_two",
+			&VaultConfig{},
+			&VaultConfig{Retry: &RetryConfig{Enabled: Bool(true)}},
+			&VaultConfig{Retry: &RetryConfig{Enabled: Bool(true)}},
+		},
+		{
+			"retry_same",
+			&VaultConfig{Retry: &RetryConfig{Enabled: Bool(true)}},
+			&VaultConfig{Retry: &RetryConfig{Enabled: Bool(true)}},
+			&VaultConfig{Retry: &RetryConfig{Enabled: Bool(true)}},
+		},
+		{
 			"ssl_overrides",
 			&VaultConfig{SSL: &SSLConfig{Enabled: Bool(true)}},
 			&VaultConfig{SSL: &SSLConfig{Enabled: Bool(false)}},
@@ -242,6 +267,11 @@ func TestVaultConfig_Finalize(t *testing.T) {
 				Address:    String(""),
 				Enabled:    Bool(false),
 				RenewToken: Bool(DefaultVaultRenewToken),
+				Retry: &RetryConfig{
+					Backoff:  TimeDuration(DefaultRetryBackoff),
+					Enabled:  Bool(true),
+					Attempts: Int(DefaultRetryAttempts),
+				},
 				SSL: &SSLConfig{
 					CaCert:     String(""),
 					CaPath:     String(""),
@@ -264,6 +294,11 @@ func TestVaultConfig_Finalize(t *testing.T) {
 				Address:    String("address"),
 				Enabled:    Bool(true),
 				RenewToken: Bool(DefaultVaultRenewToken),
+				Retry: &RetryConfig{
+					Backoff:  TimeDuration(DefaultRetryBackoff),
+					Enabled:  Bool(true),
+					Attempts: Int(DefaultRetryAttempts),
+				},
 				SSL: &SSLConfig{
 					CaCert:     String(""),
 					CaPath:     String(""),
