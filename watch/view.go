@@ -130,13 +130,11 @@ func (v *View) poll(viewCh chan<- *View, errCh chan<- error) {
 				return
 			}
 		case err := <-fetchErrCh:
-			log.Printf("[ERR] (view) %s %s", v.dependency, err)
-
 			if v.retryFunc != nil {
 				retry, sleep := v.retryFunc(retries)
 				if retry {
-					log.Printf("[TRACE] (view) %s retrying (%d) after %q",
-						v.dependency, retries+1, sleep)
+					log.Printf("[WARN] (view) %s (retry attempt %d after %q)",
+						err, retries+1, sleep)
 					select {
 					case <-time.After(sleep):
 						retries++
@@ -147,7 +145,7 @@ func (v *View) poll(viewCh chan<- *View, errCh chan<- error) {
 				}
 			}
 
-			log.Printf("[WARN] (view) %s exceeded maximum retries", v.dependency)
+			log.Printf("[ERR] (view) %s (exceeded maximum retries)", err)
 
 			// Push the error back up to the watcher
 			select {
