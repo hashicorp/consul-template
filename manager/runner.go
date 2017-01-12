@@ -109,11 +109,43 @@ type Runner struct {
 // RenderEvent captures the time and events that occurred for a template
 // rendering.
 type RenderEvent struct {
-	// LastWouldRender marks the last time the template would have rendered.
-	LastWouldRender time.Time
+	// DidRender determines if the Template was actually written to disk. In dry
+	// mode, this will always be false, since templates are not written to disk
+	// in dry mode. A template is only rendered to disk if all dependencies are
+	// satisfied and the template is not already in place with the same contents.
+	DidRender bool
 
-	// LastDidRender marks the last time the template was written to disk.
-	LastDidRender time.Time
+	// Missing is the list of dependencies that we do not yet have data for, but
+	// are contained in the watcher. This is different from unwatched dependencies,
+	// which includes dependencies the watcher has not yet started querying for
+	// data.
+	MissingDeps *dep.Set
+
+	// Template is the template attempting to be rendered.
+	Template *template.Template
+
+	// TemplateConfigs is the list of template configs that correspond to this
+	// template.
+	TemplateConfigs []*config.TemplateConfig
+
+	// Unwatched is the list of dependencies that are not present in the watcher.
+	// This value may change over time due to the n-pass evaluation.
+	UnwatchedDeps *dep.Set
+
+	// UpdatedAt is the last time this render event was updated.
+	UpdatedAt time.Time
+
+	// Used is the full list of dependencies seen in the template. Because of
+	// the n-pass evaluation, this number can change over time. The dependecnies
+	// in this list may or may not have data. This just contains the list of all
+	// dependencies parsed out of the template with the current data.
+	UsedDeps *dep.Set
+
+	// WouldRender determines if the template would have been rendered. A template
+	// would have been rendered if all the dependencies are satisfied, but may
+	// not have actually rendered if the file was already present or if an error
+	// occurred when trying to write the file.
+	WouldRender bool
 }
 
 // NewRunner accepts a slice of TemplateConfigs and returns a pointer to the new
@@ -453,6 +485,12 @@ func (r *Runner) Run() error {
 	for _, tmpl := range r.templates {
 		log.Printf("[DEBUG] (runner) checking template %s", tmpl.ID())
 
+		// Create the event
+		event := &RenderEvent{
+			Template:        tmpl,
+			TemplateConfigs: r.templateConfigsFor(tmpl),
+		}
+
 		// Check if we are currently the leader instance
 		isLeader := true
 		if r.dedup != nil {
@@ -501,18 +539,18 @@ func (r *Runner) Run() error {
 
 		// Diff any missing dependencies the template reported with dependencies
 		// the watcher is watching.
-		var unwatched []dep.Dependency
+		unwatched := new(dep.Set)
 		for _, d := range missing.List() {
 			if !r.watcher.Watching(d) {
-				unwatched = append(unwatched, d)
+				unwatched.Add(d)
 			}
 		}
 
 		// If there are unwatched dependencies, start the watcher and move onto the
 		// next one.
-		if len(unwatched) > 0 {
-			log.Printf("[DEBUG] (runner) was not watching %d dependencies", len(unwatched))
-			for _, d := range unwatched {
+		if l := unwatched.Len(); l > 0 {
+			log.Printf("[DEBUG] (runner) was not watching %d dependencies", l)
+			for _, d := range unwatched.List() {
 				// If we are deduplicating, we must still handle non-sharable
 				// dependencies, since those will be ignored.
 				if isLeader || !d.CanShare() {
@@ -535,6 +573,11 @@ func (r *Runner) Run() error {
 				log.Printf("[ERR] (runner) failed to update dependency data for de-duplication: %v", err)
 			}
 		}
+
+		// Update event information with dependencies.
+		event.MissingDeps = missing
+		event.UnwatchedDeps = unwatched
+		event.UsedDeps = used
 
 		// If quiescence is activated, start/update the timers and loop back around.
 		// We do not want to render the templates yet.
@@ -567,9 +610,8 @@ func (r *Runner) Run() error {
 			// will not fire commands unless the template was _actually_ rendered to
 			// disk though.
 			if result.WouldRender {
-				// Make a note that we have rendered this template (required for once
-				// mode and just generally nice for debugging purposes).
-				r.markRenderTime(tmpl.ID(), false)
+				// This event would have rendered
+				event.WouldRender = true
 
 				// Record that at least one template would have been rendered.
 				wouldRenderAny = true
@@ -580,11 +622,11 @@ func (r *Runner) Run() error {
 			if result.DidRender {
 				log.Printf("[INFO] (runner) rendered %s", templateConfig.Display())
 
+				// This event did render
+				event.DidRender = true
+
 				// Record that at least one template was rendered.
 				renderedAny = true
-
-				// Store the render time
-				r.markRenderTime(tmpl.ID(), true)
 
 				if !r.dry {
 					// If the template was rendered (changed) and we are not in dry-run mode,
@@ -611,6 +653,12 @@ func (r *Runner) Run() error {
 				}
 			}
 		}
+
+		// Send updated render event
+		r.renderEventsLock.Lock()
+		event.UpdatedAt = time.Now().UTC()
+		r.renderEvents[tmpl.ID()] = event
+		r.renderEventsLock.Unlock()
 	}
 
 	// Check if we need to deliver any rendered signals
@@ -823,30 +871,6 @@ func (r *Runner) allTemplatesRendered() bool {
 	}
 
 	return true
-}
-
-// markRenderTime stores the render time for the given template. If didRender is
-// true, it stores the time for the template having been rendered, otherwise it
-// stores it as would have been rendered.
-func (r *Runner) markRenderTime(tmplID string, didRender bool) {
-	r.renderEventsLock.Lock()
-	defer r.renderEventsLock.Unlock()
-
-	// Get the current time
-	now := time.Now()
-
-	// Create the event for the template ID if it is the first time
-	event, ok := r.renderEvents[tmplID]
-	if !ok {
-		event = &RenderEvent{}
-		r.renderEvents[tmplID] = event
-	}
-
-	if didRender {
-		event.LastDidRender = now
-	} else {
-		event.LastWouldRender = now
-	}
 }
 
 // childEnv creates a map of environment variables for child processes to have

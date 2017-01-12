@@ -25,8 +25,8 @@ type RetryConfig struct {
 	// the error fall through.
 	Attempts *int
 
-	// Backoff is the base of the exponentialbackoff. This number will be multipled
-	// by the next power of 2 on each iteration.
+	// Backoff is the base of the exponentialbackoff. This number will be
+	// multipled by the next power of 2 on each iteration.
 	Backoff *time.Duration
 
 	// Enabled signals if this retry is enabled.
