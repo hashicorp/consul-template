@@ -148,6 +148,8 @@ IMPROVEMENTS:
   * Add tagged addresses to Node structs
   * Add support for multiple `-config` flags [GH-773, GH-751]
   * Add more control over template command execution
+  * Add a way to programatically track the dependencies a particular template
+      is blocked on [GH-799]
 
 BUG FIXES:
 
