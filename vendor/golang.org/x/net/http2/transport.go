@@ -315,6 +315,10 @@ func authorityAddr(scheme string, authority string) (addr string) {
 	if a, err := idna.ToASCII(host); err == nil {
 		host = a
 	}
+	// IPv6 address literal, without a port:
+	if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
+		return host + ":" + port
+	}
 	return net.JoinHostPort(host, port)
 }
 
@@ -654,8 +658,6 @@ func commaSeparatedTrailers(req *http.Request) (string, error) {
 	}
 	if len(keys) > 0 {
 		sort.Strings(keys)
-		// TODO: could do better allocation-wise here, but trailers are rare,
-		// so being lazy for now.
 		return strings.Join(keys, ","), nil
 	}
 	return "", nil
