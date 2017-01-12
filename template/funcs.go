@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"os/exec"
 	"reflect"
 	"regexp"
@@ -39,6 +38,40 @@ func datacentersFunc(b *Brain, used, missing *dep.Set) func() ([]string, error) 
 
 		if value, ok := b.Recall(d); ok {
 			return value.([]string), nil
+		}
+
+		missing.Add(d)
+
+		return result, nil
+	}
+}
+
+// envFunc returns a function which checks the value of an environment variable.
+// Invokers can specify their own environment, which takes precedences over any
+// real environment variables
+func envFunc(b *Brain, used, missing *dep.Set, overrides []string) func(string) (string, error) {
+	return func(s string) (string, error) {
+		var result string
+
+		d, err := dep.NewEnvQuery(s)
+		if err != nil {
+			return result, err
+		}
+
+		used.Add(d)
+
+		// Overrides lookup - we have to do this after adding the dependency,
+		// otherwise dedupe sharing won't work.
+		for _, e := range overrides {
+			split := strings.SplitN(e, "=", 2)
+			k, v := split[0], split[1]
+			if k == s {
+				return v, nil
+			}
+		}
+
+		if value, ok := b.Recall(d); ok {
+			return value.(string), nil
 		}
 
 		missing.Add(d)
@@ -517,22 +550,6 @@ func containsSomeFunc(retTrue, invert bool) func([]interface{}, interface{}) (bo
 			}
 		}
 		return retTrue, nil
-	}
-}
-
-// envFunc returns a function which checks the value of an environment variable.
-// Invokers can specify their own environment, which takes precedences over any
-// real environment variables
-func envFunc(env []string) func(string) (string, error) {
-	return func(s string) (string, error) {
-		for _, e := range env {
-			split := strings.SplitN(e, "=", 2)
-			k, v := split[0], split[1]
-			if k == s {
-				return v, nil
-			}
-		}
-		return os.Getenv(s), nil
 	}
 }
 

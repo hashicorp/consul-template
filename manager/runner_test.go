@@ -30,7 +30,9 @@ func TestRunner_Receive(t *testing.T) {
 			t.Fatal(err)
 		}
 		data := "bar"
+		r.dependenciesLock.Lock()
 		r.dependencies[d.String()] = d
+		r.dependenciesLock.Unlock()
 		r.Receive(d, data)
 
 		val, ok := r.brain.Recall(d)

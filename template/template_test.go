@@ -210,6 +210,43 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"func_env",
+			`{{ env "CT_TEST" }}`,
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewEnvQuery("CT_TEST")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, "1")
+					return b
+				}(),
+			},
+			"1",
+			false,
+		},
+		{
+			"func_env__override",
+			`{{ env "CT_TEST" }}`,
+			&ExecuteInput{
+				Env: []string{
+					"CT_TEST=2",
+				},
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewEnvQuery("CT_TEST")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, "1")
+					return b
+				}(),
+			},
+			"2",
+			false,
+		},
+		{
 			"func_file",
 			`{{ file "/path/to/file" }}`,
 			&ExecuteInput{
@@ -782,33 +819,6 @@ func TestTemplate_Execute(t *testing.T) {
 				}(),
 			},
 			"",
-			false,
-		},
-		{
-			"helper_env",
-			`{{ env "CT_TEST" }}`,
-			&ExecuteInput{
-				Brain: func() *Brain {
-					// Cheat and use the brain callback here to set the env.
-					if err := os.Setenv("CT_TEST", "1"); err != nil {
-						t.Fatal(err)
-					}
-					return NewBrain()
-				}(),
-			},
-			"1",
-			false,
-		},
-		{
-			"helper_env__override",
-			`{{ env "CT_TEST" }}`,
-			&ExecuteInput{
-				Env: []string{
-					"CT_TEST=2",
-				},
-				Brain: NewBrain(),
-			},
-			"2",
 			false,
 		},
 		{

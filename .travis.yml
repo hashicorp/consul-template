@@ -5,6 +5,9 @@ language: go
 go:
   - 1.7
 
+env:
+  - GOMAXPROCS=7
+
 branches:
   only:
     - master
