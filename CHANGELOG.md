@@ -60,6 +60,9 @@ BREAKING CHANGES:
     }
     ```
 
+  * The `env` function is now treated as a dependency instead of a helper. For
+      most users, there will be no impact.
+
 DEPRECATIONS:
 
   * `.Tags.Contains` is deprecated. Templates should make use of the built-in
