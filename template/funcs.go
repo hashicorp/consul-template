@@ -296,7 +296,7 @@ func secretFunc(b *Brain, used, missing *dep.Set) func(string) (*dep.Secret, err
 
 		d, err := dep.NewVaultReadQuery(s)
 		if err != nil {
-			return result, nil
+			return nil, err
 		}
 
 		used.Add(d)
@@ -323,7 +323,7 @@ func secretsFunc(b *Brain, used, missing *dep.Set) func(string) ([]string, error
 
 		d, err := dep.NewVaultListQuery(s)
 		if err != nil {
-			return result, nil
+			return nil, err
 		}
 
 		used.Add(d)
