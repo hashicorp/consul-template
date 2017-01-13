@@ -252,6 +252,11 @@ func (cli *CLI) ParseFlags(args []string) (*config.Config, bool, bool, bool, err
 		return nil
 	}), "consul-ssl-verify", "")
 
+	flags.Var((funcVar)(func(s string) error {
+		c.Consul.Token = config.String(s)
+		return nil
+	}), "consul-token", "")
+
 	flags.Var((funcBoolVar)(func(b bool) error {
 		c.Dedup.Enabled = config.Bool(b)
 		return nil
@@ -352,11 +357,6 @@ func (cli *CLI) ParseFlags(args []string) (*config.Config, bool, bool, bool, err
 	}), "template", "")
 
 	flags.Var((funcVar)(func(s string) error {
-		c.Consul.Token = config.String(s)
-		return nil
-	}), "token", "")
-
-	flags.Var((funcVar)(func(s string) error {
 		c.Vault.Address = config.String(s)
 		return nil
 	}), "vault-addr", "")
@@ -453,6 +453,11 @@ func (cli *CLI) ParseFlags(args []string) (*config.Config, bool, bool, bool, err
 		if strings.HasPrefix(a, "-ssl") {
 			log.Println("[WARN] -ssl options should be prefixed with -consul")
 			args[i] = strings.Replace(a, "-ssl", "-consul-ssl", 1)
+		}
+
+		if a == "-token" || strings.HasPrefix(a, "-token=") {
+			log.Println("[WARN] -token has been renamed to -consul-token")
+			args[i] = strings.Replace(a, "-token", "-consul-token", 1)
 		}
 	}
 
@@ -562,6 +567,9 @@ Options:
   -consul-ssl-verify
       Verify certificates when connecting via SSL
 
+  -consul-token=<token>
+      Sets the Consul API token
+
   -dedup
       Enable de-duplication mode - reduces load on Consul when many instances of
       Consul Template are rendering a common template
@@ -620,9 +628,6 @@ Options:
 
   -template=<template>
        Adds a new template to watch on disk in the format 'in:out(:command)'
-
-  -token=<token>
-      Sets the Consul API token
 
   -vault-addr=<address>
       Sets the address of the Vault server

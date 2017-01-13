@@ -148,6 +148,16 @@ func TestCLI_ParseFlags(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"token",
+			[]string{"-token", "token"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					Token: config.String("token"),
+				},
+			},
+			false,
+		},
 
 		// TODO: End deprecations
 
@@ -325,6 +335,16 @@ func TestCLI_ParseFlags(t *testing.T) {
 			false,
 		},
 		{
+			"consul-token",
+			[]string{"-consul-token", "token"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					Token: config.String("token"),
+				},
+			},
+			false,
+		},
+		{
 			"dedup",
 			[]string{"-dedup"},
 			&config.Config{
@@ -465,16 +485,6 @@ func TestCLI_ParseFlags(t *testing.T) {
 					&config.TemplateConfig{
 						Source: config.String("/tmp/in.tpl"),
 					},
-				},
-			},
-			false,
-		},
-		{
-			"token",
-			[]string{"-token", "token"},
-			&config.Config{
-				Consul: &config.ConsulConfig{
-					Token: config.String("token"),
 				},
 			},
 			false,
