@@ -286,15 +286,36 @@ func nodesFunc(b *Brain, used, missing *dep.Set) func(...string) ([]*dep.Node, e
 }
 
 // secretFunc returns or accumulates secret dependencies from Vault.
-func secretFunc(b *Brain, used, missing *dep.Set) func(string) (*dep.Secret, error) {
-	return func(s string) (*dep.Secret, error) {
+func secretFunc(b *Brain, used, missing *dep.Set) func(...string) (*dep.Secret, error) {
+	return func(s ...string) (*dep.Secret, error) {
 		result := &dep.Secret{}
 
 		if len(s) == 0 {
 			return result, nil
 		}
 
-		d, err := dep.NewVaultReadQuery(s)
+		// TODO: Refactor into separate template functions
+		path, rest := s[0], s[1:]
+		data := make(map[string]interface{})
+		for _, str := range rest {
+			parts := strings.SplitN(str, "=", 2)
+			if len(parts) != 2 {
+				return result, nil
+			}
+
+			k, v := strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
+			data[k] = v
+		}
+
+		var d dep.Dependency
+		var err error
+
+		if len(rest) == 0 {
+			d, err = dep.NewVaultReadQuery(path)
+		} else {
+			d, err = dep.NewVaultWriteQuery(path, data)
+		}
+
 		if err != nil {
 			return nil, err
 		}
