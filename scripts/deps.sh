@@ -10,3 +10,6 @@ rm -rf vendor/**/*
 echo "--> Installing all dependencies..."
 govendor init
 govendor fetch -v +outside
+
+echo "--> Vendoring..."
+govendor add +external
