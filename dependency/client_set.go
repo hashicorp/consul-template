@@ -150,10 +150,12 @@ func (c *ClientSet) CreateConsulClient(i *CreateConsulClientInput) error {
 	}
 
 	// Save the data on ourselves
+	c.Lock()
 	c.consul = &consulClient{
 		client:     client,
 		httpClient: consulConfig.HttpClient,
 	}
+	c.Unlock()
 
 	return nil
 }
@@ -252,10 +254,12 @@ func (c *ClientSet) CreateVaultClient(i *CreateVaultClientInput) error {
 	}
 
 	// Save the data on ourselves
+	c.Lock()
 	c.vault = &vaultClient{
 		client:     client,
 		httpClient: vaultConfig.HttpClient,
 	}
+	c.Unlock()
 
 	return nil
 }
