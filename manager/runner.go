@@ -726,6 +726,7 @@ func (r *Runner) Run() error {
 func (r *Runner) init() error {
 	// Ensure default configuration values
 	r.config = config.DefaultConfig().Merge(r.config)
+	r.config.Finalize()
 
 	// Print the final config for debugging
 	result, err := json.Marshal(r.config)
@@ -797,8 +798,7 @@ func (r *Runner) init() error {
 	r.quiescenceMap = make(map[string]*quiescence)
 	r.quiescenceCh = make(chan *template.Template)
 
-	// Setup the dedup manager if needed. This is
-	if config.BoolVal(r.config.Dedup.Enabled) {
+	if *r.config.Dedup.Enabled {
 		if r.once {
 			log.Printf("[INFO] (runner) disabling de-duplication in once mode")
 		} else {
