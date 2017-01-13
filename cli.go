@@ -524,7 +524,7 @@ Options:
       values are given, they are merged left-to-right, and CLI arguments take
       the top-most precedence.
 
-  -consul=<address>
+  -consul-addr=<address>
       Sets the address of the Consul instance
 
   -consul-auth=<username[:password]>
