@@ -80,6 +80,7 @@ func TestVaultReadQuery_Fetch(t *testing.T) {
 		name string
 		i    string
 		exp  interface{}
+		err  bool
 	}{
 		{
 			"exists",
@@ -90,11 +91,13 @@ func TestVaultReadQuery_Fetch(t *testing.T) {
 					"zip": "zap",
 				},
 			},
+			false,
 		},
 		{
 			"no_exist",
 			"not/a/real/path/like/ever",
 			nil,
+			true,
 		},
 	}
 
@@ -106,7 +109,7 @@ func TestVaultReadQuery_Fetch(t *testing.T) {
 			}
 
 			act, _, err := d.Fetch(clients, nil)
-			if err != nil {
+			if (err != nil) != tc.err {
 				t.Fatal(err)
 			}
 
