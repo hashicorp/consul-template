@@ -72,17 +72,20 @@ func (d *VaultListQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interfac
 
 	// The secret could be nil if it does not exist.
 	if secret == nil || secret.Data == nil {
+		log.Printf("[TRACE] %s: no data", d)
 		return respWithMetadata([]string{})
 	}
 
 	// This is a weird thing that happened once...
 	keys, ok := secret.Data["keys"]
 	if !ok {
+		log.Printf("[TRACE] %s: no keys", d)
 		return respWithMetadata([]string{})
 	}
 
 	list, ok := keys.([]interface{})
 	if !ok {
+		log.Printf("[TRACE] %s: not list", d)
 		return nil, nil, fmt.Errorf("%s: unexpected response", d)
 	}
 
