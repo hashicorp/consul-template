@@ -113,8 +113,7 @@ func (d *VaultWriteQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interfa
 
 	// The secret could be nil if it does not exist.
 	if vaultSecret == nil {
-		log.Printf("[WARN] %s: returned nil (does the secret exist?)", d)
-		return respWithMetadata(nil)
+		return nil, nil, fmt.Errorf("%s: no secret exists at %s", d, d.path)
 	}
 
 	// Print any warnings.
