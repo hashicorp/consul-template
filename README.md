@@ -779,7 +779,7 @@ Returns the value in the scratchpad at the named key. If the data does not
 exist, this will return "nil".
 
 ```liquid
-{{ scratch.Key "foo" }}
+{{ scratch.Get "foo" }}
 ```
 
 ##### `scratch.Set`
