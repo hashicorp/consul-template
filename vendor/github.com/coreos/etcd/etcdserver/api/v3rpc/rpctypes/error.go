@@ -22,6 +22,8 @@ import (
 var (
 	// server-side error
 	ErrGRPCEmptyKey     = grpc.Errorf(codes.InvalidArgument, "etcdserver: key is not provided")
+	ErrGRPCKeyNotFound  = grpc.Errorf(codes.InvalidArgument, "etcdserver: key not found")
+	ErrGRPCValue        = grpc.Errorf(codes.InvalidArgument, "etcdserver: value is provided")
 	ErrGRPCTooManyOps   = grpc.Errorf(codes.InvalidArgument, "etcdserver: too many operations in txn request")
 	ErrGRPCDuplicateKey = grpc.Errorf(codes.InvalidArgument, "etcdserver: duplicate key given in txn request")
 	ErrGRPCCompacted    = grpc.Errorf(codes.OutOfRange, "etcdserver: mvcc: required revision has been compacted")
@@ -52,6 +54,7 @@ var (
 	ErrGRPCRoleNotGranted       = grpc.Errorf(codes.FailedPrecondition, "etcdserver: role is not granted to the user")
 	ErrGRPCPermissionNotGranted = grpc.Errorf(codes.FailedPrecondition, "etcdserver: permission is not granted to the role")
 	ErrGRPCAuthNotEnabled       = grpc.Errorf(codes.FailedPrecondition, "etcdserver: authentication is not enabled")
+	ErrGRPCInvalidAuthToken     = grpc.Errorf(codes.Unauthenticated, "etcdserver: invalid auth token")
 
 	ErrGRPCNoLeader                   = grpc.Errorf(codes.Unavailable, "etcdserver: no leader")
 	ErrGRPCNotCapable                 = grpc.Errorf(codes.Unavailable, "etcdserver: not capable")
@@ -63,6 +66,8 @@ var (
 
 	errStringToError = map[string]error{
 		grpc.ErrorDesc(ErrGRPCEmptyKey):     ErrGRPCEmptyKey,
+		grpc.ErrorDesc(ErrGRPCKeyNotFound):  ErrGRPCKeyNotFound,
+		grpc.ErrorDesc(ErrGRPCValue):        ErrGRPCValue,
 		grpc.ErrorDesc(ErrGRPCTooManyOps):   ErrGRPCTooManyOps,
 		grpc.ErrorDesc(ErrGRPCDuplicateKey): ErrGRPCDuplicateKey,
 		grpc.ErrorDesc(ErrGRPCCompacted):    ErrGRPCCompacted,
@@ -93,6 +98,7 @@ var (
 		grpc.ErrorDesc(ErrGRPCRoleNotGranted):       ErrGRPCRoleNotGranted,
 		grpc.ErrorDesc(ErrGRPCPermissionNotGranted): ErrGRPCPermissionNotGranted,
 		grpc.ErrorDesc(ErrGRPCAuthNotEnabled):       ErrGRPCAuthNotEnabled,
+		grpc.ErrorDesc(ErrGRPCInvalidAuthToken):     ErrGRPCInvalidAuthToken,
 
 		grpc.ErrorDesc(ErrGRPCNoLeader):                   ErrGRPCNoLeader,
 		grpc.ErrorDesc(ErrGRPCNotCapable):                 ErrGRPCNotCapable,
@@ -105,6 +111,8 @@ var (
 
 	// client-side error
 	ErrEmptyKey     = Error(ErrGRPCEmptyKey)
+	ErrKeyNotFound  = Error(ErrGRPCKeyNotFound)
+	ErrValue        = Error(ErrGRPCValue)
 	ErrTooManyOps   = Error(ErrGRPCTooManyOps)
 	ErrDuplicateKey = Error(ErrGRPCDuplicateKey)
 	ErrCompacted    = Error(ErrGRPCCompacted)
@@ -135,6 +143,7 @@ var (
 	ErrRoleNotGranted       = Error(ErrGRPCRoleNotGranted)
 	ErrPermissionNotGranted = Error(ErrGRPCPermissionNotGranted)
 	ErrAuthNotEnabled       = Error(ErrGRPCAuthNotEnabled)
+	ErrInvalidAuthToken     = Error(ErrGRPCInvalidAuthToken)
 
 	ErrNoLeader                   = Error(ErrGRPCNoLeader)
 	ErrNotCapable                 = Error(ErrGRPCNotCapable)
