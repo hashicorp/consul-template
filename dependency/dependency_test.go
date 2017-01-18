@@ -111,9 +111,20 @@ func testVaultServer(t *testing.T) (*ClientSet, *vaultServer) {
 		t.Fatal(err)
 	}
 
-	key, token := vault.TestCoreInit(t, core)
-	if _, err := vault.TestCoreUnseal(core, vault.TestKeyCopy(key)); err != nil {
+	keys, token := vault.TestCoreInit(t, core)
+
+	for _, key := range keys {
+		if _, err := vault.TestCoreUnseal(core, vault.TestKeyCopy(key)); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	sealed, err := core.Sealed()
+	if err != nil {
 		t.Fatal(err)
+	}
+	if sealed {
+		t.Fatal("vault should not be sealed")
 	}
 
 	ln, addr := http.TestServer(t, core)
