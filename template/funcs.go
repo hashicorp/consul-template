@@ -300,7 +300,7 @@ func secretFunc(b *Brain, used, missing *dep.Set) func(...string) (*dep.Secret, 
 		for _, str := range rest {
 			parts := strings.SplitN(str, "=", 2)
 			if len(parts) != 2 {
-				return result, nil
+				return result, fmt.Errorf("not k=v pair %q", str)
 			}
 
 			k, v := strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])

@@ -79,7 +79,7 @@ func TestVaultListQuery_Fetch(t *testing.T) {
 	cases := []struct {
 		name string
 		i    string
-		exp  interface{}
+		exp  []string
 	}{
 		{
 			"exists",
@@ -89,7 +89,7 @@ func TestVaultListQuery_Fetch(t *testing.T) {
 		{
 			"no_exist",
 			"not/a/real/path/like/ever",
-			[]string{},
+			nil,
 		},
 	}
 
