@@ -381,7 +381,7 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
-			"func_secret",
+			"func_secret_read",
 			`{{ with secret "secret/foo" }}{{ .Data.zip }}{{ end }}`,
 			&ExecuteInput{
 				Brain: func() *Brain {
@@ -403,8 +403,87 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"func_secret_read_no_exist",
+			`{{ with secret "secret/nope" }}{{ .Data.zip }}{{ end }}`,
+			&ExecuteInput{
+				Brain: func() *Brain {
+					return NewBrain()
+				}(),
+			},
+			"",
+			false,
+		},
+		{
+			"func_secret_read_no_exist_falsey",
+			`{{ if secret "secret/nope" }}yes{{ else }}no{{ end }}`,
+			&ExecuteInput{
+				Brain: func() *Brain {
+					return NewBrain()
+				}(),
+			},
+			"no",
+			false,
+		},
+		{
+			"func_secret_write",
+			`{{ with secret "transit/encrypt/foo" "plaintext=a" }}{{ .Data.ciphertext }}{{ end }}`,
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewVaultWriteQuery("transit/encrypt/foo", map[string]interface{}{
+						"plaintext": "a",
+					})
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, &dep.Secret{
+						LeaseID:       "abcd1234",
+						LeaseDuration: 120,
+						Renewable:     true,
+						Data:          map[string]interface{}{"ciphertext": "encrypted"},
+					})
+					return b
+				}(),
+			},
+			"encrypted",
+			false,
+		},
+		{
+			"func_secret_write_no_exist",
+			`{{ with secret "secret/nope" "a=b" }}{{ .Data.zip }}{{ end }}`,
+			&ExecuteInput{
+				Brain: func() *Brain {
+					return NewBrain()
+				}(),
+			},
+			"",
+			false,
+		},
+		{
+			"func_secret_write_no_exist_falsey",
+			`{{ if secret "secret/nope" "a=b" }}yes{{ else }}no{{ end }}`,
+			&ExecuteInput{
+				Brain: func() *Brain {
+					return NewBrain()
+				}(),
+			},
+			"no",
+			false,
+		},
+		{
+			"func_secret_no_exist_falsey_with",
+			`{{ with secret "secret/nope" }}{{ .Data.foo.bar }}{{ end }}`,
+			&ExecuteInput{
+				Brain: func() *Brain {
+					return NewBrain()
+				}(),
+			},
+			"",
+			false,
+		},
+		{
 			"func_secrets",
-			`{{ range secrets "secret/" }}{{ . }}{{ end }}`,
+			`{{ secrets "secret/" }}`,
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -416,7 +495,40 @@ func TestTemplate_Execute(t *testing.T) {
 					return b
 				}(),
 			},
-			"barfoo",
+			"[bar foo]",
+			false,
+		},
+		{
+			"func_secrets_no_exist",
+			`{{ secrets "secret/" }}`,
+			&ExecuteInput{
+				Brain: func() *Brain {
+					return NewBrain()
+				}(),
+			},
+			"[]",
+			false,
+		},
+		{
+			"func_secrets_no_exist_falsey",
+			`{{ if secrets "secret/" }}yes{{ else }}no{{ end }}`,
+			&ExecuteInput{
+				Brain: func() *Brain {
+					return NewBrain()
+				}(),
+			},
+			"no",
+			false,
+		},
+		{
+			"func_secrets_no_exist_falsey_with",
+			`{{ with secrets "secret/" }}{{ . }}{{ end }}`,
+			&ExecuteInput{
+				Brain: func() *Brain {
+					return NewBrain()
+				}(),
+			},
+			"",
 			false,
 		},
 		{

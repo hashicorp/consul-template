@@ -288,7 +288,7 @@ func nodesFunc(b *Brain, used, missing *dep.Set) func(...string) ([]*dep.Node, e
 // secretFunc returns or accumulates secret dependencies from Vault.
 func secretFunc(b *Brain, used, missing *dep.Set) func(...string) (*dep.Secret, error) {
 	return func(s ...string) (*dep.Secret, error) {
-		result := &dep.Secret{}
+		var result *dep.Secret
 
 		if len(s) == 0 {
 			return result, nil
@@ -336,7 +336,7 @@ func secretFunc(b *Brain, used, missing *dep.Set) func(...string) (*dep.Secret, 
 // secretsFunc returns or accumulates a list of secret dependencies from Vault.
 func secretsFunc(b *Brain, used, missing *dep.Set) func(string) ([]string, error) {
 	return func(s string) ([]string, error) {
-		result := []string{}
+		var result []string
 
 		if len(s) == 0 {
 			return result, nil
