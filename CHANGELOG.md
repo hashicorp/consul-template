@@ -1,7 +1,7 @@
 Consul Template Changelog
 =========================
 
-## v0.18.0-rc3 (January 17, 2016)
+## v0.18.0 (January 20, 2016)
 
 NEW FEATURES:
 
@@ -62,6 +62,9 @@ BREAKING CHANGES:
 
   * The `env` function is now treated as a dependency instead of a helper. For
       most users, there will be no impact.
+
+  * This release is compiled with Golang v1.8. We do not expect this to cause
+      any issues, but it is worth calling out.
 
 DEPRECATIONS:
 
