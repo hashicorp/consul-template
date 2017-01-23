@@ -655,7 +655,7 @@ server nyc_web_02 456.789.101.213:8080
 By default only healthy services are returned. If you want to get all services, you can pass the "any" option:
 
 ```liquid
-{{service "web" "any"}}
+{{service "web|any"}}
 ```
 
 This will return all services registered to the agent, regardless of their status.
@@ -663,7 +663,7 @@ This will return all services registered to the agent, regardless of their statu
 If you want to filter services by a specific health or health(s), you can specify a comma-separated list of health check statuses:
 
 ```liquid
-{{service "web" "passing, warning"}}
+{{service "web|passing,warning"}}
 ```
 
 This will returns services which are deemed "passing" or "warning" according to their node and service-level checks defined in Consul. Please note that the comma implies an "or", not an "and".
@@ -674,19 +674,19 @@ There is an architectural difference between the following:
 
 ```liquid
 {{service "web"}}
-{{service "web" "passing"}}
+{{service "web|passing"}}
 ```
 
 The former will return all services which Consul considers "healthy" and passing. The latter will return all services registered with the Consul agent and perform client-side filtering. As a general rule, you should not use the "passing" argument alone if you want only healthy services - simply omit the second argument instead. However, the extra argument is useful if you want "passing or warning" services like:
 
 ```liquid
-{{service "web" "passing, warning"}}
+{{service "web|passing,warning"}}
 ```
 
 The service's status is also exposed if you need to do additional filtering:
 
 ```liquid
-{{range service "web" "any"}}
+{{range service "web|any"}}
 {{if eq .Status "critical"}}
 // Critical state!{{end}}
 {{if eq .Status "passing"}}
