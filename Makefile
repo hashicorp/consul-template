@@ -82,7 +82,7 @@ bin-local:
 bootstrap:
 	@echo "==> Bootstrapping ${PROJECT}..."
 	@for t in ${EXTERNAL_TOOLS}; do \
-		echo "--> Installing "$$t"..." ; \
+		echo "--> Installing $$t" ; \
 		go get -u "$$t"; \
 	done
 
@@ -157,6 +157,11 @@ docker-push:
 	@docker push "${OWNER}/${NAME}:latest"
 	@docker push "${OWNER}/${NAME}:${VERSION}"
 
+# generate runs the code generator
+generate:
+	@echo "==> Generating ${PROJECT}..."
+	@go generate ${GOFILES}
+
 # test runs the test suite
 test:
 	@echo "==> Testing ${PROJECT}..."
@@ -167,4 +172,4 @@ test-race:
 	@echo "==> Testing ${PROJECT} (race)..."
 	@go test -timeout=60s -race -tags="${GOTAGS}" ${GOFILES} ${TESTARGS}
 
-.PHONY: bin bin-local bootstrap deps dev dist docker docker-push test test-race
+.PHONY: bin bin-local bootstrap deps dev dist docker docker-push generate test test-race
