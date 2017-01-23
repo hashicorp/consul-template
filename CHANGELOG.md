@@ -1,6 +1,12 @@
 Consul Template Changelog
 =========================
 
+## v0.18.1.dev (Unreleased)
+
+BUG FIXES:
+
+  * Resolve an issue with filters on health service dependencies [GH-857]
+
 ## v0.18.0 (January 20, 2016)
 
 NEW FEATURES:

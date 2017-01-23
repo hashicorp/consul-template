@@ -558,6 +558,32 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"func_service_filter",
+			`{{ range service "webapp" "passing,any" }}{{ .Address }}{{ end }}`,
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewHealthServiceQuery("webapp|passing,any")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, []*dep.HealthService{
+						&dep.HealthService{
+							Node:    "node1",
+							Address: "1.2.3.4",
+						},
+						&dep.HealthService{
+							Node:    "node2",
+							Address: "5.6.7.8",
+						},
+					})
+					return b
+				}(),
+			},
+			"1.2.3.45.6.7.8",
+			false,
+		},
+		{
 			"func_services",
 			`{{ range services }}{{ .Name }}{{ end }}`,
 			&ExecuteInput{
