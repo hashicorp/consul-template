@@ -369,7 +369,7 @@ func serviceFunc(b *Brain, used, missing *dep.Set) func(...string) ([]*dep.Healt
 			return result, nil
 		}
 
-		d, err := dep.NewHealthServiceQuery(strings.Join(s, ""))
+		d, err := dep.NewHealthServiceQuery(strings.Join(s, "|"))
 		if err != nil {
 			return nil, err
 		}
