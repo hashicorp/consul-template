@@ -2,6 +2,7 @@ package dependency
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net"
 	"reflect"
 	"testing"
@@ -54,8 +55,8 @@ func TestDeepCopyAndSortTags(t *testing.T) {
 func testConsulServer(t *testing.T) (*ClientSet, *testutil.TestServer) {
 	consul := testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
 		c.LogLevel = "warn"
-		// c.Stdout = ioutil.Discard
-		// c.Stderr = ioutil.Discard
+		c.Stdout = ioutil.Discard
+		c.Stderr = ioutil.Discard
 	})
 
 	clients := NewClientSet()

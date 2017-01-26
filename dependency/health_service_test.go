@@ -160,12 +160,17 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 				&HealthService{
 					Node:        consul.Config.NodeName,
 					NodeAddress: consul.Config.Bind,
-					Address:     consul.Config.Bind,
-					ID:          "consul",
-					Name:        "consul",
-					Tags:        []string{},
-					Status:      "passing",
-					Port:        consul.Config.Ports.Server,
+					NodeTaggedAddresses: map[string]string{
+						"lan": "127.0.0.1",
+						"wan": "127.0.0.1",
+					},
+					NodeMeta: map[string]string{},
+					Address:  consul.Config.Bind,
+					ID:       "consul",
+					Name:     "consul",
+					Tags:     []string{},
+					Status:   "passing",
+					Port:     consul.Config.Ports.Server,
 				},
 			},
 		},
@@ -181,12 +186,17 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 				&HealthService{
 					Node:        consul.Config.NodeName,
 					NodeAddress: consul.Config.Bind,
-					Address:     consul.Config.Bind,
-					ID:          "consul",
-					Name:        "consul",
-					Tags:        []string{},
-					Status:      "passing",
-					Port:        consul.Config.Ports.Server,
+					NodeTaggedAddresses: map[string]string{
+						"lan": "127.0.0.1",
+						"wan": "127.0.0.1",
+					},
+					NodeMeta: map[string]string{},
+					Address:  consul.Config.Bind,
+					ID:       "consul",
+					Name:     "consul",
+					Tags:     []string{},
+					Status:   "passing",
+					Port:     consul.Config.Ports.Server,
 				},
 			},
 		},
@@ -206,6 +216,7 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 
 			if act != nil {
 				for _, v := range act.([]*HealthService) {
+					v.NodeID = ""
 					v.Checks = nil
 				}
 			}
