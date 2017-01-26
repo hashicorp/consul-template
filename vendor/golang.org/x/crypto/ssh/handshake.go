@@ -19,6 +19,11 @@ import (
 // messages are wrong when using ECDH.
 const debugHandshake = false
 
+// chanSize sets the amount of buffering SSH connections. This is
+// primarily for testing: setting chanSize=0 uncovers deadlocks more
+// quickly.
+const chanSize = 16
+
 // keyingTransport is a packet based transport that supports key
 // changes. It need not be thread-safe. It should pass through
 // msgNewKeys in both directions.
@@ -90,7 +95,7 @@ func newHandshakeTransport(conn keyingTransport, config *Config, clientVersion, 
 		conn:          conn,
 		serverVersion: serverVersion,
 		clientVersion: clientVersion,
-		incoming:      make(chan []byte, 16),
+		incoming:      make(chan []byte, chanSize),
 		requestKex:    make(chan struct{}, 1),
 		startKex:      make(chan *pendingKex, 1),
 
