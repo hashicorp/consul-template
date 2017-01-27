@@ -760,6 +760,8 @@ func TestCLI_Run(t *testing.T) {
 			t.Fatal(err)
 		}
 
+		consul.SetKV("once_foo", []byte("bar"))
+
 		out := gatedio.NewByteBuffer()
 		cli := NewCLI(out, out)
 
@@ -768,12 +770,10 @@ func TestCLI_Run(t *testing.T) {
 			ch <- cli.Run([]string{"consul-template",
 				"-once",
 				"-dry",
-				"-consul", consul.HTTPAddr,
+				"-consul-addr", consul.HTTPAddr,
 				"-template", f.Name(),
 			})
 		}()
-
-		consul.SetKV("once_foo", []byte("bar"))
 
 		select {
 		case status := <-ch:
@@ -811,7 +811,7 @@ func TestCLI_Run(t *testing.T) {
 		go func() {
 			ch <- cli.Run([]string{"consul-template",
 				"-dry",
-				"-consul", consul.HTTPAddr,
+				"-consul-addr", consul.HTTPAddr,
 				"-template", f.Name(),
 			})
 		}()
