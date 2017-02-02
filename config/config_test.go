@@ -366,13 +366,17 @@ func TestParse(t *testing.T) {
 		{
 			"deduplicate",
 			`deduplicate {
-				enabled = true
-				TTL     = "5s"
+				enabled   = true
+				prefix    = "foo/bar"
+				max_stale = "100s"
+				TTL       = "500s"
 			}`,
 			&Config{
 				Dedup: &DedupConfig{
-					Enabled: Bool(true),
-					TTL:     TimeDuration(5 * time.Second),
+					Enabled:  Bool(true),
+					Prefix:   String("foo/bar"),
+					MaxStale: TimeDuration(100 * time.Second),
+					TTL:      TimeDuration(500 * time.Second),
 				},
 			},
 			false,

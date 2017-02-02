@@ -86,6 +86,10 @@ func (c *Config) Copy() *Config {
 		o.Consul = c.Consul.Copy()
 	}
 
+	if c.Dedup != nil {
+		o.Dedup = c.Dedup.Copy()
+	}
+
 	if c.Exec != nil {
 		o.Exec = c.Exec.Copy()
 	}
