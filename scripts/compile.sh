@@ -34,6 +34,11 @@ for GOOS in $XC_OS; do
       continue
     fi
 
+    EXT=""
+    if test "${GOOS}" = "windows"; then
+      EXT=".exe"
+    fi
+
     printf "%s%20s %s\n" "-->" "${GOOS}/${GOARCH}:" "${PROJECT}"
     env -i \
       PATH="$PATH" \
@@ -45,7 +50,7 @@ for GOOS in $XC_OS; do
       go build \
       -a \
       -ldflags="$LDFLAGS" \
-      -o="pkg/${GOOS}_${GOARCH}/${NAME}" \
+      -o="pkg/${GOOS}_${GOARCH}/${NAME}${EXT}" \
       .
   done
 done
