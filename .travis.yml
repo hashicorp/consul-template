@@ -14,7 +14,7 @@ branches:
     - master
 
 env:
-  - CONSUL_VERSION=0.7.2
+  - CONSUL_VERSION=0.7.3
 
 before_install:
   - curl -sLo consul.zip https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip
@@ -23,4 +23,4 @@ before_install:
   - mv consul ~/bin
   - export PATH="~/bin:$PATH"
 
-script: make test-race
+script: make test test-race

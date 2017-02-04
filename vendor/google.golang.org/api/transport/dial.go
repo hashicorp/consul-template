@@ -46,7 +46,7 @@ func NewHTTPClient(ctx context.Context, opts ...option.ClientOption) (*http.Clie
 	if o.GRPCConn != nil {
 		return nil, "", errors.New("unsupported gRPC connection specified")
 	}
-	// TODO(djd): Set UserAgent on all outgoing requests.
+	// TODO(cbro): consider injecting the User-Agent even if an explicit HTTP client is provided?
 	if o.HTTPClient != nil {
 		return o.HTTPClient, o.Endpoint, nil
 	}
@@ -54,7 +54,7 @@ func NewHTTPClient(ctx context.Context, opts ...option.ClientOption) (*http.Clie
 		hc := &http.Client{
 			Transport: &gtransport.APIKey{
 				Key:       o.APIKey,
-				Transport: http.DefaultTransport,
+				Transport: userAgentTransport{userAgent: o.UserAgent},
 			},
 		}
 		return hc, o.Endpoint, nil
@@ -73,7 +73,39 @@ func NewHTTPClient(ctx context.Context, opts ...option.ClientOption) (*http.Clie
 			return nil, "", fmt.Errorf("google.DefaultTokenSource: %v", err)
 		}
 	}
-	return oauth2.NewClient(ctx, o.TokenSource), o.Endpoint, nil
+	hc := &http.Client{
+		Transport: &oauth2.Transport{
+			Source: o.TokenSource,
+			Base:   userAgentTransport{userAgent: o.UserAgent},
+		},
+	}
+	return hc, o.Endpoint, nil
+}
+
+type userAgentTransport struct {
+	userAgent string
+	base      http.RoundTripper
+}
+
+func (t userAgentTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	rt := t.base
+	if rt == nil {
+		rt = http.DefaultTransport
+		if rt == nil {
+			return nil, errors.New("transport: no Transport specified or available")
+		}
+	}
+	if t.userAgent == "" {
+		return rt.RoundTrip(req)
+	}
+	newReq := *req
+	newReq.Header = make(http.Header)
+	for k, vv := range req.Header {
+		newReq.Header[k] = vv
+	}
+	// TODO(cbro): append to existing User-Agent header?
+	newReq.Header["User-Agent"] = []string{t.userAgent}
+	return rt.RoundTrip(&newReq)
 }
 
 // Set at init time by dial_appengine.go. If nil, we're not on App Engine.

@@ -150,8 +150,13 @@ func TestCatalogServiceQuery_Fetch(t *testing.T) {
 			"consul",
 			[]*CatalogService{
 				&CatalogService{
-					Node:           consul.Config.NodeName,
-					Address:        consul.Config.Bind,
+					Node:    consul.Config.NodeName,
+					Address: consul.Config.Bind,
+					TaggedAddresses: map[string]string{
+						"lan": "127.0.0.1",
+						"wan": "127.0.0.1",
+					},
+					NodeMeta:       map[string]string{},
 					ServiceID:      "consul",
 					ServiceName:    "consul",
 					ServiceAddress: "",
@@ -176,7 +181,7 @@ func TestCatalogServiceQuery_Fetch(t *testing.T) {
 
 			if act != nil {
 				for _, s := range act.([]*CatalogService) {
-					s.TaggedAddresses = nil
+					s.ID = ""
 				}
 			}
 
