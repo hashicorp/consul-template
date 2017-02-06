@@ -4,11 +4,12 @@ import (
 	"crypto/tls"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"sync"
+	"time"
 
 	consulapi "github.com/hashicorp/consul/api"
-	"github.com/hashicorp/go-cleanhttp"
 	rootcerts "github.com/hashicorp/go-rootcerts"
 	vaultapi "github.com/hashicorp/vault/api"
 )
@@ -48,6 +49,12 @@ type CreateConsulClientInput struct {
 	SSLCACert    string
 	SSLCAPath    string
 	ServerName   string
+
+	TransportDialKeepAlive       time.Duration
+	TransportDialTimeout         time.Duration
+	TransportDisableKeepAlives   bool
+	TransportMaxIdleConnsPerHost int
+	TransportTLSHandshakeTimeout time.Duration
 }
 
 // CreateVaultClientInput is used as input to the CreateVaultClient function.
@@ -62,6 +69,12 @@ type CreateVaultClientInput struct {
 	SSLCACert   string
 	SSLCAPath   string
 	ServerName  string
+
+	TransportDialKeepAlive       time.Duration
+	TransportDialTimeout         time.Duration
+	TransportDisableKeepAlives   bool
+	TransportMaxIdleConnsPerHost int
+	TransportTLSHandshakeTimeout time.Duration
 }
 
 // NewClientSet creates a new client set that is ready to accept clients.
@@ -89,7 +102,16 @@ func (c *ClientSet) CreateConsulClient(i *CreateConsulClientInput) error {
 	}
 
 	// This transport will attempt to keep connections open to the Consul server.
-	transport := cleanhttp.DefaultPooledTransport()
+	transport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		Dial: (&net.Dialer{
+			Timeout:   i.TransportDialTimeout,
+			KeepAlive: i.TransportDialKeepAlive,
+		}).Dial,
+		TLSHandshakeTimeout: i.TransportTLSHandshakeTimeout,
+		DisableKeepAlives:   i.TransportDisableKeepAlives,
+		MaxIdleConnsPerHost: i.TransportMaxIdleConnsPerHost,
+	}
 
 	// Configure SSL
 	if i.SSLEnabled {
@@ -168,7 +190,16 @@ func (c *ClientSet) CreateVaultClient(i *CreateVaultClientInput) error {
 	}
 
 	// This transport will attempt to keep connections open to the Vault server.
-	transport := cleanhttp.DefaultPooledTransport()
+	transport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		Dial: (&net.Dialer{
+			Timeout:   i.TransportDialTimeout,
+			KeepAlive: i.TransportDialKeepAlive,
+		}).Dial,
+		TLSHandshakeTimeout: i.TransportTLSHandshakeTimeout,
+		DisableKeepAlives:   i.TransportDisableKeepAlives,
+		MaxIdleConnsPerHost: i.TransportMaxIdleConnsPerHost,
+	}
 
 	// Configure SSL
 	if i.SSLEnabled {
