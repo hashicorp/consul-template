@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -304,7 +305,7 @@ func TestVaultConfig_Finalize(t *testing.T) {
 					CaCert:     String(""),
 					CaPath:     String(""),
 					Cert:       String(""),
-					Enabled:    Bool(false),
+					Enabled:    Bool(true),
 					Key:        String(""),
 					ServerName: String(""),
 					Verify:     Bool(true),
@@ -338,7 +339,7 @@ func TestVaultConfig_Finalize(t *testing.T) {
 					CaCert:     String(""),
 					CaPath:     String(""),
 					Cert:       String(""),
-					Enabled:    Bool(false),
+					Enabled:    Bool(true),
 					Key:        String(""),
 					ServerName: String(""),
 					Verify:     Bool(true),
@@ -358,6 +359,9 @@ func TestVaultConfig_Finalize(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			os.Unsetenv("VAULT_ADDR")
+			os.Unsetenv("VAULT_TOKEN")
+
 			tc.i.Finalize()
 			if !reflect.DeepEqual(tc.r, tc.i) {
 				t.Errorf("\nexp: %#v\nact: %#v", tc.r, tc.i)

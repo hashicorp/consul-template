@@ -339,9 +339,14 @@ func TestConfig(c *Config) *Config {
 func FromFile(path string) (*Config, error) {
 	c, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("from file %s", path))
+		return nil, errors.Wrap(err, "from file: "+path)
 	}
-	return Parse(string(c))
+
+	config, err := Parse(string(c))
+	if err != nil {
+		return nil, errors.Wrap(err, "from file: "+path)
+	}
+	return config, nil
 }
 
 // FromPath iterates and merges all configuration files in a given
@@ -349,13 +354,13 @@ func FromFile(path string) (*Config, error) {
 func FromPath(path string) (*Config, error) {
 	// Ensure the given filepath exists
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return nil, errors.Wrap(err, "missing file/folder"+path)
+		return nil, errors.Wrap(err, "missing file/folder: "+path)
 	}
 
 	// Check if a file was given or a path to a directory
 	stat, err := os.Stat(path)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed stating file "+path)
+		return nil, errors.Wrap(err, "failed stating file: "+path)
 	}
 
 	// Recursively parse directories, single load files
@@ -363,7 +368,7 @@ func FromPath(path string) (*Config, error) {
 		// Ensure the given filepath has at least one config file
 		_, err := ioutil.ReadDir(path)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed listing dir "+path)
+			return nil, errors.Wrap(err, "failed listing dir: "+path)
 		}
 
 		// Create a blank config to merge off of
@@ -442,18 +447,13 @@ func (c *Config) GoString() string {
 // variables may be set which control the values for the default configuration.
 func DefaultConfig() *Config {
 	return &Config{
-		Consul:       DefaultConsulConfig(),
-		Dedup:        DefaultDedupConfig(),
-		Exec:         DefaultExecConfig(),
-		KillSignal:   Signal(DefaultKillSignal),
-		LogLevel:     stringFromEnv("CT_LOG", "CONSUL_TEMPLATE_LOG"),
-		MaxStale:     TimeDuration(DefaultMaxStale),
-		PidFile:      String(""),
-		ReloadSignal: Signal(DefaultReloadSignal),
-		Syslog:       DefaultSyslogConfig(),
-		Templates:    DefaultTemplateConfigs(),
-		Vault:        DefaultVaultConfig(),
-		Wait:         DefaultWaitConfig(),
+		Consul:    DefaultConsulConfig(),
+		Dedup:     DefaultDedupConfig(),
+		Exec:      DefaultExecConfig(),
+		Syslog:    DefaultSyslogConfig(),
+		Templates: DefaultTemplateConfigs(),
+		Vault:     DefaultVaultConfig(),
+		Wait:      DefaultWaitConfig(),
 	}
 }
 
@@ -483,7 +483,10 @@ func (c *Config) Finalize() {
 	}
 
 	if c.LogLevel == nil {
-		c.LogLevel = String(DefaultLogLevel)
+		c.LogLevel = stringFromEnv([]string{
+			"CT_LOG",
+			"CONSUL_TEMPLATE_LOG",
+		}, DefaultLogLevel)
 	}
 
 	if c.MaxStale == nil {
@@ -519,30 +522,37 @@ func (c *Config) Finalize() {
 	c.Wait.Finalize()
 }
 
-func stringFromEnv(list ...string) *string {
+func stringFromEnv(list []string, def string) *string {
 	for _, s := range list {
 		if v := os.Getenv(s); v != "" {
 			return String(strings.TrimSpace(v))
 		}
 	}
-	return nil
+	return String(def)
 }
 
-func antiboolFromEnv(s string) *bool {
-	if b := boolFromEnv(s); b != nil {
-		return Bool(!*b)
-	}
-	return nil
-}
-
-func boolFromEnv(s string) *bool {
-	if v := os.Getenv(s); v != "" {
-		b, err := strconv.ParseBool(v)
-		if err == nil {
-			return Bool(b)
+func antiboolFromEnv(list []string, def bool) *bool {
+	for _, s := range list {
+		if v := os.Getenv(s); v != "" {
+			b, err := strconv.ParseBool(v)
+			if err == nil {
+				return Bool(!b)
+			}
 		}
 	}
-	return nil
+	return Bool(def)
+}
+
+func boolFromEnv(list []string, def bool) *bool {
+	for _, s := range list {
+		if v := os.Getenv(s); v != "" {
+			b, err := strconv.ParseBool(v)
+			if err == nil {
+				return Bool(b)
+			}
+		}
+	}
+	return Bool(def)
 }
 
 // flattenKeys is a function that takes a map[string]interface{} and recursively

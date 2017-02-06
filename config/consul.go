@@ -29,12 +29,10 @@ type ConsulConfig struct {
 // default values.
 func DefaultConsulConfig() *ConsulConfig {
 	return &ConsulConfig{
-		Address:   stringFromEnv("CONSUL_HTTP_ADDR"),
 		Auth:      DefaultAuthConfig(),
 		Retry:     DefaultRetryConfig(),
 		SSL:       DefaultSSLConfig(),
 		Transport: DefaultTransportConfig(),
-		Token:     stringFromEnv("CONSUL_TOKEN", "CONSUL_HTTP_TOKEN"),
 	}
 }
 
@@ -117,7 +115,9 @@ func (c *ConsulConfig) Merge(o *ConsulConfig) *ConsulConfig {
 // Finalize ensures there no nil pointers.
 func (c *ConsulConfig) Finalize() {
 	if c.Address == nil {
-		c.Address = String("")
+		c.Address = stringFromEnv([]string{
+			"CONSUL_HTTP_ADDR",
+		}, "")
 	}
 
 	if c.Auth == nil {
@@ -136,7 +136,10 @@ func (c *ConsulConfig) Finalize() {
 	c.SSL.Finalize()
 
 	if c.Token == nil {
-		c.Token = String("")
+		c.Token = stringFromEnv([]string{
+			"CONSUL_TOKEN",
+			"CONSUL_HTTP_TOKEN",
+		}, "")
 	}
 
 	if c.Transport == nil {

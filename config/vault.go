@@ -58,19 +58,8 @@ type VaultConfig struct {
 // default values.
 func DefaultVaultConfig() *VaultConfig {
 	v := &VaultConfig{
-		Address:     stringFromEnv(api.EnvVaultAddress),
-		RenewToken:  boolFromEnv("VAULT_RENEW_TOKEN"),
-		UnwrapToken: boolFromEnv("VAULT_UNWRAP_TOKEN"),
-		Retry:       DefaultRetryConfig(),
-		SSL: &SSLConfig{
-			CaCert:     stringFromEnv(api.EnvVaultCACert),
-			CaPath:     stringFromEnv(api.EnvVaultCAPath),
-			Cert:       stringFromEnv(api.EnvVaultClientCert),
-			Key:        stringFromEnv(api.EnvVaultClientKey),
-			ServerName: stringFromEnv(api.EnvVaultTLSServerName),
-			Verify:     antiboolFromEnv(api.EnvVaultInsecure),
-		},
-		Token:     stringFromEnv("VAULT_TOKEN"),
+		Retry:     DefaultRetryConfig(),
+		SSL:       DefaultSSLConfig(),
 		Transport: DefaultTransportConfig(),
 	}
 
@@ -167,16 +156,16 @@ func (c *VaultConfig) Merge(o *VaultConfig) *VaultConfig {
 
 // Finalize ensures there no nil pointers.
 func (c *VaultConfig) Finalize() {
-	if c.Enabled == nil {
-		c.Enabled = Bool(StringPresent(c.Address))
-	}
-
 	if c.Address == nil {
-		c.Address = String("")
+		c.Address = stringFromEnv([]string{
+			api.EnvVaultAddress,
+		}, "")
 	}
 
 	if c.RenewToken == nil {
-		c.RenewToken = Bool(DefaultVaultRenewToken)
+		c.RenewToken = boolFromEnv([]string{
+			"VAULT_RENEW_TOKEN",
+		}, DefaultVaultRenewToken)
 	}
 
 	if c.Retry == nil {
@@ -186,11 +175,20 @@ func (c *VaultConfig) Finalize() {
 
 	if c.SSL == nil {
 		c.SSL = DefaultSSLConfig()
+		c.SSL.Enabled = Bool(true)
+		c.SSL.CaCert = stringFromEnv([]string{api.EnvVaultCACert}, "")
+		c.SSL.CaPath = stringFromEnv([]string{api.EnvVaultCAPath}, "")
+		c.SSL.Cert = stringFromEnv([]string{api.EnvVaultClientCert}, "")
+		c.SSL.Key = stringFromEnv([]string{api.EnvVaultClientKey}, "")
+		c.SSL.ServerName = stringFromEnv([]string{api.EnvVaultTLSServerName}, "")
+		c.SSL.Verify = antiboolFromEnv([]string{api.EnvVaultInsecure}, true)
 	}
 	c.SSL.Finalize()
 
 	if c.Token == nil {
-		c.Token = String("")
+		c.Token = stringFromEnv([]string{
+			"VAULT_TOKEN",
+		}, "")
 	}
 
 	if c.Transport == nil {
@@ -199,7 +197,13 @@ func (c *VaultConfig) Finalize() {
 	c.Transport.Finalize()
 
 	if c.UnwrapToken == nil {
-		c.UnwrapToken = Bool(DefaultVaultUnwrapToken)
+		c.UnwrapToken = boolFromEnv([]string{
+			"VAULT_UNWRAP_TOKEN",
+		}, DefaultVaultUnwrapToken)
+	}
+
+	if c.Enabled == nil {
+		c.Enabled = Bool(StringPresent(c.Address))
 	}
 }
 
