@@ -2,9 +2,12 @@ package config
 
 import (
 	"fmt"
+	"io/ioutil"
 	"time"
+	"strings"
 
 	"github.com/hashicorp/vault/api"
+	"github.com/mitchellh/go-homedir"
 )
 
 const (
@@ -190,7 +193,17 @@ func (c *VaultConfig) Finalize() {
 	c.SSL.Finalize()
 
 	if c.Token == nil {
-		c.Token = String("")
+		// Use the vault CLI's token, if present.
+		homePath, _ := homedir.Dir()
+		tokenBytes, _ := ioutil.ReadFile(homePath + "/.vault-token")
+
+		tokenString := strings.TrimSpace(string(tokenBytes))
+
+		if tokenString != "" {
+			c.Token = String(tokenString)
+		} else {
+			c.Token = String("")
+		}
 	}
 
 	if c.Transport == nil {
