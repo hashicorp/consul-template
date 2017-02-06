@@ -11,6 +11,8 @@ IMPROVEMENTS:
 
   * Add support for tagged addresses and metadata [GH-863]
   * Add `.exe` extension to Windows binaries [GH-875]
+  * Add support for customizing the low-level transport details for Consul and
+      Vault [GH-880, GH-877]
 
 ## v0.18.0 (January 20, 2016)
 
