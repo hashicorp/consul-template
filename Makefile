@@ -165,7 +165,7 @@ generate:
 # test runs the test suite
 test:
 	@echo "==> Testing ${PROJECT}..."
-	@go test -timeout=40s -parallel=10 -tags="${GOTAGS}" ${GOFILES} ${TESTARGS}
+	@go test -timeout=60s -parallel=5 -tags="${GOTAGS}" ${GOFILES} ${TESTARGS}
 
 # test-race runs the race checker
 test-race:
