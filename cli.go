@@ -257,6 +257,31 @@ func (cli *CLI) ParseFlags(args []string) (*config.Config, bool, bool, bool, err
 		return nil
 	}), "consul-token", "")
 
+	flags.Var((funcDurationVar)(func(d time.Duration) error {
+		c.Consul.Transport.DialKeepAlive = config.TimeDuration(d)
+		return nil
+	}), "consul-transport-dial-keep-alive", "")
+
+	flags.Var((funcDurationVar)(func(d time.Duration) error {
+		c.Consul.Transport.DialTimeout = config.TimeDuration(d)
+		return nil
+	}), "consul-transport-dial-timeout", "")
+
+	flags.Var((funcBoolVar)(func(b bool) error {
+		c.Consul.Transport.DisableKeepAlives = config.Bool(b)
+		return nil
+	}), "consul-transport-disable-keep-alives", "")
+
+	flags.Var((funcIntVar)(func(i int) error {
+		c.Consul.Transport.MaxIdleConnsPerHost = config.Int(i)
+		return nil
+	}), "consul-transport-max-idle-conns-per-host", "")
+
+	flags.Var((funcDurationVar)(func(d time.Duration) error {
+		c.Consul.Transport.TLSHandshakeTimeout = config.TimeDuration(d)
+		return nil
+	}), "consul-transport-tls-handshake-timeout", "")
+
 	flags.Var((funcBoolVar)(func(b bool) error {
 		c.Dedup.Enabled = config.Bool(b)
 		return nil
@@ -416,6 +441,31 @@ func (cli *CLI) ParseFlags(args []string) (*config.Config, bool, bool, bool, err
 		return nil
 	}), "vault-ssl-verify", "")
 
+	flags.Var((funcDurationVar)(func(d time.Duration) error {
+		c.Vault.Transport.DialKeepAlive = config.TimeDuration(d)
+		return nil
+	}), "vault-transport-dial-keep-alive", "")
+
+	flags.Var((funcDurationVar)(func(d time.Duration) error {
+		c.Vault.Transport.DialTimeout = config.TimeDuration(d)
+		return nil
+	}), "vault-transport-dial-timeout", "")
+
+	flags.Var((funcBoolVar)(func(b bool) error {
+		c.Vault.Transport.DisableKeepAlives = config.Bool(b)
+		return nil
+	}), "vault-transport-disable-keep-alives", "")
+
+	flags.Var((funcIntVar)(func(i int) error {
+		c.Vault.Transport.MaxIdleConnsPerHost = config.Int(i)
+		return nil
+	}), "vault-transport-max-idle-conns-per-host", "")
+
+	flags.Var((funcDurationVar)(func(d time.Duration) error {
+		c.Vault.Transport.TLSHandshakeTimeout = config.TimeDuration(d)
+		return nil
+	}), "vault-transport-tls-handshake-timeout", "")
+
 	flags.Var((funcVar)(func(s string) error {
 		c.Vault.Token = config.String(s)
 		return nil
@@ -570,6 +620,21 @@ Options:
   -consul-token=<token>
       Sets the Consul API token
 
+  -consul-transport-dial-keep-alive=<duration>
+      Sets the amount of time to use for keep-alives
+
+  -consul-transport-dial-timeout=<duration>
+      Sets the amount of time to wait to establish a connection
+
+  -consul-transport-disable-keep-alives
+      Disables keep-alives (this will impact performance)
+
+  -consul-transport-max-idle-conns-per-host=<int>
+      Sets the maximum number of idle connections to permit per host
+
+  -consul-transport-tls-handshake-timeout=<duration>
+      Sets the handshake timeout
+
   -dedup
       Enable de-duplication mode - reduces load on Consul when many instances of
       Consul Template are rendering a common template
@@ -669,6 +734,21 @@ Options:
 
   -vault-token=<token>
       Sets the Vault API token
+
+  -vault-transport-dial-keep-alive=<duration>
+      Sets the amount of time to use for keep-alives
+
+  -vault-transport-dial-timeout=<duration>
+      Sets the amount of time to wait to establish a connection
+
+  -vault-transport-disable-keep-alives
+      Disables keep-alives (this will impact performance)
+
+  -vault-transport-max-idle-conns-per-host=<int>
+      Sets the maximum number of idle connections to permit per host
+
+  -vault-transport-tls-handshake-timeout=<duration>
+      Sets the handshake timeout
 
   -vault-unwrap-token
       Unwrap the provided Vault API token (see Vault documentation for more
