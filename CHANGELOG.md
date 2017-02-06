@@ -3,16 +3,18 @@ Consul Template Changelog
 
 ## v0.18.1.dev (Unreleased)
 
-BUG FIXES:
-
-  * Resolve an issue with filters on health service dependencies [GH-857]
-
 IMPROVEMENTS:
 
   * Add support for tagged addresses and metadata [GH-863]
   * Add `.exe` extension to Windows binaries [GH-875]
   * Add support for customizing the low-level transport details for Consul and
       Vault [GH-880, GH-877]
+
+BUG FIXES:
+
+  * Resolve an issue with filters on health service dependencies [GH-857]
+  * Restore ability to reload configurations from disk [GH-866]
+
 
 ## v0.18.0 (January 20, 2016)
 
