@@ -345,6 +345,66 @@ func TestCLI_ParseFlags(t *testing.T) {
 			false,
 		},
 		{
+			"consul-transport-dial-keep-alive",
+			[]string{"-consul-transport-dial-keep-alive", "30s"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					Transport: &config.TransportConfig{
+						DialKeepAlive: config.TimeDuration(30 * time.Second),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"consul-transport-dial-timeout",
+			[]string{"-consul-transport-dial-timeout", "30s"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					Transport: &config.TransportConfig{
+						DialTimeout: config.TimeDuration(30 * time.Second),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"consul-transport-disable-keep-alives",
+			[]string{"-consul-transport-disable-keep-alives"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					Transport: &config.TransportConfig{
+						DisableKeepAlives: config.Bool(true),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"consul-transport-max-idle-conns-per-host",
+			[]string{"-consul-transport-max-idle-conns-per-host", "100"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					Transport: &config.TransportConfig{
+						MaxIdleConnsPerHost: config.Int(100),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"consul-transport-tls-handshake-timeout",
+			[]string{"-consul-transport-tls-handshake-timeout", "30s"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					Transport: &config.TransportConfig{
+						TLSHandshakeTimeout: config.TimeDuration(30 * time.Second),
+					},
+				},
+			},
+			false,
+		},
+		{
 			"dedup",
 			[]string{"-dedup"},
 			&config.Config{
@@ -635,6 +695,66 @@ func TestCLI_ParseFlags(t *testing.T) {
 			&config.Config{
 				Vault: &config.VaultConfig{
 					Token: config.String("token"),
+				},
+			},
+			false,
+		},
+		{
+			"vault-transport-dial-keep-alive",
+			[]string{"-vault-transport-dial-keep-alive", "30s"},
+			&config.Config{
+				Vault: &config.VaultConfig{
+					Transport: &config.TransportConfig{
+						DialKeepAlive: config.TimeDuration(30 * time.Second),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"vault-transport-dial-timeout",
+			[]string{"-vault-transport-dial-timeout", "30s"},
+			&config.Config{
+				Vault: &config.VaultConfig{
+					Transport: &config.TransportConfig{
+						DialTimeout: config.TimeDuration(30 * time.Second),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"vault-transport-disable-keep-alives",
+			[]string{"-vault-transport-disable-keep-alives"},
+			&config.Config{
+				Vault: &config.VaultConfig{
+					Transport: &config.TransportConfig{
+						DisableKeepAlives: config.Bool(true),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"vault-transport-max-idle-conns-per-host",
+			[]string{"-vault-transport-max-idle-conns-per-host", "100"},
+			&config.Config{
+				Vault: &config.VaultConfig{
+					Transport: &config.TransportConfig{
+						MaxIdleConnsPerHost: config.Int(100),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"vault-transport-tls-handshake-timeout",
+			[]string{"-vault-transport-tls-handshake-timeout", "30s"},
+			&config.Config{
+				Vault: &config.VaultConfig{
+					Transport: &config.TransportConfig{
+						TLSHandshakeTimeout: config.TimeDuration(30 * time.Second),
+					},
 				},
 			},
 			false,

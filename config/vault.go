@@ -47,6 +47,9 @@ type VaultConfig struct {
 	// environment variable.
 	Token *string `mapstructure:"token" json:"-"`
 
+	// Transport configures the low-level network connection details.
+	Transport *TransportConfig `mapstructure:"transport"`
+
 	// UnwrapToken unwraps the provided Vault token as a wrapped token.
 	UnwrapToken *bool `mapstructure:"unwrap_token"`
 }
@@ -67,7 +70,8 @@ func DefaultVaultConfig() *VaultConfig {
 			ServerName: stringFromEnv(api.EnvVaultTLSServerName),
 			Verify:     antiboolFromEnv(api.EnvVaultInsecure),
 		},
-		Token: stringFromEnv("VAULT_TOKEN"),
+		Token:     stringFromEnv("VAULT_TOKEN"),
+		Transport: DefaultTransportConfig(),
 	}
 
 	// Force SSL when communicating with Vault.
@@ -98,6 +102,10 @@ func (c *VaultConfig) Copy() *VaultConfig {
 	}
 
 	o.Token = c.Token
+
+	if c.Transport != nil {
+		o.Transport = c.Transport.Copy()
+	}
 
 	o.UnwrapToken = c.UnwrapToken
 
@@ -146,6 +154,10 @@ func (c *VaultConfig) Merge(o *VaultConfig) *VaultConfig {
 		r.Token = o.Token
 	}
 
+	if o.Transport != nil {
+		r.Transport = r.Transport.Merge(o.Transport)
+	}
+
 	if o.UnwrapToken != nil {
 		r.UnwrapToken = o.UnwrapToken
 	}
@@ -181,6 +193,11 @@ func (c *VaultConfig) Finalize() {
 		c.Token = String("")
 	}
 
+	if c.Transport == nil {
+		c.Transport = DefaultTransportConfig()
+	}
+	c.Transport.Finalize()
+
 	if c.UnwrapToken == nil {
 		c.UnwrapToken = Bool(DefaultVaultUnwrapToken)
 	}
@@ -193,20 +210,22 @@ func (c *VaultConfig) GoString() string {
 	}
 
 	return fmt.Sprintf("&VaultConfig{"+
-		"Enabled:%s, "+
 		"Address:%s, "+
-		"Token:%t, "+
-		"UnwrapToken:%s, "+
+		"Enabled:%s, "+
 		"RenewToken:%s, "+
 		"Retry:%#v, "+
-		"SSL:%#v"+
+		"SSL:%#v, "+
+		"Token:%t, "+
+		"Transport:%#v, "+
+		"UnwrapToken:%s"+
 		"}",
-		BoolGoString(c.Enabled),
 		StringGoString(c.Address),
-		StringPresent(c.Token),
-		BoolGoString(c.UnwrapToken),
+		BoolGoString(c.Enabled),
 		BoolGoString(c.RenewToken),
 		c.Retry,
 		c.SSL,
+		StringPresent(c.Token),
+		c.Transport,
+		BoolGoString(c.UnwrapToken),
 	)
 }

@@ -209,6 +209,7 @@ func Parse(s string) (*Config, error) {
 		"consul.auth",
 		"consul.retry",
 		"consul.ssl",
+		"consul.transport",
 		"deduplicate",
 		"env",
 		"exec",
@@ -218,6 +219,7 @@ func Parse(s string) (*Config, error) {
 		"vault",
 		"vault.retry",
 		"vault.ssl",
+		"vault.transport",
 		"wait",
 	})
 

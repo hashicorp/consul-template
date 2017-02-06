@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestConsulConfig_Copy(t *testing.T) {
@@ -23,8 +24,13 @@ func TestConsulConfig_Copy(t *testing.T) {
 			"same_enabled",
 			&ConsulConfig{
 				Address: String("1.2.3.4"),
+				Auth:    &AuthConfig{Enabled: Bool(true)},
 				Retry:   &RetryConfig{Enabled: Bool(true)},
+				SSL:     &SSLConfig{Enabled: Bool(true)},
 				Token:   String("abcd1234"),
+				Transport: &TransportConfig{
+					DialKeepAlive: TimeDuration(20 * time.Second),
+				},
 			},
 		},
 	}
@@ -190,6 +196,30 @@ func TestConsulConfig_Merge(t *testing.T) {
 			&ConsulConfig{Token: String("same")},
 			&ConsulConfig{Token: String("same")},
 		},
+		{
+			"transport_overrides",
+			&ConsulConfig{Transport: &TransportConfig{DialKeepAlive: TimeDuration(10 * time.Second)}},
+			&ConsulConfig{Transport: &TransportConfig{DialKeepAlive: TimeDuration(20 * time.Second)}},
+			&ConsulConfig{Transport: &TransportConfig{DialKeepAlive: TimeDuration(20 * time.Second)}},
+		},
+		{
+			"transport_empty_one",
+			&ConsulConfig{Transport: &TransportConfig{DialKeepAlive: TimeDuration(10 * time.Second)}},
+			&ConsulConfig{},
+			&ConsulConfig{Transport: &TransportConfig{DialKeepAlive: TimeDuration(10 * time.Second)}},
+		},
+		{
+			"transport_empty_two",
+			&ConsulConfig{},
+			&ConsulConfig{Transport: &TransportConfig{DialKeepAlive: TimeDuration(10 * time.Second)}},
+			&ConsulConfig{Transport: &TransportConfig{DialKeepAlive: TimeDuration(10 * time.Second)}},
+		},
+		{
+			"transport_same",
+			&ConsulConfig{Transport: &TransportConfig{DialKeepAlive: TimeDuration(10 * time.Second)}},
+			&ConsulConfig{Transport: &TransportConfig{DialKeepAlive: TimeDuration(10 * time.Second)}},
+			&ConsulConfig{Transport: &TransportConfig{DialKeepAlive: TimeDuration(10 * time.Second)}},
+		},
 	}
 
 	for i, tc := range cases {
@@ -233,6 +263,13 @@ func TestConsulConfig_Finalize(t *testing.T) {
 					Verify:     Bool(true),
 				},
 				Token: String(""),
+				Transport: &TransportConfig{
+					DialKeepAlive:       TimeDuration(DefaultDialKeepAlive),
+					DialTimeout:         TimeDuration(DefaultDialTimeout),
+					DisableKeepAlives:   Bool(false),
+					MaxIdleConnsPerHost: Int(DefaultMaxIdleConnsPerHost),
+					TLSHandshakeTimeout: TimeDuration(DefaultTLSHandshakeTimeout),
+				},
 			},
 		},
 	}
