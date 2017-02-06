@@ -7,27 +7,6 @@ import (
 	dep "github.com/hashicorp/consul-template/dependency"
 )
 
-func TestNewWatcher_renewVault(t *testing.T) {
-	w, err := NewWatcher(&NewWatcherInput{
-		Clients:    dep.NewClientSet(),
-		Once:       true,
-		RenewVault: true,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer w.Stop()
-
-	d, err := dep.NewVaultTokenQuery()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !w.Watching(d) {
-		t.Errorf("expected watcher to be renewing vault token")
-	}
-}
-
 func TestAdd_updatesMap(t *testing.T) {
 	w, err := NewWatcher(&NewWatcherInput{
 		Clients: dep.NewClientSet(),
