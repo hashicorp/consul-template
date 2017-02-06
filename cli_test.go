@@ -168,12 +168,6 @@ func TestCLI_ParseFlags(t *testing.T) {
 			false,
 		},
 		{
-			"config_bad_path",
-			[]string{"-config", "/not/a/real/path"},
-			nil,
-			true,
-		},
-		{
 			"consul_addr",
 			[]string{"-consul-addr", "1.2.3.4"},
 			&config.Config{
@@ -798,15 +792,15 @@ func TestCLI_ParseFlags(t *testing.T) {
 			out := gatedio.NewByteBuffer()
 			cli := NewCLI(out, out)
 
-			a, _, _, _, err := cli.ParseFlags(tc.f)
+			a, _, _, _, _, err := cli.ParseFlags(tc.f)
 			if (err != nil) != tc.err {
 				t.Fatal(err)
 			}
 
 			if tc.e != nil {
 				tc.e = config.DefaultConfig().Merge(tc.e)
-				tc.e.Finalize()
 			}
+
 			if !reflect.DeepEqual(tc.e, a) {
 				t.Errorf("\nexp: %#v\nact: %#v\nout: %q", tc.e, a, out.String())
 			}
