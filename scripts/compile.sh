@@ -72,9 +72,14 @@ for PLATFORM in $(find ./pkg -mindepth 1 -maxdepth 1 -type d); do
     continue
   fi
 
+  EXT=""
+  if test -z "${OSARCH##*windows*}"; then
+    EXT=".exe"
+  fi
+
   cd $PLATFORM
-  tar -czf ../dist/${NAME}_${VERSION}_${OSARCH}.tgz ${NAME}
-  zip ../dist/${NAME}_${VERSION}_${OSARCH}.zip ${NAME}
+  tar -czf ../dist/${NAME}_${VERSION}_${OSARCH}.tgz ${NAME}${EXT}
+  zip ../dist/${NAME}_${VERSION}_${OSARCH}.zip ${NAME}${EXT}
   cd - >/dev/null 2>&1
 done
 
