@@ -189,6 +189,14 @@ func (c *VaultConfig) Finalize() {
 		c.Token = stringFromEnv([]string{
 			"VAULT_TOKEN",
 		}, "")
+
+		if StringVal(c.Token) == "" {
+			if homePath != "" {
+				c.Token = stringFromFile([]string{
+					homePath + "/.vault-token",
+				}, "")
+			}
+		}
 	}
 
 	if c.Transport == nil {
