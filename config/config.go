@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/consul-template/signals"
 	"github.com/hashicorp/hcl"
+	homedir "github.com/mitchellh/go-homedir"
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/pkg/errors"
@@ -31,6 +32,11 @@ const (
 
 	// DefaultKillSignal is the default signal for termination.
 	DefaultKillSignal = syscall.SIGINT
+)
+
+var (
+	// homePath is the location to the user's home directory.
+	homePath, _ = homedir.Dir()
 )
 
 // Config is used to configure Consul Template
@@ -526,6 +532,16 @@ func stringFromEnv(list []string, def string) *string {
 	for _, s := range list {
 		if v := os.Getenv(s); v != "" {
 			return String(strings.TrimSpace(v))
+		}
+	}
+	return String(def)
+}
+
+func stringFromFile(list []string, def string) *string {
+	for _, s := range list {
+		c, err := ioutil.ReadFile(s)
+		if err == nil {
+			return String(strings.TrimSpace(string(c)))
 		}
 	}
 	return String(def)

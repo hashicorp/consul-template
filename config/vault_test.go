@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
@@ -361,6 +362,7 @@ func TestVaultConfig_Finalize(t *testing.T) {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
 			os.Unsetenv("VAULT_ADDR")
 			os.Unsetenv("VAULT_TOKEN")
+			homePath, _ = ioutil.TempDir("", "")
 
 			tc.i.Finalize()
 			if !reflect.DeepEqual(tc.r, tc.i) {
