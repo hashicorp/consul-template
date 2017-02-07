@@ -22,6 +22,9 @@ BUG FIXES:
     updated with the trade-offs of running in dedup mode and the expected `env`
     behavior has been restored.
 
+  * Do not loop indefinitely if the dedup manager is unable to acquire a lock
+      [GH-864]
+
 
 ## v0.18.0 (January 20, 2016)
 
