@@ -1532,7 +1532,16 @@ To make this pattern more efficient Consul Template supports work de-duplication
 
 Please note that no Vault data will be stored in the compressed template. Because ACLs around Vault are typically more closely controlled than those ACLs around Consul's KV, Consul Template will still request the secret from Vault on each iteration.
 
+When running in de-duplication mode, it is important that local template functions resolve correctly. For example, you may have a local template function that relies on the `env` helper like this:
+
+```hcl
+{{ key (env "KEY") }}
+```
+
+It is crucial that the environment variable `KEY` in this example is consistent across all machines engaged in de-duplicating this template. If the values are different, Consul Template will be unable to resolve the template, and you will not get a successful render.
+
 ### Termination on Error
+
 By default Consul Template is highly fault-tolerant. If Consul is unreachable or a template changes, Consul Template will happily continue running. The only exception to this rule is if the optional `command` exits non-zero. In this case, Consul Template will also exit non-zero. The reason for this decision is so the user can easily configure something like Upstart or God to manage Consul Template as a service.
 
 If you want Consul Template to continue watching for changes, even if the optional command argument fails, you can append `|| true` to your command. For example:
