@@ -564,6 +564,15 @@ This example will query Consul's default data center. You can specify an optiona
 
 This will query Consul for all nodes in the east-aws data center.
 
+Like `services`, this returns an slice of nodes. Use the `range` function to iterate over them:
+
+```liquid
+{{range nodes}}
+{{.Address}}{{end}}
+```
+
+This will print out the IP address of each node.
+
 ##### `secret`
 Query [Vault](https://www.vaultproject.io) for the secret data at the given path. If the path does not exist or if the configured Vault token does not have permission to read the path, an error will be returned.  If the path exists, but the key does not exist, `<no value>` will be returned.
 
