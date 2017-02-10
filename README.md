@@ -549,6 +549,8 @@ If the node specified is not found then `nil` is returned. If the node is found 
 {{end}}
 ```
 
+To access map data (such as `TaggedAddresses` or `Meta`), you will need to use [Go's text/template][text-template] map indexing.
+
 ##### `nodes`
 Query Consul for all nodes in the catalog. Nodes are queried using the following syntax:
 
@@ -572,6 +574,8 @@ Like `services`, this returns an slice of nodes. Use the `range` function to ite
 ```
 
 This will print out the IP address of each node.
+
+To access map data (such as `TaggedAddresses` or `Meta`), you will need to use [Go's text/template][text-template] map indexing.
 
 ##### `secret`
 Query [Vault](https://www.vaultproject.io) for the secret data at the given path. If the path does not exist or if the configured Vault token does not have permission to read the path, an error will be returned.  If the path exists, but the key does not exist, `<no value>` will be returned.
@@ -660,6 +664,8 @@ which would produce something like:
 server nyc_web_01 123.456.789.10:8080
 server nyc_web_02 456.789.101.213:8080
 ```
+
+To access map data (such as `NodeTaggedAddresses` or `NodeMeta`), you will need to use [Go's text/template][text-template] map indexing.
 
 By default only healthy services are returned. If you want to get all services, you can pass the "any" option:
 
@@ -1042,7 +1048,7 @@ You can also access deeply nested values:
 {{.a.b.c}}{{ end }}
 ```
 
-Note: You will need to have a reasonable format about your data in Consul. Please see Golang's text/template package for more information.
+Note: You will need to have a reasonable format about your data in Consul. Please see [Go's text/template package][text-template] for more information.
 
 ##### `in`
 Determines if a needle is within an iterable element.
@@ -1715,3 +1721,4 @@ Submit Pull Requests and Issues to the [Consul Template project on GitHub][Consu
 [Consul ACLs]: https://www.consul.io/docs/internals/acl.html "Consul ACLs"
 [Go Template]: https://golang.org/pkg/text/template/ "Go Template"
 [Consul Template]: https://github.com/hashicorp/consul-template "Consul Template on GitHub"
+[text-template]: https://golang.org/pkg/text/template/ "Go's text/template package"
