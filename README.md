@@ -1544,11 +1544,11 @@ It is crucial that the environment variable `KEY` in this example is consistent 
 
 By default Consul Template is highly fault-tolerant. If Consul is unreachable or a template changes, Consul Template will happily continue running. The only exception to this rule is if the optional `command` exits non-zero. In this case, Consul Template will also exit non-zero. The reason for this decision is so the user can easily configure something like Upstart or God to manage Consul Template as a service.
 
-If you want Consul Template to continue watching for changes, even if the optional command argument fails, you can append `|| true` to your command. For example:
+If you want Consul Template to continue watching for changes, even if the optional command argument fails, you can append `|| true` to your command. Note that `||` is a "shell-ism", not a built-in function. You will also need to run your command under a shell:
 
 ```shell
 $ consul-template \
-  -template "in.ctmpl:out.file:service nginx restart || true"
+  -template "in.ctmpl:out.file:/bin/bash -c 'service nginx restart || true'"
 ```
 
 In this example, even if the Nginx restart command returns non-zero, the overall function will still return an OK exit code; Consul Template will continue to run as a service. Additionally, if you have complex logic for restarting your service, you can intelligently choose when you want Consul Template to exit and when you want it to continue to watch for changes. For these types of complex scripts, we recommend using a custom sh or bash script instead of putting the logic directly in the `consul-template` command or configuration file.
