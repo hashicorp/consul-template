@@ -3,6 +3,14 @@ Consul Template Changelog
 
 ## v0.18.2 (Unreleased)
 
+IMPROVEMENTS:
+
+  * Add missing HTTP transport configuration options
+
+BUG FIXES:
+
+  * Default transport max idle connections based on `GOMAXPROCS`
+
 ## v0.18.1 (February 7, 2017)
 
 IMPROVEMENTS:
