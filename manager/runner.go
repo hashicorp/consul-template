@@ -1126,6 +1126,8 @@ func newClientSet(c *config.Config) (*dep.ClientSet, error) {
 		TransportDialKeepAlive:       config.TimeDurationVal(c.Consul.Transport.DialKeepAlive),
 		TransportDialTimeout:         config.TimeDurationVal(c.Consul.Transport.DialTimeout),
 		TransportDisableKeepAlives:   config.BoolVal(c.Consul.Transport.DisableKeepAlives),
+		TransportIdleConnTimeout:     config.TimeDurationVal(c.Consul.Transport.IdleConnTimeout),
+		TransportMaxIdleConns:        config.IntVal(c.Consul.Transport.MaxIdleConns),
 		TransportMaxIdleConnsPerHost: config.IntVal(c.Consul.Transport.MaxIdleConnsPerHost),
 		TransportTLSHandshakeTimeout: config.TimeDurationVal(c.Consul.Transport.TLSHandshakeTimeout),
 	}); err != nil {
@@ -1146,6 +1148,8 @@ func newClientSet(c *config.Config) (*dep.ClientSet, error) {
 		TransportDialKeepAlive:       config.TimeDurationVal(c.Vault.Transport.DialKeepAlive),
 		TransportDialTimeout:         config.TimeDurationVal(c.Vault.Transport.DialTimeout),
 		TransportDisableKeepAlives:   config.BoolVal(c.Vault.Transport.DisableKeepAlives),
+		TransportIdleConnTimeout:     config.TimeDurationVal(c.Vault.Transport.IdleConnTimeout),
+		TransportMaxIdleConns:        config.IntVal(c.Vault.Transport.MaxIdleConns),
 		TransportMaxIdleConnsPerHost: config.IntVal(c.Vault.Transport.MaxIdleConnsPerHost),
 		TransportTLSHandshakeTimeout: config.TimeDurationVal(c.Vault.Transport.TLSHandshakeTimeout),
 	}); err != nil {

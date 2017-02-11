@@ -53,6 +53,8 @@ type CreateConsulClientInput struct {
 	TransportDialKeepAlive       time.Duration
 	TransportDialTimeout         time.Duration
 	TransportDisableKeepAlives   bool
+	TransportIdleConnTimeout     time.Duration
+	TransportMaxIdleConns        int
 	TransportMaxIdleConnsPerHost int
 	TransportTLSHandshakeTimeout time.Duration
 }
@@ -73,6 +75,8 @@ type CreateVaultClientInput struct {
 	TransportDialKeepAlive       time.Duration
 	TransportDialTimeout         time.Duration
 	TransportDisableKeepAlives   bool
+	TransportIdleConnTimeout     time.Duration
+	TransportMaxIdleConns        int
 	TransportMaxIdleConnsPerHost int
 	TransportTLSHandshakeTimeout time.Duration
 }
@@ -108,9 +112,11 @@ func (c *ClientSet) CreateConsulClient(i *CreateConsulClientInput) error {
 			Timeout:   i.TransportDialTimeout,
 			KeepAlive: i.TransportDialKeepAlive,
 		}).Dial,
-		TLSHandshakeTimeout: i.TransportTLSHandshakeTimeout,
 		DisableKeepAlives:   i.TransportDisableKeepAlives,
+		MaxIdleConns:        i.TransportMaxIdleConns,
+		IdleConnTimeout:     i.TransportIdleConnTimeout,
 		MaxIdleConnsPerHost: i.TransportMaxIdleConnsPerHost,
+		TLSHandshakeTimeout: i.TransportTLSHandshakeTimeout,
 	}
 
 	// Configure SSL
@@ -196,9 +202,11 @@ func (c *ClientSet) CreateVaultClient(i *CreateVaultClientInput) error {
 			Timeout:   i.TransportDialTimeout,
 			KeepAlive: i.TransportDialKeepAlive,
 		}).Dial,
-		TLSHandshakeTimeout: i.TransportTLSHandshakeTimeout,
 		DisableKeepAlives:   i.TransportDisableKeepAlives,
+		MaxIdleConns:        i.TransportMaxIdleConns,
+		IdleConnTimeout:     i.TransportIdleConnTimeout,
 		MaxIdleConnsPerHost: i.TransportMaxIdleConnsPerHost,
+		TLSHandshakeTimeout: i.TransportTLSHandshakeTimeout,
 	}
 
 	// Configure SSL

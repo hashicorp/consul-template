@@ -267,6 +267,8 @@ func TestConsulConfig_Finalize(t *testing.T) {
 					DialKeepAlive:       TimeDuration(DefaultDialKeepAlive),
 					DialTimeout:         TimeDuration(DefaultDialTimeout),
 					DisableKeepAlives:   Bool(false),
+					IdleConnTimeout:     TimeDuration(DefaultIdleConnTimeout),
+					MaxIdleConns:        Int(DefaultMaxIdleConns),
 					MaxIdleConnsPerHost: Int(DefaultMaxIdleConnsPerHost),
 					TLSHandshakeTimeout: TimeDuration(DefaultTLSHandshakeTimeout),
 				},
