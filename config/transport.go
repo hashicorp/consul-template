@@ -17,6 +17,12 @@ const (
 	// DefaultMaxIdleConnsPerHost is the default number of idle connections to use
 	// per host.
 	DefaultMaxIdleConnsPerHost = 5
+	// DefaultIdleConnTimeout is the default connection timeout for idle
+	// connections.
+	DefaultIdleConnTimeout = 90 * time.Second
+
+	// DefaultMaxIdleConns is the default number of maximum idle connections.
+	DefaultMaxIdleConns = 100
 
 	// DefaultTLSHandshakeTimeout is the amount of time to negotiate the TLS
 	// handshake.
@@ -35,6 +41,12 @@ type TransportConfig struct {
 	// DisableKeepAlives determines if keep-alives should be used. Disabling this
 	// significantly decreases performance.
 	DisableKeepAlives *bool `mapstructure:"disable_keep_alives"`
+
+	// IdleConnTimeout is the timeout for idle connections.
+	IdleConnTimeout *time.Duration `mapstructure:"idle_conn_timeout"`
+
+	// MaxIdleConns is the maximum number of total idle connections.
+	MaxIdleConns *int `mapstructure:"max_idle_conns"`
 
 	// MaxIdleConnsPerHost is the maximum number of idle connections per remote
 	// host.
@@ -62,6 +74,8 @@ func (c *TransportConfig) Copy() *TransportConfig {
 	o.DialKeepAlive = c.DialKeepAlive
 	o.DialTimeout = c.DialTimeout
 	o.DisableKeepAlives = c.DisableKeepAlives
+	o.IdleConnTimeout = c.IdleConnTimeout
+	o.MaxIdleConns = c.MaxIdleConns
 	o.MaxIdleConnsPerHost = c.MaxIdleConnsPerHost
 	o.TLSHandshakeTimeout = c.TLSHandshakeTimeout
 
@@ -98,6 +112,14 @@ func (c *TransportConfig) Merge(o *TransportConfig) *TransportConfig {
 		r.DisableKeepAlives = o.DisableKeepAlives
 	}
 
+	if o.IdleConnTimeout != nil {
+		r.IdleConnTimeout = o.IdleConnTimeout
+	}
+
+	if o.MaxIdleConns != nil {
+		r.MaxIdleConns = o.MaxIdleConns
+	}
+
 	if o.MaxIdleConnsPerHost != nil {
 		r.MaxIdleConnsPerHost = o.MaxIdleConnsPerHost
 	}
@@ -121,6 +143,14 @@ func (c *TransportConfig) Finalize() {
 
 	if c.DisableKeepAlives == nil {
 		c.DisableKeepAlives = Bool(false)
+	}
+
+	if c.IdleConnTimeout == nil {
+		c.IdleConnTimeout = TimeDuration(DefaultIdleConnTimeout)
+	}
+
+	if c.MaxIdleConns == nil {
+		c.MaxIdleConns = Int(DefaultMaxIdleConns)
 	}
 
 	if c.MaxIdleConnsPerHost == nil {

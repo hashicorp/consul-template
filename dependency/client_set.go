@@ -108,9 +108,11 @@ func (c *ClientSet) CreateConsulClient(i *CreateConsulClientInput) error {
 			Timeout:   i.TransportDialTimeout,
 			KeepAlive: i.TransportDialKeepAlive,
 		}).Dial,
-		TLSHandshakeTimeout: i.TransportTLSHandshakeTimeout,
 		DisableKeepAlives:   i.TransportDisableKeepAlives,
+		MaxIdleConns:        i.TransportMaxIdleConns,
+		IdleConnTimeout:     i.TransportIdleConnTimeout,
 		MaxIdleConnsPerHost: i.TransportMaxIdleConnsPerHost,
+		TLSHandshakeTimeout: i.TransportTLSHandshakeTimeout,
 	}
 
 	// Configure SSL
@@ -196,9 +198,11 @@ func (c *ClientSet) CreateVaultClient(i *CreateVaultClientInput) error {
 			Timeout:   i.TransportDialTimeout,
 			KeepAlive: i.TransportDialKeepAlive,
 		}).Dial,
-		TLSHandshakeTimeout: i.TransportTLSHandshakeTimeout,
 		DisableKeepAlives:   i.TransportDisableKeepAlives,
+		MaxIdleConns:        i.TransportMaxIdleConns,
+		IdleConnTimeout:     i.TransportIdleConnTimeout,
 		MaxIdleConnsPerHost: i.TransportMaxIdleConnsPerHost,
+		TLSHandshakeTimeout: i.TransportTLSHandshakeTimeout,
 	}
 
 	// Configure SSL
