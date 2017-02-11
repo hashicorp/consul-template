@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"runtime"
 	"time"
 )
 
@@ -14,9 +15,6 @@ const (
 	// out.
 	DefaultDialTimeout = 30 * time.Second
 
-	// DefaultMaxIdleConnsPerHost is the default number of idle connections to use
-	// per host.
-	DefaultMaxIdleConnsPerHost = 5
 	// DefaultIdleConnTimeout is the default connection timeout for idle
 	// connections.
 	DefaultIdleConnTimeout = 90 * time.Second
@@ -27,6 +25,12 @@ const (
 	// DefaultTLSHandshakeTimeout is the amount of time to negotiate the TLS
 	// handshake.
 	DefaultTLSHandshakeTimeout = 10 * time.Second
+)
+
+var (
+	// DefaultMaxIdleConnsPerHost is the default number of idle connections to use
+	// per host.
+	DefaultMaxIdleConnsPerHost = runtime.GOMAXPROCS(0) + 1
 )
 
 // TransportConfig is the configuration to tune low-level APIs for the
