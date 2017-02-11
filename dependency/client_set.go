@@ -53,6 +53,8 @@ type CreateConsulClientInput struct {
 	TransportDialKeepAlive       time.Duration
 	TransportDialTimeout         time.Duration
 	TransportDisableKeepAlives   bool
+	TransportIdleConnTimeout     time.Duration
+	TransportMaxIdleConns        int
 	TransportMaxIdleConnsPerHost int
 	TransportTLSHandshakeTimeout time.Duration
 }
@@ -73,6 +75,8 @@ type CreateVaultClientInput struct {
 	TransportDialKeepAlive       time.Duration
 	TransportDialTimeout         time.Duration
 	TransportDisableKeepAlives   bool
+	TransportIdleConnTimeout     time.Duration
+	TransportMaxIdleConns        int
 	TransportMaxIdleConnsPerHost int
 	TransportTLSHandshakeTimeout time.Duration
 }
