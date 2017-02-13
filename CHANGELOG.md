@@ -6,6 +6,7 @@ Consul Template Changelog
 IMPROVEMENTS:
 
   * Add missing HTTP transport configuration options
+  * Add `modulo` function for performing modulo math
 
 BUG FIXES:
 
