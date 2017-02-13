@@ -1596,7 +1596,7 @@ Returns the difference of the second value from the first.
 This can also be used with a pipe function.
 
 ```liquid
-{{ 5 | subtract 2 }}
+{{ 5 | subtract 2 }} // 3
 ```
 
 Please take careful note of the order of arguments.
@@ -1630,6 +1630,22 @@ This can also be used with a pipe function.
 ```
 
 Please take careful note of the order or arguments.
+
+##### `modulo`
+
+Returns the modulo of the second value from the first.
+
+```liquid
+{{ modulo 2 5 }} // 1
+```
+
+This can also be used with a pipe function.
+
+```liquid
+{{ 5 | modulo 2 }} // 1
+```
+
+Please take careful note of the order of arguments.
 
 ## Plugins
 

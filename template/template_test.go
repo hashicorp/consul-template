@@ -1266,6 +1266,15 @@ func TestTemplate_Execute(t *testing.T) {
 			"1",
 			false,
 		},
+		{
+			"math_modulo",
+			`{{ 3 | modulo 2 }}`,
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"1",
+			false,
+		},
 	}
 
 	for i, tc := range cases {
