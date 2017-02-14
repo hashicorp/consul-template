@@ -259,7 +259,7 @@ wait {
 vault {
   # This is the address of the Vault leader. The protocol (http(s)) portion
   # of the address is required.
-  address = "https:#vault.service.consul:8200"
+  address = "https://vault.service.consul:8200"
 
   # This is the token to use when communicating with the Vault server.
   # Like other tools that integrate with Vault, Consul Template makes the
