@@ -2100,6 +2100,6 @@ go test ./... -run SomeTestFunction_name
 [consul]: https://www.consul.io "Consul by HashiCorp"
 [examples]: (https://github.com/hashicorp/consul-template/tree/master/examples) "Consul Template Examples"
 [hcl]: https://github.com/hashicorp/hcl "HashiCorp Configuration Language (hcl)"
-[releases]: (https://releases.hashicorp.com/consul-template) "Consul Template Releases"
+[releases]: (ttps://releases.hashicorp.com/consul-template "Consul Template Releases"
 [text-template]: https://golang.org/pkg/text/template/ "Go's text/template package"
 [vault]: https://www.vaultproject.io "Vault by HashiCorp"
