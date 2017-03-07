@@ -151,7 +151,7 @@ consul {
   # This option is also available via the environment variable CONSUL_TOKEN.
   token = "abcd1234"
 
-  # This controls the retry behavior when an error is returned fro Consul.
+  # This controls the retry behavior when an error is returned from Consul.
   # Consul Template is highly fault tolerant, meaning it does not exit in the
   # face of failure. Instead, it uses exponential back-off and retry functions
   # to wait for the cluster to become available, as is customary in distributed
