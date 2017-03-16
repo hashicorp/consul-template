@@ -1502,7 +1502,7 @@ renders
 Takes the argument as a string and converts it to lowercase.
 
 ```liquid
-{ {key "user/name" | toLower }}
+{{ key "user/name" | toLower }}
 ```
 
 See [Go's `strings.ToLower`](http://golang.org/pkg/strings/#ToLower) for more
