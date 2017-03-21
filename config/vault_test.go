@@ -360,6 +360,42 @@ func TestVaultConfig_Finalize(t *testing.T) {
 				UnwrapToken: Bool(DefaultVaultUnwrapToken),
 			},
 		},
+		{
+			"with_ssl_config",
+			&VaultConfig{
+				Address: String("address"),
+			},
+			&VaultConfig{
+				Address:    String("address"),
+				Enabled:    Bool(true),
+				RenewToken: Bool(DefaultVaultRenewToken),
+				Retry: &RetryConfig{
+					Backoff:  TimeDuration(DefaultRetryBackoff),
+					Enabled:  Bool(true),
+					Attempts: Int(DefaultRetryAttempts),
+				},
+				SSL: &SSLConfig{
+					CaCert:     String(""),
+					CaPath:     String(""),
+					Cert:       String(""),
+					Enabled:    Bool(true),
+					Key:        String(""),
+					ServerName: String(""),
+					Verify:     Bool(true),
+				},
+				Token: String(""),
+				Transport: &TransportConfig{
+					DialKeepAlive:       TimeDuration(DefaultDialKeepAlive),
+					DialTimeout:         TimeDuration(DefaultDialTimeout),
+					DisableKeepAlives:   Bool(false),
+					IdleConnTimeout:     TimeDuration(DefaultIdleConnTimeout),
+					MaxIdleConns:        Int(DefaultMaxIdleConns),
+					MaxIdleConnsPerHost: Int(DefaultMaxIdleConnsPerHost),
+					TLSHandshakeTimeout: TimeDuration(DefaultTLSHandshakeTimeout),
+				},
+				UnwrapToken: Bool(DefaultVaultUnwrapToken),
+			},
+		},
 	}
 
 	for i, tc := range cases {

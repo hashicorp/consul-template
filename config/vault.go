@@ -173,14 +173,29 @@ func (c *VaultConfig) Finalize() {
 	}
 	c.Retry.Finalize()
 
+	// Vault has custom SSL settings
 	if c.SSL == nil {
 		c.SSL = DefaultSSLConfig()
+	}
+	if c.SSL.Enabled == nil {
 		c.SSL.Enabled = Bool(true)
+	}
+	if c.SSL.CaCert == nil {
 		c.SSL.CaCert = stringFromEnv([]string{api.EnvVaultCACert}, "")
+	}
+	if c.SSL.CaPath == nil {
 		c.SSL.CaPath = stringFromEnv([]string{api.EnvVaultCAPath}, "")
+	}
+	if c.SSL.Cert == nil {
 		c.SSL.Cert = stringFromEnv([]string{api.EnvVaultClientCert}, "")
+	}
+	if c.SSL.Key == nil {
 		c.SSL.Key = stringFromEnv([]string{api.EnvVaultClientKey}, "")
+	}
+	if c.SSL.ServerName == nil {
 		c.SSL.ServerName = stringFromEnv([]string{api.EnvVaultTLSServerName}, "")
+	}
+	if c.SSL.Verify == nil {
 		c.SSL.Verify = antiboolFromEnv([]string{api.EnvVaultInsecure}, true)
 	}
 	c.SSL.Finalize()
