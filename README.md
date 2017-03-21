@@ -220,13 +220,6 @@ dump_signal = "SIGQUIT"
 # to not listen for any graceful stop signals.
 kill_signal = "SIGINT"
 
-# This is customization around the environment in which template commands are
-# executed. See the "exec" block for more information on the specific
-# configuration options.
-env {
-  # ...
-}
-
 # This is the maximum interval to allow "stale" data. By default, only the
 # Consul leader will respond to queries; any requests to a follower will
 # forward to the leader. In large clusters with many requests, this is not as
