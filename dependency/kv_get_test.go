@@ -132,8 +132,8 @@ func TestNewKVGetQuery(t *testing.T) {
 func TestKVGetQuery_Fetch(t *testing.T) {
 	t.Parallel()
 
-	testConsul.SetKV("key", []byte("value"))
-	testConsul.SetKV("key_empty", []byte(""))
+	testConsul.SetKV(t, "test-kv-get/key", []byte("value"))
+	testConsul.SetKV(t, "test-kv-get/key_empty", []byte(""))
 
 	cases := []struct {
 		name string
@@ -142,17 +142,17 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 	}{
 		{
 			"exists",
-			"key",
+			"test-kv-get/key",
 			"value",
 		},
 		{
 			"exists_empty_string",
-			"key_empty",
+			"test-kv-get/key_empty",
 			"",
 		},
 		{
 			"no_exist",
-			"not/a/real/key/like/ever",
+			"test-kv-get/not/a/real/key/like/ever",
 			nil,
 		},
 	}
@@ -174,7 +174,7 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 	}
 
 	t.Run("stops", func(t *testing.T) {
-		d, err := NewKVGetQuery("key")
+		d, err := NewKVGetQuery("test-kv-get/key")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -211,7 +211,7 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 	})
 
 	t.Run("fires_changes", func(t *testing.T) {
-		d, err := NewKVGetQuery("key")
+		d, err := NewKVGetQuery("test-kv-get/key")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -235,7 +235,7 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 			}
 		}()
 
-		testConsul.SetKV("key", []byte("new-value"))
+		testConsul.SetKV(t, "test-kv-get/key", []byte("new-value"))
 
 		select {
 		case err := <-errCh:

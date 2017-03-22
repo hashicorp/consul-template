@@ -3,6 +3,7 @@ package dependency
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net"
 	"os"
 	"reflect"
@@ -24,19 +25,44 @@ var testConsul *testutil.TestServer
 var testClients *ClientSet
 
 func TestMain(m *testing.M) {
-	testConsul = testutil.NewTestServerConfig(&testing.T{}, func(c *testutil.TestServerConfig) {
+	consul, err := testutil.NewTestServerConfig(func(c *testutil.TestServerConfig) {
 		c.LogLevel = "warn"
 		c.Stdout = ioutil.Discard
 		c.Stderr = ioutil.Discard
 	})
-	defer testConsul.Stop()
+	if err != nil {
+		log.Fatal("failed to start consul server")
+	}
+	testConsul = consul
 
-	testClients = NewClientSet()
-	testClients.CreateConsulClient(&CreateConsulClientInput{
+	clients := NewClientSet()
+	if err := clients.CreateConsulClient(&CreateConsulClientInput{
 		Address: testConsul.HTTPAddr,
-	})
+	}); err != nil {
+		testConsul.Stop()
+		log.Fatal(err)
+	}
+	testClients = clients
 
-	os.Exit(m.Run())
+	exitCh := make(chan int, 1)
+	func() {
+		defer func() {
+			// Attempt to recover from a panic and stop the server. If we don't stop
+			// it, the panic will cause the server to remain running in the
+			// background. Here we catch the panic and the re-raise it.
+			if r := recover(); r != nil {
+				testConsul.Stop()
+				panic(r)
+			}
+		}()
+
+		exitCh <- m.Run()
+	}()
+
+	exit := <-exitCh
+
+	testConsul.Stop()
+	os.Exit(exit)
 }
 
 func TestCanShare(t *testing.T) {

@@ -147,9 +147,9 @@ func TestNewKVKeysQuery(t *testing.T) {
 func TestKVKeysQuery_Fetch(t *testing.T) {
 	t.Parallel()
 
-	testConsul.SetKV("prefix/foo", []byte("bar"))
-	testConsul.SetKV("prefix/zip", []byte("zap"))
-	testConsul.SetKV("prefix/wave/ocean", []byte("sleek"))
+	testConsul.SetKV(t, "test-kv-keys/prefix/foo", []byte("bar"))
+	testConsul.SetKV(t, "test-kv-keys/prefix/zip", []byte("zap"))
+	testConsul.SetKV(t, "test-kv-keys/prefix/wave/ocean", []byte("sleek"))
 
 	cases := []struct {
 		name string
@@ -158,17 +158,17 @@ func TestKVKeysQuery_Fetch(t *testing.T) {
 	}{
 		{
 			"exists",
-			"prefix",
+			"test-kv-keys/prefix",
 			[]string{"foo", "wave/ocean", "zip"},
 		},
 		{
 			"trailing",
-			"prefix/",
+			"test-kv-keys/prefix/",
 			[]string{"foo", "wave/ocean", "zip"},
 		},
 		{
 			"no_exist",
-			"not/a/real/prefix/like/ever",
+			"test-kv-keys/not/a/real/prefix/like/ever",
 			[]string{},
 		},
 	}
@@ -190,7 +190,7 @@ func TestKVKeysQuery_Fetch(t *testing.T) {
 	}
 
 	t.Run("stops", func(t *testing.T) {
-		d, err := NewKVKeysQuery("prefix")
+		d, err := NewKVKeysQuery("test-kv-keys/prefix")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -227,7 +227,7 @@ func TestKVKeysQuery_Fetch(t *testing.T) {
 	})
 
 	t.Run("fires_changes", func(t *testing.T) {
-		d, err := NewKVKeysQuery("prefix/")
+		d, err := NewKVKeysQuery("test-kv-keys/prefix/")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -251,7 +251,7 @@ func TestKVKeysQuery_Fetch(t *testing.T) {
 			}
 		}()
 
-		testConsul.SetKV("prefix/zebra", []byte("value"))
+		testConsul.SetKV(t, "test-kv-keys/prefix/zebra", []byte("value"))
 
 		select {
 		case err := <-errCh:

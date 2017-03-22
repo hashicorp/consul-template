@@ -1,55 +1,17 @@
 package manager
 
 import (
-	"io/ioutil"
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul-template/config"
 	"github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul-template/template"
-	"github.com/hashicorp/consul/testutil"
 )
-
-func testConsulServer(t *testing.T) *testutil.TestServer {
-	return testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
-		c.Stdout = ioutil.Discard
-		c.Stderr = ioutil.Discard
-	})
-}
-
-func testDedupManager(t *testing.T, addr string, tmpls []*template.Template) *DedupManager {
-	// Setup the configuration
-	c := config.TestConfig(&config.Config{
-		Consul: &config.ConsulConfig{
-			Address: config.String(addr),
-		},
-	})
-
-	// Create the clientset
-	clients, err := newClientSet(c)
-	if err != nil {
-		t.Fatalf("runner: %s", err)
-	}
-
-	// Setup a brain
-	brain := template.NewBrain()
-
-	// Create the dedup manager
-	dedup, err := NewDedupManager(c.Dedup, clients, brain, tmpls)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return dedup
-}
 
 func TestDedup_StartStop(t *testing.T) {
 	t.Parallel()
 
-	consul := testConsulServer(t)
-	defer consul.Stop()
-
-	dedup := testDedupManager(t, consul.HTTPAddr, nil)
+	dedup := testDedupManager(t, nil)
 
 	// Start and stop
 	if err := dedup.Start(); err != nil {
@@ -65,16 +27,13 @@ func TestDedup_IsLeader(t *testing.T) {
 
 	// Create a template
 	tmpl, err := template.NewTemplate(&template.NewTemplateInput{
-		Contents: `{{ range service "consul" }}{{ .Node }}{{ end }}`,
+		Contents: `template-1 {{ range service "consul" }}{{ .Node }}{{ end }}`,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	consul := testConsulServer(t)
-	defer consul.Stop()
-
-	dedup := testDedupManager(t, consul.HTTPAddr, []*template.Template{tmpl})
+	dedup := testDedupManager(t, []*template.Template{tmpl})
 	if err := dedup.Start(); err != nil {
 		t.Fatal(err)
 	}
@@ -98,16 +57,13 @@ func TestDedup_UpdateDeps(t *testing.T) {
 
 	// Create a template
 	tmpl, err := template.NewTemplate(&template.NewTemplateInput{
-		Contents: `{{ range service "consul" }}{{ .Node }}{{ end }}`,
+		Contents: `template-2 {{ range service "consul" }}{{ .Node }}{{ end }}`,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	consul := testConsulServer(t)
-	defer consul.Stop()
-
-	dedup := testDedupManager(t, consul.HTTPAddr, []*template.Template{tmpl})
+	dedup := testDedupManager(t, []*template.Template{tmpl})
 	if err := dedup.Start(); err != nil {
 		t.Fatal(err)
 	}
@@ -141,22 +97,19 @@ func TestDedup_FollowerUpdate(t *testing.T) {
 
 	// Create a template
 	tmpl, err := template.NewTemplate(&template.NewTemplateInput{
-		Contents: `{{ range service "consul" }}{{ .Node }}{{ end }}`,
+		Contents: `template-3 {{ range service "consul" }}{{ .Node }}{{ end }}`,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	consul := testConsulServer(t)
-	defer consul.Stop()
-
-	dedup1 := testDedupManager(t, consul.HTTPAddr, []*template.Template{tmpl})
+	dedup1 := testDedupManager(t, []*template.Template{tmpl})
 	if err := dedup1.Start(); err != nil {
 		t.Fatal(err)
 	}
 	defer dedup1.Stop()
 
-	dedup2 := testDedupManager(t, consul.HTTPAddr, []*template.Template{tmpl})
+	dedup2 := testDedupManager(t, []*template.Template{tmpl})
 	if err := dedup2.Start(); err != nil {
 		t.Fatal(err)
 	}

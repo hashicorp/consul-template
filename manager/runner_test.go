@@ -457,10 +457,7 @@ func TestRunner_Start(t *testing.T) {
 	t.Run("single_dependency", func(t *testing.T) {
 		t.Parallel()
 
-		consul := testConsulServer(t)
-		defer consul.Stop()
-
-		consul.SetKV("foo", []byte("bar"))
+		testConsul.SetKV(t, "foo", []byte("bar"))
 
 		out, err := ioutil.TempFile("", "")
 		if err != nil {
@@ -470,7 +467,7 @@ func TestRunner_Start(t *testing.T) {
 
 		c := config.DefaultConfig().Merge(&config.Config{
 			Consul: &config.ConsulConfig{
-				Address: config.String(consul.HTTPAddr),
+				Address: config.String(testConsul.HTTPAddr),
 			},
 			Templates: &config.TemplateConfigs{
 				&config.TemplateConfig{
@@ -509,11 +506,8 @@ func TestRunner_Start(t *testing.T) {
 	t.Run("multipass", func(t *testing.T) {
 		t.Parallel()
 
-		consul := testConsulServer(t)
-		defer consul.Stop()
-
-		consul.SetKV("foo", []byte("bar"))
-		consul.SetKV("bar", []byte("zip"))
+		testConsul.SetKV(t, "foo", []byte("bar"))
+		testConsul.SetKV(t, "bar", []byte("zip"))
 
 		out, err := ioutil.TempFile("", "")
 		if err != nil {
@@ -523,7 +517,7 @@ func TestRunner_Start(t *testing.T) {
 
 		c := config.DefaultConfig().Merge(&config.Config{
 			Consul: &config.ConsulConfig{
-				Address: config.String(consul.HTTPAddr),
+				Address: config.String(testConsul.HTTPAddr),
 			},
 			Templates: &config.TemplateConfigs{
 				&config.TemplateConfig{
