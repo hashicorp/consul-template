@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -18,6 +19,25 @@ import (
 
 	logxi "github.com/mgutz/logxi/v1"
 )
+
+var testConsul *testutil.TestServer
+var testClients *ClientSet
+
+func TestMain(m *testing.M) {
+	testConsul = testutil.NewTestServerConfig(&testing.T{}, func(c *testutil.TestServerConfig) {
+		c.LogLevel = "warn"
+		c.Stdout = ioutil.Discard
+		c.Stderr = ioutil.Discard
+	})
+	defer testConsul.Stop()
+
+	testClients = NewClientSet()
+	testClients.CreateConsulClient(&CreateConsulClientInput{
+		Address: testConsul.HTTPAddr,
+	})
+
+	os.Exit(m.Run())
+}
 
 func TestCanShare(t *testing.T) {
 	t.Parallel()
@@ -48,26 +68,6 @@ func TestDeepCopyAndSortTags(t *testing.T) {
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("expected %#v to be %#v", result, expected)
 	}
-}
-
-// testConsulServer is a helper for creating a Consul server and returning the
-// appropriate configuration to connect to it.
-func testConsulServer(t *testing.T) (*ClientSet, *testutil.TestServer) {
-	consul := testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
-		c.LogLevel = "warn"
-		c.Stdout = ioutil.Discard
-		c.Stderr = ioutil.Discard
-	})
-
-	clients := NewClientSet()
-	if err := clients.CreateConsulClient(&CreateConsulClientInput{
-		Address: consul.HTTPAddr,
-	}); err != nil {
-		consul.Stop()
-		t.Fatalf("clientset: %s", err)
-	}
-
-	return clients, consul
 }
 
 type vaultServer struct {

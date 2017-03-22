@@ -46,9 +46,6 @@ func TestNewCatalogDatacentersQuery(t *testing.T) {
 func TestCatalogDatacentersQuery_Fetch(t *testing.T) {
 	t.Parallel()
 
-	clients, consul := testConsulServer(t)
-	defer consul.Stop()
-
 	cases := []struct {
 		name string
 		exp  []string
@@ -66,7 +63,7 @@ func TestCatalogDatacentersQuery_Fetch(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			act, _, err := d.Fetch(clients, nil)
+			act, _, err := d.Fetch(testClients, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -85,7 +82,7 @@ func TestCatalogDatacentersQuery_Fetch(t *testing.T) {
 		errCh := make(chan error, 1)
 		go func() {
 			for {
-				data, _, err := d.Fetch(clients, &QueryOptions{WaitIndex: 10})
+				data, _, err := d.Fetch(testClients, &QueryOptions{WaitIndex: 10})
 				if err != nil {
 					errCh <- err
 					return
@@ -118,7 +115,7 @@ func TestCatalogDatacentersQuery_Fetch(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		_, qm, err := d.Fetch(clients, nil)
+		_, qm, err := d.Fetch(testClients, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -127,7 +124,7 @@ func TestCatalogDatacentersQuery_Fetch(t *testing.T) {
 		errCh := make(chan error, 1)
 		go func() {
 			for {
-				data, _, err := d.Fetch(clients, &QueryOptions{WaitIndex: qm.LastIndex})
+				data, _, err := d.Fetch(testClients, &QueryOptions{WaitIndex: qm.LastIndex})
 				if err != nil {
 					errCh <- err
 					return
