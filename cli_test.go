@@ -863,6 +863,12 @@ func TestCLI_Run(t *testing.T) {
 			t.Fatal(err)
 		}
 
+		dest, err := ioutil.TempFile("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.Remove(dest.Name())
+
 		testConsul.SetKVString(t, "once-foo", "bar")
 
 		out := gatedio.NewByteBuffer()
@@ -872,10 +878,9 @@ func TestCLI_Run(t *testing.T) {
 		go func() {
 			ch <- cli.Run([]string{"consul-template",
 				"-once",
-				"-dry",
 				"-consul-addr", testConsul.HTTPAddr,
 				"-vault-renew-token=false",
-				"-template", f.Name(),
+				"-template", f.Name() + ":" + dest.Name(),
 			})
 		}()
 
@@ -884,8 +889,13 @@ func TestCLI_Run(t *testing.T) {
 			if status != ExitCodeOK {
 				t.Errorf("\nexp: %#v\nact: %#v", status, ExitCodeOK)
 			}
-			if !strings.Contains("bar", out.String()) {
-				t.Errorf("\nexp: %#v\nact: %v", "bar", out.String())
+			b, err := ioutil.ReadFile(dest.Name())
+			if err != nil {
+				t.Errorf("\nerror reading file: %s\nout: %s", err, out.String())
+			}
+			contents := string(b)
+			if !strings.Contains("bar", contents) {
+				t.Errorf("\nexp: %v\nact: %v\nout: %s", "bar", contents, out.String())
 			}
 		case <-time.After(2 * time.Second):
 			t.Errorf("timeout: %q", out.String())
