@@ -3,7 +3,9 @@ package dependency
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -18,6 +20,50 @@ import (
 
 	logxi "github.com/mgutz/logxi/v1"
 )
+
+var testConsul *testutil.TestServer
+var testClients *ClientSet
+
+func TestMain(m *testing.M) {
+	consul, err := testutil.NewTestServerConfig(func(c *testutil.TestServerConfig) {
+		c.LogLevel = "warn"
+		c.Stdout = ioutil.Discard
+		c.Stderr = ioutil.Discard
+	})
+	if err != nil {
+		log.Fatal("failed to start consul server")
+	}
+	testConsul = consul
+
+	clients := NewClientSet()
+	if err := clients.CreateConsulClient(&CreateConsulClientInput{
+		Address: testConsul.HTTPAddr,
+	}); err != nil {
+		testConsul.Stop()
+		log.Fatal(err)
+	}
+	testClients = clients
+
+	exitCh := make(chan int, 1)
+	func() {
+		defer func() {
+			// Attempt to recover from a panic and stop the server. If we don't stop
+			// it, the panic will cause the server to remain running in the
+			// background. Here we catch the panic and the re-raise it.
+			if r := recover(); r != nil {
+				testConsul.Stop()
+				panic(r)
+			}
+		}()
+
+		exitCh <- m.Run()
+	}()
+
+	exit := <-exitCh
+
+	testConsul.Stop()
+	os.Exit(exit)
+}
 
 func TestCanShare(t *testing.T) {
 	t.Parallel()
@@ -48,26 +94,6 @@ func TestDeepCopyAndSortTags(t *testing.T) {
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("expected %#v to be %#v", result, expected)
 	}
-}
-
-// testConsulServer is a helper for creating a Consul server and returning the
-// appropriate configuration to connect to it.
-func testConsulServer(t *testing.T) (*ClientSet, *testutil.TestServer) {
-	consul := testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
-		c.LogLevel = "warn"
-		c.Stdout = ioutil.Discard
-		c.Stderr = ioutil.Discard
-	})
-
-	clients := NewClientSet()
-	if err := clients.CreateConsulClient(&CreateConsulClientInput{
-		Address: consul.HTTPAddr,
-	}); err != nil {
-		consul.Stop()
-		t.Fatalf("clientset: %s", err)
-	}
-
-	return clients, consul
 }
 
 type vaultServer struct {

@@ -145,9 +145,6 @@ func TestNewHealthServiceQuery(t *testing.T) {
 func TestHealthServiceQuery_Fetch(t *testing.T) {
 	t.Parallel()
 
-	clients, consul := testConsulServer(t)
-	defer consul.Stop()
-
 	cases := []struct {
 		name string
 		i    string
@@ -158,19 +155,19 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 			"consul",
 			[]*HealthService{
 				&HealthService{
-					Node:        consul.Config.NodeName,
-					NodeAddress: consul.Config.Bind,
+					Node:        testConsul.Config.NodeName,
+					NodeAddress: testConsul.Config.Bind,
 					NodeTaggedAddresses: map[string]string{
 						"lan": "127.0.0.1",
 						"wan": "127.0.0.1",
 					},
 					NodeMeta: map[string]string{},
-					Address:  consul.Config.Bind,
+					Address:  testConsul.Config.Bind,
 					ID:       "consul",
 					Name:     "consul",
 					Tags:     []string{},
 					Status:   "passing",
-					Port:     consul.Config.Ports.Server,
+					Port:     testConsul.Config.Ports.Server,
 				},
 			},
 		},
@@ -184,19 +181,19 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 			"consul|warning,passing",
 			[]*HealthService{
 				&HealthService{
-					Node:        consul.Config.NodeName,
-					NodeAddress: consul.Config.Bind,
+					Node:        testConsul.Config.NodeName,
+					NodeAddress: testConsul.Config.Bind,
 					NodeTaggedAddresses: map[string]string{
 						"lan": "127.0.0.1",
 						"wan": "127.0.0.1",
 					},
 					NodeMeta: map[string]string{},
-					Address:  consul.Config.Bind,
+					Address:  testConsul.Config.Bind,
 					ID:       "consul",
 					Name:     "consul",
 					Tags:     []string{},
 					Status:   "passing",
-					Port:     consul.Config.Ports.Server,
+					Port:     testConsul.Config.Ports.Server,
 				},
 			},
 		},
@@ -209,7 +206,7 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			act, _, err := d.Fetch(clients, nil)
+			act, _, err := d.Fetch(testClients, nil)
 			if err != nil {
 				t.Fatal(err)
 			}

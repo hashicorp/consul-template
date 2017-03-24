@@ -74,9 +74,6 @@ func TestNewCatalogNodesQuery(t *testing.T) {
 func TestCatalogNodesQuery_Fetch(t *testing.T) {
 	t.Parallel()
 
-	clients, consul := testConsulServer(t)
-	defer consul.Stop()
-
 	cases := []struct {
 		name string
 		i    string
@@ -87,8 +84,8 @@ func TestCatalogNodesQuery_Fetch(t *testing.T) {
 			"",
 			[]*Node{
 				&Node{
-					Node:    consul.Config.NodeName,
-					Address: consul.Config.Bind,
+					Node:    testConsul.Config.NodeName,
+					Address: testConsul.Config.Bind,
 					TaggedAddresses: map[string]string{
 						"lan": "127.0.0.1",
 						"wan": "127.0.0.1",
@@ -106,7 +103,7 @@ func TestCatalogNodesQuery_Fetch(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			act, _, err := d.Fetch(clients, nil)
+			act, _, err := d.Fetch(testClients, nil)
 			if err != nil {
 				t.Fatal(err)
 			}

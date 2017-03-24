@@ -12,16 +12,8 @@ import (
 
 	"github.com/hashicorp/consul-template/config"
 	"github.com/hashicorp/consul-template/test"
-	"github.com/hashicorp/consul/testutil"
 	gatedio "github.com/hashicorp/go-gatedio"
 )
-
-func testConsulServer(t *testing.T) *testutil.TestServer {
-	return testutil.NewTestServerConfig(t, func(c *testutil.TestServerConfig) {
-		c.Stdout = ioutil.Discard
-		c.Stderr = ioutil.Discard
-	})
-}
 
 func TestCLI_ParseFlags(t *testing.T) {
 	t.Parallel()
@@ -862,19 +854,22 @@ func TestCLI_Run(t *testing.T) {
 	t.Run("once", func(t *testing.T) {
 		t.Parallel()
 
-		consul := testConsulServer(t)
-		defer consul.Stop()
-
 		f, err := ioutil.TempFile("", "")
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer os.Remove(f.Name())
-		if _, err := f.WriteString(`{{ key "once_foo" }}`); err != nil {
+		if _, err := f.WriteString(`{{ key "once-foo" }}`); err != nil {
 			t.Fatal(err)
 		}
 
-		consul.SetKV("once_foo", []byte("bar"))
+		dest, err := ioutil.TempFile("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.Remove(dest.Name())
+
+		testConsul.SetKVString(t, "once-foo", "bar")
 
 		out := gatedio.NewByteBuffer()
 		cli := NewCLI(out, out)
@@ -883,9 +878,9 @@ func TestCLI_Run(t *testing.T) {
 		go func() {
 			ch <- cli.Run([]string{"consul-template",
 				"-once",
-				"-dry",
-				"-consul-addr", consul.HTTPAddr,
-				"-template", f.Name(),
+				"-consul-addr", testConsul.HTTPAddr,
+				"-vault-renew-token=false",
+				"-template", f.Name() + ":" + dest.Name(),
 			})
 		}()
 
@@ -894,8 +889,13 @@ func TestCLI_Run(t *testing.T) {
 			if status != ExitCodeOK {
 				t.Errorf("\nexp: %#v\nact: %#v", status, ExitCodeOK)
 			}
-			if !strings.Contains("bar", out.String()) {
-				t.Errorf("\nexp: %#v\nact: %#v", "bar", out.String())
+			b, err := ioutil.ReadFile(dest.Name())
+			if err != nil {
+				t.Errorf("\nerror reading file: %s\nout: %s", err, out.String())
+			}
+			contents := string(b)
+			if !strings.Contains("bar", contents) {
+				t.Errorf("\nexp: %v\nact: %v\nout: %s", "bar", contents, out.String())
 			}
 		case <-time.After(2 * time.Second):
 			t.Errorf("timeout: %q", out.String())
@@ -904,9 +904,6 @@ func TestCLI_Run(t *testing.T) {
 
 	t.Run("reload", func(t *testing.T) {
 		t.Parallel()
-
-		consul := testConsulServer(t)
-		defer consul.Stop()
 
 		f, err := ioutil.TempFile("", "")
 		if err != nil {
@@ -925,7 +922,7 @@ func TestCLI_Run(t *testing.T) {
 		go func() {
 			ch <- cli.Run([]string{"consul-template",
 				"-dry",
-				"-consul-addr", consul.HTTPAddr,
+				"-consul-addr", testConsul.HTTPAddr,
 				"-template", f.Name(),
 			})
 		}()

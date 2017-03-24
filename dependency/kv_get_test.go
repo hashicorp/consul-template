@@ -132,11 +132,8 @@ func TestNewKVGetQuery(t *testing.T) {
 func TestKVGetQuery_Fetch(t *testing.T) {
 	t.Parallel()
 
-	clients, consul := testConsulServer(t)
-	defer consul.Stop()
-
-	consul.SetKV("key", []byte("value"))
-	consul.SetKV("key_empty", []byte(""))
+	testConsul.SetKVString(t, "test-kv-get/key", "value")
+	testConsul.SetKVString(t, "test-kv-get/key_empty", "")
 
 	cases := []struct {
 		name string
@@ -145,17 +142,17 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 	}{
 		{
 			"exists",
-			"key",
+			"test-kv-get/key",
 			"value",
 		},
 		{
 			"exists_empty_string",
-			"key_empty",
+			"test-kv-get/key_empty",
 			"",
 		},
 		{
 			"no_exist",
-			"not/a/real/key/like/ever",
+			"test-kv-get/not/a/real/key/like/ever",
 			nil,
 		},
 	}
@@ -167,7 +164,7 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			act, _, err := d.Fetch(clients, nil)
+			act, _, err := d.Fetch(testClients, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -177,7 +174,7 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 	}
 
 	t.Run("stops", func(t *testing.T) {
-		d, err := NewKVGetQuery("key")
+		d, err := NewKVGetQuery("test-kv-get/key")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -186,7 +183,7 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 		errCh := make(chan error, 1)
 		go func() {
 			for {
-				data, _, err := d.Fetch(clients, nil)
+				data, _, err := d.Fetch(testClients, nil)
 				if err != nil {
 					errCh <- err
 					return
@@ -214,12 +211,12 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 	})
 
 	t.Run("fires_changes", func(t *testing.T) {
-		d, err := NewKVGetQuery("key")
+		d, err := NewKVGetQuery("test-kv-get/key")
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		_, qm, err := d.Fetch(clients, nil)
+		_, qm, err := d.Fetch(testClients, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -228,7 +225,7 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 		errCh := make(chan error, 1)
 		go func() {
 			for {
-				data, _, err := d.Fetch(clients, &QueryOptions{WaitIndex: qm.LastIndex})
+				data, _, err := d.Fetch(testClients, &QueryOptions{WaitIndex: qm.LastIndex})
 				if err != nil {
 					errCh <- err
 					return
@@ -238,7 +235,7 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 			}
 		}()
 
-		consul.SetKV("key", []byte("new-value"))
+		testConsul.SetKVString(t, "test-kv-get/key", "new-value")
 
 		select {
 		case err := <-errCh:

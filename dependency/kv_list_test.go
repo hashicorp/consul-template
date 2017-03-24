@@ -147,12 +147,9 @@ func TestNewKVListQuery(t *testing.T) {
 func TestKVListQuery_Fetch(t *testing.T) {
 	t.Parallel()
 
-	clients, consul := testConsulServer(t)
-	defer consul.Stop()
-
-	consul.SetKV("prefix/foo", []byte("bar"))
-	consul.SetKV("prefix/zip", []byte("zap"))
-	consul.SetKV("prefix/wave/ocean", []byte("sleek"))
+	testConsul.SetKVString(t, "test-kv-list/prefix/foo", "bar")
+	testConsul.SetKVString(t, "test-kv-list/prefix/zip", "zap")
+	testConsul.SetKVString(t, "test-kv-list/prefix/wave/ocean", "sleek")
 
 	cases := []struct {
 		name string
@@ -161,20 +158,20 @@ func TestKVListQuery_Fetch(t *testing.T) {
 	}{
 		{
 			"exists",
-			"prefix",
+			"test-kv-list/prefix",
 			[]*KeyPair{
 				&KeyPair{
-					Path:  "prefix/foo",
+					Path:  "test-kv-list/prefix/foo",
 					Key:   "foo",
 					Value: "bar",
 				},
 				&KeyPair{
-					Path:  "prefix/wave/ocean",
+					Path:  "test-kv-list/prefix/wave/ocean",
 					Key:   "wave/ocean",
 					Value: "sleek",
 				},
 				&KeyPair{
-					Path:  "prefix/zip",
+					Path:  "test-kv-list/prefix/zip",
 					Key:   "zip",
 					Value: "zap",
 				},
@@ -182,20 +179,20 @@ func TestKVListQuery_Fetch(t *testing.T) {
 		},
 		{
 			"trailing",
-			"prefix/",
+			"test-kv-list/prefix/",
 			[]*KeyPair{
 				&KeyPair{
-					Path:  "prefix/foo",
+					Path:  "test-kv-list/prefix/foo",
 					Key:   "foo",
 					Value: "bar",
 				},
 				&KeyPair{
-					Path:  "prefix/wave/ocean",
+					Path:  "test-kv-list/prefix/wave/ocean",
 					Key:   "wave/ocean",
 					Value: "sleek",
 				},
 				&KeyPair{
-					Path:  "prefix/zip",
+					Path:  "test-kv-list/prefix/zip",
 					Key:   "zip",
 					Value: "zap",
 				},
@@ -203,7 +200,7 @@ func TestKVListQuery_Fetch(t *testing.T) {
 		},
 		{
 			"no_exist",
-			"not/a/real/prefix/like/ever",
+			"test-kv-list/not/a/real/prefix/like/ever",
 			[]*KeyPair{},
 		},
 	}
@@ -215,7 +212,7 @@ func TestKVListQuery_Fetch(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			act, _, err := d.Fetch(clients, nil)
+			act, _, err := d.Fetch(testClients, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -230,7 +227,7 @@ func TestKVListQuery_Fetch(t *testing.T) {
 	}
 
 	t.Run("stops", func(t *testing.T) {
-		d, err := NewKVListQuery("prefix")
+		d, err := NewKVListQuery("test-kv-list/prefix")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -239,7 +236,7 @@ func TestKVListQuery_Fetch(t *testing.T) {
 		errCh := make(chan error, 1)
 		go func() {
 			for {
-				data, _, err := d.Fetch(clients, nil)
+				data, _, err := d.Fetch(testClients, nil)
 				if err != nil {
 					errCh <- err
 					return
@@ -261,18 +258,18 @@ func TestKVListQuery_Fetch(t *testing.T) {
 			if err != ErrStopped {
 				t.Fatal(err)
 			}
-		case <-time.After(100 * time.Millisecond):
+		case <-time.After(250 * time.Millisecond):
 			t.Errorf("did not stop")
 		}
 	})
 
 	t.Run("fires_changes", func(t *testing.T) {
-		d, err := NewKVListQuery("prefix/")
+		d, err := NewKVListQuery("test-kv-list/prefix/")
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		_, qm, err := d.Fetch(clients, nil)
+		_, qm, err := d.Fetch(testClients, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -281,7 +278,7 @@ func TestKVListQuery_Fetch(t *testing.T) {
 		errCh := make(chan error, 1)
 		go func() {
 			for {
-				data, _, err := d.Fetch(clients, &QueryOptions{WaitIndex: qm.LastIndex})
+				data, _, err := d.Fetch(testClients, &QueryOptions{WaitIndex: qm.LastIndex})
 				if err != nil {
 					errCh <- err
 					return
@@ -291,7 +288,7 @@ func TestKVListQuery_Fetch(t *testing.T) {
 			}
 		}()
 
-		consul.SetKV("prefix/foo", []byte("new-bar"))
+		testConsul.SetKVString(t, "test-kv-list/prefix/foo", "new-bar")
 
 		select {
 		case err := <-errCh:
@@ -307,7 +304,7 @@ func TestKVListQuery_Fetch(t *testing.T) {
 			act.ModifyIndex = 0
 
 			exp := &KeyPair{
-				Path:  "prefix/foo",
+				Path:  "test-kv-list/prefix/foo",
 				Key:   "foo",
 				Value: "new-bar",
 			}

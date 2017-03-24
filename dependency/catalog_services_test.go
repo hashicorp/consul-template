@@ -57,9 +57,6 @@ func TestNewCatalogServicesQuery(t *testing.T) {
 func TestCatalogServicesQuery_Fetch(t *testing.T) {
 	t.Parallel()
 
-	clients, consul := testConsulServer(t)
-	defer consul.Stop()
-
 	cases := []struct {
 		name string
 		i    string
@@ -84,7 +81,7 @@ func TestCatalogServicesQuery_Fetch(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			act, _, err := d.Fetch(clients, nil)
+			act, _, err := d.Fetch(testClients, nil)
 			if err != nil {
 				t.Fatal(err)
 			}

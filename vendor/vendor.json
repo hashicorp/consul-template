@@ -487,10 +487,11 @@
 			"revisionTime": "2017-02-04T06:31:51Z"
 		},
 		{
-			"checksumSHA1": "+uk5NnYcshPhdCs8hDCHYeT0xWQ=",
+			"checksumSHA1": "DBzfDW4YXG37V6Rr43ngttBANHc=",
 			"path": "github.com/hashicorp/consul/testutil",
-			"revision": "f228812746f270ffbd3bf10e861219f4b2ce1187",
-			"revisionTime": "2017-02-04T06:31:51Z"
+			"revision": "c05f81edf180d0e7a3b003cf48396058368464dd",
+			"revisionTime": "2017-03-24T00:57:01Z",
+			"tree": true
 		},
 		{
 			"checksumSHA1": "ZPDLNuKJGZJFV9HlJ/V0O4/c/Ko=",
