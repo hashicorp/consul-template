@@ -11,6 +11,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * Default transport max idle connections based on `GOMAXPROCS`
+  * Read `VAULT_*` envvars before finalizing [GH-914, GH-916]
 
 ## v0.18.1 (February 7, 2017)
 
