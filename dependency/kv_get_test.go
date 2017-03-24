@@ -132,8 +132,8 @@ func TestNewKVGetQuery(t *testing.T) {
 func TestKVGetQuery_Fetch(t *testing.T) {
 	t.Parallel()
 
-	testConsul.SetKV(t, "test-kv-get/key", []byte("value"))
-	testConsul.SetKV(t, "test-kv-get/key_empty", []byte(""))
+	testConsul.SetKVString(t, "test-kv-get/key", "value")
+	testConsul.SetKVString(t, "test-kv-get/key_empty", "")
 
 	cases := []struct {
 		name string
@@ -235,7 +235,7 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 			}
 		}()
 
-		testConsul.SetKV(t, "test-kv-get/key", []byte("new-value"))
+		testConsul.SetKVString(t, "test-kv-get/key", "new-value")
 
 		select {
 		case err := <-errCh:

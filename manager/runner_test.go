@@ -457,7 +457,7 @@ func TestRunner_Start(t *testing.T) {
 	t.Run("single_dependency", func(t *testing.T) {
 		t.Parallel()
 
-		testConsul.SetKV(t, "foo", []byte("bar"))
+		testConsul.SetKVString(t, "single-dep-foo", "bar")
 
 		out, err := ioutil.TempFile("", "")
 		if err != nil {
@@ -471,7 +471,7 @@ func TestRunner_Start(t *testing.T) {
 			},
 			Templates: &config.TemplateConfigs{
 				&config.TemplateConfig{
-					Contents:    config.String(`{{ key "foo" }}`),
+					Contents:    config.String(`{{ key "single-dep-foo" }}`),
 					Destination: config.String(out.Name()),
 				},
 			},
@@ -506,8 +506,8 @@ func TestRunner_Start(t *testing.T) {
 	t.Run("multipass", func(t *testing.T) {
 		t.Parallel()
 
-		testConsul.SetKV(t, "foo", []byte("bar"))
-		testConsul.SetKV(t, "bar", []byte("zip"))
+		testConsul.SetKVString(t, "multipass-foo", "multipass-bar")
+		testConsul.SetKVString(t, "multipass-bar", "zip")
 
 		out, err := ioutil.TempFile("", "")
 		if err != nil {
@@ -521,7 +521,7 @@ func TestRunner_Start(t *testing.T) {
 			},
 			Templates: &config.TemplateConfigs{
 				&config.TemplateConfig{
-					Contents:    config.String(`{{ key (key "foo") }}`),
+					Contents:    config.String(`{{ key (key "multipass-foo") }}`),
 					Destination: config.String(out.Name()),
 				},
 			},

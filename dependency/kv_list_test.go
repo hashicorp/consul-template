@@ -147,9 +147,9 @@ func TestNewKVListQuery(t *testing.T) {
 func TestKVListQuery_Fetch(t *testing.T) {
 	t.Parallel()
 
-	testConsul.SetKV(t, "test-kv-list/prefix/foo", []byte("bar"))
-	testConsul.SetKV(t, "test-kv-list/prefix/zip", []byte("zap"))
-	testConsul.SetKV(t, "test-kv-list/prefix/wave/ocean", []byte("sleek"))
+	testConsul.SetKVString(t, "test-kv-list/prefix/foo", "bar")
+	testConsul.SetKVString(t, "test-kv-list/prefix/zip", "zap")
+	testConsul.SetKVString(t, "test-kv-list/prefix/wave/ocean", "sleek")
 
 	cases := []struct {
 		name string
@@ -288,7 +288,7 @@ func TestKVListQuery_Fetch(t *testing.T) {
 			}
 		}()
 
-		testConsul.SetKV(t, "test-kv-list/prefix/foo", []byte("new-bar"))
+		testConsul.SetKVString(t, "test-kv-list/prefix/foo", "new-bar")
 
 		select {
 		case err := <-errCh:

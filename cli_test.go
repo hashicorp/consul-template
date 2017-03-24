@@ -859,11 +859,11 @@ func TestCLI_Run(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer os.Remove(f.Name())
-		if _, err := f.WriteString(`{{ key "once_foo" }}`); err != nil {
+		if _, err := f.WriteString(`{{ key "once-foo" }}`); err != nil {
 			t.Fatal(err)
 		}
 
-		testConsul.SetKV(t, "once_foo", []byte("bar"))
+		testConsul.SetKVString(t, "once-foo", "bar")
 
 		out := gatedio.NewByteBuffer()
 		cli := NewCLI(out, out)
