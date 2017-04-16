@@ -3,6 +3,8 @@ sudo: false
 
 language: go
 
+sudo: false
+
 go:
   - 1.7
 
