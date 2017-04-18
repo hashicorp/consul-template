@@ -5,6 +5,10 @@ Consul Template Changelog
 
 BUG FIXES:
 
+NOTABLE:
+
+  * Consul Template is now built with Go 1.8.1
+
 ## v0.18.2 (March 28, 2017)
 
 IMPROVEMENTS:
