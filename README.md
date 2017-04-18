@@ -660,7 +660,7 @@ For example:
 
 ```liquid
 {{ with node }}
-{{ .Address }}{{ end }}
+{{ .Node.Address }}{{ end }}
 ```
 
 renders
@@ -673,7 +673,7 @@ To query a different node:
 
 ```liquid
 {{ with node "node1@dc2" }}
-{{ .Address }}{{ end }}
+{{ .Node.Address }}{{ end }}
 ```
 
 renders
