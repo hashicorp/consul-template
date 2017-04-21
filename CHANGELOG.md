@@ -5,6 +5,8 @@ Consul Template Changelog
 
 BUG FIXES:
 
+  * Seed the random generator for splay values
+
 NOTABLE:
 
   * Consul Template is now built with Go 1.8.1
