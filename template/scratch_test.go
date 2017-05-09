@@ -303,7 +303,7 @@ func TestScratch_MapValues(t *testing.T) {
 				},
 			},
 			nil,
-			true,
+			false,
 		},
 	}
 
