@@ -147,8 +147,9 @@ func TestCatalogServiceQuery_Fetch(t *testing.T) {
 			"consul",
 			[]*CatalogService{
 				&CatalogService{
-					Node:    testConsul.Config.NodeName,
-					Address: testConsul.Config.Bind,
+					Node:       testConsul.Config.NodeName,
+					Address:    testConsul.Config.Bind,
+					Datacenter: "dc1",
 					TaggedAddresses: map[string]string{
 						"lan": "127.0.0.1",
 						"wan": "127.0.0.1",
