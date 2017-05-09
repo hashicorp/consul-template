@@ -3,10 +3,14 @@ Consul Template Changelog
 
 ## v0.18.3 (Unreleased)
 
+IMPROVEMENTS:
+
+  * Add support for local datacenter in node queries [GH-862, GH-927]
+  * Add support for service tags on health checks [Consul vendor update]
+
 BUG FIXES:
 
-  * Seed the random generator for splay values
-  * Add support for local datacenter in node queries [GH-862, GH-927]
+  * Seed the random generator for splay values  
 
 NOTABLE:
 
