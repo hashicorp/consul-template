@@ -364,11 +364,15 @@ START:
 	}
 	lastIndex = meta.LastIndex
 
-	if bytes.Equal(lastData, pair.Value) {
+	var data []byte
+	if pair != nil {
+		data = pair.Value
+	}
+	if bytes.Equal(lastData, data) {
 		log.Printf("[TRACE] (dedup) %s no new data (contents were the same)", path)
 		goto START
 	}
-	lastData = pair.Value
+	lastData = data
 
 	// If we are current the leader, wait for leadership lost
 	d.leaderLock.RLock()
