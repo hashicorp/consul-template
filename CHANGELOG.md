@@ -11,6 +11,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * Seed the random generator for splay values  
+  * Reset retries counter on successful contact [GH-931]
 
 NOTABLE:
 
