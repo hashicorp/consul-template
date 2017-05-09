@@ -6,10 +6,12 @@ Consul Template Changelog
 BUG FIXES:
 
   * Seed the random generator for splay values
+  * Add support for local datacenter in node queries [GH-862, GH-927]
 
 NOTABLE:
 
   * Consul Template is now built with Go 1.8.1
+  * Update internal library to Consul 0.8.2 - this should not affect any users
 
 ## v0.18.2 (March 28, 2017)
 
