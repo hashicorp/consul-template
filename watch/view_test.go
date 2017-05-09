@@ -151,6 +151,29 @@ func TestPoll_retries(t *testing.T) {
 	}
 }
 
+func TestFetch_resetRetries(t *testing.T) {
+	view, err := NewView(&NewViewInput{
+		Dependency: &TestDepSameIndex{},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	doneCh := make(chan struct{})
+	successCh := make(chan struct{})
+	errCh := make(chan error)
+
+	go view.fetch(doneCh, successCh, errCh)
+
+	select {
+	case <-successCh:
+	case <-doneCh:
+		t.Error("should not be done")
+	case err := <-errCh:
+		t.Errorf("error while fetching: %s", err)
+	}
+}
+
 func TestFetch_maxStale(t *testing.T) {
 	view, err := NewView(&NewViewInput{
 		Dependency: &TestDepStale{},
@@ -161,9 +184,10 @@ func TestFetch_maxStale(t *testing.T) {
 	}
 
 	doneCh := make(chan struct{})
+	successCh := make(chan struct{})
 	errCh := make(chan error)
 
-	go view.fetch(doneCh, errCh)
+	go view.fetch(doneCh, successCh, errCh)
 
 	select {
 	case <-doneCh:
@@ -185,9 +209,10 @@ func TestFetch_savesView(t *testing.T) {
 	}
 
 	doneCh := make(chan struct{})
+	successCh := make(chan struct{})
 	errCh := make(chan error)
 
-	go view.fetch(doneCh, errCh)
+	go view.fetch(doneCh, successCh, errCh)
 
 	select {
 	case <-doneCh:
@@ -209,9 +234,10 @@ func TestFetch_returnsErrCh(t *testing.T) {
 	}
 
 	doneCh := make(chan struct{})
+	successCh := make(chan struct{})
 	errCh := make(chan error)
 
-	go view.fetch(doneCh, errCh)
+	go view.fetch(doneCh, successCh, errCh)
 
 	select {
 	case <-doneCh:

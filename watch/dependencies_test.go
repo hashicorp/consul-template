@@ -97,6 +97,29 @@ func (d *TestDepFetchError) Type() dep.Type {
 	return dep.TypeLocal
 }
 
+var _ dep.Dependency = (*TestDepSameIndex)(nil)
+
+type TestDepSameIndex struct{}
+
+func (d *TestDepSameIndex) Fetch(clients *dep.ClientSet, opts *dep.QueryOptions) (interface{}, *dep.ResponseMetadata, error) {
+	meta := &dep.ResponseMetadata{LastIndex: 100}
+	return nil, meta, nil
+}
+
+func (d *TestDepSameIndex) CanShare() bool {
+	return true
+}
+
+func (d *TestDepSameIndex) Stop() {}
+
+func (d *TestDepSameIndex) String() string {
+	return "test_dep_same_index"
+}
+
+func (d *TestDepSameIndex) Type() dep.Type {
+	return dep.TypeLocal
+}
+
 // TestDepRetry is a special dependency that errors on the first fetch and
 // succeeds on subsequent fetches.
 type TestDepRetry struct {
