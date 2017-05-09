@@ -12,6 +12,8 @@ BUG FIXES:
 
   * Seed the random generator for splay values  
   * Reset retries counter on successful contact [GH-931]
+  * Return a nil slice instead of an error for non-existent maps
+      [GH-906, GH-932]
 
 NOTABLE:
 
