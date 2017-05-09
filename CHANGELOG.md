@@ -14,6 +14,8 @@ BUG FIXES:
   * Reset retries counter on successful contact [GH-931]
   * Return a nil slice instead of an error for non-existent maps
       [GH-906, GH-932]
+  * Do not return data in dedup mode if the template is unchanged
+      [GH-933 GH-698]
 
 NOTABLE:
 
