@@ -298,9 +298,10 @@ func TestVaultConfig_Finalize(t *testing.T) {
 				Enabled:    Bool(false),
 				RenewToken: Bool(DefaultVaultRenewToken),
 				Retry: &RetryConfig{
-					Backoff:  TimeDuration(DefaultRetryBackoff),
-					Enabled:  Bool(true),
-					Attempts: Int(DefaultRetryAttempts),
+					Backoff:    TimeDuration(DefaultRetryBackoff),
+					MaxBackoff: TimeDuration(DefaultRetryMaxBackoff),
+					Enabled:    Bool(true),
+					Attempts:   Int(DefaultRetryAttempts),
 				},
 				SSL: &SSLConfig{
 					CaCert:     String(""),
@@ -334,9 +335,10 @@ func TestVaultConfig_Finalize(t *testing.T) {
 				Enabled:    Bool(true),
 				RenewToken: Bool(DefaultVaultRenewToken),
 				Retry: &RetryConfig{
-					Backoff:  TimeDuration(DefaultRetryBackoff),
-					Enabled:  Bool(true),
-					Attempts: Int(DefaultRetryAttempts),
+					Backoff:    TimeDuration(DefaultRetryBackoff),
+					MaxBackoff: TimeDuration(DefaultRetryMaxBackoff),
+					Enabled:    Bool(true),
+					Attempts:   Int(DefaultRetryAttempts),
 				},
 				SSL: &SSLConfig{
 					CaCert:     String(""),
@@ -370,9 +372,10 @@ func TestVaultConfig_Finalize(t *testing.T) {
 				Enabled:    Bool(true),
 				RenewToken: Bool(DefaultVaultRenewToken),
 				Retry: &RetryConfig{
-					Backoff:  TimeDuration(DefaultRetryBackoff),
-					Enabled:  Bool(true),
-					Attempts: Int(DefaultRetryAttempts),
+					Backoff:    TimeDuration(DefaultRetryBackoff),
+					MaxBackoff: TimeDuration(DefaultRetryMaxBackoff),
+					Enabled:    Bool(true),
+					Attempts:   Int(DefaultRetryAttempts),
 				},
 				SSL: &SSLConfig{
 					CaCert:     String(""),

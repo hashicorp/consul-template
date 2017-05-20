@@ -28,6 +28,15 @@ func TestRetryConfig_Copy(t *testing.T) {
 				Enabled:  Bool(true),
 			},
 		},
+		{
+			"max_backoff",
+			&RetryConfig{
+				Attempts:   Int(0),
+				Backoff:    TimeDuration(20 * time.Second),
+				MaxBackoff: TimeDuration(100 * time.Second),
+				Enabled:    Bool(true),
+			},
+		},
 	}
 
 	for i, tc := range cases {
@@ -120,6 +129,32 @@ func TestRetryConfig_Merge(t *testing.T) {
 			&RetryConfig{Backoff: TimeDuration(10 * time.Second)},
 			&RetryConfig{Backoff: TimeDuration(10 * time.Second)},
 		},
+
+		{
+			"maxbackoff_overrides",
+			&RetryConfig{MaxBackoff: TimeDuration(10 * time.Second)},
+			&RetryConfig{MaxBackoff: TimeDuration(20 * time.Second)},
+			&RetryConfig{MaxBackoff: TimeDuration(20 * time.Second)},
+		},
+		{
+			"maxbackoff_empty_one",
+			&RetryConfig{MaxBackoff: TimeDuration(10 * time.Second)},
+			&RetryConfig{},
+			&RetryConfig{MaxBackoff: TimeDuration(10 * time.Second)},
+		},
+		{
+			"maxbackoff_empty_two",
+			&RetryConfig{},
+			&RetryConfig{MaxBackoff: TimeDuration(10 * time.Second)},
+			&RetryConfig{MaxBackoff: TimeDuration(10 * time.Second)},
+		},
+		{
+			"maxbackoff_same",
+			&RetryConfig{MaxBackoff: TimeDuration(10 * time.Second)},
+			&RetryConfig{MaxBackoff: TimeDuration(10 * time.Second)},
+			&RetryConfig{MaxBackoff: TimeDuration(10 * time.Second)},
+		},
+
 		{
 			"enabled_overrides",
 			&RetryConfig{Enabled: Bool(true)},
@@ -166,9 +201,10 @@ func TestRetryConfig_Finalize(t *testing.T) {
 			"empty",
 			&RetryConfig{},
 			&RetryConfig{
-				Attempts: Int(DefaultRetryAttempts),
-				Backoff:  TimeDuration(DefaultRetryBackoff),
-				Enabled:  Bool(true),
+				Attempts:   Int(DefaultRetryAttempts),
+				Backoff:    TimeDuration(DefaultRetryBackoff),
+				MaxBackoff: TimeDuration(DefaultRetryMaxBackoff),
+				Enabled:    Bool(true),
 			},
 		},
 	}
