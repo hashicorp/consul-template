@@ -232,6 +232,11 @@ func (cli *CLI) ParseFlags(args []string) (*config.Config, []string, bool, bool,
 		return nil
 	}), "consul-retry-backoff", "")
 
+	flags.Var((funcDurationVar)(func(d time.Duration) error {
+		c.Consul.Retry.MaxBackoff = config.TimeDuration(d)
+		return nil
+	}), "consul-retry-max-backoff", "")
+
 	flags.Var((funcBoolVar)(func(b bool) error {
 		c.Consul.SSL.Enabled = config.Bool(b)
 		return nil

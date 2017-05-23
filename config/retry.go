@@ -35,7 +35,7 @@ type RetryConfig struct {
 
 	// MaxBackoff is an upper limit to the sleep time between retries
 	// A MaxBackoff of zero means there is no limit to the exponential growth of the backoff.
-	MaxBackoff *time.Duration
+	MaxBackoff *time.Duration `mapstructure:"max_backoff"`
 
 	// Enabled signals if this retry is enabled.
 	Enabled *bool

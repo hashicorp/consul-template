@@ -237,6 +237,18 @@ func TestCLI_ParseFlags(t *testing.T) {
 			false,
 		},
 		{
+			"consul-retry-max-backoff",
+			[]string{"-consul-retry-max-backoff", "60s"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					Retry: &config.RetryConfig{
+						MaxBackoff: config.TimeDuration(60 * time.Second),
+					},
+				},
+			},
+			false,
+		},
+		{
 			"consul-ssl",
 			[]string{"-consul-ssl"},
 			&config.Config{
