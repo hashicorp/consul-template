@@ -594,6 +594,18 @@ func TestCLI_ParseFlags(t *testing.T) {
 			false,
 		},
 		{
+			"vault-retry-max-backoff",
+			[]string{"-vault-retry-max-backoff", "60s"},
+			&config.Config{
+				Vault: &config.VaultConfig{
+					Retry: &config.RetryConfig{
+						MaxBackoff: config.TimeDuration(60 * time.Second),
+					},
+				},
+			},
+			false,
+		},
+		{
 			"vault-renew-token",
 			[]string{"-vault-renew-token"},
 			&config.Config{

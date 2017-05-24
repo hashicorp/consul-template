@@ -426,6 +426,11 @@ func (cli *CLI) ParseFlags(args []string) (*config.Config, []string, bool, bool,
 		return nil
 	}), "vault-retry-backoff", "")
 
+	flags.Var((funcDurationVar)(func(d time.Duration) error {
+		c.Vault.Retry.MaxBackoff = config.TimeDuration(d)
+		return nil
+	}), "vault-retry-max-backoff", "")
+
 	flags.Var((funcBoolVar)(func(b bool) error {
 		c.Vault.SSL.Enabled = config.Bool(b)
 		return nil
