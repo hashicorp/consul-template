@@ -7,6 +7,129 @@ import (
 	"time"
 )
 
+func TestRetryFunc(t *testing.T) {
+	cases := []struct {
+		name string
+		c    *RetryConfig
+		a    *int
+		rc   *bool
+		rs   *time.Duration
+	}{
+		{
+			"default, attempt 0",
+			&RetryConfig{},
+			Int(0),
+			Bool(true),
+			TimeDuration(250 * time.Millisecond),
+		},
+		{
+			"default, attempt 1",
+			&RetryConfig{},
+			Int(1),
+			Bool(true),
+			TimeDuration(500 * time.Millisecond),
+		},
+		{
+			"default, attempt 2",
+			&RetryConfig{},
+			Int(2),
+			Bool(true),
+			TimeDuration(1 * time.Second),
+		},
+		{
+			"default, attempt 3",
+			&RetryConfig{},
+			Int(3),
+			Bool(true),
+			TimeDuration(2 * time.Second),
+		},
+		{
+			"default, attempt 5",
+			&RetryConfig{},
+			Int(5),
+			Bool(false),
+			TimeDuration(0 * time.Second),
+		},
+		{
+			"default, attempt 6",
+			&RetryConfig{},
+			Int(6),
+			Bool(false),
+			TimeDuration(0 * time.Second),
+		},
+		{
+			"unlimited attempts",
+			&RetryConfig{
+				Attempts: Int(0),
+			},
+			Int(10),
+			Bool(true),
+			TimeDuration(256 * time.Second),
+		},
+		{
+			"disabled",
+			&RetryConfig{
+				Enabled: Bool(false),
+			},
+			Int(1),
+			Bool(false),
+			TimeDuration(0 * time.Second),
+		},
+		{
+			"custom backoff, attempt 0",
+			&RetryConfig{
+				Backoff: TimeDuration(1 * time.Second),
+			},
+			Int(0),
+			Bool(true),
+			TimeDuration(1 * time.Second),
+		},
+		{
+			"custom backoff, attempt 3",
+			&RetryConfig{
+				Backoff: TimeDuration(1 * time.Second),
+			},
+			Int(3),
+			Bool(true),
+			TimeDuration(8 * time.Second),
+		},
+		{
+			"max backoff, attempt 3",
+			&RetryConfig{
+				Backoff:    TimeDuration(1 * time.Second),
+				MaxBackoff: TimeDuration(5 * time.Second),
+			},
+			Int(3),
+			Bool(true),
+			TimeDuration(5 * time.Second),
+		},
+		{
+			"max backoff, unlimited attempt 10",
+			&RetryConfig{
+				Attempts:   Int(0),
+				MaxBackoff: TimeDuration(5 * time.Second),
+			},
+			Int(10),
+			Bool(true),
+			TimeDuration(5 * time.Second),
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			tc.c.Finalize()
+			c, s := tc.c.RetryFunc()(*tc.a)
+			if (*tc.rc) != c {
+				t.Errorf("\nexp continue: %#v\nact: %#v", *tc.rc, c)
+			}
+			if (*tc.rs) != s {
+				t.Errorf("\nexp sleep time: %#v\nact: %#v", *tc.rs, s)
+			}
+		})
+	}
+
+}
+
 func TestRetryConfig_Copy(t *testing.T) {
 	cases := []struct {
 		name string
