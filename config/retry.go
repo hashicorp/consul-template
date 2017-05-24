@@ -8,14 +8,14 @@ import (
 
 const (
 	// DefaultRetryAttempts is the default number of maximum retry attempts.
-	DefaultRetryAttempts = 5
+	DefaultRetryAttempts = 12
 
 	// DefaultRetryBackoff is the default base for the exponential backoff
 	// algorithm.
 	DefaultRetryBackoff = 250 * time.Millisecond
 
 	// DefaultRetryMaxBackoff is the default maximum of backoff time
-	DefaultRetryMaxBackoff = 0 * time.Millisecond
+	DefaultRetryMaxBackoff = 1 * time.Minute
 )
 
 // RetryFunc is the signature of a function that supports retries.
