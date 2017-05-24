@@ -249,9 +249,10 @@ func TestConsulConfig_Finalize(t *testing.T) {
 					Password: String(""),
 				},
 				Retry: &RetryConfig{
-					Backoff:  TimeDuration(DefaultRetryBackoff),
-					Enabled:  Bool(true),
-					Attempts: Int(DefaultRetryAttempts),
+					Backoff:    TimeDuration(DefaultRetryBackoff),
+					MaxBackoff: TimeDuration(DefaultRetryMaxBackoff),
+					Enabled:    Bool(true),
+					Attempts:   Int(DefaultRetryAttempts),
 				},
 				SSL: &SSLConfig{
 					CaCert:     String(""),

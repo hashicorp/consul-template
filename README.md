@@ -170,6 +170,13 @@ consul {
     # retry sleeps for an exponent of 2 longer than this base. For 5 retries,
     # the sleep times would be: 250ms, 500ms, 1s, 2s, then 4s.
     backoff = "250ms"
+
+    # This is the maximum amount of time to sleep between retry attempts.
+    # When max_backoff is set to zero, there is no upper limit to the
+    # exponential sleep between retry attempts.
+    # If max_backoff is set to 10s and backoff is set to 250ms, sleep times
+    # would be: 250ms, 500ms, 1s, 2s, 4s, 8s, 10s, 10s, ...
+    max_backoff = "0ms"
   }
   # This block configures the SSL options for connecting to the Consul server.
   ssl {
