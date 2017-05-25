@@ -147,6 +147,7 @@ docker:
 		--pull \
 		--rm \
 		--file="docker/Dockerfile" \
+		--squash \
 		--tag="${OWNER}/${NAME}" \
 		--tag="${OWNER}/${NAME}:${VERSION}" \
 		"${CURRENT_DIR}"
