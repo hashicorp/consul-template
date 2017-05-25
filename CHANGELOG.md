@@ -3,6 +3,18 @@ Consul Template Changelog
 
 ## v0.18.4 (Unreleased)
 
+BREAKING CHANGES:
+
+  * Retry now has a sane maximum default. Previous versions of Consul Template
+      would retry indefinitely, potentially allowing the time between retries to
+      reach days, months, or years due to the exponential nature. Users wishing
+      to use the old behavior should set `max_backoff = 0` in their
+      configurations. [GH-940]
+
+IMPROVEMENTS:
+
+  * Add support for `MaxBackoff` in Retry options [GH-938, GH-939]
+
 ## v0.18.3 (May 9, 2017)
 
 IMPROVEMENTS:
