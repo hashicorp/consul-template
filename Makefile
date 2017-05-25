@@ -4,8 +4,8 @@ CURRENT_DIR := $(dir $(realpath $(MKFILE_PATH)))
 CURRENT_DIR := $(CURRENT_DIR:/=)
 
 # Get the project metadata
-GOVERSION := 1.8.1
-VERSION := 0.18.4.dev
+GOVERSION := 1.8.3
+VERSION := 0.18.5
 PROJECT := github.com/hashicorp/consul-template
 OWNER := $(dir $(PROJECT))
 OWNER := $(notdir $(OWNER:/=))
