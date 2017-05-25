@@ -1,7 +1,7 @@
 Consul Template Changelog
 =========================
 
-## v0.18.5 (Unreleased)
+## v0.18.5 (May 25, 2017)
 
 BREAKING CHANGES:
 
@@ -14,6 +14,7 @@ BREAKING CHANGES:
 IMPROVEMENTS:
 
   * Add support for `MaxBackoff` in Retry options [GH-938, GH-939]
+  * Compile with Go 1.8.3
 
 ## v0.18.4 (May 25, 2017)
 
