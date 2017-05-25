@@ -162,8 +162,8 @@ consul {
     enabled = true
 
     # This specifies the number of attempts to make before giving up. Each
-    # attempt adds the exponential backoff sleep time. Setting this to a
-    # negative number will implement an unlimited number of retries.
+    # attempt adds the exponential backoff sleep time. Setting this to 
+    # zero will implement an unlimited number of retries.
     attempts = 12
 
     # This is the base amount of time to sleep between retry attempts. Each
