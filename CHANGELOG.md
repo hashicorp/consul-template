@@ -1,6 +1,11 @@
 Consul Template Changelog
 =========================
 
+## v0.18.6 (Unreleased)
+
+BUG FIXES:
+
+
 ## v0.18.5 (May 25, 2017)
 
 BREAKING CHANGES:
