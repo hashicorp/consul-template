@@ -740,7 +740,7 @@ Options:
       increased exponentially for each retry attempt.
 
   -vault-ssl
-      Specifies is communications with Vault should be done via SSL
+      Specifies whether communications with Vault should be done via SSL
 
   -vault-ssl-ca-cert=<string>
       Sets the path to the CA certificate to use for TLS verification
