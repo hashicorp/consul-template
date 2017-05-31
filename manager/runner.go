@@ -581,7 +581,7 @@ func (r *Runner) Run() error {
 			continue
 		}
 
-		// Trigger an update of the de-duplicaiton manager
+		// Trigger an update of the de-duplication manager
 		if r.dedup != nil && isLeader {
 			if err := r.dedup.UpdateDeps(tmpl, used.List()); err != nil {
 				log.Printf("[ERR] (runner) failed to update dependency data for de-duplication: %v", err)
