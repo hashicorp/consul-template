@@ -202,6 +202,10 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		// Scratch
 		"scratch": func() *Scratch { return &scratch },
 
+		// Structure as map to transport data
+		"NewMap":          NewMap,
+		"NewMapFromJSON":  NewMapFromJSON,
+
 		// Helper functions
 		"base64Decode":    base64Decode,
 		"base64Encode":    base64Encode,
