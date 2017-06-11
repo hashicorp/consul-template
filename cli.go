@@ -625,8 +625,8 @@ Options:
       increased exponentially for each retry attempt.
 
   -consul-retry-max-backoff=<duration>
-      The maximum limit of the retry backoff duration. Defaults to inifinite.
-      The retry backoff will increase exponentially until it hits max backoff.
+      The maximum limit of the retry backoff duration. Default is one minute.
+      0 means infinite. The backoff will increase exponentially until given value.
 
   -consul-ssl
       Use SSL when connecting to Consul
@@ -744,8 +744,8 @@ Options:
       increased exponentially for each retry attempt.
 
   -vault-retry-max-backoff=<duration>
-      The maximum limit of the retry backoff duration. Defaults to inifinite.
-      The retry will increase exponentially until it hits max backoff.
+      The maximum limit of the retry backoff duration. Default is one minute.
+      0 means infinite. The backoff will increase exponentially until given value.
 
   -vault-ssl
       Specifies whether communications with Vault should be done via SSL
