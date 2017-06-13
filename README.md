@@ -93,7 +93,7 @@ the template is a command that will execute each time the template changes.
 
 ```shell
 $ consul-template \
-    -template "/tmp/nginx.ctmpl:/var/nginx/nginx.conf:service nginx restart" \
+    -template "/tmp/nginx.ctmpl:/var/nginx/nginx.conf:nginx -s reload" \
     -template "/tmp/redis.ctmpl:/var/redis/redis.conf:service redis restart" \
     -template "/tmp/haproxy.ctmpl:/var/haproxy/haproxy.conf"
 ```
