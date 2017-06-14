@@ -1166,6 +1166,18 @@ func TestParse(t *testing.T) {
 			false,
 		},
 		{
+			"vault_grace",
+			`vault {
+				grace = "5m"
+			}`,
+			&Config{
+				Vault: &VaultConfig{
+					Grace: TimeDuration(5 * time.Minute),
+				},
+			},
+			false,
+		},
+		{
 			"vault_token",
 			`vault {
 				token = "token"
