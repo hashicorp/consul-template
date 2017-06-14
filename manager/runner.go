@@ -1173,6 +1173,7 @@ func newWatcher(c *config.Config, clients *dep.ClientSet, once bool) (*watch.Wat
 		// dependencies like reading a file from disk.
 		RetryFuncDefault: nil,
 		RetryFuncVault:   watch.RetryFunc(c.Vault.Retry.RetryFunc()),
+		VaultGrace:       config.TimeDurationVal(c.Vault.Grace),
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "runner")

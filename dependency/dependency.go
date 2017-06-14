@@ -63,6 +63,7 @@ type QueryOptions struct {
 	Datacenter        string
 	Near              string
 	RequireConsistent bool
+	VaultGrace        time.Duration
 	WaitIndex         uint64
 	WaitTime          time.Duration
 }
