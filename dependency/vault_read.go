@@ -83,7 +83,24 @@ func (d *VaultReadQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interfac
 				Renewable:     renewal.Renewable,
 				Data:          d.secret.Data,
 			}
+			// For some older versions of Vault, the renewal did not include the
+			// remaining lease duration, so just use the original lease duration,
+			// because it's the best we can do.
+			if renewal.LeaseDuration != 0 {
+				secret.LeaseDuration = renewal.LeaseDuration
+			}
 			d.secret = secret
+
+			// If the remaining time on the lease is less than or equal to our
+			// configured grace period, generate a new credential now. This will help
+			// minimize downtime, since Vault will revoke credentials immediately
+			// when their maximum TTL expires.
+			remaining := time.Duration(d.secret.LeaseDuration) * time.Second
+			if remaining <= opts.VaultGrace {
+				log.Printf("[DEBUG] %s: remaining lease (%s) < grace (%s), acquiring new",
+					d, remaining, opts.VaultGrace)
+				return d.readSecret(clients, opts)
+			}
 
 			return respWithMetadata(secret)
 		}
@@ -94,42 +111,7 @@ func (d *VaultReadQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interfac
 
 	// If we got this far, we either didn't have a secret to renew, the secret was
 	// not renewable, or the renewal failed, so attempt a fresh read.
-
-func (d *VaultReadQuery) printWarnings(warnings []string) {
-	for _, w := range warnings {
-		log.Printf("[WARN] %s: %s", d, w)
-	}
-}
-
-	log.Printf("[TRACE] %s: GET %s", d, &url.URL{
-		Path:     "/v1/" + d.path,
-		RawQuery: opts.String(),
-	})
-	vaultSecret, err := clients.Vault().Logical().Read(d.path)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, d.String())
-	}
-
-	// The secret could be nil if it does not exist.
-	if vaultSecret == nil {
-		return nil, nil, fmt.Errorf("%s: no secret exists at %s", d, d.path)
-	}
-
-	// Print any warnings.
-	for _, w := range vaultSecret.Warnings {
-		log.Printf("[WARN] %s: %s", d, w)
-	}
-
-	// Create our cloned secret.
-	secret := &Secret{
-		LeaseID:       vaultSecret.LeaseID,
-		LeaseDuration: leaseDurationOrDefault(vaultSecret.LeaseDuration),
-		Renewable:     vaultSecret.Renewable,
-		Data:          vaultSecret.Data,
-	}
-	d.secret = secret
-
-	return respWithMetadata(secret)
+	return d.readSecret(clients, opts)
 }
 
 // CanShare returns if this dependency is shareable.
@@ -150,4 +132,40 @@ func (d *VaultReadQuery) String() string {
 // Type returns the type of this dependency.
 func (d *VaultReadQuery) Type() Type {
 	return TypeVault
+}
+
+func (d *VaultReadQuery) printWarnings(warnings []string) {
+	for _, w := range warnings {
+		log.Printf("[WARN] %s: %s", d, w)
+	}
+}
+
+func (d *VaultReadQuery) readSecret(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
+	log.Printf("[TRACE] %s: GET %s", d, &url.URL{
+		Path:     "/v1/" + d.path,
+		RawQuery: opts.String(),
+	})
+	vaultSecret, err := clients.Vault().Logical().Read(d.path)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, d.String())
+	}
+
+	// The secret could be nil if it does not exist.
+	if vaultSecret == nil {
+		return nil, nil, fmt.Errorf("%s: no secret exists at %s", d, d.path)
+	}
+
+	// Print any warnings.
+	d.printWarnings(vaultSecret.Warnings)
+
+	// Create our cloned secret.
+	secret := &Secret{
+		LeaseID:       vaultSecret.LeaseID,
+		LeaseDuration: leaseDurationOrDefault(vaultSecret.LeaseDuration),
+		Renewable:     vaultSecret.Renewable,
+		Data:          vaultSecret.Data,
+	}
+	d.secret = secret
+
+	return respWithMetadata(secret)
 }
