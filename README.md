@@ -270,7 +270,7 @@ vault {
   #
   # Note: If you set this to a value that is higher than your default TTL or
   # max TTL, Consul Template will always read a new secret!
-  grace = "30s"
+  grace = "15s"
 
   # This is the token to use when communicating with the Vault server.
   # Like other tools that integrate with Vault, Consul Template makes the
