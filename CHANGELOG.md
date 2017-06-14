@@ -3,6 +3,16 @@ Consul Template Changelog
 
 ## v0.18.6 (Unreleased)
 
+IMPROVEMENTS:
+
+  * Add new configuration option `vault.grace`, which configures the grace
+      period between lease renewal and secret re-acquisition. When renewing a
+      secret, if the remaining lease is less than or equal to the configured
+      grace, Consul Template will request a new credential. This prevents Vault
+      from revoking the credential at expiration and Consul Template having a
+      stale credential. **If you set this to a value that is higher than your
+      default TTL or max TTL, Consul Template will always read a new secret!**
+
 BUG FIXES:
 
 
