@@ -73,6 +73,9 @@ func (d *VaultReadQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interfac
 		if err == nil {
 			log.Printf("[TRACE] %s: successfully renewed %s", d, d.secret.LeaseID)
 
+			// Print any warnings
+			d.printWarnings(renewal.Warnings)
+
 			secret := &Secret{
 				RequestID:     renewal.RequestID,
 				LeaseID:       renewal.LeaseID,
@@ -91,6 +94,13 @@ func (d *VaultReadQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interfac
 
 	// If we got this far, we either didn't have a secret to renew, the secret was
 	// not renewable, or the renewal failed, so attempt a fresh read.
+
+func (d *VaultReadQuery) printWarnings(warnings []string) {
+	for _, w := range warnings {
+		log.Printf("[WARN] %s: %s", d, w)
+	}
+}
+
 	log.Printf("[TRACE] %s: GET %s", d, &url.URL{
 		Path:     "/v1/" + d.path,
 		RawQuery: opts.String(),
