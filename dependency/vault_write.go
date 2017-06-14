@@ -80,6 +80,9 @@ func (d *VaultWriteQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interfa
 		if err == nil {
 			log.Printf("[TRACE] %s: successfully renewed %s", d, d.secret.LeaseID)
 
+			// Print any warnings
+			d.printWarnings(renewal.Warnings)
+
 			secret := &Secret{
 				RequestID:     renewal.RequestID,
 				LeaseID:       renewal.LeaseID,
@@ -166,4 +169,10 @@ func sha1Map(m map[string]interface{}) string {
 	}
 
 	return fmt.Sprintf("%.4x", h.Sum(nil))
+}
+
+func (d *VaultWriteQuery) printWarnings(warnings []string) {
+	for _, w := range warnings {
+		log.Printf("[WARN] %s: %s", d, w)
+	}
 }
