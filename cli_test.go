@@ -558,6 +558,16 @@ func TestCLI_ParseFlags(t *testing.T) {
 			false,
 		},
 		{
+			"vault-grace",
+			[]string{"-vault-grace", "10s"},
+			&config.Config{
+				Vault: &config.VaultConfig{
+					Grace: config.TimeDuration(10 * time.Second),
+				},
+			},
+			false,
+		},
+		{
 			"vault-retry",
 			[]string{"-vault-retry"},
 			&config.Config{
