@@ -57,10 +57,7 @@ func (d *VaultWriteQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interfa
 	// If this is not the first query and we have a lease duration, sleep until we
 	// try to renew.
 	if opts.WaitIndex != 0 && d.secret != nil && d.secret.LeaseDuration != 0 {
-		dur := time.Duration(d.secret.LeaseDuration/2.0) * time.Second
-		if dur == 0 {
-			dur = VaultDefaultLeaseDuration
-		}
+		dur := vaultRenewDuration(d.secret.LeaseDuration)
 
 		log.Printf("[TRACE] %s: long polling for %s", d, dur)
 
