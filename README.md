@@ -162,7 +162,7 @@ consul {
     enabled = true
 
     # This specifies the number of attempts to make before giving up. Each
-    # attempt adds the exponential backoff sleep time. Setting this to 
+    # attempt adds the exponential backoff sleep time. Setting this to
     # zero will implement an unlimited number of retries.
     attempts = 12
 
@@ -261,6 +261,16 @@ vault {
   # This is the address of the Vault leader. The protocol (http(s)) portion
   # of the address is required.
   address = "https://vault.service.consul:8200"
+
+  # This is the grace period between lease renewal and secret re-acquisition.
+  # When renewing a secret, if the remaining lease is less than or equal to the
+  # configured grace, Consul Template will request a new credential. This
+  # prevents Vault from revoking the credential at expiration and Consul
+  # Template having a stale credential.
+  #
+  # Note: If you set this to a value that is higher than your default TTL or
+  # max TTL, Consul Template will always read a new secret!
+  grace = "30s"
 
   # This is the token to use when communicating with the Vault server.
   # Like other tools that integrate with Vault, Consul Template makes the
