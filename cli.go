@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
@@ -65,9 +66,11 @@ func (cli *CLI) Run(args []string) int {
 	config, paths, once, dry, version, err := cli.ParseFlags(args[1:])
 	if err != nil {
 		if err == flag.ErrHelp {
+			fmt.Fprintf(cli.errStream, usage, Name)
 			return 0
 		}
-		return cli.handleError(err, ExitCodeParseFlagsError)
+		fmt.Fprintln(cli.errStream, err.Error())
+		return ExitCodeParseFlagsError
 	}
 
 	// Save original config (defaults + parsed flags) for handling reloads
@@ -76,7 +79,7 @@ func (cli *CLI) Run(args []string) int {
 	// Load configuration paths, with CLI taking precendence
 	config, err = loadConfigs(paths, cliConfig)
 	if err != nil {
-		return cli.handleError(err, ExitCodeConfigError)
+		return logError(err, ExitCodeConfigError)
 	}
 
 	config.Finalize()
@@ -84,7 +87,7 @@ func (cli *CLI) Run(args []string) int {
 	// Setup the config and logging
 	config, err = cli.setup(config)
 	if err != nil {
-		return cli.handleError(err, ExitCodeConfigError)
+		return logError(err, ExitCodeConfigError)
 	}
 
 	// Print version information for debugging
@@ -102,7 +105,7 @@ func (cli *CLI) Run(args []string) int {
 	// Initial runner
 	runner, err := manager.NewRunner(config, dry, once)
 	if err != nil {
-		return cli.handleError(err, ExitCodeRunnerError)
+		return logError(err, ExitCodeRunnerError)
 	}
 	go runner.Start()
 
@@ -118,7 +121,7 @@ func (cli *CLI) Run(args []string) int {
 			if typed, ok := err.(manager.ErrExitable); ok {
 				code = typed.ExitStatus()
 			}
-			return cli.handleError(err, code)
+			return logError(err, code)
 		case <-runner.DoneCh:
 			return ExitCodeOK
 		case s := <-cli.signalCh:
@@ -132,19 +135,19 @@ func (cli *CLI) Run(args []string) int {
 				// Re-parse any configuration files or paths
 				config, err = loadConfigs(paths, cliConfig)
 				if err != nil {
-					return cli.handleError(err, ExitCodeConfigError)
+					return logError(err, ExitCodeConfigError)
 				}
 				config.Finalize()
 
 				// Load the new configuration from disk
 				config, err = cli.setup(config)
 				if err != nil {
-					return cli.handleError(err, ExitCodeConfigError)
+					return logError(err, ExitCodeConfigError)
 				}
 
 				runner, err = manager.NewRunner(config, dry, once)
 				if err != nil {
-					return cli.handleError(err, ExitCodeRunnerError)
+					return logError(err, ExitCodeRunnerError)
 				}
 				go runner.Start()
 			case *config.KillSignal:
@@ -195,8 +198,8 @@ func (cli *CLI) ParseFlags(args []string) (*config.Config, []string, bool, bool,
 
 	// Parse the flags and options
 	flags := flag.NewFlagSet(Name, flag.ContinueOnError)
-	flags.SetOutput(cli.errStream)
-	flags.Usage = func() { fmt.Fprintf(cli.errStream, usage, Name) }
+	flags.SetOutput(ioutil.Discard)
+	flags.Usage = func() {}
 
 	flags.Var((funcVar)(func(s string) error {
 		configPaths = append(configPaths, s)
@@ -576,10 +579,9 @@ func loadConfigs(paths []string, o *config.Config) (*config.Config, error) {
 	return finalC, nil
 }
 
-// handleError outputs the given error's Error() to the errStream and returns
-// the given exit status.
-func (cli *CLI) handleError(err error, status int) int {
-	fmt.Fprintf(cli.errStream, "Consul Template returned errors:\n%s\n", err)
+// logError logs an error message and then returns the given status.
+func logError(err error, status int) int {
+	log.Printf("[ERR] (cli) %s", err)
 	return status
 }
 
@@ -597,8 +599,7 @@ func (cli *CLI) setup(conf *config.Config) (*config.Config, error) {
 	return conf, nil
 }
 
-const usage = `
-Usage: %s [options]
+const usage = `Usage: %s [options]
 
   Watches a series of templates on the file system, writing new changes when
   Consul is updated. It runs until an interrupt is received unless the -once
