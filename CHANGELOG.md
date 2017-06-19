@@ -15,6 +15,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+  * Use the logger as soon as its available for output [GH-947]
+
 
 ## v0.18.5 (May 25, 2017)
 
