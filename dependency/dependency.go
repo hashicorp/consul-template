@@ -1,7 +1,6 @@
 package dependency
 
 import (
-	"log"
 	"net/url"
 	"regexp"
 	"sort"
@@ -41,19 +40,6 @@ type Dependency interface {
 
 // ServiceTags is a slice of tags assigned to a Service
 type ServiceTags []string
-
-// Contains returns true if the tags exists in the ServiceTags slice.
-// This is deprecated and should not be used.
-func (t ServiceTags) Contains(s string) bool {
-	log.Printf("[WARN] .Tags.Contains is deprecated. Use the built-in\n" +
-		"functions 'in' or 'contains' with a pipe instead.")
-	for _, v := range t {
-		if v == s {
-			return true
-		}
-	}
-	return false
-}
 
 // QueryOptions is a list of options to send with the query. These options are
 // client-agnostic, and the dependency determines which, if any, of the options

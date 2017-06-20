@@ -3,6 +3,12 @@ Consul Template Changelog
 
 ## v0.18.6 (Unreleased)
 
+BREAKING CHANGES:
+
+  * All previous deprecation errors have been removed and associated configs or
+      CLI options are no longer valid. It is highly recommended that you run
+      v0.18.5 and resolve any deprecations before upgrading to this version!
+
 IMPROVEMENTS:
 
   * Add new configuration option `vault.grace`, which configures the grace

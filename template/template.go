@@ -246,8 +246,5 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"multiply": multiply,
 		"divide":   divide,
 		"modulo":   modulo,
-
-		// Deprecated functions
-		"key_or_default": keyWithDefaultFunc(i.brain, i.used, i.missing),
 	}
 }

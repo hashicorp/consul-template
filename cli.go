@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strings"
 	"sync"
 	"time"
 
@@ -520,29 +519,6 @@ func (cli *CLI) ParseFlags(args []string) (*config.Config, []string, bool, bool,
 
 	flags.BoolVar(&version, "v", false, "")
 	flags.BoolVar(&version, "version", false, "")
-
-	// TODO: Deprecations
-	for i, a := range args {
-		if a == "-auth" || strings.HasPrefix(a, "-auth=") {
-			log.Println("[WARN] -auth has been renamed to -consul-auth")
-			args[i] = strings.Replace(a, "-auth", "-consul-auth", 1)
-		}
-
-		if a == "-consul" || strings.HasPrefix(a, "-consul=") {
-			log.Println("[WARN] -consul has been renamed to -consul-addr")
-			args[i] = strings.Replace(a, "-consul", "-consul-addr", 1)
-		}
-
-		if strings.HasPrefix(a, "-ssl") {
-			log.Println("[WARN] -ssl options should be prefixed with -consul")
-			args[i] = strings.Replace(a, "-ssl", "-consul-ssl", 1)
-		}
-
-		if a == "-token" || strings.HasPrefix(a, "-token=") {
-			log.Println("[WARN] -token has been renamed to -consul-token")
-			args[i] = strings.Replace(a, "-token", "-consul-token", 1)
-		}
-	}
 
 	// If there was a parser error, stop
 	if err := flags.Parse(args); err != nil {
