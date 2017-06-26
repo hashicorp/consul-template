@@ -1,12 +1,17 @@
 package vault
 
 import (
+	"errors"
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/hcl/hcl/ast"
+	"github.com/hashicorp/vault/helper/parseutil"
+	"github.com/mitchellh/copystructure"
 )
 
 const (
@@ -58,11 +63,60 @@ type Policy struct {
 
 // PathCapabilities represents a policy for a path in the namespace.
 type PathCapabilities struct {
-	Prefix             string
-	Policy             string
-	Capabilities       []string
-	CapabilitiesBitmap uint32 `hcl:"-"`
-	Glob               bool
+	Prefix       string
+	Policy       string
+	Permissions  *Permissions
+	Glob         bool
+	Capabilities []string
+
+	// These keys are used at the top level to make the HCL nicer; we store in
+	// the Permissions object though
+	MinWrappingTTLHCL    interface{}              `hcl:"min_wrapping_ttl"`
+	MaxWrappingTTLHCL    interface{}              `hcl:"max_wrapping_ttl"`
+	AllowedParametersHCL map[string][]interface{} `hcl:"allowed_parameters"`
+	DeniedParametersHCL  map[string][]interface{} `hcl:"denied_parameters"`
+}
+
+type Permissions struct {
+	CapabilitiesBitmap uint32
+	MinWrappingTTL     time.Duration
+	MaxWrappingTTL     time.Duration
+	AllowedParameters  map[string][]interface{}
+	DeniedParameters   map[string][]interface{}
+}
+
+func (p *Permissions) Clone() (*Permissions, error) {
+	ret := &Permissions{
+		CapabilitiesBitmap: p.CapabilitiesBitmap,
+		MinWrappingTTL:     p.MinWrappingTTL,
+		MaxWrappingTTL:     p.MaxWrappingTTL,
+	}
+
+	switch {
+	case p.AllowedParameters == nil:
+	case len(p.AllowedParameters) == 0:
+		ret.AllowedParameters = make(map[string][]interface{})
+	default:
+		clonedAllowed, err := copystructure.Copy(p.AllowedParameters)
+		if err != nil {
+			return nil, err
+		}
+		ret.AllowedParameters = clonedAllowed.(map[string][]interface{})
+	}
+
+	switch {
+	case p.DeniedParameters == nil:
+	case len(p.DeniedParameters) == 0:
+		ret.DeniedParameters = make(map[string][]interface{})
+	default:
+		clonedDenied, err := copystructure.Copy(p.DeniedParameters)
+		if err != nil {
+			return nil, err
+		}
+		ret.DeniedParameters = clonedDenied.(map[string][]interface{})
+	}
+
+	return ret, nil
 }
 
 // Parse is used to parse the specified ACL rules into an
@@ -113,16 +167,23 @@ func parsePaths(result *Policy, list *ast.ObjectList) error {
 		if len(item.Keys) > 0 {
 			key = item.Keys[0].Token.Value().(string)
 		}
-
 		valid := []string{
 			"policy",
 			"capabilities",
+			"allowed_parameters",
+			"denied_parameters",
+			"min_wrapping_ttl",
+			"max_wrapping_ttl",
 		}
 		if err := checkHCLKeys(item.Val, valid); err != nil {
 			return multierror.Prefix(err, fmt.Sprintf("path %q:", key))
 		}
 
 		var pc PathCapabilities
+
+		// allocate memory so that DecodeObject can initialize the Permissions struct
+		pc.Permissions = new(Permissions)
+
 		pc.Prefix = key
 		if err := hcl.DecodeObject(&pc, item.Val); err != nil {
 			return multierror.Prefix(err, fmt.Sprintf("path %q:", key))
@@ -156,23 +217,55 @@ func parsePaths(result *Policy, list *ast.ObjectList) error {
 		}
 
 		// Initialize the map
-		pc.CapabilitiesBitmap = 0
+		pc.Permissions.CapabilitiesBitmap = 0
 		for _, cap := range pc.Capabilities {
 			switch cap {
 			// If it's deny, don't include any other capability
 			case DenyCapability:
 				pc.Capabilities = []string{DenyCapability}
-				pc.CapabilitiesBitmap = DenyCapabilityInt
+				pc.Permissions.CapabilitiesBitmap = DenyCapabilityInt
 				goto PathFinished
 			case CreateCapability, ReadCapability, UpdateCapability, DeleteCapability, ListCapability, SudoCapability:
-				pc.CapabilitiesBitmap |= cap2Int[cap]
+				pc.Permissions.CapabilitiesBitmap |= cap2Int[cap]
 			default:
 				return fmt.Errorf("path %q: invalid capability '%s'", key, cap)
 			}
 		}
 
-	PathFinished:
+		if pc.AllowedParametersHCL != nil {
+			pc.Permissions.AllowedParameters = make(map[string][]interface{}, len(pc.AllowedParametersHCL))
+			for key, val := range pc.AllowedParametersHCL {
+				pc.Permissions.AllowedParameters[strings.ToLower(key)] = val
+			}
+		}
+		if pc.DeniedParametersHCL != nil {
+			pc.Permissions.DeniedParameters = make(map[string][]interface{}, len(pc.DeniedParametersHCL))
 
+			for key, val := range pc.DeniedParametersHCL {
+				pc.Permissions.DeniedParameters[strings.ToLower(key)] = val
+			}
+		}
+		if pc.MinWrappingTTLHCL != nil {
+			dur, err := parseutil.ParseDurationSecond(pc.MinWrappingTTLHCL)
+			if err != nil {
+				return errwrap.Wrapf("error parsing min_wrapping_ttl: {{err}}", err)
+			}
+			pc.Permissions.MinWrappingTTL = dur
+		}
+		if pc.MaxWrappingTTLHCL != nil {
+			dur, err := parseutil.ParseDurationSecond(pc.MaxWrappingTTLHCL)
+			if err != nil {
+				return errwrap.Wrapf("error parsing max_wrapping_ttl: {{err}}", err)
+			}
+			pc.Permissions.MaxWrappingTTL = dur
+		}
+		if pc.Permissions.MinWrappingTTL != 0 &&
+			pc.Permissions.MaxWrappingTTL != 0 &&
+			pc.Permissions.MaxWrappingTTL < pc.Permissions.MinWrappingTTL {
+			return errors.New("max_wrapping_ttl cannot be less than min_wrapping_ttl")
+		}
+
+	PathFinished:
 		paths = append(paths, &pc)
 	}
 

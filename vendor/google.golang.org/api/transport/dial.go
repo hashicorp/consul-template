@@ -53,8 +53,11 @@ func NewHTTPClient(ctx context.Context, opts ...option.ClientOption) (*http.Clie
 	if o.APIKey != "" {
 		hc := &http.Client{
 			Transport: &gtransport.APIKey{
-				Key:       o.APIKey,
-				Transport: userAgentTransport{userAgent: o.UserAgent},
+				Key: o.APIKey,
+				Transport: userAgentTransport{
+					base:      baseTransport(ctx),
+					userAgent: o.UserAgent,
+				},
 			},
 		}
 		return hc, o.Endpoint, nil
@@ -76,7 +79,10 @@ func NewHTTPClient(ctx context.Context, opts ...option.ClientOption) (*http.Clie
 	hc := &http.Client{
 		Transport: &oauth2.Transport{
 			Source: o.TokenSource,
-			Base:   userAgentTransport{userAgent: o.UserAgent},
+			Base: userAgentTransport{
+				base:      baseTransport(ctx),
+				userAgent: o.UserAgent,
+			},
 		},
 	}
 	return hc, o.Endpoint, nil
@@ -90,10 +96,7 @@ type userAgentTransport struct {
 func (t userAgentTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	rt := t.base
 	if rt == nil {
-		rt = http.DefaultTransport
-		if rt == nil {
-			return nil, errors.New("transport: no Transport specified or available")
-		}
+		return nil, errors.New("transport: no Transport specified")
 	}
 	if t.userAgent == "" {
 		return rt.RoundTrip(req)
@@ -110,6 +113,16 @@ func (t userAgentTransport) RoundTrip(req *http.Request) (*http.Response, error)
 
 // Set at init time by dial_appengine.go. If nil, we're not on App Engine.
 var appengineDialerHook func(context.Context) grpc.DialOption
+var appengineUrlfetchHook func(context.Context) http.RoundTripper
+
+// baseTransport returns the base HTTP transport.
+// On App Engine, this is urlfetch.Transport, otherwise it's http.DefaultTransport.
+func baseTransport(ctx context.Context) http.RoundTripper {
+	if appengineUrlfetchHook != nil {
+		return appengineUrlfetchHook(ctx)
+	}
+	return http.DefaultTransport
+}
 
 // DialGRPC returns a GRPC connection for use communicating with a Google cloud
 // service, configured with the given ClientOptions.
@@ -163,4 +176,26 @@ func serviceAcctTokenSource(ctx context.Context, filename string, scope ...strin
 		return nil, fmt.Errorf("google.JWTConfigFromJSON: %v", err)
 	}
 	return cfg.TokenSource(ctx), nil
+}
+
+// DialGRPCInsecure returns an insecure GRPC connection for use communicating
+// with fake or mock Google cloud service implementations, such as emulators.
+// The connection is configured with the given ClientOptions.
+func DialGRPCInsecure(ctx context.Context, opts ...option.ClientOption) (*grpc.ClientConn, error) {
+	var o internal.DialSettings
+	for _, opt := range opts {
+		opt.Apply(&o)
+	}
+	if o.HTTPClient != nil {
+		return nil, errors.New("unsupported HTTP client specified")
+	}
+	if o.GRPCConn != nil {
+		return o.GRPCConn, nil
+	}
+	grpcOpts := []grpc.DialOption{grpc.WithInsecure()}
+	grpcOpts = append(grpcOpts, o.GRPCDialOpts...)
+	if o.UserAgent != "" {
+		grpcOpts = append(grpcOpts, grpc.WithUserAgent(o.UserAgent))
+	}
+	return grpc.DialContext(ctx, o.Endpoint, grpcOpts...)
 }

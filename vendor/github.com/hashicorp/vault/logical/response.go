@@ -2,11 +2,8 @@ package logical
 
 import (
 	"errors"
-	"fmt"
-	"reflect"
-	"time"
 
-	"github.com/mitchellh/copystructure"
+	"github.com/hashicorp/vault/helper/wrapping"
 )
 
 const (
@@ -27,26 +24,6 @@ const (
 	// avoided like the HTTPContentType. The value must be an integer.
 	HTTPStatusCode = "http_status_code"
 )
-
-type ResponseWrapInfo struct {
-	// Setting to non-zero specifies that the response should be wrapped.
-	// Specifies the desired TTL of the wrapping token.
-	TTL time.Duration `json:"ttl" structs:"ttl" mapstructure:"ttl"`
-
-	// The token containing the wrapped response
-	Token string `json:"token" structs:"token" mapstructure:"token"`
-
-	// The creation time. This can be used with the TTL to figure out an
-	// expected expiration.
-	CreationTime time.Time `json:"creation_time" structs:"creation_time" mapstructure:"cration_time"`
-
-	// If the contained response is the output of a token creation call, the
-	// created token's accessor will be accessible here
-	WrappedAccessor string `json:"wrapped_accessor" structs:"wrapped_accessor" mapstructure:"wrapped_accessor"`
-
-	// The format to use. This doesn't get returned, it's only internal.
-	Format string `json:"format" structs:"format" mapstructure:"format"`
-}
 
 // Response is a struct that stores the response of a request.
 // It is used to abstract the details of the higher level request protocol.
@@ -72,85 +49,18 @@ type Response struct {
 
 	// Warnings allow operations or backends to return warnings in response
 	// to user actions without failing the action outright.
-	// Making it private helps ensure that it is easy for various parts of
-	// Vault (backend, core, etc.) to add warnings without accidentally
-	// replacing what exists.
-	warnings []string `json:"warnings" structs:"warnings" mapstructure:"warnings"`
+	Warnings []string `json:"warnings" structs:"warnings" mapstructure:"warnings"`
 
 	// Information for wrapping the response in a cubbyhole
-	WrapInfo *ResponseWrapInfo `json:"wrap_info" structs:"wrap_info" mapstructure:"wrap_info"`
-}
-
-func init() {
-	copystructure.Copiers[reflect.TypeOf(Response{})] = func(v interface{}) (interface{}, error) {
-		input := v.(Response)
-		ret := Response{
-			Redirect: input.Redirect,
-		}
-
-		if input.Secret != nil {
-			retSec, err := copystructure.Copy(input.Secret)
-			if err != nil {
-				return nil, fmt.Errorf("error copying Secret: %v", err)
-			}
-			ret.Secret = retSec.(*Secret)
-		}
-
-		if input.Auth != nil {
-			retAuth, err := copystructure.Copy(input.Auth)
-			if err != nil {
-				return nil, fmt.Errorf("error copying Auth: %v", err)
-			}
-			ret.Auth = retAuth.(*Auth)
-		}
-
-		if input.Data != nil {
-			retData, err := copystructure.Copy(&input.Data)
-			if err != nil {
-				return nil, fmt.Errorf("error copying Data: %v", err)
-			}
-			ret.Data = *(retData.(*map[string]interface{}))
-		}
-
-		if input.Warnings() != nil {
-			for _, warning := range input.Warnings() {
-				ret.AddWarning(warning)
-			}
-		}
-
-		if input.WrapInfo != nil {
-			retWrapInfo, err := copystructure.Copy(input.WrapInfo)
-			if err != nil {
-				return nil, fmt.Errorf("error copying WrapInfo: %v", err)
-			}
-			ret.WrapInfo = retWrapInfo.(*ResponseWrapInfo)
-		}
-
-		return &ret, nil
-	}
+	WrapInfo *wrapping.ResponseWrapInfo `json:"wrap_info" structs:"wrap_info" mapstructure:"wrap_info"`
 }
 
 // AddWarning adds a warning into the response's warning list
 func (r *Response) AddWarning(warning string) {
-	if r.warnings == nil {
-		r.warnings = make([]string, 0, 1)
+	if r.Warnings == nil {
+		r.Warnings = make([]string, 0, 1)
 	}
-	r.warnings = append(r.warnings, warning)
-}
-
-// Warnings returns the list of warnings set on the response
-func (r *Response) Warnings() []string {
-	return r.warnings
-}
-
-// ClearWarnings clears the response's warning list
-func (r *Response) ClearWarnings() {
-	r.warnings = make([]string, 0, 1)
-}
-
-// Copies the warnings from the other response to this one
-func (r *Response) CloneWarnings(other *Response) {
-	r.warnings = other.warnings
+	r.Warnings = append(r.Warnings, warning)
 }
 
 // IsError returns true if this response seems to indicate an error.

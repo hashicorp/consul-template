@@ -12,15 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package storage contains a Google Cloud Storage client.
-//
-// This package is experimental and may make backwards-incompatible changes.
 package storage
 
 import (
 	"errors"
 	"fmt"
-	"reflect"
 
 	"golang.org/x/net/context"
 	raw "google.golang.org/api/storage/v1"
@@ -71,30 +67,23 @@ func (c *Copier) Run(ctx context.Context) (*ObjectAttrs, error) {
 	if err := c.dst.validate(); err != nil {
 		return nil, err
 	}
-	var rawObject *raw.Object
-	// If any attribute was set, then we make sure the name matches the destination
-	// name, and we check that ContentType is non-empty so we can provide a better
-	// error message than the service.
-	if !reflect.DeepEqual(c.ObjectAttrs, ObjectAttrs{}) {
-		c.ObjectAttrs.Name = c.dst.object
-		if c.ObjectAttrs.ContentType == "" {
-			return nil, errors.New("storage: Copier.ContentType must be non-empty")
-		}
-		rawObject = c.ObjectAttrs.toRawObject(c.dst.bucket)
-	}
+	// Convert destination attributes to raw form, omitting the bucket.
+	// If the bucket is included but name or content-type aren't, the service
+	// returns a 400 with "Required" as the only message. Omitting the bucket
+	// does not cause any problems.
+	rawObject := c.ObjectAttrs.toRawObject("")
 	for {
 		res, err := c.callRewrite(ctx, c.src, rawObject)
 		if err != nil {
 			return nil, err
 		}
 		if c.ProgressFunc != nil {
-			c.ProgressFunc(res.TotalBytesRewritten, res.ObjectSize)
+			c.ProgressFunc(uint64(res.TotalBytesRewritten), uint64(res.ObjectSize))
 		}
 		if res.Done { // Finished successfully.
 			return newObject(res.Resource), nil
 		}
 	}
-	return nil, nil
 }
 
 func (c *Copier) callRewrite(ctx context.Context, src *ObjectHandle, rawObj *raw.Object) (*raw.RewriteResponse, error) {
@@ -118,6 +107,7 @@ func (c *Copier) callRewrite(ctx context.Context, src *ObjectHandle, rawObj *raw
 	}
 	var res *raw.RewriteResponse
 	var err error
+	setClientHeader(call.Header())
 	err = runWithRetry(ctx, func() error { res, err = call.Do(); return err })
 	if err != nil {
 		return nil, err
@@ -189,6 +179,7 @@ func (c *Composer) Run(ctx context.Context) (*ObjectAttrs, error) {
 	}
 	var obj *raw.Object
 	var err error
+	setClientHeader(call.Header())
 	err = runWithRetry(ctx, func() error { obj, err = call.Do(); return err })
 	if err != nil {
 		return nil, err

@@ -1,15 +1,19 @@
 package physical
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"golang.org/x/net/http2"
 
 	log "github.com/mgutz/logxi/v1"
 
@@ -20,7 +24,8 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/go-cleanhttp"
+	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/vault/helper/consts"
 	"github.com/hashicorp/vault/helper/strutil"
 	"github.com/hashicorp/vault/helper/tlsutil"
 )
@@ -154,6 +159,8 @@ func newConsulBackend(conf map[string]string, logger log.Logger) (Backend, error
 
 	// Configure the client
 	consulConf := api.DefaultConfig()
+	// Set MaxIdleConnsPerHost to the number of processes used in expiration.Restore
+	consulConf.Transport.MaxIdleConnsPerHost = consts.ExpirationRestoreWorkerCount
 
 	if addr, ok := conf["address"]; ok {
 		consulConf.Address = addr
@@ -178,13 +185,14 @@ func newConsulBackend(conf map[string]string, logger log.Logger) (Backend, error
 			return nil, err
 		}
 
-		transport := cleanhttp.DefaultPooledTransport()
-		transport.MaxIdleConnsPerHost = 4
-		transport.TLSClientConfig = tlsClientConfig
-		consulConf.HttpClient.Transport = transport
+		consulConf.Transport.TLSClientConfig = tlsClientConfig
+		if err := http2.ConfigureTransport(consulConf.Transport); err != nil {
+			return nil, err
+		}
 		logger.Debug("physical/consul: configured TLS")
 	}
 
+	consulConf.HttpClient = &http.Client{Transport: consulConf.Transport}
 	client, err := api.NewClient(consulConf)
 	if err != nil {
 		return nil, errwrap.Wrapf("client setup failed: {{err}}", err)
@@ -221,10 +229,12 @@ func newConsulBackend(conf map[string]string, logger log.Logger) (Backend, error
 		kv:                  client.KV(),
 		permitPool:          NewPermitPool(maxParInt),
 		serviceName:         service,
-		serviceTags:         strutil.ParseDedupAndSortStrings(tags, ","),
+		serviceTags:         strutil.ParseDedupLowercaseAndSortStrings(tags, ","),
 		checkTimeout:        checkTimeout,
 		disableRegistration: disableRegistration,
 		consistencyMode:     consistencyMode,
+		notifyActiveCh:      make(chan notifyEvent),
+		notifySealedCh:      make(chan notifyEvent),
 	}
 	return c, nil
 }
@@ -284,16 +294,61 @@ func setupTLSConfig(conf map[string]string) (*tls.Config, error) {
 	return tlsClientConfig, nil
 }
 
-// Put is used to insert or update an entry
-func (c *ConsulBackend) Put(entry *Entry) error {
-	defer metrics.MeasureSince([]string{"consul", "put"}, time.Now())
-	pair := &api.KVPair{
-		Key:   c.path + entry.Key,
-		Value: entry.Value,
+// Used to run multiple entries via a transaction
+func (c *ConsulBackend) Transaction(txns []TxnEntry) error {
+	if len(txns) == 0 {
+		return nil
+	}
+
+	ops := make([]*api.KVTxnOp, 0, len(txns))
+
+	for _, op := range txns {
+		cop := &api.KVTxnOp{
+			Key: c.path + op.Entry.Key,
+		}
+		switch op.Operation {
+		case DeleteOperation:
+			cop.Verb = api.KVDelete
+		case PutOperation:
+			cop.Verb = api.KVSet
+			cop.Value = op.Entry.Value
+		default:
+			return fmt.Errorf("%q is not a supported transaction operation", op.Operation)
+		}
+
+		ops = append(ops, cop)
 	}
 
 	c.permitPool.Acquire()
 	defer c.permitPool.Release()
+
+	ok, resp, _, err := c.kv.Txn(ops, nil)
+	if err != nil {
+		return err
+	}
+	if ok {
+		return nil
+	}
+
+	var retErr *multierror.Error
+	for _, res := range resp.Errors {
+		retErr = multierror.Append(retErr, errors.New(res.What))
+	}
+
+	return retErr
+}
+
+// Put is used to insert or update an entry
+func (c *ConsulBackend) Put(entry *Entry) error {
+	defer metrics.MeasureSince([]string{"consul", "put"}, time.Now())
+
+	c.permitPool.Acquire()
+	defer c.permitPool.Release()
+
+	pair := &api.KVPair{
+		Key:   c.path + entry.Key,
+		Value: entry.Value,
+	}
 
 	_, err := c.kv.Put(pair, nil)
 	return err

@@ -10,11 +10,13 @@ import (
 	"strings"
 	"time"
 
+	storage "github.com/Azure/azure-sdk-for-go/storage"
 	log "github.com/mgutz/logxi/v1"
 
-	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/errwrap"
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/vault/helper/strutil"
 )
 
 // MaxBlobSize at this time
@@ -23,8 +25,7 @@ var MaxBlobSize = 1024 * 1024 * 4
 // AzureBackend is a physical backend that stores data
 // within an Azure blob container.
 type AzureBackend struct {
-	container  string
-	client     storage.BlobStorageClient
+	container  *storage.Container
 	logger     log.Logger
 	permitPool *PermitPool
 }
@@ -33,11 +34,10 @@ type AzureBackend struct {
 // bucket. Credentials can be provided to the backend, sourced
 // from the environment, AWS credential files or by IAM role.
 func newAzureBackend(conf map[string]string, logger log.Logger) (Backend, error) {
-
-	container := os.Getenv("AZURE_BLOB_CONTAINER")
-	if container == "" {
-		container = conf["container"]
-		if container == "" {
+	name := os.Getenv("AZURE_BLOB_CONTAINER")
+	if name == "" {
+		name = conf["container"]
+		if name == "" {
 			return nil, fmt.Errorf("'container' must be set")
 		}
 	}
@@ -59,12 +59,19 @@ func newAzureBackend(conf map[string]string, logger log.Logger) (Backend, error)
 	}
 
 	client, err := storage.NewBasicClient(accountName, accountKey)
-
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create Azure client: %v", err)
+		return nil, fmt.Errorf("failed to create Azure client: %v", err)
 	}
+	client.HTTPClient = cleanhttp.DefaultPooledClient()
 
-	client.GetBlobService().CreateContainerIfNotExists(container, storage.ContainerAccessTypePrivate)
+	blobClient := client.GetBlobService()
+	container := blobClient.GetContainerReference(name)
+	_, err = container.CreateIfNotExists(&storage.CreateContainerOptions{
+		Access: storage.ContainerAccessTypePrivate,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create %q container: %v", name, err)
+	}
 
 	maxParStr, ok := conf["max_parallel"]
 	var maxParInt int
@@ -80,7 +87,6 @@ func newAzureBackend(conf map[string]string, logger log.Logger) (Backend, error)
 
 	a := &AzureBackend{
 		container:  container,
-		client:     client.GetBlobService(),
 		logger:     logger,
 		permitPool: NewPermitPool(maxParInt),
 	}
@@ -92,7 +98,7 @@ func (a *AzureBackend) Put(entry *Entry) error {
 	defer metrics.MeasureSince([]string{"azure", "put"}, time.Now())
 
 	if len(entry.Value) >= MaxBlobSize {
-		return fmt.Errorf("Value is bigger than the current supported limit of 4MBytes")
+		return fmt.Errorf("value is bigger than the current supported limit of 4MBytes")
 	}
 
 	blockID := base64.StdEncoding.EncodeToString([]byte("AAAA"))
@@ -102,10 +108,15 @@ func (a *AzureBackend) Put(entry *Entry) error {
 	a.permitPool.Acquire()
 	defer a.permitPool.Release()
 
-	err := a.client.PutBlock(a.container, entry.Key, blockID, entry.Value)
+	blob := &storage.Blob{
+		Container: a.container,
+		Name:      entry.Key,
+	}
+	if err := blob.PutBlock(blockID, entry.Value, nil); err != nil {
+		return err
+	}
 
-	err = a.client.PutBlockList(a.container, entry.Key, blocks)
-	return err
+	return blob.PutBlockList(blocks, nil)
 }
 
 // Get is used to fetch an entry
@@ -115,18 +126,23 @@ func (a *AzureBackend) Get(key string) (*Entry, error) {
 	a.permitPool.Acquire()
 	defer a.permitPool.Release()
 
-	exists, _ := a.client.BlobExists(a.container, key)
-
+	blob := &storage.Blob{
+		Container: a.container,
+		Name:      key,
+	}
+	exists, err := blob.Exists()
+	if err != nil {
+		return nil, err
+	}
 	if !exists {
 		return nil, nil
 	}
 
-	reader, err := a.client.GetBlob(a.container, key)
-
+	reader, err := blob.Get(nil)
 	if err != nil {
 		return nil, err
 	}
-
+	defer reader.Close()
 	data, err := ioutil.ReadAll(reader)
 
 	ent := &Entry{
@@ -141,10 +157,15 @@ func (a *AzureBackend) Get(key string) (*Entry, error) {
 func (a *AzureBackend) Delete(key string) error {
 	defer metrics.MeasureSince([]string{"azure", "delete"}, time.Now())
 
+	blob := &storage.Blob{
+		Container: a.container,
+		Name:      key,
+	}
+
 	a.permitPool.Acquire()
 	defer a.permitPool.Release()
 
-	_, err := a.client.DeleteBlobIfExists(a.container, key, nil)
+	_, err := blob.DeleteIfExists(nil)
 	return err
 }
 
@@ -154,14 +175,13 @@ func (a *AzureBackend) List(prefix string) ([]string, error) {
 	defer metrics.MeasureSince([]string{"azure", "list"}, time.Now())
 
 	a.permitPool.Acquire()
-	defer a.permitPool.Release()
-
-	list, err := a.client.ListBlobs(a.container, storage.ListBlobsParameters{Prefix: prefix})
-
+	list, err := a.container.ListBlobs(storage.ListBlobsParameters{Prefix: prefix})
 	if err != nil {
 		// Break early.
+		a.permitPool.Release()
 		return nil, err
 	}
+	a.permitPool.Release()
 
 	keys := []string{}
 	for _, blob := range list.Blobs {
@@ -169,7 +189,7 @@ func (a *AzureBackend) List(prefix string) ([]string, error) {
 		if i := strings.Index(key, "/"); i == -1 {
 			keys = append(keys, key)
 		} else {
-			keys = appendIfMissing(keys, key[:i+1])
+			keys = strutil.AppendIfMissing(keys, key[:i+1])
 		}
 	}
 

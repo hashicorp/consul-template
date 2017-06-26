@@ -3,17 +3,21 @@ package vault
 import (
 	"encoding/json"
 	"fmt"
+	"sync/atomic"
+
 	"regexp"
 	"strings"
-	"sync"
 	"time"
+
+	log "github.com/mgutz/logxi/v1"
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/vault/helper/duration"
+	"github.com/hashicorp/vault/helper/consts"
 	"github.com/hashicorp/vault/helper/jsonutil"
 	"github.com/hashicorp/vault/helper/locksutil"
+	"github.com/hashicorp/vault/helper/parseutil"
 	"github.com/hashicorp/vault/helper/policyutil"
 	"github.com/hashicorp/vault/helper/salt"
 	"github.com/hashicorp/vault/helper/strutil"
@@ -88,9 +92,13 @@ type TokenStore struct {
 
 	policyLookupFunc func(string) (*Policy, error)
 
-	tokenLocks map[string]*sync.RWMutex
+	tokenLocks []*locksutil.LockEntry
 
 	cubbyholeDestroyer func(*TokenStore, string) error
+
+	logger log.Logger
+
+	tidyLock int64
 }
 
 // NewTokenStore is used to construct a token store that is
@@ -103,29 +111,13 @@ func NewTokenStore(c *Core, config *logical.BackendConfig) (*TokenStore, error) 
 	t := &TokenStore{
 		view:               view,
 		cubbyholeDestroyer: destroyCubbyhole,
+		logger:             c.logger,
+		tokenLocks:         locksutil.CreateLocks(),
 	}
 
 	if c.policyStore != nil {
 		t.policyLookupFunc = c.policyStore.GetPolicy
 	}
-
-	// Setup the salt
-	salt, err := salt.NewSalt(view, &salt.Config{
-		HashFunc: salt.SHA1Hash,
-	})
-	if err != nil {
-		return nil, err
-	}
-	t.salt = salt
-
-	t.tokenLocks = map[string]*sync.RWMutex{}
-
-	// Create 256 locks
-	if err = locksutil.CreateLocks(t.tokenLocks, 256); err != nil {
-		return nil, fmt.Errorf("failed to create locks: %v", err)
-	}
-
-	t.tokenLocks["custom"] = &sync.RWMutex{}
 
 	// Setup the framework endpoints
 	t.Backend = &framework.Backend{
@@ -135,6 +127,15 @@ func NewTokenStore(c *Core, config *logical.BackendConfig) (*TokenStore, error) 
 			Root: []string{
 				"revoke-orphan/*",
 				"accessors*",
+			},
+
+			// Most token store items are local since tokens are local, but a
+			// notable exception is roles
+			LocalStorage: []string{
+				lookupPrefix,
+				accessorPrefix,
+				parentPrefix,
+				salt.DefaultLocation,
 			},
 		},
 
@@ -467,11 +468,27 @@ func NewTokenStore(c *Core, config *logical.BackendConfig) (*TokenStore, error) 
 				HelpDescription: strings.TrimSpace(tokenTidyDesc),
 			},
 		},
+
+		Init: t.Initialize,
 	}
 
 	t.Backend.Setup(config)
 
 	return t, nil
+}
+
+func (ts *TokenStore) Initialize() error {
+	// Setup the salt
+	salt, err := salt.NewSalt(ts.view, &salt.Config{
+		HashFunc: salt.SHA1Hash,
+		Location: salt.DefaultLocation,
+	})
+	if err != nil {
+		return err
+	}
+	ts.salt = salt
+
+	return nil
 }
 
 // TokenEntry is used to represent a given token
@@ -603,7 +620,7 @@ func (ts *TokenStore) tokenStoreAccessorList(
 
 	ret := make([]string, 0, len(entries))
 	for _, entry := range entries {
-		aEntry, err := ts.lookupBySaltedAccessor(entry)
+		aEntry, err := ts.lookupBySaltedAccessor(entry, false)
 		if err != nil {
 			resp.AddWarning("Found an accessor entry that could not be successfully decoded")
 			continue
@@ -663,6 +680,12 @@ func (ts *TokenStore) create(entry *TokenEntry) error {
 			return err
 		}
 		entry.ID = entryUUID
+	}
+
+	saltedId := ts.SaltID(entry.ID)
+	exist, _ := ts.lookupSalted(saltedId, true)
+	if exist != nil {
+		return fmt.Errorf("cannot create a token with a duplicate ID")
 	}
 
 	entry.Policies = policyutil.SanitizePolicies(entry.Policies, policyutil.DoNotAddDefaultPolicy)
@@ -726,21 +749,6 @@ func (ts *TokenStore) storeCommon(entry *TokenEntry, writeSecondary bool) error 
 	return nil
 }
 
-func (ts *TokenStore) getTokenLock(id string) *sync.RWMutex {
-	// Find our multilevel lock, or fall back to global
-	var lock *sync.RWMutex
-	var ok bool
-	if len(id) >= 2 {
-		lock, ok = ts.tokenLocks[id[0:2]]
-	}
-	if !ok || lock == nil {
-		// Fall back for custom token IDs
-		lock = ts.tokenLocks["custom"]
-	}
-
-	return lock
-}
-
 // UseToken is used to manage restricted use tokens and decrement their
 // available uses. Returns two values: a potentially updated entry or, if the
 // token has been revoked, nil; and whether an error was encountered. The
@@ -759,8 +767,7 @@ func (ts *TokenStore) UseToken(te *TokenEntry) (*TokenEntry, error) {
 		return te, nil
 	}
 
-	lock := ts.getTokenLock(te.ID)
-
+	lock := locksutil.LockForKey(ts.tokenLocks, te.ID)
 	lock.Lock()
 	defer lock.Unlock()
 
@@ -813,7 +820,7 @@ func (ts *TokenStore) Lookup(id string) (*TokenEntry, error) {
 		return nil, fmt.Errorf("cannot lookup blank token")
 	}
 
-	lock := ts.getTokenLock(id)
+	lock := locksutil.LockForKey(ts.tokenLocks, id)
 	lock.RLock()
 	defer lock.RUnlock()
 
@@ -917,7 +924,7 @@ func (ts *TokenStore) revokeSalted(saltedId string) (ret error) {
 		return nil
 	}
 
-	lock := ts.getTokenLock(entry.ID)
+	lock := locksutil.LockForKey(ts.tokenLocks, entry.ID)
 	lock.Lock()
 
 	// Lookup the token first
@@ -1019,7 +1026,7 @@ func (ts *TokenStore) RevokeTree(id string) error {
 	defer metrics.MeasureSince([]string{"token", "revoke-tree"}, time.Now())
 	// Verify the token is not blank
 	if id == "" {
-		return fmt.Errorf("cannot revoke blank token")
+		return fmt.Errorf("cannot tree-revoke blank token")
 	}
 
 	// Get the salted ID
@@ -1073,11 +1080,11 @@ func (ts *TokenStore) handleCreateAgainstRole(
 	return ts.handleCreateCommon(req, d, false, roleEntry)
 }
 
-func (ts *TokenStore) lookupByAccessor(accessor string) (accessorEntry, error) {
-	return ts.lookupBySaltedAccessor(ts.SaltID(accessor))
+func (ts *TokenStore) lookupByAccessor(accessor string, tainted bool) (accessorEntry, error) {
+	return ts.lookupBySaltedAccessor(ts.SaltID(accessor), tainted)
 }
 
-func (ts *TokenStore) lookupBySaltedAccessor(saltedAccessor string) (accessorEntry, error) {
+func (ts *TokenStore) lookupBySaltedAccessor(saltedAccessor string, tainted bool) (accessorEntry, error) {
 	entry, err := ts.view.Get(accessorPrefix + saltedAccessor)
 	var aEntry accessorEntry
 
@@ -1085,14 +1092,13 @@ func (ts *TokenStore) lookupBySaltedAccessor(saltedAccessor string) (accessorEnt
 		return aEntry, fmt.Errorf("failed to read index using accessor: %s", err)
 	}
 	if entry == nil {
-		return aEntry, &StatusBadRequest{Err: "invalid accessor"}
+		return aEntry, &logical.StatusBadRequest{Err: "invalid accessor"}
 	}
 
 	err = jsonutil.DecodeJSON(entry.Value, &aEntry)
 	// If we hit an error, assume it's a pre-struct straight token ID
 	if err != nil {
-		aEntry.TokenID = string(entry.Value)
-		te, err := ts.lookupSalted(ts.SaltID(aEntry.TokenID), false)
+		te, err := ts.lookupSalted(ts.SaltID(string(entry.Value)), tainted)
 		if err != nil {
 			return accessorEntry{}, fmt.Errorf("failed to look up token using accessor index: %s", err)
 		}
@@ -1102,6 +1108,7 @@ func (ts *TokenStore) lookupBySaltedAccessor(saltedAccessor string) (accessorEnt
 		// on lookup is nil, not an error, so we keep that behavior here to be
 		// safe...the token ID is simply not filled in.
 		if te != nil {
+			aEntry.TokenID = te.ID
 			aEntry.AccessorID = te.Accessor
 		}
 	}
@@ -1112,13 +1119,23 @@ func (ts *TokenStore) lookupBySaltedAccessor(saltedAccessor string) (accessorEnt
 // handleTidy handles the cleaning up of leaked accessor storage entries and
 // cleaning up of leases that are associated to tokens that are expired.
 func (ts *TokenStore) handleTidy(req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	var tidyErrors *multierror.Error
+
+	if !atomic.CompareAndSwapInt64(&ts.tidyLock, 0, 1) {
+		ts.logger.Warn("token: tidy operation on tokens is already in progress")
+		return nil, fmt.Errorf("tidy operation on tokens is already in progress")
+	}
+
+	defer atomic.CompareAndSwapInt64(&ts.tidyLock, 1, 0)
+
+	ts.logger.Info("token: beginning tidy operation on tokens")
+	defer ts.logger.Info("token: finished tidy operation on tokens")
+
 	// List out all the accessors
 	saltedAccessorList, err := ts.view.List(accessorPrefix)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch accessor entries: %v", err)
+		return nil, fmt.Errorf("failed to fetch accessor index entries: %v", err)
 	}
-
-	var tidyErrors *multierror.Error
 
 	// First, clean up secondary index entries that are no longer valid
 	parentList, err := ts.view.List(parentPrefix)
@@ -1126,35 +1143,56 @@ func (ts *TokenStore) handleTidy(req *logical.Request, data *framework.FieldData
 		return nil, fmt.Errorf("failed to fetch secondary index entries: %v", err)
 	}
 
+	var countParentList, deletedCountParentList int64
+
 	// Scan through the secondary index entries; if there is an entry
 	// with the token's salt ID at the end, remove it
 	for _, parent := range parentList {
 		children, err := ts.view.List(parentPrefix + parent)
 		if err != nil {
-			tidyErrors = multierror.Append(tidyErrors, fmt.Errorf("failed to read child index entry: %v", err))
+			tidyErrors = multierror.Append(tidyErrors, fmt.Errorf("failed to read secondary index: %v", err))
 			continue
 		}
 
 		for _, child := range children {
+			countParentList++
+			if countParentList%500 == 0 {
+				ts.logger.Info("token: checking validity of tokens in secondary index list", "progress", countParentList)
+			}
+
 			// Look up tainted entries so we can be sure that if this isn't
-			// found, it doesn't exist
+			// found, it doesn't exist. Doing the following without locking
+			// since appropriate locks cannot be held with salted token IDs.
 			te, _ := ts.lookupSalted(child, true)
 			if te == nil {
-				err = ts.view.Delete(parentPrefix + parent + "/" + child)
+				index := parentPrefix + parent + child
+				ts.logger.Trace("token: deleting invalid secondary index", "index", index)
+				err = ts.view.Delete(index)
 				if err != nil {
-					tidyErrors = multierror.Append(tidyErrors, fmt.Errorf("failed to delete secondary index entry: %v", err))
+					tidyErrors = multierror.Append(tidyErrors, fmt.Errorf("failed to delete secondary index: %v", err))
 				}
+				deletedCountParentList++
 			}
 		}
 	}
+
+	var countAccessorList,
+		deletedCountAccessorEmptyToken,
+		deletedCountAccessorInvalidToken,
+		deletedCountInvalidTokenInAccessor int64
 
 	// For each of the accessor, see if the token ID associated with it is
 	// a valid one. If not, delete the leases associated with that token
 	// and delete the accessor as well.
 	for _, saltedAccessor := range saltedAccessorList {
-		accessorEntry, err := ts.lookupBySaltedAccessor(saltedAccessor)
+		countAccessorList++
+		if countAccessorList%500 == 0 {
+			ts.logger.Info("token: checking if accessors contain valid tokens", "progress", countAccessorList)
+		}
+
+		accessorEntry, err := ts.lookupBySaltedAccessor(saltedAccessor, true)
 		if err != nil {
-			tidyErrors = multierror.Append(tidyErrors, fmt.Errorf("failed to read the accessor entry: %v", err))
+			tidyErrors = multierror.Append(tidyErrors, fmt.Errorf("failed to read the accessor index: %v", err))
 			continue
 		}
 
@@ -1162,25 +1200,32 @@ func (ts *TokenStore) handleTidy(req *logical.Request, data *framework.FieldData
 		// in it. If not, it is an invalid accessor entry and needs to
 		// be deleted.
 		if accessorEntry.TokenID == "" {
+			index := accessorPrefix + saltedAccessor
 			// If deletion of accessor fails, move on to the next
 			// item since this is just a best-effort operation
-			err = ts.view.Delete(accessorPrefix + saltedAccessor)
+			err = ts.view.Delete(index)
 			if err != nil {
-				tidyErrors = multierror.Append(tidyErrors, fmt.Errorf("failed to delete the accessor entry: %v", err))
+				tidyErrors = multierror.Append(tidyErrors, fmt.Errorf("failed to delete the accessor index: %v", err))
 				continue
 			}
+			deletedCountAccessorEmptyToken++
 		}
 
-		saltedId := ts.SaltID(accessorEntry.TokenID)
+		lock := locksutil.LockForKey(ts.tokenLocks, accessorEntry.TokenID)
+		lock.RLock()
 
 		// Look up tainted variants so we only find entries that truly don't
 		// exist
+		saltedId := ts.SaltID(accessorEntry.TokenID)
 		te, err := ts.lookupSalted(saltedId, true)
+		lock.RUnlock()
 
 		// If token entry is not found assume that the token is not valid any
 		// more and conclude that accessor, leases, and secondary index entries
 		// for this token should not exist as well.
 		if te == nil {
+			ts.logger.Info("token: deleting token with nil entry", "salted_token", saltedId)
+
 			// RevokeByToken expects a '*TokenEntry'. For the
 			// purposes of tidying, it is sufficient if the token
 			// entry only has ID set.
@@ -1195,26 +1240,31 @@ func (ts *TokenStore) handleTidy(req *logical.Request, data *framework.FieldData
 				tidyErrors = multierror.Append(tidyErrors, fmt.Errorf("failed to revoke leases of expired token: %v", err))
 				continue
 			}
+			deletedCountInvalidTokenInAccessor++
+
+			index := accessorPrefix + saltedAccessor
 
 			// If deletion of accessor fails, move on to the next item since
 			// this is just a best-effort operation. We do this last so that on
 			// next run if something above failed we still have the accessor
 			// entry to try again.
-			err = ts.view.Delete(accessorPrefix + saltedAccessor)
+			err = ts.view.Delete(index)
 			if err != nil {
 				tidyErrors = multierror.Append(tidyErrors, fmt.Errorf("failed to delete accessor entry: %v", err))
 				continue
 			}
+			deletedCountAccessorInvalidToken++
 		}
 	}
 
-	// Later request handling code seems to check if the type is multierror so
-	// if we haven't added any errors we need to just return a normal nil error
-	if tidyErrors == nil {
-		return nil, nil
-	}
+	ts.logger.Debug("token: number of tokens scanned in parent index list", "count", countParentList)
+	ts.logger.Debug("token: number of tokens revoked in parent index list", "count", deletedCountParentList)
+	ts.logger.Debug("token: number of accessors scanned", "count", countAccessorList)
+	ts.logger.Debug("token: number of deleted accessors which had empty tokens", "count", deletedCountAccessorEmptyToken)
+	ts.logger.Debug("token: number of revoked tokens which were invalid but present in accessors", "count", deletedCountInvalidTokenInAccessor)
+	ts.logger.Debug("token: number of deleted accessors which had invalid tokens", "count", deletedCountAccessorInvalidToken)
 
-	return nil, tidyErrors
+	return nil, tidyErrors.ErrorOrNil()
 }
 
 // handleUpdateLookupAccessor handles the auth/token/lookup-accessor path for returning
@@ -1225,12 +1275,12 @@ func (ts *TokenStore) handleUpdateLookupAccessor(req *logical.Request, data *fra
 	if accessor == "" {
 		accessor = data.Get("urlaccessor").(string)
 		if accessor == "" {
-			return nil, &StatusBadRequest{Err: "missing accessor"}
+			return nil, &logical.StatusBadRequest{Err: "missing accessor"}
 		}
 		urlaccessor = true
 	}
 
-	aEntry, err := ts.lookupByAccessor(accessor)
+	aEntry, err := ts.lookupByAccessor(accessor, false)
 	if err != nil {
 		return nil, err
 	}
@@ -1279,12 +1329,12 @@ func (ts *TokenStore) handleUpdateRevokeAccessor(req *logical.Request, data *fra
 	if accessor == "" {
 		accessor = data.Get("urlaccessor").(string)
 		if accessor == "" {
-			return nil, &StatusBadRequest{Err: "missing accessor"}
+			return nil, &logical.StatusBadRequest{Err: "missing accessor"}
 		}
 		urlaccessor = true
 	}
 
-	aEntry, err := ts.lookupByAccessor(accessor)
+	aEntry, err := ts.lookupByAccessor(accessor, true)
 	if err != nil {
 		return nil, err
 	}
@@ -1477,7 +1527,7 @@ func (ts *TokenStore) handleCreateCommon(
 
 		if len(role.DisallowedPolicies) > 0 {
 			// We don't add the default here because we only want to disallow it if it's explicitly set
-			sanitizedRolePolicies = strutil.RemoveDuplicates(role.DisallowedPolicies)
+			sanitizedRolePolicies = strutil.RemoveDuplicates(role.DisallowedPolicies, true)
 
 			for _, finalPolicy := range finalPolicies {
 				if strutil.StrListContains(sanitizedRolePolicies, finalPolicy) {
@@ -1567,7 +1617,7 @@ func (ts *TokenStore) handleCreateCommon(
 	}
 
 	if data.ExplicitMaxTTL != "" {
-		dur, err := duration.ParseDurationSecond(data.ExplicitMaxTTL)
+		dur, err := parseutil.ParseDurationSecond(data.ExplicitMaxTTL)
 		if err != nil {
 			return logical.ErrorResponse(err.Error()), logical.ErrInvalidRequest
 		}
@@ -1583,7 +1633,7 @@ func (ts *TokenStore) handleCreateCommon(
 			return logical.ErrorResponse("root or sudo privileges required to create periodic token"),
 				logical.ErrInvalidRequest
 		}
-		dur, err := duration.ParseDurationSecond(data.Period)
+		dur, err := parseutil.ParseDurationSecond(data.Period)
 		if err != nil {
 			return logical.ErrorResponse(err.Error()), logical.ErrInvalidRequest
 		}
@@ -1596,7 +1646,7 @@ func (ts *TokenStore) handleCreateCommon(
 
 	// Parse the TTL/lease if any
 	if data.TTL != "" {
-		dur, err := duration.ParseDurationSecond(data.TTL)
+		dur, err := parseutil.ParseDurationSecond(data.TTL)
 		if err != nil {
 			return logical.ErrorResponse(err.Error()), logical.ErrInvalidRequest
 		}
@@ -1698,6 +1748,7 @@ func (ts *TokenStore) handleCreateCommon(
 
 	// Generate the response
 	resp.Auth = &logical.Auth{
+		NumUses:     te.NumUses,
 		DisplayName: te.DisplayName,
 		Policies:    te.Policies,
 		Metadata:    te.Meta,
@@ -1836,7 +1887,7 @@ func (ts *TokenStore) handleLookup(
 		return logical.ErrorResponse("missing token ID"), logical.ErrInvalidRequest
 	}
 
-	lock := ts.getTokenLock(id)
+	lock := locksutil.LockForKey(ts.tokenLocks, id)
 	lock.RLock()
 	defer lock.RUnlock()
 
@@ -1866,6 +1917,7 @@ func (ts *TokenStore) handleLookup(
 			"orphan":           false,
 			"creation_time":    int64(out.CreationTime),
 			"creation_ttl":     int64(out.TTL.Seconds()),
+			"expire_time":      nil,
 			"ttl":              int64(0),
 			"explicit_max_ttl": int64(out.ExplicitMaxTTL.Seconds()),
 		},
@@ -1890,15 +1942,15 @@ func (ts *TokenStore) handleLookup(
 	if leaseTimes != nil {
 		if !leaseTimes.LastRenewalTime.IsZero() {
 			resp.Data["last_renewal_time"] = leaseTimes.LastRenewalTime.Unix()
+			resp.Data["last_renewal"] = leaseTimes.LastRenewalTime
 		}
 		if !leaseTimes.ExpireTime.IsZero() {
-			resp.Data["ttl"] = int64(leaseTimes.ExpireTime.Sub(time.Now().Round(time.Second)).Seconds())
+			resp.Data["expire_time"] = leaseTimes.ExpireTime
+			resp.Data["ttl"] = leaseTimes.ttl()
 		}
-		if err := leaseTimes.renewable(); err == nil {
-			resp.Data["renewable"] = true
-		} else {
-			resp.Data["renewable"] = false
-		}
+		renewable, _ := leaseTimes.renewable()
+		resp.Data["renewable"] = renewable
+		resp.Data["issue_time"] = leaseTimes.IssueTime
 	}
 
 	if urltoken {
@@ -2181,7 +2233,7 @@ func (ts *TokenStore) tokenStoreRoleCreateUpdate(
 			}
 			resp.AddWarning(fmt.Sprintf(
 				"Given explicit max TTL of %d is greater than system/mount allowed value of %d seconds; until this is fixed attempting to create tokens against this role will result in an error",
-				entry.ExplicitMaxTTL.Seconds(), sysView.MaxLeaseTTL().Seconds()))
+				int64(entry.ExplicitMaxTTL.Seconds()), int64(sysView.MaxLeaseTTL().Seconds())))
 		}
 	}
 
@@ -2201,6 +2253,10 @@ func (ts *TokenStore) tokenStoreRoleCreateUpdate(
 		entry.PathSuffix = data.Get("path_suffix").(string)
 	}
 
+	if strings.Contains(entry.PathSuffix, "..") {
+		return logical.ErrorResponse(fmt.Sprintf("error registering path suffix: %s", consts.ErrPathContainsParentReferences)), nil
+	}
+
 	allowedPoliciesStr, ok := data.GetOk("allowed_policies")
 	if ok {
 		entry.AllowedPolicies = policyutil.SanitizePolicies(strings.Split(allowedPoliciesStr.(string), ","), policyutil.DoNotAddDefaultPolicy)
@@ -2210,9 +2266,9 @@ func (ts *TokenStore) tokenStoreRoleCreateUpdate(
 
 	disallowedPoliciesStr, ok := data.GetOk("disallowed_policies")
 	if ok {
-		entry.DisallowedPolicies = strutil.ParseDedupAndSortStrings(disallowedPoliciesStr.(string), ",")
+		entry.DisallowedPolicies = strutil.ParseDedupLowercaseAndSortStrings(disallowedPoliciesStr.(string), ",")
 	} else if req.Operation == logical.CreateOperation {
-		entry.DisallowedPolicies = strutil.ParseDedupAndSortStrings(data.Get("disallowed_policies").(string), ",")
+		entry.DisallowedPolicies = strutil.ParseDedupLowercaseAndSortStrings(data.Get("disallowed_policies").(string), ",")
 	}
 
 	// Store it

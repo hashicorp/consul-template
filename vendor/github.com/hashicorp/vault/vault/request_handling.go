@@ -7,9 +7,11 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/vault/helper/consts"
 	"github.com/hashicorp/vault/helper/jsonutil"
 	"github.com/hashicorp/vault/helper/policyutil"
 	"github.com/hashicorp/vault/helper/strutil"
+	"github.com/hashicorp/vault/helper/wrapping"
 	"github.com/hashicorp/vault/logical"
 )
 
@@ -18,10 +20,10 @@ func (c *Core) HandleRequest(req *logical.Request) (resp *logical.Response, err 
 	c.stateLock.RLock()
 	defer c.stateLock.RUnlock()
 	if c.sealed {
-		return nil, ErrSealed
+		return nil, consts.ErrSealed
 	}
 	if c.standby {
-		return nil, ErrStandby
+		return nil, consts.ErrStandby
 	}
 
 	// Allowing writing to a path ending in / makes it extremely difficult to
@@ -75,8 +77,8 @@ func (c *Core) HandleRequest(req *logical.Request) (resp *logical.Response, err 
 		} else {
 			wrappingResp := &logical.Response{
 				WrapInfo: resp.WrapInfo,
+				Warnings: resp.Warnings,
 			}
-			wrappingResp.CloneWarnings(resp)
 			resp = wrappingResp
 		}
 	}
@@ -169,7 +171,7 @@ func (c *Core) handleRequest(req *logical.Request) (retResp *logical.Response, r
 		if errType != nil {
 			retErr = multierror.Append(retErr, errType)
 		}
-		return logical.ErrorResponse(ctErr.Error()), nil, retErr
+		return logical.ErrorResponse(ctErr.Error()), auth, retErr
 	}
 
 	// Attach the display name
@@ -183,7 +185,7 @@ func (c *Core) handleRequest(req *logical.Request) (retResp *logical.Response, r
 	}
 
 	// Route the request
-	resp, err := c.router.Route(req)
+	resp, routeErr := c.router.Route(req)
 	if resp != nil {
 		// If wrapping is used, use the shortest between the request and response
 		var wrapTTL time.Duration
@@ -215,7 +217,7 @@ func (c *Core) handleRequest(req *logical.Request) (retResp *logical.Response, r
 		}
 
 		if wrapTTL > 0 {
-			resp.WrapInfo = &logical.ResponseWrapInfo{
+			resp.WrapInfo = &wrapping.ResponseWrapInfo{
 				TTL:    wrapTTL,
 				Format: wrapFormat,
 			}
@@ -224,7 +226,8 @@ func (c *Core) handleRequest(req *logical.Request) (retResp *logical.Response, r
 
 	// If there is a secret, we must register it with the expiration manager.
 	// We exclude renewal of a lease, since it does not need to be re-registered
-	if resp != nil && resp.Secret != nil && !strings.HasPrefix(req.Path, "sys/renew") {
+	if resp != nil && resp.Secret != nil && !strings.HasPrefix(req.Path, "sys/renew") &&
+		!strings.HasPrefix(req.Path, "sys/leases/renew") {
 		// Get the SystemView for the mount
 		sysView := c.router.MatchingSystemView(req.Path)
 		if sysView == nil {
@@ -287,10 +290,11 @@ func (c *Core) handleRequest(req *logical.Request) (retResp *logical.Response, r
 		if err != nil {
 			c.logger.Error("core: failed to look up token", "error", err)
 			retErr = multierror.Append(retErr, ErrInternalError)
-			return nil, nil, retErr
+			return nil, auth, retErr
 		}
 
 		if err := c.expiration.RegisterAuth(te.Path, resp.Auth); err != nil {
+			c.tokenStore.Revoke(te.ID)
 			c.logger.Error("core: failed to register token lease", "request_path", req.Path, "error", err)
 			retErr = multierror.Append(retErr, ErrInternalError)
 			return nil, auth, retErr
@@ -305,8 +309,8 @@ func (c *Core) handleRequest(req *logical.Request) (retResp *logical.Response, r
 	}
 
 	// Return the response and error
-	if err != nil {
-		retErr = multierror.Append(retErr, err)
+	if routeErr != nil {
+		retErr = multierror.Append(retErr, routeErr)
 	}
 	return resp, auth, retErr
 }
@@ -330,7 +334,7 @@ func (c *Core) handleLoginRequest(req *logical.Request) (*logical.Response, *log
 	}
 
 	// Route the request
-	resp, err := c.router.Route(req)
+	resp, routeErr := c.router.Route(req)
 	if resp != nil {
 		// If wrapping is used, use the shortest between the request and response
 		var wrapTTL time.Duration
@@ -360,7 +364,7 @@ func (c *Core) handleLoginRequest(req *logical.Request) (*logical.Response, *log
 		}
 
 		if wrapTTL > 0 {
-			resp.WrapInfo = &logical.ResponseWrapInfo{
+			resp.WrapInfo = &wrapping.ResponseWrapInfo{
 				TTL:    wrapTTL,
 				Format: wrapFormat,
 			}
@@ -414,6 +418,7 @@ func (c *Core) handleLoginRequest(req *logical.Request) (*logical.Response, *log
 			DisplayName:  auth.DisplayName,
 			CreationTime: time.Now().Unix(),
 			TTL:          auth.TTL,
+			NumUses:      auth.NumUses,
 		}
 
 		te.Policies = policyutil.SanitizePolicies(te.Policies, true)
@@ -437,6 +442,7 @@ func (c *Core) handleLoginRequest(req *logical.Request) (*logical.Response, *log
 
 		// Register with the expiration manager
 		if err := c.expiration.RegisterAuth(te.Path, auth); err != nil {
+			c.tokenStore.Revoke(te.ID)
 			c.logger.Error("core: failed to register token lease", "request_path", req.Path, "error", err)
 			return nil, auth, ErrInternalError
 		}
@@ -445,5 +451,5 @@ func (c *Core) handleLoginRequest(req *logical.Request) (*logical.Response, *log
 		req.DisplayName = auth.DisplayName
 	}
 
-	return resp, auth, err
+	return resp, auth, routeErr
 }

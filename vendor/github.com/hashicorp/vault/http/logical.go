@@ -49,8 +49,15 @@ func buildLogicalRequest(core *vault.Core, w http.ResponseWriter, r *http.Reques
 		op = logical.UpdateOperation
 	case "LIST":
 		op = logical.ListOperation
+	case "OPTIONS":
 	default:
 		return nil, http.StatusMethodNotAllowed, nil
+	}
+
+	if op == logical.ListOperation {
+		if !strings.HasSuffix(path, "/") {
+			path += "/"
+		}
 	}
 
 	// Parse the request if we can
@@ -89,7 +96,7 @@ func buildLogicalRequest(core *vault.Core, w http.ResponseWriter, r *http.Reques
 	return req, 0, nil
 }
 
-func handleLogical(core *vault.Core, dataOnly bool, prepareRequestCallback PrepareRequestFunc) http.Handler {
+func handleLogical(core *vault.Core, injectDataIntoTopLevel bool, prepareRequestCallback PrepareRequestFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		req, statusCode, err := buildLogicalRequest(core, w, r)
 		if err != nil || statusCode != 0 {
@@ -109,47 +116,20 @@ func handleLogical(core *vault.Core, dataOnly bool, prepareRequestCallback Prepa
 
 		// Make the internal request. We attach the connection info
 		// as well in case this is an authentication request that requires
-		// it. Vault core handles stripping this if we need to.
+		// it. Vault core handles stripping this if we need to. This also
+		// handles all error cases; if we hit respondLogical, the request is a
+		// success.
 		resp, ok := request(core, w, r, req)
 		if !ok {
 			return
 		}
-		switch {
-		case req.Operation == logical.ReadOperation:
-			if resp == nil {
-				respondError(w, http.StatusNotFound, nil)
-				return
-			}
-
-		// Basically: if we have empty "keys" or no keys at all, 404. This
-		// provides consistency with GET.
-		case req.Operation == logical.ListOperation && resp.WrapInfo == nil:
-			if resp == nil || len(resp.Data) == 0 {
-				respondError(w, http.StatusNotFound, nil)
-				return
-			}
-			keysRaw, ok := resp.Data["keys"]
-			if !ok || keysRaw == nil {
-				respondError(w, http.StatusNotFound, nil)
-				return
-			}
-			keys, ok := keysRaw.([]string)
-			if !ok {
-				respondError(w, http.StatusInternalServerError, nil)
-				return
-			}
-			if len(keys) == 0 {
-				respondError(w, http.StatusNotFound, nil)
-				return
-			}
-		}
 
 		// Build the proper response
-		respondLogical(w, r, req, dataOnly, resp)
+		respondLogical(w, r, req, injectDataIntoTopLevel, resp)
 	})
 }
 
-func respondLogical(w http.ResponseWriter, r *http.Request, req *logical.Request, dataOnly bool, resp *logical.Response) {
+func respondLogical(w http.ResponseWriter, r *http.Request, req *logical.Request, injectDataIntoTopLevel bool, resp *logical.Response) {
 	var httpResp *logical.HTTPResponse
 	var ret interface{}
 
@@ -183,7 +163,7 @@ func respondLogical(w http.ResponseWriter, r *http.Request, req *logical.Request
 
 		ret = httpResp
 
-		if dataOnly {
+		if injectDataIntoTopLevel {
 			injector := logical.HTTPSysInjector{
 				Response: httpResp,
 			}

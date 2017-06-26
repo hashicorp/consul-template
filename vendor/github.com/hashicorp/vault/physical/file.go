@@ -11,6 +11,7 @@ import (
 
 	log "github.com/mgutz/logxi/v1"
 
+	"github.com/hashicorp/vault/helper/consts"
 	"github.com/hashicorp/vault/helper/jsonutil"
 )
 
@@ -22,12 +23,17 @@ import (
 // and non-performant. It is meant mostly for local testing and development.
 // It can be improved in the future.
 type FileBackend struct {
-	Path   string
-	l      sync.Mutex
-	logger log.Logger
+	sync.RWMutex
+	path       string
+	logger     log.Logger
+	permitPool *PermitPool
 }
 
-// newFileBackend constructs a Filebackend using the given directory
+type TransactionalFileBackend struct {
+	FileBackend
+}
+
+// newFileBackend constructs a FileBackend using the given directory
 func newFileBackend(conf map[string]string, logger log.Logger) (Backend, error) {
 	path, ok := conf["path"]
 	if !ok {
@@ -35,20 +41,48 @@ func newFileBackend(conf map[string]string, logger log.Logger) (Backend, error) 
 	}
 
 	return &FileBackend{
-		Path:   path,
-		logger: logger,
+		path:       path,
+		logger:     logger,
+		permitPool: NewPermitPool(DefaultParallelOperations),
+	}, nil
+}
+
+func newTransactionalFileBackend(conf map[string]string, logger log.Logger) (Backend, error) {
+	path, ok := conf["path"]
+	if !ok {
+		return nil, fmt.Errorf("'path' must be set")
+	}
+
+	// Create a pool of size 1 so only one operation runs at a time
+	return &TransactionalFileBackend{
+		FileBackend: FileBackend{
+			path:       path,
+			logger:     logger,
+			permitPool: NewPermitPool(1),
+		},
 	}, nil
 }
 
 func (b *FileBackend) Delete(path string) error {
+	b.permitPool.Acquire()
+	defer b.permitPool.Release()
+
+	b.Lock()
+	defer b.Unlock()
+
+	return b.DeleteInternal(path)
+}
+
+func (b *FileBackend) DeleteInternal(path string) error {
 	if path == "" {
 		return nil
 	}
 
-	b.l.Lock()
-	defer b.l.Unlock()
+	if err := b.validatePath(path); err != nil {
+		return err
+	}
 
-	basePath, key := b.path(path)
+	basePath, key := b.expandPath(path)
 	fullPath := filepath.Join(basePath, key)
 
 	err := os.Remove(fullPath)
@@ -66,10 +100,13 @@ func (b *FileBackend) Delete(path string) error {
 func (b *FileBackend) cleanupLogicalPath(path string) error {
 	nodes := strings.Split(path, fmt.Sprintf("%c", os.PathSeparator))
 	for i := len(nodes) - 1; i > 0; i-- {
-		fullPath := filepath.Join(b.Path, filepath.Join(nodes[:i]...))
+		fullPath := filepath.Join(b.path, filepath.Join(nodes[:i]...))
 
 		dir, err := os.Open(fullPath)
 		if err != nil {
+			if dir != nil {
+				dir.Close()
+			}
 			if os.IsNotExist(err) {
 				return nil
 			} else {
@@ -96,13 +133,27 @@ func (b *FileBackend) cleanupLogicalPath(path string) error {
 }
 
 func (b *FileBackend) Get(k string) (*Entry, error) {
-	b.l.Lock()
-	defer b.l.Unlock()
+	b.permitPool.Acquire()
+	defer b.permitPool.Release()
 
-	path, key := b.path(k)
+	b.RLock()
+	defer b.RUnlock()
+
+	return b.GetInternal(k)
+}
+
+func (b *FileBackend) GetInternal(k string) (*Entry, error) {
+	if err := b.validatePath(k); err != nil {
+		return nil, err
+	}
+
+	path, key := b.expandPath(k)
 	path = filepath.Join(path, key)
 
 	f, err := os.Open(path)
+	if f != nil {
+		defer f.Close()
+	}
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -110,7 +161,6 @@ func (b *FileBackend) Get(k string) (*Entry, error) {
 
 		return nil, err
 	}
-	defer f.Close()
 
 	var entry Entry
 	if err := jsonutil.DecodeJSONFromReader(f, &entry); err != nil {
@@ -121,10 +171,21 @@ func (b *FileBackend) Get(k string) (*Entry, error) {
 }
 
 func (b *FileBackend) Put(entry *Entry) error {
-	path, key := b.path(entry.Key)
+	b.permitPool.Acquire()
+	defer b.permitPool.Release()
 
-	b.l.Lock()
-	defer b.l.Unlock()
+	b.Lock()
+	defer b.Unlock()
+
+	return b.PutInternal(entry)
+}
+
+func (b *FileBackend) PutInternal(entry *Entry) error {
+	if err := b.validatePath(entry.Key); err != nil {
+		return err
+	}
+
+	path, key := b.expandPath(entry.Key)
 
 	// Make the parent tree
 	if err := os.MkdirAll(path, 0755); err != nil {
@@ -136,25 +197,41 @@ func (b *FileBackend) Put(entry *Entry) error {
 		filepath.Join(path, key),
 		os.O_CREATE|os.O_TRUNC|os.O_WRONLY,
 		0600)
+	if f != nil {
+		defer f.Close()
+	}
 	if err != nil {
 		return err
 	}
-	defer f.Close()
 	enc := json.NewEncoder(f)
 	return enc.Encode(entry)
 }
 
 func (b *FileBackend) List(prefix string) ([]string, error) {
-	b.l.Lock()
-	defer b.l.Unlock()
+	b.permitPool.Acquire()
+	defer b.permitPool.Release()
 
-	path := b.Path
+	b.RLock()
+	defer b.RUnlock()
+
+	return b.ListInternal(prefix)
+}
+
+func (b *FileBackend) ListInternal(prefix string) ([]string, error) {
+	if err := b.validatePath(prefix); err != nil {
+		return nil, err
+	}
+
+	path := b.path
 	if prefix != "" {
 		path = filepath.Join(path, prefix)
 	}
 
 	// Read the directory contents
 	f, err := os.Open(path)
+	if f != nil {
+		defer f.Close()
+	}
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
@@ -162,7 +239,6 @@ func (b *FileBackend) List(prefix string) ([]string, error) {
 
 		return nil, err
 	}
-	defer f.Close()
 
 	names, err := f.Readdirnames(-1)
 	if err != nil {
@@ -180,9 +256,28 @@ func (b *FileBackend) List(prefix string) ([]string, error) {
 	return names, nil
 }
 
-func (b *FileBackend) path(k string) (string, string) {
-	path := filepath.Join(b.Path, k)
+func (b *FileBackend) expandPath(k string) (string, string) {
+	path := filepath.Join(b.path, k)
 	key := filepath.Base(path)
 	path = filepath.Dir(path)
 	return path, "_" + key
+}
+
+func (b *FileBackend) validatePath(path string) error {
+	switch {
+	case strings.Contains(path, ".."):
+		return consts.ErrPathContainsParentReferences
+	}
+
+	return nil
+}
+
+func (b *TransactionalFileBackend) Transaction(txns []TxnEntry) error {
+	b.permitPool.Acquire()
+	defer b.permitPool.Release()
+
+	b.Lock()
+	defer b.Unlock()
+
+	return genericTransactionHandler(b, txns)
 }

@@ -3,7 +3,9 @@
 // includes helpers for converting a certificate/private key bundle
 // between DER and PEM, printing certificate serial numbers, and more.
 //
-// Functionality specific to the PKI backend includes some types // and helper methods to make requesting certificates from the // backend easy.
+// Functionality specific to the PKI backend includes some types
+// and helper methods to make requesting certificates from the
+// backend easy.
 package certutil
 
 import (
@@ -284,7 +286,7 @@ func (p *ParsedCertBundle) ToCertBundle() (*CertBundle, error) {
 }
 
 // Verify checks if the parsed bundle is valid.  It validates the public
-// key of the certificate to the private key and checks the certficate trust
+// key of the certificate to the private key and checks the certificate trust
 // chain for path issues.
 func (p *ParsedCertBundle) Verify() error {
 	// If private key exists, check if it matches the public key of cert
@@ -442,7 +444,7 @@ func (c *CSRBundle) ToParsedCSRBundle() (*ParsedCSRBundle, error) {
 		result.CSRBytes = pemBlock.Bytes
 		result.CSR, err = x509.ParseCertificateRequest(result.CSRBytes)
 		if err != nil {
-			return nil, errutil.UserError{"Error encountered parsing certificate bytes from raw bundle"}
+			return nil, errutil.UserError{fmt.Sprintf("Error encountered parsing certificate bytes from raw bundle: %v", err)}
 		}
 	}
 

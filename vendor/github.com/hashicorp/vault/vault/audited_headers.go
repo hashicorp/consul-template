@@ -2,10 +2,14 @@ package vault
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/vault/logical"
 )
+
+// N.B.: While we could use textproto to get the canonical mime header, HTTP/2
+// requires all headers to be converted to lower case, so we just do that.
 
 const (
 	// Key used in the BarrierView to store and retrieve the header config
@@ -37,7 +41,11 @@ func (a *AuditedHeadersConfig) add(header string, hmac bool) error {
 	a.Lock()
 	defer a.Unlock()
 
-	a.Headers[header] = &auditedHeaderSettings{hmac}
+	if a.Headers == nil {
+		a.Headers = make(map[string]*auditedHeaderSettings, 1)
+	}
+
+	a.Headers[strings.ToLower(header)] = &auditedHeaderSettings{hmac}
 	entry, err := logical.StorageEntryJSON(auditedHeadersEntry, a.Headers)
 	if err != nil {
 		return fmt.Errorf("failed to persist audited headers config: %v", err)
@@ -60,7 +68,12 @@ func (a *AuditedHeadersConfig) remove(header string) error {
 	a.Lock()
 	defer a.Unlock()
 
-	delete(a.Headers, header)
+	// Nothing to delete
+	if len(a.Headers) == 0 {
+		return nil
+	}
+
+	delete(a.Headers, strings.ToLower(header))
 	entry, err := logical.StorageEntryJSON(auditedHeadersEntry, a.Headers)
 	if err != nil {
 		return fmt.Errorf("failed to persist audited headers config: %v", err)
@@ -75,14 +88,21 @@ func (a *AuditedHeadersConfig) remove(header string) error {
 
 // ApplyConfig returns a map of approved headers and their values, either
 // hmac'ed or plaintext
-func (a *AuditedHeadersConfig) ApplyConfig(headers map[string][]string, hashFunc func(string) string) (result map[string][]string) {
+func (a *AuditedHeadersConfig) ApplyConfig(headers map[string][]string, hashFunc func(string) (string, error)) (result map[string][]string, retErr error) {
 	// Grab a read lock
 	a.RLock()
 	defer a.RUnlock()
 
+	// Make a copy of the incoming headers with everything lower so we can
+	// case-insensitively compare
+	lowerHeaders := make(map[string][]string, len(headers))
+	for k, v := range headers {
+		lowerHeaders[strings.ToLower(k)] = v
+	}
+
 	result = make(map[string][]string, len(a.Headers))
 	for key, settings := range a.Headers {
-		if val, ok := headers[key]; ok {
+		if val, ok := lowerHeaders[key]; ok {
 			// copy the header values so we don't overwrite them
 			hVals := make([]string, len(val))
 			copy(hVals, val)
@@ -90,7 +110,11 @@ func (a *AuditedHeadersConfig) ApplyConfig(headers map[string][]string, hashFunc
 			// Optionally hmac the values
 			if settings.HMAC {
 				for i, el := range hVals {
-					hVals[i] = hashFunc(el)
+					hVal, err := hashFunc(el)
+					if err != nil {
+						return nil, err
+					}
+					hVals[i] = hVal
 				}
 			}
 
@@ -98,7 +122,7 @@ func (a *AuditedHeadersConfig) ApplyConfig(headers map[string][]string, hashFunc
 		}
 	}
 
-	return
+	return result, nil
 }
 
 // Initalize the headers config by loading from the barrier view
@@ -120,8 +144,15 @@ func (c *Core) setupAuditedHeadersConfig() error {
 		}
 	}
 
+	// Ensure that we are able to case-sensitively access the headers;
+	// necessary for the upgrade case
+	lowerHeaders := make(map[string]*auditedHeaderSettings, len(headers))
+	for k, v := range headers {
+		lowerHeaders[strings.ToLower(k)] = v
+	}
+
 	c.auditedHeaders = &AuditedHeadersConfig{
-		Headers: headers,
+		Headers: lowerHeaders,
 		view:    view,
 	}
 

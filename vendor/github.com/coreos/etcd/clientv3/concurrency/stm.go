@@ -43,8 +43,9 @@ type STM interface {
 type Isolation int
 
 const (
-	// Snapshot is serializable but also checks writes for conflicts.
-	Snapshot Isolation = iota
+	// SerializableSnapshot provides serializable isolation and also checks
+	// for write conflicts.
+	SerializableSnapshot Isolation = iota
 	// Serializable reads within the same transactiona attempt return data
 	// from the at the revision of the first read.
 	Serializable
@@ -102,7 +103,7 @@ func NewSTM(c *v3.Client, apply func(STM) error, so ...stmOption) (*v3.TxnRespon
 
 func mkSTM(c *v3.Client, opts *stmOptions) STM {
 	switch opts.iso {
-	case Snapshot:
+	case SerializableSnapshot:
 		s := &stmSerializable{
 			stm:      stm{client: c, ctx: opts.ctx},
 			prefetch: make(map[string]*v3.GetResponse),
@@ -367,4 +368,19 @@ func respToValue(resp *v3.GetResponse) string {
 		return ""
 	}
 	return string(resp.Kvs[0].Value)
+}
+
+// NewSTMRepeatable is deprecated.
+func NewSTMRepeatable(ctx context.Context, c *v3.Client, apply func(STM) error) (*v3.TxnResponse, error) {
+	return NewSTM(c, apply, WithAbortContext(ctx), WithIsolation(RepeatableReads))
+}
+
+// NewSTMSerializable is deprecated.
+func NewSTMSerializable(ctx context.Context, c *v3.Client, apply func(STM) error) (*v3.TxnResponse, error) {
+	return NewSTM(c, apply, WithAbortContext(ctx), WithIsolation(Serializable))
+}
+
+// NewSTMReadCommitted is deprecated.
+func NewSTMReadCommitted(ctx context.Context, c *v3.Client, apply func(STM) error) (*v3.TxnResponse, error) {
+	return NewSTM(c, apply, WithAbortContext(ctx), WithIsolation(ReadCommitted))
 }

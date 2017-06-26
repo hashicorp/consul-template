@@ -1,6 +1,7 @@
 package vault
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -16,13 +17,8 @@ import (
 	"net/http"
 	"time"
 
-	log "github.com/mgutz/logxi/v1"
-
-	"golang.org/x/net/http2"
-
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/vault/helper/forwarding"
 	"github.com/hashicorp/vault/helper/jsonutil"
 )
 
@@ -43,15 +39,10 @@ var (
 
 // This can be one of a few key types so the different params may or may not be filled
 type clusterKeyParams struct {
-	Type string   `json:"type"`
+	Type string   `json:"type" structs:"type" mapstructure:"type"`
 	X    *big.Int `json:"x" structs:"x" mapstructure:"x"`
 	Y    *big.Int `json:"y" structs:"y" mapstructure:"y"`
 	D    *big.Int `json:"d" structs:"d" mapstructure:"d"`
-}
-
-type activeConnection struct {
-	transport   *http2.Transport
-	clusterAddr string
 }
 
 // Structure representing the storage entry that holds cluster information
@@ -92,26 +83,40 @@ func (c *Core) Cluster() (*Cluster, error) {
 
 // This sets our local cluster cert and private key based on the advertisement.
 // It also ensures the cert is in our local cluster cert pool.
-func (c *Core) loadLocalClusterTLS(adv activeAdvertisement) error {
+func (c *Core) loadLocalClusterTLS(adv activeAdvertisement) (retErr error) {
+	defer func() {
+		if retErr != nil {
+			c.clusterParamsLock.Lock()
+			c.localClusterCert = nil
+			c.localClusterPrivateKey = nil
+			c.localClusterParsedCert = nil
+			c.clusterParamsLock.Unlock()
+
+			c.requestForwardingConnectionLock.Lock()
+			c.clearForwardingClients()
+			c.requestForwardingConnectionLock.Unlock()
+		}
+	}()
+
 	switch {
 	case adv.ClusterAddr == "":
 		// Clustering disabled on the server, don't try to look for params
 		return nil
 
 	case adv.ClusterKeyParams == nil:
-		c.logger.Error("core/loadClusterTLS: no key params found")
+		c.logger.Error("core: no key params found loading local cluster TLS information")
 		return fmt.Errorf("no local cluster key params found")
 
 	case adv.ClusterKeyParams.X == nil, adv.ClusterKeyParams.Y == nil, adv.ClusterKeyParams.D == nil:
-		c.logger.Error("core/loadClusterTLS: failed to parse local cluster key due to missing params")
+		c.logger.Error("core: failed to parse local cluster key due to missing params")
 		return fmt.Errorf("failed to parse local cluster key")
 
 	case adv.ClusterKeyParams.Type != corePrivateKeyTypeP521:
-		c.logger.Error("core/loadClusterTLS: unknown local cluster key type", "key_type", adv.ClusterKeyParams.Type)
+		c.logger.Error("core: unknown local cluster key type", "key_type", adv.ClusterKeyParams.Type)
 		return fmt.Errorf("failed to find valid local cluster key type")
 
 	case adv.ClusterCert == nil || len(adv.ClusterCert) == 0:
-		c.logger.Error("core/loadClusterTLS: no local cluster cert found")
+		c.logger.Error("core: no local cluster cert found")
 		return fmt.Errorf("no local cluster cert found")
 
 	}
@@ -133,11 +138,11 @@ func (c *Core) loadLocalClusterTLS(adv activeAdvertisement) error {
 
 	cert, err := x509.ParseCertificate(c.localClusterCert)
 	if err != nil {
-		c.logger.Error("core/loadClusterTLS: failed parsing local cluster certificate", "error", err)
+		c.logger.Error("core: failed parsing local cluster certificate", "error", err)
 		return fmt.Errorf("error parsing local cluster certificate: %v", err)
 	}
 
-	c.clusterCertPool.AddCert(cert)
+	c.localClusterParsedCert = cert
 
 	return nil
 }
@@ -200,7 +205,7 @@ func (c *Core) setupCluster() error {
 	// If we're using HA, generate server-to-server parameters
 	if c.ha != nil {
 		// Create a private key
-		{
+		if c.localClusterPrivateKey == nil {
 			c.logger.Trace("core: generating cluster private key")
 			key, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 			if err != nil {
@@ -212,14 +217,14 @@ func (c *Core) setupCluster() error {
 		}
 
 		// Create a certificate
-		{
+		if c.localClusterCert == nil {
 			c.logger.Trace("core: generating local cluster certificate")
 
 			host, err := uuid.GenerateUUID()
 			if err != nil {
 				return err
 			}
-
+			host = fmt.Sprintf("fw-%s", host)
 			template := &x509.Certificate{
 				Subject: pkix.Name{
 					CommonName: host,
@@ -244,13 +249,14 @@ func (c *Core) setupCluster() error {
 				return errwrap.Wrapf("unable to generate local cluster certificate: {{err}}", err)
 			}
 
-			_, err = x509.ParseCertificate(certBytes)
+			parsedCert, err := x509.ParseCertificate(certBytes)
 			if err != nil {
 				c.logger.Error("core: error parsing self-signed cert", "error", err)
 				return errwrap.Wrapf("error parsing generated certificate: {{err}}", err)
 			}
 
 			c.localClusterCert = certBytes
+			c.localClusterParsedCert = parsedCert
 		}
 	}
 
@@ -276,32 +282,22 @@ func (c *Core) setupCluster() error {
 	return nil
 }
 
-// SetClusterSetupFuncs sets the handler setup func
-func (c *Core) SetClusterSetupFuncs(handler func() (http.Handler, http.Handler)) {
-	c.clusterHandlerSetupFunc = handler
-}
-
 // startClusterListener starts cluster request listeners during postunseal. It
 // is assumed that the state lock is held while this is run. Right now this
 // only starts forwarding listeners; it's TBD whether other request types will
 // be built in the same mechanism or started independently.
 func (c *Core) startClusterListener() error {
-	if c.clusterHandlerSetupFunc == nil {
-		c.logger.Error("core/startClusterListener: cluster handler setup function has not been set")
-		return fmt.Errorf("cluster handler setup function has not been set")
-	}
-
 	if c.clusterAddr == "" {
-		c.logger.Info("core/startClusterListener: clustering disabled, not starting listeners")
+		c.logger.Info("core: clustering disabled, not starting listeners")
 		return nil
 	}
 
 	if c.clusterListenerAddrs == nil || len(c.clusterListenerAddrs) == 0 {
-		c.logger.Warn("core/startClusterListener: clustering not disabled but no addresses to listen on")
+		c.logger.Warn("core: clustering not disabled but no addresses to listen on")
 		return fmt.Errorf("cluster addresses not found")
 	}
 
-	c.logger.Trace("core/startClusterListener: starting listeners")
+	c.logger.Trace("core: starting cluster listeners")
 
 	err := c.startForwarding()
 	if err != nil {
@@ -315,15 +311,15 @@ func (c *Core) startClusterListener() error {
 // assumed that the state lock is held while this is run.
 func (c *Core) stopClusterListener() {
 	if c.clusterAddr == "" {
-		c.logger.Trace("core/stopClusterListener: clustering disabled, nothing to do")
+		c.logger.Trace("core: clustering disabled, not stopping listeners")
 		return
 	}
 
 	if !c.clusterListenersRunning {
-		c.logger.Info("core/stopClusterListener: listeners not running")
+		c.logger.Info("core: cluster listeners not running")
 		return
 	}
-	c.logger.Info("core/stopClusterListener: stopping listeners")
+	c.logger.Info("core: stopping cluster listeners")
 
 	// Tell the goroutine managing the listeners to perform the shutdown
 	// process
@@ -332,52 +328,131 @@ func (c *Core) stopClusterListener() {
 	// The reason for this loop-de-loop is that we may be unsealing again
 	// quickly, and if the listeners are not yet closed, we will get socket
 	// bind errors. This ensures proper ordering.
-	c.logger.Trace("core/stopClusterListener: waiting for success notification")
+	c.logger.Trace("core: waiting for success notification while stopping cluster listeners")
 	<-c.clusterListenerShutdownSuccessCh
 	c.clusterListenersRunning = false
 
-	c.logger.Info("core/stopClusterListener: success")
+	c.logger.Info("core: cluster listeners successfully shut down")
 }
 
-// ClusterTLSConfig generates a TLS configuration based on the local cluster
-// key and cert.
+// ClusterTLSConfig generates a TLS configuration based on the local/replicated
+// cluster key and cert.
 func (c *Core) ClusterTLSConfig() (*tls.Config, error) {
-	cluster, err := c.Cluster()
-	if err != nil {
-		return nil, err
-	}
-	if cluster == nil {
-		return nil, fmt.Errorf("cluster information is nil")
+	// Using lookup functions allows just-in-time lookup of the current state
+	// of clustering as connections come and go
+
+	serverLookup := func(clientHello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+		switch {
+		default:
+			var localCert bytes.Buffer
+
+			c.clusterParamsLock.RLock()
+			localCert.Write(c.localClusterCert)
+			localSigner := c.localClusterPrivateKey
+			parsedCert := c.localClusterParsedCert
+			c.clusterParamsLock.RUnlock()
+
+			if localCert.Len() == 0 {
+				return nil, fmt.Errorf("got forwarding connection but no local cert")
+			}
+
+			//c.logger.Trace("core: performing cert name lookup", "hello_server_name", clientHello.ServerName, "local_cluster_cert_name", parsedCert.Subject.CommonName)
+
+			return &tls.Certificate{
+				Certificate: [][]byte{localCert.Bytes()},
+				PrivateKey:  localSigner,
+				Leaf:        parsedCert,
+			}, nil
+
+		}
+
+		return nil, nil
 	}
 
-	// Prevent data races with the TLS parameters
-	c.clusterParamsLock.Lock()
-	defer c.clusterParamsLock.Unlock()
+	clientLookup := func(requestInfo *tls.CertificateRequestInfo) (*tls.Certificate, error) {
+		//c.logger.Trace("core: performing client cert lookup")
 
-	if c.localClusterCert == nil || len(c.localClusterCert) == 0 {
-		return nil, fmt.Errorf("cluster certificate is nil")
+		if len(requestInfo.AcceptableCAs) != 1 {
+			return nil, fmt.Errorf("expected only a single acceptable CA")
+		}
+		var localCert bytes.Buffer
+
+		c.clusterParamsLock.RLock()
+		localCert.Write(c.localClusterCert)
+		localSigner := c.localClusterPrivateKey
+		parsedCert := c.localClusterParsedCert
+		c.clusterParamsLock.RUnlock()
+
+		if localCert.Len() == 0 {
+			return nil, fmt.Errorf("forwarding connection client but no local cert")
+		}
+
+		return &tls.Certificate{
+			Certificate: [][]byte{localCert.Bytes()},
+			PrivateKey:  localSigner,
+			Leaf:        parsedCert,
+		}, nil
 	}
 
-	parsedCert, err := x509.ParseCertificate(c.localClusterCert)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing local cluster certificate: %v", err)
-	}
+	serverConfigLookup := func(clientHello *tls.ClientHelloInfo) (*tls.Config, error) {
+		//c.logger.Trace("core: performing server config lookup")
+		for _, v := range clientHello.SupportedProtos {
+			switch v {
+			case "h2", "req_fw_sb-act_v1":
+			default:
+				return nil, fmt.Errorf("unknown ALPN proto %s", v)
+			}
+		}
 
-	// This is idempotent, so be sure it's been added
-	c.clusterCertPool.AddCert(parsedCert)
+		caPool := x509.NewCertPool()
+
+		ret := &tls.Config{
+			ClientAuth:           tls.RequireAndVerifyClientCert,
+			GetCertificate:       serverLookup,
+			GetClientCertificate: clientLookup,
+			MinVersion:           tls.VersionTLS12,
+			RootCAs:              caPool,
+			ClientCAs:            caPool,
+			NextProtos:           clientHello.SupportedProtos,
+		}
+
+		switch {
+		default:
+			c.clusterParamsLock.RLock()
+			parsedCert := c.localClusterParsedCert
+			c.clusterParamsLock.RUnlock()
+
+			if parsedCert == nil {
+				return nil, fmt.Errorf("forwarding connection client but no local cert")
+			}
+
+			caPool.AddCert(parsedCert)
+		}
+
+		return ret, nil
+	}
 
 	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{
-			tls.Certificate{
-				Certificate: [][]byte{c.localClusterCert},
-				PrivateKey:  c.localClusterPrivateKey,
-			},
-		},
-		RootCAs:    c.clusterCertPool,
-		ServerName: parsedCert.Subject.CommonName,
-		ClientAuth: tls.RequireAndVerifyClientCert,
-		ClientCAs:  c.clusterCertPool,
-		MinVersion: tls.VersionTLS12,
+		ClientAuth:           tls.RequireAndVerifyClientCert,
+		GetCertificate:       serverLookup,
+		GetClientCertificate: clientLookup,
+		GetConfigForClient:   serverConfigLookup,
+		MinVersion:           tls.VersionTLS12,
+	}
+
+	var localCert bytes.Buffer
+	c.clusterParamsLock.RLock()
+	localCert.Write(c.localClusterCert)
+	parsedCert := c.localClusterParsedCert
+	c.clusterParamsLock.RUnlock()
+
+	if parsedCert != nil {
+		tlsConfig.ServerName = parsedCert.Subject.CommonName
+
+		pool := x509.NewCertPool()
+		pool.AddCert(parsedCert)
+		tlsConfig.RootCAs = pool
+		tlsConfig.ClientCAs = pool
 	}
 
 	return tlsConfig, nil
@@ -387,49 +462,6 @@ func (c *Core) SetClusterListenerAddrs(addrs []*net.TCPAddr) {
 	c.clusterListenerAddrs = addrs
 }
 
-// WrapHandlerForClustering takes in Vault's HTTP handler and returns a setup
-// function that returns both the original handler and one wrapped with cluster
-// methods
-func WrapHandlerForClustering(handler http.Handler, logger log.Logger) func() (http.Handler, http.Handler) {
-	return func() (http.Handler, http.Handler) {
-		// This mux handles cluster functions (right now, only forwarded requests)
-		mux := http.NewServeMux()
-		mux.HandleFunc("/cluster/local/forwarded-request", func(w http.ResponseWriter, req *http.Request) {
-			freq, err := forwarding.ParseForwardedHTTPRequest(req)
-			if err != nil {
-				if logger != nil {
-					logger.Error("http/forwarded-request-server: error parsing forwarded request", "error", err)
-				}
-
-				w.Header().Add("Content-Type", "application/json")
-
-				// The response writer here is different from
-				// the one set in Vault's HTTP handler.
-				// Hence, set the Cache-Control explicitly.
-				w.Header().Set("Cache-Control", "no-store")
-
-				w.WriteHeader(http.StatusInternalServerError)
-
-				type errorResponse struct {
-					Errors []string
-				}
-				resp := &errorResponse{
-					Errors: []string{
-						err.Error(),
-					},
-				}
-
-				enc := json.NewEncoder(w)
-				enc.Encode(resp)
-				return
-			}
-
-			// To avoid the risk of a forward loop in some pathological condition,
-			// set the no-forward header
-			freq.Header.Set(IntNoForwardingHeaderName, "true")
-			handler.ServeHTTP(w, freq)
-		})
-
-		return handler, mux
-	}
+func (c *Core) SetClusterHandler(handler http.Handler) {
+	c.clusterHandler = handler
 }

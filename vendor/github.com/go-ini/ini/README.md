@@ -1,4 +1,4 @@
-INI [![Build Status](https://travis-ci.org/go-ini/ini.svg?branch=master)](https://travis-ci.org/go-ini/ini)
+INI [![Build Status](https://travis-ci.org/go-ini/ini.svg?branch=master)](https://travis-ci.org/go-ini/ini) [![Sourcegraph](https://sourcegraph.com/github.com/go-ini/ini/-/badge.svg)](https://sourcegraph.com/github.com/go-ini/ini?badge)
 ===
 
 ![](https://avatars0.githubusercontent.com/u/10216035?v=3&s=200)
@@ -83,8 +83,8 @@ sec1, err := cfg.GetSection("Section")
 sec2, err := cfg.GetSection("SecTIOn")
 
 // key1 and key2 are the exactly same key object
-key1, err := cfg.GetKey("Key")
-key2, err := cfg.GetKey("KeY")
+key1, err := sec1.GetKey("Key")
+key2, err := sec2.GetKey("KeY")
 ```
 
 #### MySQL-like boolean key 
@@ -121,6 +121,12 @@ Take care that following format will be treated as comment:
 3. Words after section name (i.e words after `[some section name]`)
 
 If you want to save a value with `#` or `;`, please quote them with ``` ` ``` or ``` """ ```.
+
+Alternatively, you can use following `LoadOptions` to completely ignore inline comments:
+
+```go
+cfg, err := LoadSources(LoadOptions{IgnoreInlineComment: true}, "app.ini"))
+```
 
 ### Working with sections
 

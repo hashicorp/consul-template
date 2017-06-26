@@ -71,6 +71,15 @@ func (lm *LockManager) CacheActive() bool {
 	return lm.cache != nil
 }
 
+func (lm *LockManager) InvalidatePolicy(name string) {
+	// Check if it's in our cache. If so, return right away.
+	if lm.CacheActive() {
+		lm.cacheMutex.Lock()
+		defer lm.cacheMutex.Unlock()
+		delete(lm.cache, name)
+	}
+}
+
 func (lm *LockManager) policyLock(name string, lockType bool) *sync.RWMutex {
 	lm.locksMutex.RLock()
 	lock := lm.locks[name]
@@ -239,7 +248,12 @@ func (lm *LockManager) getPolicyCommon(req PolicyRequest, lockType bool) (*Polic
 
 		case KeyType_ECDSA_P256:
 			if req.Derived || req.Convergent {
-				return nil, nil, false, fmt.Errorf("key derivation and convergent encryption not supported for keys of type %s", KeyType_ECDSA_P256)
+				return nil, nil, false, fmt.Errorf("key derivation and convergent encryption not supported for keys of type %v", KeyType_ECDSA_P256)
+			}
+
+		case KeyType_ED25519:
+			if req.Convergent {
+				return nil, nil, false, fmt.Errorf("convergent encryption not not supported for keys of type %v", KeyType_ED25519)
 			}
 
 		default:

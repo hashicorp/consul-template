@@ -6,10 +6,13 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/net/http2"
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-rootcerts"
@@ -25,6 +28,7 @@ const EnvVaultInsecure = "VAULT_SKIP_VERIFY"
 const EnvVaultTLSServerName = "VAULT_TLS_SERVER_NAME"
 const EnvVaultWrapTTL = "VAULT_WRAP_TTL"
 const EnvVaultMaxRetries = "VAULT_MAX_RETRIES"
+const EnvVaultToken = "VAULT_TOKEN"
 
 // WrappingLookupFunc is a function that, given an HTTP verb and a path,
 // returns an optional string duration to be used for response wrapping (e.g.
@@ -84,8 +88,7 @@ type TLSConfig struct {
 // setting the `VAULT_ADDR` environment variable.
 func DefaultConfig() *Config {
 	config := &Config{
-		Address: "https://127.0.0.1:8200",
-
+		Address:    "https://127.0.0.1:8200",
 		HttpClient: cleanhttp.DefaultClient(),
 	}
 	config.HttpClient.Timeout = time.Second * 60
@@ -104,9 +107,8 @@ func DefaultConfig() *Config {
 
 // ConfigureTLS takes a set of TLS configurations and applies those to the the HTTP client.
 func (c *Config) ConfigureTLS(t *TLSConfig) error {
-
 	if c.HttpClient == nil {
-		return fmt.Errorf("config HTTP Client must be set")
+		c.HttpClient = DefaultConfig().HttpClient
 	}
 
 	var clientCert tls.Certificate
@@ -247,6 +249,11 @@ func NewClient(c *Config) (*Client, error) {
 		c.HttpClient = DefaultConfig().HttpClient
 	}
 
+	tp := c.HttpClient.Transport.(*http.Transport)
+	if err := http2.ConfigureTransport(tp); err != nil {
+		return nil, err
+	}
+
 	redirFunc := func() {
 		// Ensure redirects are not automatically followed
 		// Note that this is sane for the API client as it has its own
@@ -254,9 +261,9 @@ func NewClient(c *Config) (*Client, error) {
 		// but in e.g. http_test actual redirect handling is necessary
 		c.HttpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 			// Returning this value causes the Go net library to not close the
-			// response body and nil out the error. Otherwise pester tries
+			// response body and to nil out the error. Otherwise pester tries
 			// three times on every redirect because it sees an error from this
-			// function being passed through.
+			// function (to prevent redirects) passing through to it.
 			return http.ErrUseLastResponse
 		}
 	}
@@ -268,7 +275,7 @@ func NewClient(c *Config) (*Client, error) {
 		config: c,
 	}
 
-	if token := os.Getenv("VAULT_TOKEN"); token != "" {
+	if token := os.Getenv(EnvVaultToken); token != "" {
 		client.SetToken(token)
 	}
 
@@ -290,6 +297,11 @@ func (c *Client) SetAddress(addr string) error {
 // Address returns the Vault URL the client is configured to connect to
 func (c *Client) Address() string {
 	return c.addr.String()
+}
+
+// SetMaxRetries sets the number of retries that will be used in the case of certain errors
+func (c *Client) SetMaxRetries(retries int) {
+	c.config.MaxRetries = retries
 }
 
 // SetWrappingLookupFunc sets a lookup function that returns desired wrap TTLs
@@ -315,16 +327,22 @@ func (c *Client) ClearToken() {
 	c.token = ""
 }
 
+// Clone creates a copy of this client.
+func (c *Client) Clone() (*Client, error) {
+	return NewClient(c.config)
+}
+
 // NewRequest creates a new raw request object to query the Vault server
 // configured for this client. This is an advanced method and generally
 // doesn't need to be called externally.
-func (c *Client) NewRequest(method, path string) *Request {
+func (c *Client) NewRequest(method, requestPath string) *Request {
 	req := &Request{
 		Method: method,
 		URL: &url.URL{
+			User:   c.addr.User,
 			Scheme: c.addr.Scheme,
 			Host:   c.addr.Host,
-			Path:   path,
+			Path:   path.Join(c.addr.Path, requestPath),
 		},
 		ClientToken: c.token,
 		Params:      make(map[string][]string),
@@ -332,12 +350,12 @@ func (c *Client) NewRequest(method, path string) *Request {
 
 	var lookupPath string
 	switch {
-	case strings.HasPrefix(path, "/v1/"):
-		lookupPath = strings.TrimPrefix(path, "/v1/")
-	case strings.HasPrefix(path, "v1/"):
-		lookupPath = strings.TrimPrefix(path, "v1/")
+	case strings.HasPrefix(requestPath, "/v1/"):
+		lookupPath = strings.TrimPrefix(requestPath, "/v1/")
+	case strings.HasPrefix(requestPath, "v1/"):
+		lookupPath = strings.TrimPrefix(requestPath, "v1/")
 	default:
-		lookupPath = path
+		lookupPath = requestPath
 	}
 	if c.wrappingLookupFunc != nil {
 		req.WrapTTL = c.wrappingLookupFunc(method, lookupPath)

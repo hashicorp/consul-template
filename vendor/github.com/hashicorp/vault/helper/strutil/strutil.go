@@ -31,7 +31,7 @@ func StrListSubset(super, sub []string) bool {
 
 // Parses a comma separated list of strings into a slice of strings.
 // The return slice will be sorted and will not contain duplicate or
-// empty items. The values will be converted to lower case.
+// empty items.
 func ParseDedupAndSortStrings(input string, sep string) []string {
 	input = strings.TrimSpace(input)
 	parsed := []string{}
@@ -39,7 +39,20 @@ func ParseDedupAndSortStrings(input string, sep string) []string {
 		// Don't return nil
 		return parsed
 	}
-	return RemoveDuplicates(strings.Split(input, sep))
+	return RemoveDuplicates(strings.Split(input, sep), false)
+}
+
+// Parses a comma separated list of strings into a slice of strings.
+// The return slice will be sorted and will not contain duplicate or
+// empty items. The values will be converted to lower case.
+func ParseDedupLowercaseAndSortStrings(input string, sep string) []string {
+	input = strings.TrimSpace(input)
+	parsed := []string{}
+	if input == "" {
+		// Don't return nil
+		return parsed
+	}
+	return RemoveDuplicates(strings.Split(input, sep), true)
 }
 
 // Parses a comma separated list of `<key>=<value>` tuples into a
@@ -49,13 +62,17 @@ func ParseKeyValues(input string, out map[string]string, sep string) error {
 		return fmt.Errorf("'out is nil")
 	}
 
-	keyValues := ParseDedupAndSortStrings(input, sep)
+	keyValues := ParseDedupLowercaseAndSortStrings(input, sep)
 	if len(keyValues) == 0 {
 		return nil
 	}
 
 	for _, keyValue := range keyValues {
 		shards := strings.Split(keyValue, "=")
+		if len(shards) != 2 {
+			return fmt.Errorf("invalid <key,value> format")
+		}
+
 		key := strings.TrimSpace(shards[0])
 		value := strings.TrimSpace(shards[1])
 		if key == "" || value == "" {
@@ -174,19 +191,31 @@ func ParseArbitraryStringSlice(input string, sep string) []string {
 	return ret
 }
 
-// Removes duplicate and empty elements from a slice of strings.
-// This also converts the items in the slice to lower case and
-// returns a sorted slice.
-func RemoveDuplicates(items []string) []string {
+// TrimStrings takes a slice of strings and returns a slice of strings
+// with trimmed spaces
+func TrimStrings(items []string) []string {
+	ret := make([]string, len(items))
+	for i, item := range items {
+		ret[i] = strings.TrimSpace(item)
+	}
+	return ret
+}
+
+// Removes duplicate and empty elements from a slice of strings. This also may
+// convert the items in the slice to lower case and returns a sorted slice.
+func RemoveDuplicates(items []string, lowercase bool) []string {
 	itemsMap := map[string]bool{}
 	for _, item := range items {
-		item = strings.ToLower(strings.TrimSpace(item))
+		item = strings.TrimSpace(item)
+		if lowercase {
+			item = strings.ToLower(item)
+		}
 		if item == "" {
 			continue
 		}
 		itemsMap[item] = true
 	}
-	items = []string{}
+	items = make([]string, 0, len(itemsMap))
 	for item, _ := range itemsMap {
 		items = append(items, item)
 	}
@@ -254,4 +283,31 @@ func StrListDelete(s []string, d string) []string {
 	}
 
 	return s
+}
+
+func GlobbedStringsMatch(item, val string) bool {
+	if len(item) < 2 {
+		return val == item
+	}
+
+	hasPrefix := strings.HasPrefix(item, "*")
+	hasSuffix := strings.HasSuffix(item, "*")
+
+	if hasPrefix && hasSuffix {
+		return strings.Contains(val, item[1:len(item)-1])
+	} else if hasPrefix {
+		return strings.HasSuffix(val, item[1:])
+	} else if hasSuffix {
+		return strings.HasPrefix(val, item[:len(item)-1])
+	}
+
+	return val == item
+}
+
+// AppendIfMissing adds a string to a slice if the given string is not present
+func AppendIfMissing(slice []string, i string) []string {
+	if StrListContains(slice, i) {
+		return slice
+	}
+	return append(slice, i)
 }

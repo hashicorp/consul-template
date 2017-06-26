@@ -66,15 +66,15 @@ type handshakeTransport struct {
 
 	// If the read loop wants to schedule a kex, it pings this
 	// channel, and the write loop will send out a kex
-	// message. The boolean is whether this is the first request or not.
-	requestKex chan bool
+	// message.
+	requestKex chan struct{}
 
 	// If the other side requests or confirms a kex, its kexInit
 	// packet is sent here for the write loop to find it.
 	startKex chan *pendingKex
 
 	// data for host key checking
-	hostKeyCallback func(hostname string, remote net.Addr, key PublicKey) error
+	hostKeyCallback HostKeyCallback
 	dialAddress     string
 	remoteAddr      net.Addr
 
@@ -102,14 +102,16 @@ func newHandshakeTransport(conn keyingTransport, config *Config, clientVersion, 
 		serverVersion: serverVersion,
 		clientVersion: clientVersion,
 		incoming:      make(chan []byte, chanSize),
-		requestKex:    make(chan bool, 1),
+		requestKex:    make(chan struct{}, 1),
 		startKex:      make(chan *pendingKex, 1),
 
 		config: config,
 	}
+	t.resetReadThresholds()
+	t.resetWriteThresholds()
 
 	// We always start with a mandatory key exchange.
-	t.requestKex <- true
+	t.requestKex <- struct{}{}
 	return t
 }
 
@@ -166,6 +168,7 @@ func (t *handshakeTransport) printPacket(p []byte, write bool) {
 	if write {
 		action = "sent"
 	}
+
 	if p[0] == msgChannelData || p[0] == msgChannelExtendedData {
 		log.Printf("%s %s data (packet %d bytes)", t.id(), action, len(p))
 	} else {
@@ -230,14 +233,24 @@ func (t *handshakeTransport) recordWriteError(err error) {
 
 func (t *handshakeTransport) requestKeyExchange() {
 	select {
-	case t.requestKex <- false:
+	case t.requestKex <- struct{}{}:
 	default:
 		// something already requested a kex, so do nothing.
 	}
 }
 
+func (t *handshakeTransport) resetWriteThresholds() {
+	t.writePacketsLeft = packetRekeyThreshold
+	if t.config.RekeyThreshold > 0 {
+		t.writeBytesLeft = int64(t.config.RekeyThreshold)
+	} else if t.algorithms != nil {
+		t.writeBytesLeft = t.algorithms.w.rekeyBytes()
+	} else {
+		t.writeBytesLeft = 1 << 30
+	}
+}
+
 func (t *handshakeTransport) kexLoop() {
-	firstSent := false
 
 write:
 	for t.getWriteError() == nil {
@@ -251,18 +264,8 @@ write:
 				if !ok {
 					break write
 				}
-			case requestFirst := <-t.requestKex:
-				// For the first key exchange, both
-				// sides will initiate a key exchange,
-				// and both channels will fire. To
-				// avoid doing two key exchanges in a
-				// row, ignore our own request for an
-				// initial kex if we have already sent
-				// it out.
-				if firstSent && requestFirst {
-
-					continue
-				}
+			case <-t.requestKex:
+				break
 			}
 
 			if !sent {
@@ -270,7 +273,6 @@ write:
 					t.recordWriteError(err)
 					break
 				}
-				firstSent = true
 				sent = true
 			}
 		}
@@ -287,7 +289,8 @@ write:
 
 		// We're not servicing t.startKex, but the remote end
 		// has just sent us a kexInitMsg, so it can't send
-		// another key change request.
+		// another key change request, until we close the done
+		// channel on the pendingKex request.
 
 		err := t.enterKeyExchange(request.otherInit)
 
@@ -295,12 +298,25 @@ write:
 		t.writeError = err
 		t.sentInitPacket = nil
 		t.sentInitMsg = nil
-		t.writePacketsLeft = packetRekeyThreshold
-		if t.config.RekeyThreshold > 0 {
-			t.writeBytesLeft = int64(t.config.RekeyThreshold)
-		} else if t.algorithms != nil {
-			t.writeBytesLeft = t.algorithms.w.rekeyBytes()
+
+		t.resetWriteThresholds()
+
+		// we have completed the key exchange. Since the
+		// reader is still blocked, it is safe to clear out
+		// the requestKex channel. This avoids the situation
+		// where: 1) we consumed our own request for the
+		// initial kex, and 2) the kex from the remote side
+		// caused another send on the requestKex channel,
+	clear:
+		for {
+			select {
+			case <-t.requestKex:
+				//
+			default:
+				break clear
+			}
 		}
+
 		request.done <- t.writeError
 
 		// kex finished. Push packets that we received while
@@ -336,6 +352,17 @@ write:
 // hit this limit on writing we will send a few more packets for the
 // key exchange itself.
 const packetRekeyThreshold = (1 << 31)
+
+func (t *handshakeTransport) resetReadThresholds() {
+	t.readPacketsLeft = packetRekeyThreshold
+	if t.config.RekeyThreshold > 0 {
+		t.readBytesLeft = int64(t.config.RekeyThreshold)
+	} else if t.algorithms != nil {
+		t.readBytesLeft = t.algorithms.r.rekeyBytes()
+	} else {
+		t.readBytesLeft = 1 << 30
+	}
+}
 
 func (t *handshakeTransport) readOnePacket(first bool) ([]byte, error) {
 	p, err := t.conn.readPacket()
@@ -384,12 +411,7 @@ func (t *handshakeTransport) readOnePacket(first bool) ([]byte, error) {
 		return nil, err
 	}
 
-	t.readPacketsLeft = packetRekeyThreshold
-	if t.config.RekeyThreshold > 0 {
-		t.readBytesLeft = int64(t.config.RekeyThreshold)
-	} else {
-		t.readBytesLeft = t.algorithms.r.rekeyBytes()
-	}
+	t.resetReadThresholds()
 
 	// By default, a key exchange is hidden from higher layers by
 	// translating it into msgIgnore.
@@ -567,7 +589,9 @@ func (t *handshakeTransport) enterKeyExchange(otherInitPacket []byte) error {
 	}
 	result.SessionID = t.sessionID
 
-	t.conn.prepareKeyChange(t.algorithms, result)
+	if err := t.conn.prepareKeyChange(t.algorithms, result); err != nil {
+		return err
+	}
 	if err = t.conn.writePacket([]byte{msgNewKeys}); err != nil {
 		return err
 	}
@@ -607,11 +631,9 @@ func (t *handshakeTransport) client(kex kexAlgorithm, algs *algorithms, magics *
 		return nil, err
 	}
 
-	if t.hostKeyCallback != nil {
-		err = t.hostKeyCallback(t.dialAddress, t.remoteAddr, hostKey)
-		if err != nil {
-			return nil, err
-		}
+	err = t.hostKeyCallback(t.dialAddress, t.remoteAddr, hostKey)
+	if err != nil {
+		return nil, err
 	}
 
 	return result, nil
