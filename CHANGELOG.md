@@ -1,7 +1,7 @@
 Consul Template Changelog
 =========================
 
-## v0.18.6 (Unreleased)
+## v0.19.0 (Unreleased)
 
 BREAKING CHANGES:
 
