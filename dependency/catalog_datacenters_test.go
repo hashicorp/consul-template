@@ -29,7 +29,7 @@ func TestNewCatalogDatacentersQuery(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-			act, err := NewCatalogDatacentersQuery()
+			act, err := NewCatalogDatacentersQuery(false)
 			if (err != nil) != tc.err {
 				t.Fatal(err)
 			}
@@ -58,7 +58,7 @@ func TestCatalogDatacentersQuery_Fetch(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-			d, err := NewCatalogDatacentersQuery()
+			d, err := NewCatalogDatacentersQuery(false)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -73,7 +73,7 @@ func TestCatalogDatacentersQuery_Fetch(t *testing.T) {
 	}
 
 	t.Run("stops", func(t *testing.T) {
-		d, err := NewCatalogDatacentersQuery()
+		d, err := NewCatalogDatacentersQuery(false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -110,7 +110,7 @@ func TestCatalogDatacentersQuery_Fetch(t *testing.T) {
 	})
 
 	t.Run("fires_changes", func(t *testing.T) {
-		d, err := NewCatalogDatacentersQuery()
+		d, err := NewCatalogDatacentersQuery(false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -157,7 +157,7 @@ func TestCatalogDatacentersQuery_String(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-			d, err := NewCatalogDatacentersQuery()
+			d, err := NewCatalogDatacentersQuery(false)
 			if err != nil {
 				t.Fatal(err)
 			}

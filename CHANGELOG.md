@@ -18,6 +18,8 @@ IMPROVEMENTS:
       from revoking the credential at expiration and Consul Template having a
       stale credential. **If you set this to a value that is higher than your
       default TTL or max TTL, Consul Template will always read a new secret!**
+  * Add a new option to `datacenters` to optionally ignore inaccessible
+      datacenters [GH-908].
 
 BUG FIXES:
 

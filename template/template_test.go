@@ -198,7 +198,24 @@ func TestTemplate_Execute(t *testing.T) {
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
-					d, err := dep.NewCatalogDatacentersQuery()
+					d, err := dep.NewCatalogDatacentersQuery(false)
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, []string{"dc1", "dc2"})
+					return b
+				}(),
+			},
+			"[dc1 dc2]",
+			false,
+		},
+		{
+			"func_datacenters_ignore",
+			`{{ datacenters true }}`,
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewCatalogDatacentersQuery(true)
 					if err != nil {
 						t.Fatal(err)
 					}
