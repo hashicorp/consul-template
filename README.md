@@ -529,6 +529,16 @@ dc1
 dc2
 ```
 
+An optional boolean can be specified which instructs Consul Template to ignore
+datacenters which are inaccessible or do not have a current leader. Enabling
+this option requires an O(N+1) operation and therefore is not recommended in
+environments where performance is a factor.
+
+```liquid
+// Ignores datacenters which are inaccessible
+{{ datacenters true }}
+```
+
 ##### `file`
 
 Read and output the contents of a local file on disk. If the file cannot be
