@@ -140,23 +140,35 @@ endif
 	@echo ""
 	@echo "And then upload the binaries in dist/ to GitHub!"
 
-# docker builds the docker container
+# docker builds the docker container image
 docker:
-	@echo "==> Building container..."
+	@echo "==> Building scratch image..."
 	@docker build \
 		--pull \
 		--rm \
-		--file="docker/Dockerfile" \
+		--file="docker/scratch/Dockerfile" \
 		--squash \
 		--tag="${OWNER}/${NAME}" \
 		--tag="${OWNER}/${NAME}:${VERSION}" \
 		"${CURRENT_DIR}"
 
-# docker-push pushes the container to the registry
+	@echo "==> Building alpine image..."
+	@docker build \
+		--pull \
+		--rm \
+		--file="docker/alpine/Dockerfile" \
+		--squash \
+		--tag="${OWNER}/${NAME}:alpine" \
+		--tag="${OWNER}/${NAME}:${VERSION}-alpine" \
+		"${CURRENT_DIR}"
+
+# docker-push pushes the image to the registry
 docker-push:
 	@echo "==> Pushing to Docker registry..."
 	@docker push "${OWNER}/${NAME}:latest"
+	@docker push "${OWNER}/${NAME}:alpine"
 	@docker push "${OWNER}/${NAME}:${VERSION}"
+	@docker push "${OWNER}/${NAME}:${VERSION}-alpine"
 
 # generate runs the code generator
 generate:
