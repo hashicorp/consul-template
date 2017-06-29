@@ -6,28 +6,43 @@ set -e
 # wouldn't do either of these functions so we'd leak zombies as well as do
 # unclean termination of all our sub-processes.
 
-# CT_CONFIG_DIR isn't exposed as a volume but you can compose additional
-# config files in there if you use this image as a base, or use CT_LOCAL_CONFIG
-# below.
+# CONSUL_DATA_DIR is exposed as a volume for possible persistent storage.
+# CT_CONFIG_DIR isn't exposed as a volume but you can compose additional config
+# files in there if you use this image as a base, or use CT_LOCAL_CONFIG below.
+CT_DATA_DIR=/consul-template/config
 CT_CONFIG_DIR=/consul-template/config
 
 # You can also set the CT_LOCAL_CONFIG environemnt variable to pass some
 # Consul Template configuration JSON without having to bind any volumes.
 if [ -n "$CT_LOCAL_CONFIG" ]; then
-    echo "$CT_LOCAL_CONFIG" > "$CT_CONFIG_DIR/local.json"
+  echo "$CT_LOCAL_CONFIG" > "$CT_CONFIG_DIR/local-config.hcl"
 fi
 
-# If the user is trying to run Consul Template directly with some arguments, then
-# pass them to Consul Template.
+# If the user is trying to run consul-template directly with some arguments, then
+# pass them to consul-template.
 if [ "${1:0:1}" = '-' ]; then
-    set -- consul-template "$@"
+  set -- /bin/consul-template "$@"
 fi
 
-# Look for Consul Template subcommands.
-if consul-template --help "$1" 2>&1 | grep -q "consul-template $1"; then
-    # We can't use the return code to check for the existence of a subcommand, so
-    # we have to use grep to look for a pattern in the help output.
-    set -- consul-template "$@"
+# If we are running Consul, make sure it executes as the proper user.
+if [ "$1" = '/bin/consul-template' ]; then
+  # If the data or config dirs are bind mounted then chown them.
+  # Note: This checks for root ownership as that's the most common case.
+  if [ "$(stat -c %u /consul-template/data)" != "$(id -u consul-template)" ]; then
+    chown consul-template:consul-template /consul-template/data
+  fi
+  if [ "$(stat -c %u /consul-template/config)" != "$(id -u consul-template)" ]; then
+    chown consul-template:consul-template /consul-template/config
+  fi
+
+  # Set the configuration directory
+  shift
+  set -- /bin/consul-template \
+    -config="$CT_CONFIG_DIR" \
+    "$@"
+
+  # Run under the right user
+  set -- gosu consul-template "$@"
 fi
 
 exec "$@"

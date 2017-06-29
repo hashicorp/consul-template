@@ -140,8 +140,8 @@ endif
 	@echo ""
 	@echo "And then upload the binaries in dist/ to GitHub!"
 
-# docker builds the docker container image
-docker:
+# docker-scratch builds the scratch container image
+docker-scratch:
 	@echo "==> Building scratch image..."
 	@docker build \
 		--pull \
@@ -152,6 +152,8 @@ docker:
 		--tag="${OWNER}/${NAME}:${VERSION}" \
 		"${CURRENT_DIR}"
 
+# docker-alpine builds the alpine-based image
+docker-alpine:
 	@echo "==> Building alpine image..."
 	@docker build \
 		--pull \
@@ -161,6 +163,9 @@ docker:
 		--tag="${OWNER}/${NAME}:alpine" \
 		--tag="${OWNER}/${NAME}:${VERSION}-alpine" \
 		"${CURRENT_DIR}"
+
+# docker builds the docker container image
+docker: docker-scratch docker-alpine
 
 # docker-push pushes the image to the registry
 docker-push:
