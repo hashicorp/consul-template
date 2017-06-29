@@ -197,7 +197,7 @@ consul {
     # key are specified, Consul Template will automatically combine them into an
     # X509 certificate for you.
     cert = "/path/to/client/cert"
-    key = "/path/to/client/key"
+    key  = "/path/to/client/key"
 
     # This is the path to the certificate authority to use as a CA. This is
     # useful for self-signed certificates or for organizations using their own
@@ -468,6 +468,7 @@ template {
     max = "10s"
   }
 }
+
 ```
 
 Note that not all fields are required. If you are not retrieving secrets from
