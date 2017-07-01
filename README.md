@@ -218,11 +218,6 @@ consul {
 # to not listen for any reload signals.
 reload_signal = "SIGHUP"
 
-# This is the signal to listen for to trigger a core dump event. The default
-# value is shown below. Setting this value to the empty string will cause CT
-# to not listen for any core dump signals.
-dump_signal = "SIGQUIT"
-
 # This is the signal to listen for to trigger a graceful stop. The default
 # value is shown below. Setting this value to the empty string will cause CT
 # to not listen for any graceful stop signals.
