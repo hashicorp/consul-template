@@ -200,6 +200,30 @@ func TestTemplateConfig_Merge(t *testing.T) {
 			&TemplateConfig{Destination: String("destination")},
 		},
 		{
+			"err_missing_key_overrides",
+			&TemplateConfig{ErrMissingKey: Bool(true)},
+			&TemplateConfig{ErrMissingKey: Bool(false)},
+			&TemplateConfig{ErrMissingKey: Bool(false)},
+		},
+		{
+			"err_missing_key_empty_one",
+			&TemplateConfig{ErrMissingKey: Bool(true)},
+			&TemplateConfig{},
+			&TemplateConfig{ErrMissingKey: Bool(true)},
+		},
+		{
+			"err_missing_key_empty_two",
+			&TemplateConfig{},
+			&TemplateConfig{ErrMissingKey: Bool(true)},
+			&TemplateConfig{ErrMissingKey: Bool(true)},
+		},
+		{
+			"err_missing_key_same",
+			&TemplateConfig{ErrMissingKey: Bool(true)},
+			&TemplateConfig{ErrMissingKey: Bool(true)},
+			&TemplateConfig{ErrMissingKey: Bool(true)},
+		},
+		{
 			"exec_overrides",
 			&TemplateConfig{Exec: &ExecConfig{Command: String("command")}},
 			&TemplateConfig{Exec: &ExecConfig{Command: String("")}},
@@ -370,6 +394,7 @@ func TestTemplateConfig_Finalize(t *testing.T) {
 				CommandTimeout: TimeDuration(DefaultTemplateCommandTimeout),
 				Contents:       String(""),
 				Destination:    String(""),
+				ErrMissingKey:  Bool(false),
 				Exec: &ExecConfig{
 					Command: String(""),
 					Enabled: Bool(false),
