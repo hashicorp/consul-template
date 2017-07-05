@@ -93,6 +93,19 @@ func TestNewTemplate(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"err_missing_key",
+			&NewTemplateInput{
+				Contents:      "test",
+				ErrMissingKey: true,
+			},
+			&Template{
+				contents:      "test",
+				hexMD5:        "098f6bcd4621d373cade4e832627b4f6",
+				errMissingKey: true,
+			},
+			false,
+		},
 	}
 
 	for i, tc := range cases {
@@ -120,28 +133,34 @@ func TestTemplate_Execute(t *testing.T) {
 
 	cases := []struct {
 		name string
-		c    string
+		ti   *NewTemplateInput
 		i    *ExecuteInput
 		e    string
 		err  bool
 	}{
 		{
 			"nil",
-			`test`,
+			&NewTemplateInput{
+				Contents: `test`,
+			},
 			nil,
 			"test",
 			false,
 		},
 		{
 			"bad_func",
-			`{{ bad_func }}`,
+			&NewTemplateInput{
+				Contents: `{{ bad_func }}`,
+			},
 			nil,
 			"",
 			true,
 		},
 		{
 			"missing_deps",
-			`{{ key "foo" }}`,
+			&NewTemplateInput{
+				Contents: `{{ key "foo" }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -149,52 +168,88 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 
+		// missing keys
+		{
+			"err_missing_keys__true",
+			&NewTemplateInput{
+				Contents:      `{{ .Data.Foo }}`,
+				ErrMissingKey: true,
+			},
+			nil,
+			"",
+			true,
+		},
+		{
+			"err_missing_keys__false",
+			&NewTemplateInput{
+				Contents:      `{{ .Data.Foo }}`,
+				ErrMissingKey: false,
+			},
+			nil,
+			"<no value>",
+			false,
+		},
+
 		// funcs
 		{
 			"func_base64Decode",
-			`{{ base64Decode "aGVsbG8=" }}`,
+			&NewTemplateInput{
+				Contents: `{{ base64Decode "aGVsbG8=" }}`,
+			},
 			nil,
 			"hello",
 			false,
 		},
 		{
 			"func_base64Decode_bad",
-			`{{ base64Decode "aGVsxxbG8=" }}`,
+			&NewTemplateInput{
+				Contents: `{{ base64Decode "aGVsxxbG8=" }}`,
+			},
 			nil,
 			"",
 			true,
 		},
 		{
 			"func_base64Encode",
-			`{{ base64Encode "hello" }}`,
+			&NewTemplateInput{
+				Contents: `{{ base64Encode "hello" }}`,
+			},
 			nil,
 			"aGVsbG8=",
 			false,
 		},
 		{
 			"func_base64URLDecode",
-			`{{ base64URLDecode "dGVzdGluZzEyMw==" }}`,
+			&NewTemplateInput{
+				Contents: `{{ base64URLDecode "dGVzdGluZzEyMw==" }}`,
+			},
 			nil,
 			"testing123",
 			false,
 		},
 		{
 			"func_base64URLDecode_bad",
-			`{{ base64URLDecode "aGVsxxbG8=" }}`,
+			&NewTemplateInput{
+				Contents: `{{ base64URLDecode "aGVsxxbG8=" }}`,
+			},
 			nil,
 			"",
 			true,
 		},
 		{
 			"func_base64URLEncode",
-			`{{ base64URLEncode "testing123" }}`,
+			&NewTemplateInput{
+				Contents: `{{ base64URLEncode "testing123" }}`,
+			},
 			nil,
 			"dGVzdGluZzEyMw==",
 			false,
 		},
 		{
 			"func_datacenters",
-			`{{ datacenters }}`,
+			&NewTemplateInput{
+				Contents: `{{ datacenters }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -211,7 +266,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"func_datacenters_ignore",
-			`{{ datacenters true }}`,
+			&NewTemplateInput{
+				Contents: `{{ datacenters true }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -228,7 +285,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"func_file",
-			`{{ file "/path/to/file" }}`,
+			&NewTemplateInput{
+				Contents: `{{ file "/path/to/file" }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -245,7 +304,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"func_key",
-			`{{ key "key" }}`,
+			&NewTemplateInput{
+				Contents: `{{ key "key" }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -263,7 +324,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"func_keyExists",
-			`{{ keyExists "key" }} {{ keyExists "no_key" }}`,
+			&NewTemplateInput{
+				Contents: `{{ keyExists "key" }} {{ keyExists "no_key" }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -280,7 +343,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"func_keyOrDefault",
-			`{{ keyOrDefault "key" "100" }} {{ keyOrDefault "no_key" "200" }}`,
+			&NewTemplateInput{
+				Contents: `{{ keyOrDefault "key" "100" }} {{ keyOrDefault "no_key" "200" }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -297,7 +362,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"func_ls",
-			`{{ range ls "list" }}{{ .Key }}={{ .Value }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ range ls "list" }}{{ .Key }}={{ .Value }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -318,7 +385,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"func_node",
-			`{{ with node }}{{ .Node.Node }}{{ range .Services }}{{ .Service }}{{ end }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ with node }}{{ .Node.Node }}{{ range .Services }}{{ .Service }}{{ end }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -342,7 +411,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"func_nodes",
-			`{{ range nodes }}{{ .Node }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ range nodes }}{{ .Node }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -362,7 +433,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"func_secret_read",
-			`{{ with secret "secret/foo" }}{{ .Data.zip }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ with secret "secret/foo" }}{{ .Data.zip }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -384,7 +457,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"func_secret_read_no_exist",
-			`{{ with secret "secret/nope" }}{{ .Data.zip }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ with secret "secret/nope" }}{{ .Data.zip }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					return NewBrain()
@@ -395,7 +470,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"func_secret_read_no_exist_falsey",
-			`{{ if secret "secret/nope" }}yes{{ else }}no{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ if secret "secret/nope" }}yes{{ else }}no{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					return NewBrain()
@@ -406,7 +483,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"func_secret_write",
-			`{{ with secret "transit/encrypt/foo" "plaintext=a" }}{{ .Data.ciphertext }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ with secret "transit/encrypt/foo" "plaintext=a" }}{{ .Data.ciphertext }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -430,7 +509,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"func_secret_write_no_exist",
-			`{{ with secret "secret/nope" "a=b" }}{{ .Data.zip }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ with secret "secret/nope" "a=b" }}{{ .Data.zip }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					return NewBrain()
@@ -441,7 +522,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"func_secret_write_no_exist_falsey",
-			`{{ if secret "secret/nope" "a=b" }}yes{{ else }}no{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ if secret "secret/nope" "a=b" }}yes{{ else }}no{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					return NewBrain()
@@ -452,7 +535,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"func_secret_no_exist_falsey_with",
-			`{{ with secret "secret/nope" }}{{ .Data.foo.bar }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ with secret "secret/nope" }}{{ .Data.foo.bar }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					return NewBrain()
@@ -463,7 +548,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"func_secrets",
-			`{{ secrets "secret/" }}`,
+			&NewTemplateInput{
+				Contents: `{{ secrets "secret/" }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -480,7 +567,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"func_secrets_no_exist",
-			`{{ secrets "secret/" }}`,
+			&NewTemplateInput{
+				Contents: `{{ secrets "secret/" }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					return NewBrain()
@@ -491,7 +580,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"func_secrets_no_exist_falsey",
-			`{{ if secrets "secret/" }}yes{{ else }}no{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ if secrets "secret/" }}yes{{ else }}no{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					return NewBrain()
@@ -502,7 +593,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"func_secrets_no_exist_falsey_with",
-			`{{ with secrets "secret/" }}{{ . }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ with secrets "secret/" }}{{ . }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					return NewBrain()
@@ -513,7 +606,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"func_service",
-			`{{ range service "webapp" }}{{ .Address }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ range service "webapp" }}{{ .Address }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -539,7 +634,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"func_service_filter",
-			`{{ range service "webapp" "passing,any" }}{{ .Address }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ range service "webapp" "passing,any" }}{{ .Address }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -565,7 +662,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"func_services",
-			`{{ range services }}{{ .Name }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ range services }}{{ .Name }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -589,7 +688,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"func_tree",
-			`{{ range tree "key" }}{{ .Key }}={{ .Value }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ range tree "key" }}{{ .Key }}={{ .Value }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -613,7 +714,9 @@ func TestTemplate_Execute(t *testing.T) {
 		// scratch
 		{
 			"scratch.Key",
-			`{{ scratch.Set "a" "2" }}{{ scratch.Key "a" }}`,
+			&NewTemplateInput{
+				Contents: `{{ scratch.Set "a" "2" }}{{ scratch.Key "a" }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -622,7 +725,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"scratch.Get",
-			`{{ scratch.Set "a" "2" }}{{ scratch.Get "a" }}`,
+			&NewTemplateInput{
+				Contents: `{{ scratch.Set "a" "2" }}{{ scratch.Get "a" }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -631,7 +736,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"scratch.SetX",
-			`{{ scratch.SetX "a" "2" }}{{ scratch.SetX "a" "1" }}{{ scratch.Get "a" }}`,
+			&NewTemplateInput{
+				Contents: `{{ scratch.SetX "a" "2" }}{{ scratch.SetX "a" "1" }}{{ scratch.Get "a" }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -640,7 +747,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"scratch.MapSet",
-			`{{ scratch.MapSet "a" "foo" "bar" }}{{ scratch.MapValues "a" }}`,
+			&NewTemplateInput{
+				Contents: `{{ scratch.MapSet "a" "foo" "bar" }}{{ scratch.MapValues "a" }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -649,7 +758,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"scratch.MapSetX",
-			`{{ scratch.MapSetX "a" "foo" "bar" }}{{ scratch.MapSetX "a" "foo" "baz" }}{{ scratch.MapValues "a" }}`,
+			&NewTemplateInput{
+				Contents: `{{ scratch.MapSetX "a" "foo" "bar" }}{{ scratch.MapSetX "a" "foo" "baz" }}{{ scratch.MapValues "a" }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -660,7 +771,9 @@ func TestTemplate_Execute(t *testing.T) {
 		// helpers
 		{
 			"helper_by_key",
-			`{{ range $key, $pairs := tree "list" | byKey }}{{ $key }}:{{ range $pairs }}{{ .Key }}={{ .Value }}{{ end }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ range $key, $pairs := tree "list" | byKey }}{{ $key }}:{{ range $pairs }}{{ .Key }}={{ .Value }}{{ end }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -681,7 +794,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_by_tag",
-			`{{ range $tag, $services := service "webapp" | byTag }}{{ $tag }}:{{ range $services }}{{ .Address }}{{ end }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ range $tag, $services := service "webapp" | byTag }}{{ $tag }}:{{ range $services }}{{ .Address }}{{ end }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -707,7 +822,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_contains",
-			`{{ range service "webapp" }}{{ if .Tags | contains "prod" }}{{ .Address }}{{ end }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ range service "webapp" }}{{ if .Tags | contains "prod" }}{{ .Address }}{{ end }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -733,7 +850,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_containsAll",
-			`{{ $requiredTags := parseJSON "[\"prod\",\"us-realm\"]" }}{{ range service "webapp" }}{{ if .Tags | containsAll $requiredTags }}{{ .Address }}{{ end }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ $requiredTags := parseJSON "[\"prod\",\"us-realm\"]" }}{{ range service "webapp" }}{{ if .Tags | containsAll $requiredTags }}{{ .Address }}{{ end }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -759,7 +878,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_containsAll__empty",
-			`{{ $requiredTags := parseJSON "[]" }}{{ range service "webapp" }}{{ if .Tags | containsAll $requiredTags }}{{ .Address }}{{ end }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ $requiredTags := parseJSON "[]" }}{{ range service "webapp" }}{{ if .Tags | containsAll $requiredTags }}{{ .Address }}{{ end }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -785,7 +906,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_containsAny",
-			`{{ $acceptableTags := parseJSON "[\"v2\",\"v3\"]" }}{{ range service "webapp" }}{{ if .Tags | containsAny $acceptableTags }}{{ .Address }}{{ end }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ $acceptableTags := parseJSON "[\"v2\",\"v3\"]" }}{{ range service "webapp" }}{{ if .Tags | containsAny $acceptableTags }}{{ .Address }}{{ end }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -811,7 +934,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_containsAny__empty",
-			`{{ $acceptableTags := parseJSON "[]" }}{{ range service "webapp" }}{{ if .Tags | containsAny $acceptableTags }}{{ .Address }}{{ end }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ $acceptableTags := parseJSON "[]" }}{{ range service "webapp" }}{{ if .Tags | containsAny $acceptableTags }}{{ .Address }}{{ end }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -837,7 +962,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_containsNone",
-			`{{ $forbiddenTags := parseJSON "[\"devel\",\"staging\"]" }}{{ range service "webapp" }}{{ if .Tags | containsNone $forbiddenTags }}{{ .Address }}{{ end }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ $forbiddenTags := parseJSON "[\"devel\",\"staging\"]" }}{{ range service "webapp" }}{{ if .Tags | containsNone $forbiddenTags }}{{ .Address }}{{ end }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -863,7 +990,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_containsNone__empty",
-			`{{ $forbiddenTags := parseJSON "[]" }}{{ range service "webapp" }}{{ if .Tags | containsNone $forbiddenTags }}{{ .Address }}{{ end }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ $forbiddenTags := parseJSON "[]" }}{{ range service "webapp" }}{{ if .Tags | containsNone $forbiddenTags }}{{ .Address }}{{ end }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -889,7 +1018,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_containsNotAll",
-			`{{ $excludingTags := parseJSON "[\"es-v1\",\"es-v2\"]" }}{{ range service "webapp" }}{{ if .Tags | containsNotAll $excludingTags }}{{ .Address }}{{ end }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ $excludingTags := parseJSON "[\"es-v1\",\"es-v2\"]" }}{{ range service "webapp" }}{{ if .Tags | containsNotAll $excludingTags }}{{ .Address }}{{ end }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -915,7 +1046,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_containsNotAll__empty",
-			`{{ $excludingTags := parseJSON "[]" }}{{ range service "webapp" }}{{ if .Tags | containsNotAll $excludingTags }}{{ .Address }}{{ end }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ $excludingTags := parseJSON "[]" }}{{ range service "webapp" }}{{ if .Tags | containsNotAll $excludingTags }}{{ .Address }}{{ end }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -941,7 +1074,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_env",
-			`{{ env "CT_TEST" }}`,
+			&NewTemplateInput{
+				Contents: `{{ env "CT_TEST" }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					// Cheat and use the brain callback here to set the env.
@@ -956,7 +1091,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_env__override",
-			`{{ env "CT_TEST" }}`,
+			&NewTemplateInput{
+				Contents: `{{ env "CT_TEST" }}`,
+			},
 			&ExecuteInput{
 				Env: []string{
 					"CT_TEST=2",
@@ -968,7 +1105,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_executeTemplate",
-			`{{ define "custom" }}{{ key "foo" }}{{ end }}{{ executeTemplate "custom" }}`,
+			&NewTemplateInput{
+				Contents: `{{ define "custom" }}{{ key "foo" }}{{ end }}{{ executeTemplate "custom" }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -986,7 +1125,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_executeTemplate__dot",
-			`{{ define "custom" }}{{ key . }}{{ end }}{{ executeTemplate "custom" "foo" }}`,
+			&NewTemplateInput{
+				Contents: `{{ define "custom" }}{{ key . }}{{ end }}{{ executeTemplate "custom" "foo" }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -1004,7 +1145,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_explode",
-			`{{ range $k, $v := tree "list" | explode }}{{ $k }}{{ $v }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ range $k, $v := tree "list" | explode }}{{ $k }}{{ $v }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -1025,7 +1168,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_in",
-			`{{ range service "webapp" }}{{ if "prod" | in .Tags }}{{ .Address }}{{ end }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ range service "webapp" }}{{ if "prod" | in .Tags }}{{ .Address }}{{ end }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
@@ -1051,7 +1196,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_loop",
-			`{{ range loop 3 }}1{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ range loop 3 }}1{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1060,7 +1207,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_loop__i",
-			`{{ range $i := loop 3 }}{{ $i }}{{ end }}`,
+			&NewTemplateInput{
+				Contents: `{{ range $i := loop 3 }}{{ $i }}{{ end }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1069,7 +1218,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_join",
-			`{{ "a,b,c" | split "," | join ";" }}`,
+			&NewTemplateInput{
+				Contents: `{{ "a,b,c" | split "," | join ";" }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1078,7 +1229,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_parseBool",
-			`{{ "true" | parseBool }}`,
+			&NewTemplateInput{
+				Contents: `{{ "true" | parseBool }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1087,7 +1240,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_parseFloat",
-			`{{ "1.2" | parseFloat }}`,
+			&NewTemplateInput{
+				Contents: `{{ "1.2" | parseFloat }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1096,7 +1251,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_parseInt",
-			`{{ "-1" | parseInt }}`,
+			&NewTemplateInput{
+				Contents: `{{ "-1" | parseInt }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1105,7 +1262,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_parseJSON",
-			`{{ "{\"foo\": \"bar\"}" | parseJSON }}`,
+			&NewTemplateInput{
+				Contents: `{{ "{\"foo\": \"bar\"}" | parseJSON }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1114,7 +1273,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_parseUint",
-			`{{ "1" | parseUint }}`,
+			&NewTemplateInput{
+				Contents: `{{ "1" | parseUint }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1123,7 +1284,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_plugin",
-			`{{ "1" | plugin "echo" }}`,
+			&NewTemplateInput{
+				Contents: `{{ "1" | plugin "echo" }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1132,7 +1295,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_regexMatch",
-			`{{ "foo" | regexMatch "[a-z]+" }}`,
+			&NewTemplateInput{
+				Contents: `{{ "foo" | regexMatch "[a-z]+" }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1141,7 +1306,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_regexReplaceAll",
-			`{{ "foo" | regexReplaceAll "\\w" "x" }}`,
+			&NewTemplateInput{
+				Contents: `{{ "foo" | regexReplaceAll "\\w" "x" }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1150,7 +1317,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_replaceAll",
-			`{{ "hello my hello" | regexReplaceAll "hello" "bye" }}`,
+			&NewTemplateInput{
+				Contents: `{{ "hello my hello" | regexReplaceAll "hello" "bye" }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1159,7 +1328,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_split",
-			`{{ "a,b,c" | split "," }}`,
+			&NewTemplateInput{
+				Contents: `{{ "a,b,c" | split "," }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1168,7 +1339,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_timestamp",
-			`{{ timestamp }}`,
+			&NewTemplateInput{
+				Contents: `{{ timestamp }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1177,7 +1350,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_helper_timestamp__formatted",
-			`{{ timestamp "2006-01-02" }}`,
+			&NewTemplateInput{
+				Contents: `{{ timestamp "2006-01-02" }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1186,7 +1361,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_toJSON",
-			`{{ "a,b,c" | split "," | toJSON }}`,
+			&NewTemplateInput{
+				Contents: `{{ "a,b,c" | split "," | toJSON }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1195,7 +1372,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_toLower",
-			`{{ "HI" | toLower }}`,
+			&NewTemplateInput{
+				Contents: `{{ "HI" | toLower }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1204,7 +1383,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_toTitle",
-			`{{ "this is a sentence" | toTitle }}`,
+			&NewTemplateInput{
+				Contents: `{{ "this is a sentence" | toTitle }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1213,7 +1394,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_toTOML",
-			`{{ "{\"foo\":\"bar\"}" | parseJSON | toTOML }}`,
+			&NewTemplateInput{
+				Contents: `{{ "{\"foo\":\"bar\"}" | parseJSON | toTOML }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1222,7 +1405,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_toUpper",
-			`{{ "hi" | toUpper }}`,
+			&NewTemplateInput{
+				Contents: `{{ "hi" | toUpper }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1231,7 +1416,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_toYAML",
-			`{{ "{\"foo\":\"bar\"}" | parseJSON | toYAML }}`,
+			&NewTemplateInput{
+				Contents: `{{ "{\"foo\":\"bar\"}" | parseJSON | toYAML }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1240,7 +1427,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"helper_trimSpace",
-			`{{ "\t hi\n " | trimSpace }}`,
+			&NewTemplateInput{
+				Contents: `{{ "\t hi\n " | trimSpace }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1249,7 +1438,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"math_add",
-			`{{ 2 | add 2 }}`,
+			&NewTemplateInput{
+				Contents: `{{ 2 | add 2 }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1258,7 +1449,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"math_subtract",
-			`{{ 2 | subtract 2 }}`,
+			&NewTemplateInput{
+				Contents: `{{ 2 | subtract 2 }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1267,7 +1460,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"math_multiply",
-			`{{ 2 | multiply 2 }}`,
+			&NewTemplateInput{
+				Contents: `{{ 2 | multiply 2 }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1276,7 +1471,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"math_divide",
-			`{{ 2 | divide 2 }}`,
+			&NewTemplateInput{
+				Contents: `{{ 2 | divide 2 }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1285,7 +1482,9 @@ func TestTemplate_Execute(t *testing.T) {
 		},
 		{
 			"math_modulo",
-			`{{ 3 | modulo 2 }}`,
+			&NewTemplateInput{
+				Contents: `{{ 3 | modulo 2 }}`,
+			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
@@ -1296,9 +1495,7 @@ func TestTemplate_Execute(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-			tpl, err := NewTemplate(&NewTemplateInput{
-				Contents: tc.c,
-			})
+			tpl, err := NewTemplate(tc.ti)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -632,6 +632,20 @@ func TestParse(t *testing.T) {
 			false,
 		},
 		{
+			"template_error_on_missing_key",
+			`template {
+						error_on_missing_key = true
+					}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						ErrMissingKey: Bool(true),
+					},
+				},
+			},
+			false,
+		},
+		{
 			"template_exec",
 			`template {
 				exec {}
