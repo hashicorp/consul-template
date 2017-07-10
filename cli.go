@@ -359,6 +359,11 @@ func (cli *CLI) ParseFlags(args []string) (*config.Config, []string, bool, bool,
 		return nil
 	}), "log-level", "")
 
+	flags.Var((funcBoolVar)(func(b bool) error {
+		c.LogUTC = config.Bool(b)
+		return nil
+	}), "log-utc", "")
+
 	flags.Var((funcDurationVar)(func(d time.Duration) error {
 		c.MaxStale = config.TimeDuration(d)
 		return nil
@@ -565,6 +570,7 @@ func (cli *CLI) setup(conf *config.Config) (*config.Config, error) {
 	if err := logging.Setup(&logging.Config{
 		Name:           Name,
 		Level:          config.StringVal(conf.LogLevel),
+		UTC:         config.BoolVal(conf.LogUTC),
 		Syslog:         config.BoolVal(conf.Syslog.Enabled),
 		SyslogFacility: config.StringVal(conf.Syslog.Facility),
 		Writer:         cli.errStream,
@@ -678,6 +684,9 @@ Options:
 
   -log-level=<level>
       Set the logging level - values are "debug", "info", "warn", and "err"
+
+  -log-utc
+      If provided use UTC timezone, if not provided, use local timezone, true by default
 
   -max-stale=<duration>
       Set the maximum staleness and allow stale queries to Consul which will
