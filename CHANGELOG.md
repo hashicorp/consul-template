@@ -3,6 +3,11 @@ Consul Template Changelog
 
 ## v0.19.1 (Unreleased)
 
+IMPROVEMENTS:
+
+  * The runner's render event now includes the last-rendered template contents.
+      This is useful when embedding Consul Template as a library. [GH-974-975]
+
 BUG FIXES:
 
   * Add per-template option `error_on_missing_key`. This causes the template to
