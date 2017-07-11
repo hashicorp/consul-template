@@ -223,6 +223,7 @@ func WithPerRPCCredentials(creds credentials.PerRPCCredentials) DialOption {
 
 // WithTimeout returns a DialOption that configures a timeout for dialing a ClientConn
 // initially. This is valid if and only if WithBlock() is present.
+// Deprecated: use DialContext and context.WithTimeout instead.
 func WithTimeout(d time.Duration) DialOption {
 	return func(o *dialOptions) {
 		o.timeout = d
@@ -487,7 +488,7 @@ type ClientConn struct {
 	mu    sync.RWMutex
 	sc    ServiceConfig
 	conns map[Address]*addrConn
-	// Keepalive parameter can be udated if a GoAway is received.
+	// Keepalive parameter can be updated if a GoAway is received.
 	mkp keepalive.ClientParameters
 }
 

@@ -190,6 +190,19 @@ func NewTestServerConfig(cb ServerConfigCallback) (*TestServer, error) {
 // configuring or starting the server, the server will NOT be running when the
 // function returns (thus you do not need to stop it).
 func NewTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, error) {
+	var server *TestServer
+	retry.Run(t, func(r *retry.R) {
+		var err error
+		server, err = newTestServerConfigT(t, cb)
+		if err != nil {
+			r.Fatalf("failed starting test server: %v", err)
+		}
+	})
+	return server, nil
+}
+
+// newTestServerConfigT is the internal helper for NewTestServerConfigT.
+func newTestServerConfigT(t *testing.T, cb ServerConfigCallback) (*TestServer, error) {
 	path, err := exec.LookPath("consul")
 	if err != nil || path == "" {
 		return nil, fmt.Errorf("consul not found on $PATH - download and install " +
@@ -333,7 +346,7 @@ func (s *TestServer) waitForLeader() error {
 	var index int64
 	retry.RunWith(timer, f, func(r *retry.R) {
 		// Query the API and check the status code.
-		url := s.url(fmt.Sprintf("/v1/catalog/nodes?index=%d&wait=2s", index))
+		url := s.url(fmt.Sprintf("/v1/catalog/nodes?index=%d", index))
 		resp, err := s.HTTPClient.Get(url)
 		if err != nil {
 			r.Fatal("failed http get", err)

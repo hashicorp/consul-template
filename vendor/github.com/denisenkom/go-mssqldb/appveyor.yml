@@ -47,4 +47,4 @@ before_test:
  
 
 test_script:
-  - go test
+  - go test -v -cover

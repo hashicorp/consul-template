@@ -79,6 +79,17 @@ func (r *Router) Mount(backend logical.Backend, prefix string, mountEntry *Mount
 		loginPaths:  pathsToRadix(paths.Unauthenticated),
 	}
 
+	switch {
+	case prefix == "":
+		return fmt.Errorf("missing prefix to be used for router entry; mount_path: %q, mount_type: %q", re.mountEntry.Path, re.mountEntry.Type)
+	case storageView.prefix == "":
+		return fmt.Errorf("missing storage view prefix; mount_path: %q, mount_type: %q", re.mountEntry.Path, re.mountEntry.Type)
+	case re.mountEntry.UUID == "":
+		return fmt.Errorf("missing mount identifier; mount_path: %q, mount_type: %q", re.mountEntry.Path, re.mountEntry.Type)
+	case re.mountEntry.Accessor == "":
+		return fmt.Errorf("missing mount accessor; mount_path: %q, mount_type: %q", re.mountEntry.Path, re.mountEntry.Type)
+	}
+
 	r.root.Insert(prefix, re)
 	r.storagePrefix.Insert(storageView.prefix, re)
 	r.mountUUIDCache.Insert(re.mountEntry.UUID, re.mountEntry)
@@ -252,6 +263,12 @@ func (r *Router) MatchingStoragePrefix(path string) (string, string, bool) {
 	re := raw.(*routeEntry)
 	mountPath := re.mountEntry.Path
 	prefix := re.storageView.prefix
+
+	// Add back the prefix for credential backends
+	if strings.HasPrefix(path, credentialBarrierPrefix) {
+		mountPath = credentialRoutePrefix + mountPath
+	}
+
 	return mountPath, prefix, true
 }
 

@@ -76,7 +76,7 @@ type http2Client struct {
 
 	// controlBuf delivers all the control related tasks (e.g., window
 	// updates, reset streams, and various settings) to the controller.
-	controlBuf *recvBuffer
+	controlBuf *controlBuffer
 	fc         *inFlow
 	// sendQuotaPool provides flow control to outbound message.
 	sendQuotaPool *quotaPool
@@ -215,7 +215,7 @@ func newHTTP2Client(ctx context.Context, addr TargetInfo, opts ConnectOptions) (
 		framer:            newFramer(conn),
 		hBuf:              &buf,
 		hEnc:              hpack.NewEncoder(&buf),
-		controlBuf:        newRecvBuffer(),
+		controlBuf:        newControlBuffer(),
 		fc:                &inFlow{limit: uint32(icwz)},
 		sendQuotaPool:     newQuotaPool(defaultWindowSize),
 		scheme:            scheme,
@@ -465,11 +465,9 @@ func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Strea
 		t.hEnc.WriteField(hpack.HeaderField{Name: k, Value: encodeMetadataHeader(k, v)})
 	}
 	var (
-		hasMD      bool
 		endHeaders bool
 	)
 	if md, ok := metadata.FromOutgoingContext(ctx); ok {
-		hasMD = true
 		for k, vv := range md {
 			// HTTP doesn't allow you to set pseudoheaders after non pseudoheaders were set.
 			if isReservedHeader(k) {
@@ -501,7 +499,7 @@ func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Strea
 			endHeaders = true
 		}
 		var flush bool
-		if endHeaders && (hasMD || callHdr.Flush) {
+		if callHdr.Flush && endHeaders {
 			flush = true
 		}
 		if first {
@@ -526,7 +524,9 @@ func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (_ *Strea
 			return nil, connectionErrorf(true, err, "transport: %v", err)
 		}
 	}
+	s.mu.Lock()
 	s.bytesSent = true
+	s.mu.Unlock()
 
 	if t.statsHandler != nil {
 		outHeader := &stats.OutHeader{
@@ -1009,7 +1009,9 @@ func (t *http2Client) operateHeaders(frame *http2.MetaHeadersFrame) {
 	if !ok {
 		return
 	}
+	s.mu.Lock()
 	s.bytesReceived = true
+	s.mu.Unlock()
 	var state decodeState
 	if err := state.decodeResponseHeader(frame); err != nil {
 		s.mu.Lock()
