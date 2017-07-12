@@ -133,6 +133,7 @@ func TestVaultWriteQuery_Fetch(t *testing.T) {
 			}
 
 			if act != nil {
+				act.(*Secret).RequestID = ""
 				act.(*Secret).LeaseID = ""
 				act.(*Secret).LeaseDuration = 0
 				act.(*Secret).Renewable = false
