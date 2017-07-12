@@ -114,6 +114,16 @@ ifdef GOPATH
 	@cp "${CURRENT_DIR}/pkg/${ME_OS}_${ME_ARCH}/${NAME}" "${GOPATH}/bin/"
 endif
 
+# dev-local uses the local go installation and os to build the project.
+dev-local:
+	@echo "==> Building locally..."
+	@go build -o "${CURRENT_DIR}/bin/${NAME}"
+ifdef GOPATH
+	@echo "--> Moving into GOPATH/"
+	@mkdir -p "${GOPATH}/bin/"
+	@cp "${CURRENT_DIR}/bin/${NAME}" "${GOPATH}/bin/${NAME}"
+endif
+
 # dist builds the binaries and then signs and packages them for distribution
 dist:
 ifndef GPG_KEY
