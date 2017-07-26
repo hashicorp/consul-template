@@ -365,6 +365,7 @@ func (cli *CLI) ParseFlags(args []string) (*config.Config, []string, bool, bool,
 	}), "max-stale", "")
 
 	flags.BoolVar(&once, "once", false, "")
+
 	flags.Var((funcVar)(func(s string) error {
 		c.PidFile = config.String(s)
 		return nil
