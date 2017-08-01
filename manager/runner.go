@@ -117,6 +117,9 @@ type RenderEvent struct {
 	// Template is the template attempting to be rendered.
 	Template *template.Template
 
+	// Contents is the raw, rendered contents from the template.
+	Contents []byte
+
 	// TemplateConfigs is the list of template configs that correspond to this
 	// template.
 	TemplateConfigs []*config.TemplateConfig
@@ -641,6 +644,9 @@ func (r *Runner) Run() error {
 				// This event did render
 				event.DidRender = true
 				event.LastDidRender = renderTime
+
+				// Update the contents
+				event.Contents = result.Contents
 
 				// Record that at least one template was rendered.
 				renderedAny = true
