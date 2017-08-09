@@ -78,6 +78,12 @@ func TestRunner_Run(t *testing.T) {
 				},
 			},
 			func(t *testing.T, r *Runner, out string) {
+				select {
+				case <-r.RenderEventCh():
+				case <-time.After(time.Second):
+					t.Errorf("timeout")
+				}
+
 				events := r.RenderEvents()
 				if l := len(events); l != 1 {
 					t.Errorf("\nexp: %#v\nact: %#v", 1, l)
@@ -129,6 +135,12 @@ func TestRunner_Run(t *testing.T) {
 				},
 			},
 			func(t *testing.T, r *Runner, out string) {
+				select {
+				case <-r.RenderEventCh():
+				case <-time.After(time.Second):
+					t.Errorf("timeout")
+				}
+
 				events := r.RenderEvents()
 				if l := len(events); l != 1 {
 					t.Errorf("\nexp: %#v\nact: %#v", 1, l)
@@ -158,6 +170,12 @@ func TestRunner_Run(t *testing.T) {
 				},
 			},
 			func(t *testing.T, r *Runner, out string) {
+				select {
+				case <-r.RenderEventCh():
+				case <-time.After(time.Second):
+					t.Errorf("timeout")
+				}
+
 				events := r.RenderEvents()
 				if l := len(events); l != 1 {
 					t.Errorf("\nexp: %#v\nact: %#v", 1, l)
@@ -187,6 +205,12 @@ func TestRunner_Run(t *testing.T) {
 				},
 			},
 			func(t *testing.T, r *Runner, out string) {
+				select {
+				case <-r.RenderEventCh():
+				case <-time.After(time.Second):
+					t.Errorf("timeout")
+				}
+
 				exp := 1
 				if len(r.dependencies) != exp {
 					t.Errorf("\nexp: %#v\nact: %#v\ndeps: %#v", exp, len(r.dependencies), r.dependencies)
@@ -203,15 +227,33 @@ func TestRunner_Run(t *testing.T) {
 					}
 				}
 
-				d, err := dep.NewKVGetQuery("foo")
-				if err != nil {
-					t.Fatal(err)
+				// Drain the channel
+			OUTER:
+				for {
+					select {
+					case <-r.RenderEventCh():
+					default:
+						break OUTER
+					}
 				}
-				d.EnableBlocking()
-				r.Receive(d, "bar")
 
-				if err := r.Run(); err != nil {
-					t.Fatal(err)
+				go func() {
+					d, err := dep.NewKVGetQuery("foo")
+					if err != nil {
+						t.Fatal(err)
+					}
+					d.EnableBlocking()
+					r.Receive(d, "bar")
+
+					if err := r.Run(); err != nil {
+						t.Fatal(err)
+					}
+				}()
+
+				select {
+				case <-r.RenderEventCh():
+				case <-time.After(time.Second):
+					t.Errorf("timeout")
 				}
 
 				events = r.RenderEvents()
@@ -249,6 +291,12 @@ func TestRunner_Run(t *testing.T) {
 				},
 			},
 			func(t *testing.T, r *Runner, out string) {
+				select {
+				case <-r.RenderEventCh():
+				case <-time.After(time.Second):
+					t.Errorf("timeout")
+				}
+
 				events := r.RenderEvents()
 				if l := len(events); l != 1 {
 					t.Errorf("\nexp: %#v\nact: %#v", 1, l)
