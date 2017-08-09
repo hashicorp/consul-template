@@ -78,6 +78,17 @@ func TestRunner_Run(t *testing.T) {
 				},
 			},
 			func(t *testing.T, r *Runner, out string) {
+				events := r.RenderEvents()
+				if l := len(events); l != 1 {
+					t.Errorf("\nexp: %#v\nact: %#v", 1, l)
+				}
+
+				for _, e := range events {
+					if l := e.MissingDeps.Len(); l != 1 {
+						t.Errorf("\nexp: %#v\nact: %#v", 1, l)
+					}
+				}
+
 				exp := ""
 				if out != exp {
 					t.Errorf("\nexp: %#v\nact: %#v", exp, out)
@@ -118,6 +129,17 @@ func TestRunner_Run(t *testing.T) {
 				},
 			},
 			func(t *testing.T, r *Runner, out string) {
+				events := r.RenderEvents()
+				if l := len(events); l != 1 {
+					t.Errorf("\nexp: %#v\nact: %#v", 1, l)
+				}
+
+				for _, e := range events {
+					if l := e.MissingDeps.Len(); l != 2 {
+						t.Errorf("\nexp: %#v\nact: %#v", 2, l)
+					}
+				}
+
 				exp := 2
 				if len(r.dependencies) != exp {
 					t.Errorf("\nexp: %#v\nact: %#v\ndeps: %#v", exp, len(r.dependencies), r.dependencies)
@@ -136,6 +158,17 @@ func TestRunner_Run(t *testing.T) {
 				},
 			},
 			func(t *testing.T, r *Runner, out string) {
+				events := r.RenderEvents()
+				if l := len(events); l != 1 {
+					t.Errorf("\nexp: %#v\nact: %#v", 1, l)
+				}
+
+				for _, e := range events {
+					if l := e.MissingDeps.Len(); l != 1 {
+						t.Errorf("\nexp: %#v\nact: %#v", 1, l)
+					}
+				}
+
 				exp := 1
 				if len(r.dependencies) != exp {
 					t.Errorf("\nexp: %#v\nact: %#v\ndeps: %#v", exp, len(r.dependencies), r.dependencies)
@@ -159,6 +192,17 @@ func TestRunner_Run(t *testing.T) {
 					t.Errorf("\nexp: %#v\nact: %#v\ndeps: %#v", exp, len(r.dependencies), r.dependencies)
 				}
 
+				events := r.RenderEvents()
+				if l := len(events); l != 1 {
+					t.Errorf("\nexp: %#v\nact: %#v", 1, l)
+				}
+
+				for _, e := range events {
+					if l := e.MissingDeps.Len(); l != 1 {
+						t.Errorf("\nexp: %#v\nact: %#v", 1, l)
+					}
+				}
+
 				d, err := dep.NewKVGetQuery("foo")
 				if err != nil {
 					t.Fatal(err)
@@ -168,6 +212,17 @@ func TestRunner_Run(t *testing.T) {
 
 				if err := r.Run(); err != nil {
 					t.Fatal(err)
+				}
+
+				events = r.RenderEvents()
+				if l := len(events); l != 1 {
+					t.Errorf("\nexp: %#v\nact: %#v", 1, l)
+				}
+
+				for _, e := range events {
+					if l := e.MissingDeps.Len(); l != 1 {
+						t.Errorf("\nexp: %#v\nact: %#v", 1, l)
+					}
 				}
 
 				exp = 2
@@ -194,6 +249,17 @@ func TestRunner_Run(t *testing.T) {
 				},
 			},
 			func(t *testing.T, r *Runner, out string) {
+				events := r.RenderEvents()
+				if l := len(events); l != 1 {
+					t.Errorf("\nexp: %#v\nact: %#v", 1, l)
+				}
+
+				for _, e := range events {
+					if l := e.MissingDeps.Len(); l != 0 {
+						t.Errorf("\nexp: %#v\nact: %#v", 0, l)
+					}
+				}
+
 				exp := 0
 				if len(r.dependencies) != exp {
 					t.Errorf("\nexp: %#v\nact: %#v\ndeps: %#v", exp, len(r.dependencies), r.dependencies)
