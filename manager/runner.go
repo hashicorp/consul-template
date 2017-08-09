@@ -518,9 +518,9 @@ func (r *Runner) Run() error {
 		// in once mode, and we certainly do not want to re-run any commands.
 		if r.once {
 			r.renderEventsLock.RLock()
-			_, rendered := r.renderEvents[tmpl.ID()]
+			event, ok := r.renderEvents[tmpl.ID()]
 			r.renderEventsLock.RUnlock()
-			if rendered {
+			if ok && (event.WouldRender || event.DidRender) {
 				log.Printf("[DEBUG] (runner) once mode and already rendered")
 				continue
 			}
@@ -562,6 +562,15 @@ func (r *Runner) Run() error {
 			}
 		}
 
+		// Send updated render event
+		r.renderEventsLock.Lock()
+		event.MissingDeps = missing
+		event.UnwatchedDeps = unwatched
+		event.UsedDeps = used
+		event.UpdatedAt = time.Now().UTC()
+		r.renderEvents[tmpl.ID()] = event
+		r.renderEventsLock.Unlock()
+
 		// If there are unwatched dependencies, start the watcher and move onto the
 		// next one.
 		if l := unwatched.Len(); l > 0 {
@@ -589,11 +598,6 @@ func (r *Runner) Run() error {
 				log.Printf("[ERR] (runner) failed to update dependency data for de-duplication: %v", err)
 			}
 		}
-
-		// Update event information with dependencies.
-		event.MissingDeps = missing
-		event.UnwatchedDeps = unwatched
-		event.UsedDeps = used
 
 		// If quiescence is activated, start/update the timers and loop back around.
 		// We do not want to render the templates yet.
@@ -676,12 +680,6 @@ func (r *Runner) Run() error {
 				}
 			}
 		}
-
-		// Send updated render event
-		r.renderEventsLock.Lock()
-		event.UpdatedAt = time.Now().UTC()
-		r.renderEvents[tmpl.ID()] = event
-		r.renderEventsLock.Unlock()
 	}
 
 	// Check if we need to deliver any rendered signals
