@@ -951,10 +951,7 @@ func (r *Runner) allTemplatesRendered() bool {
 
 	for _, tmpl := range r.templates {
 		event, rendered := r.renderEvents[tmpl.ID()]
-		if !rendered {
-			return false
-		}
-		if !event.DidRender {
+		if !rendered || !event.DidRender {
 			return false
 		}
 	}
