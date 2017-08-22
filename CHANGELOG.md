@@ -22,6 +22,7 @@ BUG FIXES:
       Users should set `error_on_missing_key = false` in their configuration
       files if they are relying on the current `<no value>` behavior.
       [GH-973, GH-972]
+  * Ensure all templates are rendered before spawning commands [GH-991, GH-995]
 
 ## v0.19.0 (June 29, 2017)
 
