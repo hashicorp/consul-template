@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul-template/logging"
 	"github.com/hashicorp/consul-template/manager"
 	"github.com/hashicorp/consul-template/signals"
+	"github.com/hashicorp/consul-template/version"
 )
 
 // Exit codes are int values that represent an exit code for a particular error.
@@ -62,10 +63,10 @@ func NewCLI(out, err io.Writer) *CLI {
 // status from the command.
 func (cli *CLI) Run(args []string) int {
 	// Parse the flags
-	config, paths, once, dry, version, err := cli.ParseFlags(args[1:])
+	config, paths, once, dry, isVersion, err := cli.ParseFlags(args[1:])
 	if err != nil {
 		if err == flag.ErrHelp {
-			fmt.Fprintf(cli.errStream, usage, Name)
+			fmt.Fprintf(cli.errStream, usage, version.Name)
 			return 0
 		}
 		fmt.Fprintln(cli.errStream, err.Error())
@@ -90,14 +91,14 @@ func (cli *CLI) Run(args []string) int {
 	}
 
 	// Print version information for debugging
-	log.Printf("[INFO] %s", humanVersion)
+	log.Printf("[INFO] %s", version.HumanVersion)
 
 	// If the version was requested, return an "error" containing the version
 	// information. This might sound weird, but most *nix applications actually
 	// print their version on stderr anyway.
-	if version {
+	if isVersion {
 		log.Printf("[DEBUG] (cli) version flag was given, exiting now")
-		fmt.Fprintf(cli.errStream, "%s\n", humanVersion)
+		fmt.Fprintf(cli.errStream, "%s\n", version.HumanVersion)
 		return ExitCodeOK
 	}
 
@@ -188,7 +189,7 @@ func (cli *CLI) stop() {
 // small, but it also makes writing tests for parsing command line arguments
 // much easier and cleaner.
 func (cli *CLI) ParseFlags(args []string) (*config.Config, []string, bool, bool, bool, error) {
-	var dry, once, version bool
+	var dry, once, isVersion bool
 
 	c := config.DefaultConfig()
 
@@ -196,7 +197,7 @@ func (cli *CLI) ParseFlags(args []string) (*config.Config, []string, bool, bool,
 	configPaths := make([]string, 0, 6)
 
 	// Parse the flags and options
-	flags := flag.NewFlagSet(Name, flag.ContinueOnError)
+	flags := flag.NewFlagSet(version.Name, flag.ContinueOnError)
 	flags.SetOutput(ioutil.Discard)
 	flags.Usage = func() {}
 
@@ -518,8 +519,8 @@ func (cli *CLI) ParseFlags(args []string) (*config.Config, []string, bool, bool,
 		return nil
 	}), "wait", "")
 
-	flags.BoolVar(&version, "v", false, "")
-	flags.BoolVar(&version, "version", false, "")
+	flags.BoolVar(&isVersion, "v", false, "")
+	flags.BoolVar(&isVersion, "version", false, "")
 
 	// If there was a parser error, stop
 	if err := flags.Parse(args); err != nil {
@@ -532,7 +533,7 @@ func (cli *CLI) ParseFlags(args []string) (*config.Config, []string, bool, bool,
 		return nil, nil, false, false, false, fmt.Errorf("cli: extra args: %q", args)
 	}
 
-	return c, configPaths, once, dry, version, nil
+	return c, configPaths, once, dry, isVersion, nil
 }
 
 // loadConfigs loads the configuration from the list of paths. The optional
@@ -564,7 +565,7 @@ func logError(err error, status int) int {
 
 func (cli *CLI) setup(conf *config.Config) (*config.Config, error) {
 	if err := logging.Setup(&logging.Config{
-		Name:           Name,
+		Name:           version.Name,
 		Level:          config.StringVal(conf.LogLevel),
 		Syslog:         config.BoolVal(conf.Syslog.Enabled),
 		SyslogFacility: config.StringVal(conf.Syslog.Facility),
