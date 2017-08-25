@@ -1,5 +1,9 @@
 # Consul Template CHANGELOG
 
+## v0.19.1.dev (Unreleased)
+
+BUG FIXES:
+
 ## v0.19.1 (August 25, 2017)
 
 IMPROVEMENTS:
