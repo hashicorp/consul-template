@@ -1,7 +1,6 @@
-Consul Template Changelog
-=========================
+# Consul Template CHANGELOG
 
-## v0.19.1 (Unreleased)
+## v0.19.1 (August 25, 2017)
 
 IMPROVEMENTS:
 
@@ -9,6 +8,8 @@ IMPROVEMENTS:
       This is useful when embedding Consul Template as a library. [GH-974-975]
 
   * Use the new Golang API renewer [GH-978]
+
+  * Compile and build with Go 1.9
 
 BUG FIXES:
 
