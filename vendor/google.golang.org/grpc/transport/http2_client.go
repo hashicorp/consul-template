@@ -33,7 +33,6 @@ import (
 	"golang.org/x/net/http2/hpack"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
@@ -108,8 +107,6 @@ type http2Client struct {
 	maxStreams int
 	// the per-stream outbound flow control window size set by the peer.
 	streamSendQuota uint32
-	// goAwayID records the Last-Stream-ID in the GoAway frame from the server.
-	goAwayID uint32
 	// prevGoAway ID records the Last-Stream-ID in the previous GOAway frame.
 	prevGoAwayID uint32
 	// goAwayReason records the http2.ErrCode and debug data received with the
@@ -663,24 +660,6 @@ func (t *http2Client) GracefulClose() error {
 		t.mu.Unlock()
 		return nil
 	}
-	// Notify the streams which were initiated after the server sent GOAWAY.
-	select {
-	case <-t.goAway:
-		n := t.prevGoAwayID
-		if n == 0 && t.nextID > 1 {
-			n = t.nextID - 2
-		}
-		m := t.goAwayID + 2
-		if m == 2 {
-			m = 1
-		}
-		for i := m; i <= n; i += 2 {
-			if s, ok := t.activeStreams[i]; ok {
-				close(s.goAway)
-			}
-		}
-	default:
-	}
 	if t.state == draining {
 		t.mu.Unlock()
 		return nil
@@ -953,7 +932,7 @@ func (t *http2Client) handleRSTStream(f *http2.RSTStreamFrame) {
 	}
 	statusCode, ok := http2ErrConvTab[http2.ErrCode(f.ErrCode)]
 	if !ok {
-		grpclog.Println("transport: http2Client.handleRSTStream found no mapped gRPC status for the received http2 error ", f.ErrCode)
+		warningf("transport: http2Client.handleRSTStream found no mapped gRPC status for the received http2 error %v", f.ErrCode)
 		statusCode = codes.Unknown
 	}
 	s.finish(status.Newf(statusCode, "stream terminated by RST_STREAM with error code: %d", f.ErrCode))
@@ -988,36 +967,56 @@ func (t *http2Client) handlePing(f *http2.PingFrame) {
 }
 
 func (t *http2Client) handleGoAway(f *http2.GoAwayFrame) {
-	if f.ErrCode == http2.ErrCodeEnhanceYourCalm {
-		grpclog.Printf("Client received GoAway with http2.ErrCodeEnhanceYourCalm.")
-	}
 	t.mu.Lock()
-	if t.state == reachable || t.state == draining {
-		if f.LastStreamID > 0 && f.LastStreamID%2 != 1 {
-			t.mu.Unlock()
-			t.notifyError(connectionErrorf(true, nil, "received illegal http2 GOAWAY frame: stream ID %d is even", f.LastStreamID))
-			return
-		}
-		select {
-		case <-t.goAway:
-			id := t.goAwayID
-			// t.goAway has been closed (i.e.,multiple GoAways).
-			if id < f.LastStreamID {
-				t.mu.Unlock()
-				t.notifyError(connectionErrorf(true, nil, "received illegal http2 GOAWAY frame: previously recv GOAWAY frame with LastStramID %d, currently recv %d", id, f.LastStreamID))
-				return
-			}
-			t.prevGoAwayID = id
-			t.goAwayID = f.LastStreamID
-			t.mu.Unlock()
-			return
-		default:
-			t.setGoAwayReason(f)
-		}
-		t.goAwayID = f.LastStreamID
-		close(t.goAway)
+	if t.state != reachable && t.state != draining {
+		t.mu.Unlock()
+		return
 	}
+	if f.ErrCode == http2.ErrCodeEnhanceYourCalm {
+		infof("Client received GoAway with http2.ErrCodeEnhanceYourCalm.")
+	}
+	id := f.LastStreamID
+	if id > 0 && id%2 != 1 {
+		t.mu.Unlock()
+		t.notifyError(connectionErrorf(true, nil, "received illegal http2 GOAWAY frame: stream ID %d is even", f.LastStreamID))
+		return
+	}
+	// A client can recieve multiple GoAways from server (look at https://github.com/grpc/grpc-go/issues/1387).
+	// The idea is that the first GoAway will be sent with an ID of MaxInt32 and the second GoAway will be sent after an RTT delay
+	// with the ID of the last stream the server will process.
+	// Therefore, when we get the first GoAway we don't really close any streams. While in case of second GoAway we
+	// close all streams created after the second GoAwayId. This way streams that were in-flight while the GoAway from server
+	// was being sent don't get killed.
+	select {
+	case <-t.goAway: // t.goAway has been closed (i.e.,multiple GoAways).
+		// If there are multiple GoAways the first one should always have an ID greater than the following ones.
+		if id > t.prevGoAwayID {
+			t.mu.Unlock()
+			t.notifyError(connectionErrorf(true, nil, "received illegal http2 GOAWAY frame: previously recv GOAWAY frame with LastStramID %d, currently recv %d", id, f.LastStreamID))
+			return
+		}
+	default:
+		t.setGoAwayReason(f)
+		close(t.goAway)
+		t.state = draining
+	}
+	// All streams with IDs greater than the GoAwayId
+	// and smaller than the previous GoAway ID should be killed.
+	upperLimit := t.prevGoAwayID
+	if upperLimit == 0 { // This is the first GoAway Frame.
+		upperLimit = math.MaxUint32 // Kill all streams after the GoAway ID.
+	}
+	for streamID, stream := range t.activeStreams {
+		if streamID > id && streamID <= upperLimit {
+			close(stream.goAway)
+		}
+	}
+	t.prevGoAwayID = id
+	active := len(t.activeStreams)
 	t.mu.Unlock()
+	if active == 0 {
+		t.Close()
+	}
 }
 
 // setGoAwayReason sets the value of t.goAwayReason based
@@ -1189,7 +1188,7 @@ func (t *http2Client) reader() {
 		case *http2.WindowUpdateFrame:
 			t.handleWindowUpdate(frame)
 		default:
-			grpclog.Printf("transport: http2Client.reader got unhandled frame type %v.", frame)
+			errorf("transport: http2Client.reader got unhandled frame type %v.", frame)
 		}
 	}
 }
@@ -1256,7 +1255,7 @@ func (t *http2Client) controller() {
 					}
 					t.framer.writePing(true, i.ack, i.data)
 				default:
-					grpclog.Printf("transport: http2Client.controller got unexpected item type %v\n", i)
+					errorf("transport: http2Client.controller got unexpected item type %v\n", i)
 				}
 				t.writableChan <- 0
 				continue
@@ -1343,7 +1342,7 @@ func (t *http2Client) notifyError(err error) {
 	if t.state == reachable {
 		t.state = unreachable
 		close(t.errorChan)
-		grpclog.Printf("transport: http2Client.notifyError got notified that the client transport was broken %v.", err)
+		infof("transport: http2Client.notifyError got notified that the client transport was broken %v.", err)
 	}
 	t.mu.Unlock()
 }

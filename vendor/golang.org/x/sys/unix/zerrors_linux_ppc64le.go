@@ -1684,6 +1684,12 @@ const (
 	TAB2                                 = 0x800
 	TAB3                                 = 0xc00
 	TABDLY                               = 0xc00
+	TASKSTATS_CMD_ATTR_MAX               = 0x4
+	TASKSTATS_CMD_MAX                    = 0x2
+	TASKSTATS_GENL_NAME                  = "TASKSTATS"
+	TASKSTATS_GENL_VERSION               = 0x1
+	TASKSTATS_TYPE_MAX                   = 0x6
+	TASKSTATS_VERSION                    = 0x8
 	TCFLSH                               = 0x2000741f
 	TCGETA                               = 0x40147417
 	TCGETS                               = 0x402c7413
@@ -1827,6 +1833,7 @@ const (
 	TIOCSWINSZ                           = 0x80087467
 	TIOCVHANGUP                          = 0x5437
 	TOSTOP                               = 0x400000
+	TS_COMM_LEN                          = 0x20
 	TUNATTACHFILTER                      = 0x801054d5
 	TUNDETACHFILTER                      = 0x801054d6
 	TUNGETFEATURES                       = 0x400454cf

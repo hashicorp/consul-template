@@ -72,26 +72,6 @@ func (c *Coordinate) Clone() *Coordinate {
 	}
 }
 
-// componentIsValid returns false if a floating point value is a NaN or an
-// infinity.
-func componentIsValid(f float64) bool {
-	return !math.IsInf(f, 0) && !math.IsNaN(f)
-}
-
-// IsValid returns false if any component of a coordinate isn't valid, per the
-// componentIsValid() helper above.
-func (c *Coordinate) IsValid() bool {
-	for i := range c.Vec {
-		if !componentIsValid(c.Vec[i]) {
-			return false
-		}
-	}
-
-	return componentIsValid(c.Error) &&
-		componentIsValid(c.Adjustment) &&
-		componentIsValid(c.Height)
-}
-
 // IsCompatibleWith checks to see if the two coordinates are compatible
 // dimensionally. If this returns true then you are guaranteed to not get
 // any runtime errors operating on them.
@@ -142,7 +122,7 @@ func (c *Coordinate) rawDistanceTo(other *Coordinate) float64 {
 // already been checked to be compatible.
 func add(vec1 []float64, vec2 []float64) []float64 {
 	ret := make([]float64, len(vec1))
-	for i := range ret {
+	for i, _ := range ret {
 		ret[i] = vec1[i] + vec2[i]
 	}
 	return ret
@@ -152,7 +132,7 @@ func add(vec1 []float64, vec2 []float64) []float64 {
 // dimensions have already been checked to be compatible.
 func diff(vec1 []float64, vec2 []float64) []float64 {
 	ret := make([]float64, len(vec1))
-	for i := range ret {
+	for i, _ := range ret {
 		ret[i] = vec1[i] - vec2[i]
 	}
 	return ret
@@ -161,7 +141,7 @@ func diff(vec1 []float64, vec2 []float64) []float64 {
 // mul returns vec multiplied by a scalar factor.
 func mul(vec []float64, factor float64) []float64 {
 	ret := make([]float64, len(vec))
-	for i := range vec {
+	for i, _ := range vec {
 		ret[i] = vec[i] * factor
 	}
 	return ret
@@ -170,7 +150,7 @@ func mul(vec []float64, factor float64) []float64 {
 // magnitude computes the magnitude of the vec.
 func magnitude(vec []float64) float64 {
 	sum := 0.0
-	for i := range vec {
+	for i, _ := range vec {
 		sum += vec[i] * vec[i]
 	}
 	return math.Sqrt(sum)
@@ -188,7 +168,7 @@ func unitVectorAt(vec1 []float64, vec2 []float64) ([]float64, float64) {
 	}
 
 	// Otherwise, just return a random unit vector.
-	for i := range ret {
+	for i, _ := range ret {
 		ret[i] = rand.Float64() - 0.5
 	}
 	if mag := magnitude(ret); mag > zeroThreshold {

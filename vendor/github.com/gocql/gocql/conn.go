@@ -845,7 +845,7 @@ func (c *Conn) executeQuery(qry *Query) *Iter {
 		return &Iter{err: err}
 	}
 
-	if len(framer.traceID) > 0 {
+	if len(framer.traceID) > 0 && qry.trace != nil {
 		qry.trace.Trace(framer.traceID)
 	}
 

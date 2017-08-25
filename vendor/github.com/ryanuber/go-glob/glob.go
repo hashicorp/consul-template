@@ -30,25 +30,20 @@ func Glob(pattern, subj string) bool {
 	trailingGlob := strings.HasSuffix(pattern, GLOB)
 	end := len(parts) - 1
 
-	// Go over the leading parts and ensure they match.
-	for i := 0; i < end; i++ {
-		idx := strings.Index(subj, parts[i])
+	// Check the first section. Requires special handling.
+	if !leadingGlob && !strings.HasPrefix(subj, parts[0]) {
+		return false
+	}
 
-		switch i {
-		case 0:
-			// Check the first section. Requires special handling.
-			if !leadingGlob && idx != 0 {
-				return false
-			}
-		default:
-			// Check that the middle parts match.
-			if idx < 0 {
-				return false
-			}
+	// Go over the middle parts and ensure they match.
+	for i := 1; i < end; i++ {
+		if !strings.Contains(subj, parts[i]) {
+			return false
 		}
 
 		// Trim evaluated text from subj as we loop over the pattern.
-		subj = subj[idx+len(parts[i]):]
+		idx := strings.Index(subj, parts[i]) + len(parts[i])
+		subj = subj[idx:]
 	}
 
 	// Reached the last section. Requires special handling.

@@ -72,9 +72,6 @@ type Container struct {
 
 // Data - Return the contained data as an interface{}.
 func (g *Container) Data() interface{} {
-	if g == nil {
-		return nil
-	}
 	return g.object
 }
 
@@ -92,28 +89,25 @@ func (g *Container) Path(path string) *Container {
 func (g *Container) Search(hierarchy ...string) *Container {
 	var object interface{}
 
-	object = g.Data()
+	object = g.object
 	for target := 0; target < len(hierarchy); target++ {
 		if mmap, ok := object.(map[string]interface{}); ok {
-			object, ok = mmap[hierarchy[target]]
-			if !ok {
-				return nil
-			}
+			object = mmap[hierarchy[target]]
 		} else if marray, ok := object.([]interface{}); ok {
 			tmpArray := []interface{}{}
 			for _, val := range marray {
 				tmpGabs := &Container{val}
-				res := tmpGabs.Search(hierarchy[target:]...)
+				res := tmpGabs.Search(hierarchy[target:]...).Data()
 				if res != nil {
-					tmpArray = append(tmpArray, res.Data())
+					tmpArray = append(tmpArray, res)
 				}
 			}
 			if len(tmpArray) == 0 {
-				return nil
+				return &Container{nil}
 			}
 			return &Container{tmpArray}
 		} else {
-			return nil
+			return &Container{nil}
 		}
 	}
 	return &Container{object}
@@ -126,7 +120,7 @@ func (g *Container) S(hierarchy ...string) *Container {
 
 // Exists - Checks whether a path exists.
 func (g *Container) Exists(hierarchy ...string) bool {
-	return g.Search(hierarchy...) != nil
+	return g.Search(hierarchy...).Data() != nil
 }
 
 // ExistsP - Checks whether a dot notation path exists.
@@ -289,11 +283,9 @@ func (g *Container) Delete(path ...string) error {
 	for target := 0; target < len(path); target++ {
 		if mmap, ok := object.(map[string]interface{}); ok {
 			if target == len(path)-1 {
-				if _, ok := mmap[path[target]]; ok {
-					delete(mmap, path[target])
-				} else {
-					return ErrNotObj
-				}
+				delete(mmap, path[target])
+			} else if mmap[path[target]] == nil {
+				return ErrNotObj
 			}
 			object = mmap[path[target]]
 		} else {
@@ -391,7 +383,7 @@ func (g *Container) ArrayCountP(path string) (int, error) {
 
 // Bytes - Converts the contained object back to a JSON []byte blob.
 func (g *Container) Bytes() []byte {
-	if g.Data() != nil {
+	if g.object != nil {
 		if bytes, err := json.Marshal(g.object); err == nil {
 			return bytes
 		}

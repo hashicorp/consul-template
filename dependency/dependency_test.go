@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/vault/builtin/logical/transit"
 	"github.com/hashicorp/vault/http"
 	"github.com/hashicorp/vault/logical"
-	"github.com/hashicorp/vault/physical"
+	"github.com/hashicorp/vault/physical/inmem"
 	"github.com/hashicorp/vault/vault"
 
 	logxi "github.com/mgutz/logxi/v1"
@@ -122,13 +122,18 @@ func (s *vaultServer) CreateSecret(path string, data map[string]interface{}) err
 // testVaultServer is a helper for creating a Vault server and returning the
 // appropriate client to connect to it.
 func testVaultServer(t *testing.T) (*ClientSet, *vaultServer) {
+	inm, err := inmem.NewInmem(nil, logxi.NullLog)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	core, err := vault.NewCore(&vault.CoreConfig{
 		DisableMlock:    true,
 		DisableCache:    true,
 		DefaultLeaseTTL: 2 * time.Second,
 		MaxLeaseTTL:     3 * time.Second,
 		Logger:          logxi.NullLog,
-		Physical:        physical.NewInmem(logxi.NullLog),
+		Physical:        inm,
 		LogicalBackends: map[string]logical.Factory{
 			"pki":     pki.Factory,
 			"transit": transit.Factory,

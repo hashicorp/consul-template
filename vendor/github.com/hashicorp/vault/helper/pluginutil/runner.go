@@ -10,6 +10,7 @@ import (
 	plugin "github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/helper/wrapping"
+	log "github.com/mgutz/logxi/v1"
 )
 
 // Looker defines the plugin Lookup function that looks into the plugin catalog
@@ -35,17 +36,17 @@ type LookRunnerUtil interface {
 // PluginRunner defines the metadata needed to run a plugin securely with
 // go-plugin.
 type PluginRunner struct {
-	Name           string                      `json:"name"`
-	Command        string                      `json:"command"`
-	Args           []string                    `json:"args"`
-	Sha256         []byte                      `json:"sha256"`
-	Builtin        bool                        `json:"builtin"`
-	BuiltinFactory func() (interface{}, error) `json:"-"`
+	Name           string                      `json:"name" structs:"name"`
+	Command        string                      `json:"command" structs:"command"`
+	Args           []string                    `json:"args" structs:"args"`
+	Sha256         []byte                      `json:"sha256" structs:"sha256"`
+	Builtin        bool                        `json:"builtin" structs:"builtin"`
+	BuiltinFactory func() (interface{}, error) `json:"-" structs:"-"`
 }
 
 // Run takes a wrapper instance, and the go-plugin paramaters and executes a
 // plugin.
-func (r *PluginRunner) Run(wrapper RunnerUtil, pluginMap map[string]plugin.Plugin, hs plugin.HandshakeConfig, env []string) (*plugin.Client, error) {
+func (r *PluginRunner) Run(wrapper RunnerUtil, pluginMap map[string]plugin.Plugin, hs plugin.HandshakeConfig, env []string, logger log.Logger) (*plugin.Client, error) {
 	// Get a CA TLS Certificate
 	certBytes, key, err := generateCert()
 	if err != nil {
@@ -79,12 +80,19 @@ func (r *PluginRunner) Run(wrapper RunnerUtil, pluginMap map[string]plugin.Plugi
 		Hash:     sha256.New(),
 	}
 
+	// Create logger for the plugin client
+	clogger := &hclogFaker{
+		logger: logger,
+	}
+	namedLogger := clogger.ResetNamed("plugin")
+
 	client := plugin.NewClient(&plugin.ClientConfig{
 		HandshakeConfig: hs,
 		Plugins:         pluginMap,
 		Cmd:             cmd,
 		TLSConfig:       clientTLSConfig,
 		SecureConfig:    secureConfig,
+		Logger:          namedLogger,
 	})
 
 	return client, nil

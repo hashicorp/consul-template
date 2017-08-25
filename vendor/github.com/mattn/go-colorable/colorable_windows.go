@@ -508,7 +508,7 @@ loop:
 			procGetConsoleScreenBufferInfo.Call(uintptr(w.handle), uintptr(unsafe.Pointer(&csbi)))
 			csbi.cursorPosition.x = short(n - 1)
 			procSetConsoleCursorPosition.Call(uintptr(w.handle), *(*uintptr)(unsafe.Pointer(&csbi.cursorPosition)))
-		case 'H':
+		case 'H', 'f':
 			procGetConsoleScreenBufferInfo.Call(uintptr(w.handle), uintptr(unsafe.Pointer(&csbi)))
 			if buf.Len() > 0 {
 				token := strings.Split(buf.String(), ";")
@@ -569,16 +569,18 @@ loop:
 			}
 			procGetConsoleScreenBufferInfo.Call(uintptr(w.handle), uintptr(unsafe.Pointer(&csbi)))
 			var cursor coord
+			var count, written dword
 			switch n {
 			case 0:
-				cursor = coord{x: csbi.cursorPosition.x, y: csbi.cursorPosition.y}
+				cursor = coord{x: csbi.cursorPosition.x + 1, y: csbi.cursorPosition.y}
+				count = dword(csbi.size.x - csbi.cursorPosition.x - 1)
 			case 1:
 				cursor = coord{x: csbi.window.left, y: csbi.window.top + csbi.cursorPosition.y}
+				count = dword(csbi.size.x - csbi.cursorPosition.x)
 			case 2:
 				cursor = coord{x: csbi.window.left, y: csbi.window.top + csbi.cursorPosition.y}
+				count = dword(csbi.size.x)
 			}
-			var count, written dword
-			count = dword(csbi.size.x - csbi.cursorPosition.x)
 			procFillConsoleOutputCharacter.Call(uintptr(w.handle), uintptr(' '), uintptr(count), *(*uintptr)(unsafe.Pointer(&cursor)), uintptr(unsafe.Pointer(&written)))
 			procFillConsoleOutputAttribute.Call(uintptr(w.handle), uintptr(csbi.attributes), uintptr(count), *(*uintptr)(unsafe.Pointer(&cursor)), uintptr(unsafe.Pointer(&written)))
 		case 'm':
@@ -687,17 +689,25 @@ loop:
 				}
 			}
 		case 'h':
+			var ci consoleCursorInfo
 			cs := buf.String()
-			if cs == "?25" {
-				var ci consoleCursorInfo
+			if cs == "5>" {
+				procGetConsoleCursorInfo.Call(uintptr(w.handle), uintptr(unsafe.Pointer(&ci)))
+				ci.visible = 0
+				procSetConsoleCursorInfo.Call(uintptr(w.handle), uintptr(unsafe.Pointer(&ci)))
+			} else if cs == "?25" {
 				procGetConsoleCursorInfo.Call(uintptr(w.handle), uintptr(unsafe.Pointer(&ci)))
 				ci.visible = 1
 				procSetConsoleCursorInfo.Call(uintptr(w.handle), uintptr(unsafe.Pointer(&ci)))
 			}
 		case 'l':
+			var ci consoleCursorInfo
 			cs := buf.String()
-			if cs == "?25" {
-				var ci consoleCursorInfo
+			if cs == "5>" {
+				procGetConsoleCursorInfo.Call(uintptr(w.handle), uintptr(unsafe.Pointer(&ci)))
+				ci.visible = 1
+				procSetConsoleCursorInfo.Call(uintptr(w.handle), uintptr(unsafe.Pointer(&ci)))
+			} else if cs == "?25" {
 				procGetConsoleCursorInfo.Call(uintptr(w.handle), uintptr(unsafe.Pointer(&ci)))
 				ci.visible = 0
 				procSetConsoleCursorInfo.Call(uintptr(w.handle), uintptr(unsafe.Pointer(&ci)))
