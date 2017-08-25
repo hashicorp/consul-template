@@ -1519,8 +1519,10 @@ Takes the result from a `tree` or `ls` call and converts it into a JSON object.
 renders
 
 ```javascript
-{"admin":{"port":1234},"maxconns":5,"minconns":2}
+{"admin":{"port":"1234"},"maxconns":"5","minconns":"2"}
 ```
+
+Note: Consul stores all KV data as strings. Thus true is "true", 1 is "1", etc.
 
 ##### `toJSONPretty`
 
@@ -1536,12 +1538,14 @@ renders
 ```javascript
 {
   "admin": {
-    "port": 1234
+    "port": "1234"
   },
-  "maxconns": 5,
-  "minconns": 2,
+  "maxconns": "5",
+  "minconns": "2",
 }
 ```
+
+Note: Consul stores all KV data as strings. Thus true is "true", 1 is "1", etc.
 
 ##### `toLower`
 
@@ -1583,6 +1587,8 @@ minconns = "2"
   port = "1134"
 ```
 
+Note: Consul stores all KV data as strings. Thus true is "true", 1 is "1", etc.
+
 ##### `toUpper`
 
 Takes the argument as a string and converts it to uppercase.
@@ -1607,10 +1613,13 @@ renders
 
 ```yaml
 admin:
-  port: 1234
-maxconns: 5
-minconns: 2
+  port: "1234"
+maxconns: "5"
+minconns: "2"
 ```
+
+Note: Consul stores all KV data as strings. Thus true is "true", 1 is "1", etc.
+
 ---
 
 #### Math Functions
