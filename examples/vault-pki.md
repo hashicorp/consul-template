@@ -8,7 +8,11 @@ When generating PKI certificates with Vault, the certificate, private key, and
 any intermediate certs are all returned as part of the same API call. Most
 software requires these files be placed in separate files on the system.
 
+**Note:** [`generate_lease`][generate_lease] must be set to `true` (non-default) on the
+Vault PKI role, otherwise certificate renewal won't work properly.
+
 [vault]: https://www.vaultproject.io/ "Vault by HashiCorp"
+[generate_lease]: https://www.vaultproject.io/api/secret/pki/index.html#generate_lease
 
 ## Multiple Output Files
 
