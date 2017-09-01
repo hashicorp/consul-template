@@ -1,8 +1,11 @@
 # Consul Template CHANGELOG
 
-## v0.19.1.dev (Unreleased)
+## v0.19.2 (September 1, 2017)
 
 BUG FIXES:
+
+  * Fix a critical bug that would cause a hot loop for some TTL durations.
+      [GH-1004]
 
 ## v0.19.1 (August 25, 2017)
 
