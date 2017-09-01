@@ -80,6 +80,10 @@ func (d *VaultTokenQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interfa
 
 	// The secret isn't renewable, probably the generic secret backend.
 	dur := vaultRenewDuration(d.secret)
+	if dur > opts.VaultGrace {
+		dur = opts.VaultGrace
+	}
+
 	log.Printf("[TRACE] %s: token is not renewable, sleeping for %s", d, dur)
 	select {
 	case <-time.After(dur):
