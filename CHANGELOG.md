@@ -4,6 +4,9 @@
 
 BUG FIXES:
 
+  * Fix a bug that would cause once mode to not exit when the file pre-existed
+    on disk with the correct contents. [GH-1000]
+
 ## v0.19.2 (September 1, 2017)
 
 BUG FIXES:
