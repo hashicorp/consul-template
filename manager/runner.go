@@ -951,7 +951,13 @@ func (r *Runner) allTemplatesRendered() bool {
 
 	for _, tmpl := range r.templates {
 		event, rendered := r.renderEvents[tmpl.ID()]
-		if !rendered || !event.DidRender {
+		if !rendered {
+			return false
+		}
+
+		// The template might already exist on disk with the exact contents, but
+		// we still want to count that as "rendered" [GH-1000].
+		if !event.DidRender && !event.WouldRender {
 			return false
 		}
 	}
