@@ -62,7 +62,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * Use the logger as soon as its available for output [GH-947]
-  * Update Consul API library to fix a bug where custom CA configuration aws
+  * Update Consul API library to fix a bug where custom CA configuration was
       ignored [GH-965]
 
 
