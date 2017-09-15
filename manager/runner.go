@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul-template/child"
 	"github.com/hashicorp/consul-template/config"
 	dep "github.com/hashicorp/consul-template/dependency"
+	"github.com/hashicorp/consul-template/manager/systemd"
 	"github.com/hashicorp/consul-template/template"
 	"github.com/hashicorp/consul-template/watch"
 	"github.com/hashicorp/go-multierror"
@@ -25,6 +26,11 @@ const (
 	// warn the user that they might be DDoSing their Consul cluster.
 	saneViewLimit = 128
 )
+
+// Notify is called after all templates have been rendered
+type notifier interface {
+	Notify(string) error
+}
 
 // Runner responsible rendering Templates and invoking Commands.
 type Runner struct {
@@ -103,6 +109,12 @@ type Runner struct {
 	// available in both the command's environment as well as the template's
 	// environment.
 	Env map[string]string
+
+	// notifier is called after all templates have been successfully rendered
+	notifier notifier
+
+	// ready indicates that the runner has rendered each template at least once
+	ready bool
 
 	// stopLock is the lock around checking if the runner can be stopped
 	stopLock sync.Mutex
@@ -317,6 +329,15 @@ func (r *Runner) Start() {
 				r.Stop()
 				return
 			}
+
+			// Template rendering has completed, let systemd know that we're in a ready state
+			if r.notifier != nil && !r.ready {
+				if notifErr := r.notifier.Notify(systemd.Ready); notifErr != nil {
+					log.Printf("[DEBUG] (runner) systemd notify failed: %v", notifErr)
+				}
+			}
+
+			r.ready = true
 		}
 
 	OUTER:
@@ -893,6 +914,9 @@ func (r *Runner) init() error {
 			}
 		}
 	}
+
+	r.notifier = &systemd.Notifier{}
+	r.ready = false
 
 	return nil
 }
