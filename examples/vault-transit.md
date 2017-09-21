@@ -133,9 +133,10 @@ Run the below script to see how you can
 #!/bin/bash
 set -e
 
-KEY_NAME=key
-TEMPLATE=${KEY_NAME}.ctmpl
-SCRIPT=${KEY_NAME}.sh
+NAME=example
+KEY_NAME=${NAME}.key
+TEMPLATE=${NAME}.ctmpl
+SCRIPT=${NAME}.sh
 
 cat <<EOF >${TEMPLATE}
 {{ with printf "transit/export/encryption-key/%s/%s" ( key "named-key" ) ( key "vault-index" ) | secret }}{{ if .Data.keys }}Encryption Key Version {{ ( key "vault-index" ) }}: {{ index .Data.keys ( key "vault-index" ) }}{{ end }}{{ end }}
