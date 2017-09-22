@@ -1,8 +1,8 @@
 # Vault Transit
 
-The Vault Transit backend allows you to export encryption keys to be used for local encrypt/decrypt operations when data is too large or latency is too high to be sent to Vault over the network. This example shows how you can leverage consul-template to trigger clients to pull down an encryption key locally from Vault's Transit backend based on the version specified in Consul KV.
+The [Vault Transit Secret Backend](https://www.vaultproject.io/docs/secrets/transit/index.html) allows you to export encryption keys to be used for local encrypt/decrypt operations when data is too large or latency is too high to be sent to Vault over the network. This example shows how you can leverage consul-template to trigger clients to automatically pull down an encryption key from Vault's Transit backend based on the version specified in Consul KV.
 
-This method can help you act quickly in the event of a compromise by rotating the encryption key in Vault and triggering all clients to grab latest by updating the version to latest in Consul KV.
+This method can help you act quickly in the event of a compromise by rotating the encryption key in Vault and triggering all clients to grab latest by updating the version in Consul KV.
 
 ## Exported Key Template
 ```
@@ -11,11 +11,11 @@ This method can help you act quickly in the event of a compromise by rotating th
 
 ## Prerequisites
 
-- Consul: `https://www.consul.io/downloads.html`/`https://releases.hashicorp.com/consul/`
-- Vault: `https://www.vaultproject.io/downloads.html`/`https://releases.hashicorp.com/vault/`
+- Consul: `https://www.consul.io/downloads.html` or `https://releases.hashicorp.com/consul/`
+- Vault: `https://www.vaultproject.io/downloads.html` or `https://releases.hashicorp.com/vault/`
 - consul-template: `https://releases.hashicorp.com/consul-template/`
 - Running Consul cluster: `consul agent -dev`
-- Running & unsealed Vault cluster: `vault server -dev -dev-root-token-id=root`
+- Unsealed Vault cluster: `vault server -dev -dev-root-token-id=root`
 
 ## Configure Vault & Consul
 
@@ -128,7 +128,8 @@ echo "Finished"
 
 ## Export Key Example Script
 
-Run the below script to see how you can
+Run the below script in the same location as above to see how consul-template leverages Vault & Consul to automatically rotate local encryption keys.
+
 ```
 #!/bin/bash
 set -e
