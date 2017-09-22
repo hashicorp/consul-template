@@ -1,4 +1,4 @@
-## Encryption Key Export Example
+# Encryption Key Export Example
 
 The [Vault Transit Secret Backend](https://www.vaultproject.io/docs/secrets/transit/index.html) allows you to export encryption keys to be used for local encrypt/decrypt operations when data is too large or latency is too high to be sent to Vault over the network. This example shows how you can leverage consul-template to trigger clients to automatically pull down an encryption key from Vault's Transit backend based on the version specified in Consul KV.
 
