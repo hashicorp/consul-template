@@ -1,10 +1,10 @@
-# Vault Transit
+## Encryption Key Export Example
 
 The [Vault Transit Secret Backend](https://www.vaultproject.io/docs/secrets/transit/index.html) allows you to export encryption keys to be used for local encrypt/decrypt operations when data is too large or latency is too high to be sent to Vault over the network. This example shows how you can leverage consul-template to trigger clients to automatically pull down an encryption key from Vault's Transit backend based on the version specified in Consul KV.
 
 This method can help you act quickly in the event of a compromise by rotating the encryption key in Vault and triggering all clients to grab latest by updating the version in Consul KV.
 
-## Exported Key Template
+## Template Example
 ```
 {{ with printf "transit/export/encryption-key/%s/%s" ( key "named-key" ) ( key "vault-index" ) | secret }}{{ if .Data.keys }}Encryption Key Version {{ ( key "vault-index" ) }}: {{ index .Data.keys ( key "vault-index" ) }}{{ end }}{{ end }}
 ```
@@ -17,7 +17,7 @@ This method can help you act quickly in the event of a compromise by rotating th
 - Running Consul cluster: `consul agent -dev`
 - Unsealed Vault cluster: `vault server -dev -dev-root-token-id=root`
 
-## Configure Vault & Consul
+## Step 1: Vault & Consul Configuration
 
 Run the below script against a running Consul & unsealed Vault cluster. Assumes both Vault and Consul are reachable locally.
 
@@ -126,7 +126,7 @@ echo
 echo "Finished"
 ```
 
-## Export Key Example Script
+## Step 2: Encryption Key Export
 
 Run the below script in the same location as above to see how consul-template leverages Vault & Consul to automatically rotate local encryption keys.
 
