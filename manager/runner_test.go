@@ -762,6 +762,63 @@ func TestRunner_Start(t *testing.T) {
 			t.Fatal("timeout")
 		}
 	})
+
+	t.Run("render_in_memory", func(t *testing.T) {
+		t.Parallel()
+
+		testConsul.SetKVString(t, "render-in-memory", "foo")
+
+		c := config.DefaultConfig().Merge(&config.Config{
+			Consul: &config.ConsulConfig{
+				Address: config.String(testConsul.HTTPAddr),
+			},
+			Templates: &config.TemplateConfigs{
+				&config.TemplateConfig{
+					Contents: config.String(`{{ key "render-in-memory" }}`),
+				},
+			},
+		})
+		c.Finalize()
+
+		r, err := NewRunner(c, true, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		var o, e bytes.Buffer
+		r.SetOutStream(&o)
+		r.SetErrStream(&e)
+		go r.Start()
+		defer r.Stop()
+
+		select {
+		case err := <-r.ErrCh:
+			t.Fatal(err)
+		case <-r.TemplateRenderedCh():
+			act := ""
+			for _, k := range r.RenderEvents() {
+				if k.DidRender == true {
+					act = string(k.Contents)
+					break
+				}
+			}
+			exp := "foo"
+			if exp != string(act) {
+				t.Errorf("\nexp: %#v\nact: %#v", exp, string(act))
+			}
+			expOut := "> \nfoo"
+			if expOut != o.String() {
+				t.Errorf("\nexp: %#v\nact: %#v", expOut, o.String())
+			}
+			expErr := ""
+			if expErr != e.String() {
+				t.Errorf("\nexp: %#v\nact: %#v", expErr, e.String())
+			}
+
+		case <-time.After(2 * time.Second):
+			t.Fatal("timeout")
+		}
+	})
 }
 
 func TestRunner_quiescence(t *testing.T) {
