@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"log"
 	"math/rand"
 	"sync"
 	"time"
@@ -164,7 +165,6 @@ func (r *Renewer) Renew() {
 	} else {
 		result = r.renewLease()
 	}
-
 	select {
 	case r.doneCh <- result:
 	case <-r.stopCh:
@@ -269,11 +269,7 @@ func (r *Renewer) renewLease() error {
 		// Grab the lease duration and sleep duration
 		leaseDuration := time.Duration(renewal.LeaseDuration) * time.Second
 		sleepDuration := r.sleepDuration(leaseDuration)
-
-		// If we are within grace, return now.
-		if leaseDuration <= r.grace || sleepDuration <= r.grace {
-			return nil
-		}
+		log.Printf("[TRACE] Renewer: Sleeping for %v before attempting to renew lease", sleepDuration)
 
 		select {
 		case <-r.stopCh:
