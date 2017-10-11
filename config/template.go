@@ -399,7 +399,8 @@ func ParseTemplateConfig(s string) (*TemplateConfig, error) {
 	case 3:
 		source, destination, command = parts[0], parts[1], parts[2]
 	default:
-		return nil, ErrTemplateInvalidFormat
+		source, destination = parts[0], parts[1]
+		command = strings.Join(parts[2:], ":")
 	}
 
 	var sourcePtr, destinationPtr, commandPtr *string
