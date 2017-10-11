@@ -25,10 +25,6 @@ var (
 	// are empty.
 	ErrTemplateStringEmpty = errors.New("template: cannot be empty")
 
-	// ErrTemplateInvalidFormat is the error returned with the template is not
-	// a valid format.
-	ErrTemplateInvalidFormat = errors.New("template: invalid format")
-
 	// configTemplateRe is the pattern to split the config template syntax.
 	configTemplateRe = regexp.MustCompile("([a-zA-Z]:)?([^:]+)")
 )
