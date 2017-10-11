@@ -498,12 +498,6 @@ func TestParseTemplateConfig(t *testing.T) {
 			true,
 		},
 		{
-			"too_many_args",
-			"foo:bar:zip:zap",
-			nil,
-			true,
-		},
-		{
 			"default",
 			"/tmp/a.txt:/tmp/b.txt:command",
 			&TemplateConfig{
@@ -514,12 +508,38 @@ func TestParseTemplateConfig(t *testing.T) {
 			false,
 		},
 		{
+			"single",
+			"/tmp/a.txt",
+			&TemplateConfig{
+				Source: String("/tmp/a.txt"),
+			},
+			false,
+		},
+		{
+			"single_windows_drive",
+			`z:\foo`,
+			&TemplateConfig{
+				Source: String(`z:\foo`),
+			},
+			false,
+		},
+		{
 			"windows_drives",
 			`C:\abc\123:D:\xyz\789:command`,
 			&TemplateConfig{
 				Source:      String(`C:\abc\123`),
 				Destination: String(`D:\xyz\789`),
 				Command:     String(`command`),
+			},
+			false,
+		},
+		{
+			"windows_drives_with_colon",
+			`C:\abc\123:D:\xyz\789:sub:command`,
+			&TemplateConfig{
+				Source:      String(`C:\abc\123`),
+				Destination: String(`D:\xyz\789`),
+				Command:     String(`sub:command`),
 			},
 			false,
 		},
