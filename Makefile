@@ -15,7 +15,7 @@ GOTAGS ?=
 GOMAXPROCS ?= 4
 
 # Get the project metadata
-GOVERSION := 1.9.0
+GOVERSION := 1.9.1
 PROJECT := $(CURRENT_DIR:$(GOPATH)/src/%=%)
 OWNER := $(notdir $(patsubst %/,%,$(dir $(PROJECT))))
 NAME := $(notdir $(PROJECT))
@@ -64,7 +64,7 @@ define make-xc-target
 			--dns="8.8.8.8" \
 			--volume="${CURRENT_DIR}:/go/src/${PROJECT}" \
 			--workdir="/go/src/${PROJECT}" \
-			"golang:1.8" \
+			"golang:${GOVERSION}" \
 			env \
 				CGO_ENABLED="0" \
 				GOOS="${1}" \
