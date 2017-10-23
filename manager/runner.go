@@ -1252,14 +1252,14 @@ func newWatcher(c *config.Config, clients *dep.ClientSet, once bool) (*watch.Wat
 		Clients:         clients,
 		MaxStale:        config.TimeDurationVal(c.MaxStale),
 		Once:            once,
-		RenewVault:      config.StringPresent(c.Vault.Token) && config.BoolVal(c.Vault.RenewToken),
+		RenewVault:      clients.Vault().Token() != "" && config.BoolVal(c.Vault.RenewToken),
 		RetryFuncConsul: watch.RetryFunc(c.Consul.Retry.RetryFunc()),
 		// TODO: Add a sane default retry - right now this only affects "local"
 		// dependencies like reading a file from disk.
 		RetryFuncDefault: nil,
 		RetryFuncVault:   watch.RetryFunc(c.Vault.Retry.RetryFunc()),
 		VaultGrace:       config.TimeDurationVal(c.Vault.Grace),
-		VaultToken:       config.StringVal(c.Vault.Token),
+		VaultToken:       clients.Vault().Token(),
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "runner")
