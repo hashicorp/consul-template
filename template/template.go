@@ -200,6 +200,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 
 	return template.FuncMap{
 		// API functions
+		"datacenter":   datacenterFunc(i.brain, i.used, i.missing),
 		"datacenters":  datacentersFunc(i.brain, i.used, i.missing),
 		"file":         fileFunc(i.brain, i.used, i.missing),
 		"key":          keyFunc(i.brain, i.used, i.missing),

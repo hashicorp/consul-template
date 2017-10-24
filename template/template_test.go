@@ -246,6 +246,27 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"func_datacenter",
+			&NewTemplateInput{
+				Contents: `{{ datacenter }}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewCatalogNodeQuery("")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, &dep.CatalogNode{
+						Node: &dep.Node{Node: "node1", Datacenter: "dc1"},
+					})
+					return b
+				}(),
+			},
+			"dc1",
+			false,
+		},
+		{
 			"func_datacenters",
 			&NewTemplateInput{
 				Contents: `{{ datacenters }}`,
