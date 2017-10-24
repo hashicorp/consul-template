@@ -1195,6 +1195,17 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"helper_indent",
+			&NewTemplateInput{
+				Contents: `{{ "hello\nhello" | indent 4 }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"    hello\n    hello",
+			false,
+		},
+		{
 			"helper_loop",
 			&NewTemplateInput{
 				Contents: `{{ range loop 3 }}1{{ end }}`,
