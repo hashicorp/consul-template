@@ -509,6 +509,37 @@ provides the following functions:
 API functions interact with remote API calls, communicating with external
 services like [Consul][consul] and [Vault][vault].
 
+##### `datacenter`
+
+Query [Consul][consul] for the datacenter of a node in the catalog.
+
+```liquid
+{{datacenter "<NAME>@<DATACENTER>"}}
+```
+
+The `<NAME>` attribute is optional; if omitted, the local agent node is used.
+
+The `<DATACENTER>` attribute is optional; if omitted, the local datacenter is
+used.
+
+For example, in the `dc1` datacenter:
+
+```liquid
+{{ datacenter }}
+```
+
+renders
+
+```text
+dc1
+```
+
+To query a different node:
+
+```liquid
+{{ datacenter "node1@dc2" }}
+```
+
 ##### `datacenters`
 
 Query [Consul][consul] for all datacenters in its catalog.

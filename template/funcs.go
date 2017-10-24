@@ -25,6 +25,24 @@ import (
 // primarily for the tests to override times.
 var now = func() time.Time { return time.Now().UTC() }
 
+func datacenterFunc(b *Brain, used, missing *dep.Set) func(...string) (string, error) {
+	return func(s ...string) (string, error) {
+		d, err := dep.NewCatalogNodeQuery(strings.Join(s, ""))
+		if err != nil {
+			return "", err
+		}
+
+		used.Add(d)
+
+		if value, ok := b.Recall(d); ok {
+			return value.(*dep.CatalogNode).Node.Datacenter, nil
+		}
+
+		missing.Add(d)
+		return "", nil
+	}
+}
+
 // datacentersFunc returns or accumulates datacenter dependencies.
 func datacentersFunc(b *Brain, used, missing *dep.Set) func(ignore ...bool) ([]string, error) {
 	return func(i ...bool) ([]string, error) {
