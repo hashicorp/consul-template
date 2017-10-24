@@ -1197,12 +1197,12 @@ func TestTemplate_Execute(t *testing.T) {
 		{
 			"helper_indent",
 			&NewTemplateInput{
-				Contents: `{{ "hello\nhello" | indent 4 }}`,
+				Contents: `{{ "hello\nhello\r\nHELLO\r\nhello\nHELLO" | indent 4 }}`,
 			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
-			"    hello\n    hello",
+			"    hello\n    hello\r\n    HELLO\r\n    hello\n    HELLO",
 			false,
 		},
 		{

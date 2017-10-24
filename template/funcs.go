@@ -657,15 +657,21 @@ func in(l, v interface{}) (bool, error) {
 
 // Indent prefixes each line of a string with the specified number of spaces
 func indent(spaces int, s string) (string, error) {
-	var lines []string
-	var prefix string
-
-	prefix = strings.Repeat(" ", spaces)
-	lines = strings.Split(s, "\n")
-	for index, line := range lines {
-		lines[index] = fmt.Sprintf("%s%s", prefix, line)
+	var output, prefix []byte
+	var sp bool
+	var size int
+	prefix = []byte(strings.Repeat(" ", spaces))
+	sp = true
+	for _, c := range []byte(s) {
+		if sp && c != '\n' {
+			output = append(output, prefix...)
+			size += spaces
+		}
+		output = append(output, c);
+		sp = c == '\n'
+		size += 1
 	}
-	return strings.Join(lines, "\n"), nil
+	return string(output[:size]), nil
 }
 
 // loop accepts varying parameters and differs its behavior. If given one
