@@ -1290,6 +1290,15 @@ You can also access deeply nested values:
 You will need to have a reasonable format about your data in Consul. Please see
 [Go's text/template package][text-template] for more information.
 
+
+##### `indent`
+
+Indents a block of text by prefixing N number of spaces per line.
+
+```liquid
+{{ tree "foo" | explode | toYAML | indent 4 }}
+```
+
 ##### `in`
 
 Determines if a needle is within an iterable element.

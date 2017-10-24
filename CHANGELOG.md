@@ -7,6 +7,7 @@ BUG FIXES:
 IMPROVEMENTS:
 
 * The Vault grace period in the config is now set to 15 seconds as the default. This matches Vault's default configuration for consistency.
+* Add `indent` function for indenting blocks of text in templates
 
 ## v0.19.3 (September 11, 2017)
 
