@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
+	"github.com/hashicorp/consul-template/config"
 )
 
 // RenderInput is used as input to the render function.
@@ -18,7 +19,7 @@ type RenderInput struct {
 	Dry       bool
 	DryStream io.Writer
 	Path      string
-	Perms     os.FileMode
+	Perms     config.FileMode
 }
 
 // RenderResult is returned and stored. It contains the status of the render
@@ -77,15 +78,15 @@ func Render(i *RenderInput) (*RenderResult, error) {
 // automatically with permissions 0755. To use a different permission, create
 // the directory first or use `chmod` in a Command.
 //
-// If the destination path exists, all attempts will be made to preserve the
-// existing file permissions. If those permissions cannot be read, an error is
-// returned. If the file does not exist, it will be created automatically with
-// permissions 0644. To use a different permission, create the destination file
-// first or use `chmod` in a Command.
+// If explicit file permissions are set, these will be applied to the
+// destination path. If explicit permissions are not set and the destination
+// path exists, the existing file permissions are preserved. Otherwise a new
+// file will be created with default permissions (0644). To use a different
+// permission, create the destination file first or use `chmod` in a Command.
 //
 // If no errors occur, the Tempfile is "renamed" (moved) to the destination
 // path.
-func AtomicWrite(path string, contents []byte, perms os.FileMode, backup bool) error {
+func AtomicWrite(path string, contents []byte, perms config.FileMode, backup bool) error {
 	if path == "" {
 		return fmt.Errorf("missing destination")
 	}
@@ -115,17 +116,27 @@ func AtomicWrite(path string, contents []byte, perms os.FileMode, backup bool) e
 		return err
 	}
 
-	if err := os.Chmod(f.Name(), perms); err != nil {
+	pathInfo, err := os.Stat(path)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	pathExists := !os.IsNotExist(err)
+
+	effectivePerms := os.FileMode(config.DefaultTemplateFilePerms)
+	if perms.IsSet() {
+		effectivePerms = *perms.Value
+	} else if pathExists {
+		effectivePerms = pathInfo.Mode()
+	}
+	if err := os.Chmod(f.Name(), effectivePerms); err != nil {
 		return err
 	}
 
 	// If we got this far, it means we are about to save the file. Copy the
 	// current contents of the file onto disk (if it exists) so we have a backup.
-	if backup {
-		if _, err := os.Stat(path); !os.IsNotExist(err) {
-			if err := copyFile(path, path+".bak"); err != nil {
-				return err
-			}
+	if backup && pathExists {
+		if err := copyFile(path, path+".bak"); err != nil {
+			return err
 		}
 	}
 
@@ -154,9 +165,17 @@ func copyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
+
 	if _, err := io.Copy(d, s); err != nil {
 		d.Close()
 		return err
 	}
-	return d.Close()
+
+	if err := d.Close(); err != nil {
+		return err
+	}
+
+	// Make sure permissions are preserved as specified. io.Copy can further
+	// restrict the file's permissions depending on current umask.
+	return os.Chmod(dst, stat.Mode())
 }

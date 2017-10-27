@@ -33,6 +33,33 @@ var (
 	configTemplateRe = regexp.MustCompile("([a-zA-Z]:)?([^:]+)")
 )
 
+type FileMode struct {
+	// FileMode is nil when desired permissions are unknown
+	Value *os.FileMode
+}
+
+func NewFileMode(fileMode os.FileMode) FileMode {
+	newFileMode := FileMode{&fileMode}
+	return newFileMode
+}
+
+func (fm FileMode) IsSet() bool {
+	return fm.Value != nil
+}
+
+func (fm *FileMode) Finalize() {
+	fm.Value = nil
+}
+
+// FileModeGoString returns the value of the os.FileMode for printing in a
+// string.
+func (fm FileMode) GoString() string {
+	if fm.Value == nil {
+		return "(*os.FileMode)(nil)"
+	}
+	return fmt.Sprintf("%q", *fm.Value)
+}
+
 // TemplateConfig is a representation of a template on disk, as well as the
 // associated commands and reload instructions.
 type TemplateConfig struct {
@@ -67,7 +94,7 @@ type TemplateConfig struct {
 	// Perms are the file system permissions to use when creating the file on
 	// disk. This is useful for when files contain sensitive information, such as
 	// secrets from Vault.
-	Perms *os.FileMode `mapstructure:"perms"`
+	Perms FileMode `mapstructure:"perms"`
 
 	// Source is the path on disk to the template contents to evaluate. Either
 	// this or Contents should be specified, but not both.
@@ -175,8 +202,8 @@ func (c *TemplateConfig) Merge(o *TemplateConfig) *TemplateConfig {
 		r.Exec = r.Exec.Merge(o.Exec)
 	}
 
-	if o.Perms != nil {
-		r.Perms = o.Perms
+	if o.Perms.IsSet() {
+	    r.Perms = o.Perms
 	}
 
 	if o.Source != nil {
@@ -238,9 +265,7 @@ func (c *TemplateConfig) Finalize() {
 	}
 	c.Exec.Finalize()
 
-	if c.Perms == nil {
-		c.Perms = FileMode(DefaultTemplateFilePerms)
-	}
+	c.Perms.Finalize()
 
 	if c.Source == nil {
 		c.Source = String("")
@@ -287,7 +312,7 @@ func (c *TemplateConfig) GoString() string {
 		StringGoString(c.Destination),
 		BoolGoString(c.ErrMissingKey),
 		c.Exec,
-		FileModeGoString(c.Perms),
+		c.Perms.GoString(),
 		StringGoString(c.Source),
 		c.Wait,
 		StringGoString(c.LeftDelim),
