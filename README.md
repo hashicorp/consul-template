@@ -1916,9 +1916,8 @@ carefully before use:
   customized via the CLI or configuration file.
 
 - Consul Template will forward all signals it receives to the child process
-  **except** its defined `reload_signal`, `dump_signal`, and `kill_signal`. If
-  you disable these signals, Consul Template will forward them to the child
-  process.
+  **except** its defined `reload_signal` and `kill_signal`. If you disable these
+  signals, Consul Template will forward them to the child process.
 
 - It is not possible to have more than one exec command (although each template
   can still have its own reload command).
