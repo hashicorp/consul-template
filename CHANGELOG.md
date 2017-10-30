@@ -4,10 +4,22 @@
 
 BUG FIXES:
 
+  * Remove references to unsupported `dump_signal` configuration
+
+  * Update vendor libraries to support Consul 1.0.0 changes for better test
+    stability
+
+  * Renew unwrapped Vault token (previously Consul Template) would try to renew
+    the wrapped token, which would not work.
+
 IMPROVEMENTS:
 
-* The Vault grace period in the config is now set to 15 seconds as the default. This matches Vault's default configuration for consistency.
-* Add `indent` function for indenting blocks of text in templates
+  * Compile with Go 1.9.2
+
+  * The Vault grace period in the config is now set to 15 seconds as the
+    default. This matches Vault's default configuration for consistency.
+
+  * Add `indent` function for indenting blocks of text in templates
 
 ## v0.19.3 (September 11, 2017)
 
