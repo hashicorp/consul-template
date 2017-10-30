@@ -24,6 +24,8 @@ BUG FIXES:
   * Handle integer overflow in exponential backoff calculations
     [GH-1031, GH-1028]
 
+  * Properly preserve existing file permissions [GH-1037]
+
 IMPROVEMENTS:
 
   * Compile with Go 1.9.2
