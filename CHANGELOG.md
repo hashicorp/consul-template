@@ -19,6 +19,8 @@ BUG FIXES:
   * Renew unwrapped Vault token (previously Consul Template) would try to renew
     the wrapped token, which would not work.
 
+  * Do not sort results when `~near` queries are used [GH-1027]
+
 IMPROVEMENTS:
 
   * Compile with Go 1.9.2
