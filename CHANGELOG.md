@@ -35,6 +35,8 @@ IMPROVEMENTS:
 
   * Allow additional colons in the template command on the CLI [GH-1026]
 
+  * Add Vault Transit example for key exfiltration [Gh-1014]
+
 ## v0.19.3 (September 11, 2017)
 
 BUG FIXES:
