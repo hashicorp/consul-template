@@ -667,7 +667,7 @@ func indent(spaces int, s string) (string, error) {
 			output = append(output, prefix...)
 			size += spaces
 		}
-		output = append(output, c);
+		output = append(output, c)
 		sp = c == '\n'
 		size += 1
 	}

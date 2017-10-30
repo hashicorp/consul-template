@@ -43,7 +43,7 @@ type Runner struct {
 
 	// outStream and errStream are the io.Writer streams where the runner will
 	// write information. These can be modified by calling SetOutStream and
-        // SetErrStream accordingly.
+	// SetErrStream accordingly.
 
 	// inStream is the ioReader where the runner will read information.
 	outStream, errStream io.Writer

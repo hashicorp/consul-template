@@ -130,10 +130,10 @@ func TestRetryFunc(t *testing.T) {
 		{
 			"max backoff, attempt 100",
 			&RetryConfig{
-			Attempts:   Int(0),
-			Backoff:    TimeDuration(1 * time.Millisecond),
-			MaxBackoff: TimeDuration(2 * time.Millisecond),
-		},
+				Attempts:   Int(0),
+				Backoff:    TimeDuration(1 * time.Millisecond),
+				MaxBackoff: TimeDuration(2 * time.Millisecond),
+			},
 			Int(100),
 			Bool(true),
 			TimeDuration(2 * time.Millisecond),
