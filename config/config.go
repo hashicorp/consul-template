@@ -32,6 +32,8 @@ const (
 
 	// DefaultKillSignal is the default signal for termination.
 	DefaultKillSignal = syscall.SIGINT
+
+	DefaultLogUTCBehaviour = true
 )
 
 var (
@@ -55,6 +57,9 @@ type Config struct {
 
 	// LogLevel is the level with which to log for this config.
 	LogLevel *string `mapstructure:"log_level"`
+
+	// If LogUTC provided use UTC timezone, if not provided, use local timezone.
+	LogUTC *bool `mapstructure:"log_utc"`
 
 	// MaxStale is the maximum amount of time for staleness from Consul as given
 	// by LastContact. If supplied, Consul Template will query all servers instead
@@ -103,6 +108,8 @@ func (c *Config) Copy() *Config {
 	o.KillSignal = c.KillSignal
 
 	o.LogLevel = c.LogLevel
+
+	o.LogUTC = c.LogUTC
 
 	o.MaxStale = c.MaxStale
 
@@ -163,6 +170,10 @@ func (c *Config) Merge(o *Config) *Config {
 
 	if o.LogLevel != nil {
 		r.LogLevel = o.LogLevel
+	}
+
+	if o.LogUTC != nil {
+		r.LogUTC = o.LogUTC
 	}
 
 	if o.MaxStale != nil {
@@ -374,6 +385,7 @@ func (c *Config) GoString() string {
 		"Exec:%#v, "+
 		"KillSignal:%s, "+
 		"LogLevel:%s, "+
+		"LogUTC:%s, "+
 		"MaxStale:%s, "+
 		"PidFile:%s, "+
 		"ReloadSignal:%s, "+
@@ -387,6 +399,7 @@ func (c *Config) GoString() string {
 		c.Exec,
 		SignalGoString(c.KillSignal),
 		StringGoString(c.LogLevel),
+		BoolGoString(c.LogUTC),
 		TimeDurationGoString(c.MaxStale),
 		StringGoString(c.PidFile),
 		SignalGoString(c.ReloadSignal),
@@ -441,6 +454,10 @@ func (c *Config) Finalize() {
 			"CT_LOG",
 			"CONSUL_TEMPLATE_LOG",
 		}, DefaultLogLevel)
+	}
+
+	if c.LogUTC == nil {
+		c.LogUTC = Bool(DefaultLogUTCBehaviour)
 	}
 
 	if c.MaxStale == nil {

@@ -484,6 +484,14 @@ func TestParse(t *testing.T) {
 			false,
 		},
 		{
+			"log_utc",
+			`log_utc = true`,
+			&Config{
+				LogUTC: Bool(true),
+			},
+			false,
+		},
+		{
 			"max_stale",
 			`max_stale = "10s"`,
 			&Config{
@@ -1545,6 +1553,18 @@ func TestConfig_Merge(t *testing.T) {
 			},
 			&Config{
 				LogLevel: String("log_level-diff"),
+			},
+		},
+		{
+			"log_utc",
+			&Config{
+				LogUTC: Bool(false),
+			},
+			&Config{
+				LogUTC: Bool(true),
+			},
+			&Config{
+				LogUTC: Bool(true),
 			},
 		},
 		{

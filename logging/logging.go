@@ -22,6 +22,9 @@ type Config struct {
 	// Level is the log level to use.
 	Level string `json:"level"`
 
+	// Use UTC timezone
+	UTC bool `json:"UTC"`
+
 	// Syslog and SyslogFacility are the syslog configuration options.
 	Syslog         bool   `json:"syslog"`
 	SyslogFacility string `json:"syslog_facility"`
@@ -61,7 +64,12 @@ func Setup(config *Config) error {
 		logOutput = io.MultiWriter(logFilter)
 	}
 
-	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.LUTC)
+	if config.UTC {
+		log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.LUTC)
+	} else {
+		log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
+	}
+
 	log.SetOutput(logOutput)
 
 	return nil

@@ -357,6 +357,14 @@ func TestCLI_ParseFlags(t *testing.T) {
 			false,
 		},
 		{
+			"log-utc",
+			[]string{"-log-utc"},
+			&config.Config{
+				LogUTC: config.Bool(true),
+			},
+			false,
+		},
+		{
 			"max-stale",
 			[]string{"-max-stale", "10s"},
 			&config.Config{
