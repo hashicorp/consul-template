@@ -174,7 +174,10 @@ func (d *HealthServiceQuery) Fetch(clients *ClientSet, opts *QueryOptions) (inte
 
 	log.Printf("[TRACE] %s: returned %d results after filtering", d, len(list))
 
-	sort.Stable(ByNodeThenID(list))
+	// Sort unless the user explicitly asked for nearness
+	if d.near == "" {
+		sort.Stable(ByNodeThenID(list))
+	}
 
 	rm := &ResponseMetadata{
 		LastIndex:   qm.LastIndex,
