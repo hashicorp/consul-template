@@ -42,6 +42,8 @@ IMPROVEMENTS:
   * Add a new option for disabling recursive directory creation per template
     [GH-1033]
 
+  * Allow dots in node names [GH-977]
+
 ## v0.19.3 (September 11, 2017)
 
 BUG FIXES:
