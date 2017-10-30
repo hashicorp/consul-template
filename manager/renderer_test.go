@@ -44,9 +44,9 @@ func TestAtomicWrite(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		os.Chmod(outFile.Name(), 0644)
+		os.Chmod(outFile.Name(), 0600)
 
-		if err := AtomicWrite(outFile.Name(), true, nil, 0644, false); err != nil {
+		if err := AtomicWrite(outFile.Name(), true, nil, 0, false); err != nil {
 			t.Fatal(err)
 		}
 
@@ -55,7 +55,7 @@ func TestAtomicWrite(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		expected := os.FileMode(0644)
+		expected := os.FileMode(0600)
 		if stat.Mode() != expected {
 			t.Errorf("expected %q to be %q", stat.Mode(), expected)
 		}

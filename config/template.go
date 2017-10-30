@@ -10,11 +10,6 @@ import (
 )
 
 const (
-	// DefaultTemplateFilePerms are the default file permissions for templates
-	// rendered onto disk when a specific file permission has not already been
-	// specified.
-	DefaultTemplateFilePerms = 0644
-
 	// DefaultTemplateCommandTimeout is the amount of time to wait for a command
 	// to return.
 	DefaultTemplateCommandTimeout = 30 * time.Second
@@ -249,7 +244,7 @@ func (c *TemplateConfig) Finalize() {
 	c.Exec.Finalize()
 
 	if c.Perms == nil {
-		c.Perms = FileMode(DefaultTemplateFilePerms)
+		c.Perms = FileMode(0)
 	}
 
 	if c.Source == nil {

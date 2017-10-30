@@ -11,6 +11,12 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	// DefaultFilePerms are the default file permissions for files rendered onto
+	// disk when a specific file permission has not already been specified.
+	DefaultFilePerms = 0644
+)
+
 var (
 	// ErrNoParentDir is the error returned with the parent directory is missing
 	// and the user disabled it.
@@ -129,6 +135,22 @@ func AtomicWrite(path string, createDestDirs bool, contents []byte, perms os.Fil
 		return err
 	}
 
+	// If the user did not explicitly set permissions, attempt to lookup the
+	// current permissions on the file. If the file does not exist, fall back to
+	// the default. Otherwise, inherit the current permissions.
+	if perms == 0 {
+		currentInfo, err := os.Stat(path)
+		if err != nil {
+			if os.IsNotExist(err) {
+				perms = DefaultFilePerms
+			} else {
+				return err
+			}
+		} else {
+			perms = currentInfo.Mode()
+		}
+	}
+
 	if err := os.Chmod(f.Name(), perms); err != nil {
 		return err
 	}
@@ -172,5 +194,10 @@ func copyFile(src, dst string) error {
 		d.Close()
 		return err
 	}
-	return d.Close()
+	if err := d.Close(); err != nil {
+		return err
+	}
+
+	// io.Copy can restrict file permissions based on umask.
+	return os.Chmod(dst, stat.Mode())
 }

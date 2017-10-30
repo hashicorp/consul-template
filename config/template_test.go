@@ -436,7 +436,7 @@ func TestTemplateConfig_Finalize(t *testing.T) {
 					Splay:        TimeDuration(0 * time.Second),
 					Timeout:      TimeDuration(DefaultTemplateCommandTimeout),
 				},
-				Perms:  FileMode(DefaultTemplateFilePerms),
+				Perms:  FileMode(0),
 				Source: String(""),
 				Wait: &WaitConfig{
 					Enabled: Bool(false),
