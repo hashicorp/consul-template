@@ -37,6 +37,9 @@ IMPROVEMENTS:
 
   * Add Vault Transit example for key exfiltration [Gh-1014]
 
+  * Add a new option for disabling recursive directory creation per template
+    [GH-1033]
+
 ## v0.19.3 (September 11, 2017)
 
 BUG FIXES:
