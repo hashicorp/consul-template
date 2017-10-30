@@ -30,6 +30,7 @@ import (
 	"github.com/hashicorp/vault/helper/logformat"
 	"github.com/hashicorp/vault/helper/mlock"
 	"github.com/hashicorp/vault/helper/reload"
+	"github.com/hashicorp/vault/helper/tlsutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/physical"
 	"github.com/hashicorp/vault/shamir"
@@ -285,6 +286,8 @@ type Core struct {
 	//
 	// Name
 	clusterName string
+	// Specific cipher suites to use for clustering, if any
+	clusterCipherSuites []uint16
 	// Used to modify cluster parameters
 	clusterParamsLock sync.RWMutex
 	// The private key stored in the barrier used for establishing
@@ -341,6 +344,9 @@ type Core struct {
 	// uiEnabled indicates whether Vault Web UI is enabled or not
 	uiEnabled bool
 
+	// rawEnabled indicates whether the Raw endpoint is enabled
+	rawEnabled bool
+
 	// pluginDirectory is the location vault will look for plugin binaries
 	pluginDirectory string
 
@@ -395,7 +401,12 @@ type CoreConfig struct {
 
 	ClusterName string `json:"cluster_name" structs:"cluster_name" mapstructure:"cluster_name"`
 
+	ClusterCipherSuites string `json:"cluster_cipher_suites" structs:"cluster_cipher_suites" mapstructure:"cluster_cipher_suites"`
+
 	EnableUI bool `json:"ui" structs:"ui" mapstructure:"ui"`
+
+	// Enable the raw endpoint
+	EnableRaw bool `json:"enable_raw" structs:"enable_raw" mapstructure:"enable_raw"`
 
 	PluginDirectory string `json:"plugin_directory" structs:"plugin_directory" mapstructure:"plugin_directory"`
 
@@ -457,6 +468,15 @@ func NewCore(conf *CoreConfig) (*Core, error) {
 		clusterListenerShutdownSuccessCh: make(chan struct{}),
 		clusterPeerClusterAddrsCache:     cache.New(3*heartbeatInterval, time.Second),
 		enableMlock:                      !conf.DisableMlock,
+		rawEnabled:                       conf.EnableRaw,
+	}
+
+	if conf.ClusterCipherSuites != "" {
+		suites, err := tlsutil.ParseCiphers(conf.ClusterCipherSuites)
+		if err != nil {
+			return nil, errwrap.Wrapf("error parsing cluster cipher suites: {{err}}", err)
+		}
+		c.clusterCipherSuites = suites
 	}
 
 	c.corsConfig = &CORSConfig{core: c}
@@ -519,9 +539,9 @@ func NewCore(conf *CoreConfig) (*Core, error) {
 	for k, f := range conf.LogicalBackends {
 		logicalBackends[k] = f
 	}
-	_, ok := logicalBackends["generic"]
+	_, ok := logicalBackends["kv"]
 	if !ok {
-		logicalBackends["generic"] = PassthroughBackendFactory
+		logicalBackends["kv"] = PassthroughBackendFactory
 	}
 	logicalBackends["cubbyhole"] = CubbyholeBackendFactory
 	logicalBackends["system"] = func(config *logical.BackendConfig) (logical.Backend, error) {
@@ -1356,9 +1376,6 @@ func (c *Core) postUnseal() (retErr error) {
 	if err := c.setupMounts(); err != nil {
 		return err
 	}
-	if err := c.startRollback(); err != nil {
-		return err
-	}
 	if err := c.setupPolicyStore(); err != nil {
 		return err
 	}
@@ -1369,6 +1386,9 @@ func (c *Core) postUnseal() (retErr error) {
 		return err
 	}
 	if err := c.setupCredentials(); err != nil {
+		return err
+	}
+	if err := c.startRollback(); err != nil {
 		return err
 	}
 	if err := c.setupExpiration(); err != nil {
@@ -1878,11 +1898,9 @@ func (c *Core) emitMetrics(stopCh chan struct{}) {
 }
 
 func (c *Core) ReplicationState() consts.ReplicationState {
-	var state consts.ReplicationState
-	c.clusterParamsLock.RLock()
-	state = c.replicationState
-	c.clusterParamsLock.RUnlock()
-	return state
+	c.stateLock.RLock()
+	defer c.stateLock.RUnlock()
+	return c.replicationState
 }
 
 func (c *Core) SealAccess() *SealAccess {

@@ -97,10 +97,3 @@ func TestFrameReadTooLong(t *testing.T) {
 		t.Fatalf("expected to get header %v got %v", opReady, head.op)
 	}
 }
-
-func TestParseConsistencyErrorInsteadOfPanic(t *testing.T) {
-	_, err := ParseConsistencyWrapper("TEST")
-	if err == nil {
-		t.Fatal("expected ParseConsistencyWrapper error got nil")
-	}
-}

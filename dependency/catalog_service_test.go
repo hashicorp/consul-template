@@ -154,7 +154,9 @@ func TestCatalogServiceQuery_Fetch(t *testing.T) {
 						"lan": "127.0.0.1",
 						"wan": "127.0.0.1",
 					},
-					NodeMeta:       map[string]string{},
+					NodeMeta: map[string]string{
+						"consul-network-segment": "",
+					},
 					ServiceID:      "consul",
 					ServiceName:    "consul",
 					ServiceAddress: "",

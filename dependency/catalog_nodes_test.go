@@ -91,7 +91,9 @@ func TestCatalogNodesQuery_Fetch(t *testing.T) {
 						"lan": "127.0.0.1",
 						"wan": "127.0.0.1",
 					},
-					Meta: map[string]string{},
+					Meta: map[string]string{
+						"consul-network-segment": "",
+					},
 				},
 			},
 		},

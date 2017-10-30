@@ -190,6 +190,6 @@ func TestWrite(t *testing.T) {
 		2, 1, 0, 9, 0, 0, 2, 0, 6, // packet 3
 	}
 	if bytes.Compare(memBuf.Bytes(), expectedBuf) != 0 {
-		t.Fatalf("Written buffer has invalid content: %v", memBuf.Bytes())
+		t.Fatalf("Written buffer has invalid content:\n got: %v\nwant: %v", memBuf.Bytes(), expectedBuf)
 	}
 }

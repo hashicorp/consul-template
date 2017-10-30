@@ -9,7 +9,7 @@ GOTOOLS = \
 	github.com/axw/gocov/gocov \
 	gopkg.in/matm/v1/gocov-html
 
-GOTAGS ?= consul
+GOTAGS ?=
 GOFILES ?= $(shell go list ./... | grep -v /vendor/)
 GOOS=$(shell go env GOOS)
 GOARCH=$(shell go env GOARCH)
@@ -31,17 +31,23 @@ bin: tools
 	@GOTAGS='$(GOTAGS)' sh -c "'$(CURDIR)/scripts/build.sh'"
 
 # dev creates binaries for testing locally - these are put into ./bin and $GOPATH
-dev: vendorfmt dev-build
+dev: changelogfmt vendorfmt dev-build
 
 dev-build:
+	@echo "--> Building consul"
 	mkdir -p pkg/$(GOOS)_$(GOARCH)/ bin/
 	go install -ldflags '$(GOLDFLAGS)' -tags '$(GOTAGS)'
 	cp $(GOPATH)/bin/consul bin/
 	cp $(GOPATH)/bin/consul pkg/$(GOOS)_$(GOARCH)
 
 vendorfmt:
+	@echo "--> Formatting vendor/vendor.json"
 	test -x $(GOPATH)/bin/vendorfmt || go get -u github.com/magiconair/vendorfmt/cmd/vendorfmt
 	vendorfmt
+
+changelogfmt:
+	@echo "--> Making [GH-xxxx] references clickable..."
+	@sed -E 's|([^\[])\[GH-([0-9]+)\]|\1[[GH-\2](https://github.com/hashicorp/consul/issues/\2)]|g' CHANGELOG.md > changelog.tmp && mv changelog.tmp CHANGELOG.md
 
 # linux builds a linux package independent of the source platform
 linux:
@@ -56,21 +62,29 @@ cov:
 	gocov test $(GOFILES) | gocov-html > /tmp/coverage.html
 	open /tmp/coverage.html
 
-test: dev-build vet
+test: other-consul dev-build vet
+	@echo "--> Running go test"
+	@rm -f test.log exit-code
 	go test -tags '$(GOTAGS)' -i ./...
-	go test $(GOTEST_FLAGS) -tags '$(GOTAGS)' -timeout 7m -v ./... 2>&1 >test$(GOTEST_FLAGS).log ; echo $$? > exit-code
-	@echo "Exit code: `cat exit-code`" >> test$(GOTEST_FLAGS).log
-	@echo "----"
+	go test $(GOTEST_FLAGS) -tags '$(GOTAGS)' -timeout 5m -v ./... &>test.log ; echo $$? > exit-code
+	@echo "Exit code: $$(cat exit-code)" >> test.log
 	@grep -A5 'DATA RACE' test.log || true
 	@grep -A10 'panic: test timed out' test.log || true
-	@grep '^PASS' test.log | uniq || true
+	@grep -A1 -- '--- SKIP:' test.log || true
 	@grep -A1 -- '--- FAIL:' test.log || true
 	@grep '^FAIL' test.log || true
 	@test "$$TRAVIS" == "true" && cat test.log || true
-	@exit $$(cat exit-code)
+	@if [ "$$(cat exit-code)" == "0" ] ; then echo "PASS" ; exit 0 ; else exit 1 ; fi
 
 test-race:
 	$(MAKE) GOTEST_FLAGS=-race
+
+other-consul:
+	@echo "--> Checking for other consul instances"
+	@if ps -ef | grep 'consul agent' | grep -v grep ; then \
+		echo "Found other running consul agents. This may affect your tests." ; \
+		exit 1 ; \
+	fi
 
 cover:
 	go test $(GOFILES) --cover

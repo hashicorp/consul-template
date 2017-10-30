@@ -97,7 +97,7 @@ func TestSendSqlBatch(t *testing.T) {
 	}
 
 	ch := make(chan tokenStruct, 5)
-	go processResponse(context.Background(), conn, ch)
+	go processResponse(context.Background(), conn, ch, nil)
 
 	var lastRow []interface{}
 loop:
@@ -147,7 +147,9 @@ func makeConnStr(t *testing.T) *url.URL {
 			t.Fatal("unable to parse SQLSERVER_DSN as URL", err)
 		}
 		values := parsed.Query()
-		values.Set("log", "127")
+		if values.Get("log") == "" {
+			values.Set("log", "127")
+		}
 		parsed.RawQuery = values.Encode()
 		return parsed
 	}

@@ -1,11 +1,11 @@
 package mssql
 
 import (
-	"testing"
+	"database/sql"
+	"fmt"
 	"net/url"
 	"os"
-	"fmt"
-	"database/sql"
+	"testing"
 )
 
 func TestBadConnect(t *testing.T) {

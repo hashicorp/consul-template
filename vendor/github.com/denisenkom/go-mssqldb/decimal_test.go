@@ -1,8 +1,8 @@
 package mssql
 
 import (
-	"testing"
 	"math"
+	"testing"
 )
 
 func TestToString(t *testing.T) {

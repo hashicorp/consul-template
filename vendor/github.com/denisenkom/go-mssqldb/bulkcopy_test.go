@@ -40,6 +40,7 @@ func TestBulkcopy(t *testing.T) {
 		{"test_smalldatetimen", time.Date(2010, 11, 12, 13, 14, 0, 0, time.UTC)},
 		{"test_datetime", time.Date(2010, 11, 12, 13, 14, 15, 120000000, time.UTC)},
 		{"test_datetimen", time.Date(2010, 11, 12, 13, 14, 15, 120000000, time.UTC)},
+		{"test_datetimen_1", time.Date(4010, 11, 12, 13, 14, 15, 120000000, time.UTC)},
 		{"test_datetime2_1", time.Date(2010, 11, 12, 13, 14, 15, 0, time.UTC)},
 		{"test_datetime2_3", time.Date(2010, 11, 12, 13, 14, 15, 123000000, time.UTC)},
 		{"test_datetime2_7", time.Date(2010, 11, 12, 13, 14, 15, 123000000, time.UTC)},
@@ -51,11 +52,12 @@ func TestBulkcopy(t *testing.T) {
 		{"test_bigint", 9223372036854775807},
 		{"test_bigintn", nil},
 		{"test_geom", geom},
-		//{"test_smallmoney", nil},
-		//{"test_money", nil},
-		//{"test_decimal_18_0", nil},
-		//{"test_decimal_9_2", nil},
-		//{"test_decimal_18_0", nil},
+		// {"test_smallmoney", 1234.56},
+		// {"test_money", 1234.56},
+		{"test_decimal_18_0", 1234.0001},
+		{"test_decimal_9_2", 1234.560001},
+		{"test_decimal_20_0", 1234.0001},
+		{"test_numeric_30_10", 1234567.1234567},
 	}
 
 	columns := make([]string, len(testValues))
@@ -72,7 +74,7 @@ func TestBulkcopy(t *testing.T) {
 	defer conn.Close()
 
 	err := setupTable(conn, tableName)
-	if (err != nil) {
+	if err != nil {
 		t.Error("Setup table failed: ", err.Error())
 		return
 	}
@@ -126,7 +128,7 @@ func TestBulkcopy(t *testing.T) {
 		}
 		for i, c := range testValues {
 			if !compareValue(container[i], c.val) {
-				t.Errorf("columns %s : %s != %s\n", c.colname, container[i], c.val)
+				t.Errorf("columns %s : %s != %v\n", c.colname, container[i], c.val)
 			}
 		}
 	}
@@ -144,6 +146,11 @@ func compareValue(a interface{}, expected interface{}) bool {
 	case int64:
 		return int64(expected) == a
 	case float64:
+		if got, ok := a.([]uint8); ok {
+			var nf sql.NullFloat64
+			nf.Scan(got)
+			a = nf.Float64
+		}
 		return math.Abs(expected-a.(float64)) < 0.0001
 	default:
 		return reflect.DeepEqual(expected, a)
@@ -169,6 +176,7 @@ func setupTable(conn *sql.DB, tableName string) (err error) {
 	[test_smalldatetimen] [smalldatetime] NULL,
 	[test_datetime] [datetime] NOT NULL,
 	[test_datetimen] [datetime] NULL,
+	[test_datetimen_1] [datetime] NULL,
 	[test_datetime2_1] [datetime2](1) NULL,
 	[test_datetime2_3] [datetime2](3) NULL,
 	[test_datetime2_7] [datetime2](7) NULL,
@@ -188,6 +196,7 @@ func setupTable(conn *sql.DB, tableName string) (err error) {
 	[test_decimal_18_0] [decimal](18, 0) NULL,
 	[test_decimal_9_2] [decimal](9, 2) NULL,
 	[test_decimal_20_0] [decimal](20, 0) NULL,
+	[test_numeric_30_10] [decimal](30, 10) NULL,
  CONSTRAINT [PK_` + tableName + `_id] PRIMARY KEY CLUSTERED 
 (
 	[id] ASC

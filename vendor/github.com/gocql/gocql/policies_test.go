@@ -304,17 +304,48 @@ func TestExponentialBackoffPolicy(t *testing.T) {
 
 func TestDCAwareRR(t *testing.T) {
 	p := DCAwareRoundRobinPolicy("local")
-	p.AddHost(&HostInfo{connectAddress: net.ParseIP("10.0.0.1"), dataCenter: "local"})
-	p.AddHost(&HostInfo{connectAddress: net.ParseIP("10.0.0.2"), dataCenter: "remote"})
 
-	iter := p.Pick(nil)
+	hosts := [...]*HostInfo{
+		{hostId: "0", connectAddress: net.ParseIP("10.0.0.1"), dataCenter: "local"},
+		{hostId: "1", connectAddress: net.ParseIP("10.0.0.2"), dataCenter: "local"},
+		{hostId: "2", connectAddress: net.ParseIP("10.0.0.3"), dataCenter: "remote"},
+		{hostId: "3", connectAddress: net.ParseIP("10.0.0.4"), dataCenter: "remote"},
+	}
 
-	h := iter()
-	if h.Info().DataCenter() != "local" {
-		t.Fatalf("expected to get local DC first, got %v", h.Info())
+	for _, host := range hosts {
+		p.AddHost(host)
 	}
-	h = iter()
-	if h.Info().DataCenter() != "remote" {
-		t.Fatalf("expected to get remote DC, got %v", h.Info())
+
+	// interleaved iteration should always increment the host
+	iterA := p.Pick(nil)
+	if actual := iterA(); actual.Info() != hosts[0] {
+		t.Errorf("Expected hosts[0] but was hosts[%s]", actual.Info().HostID())
 	}
+	iterB := p.Pick(nil)
+	if actual := iterB(); actual.Info() != hosts[1] {
+		t.Errorf("Expected hosts[1] but was hosts[%s]", actual.Info().HostID())
+	}
+	if actual := iterB(); actual.Info() != hosts[0] {
+		t.Errorf("Expected hosts[0] but was hosts[%s]", actual.Info().HostID())
+	}
+	if actual := iterA(); actual.Info() != hosts[1] {
+		t.Errorf("Expected hosts[1] but was hosts[%s]", actual.Info().HostID())
+	}
+	iterC := p.Pick(nil)
+	if actual := iterC(); actual.Info() != hosts[0] {
+		t.Errorf("Expected hosts[0] but was hosts[%s]", actual.Info().HostID())
+	}
+	p.RemoveHost(hosts[0])
+	if actual := iterC(); actual.Info() != hosts[1] {
+		t.Errorf("Expected hosts[1] but was hosts[%s]", actual.Info().HostID())
+	}
+	p.RemoveHost(hosts[1])
+	iterD := p.Pick(nil)
+	if actual := iterD(); actual.Info() != hosts[2] {
+		t.Errorf("Expected hosts[2] but was hosts[%s]", actual.Info().HostID())
+	}
+	if actual := iterD(); actual.Info() != hosts[3] {
+		t.Errorf("Expected hosts[3] but was hosts[%s]", actual.Info().HostID())
+	}
+
 }

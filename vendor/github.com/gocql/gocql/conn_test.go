@@ -6,6 +6,8 @@
 package gocql
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -18,6 +20,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/gocql/gocql/internal/streams"
 )
 
 const (
@@ -557,45 +561,25 @@ func TestStream0(t *testing.T) {
 	// TODO: replace this with type check
 	const expErr = "gocql: received unexpected frame on stream 0"
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	srv := NewTestServer(t, defaultProto, ctx)
-	defer srv.Stop()
-
-	errorHandler := connErrorHandlerFn(func(conn *Conn, err error, closed bool) {
-		if !srv.isClosed() && !strings.HasPrefix(err.Error(), expErr) {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				t.Errorf("expected to get error prefix %q got %q", expErr, err.Error())
-			}
-		}
-	})
-
-	conn, err := Connect(srv.host(), &ConnConfig{ProtoVersion: int(srv.protocol)}, errorHandler, createTestSession())
-	if err != nil {
+	var buf bytes.Buffer
+	f := newFramer(nil, &buf, nil, protoVersion4)
+	f.writeHeader(0, opResult, 0)
+	f.writeInt(resultKindVoid)
+	f.wbuf[0] |= 0x80
+	if err := f.finishWrite(); err != nil {
 		t.Fatal(err)
 	}
 
-	writer := frameWriterFunc(func(f *framer, streamID int) error {
-		f.writeQueryFrame(0, "void", &queryParams{})
-		return f.finishWrite()
-	})
+	conn := &Conn{
+		r:       bufio.NewReader(&buf),
+		streams: streams.New(protoVersion4),
+	}
 
-	// need to write out an invalid frame, which we need a connection to do
-	framer, err := conn.exec(ctx, writer, nil)
+	err := conn.recv()
 	if err == nil {
 		t.Fatal("expected to get an error on stream 0")
 	} else if !strings.HasPrefix(err.Error(), expErr) {
 		t.Fatalf("expected to get error prefix %q got %q", expErr, err.Error())
-	} else if framer != nil {
-		frame, err := framer.parseFrame()
-		if err != nil {
-			t.Fatal(err)
-		}
-		t.Fatalf("got frame %v", frame)
 	}
 }
 
@@ -609,7 +593,13 @@ func TestConnClosedBlocked(t *testing.T) {
 		t.Log(err)
 	})
 
-	conn, err := Connect(srv.host(), &ConnConfig{ProtoVersion: int(srv.protocol)}, errorHandler, createTestSession())
+	s, err := srv.session()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+
+	conn, err := s.connect(srv.host(), errorHandler)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -737,6 +727,10 @@ type TestServer struct {
 	closed bool
 }
 
+func (srv *TestServer) session() (*Session, error) {
+	return testCluster(srv.Address, protoVersion(srv.protocol)).CreateSession()
+}
+
 func (srv *TestServer) host() *HostInfo {
 	host, err := hostInfo(srv.Address, 9042)
 	if err != nil {
@@ -756,13 +750,7 @@ func (srv *TestServer) closeWatch() {
 
 func (srv *TestServer) serve() {
 	defer srv.listen.Close()
-	for {
-		select {
-		case <-srv.ctx.Done():
-			return
-		default:
-		}
-
+	for !srv.isClosed() {
 		conn, err := srv.listen.Accept()
 		if err != nil {
 			break
@@ -770,26 +758,13 @@ func (srv *TestServer) serve() {
 
 		go func(conn net.Conn) {
 			defer conn.Close()
-			for {
-				select {
-				case <-srv.ctx.Done():
-					return
-				default:
-				}
-
+			for !srv.isClosed() {
 				framer, err := srv.readFrame(conn)
 				if err != nil {
 					if err == io.EOF {
 						return
 					}
-
-					select {
-					case <-srv.ctx.Done():
-						return
-					default:
-					}
-
-					srv.t.Error(err)
+					srv.errorLocked(err)
 					return
 				}
 
@@ -824,16 +799,19 @@ func (srv *TestServer) Stop() {
 	srv.closeLocked()
 }
 
+func (srv *TestServer) errorLocked(err interface{}) {
+	srv.mu.Lock()
+	defer srv.mu.Unlock()
+	if srv.closed {
+		return
+	}
+	srv.t.Error(err)
+}
+
 func (srv *TestServer) process(f *framer) {
 	head := f.header
 	if head == nil {
-		select {
-		case <-srv.ctx.Done():
-			return
-		default:
-		}
-
-		srv.t.Error("process frame with a nil header")
+		srv.errorLocked("process frame with a nil header")
 		return
 	}
 
@@ -901,13 +879,7 @@ func (srv *TestServer) process(f *framer) {
 	f.wbuf[0] = srv.protocol | 0x80
 
 	if err := f.finishWrite(); err != nil {
-		select {
-		case <-srv.ctx.Done():
-			return
-		default:
-		}
-
-		srv.t.Error(err)
+		srv.errorLocked(err)
 	}
 }
 

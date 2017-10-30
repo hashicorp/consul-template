@@ -9,6 +9,8 @@ import (
 	"hash/adler32"
 	"io/ioutil"
 	"testing"
+
+	"fmt"
 )
 
 func TestDecodeEncode(t *testing.T) {
@@ -70,29 +72,52 @@ func TestLongHeader(t *testing.T) {
 	}
 }
 
+func decodeAndRead(t *testing.T, armor string) *Block {
+	result, err := Decode(bytes.NewBuffer([]byte(armor)))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = ioutil.ReadAll(result.Body)
+	if err != nil {
+		fmt.Printf("Failing payload is:\n\n%s\n", armor)
+		t.Fatalf("Error after ReadAll: %+v", err)
+	}
+
+	return result
+}
+
 func TestZeroWidthSpace(t *testing.T) {
-	result, err := Decode(bytes.NewBuffer([]byte(armorZeroWidthSpace)))
-	if err != nil {
-		t.Fatal(err)
-	}
+	decodeAndRead(t, armorZeroWidthSpace)
 
-	_, err = ioutil.ReadAll(result.Body)
-	if err != nil {
-		t.Fatalf("Error after ReadAll: %+v", err)
-	}
-
-	result, err = Decode(bytes.NewBuffer([]byte(armorMoreZeroWidths)))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = ioutil.ReadAll(result.Body)
-	if err != nil {
-		t.Fatalf("Error after ReadAll: %+v", err)
-	}
-
+	result := decodeAndRead(t, armorMoreZeroWidths)
 	if result.lReader.crc == nil {
 		// Make sure that ZERO-WIDTH SPACE did not mess with crc reading.
+		t.Error("Expected CRC to be read")
+	}
+}
+
+func TestNoNewlines(t *testing.T) {
+	decodeAndRead(t, armorNoNewlines)
+	decodeAndRead(t, armorNoNewlines2)
+}
+
+func TestFoldedCRC(t *testing.T) {
+	// KBPGP does not fail to read here, but it doesn't discover CRC
+	// (discards the folded in CRC as garbage), and it's probably the
+	// right behavior to aim for here.
+	t.Skip("Not sure how to handle this one")
+
+	result := decodeAndRead(t, armorNoNewlinesBrokenCRC)
+	if result.lReader.crc == nil {
+		// Make sure that ZERO-WIDTH SPACE did not mess with crc reading.
+		t.Error("Expected CRC to be read")
+	}
+}
+
+func TestWhitespaceInCRC(t *testing.T) {
+	result := decodeAndRead(t, armorWhitespaceInCRC)
+	if result.lReader.crc == nil {
 		t.Error("Expected CRC to be read")
 	}
 }
@@ -142,3 +167,48 @@ iJwEAAECAAYFAk1Fv/0ACgkQo01+GMIMMbsYTwQAiAw+QAaNfY6WBdplZ/uMAccm` + "\u200b" + `
 TxRjs+fJCIFuo71xb1g=` + "\u200b" + `
 ` + "\u200b" + `=/teI
 -----END PGP SIGNATURE-----`
+
+const armorNoNewlines = `-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+
+iJwEAAECAAYFAk1Fv/0ACgkQo01+GMIMMbsYTwQAiAw+QAaNfY6WBdplZ/uMAccm `+
+`4g+81QPmTSGHnetSb6WBiY13kVzK4HQiZH8JSkmmroMLuGeJwsRTEL4wbjRyUKEt `+
+`p1xwUZDECs234F1xiG5enc5SGlRtP7foLBz9lOsjx+LEcA4sTl5/2eZR9zyFZqWW `+
+`TxRjs+fJCIFuo71xb1g=
+=/teI
+-----END PGP SIGNATURE-----
+`
+
+const armorNoNewlines2 = `-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+
+iJwEAAECAAYFAk1Fv/0ACgkQo01+GMIMMbsYTwQAiAw+QAaNfY6WBdplZ/uMAccm ` + "\t" +
+`4g+81QPmTSGHnetSb6WBiY13kVzK4HQiZH8JSkmmroMLuGeJwsRTEL4wbjRyUKEt     ` +
+`p1xwUZDECs234F1xiG5enc5SGlRtP7foLBz9lOsjx+LEcA4sTl5/2eZR9zyFZqWW       ` + `
+TxRjs+fJCIFuo71xb1g=
+=/teI
+-----END PGP SIGNATURE-----
+`
+
+// The last line ("=/teI") is folded into rest of the armor, meaning
+// the crc sum will not be found and checked.
+const armorNoNewlinesBrokenCRC = `-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+
+iJwEAAECAAYFAk1Fv/0ACgkQo01+GMIMMbsYTwQAiAw+QAaNfY6WBdplZ/uMAccm ` + "\t" +
+`4g+81QPmTSGHnetSb6WBiY13kVzK4HQiZH8JSkmmroMLuGeJwsRTEL4wbjRyUKEt     ` +
+`p1xwUZDECs234F1xiG5enc5SGlRtP7foLBz9lOsjx+LEcA4sTl5/2eZR9zyFZqWW       ` + `
+TxRjs+fJCIFuo71xb1g==/teI
+-----END PGP SIGNATURE-----
+`
+
+const armorWhitespaceInCRC = `-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.10 (GNU/Linux)
+
+iJwEAAECAAYFAk1Fv/0ACgkQo01+GMIMMbsYTwQAiAw+QAaNfY6WBdplZ/uMAccm ` + "\t" +
+`4g+81QPmTSGHnetSb6WBiY13kVzK4HQiZH8JSkmmroMLuGeJwsRTEL4wbjRyUKEt     ` +
+`p1xwUZDECs234F1xiG5enc5SGlRtP7foLBz9lOsjx+LEcA4sTl5/2eZR9zyFZqWW       ` + `
+TxRjs+fJCIFuo71xb1g=
+=/teI` + "\u200b " + `
+-----END PGP SIGNATURE-----
+`

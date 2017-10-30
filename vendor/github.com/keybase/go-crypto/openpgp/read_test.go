@@ -890,6 +890,11 @@ func TestIllformedArmors(t *testing.T) {
 	if err != nil || len(el) != 1 {
 		t.Fatalf("Failed to read noCRCKey: %v", err)
 	}
+
+	el, err = ReadArmoredKeyRing(bytes.NewBufferString(spacesInsteadOfNewlinesKey))
+	if err != nil || len(el) != 1 {
+		t.Fatalf("Failed to read spacesInsteadOfNewlinesKey: %v", err)
+	}
 }
 
 const testKey1KeyId = 0xA34D7E18C20C31BB
@@ -2631,6 +2636,17 @@ const noNewLinesKey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
 	"7gvM60G0E1JFQUQgVEVTVCBHTy1DUllQVE+IeQQTFggAIQUCWQoA2QIbAwULCQgH" +
 	"AgYVCAkKCwIEFgIDAQIeAQIXgAAKCRBEkPOnE4+R/RiKAQDvIhM74qEtKSbTtu50" +
 	"mMB49eTAMg/MogyFA8SUCbStPAEAxdxSKX1hFYFP4N8ML8BgLOJG4PXAdQ8wnfXD" +
+	`vJxN/AQ=
+=apgr
+-----END PGP PUBLIC KEY BLOCK-----`
+
+const spacesInsteadOfNewlinesKey = `-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+` +
+	"mDMEWQoA2RYJKwYBBAHaRw8BAQdAQkGkdMrckk67dh9MKxeCa8PJsTnMJ+oDgCJ9 " +
+	"7gvM60G0E1JFQUQgVEVTVCBHTy1DUllQVE+IeQQTFggAIQUCWQoA2QIbAwULCQgH " +
+	"AgYVCAkKCwIEFgIDAQIeAQIXgAAKCRBEkPOnE4+R/RiKAQDvIhM74qEtKSbTtu50 " +
+	"mMB49eTAMg/MogyFA8SUCbStPAEAxdxSKX1hFYFP4N8ML8BgLOJG4PXAdQ8wnfXD " +
 	`vJxN/AQ=
 =apgr
 -----END PGP PUBLIC KEY BLOCK-----`

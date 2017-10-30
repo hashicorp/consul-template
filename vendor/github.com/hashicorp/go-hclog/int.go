@@ -2,6 +2,7 @@ package hclog
 
 import (
 	"bufio"
+	"encoding"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -39,8 +40,13 @@ func New(opts *LoggerOptions) Logger {
 		level = DefaultLevel
 	}
 
+	mtx := opts.Mutex
+	if mtx == nil {
+		mtx = new(sync.Mutex)
+	}
+
 	return &intLogger{
-		m:      new(sync.Mutex),
+		m:      mtx,
 		json:   opts.JSONFormat,
 		caller: opts.IncludeLocation,
 		name:   opts.Name,
@@ -279,7 +285,18 @@ func (z *intLogger) logJson(t time.Time, level Level, msg string, args ...interf
 				// without injecting into logs...
 				continue
 			}
-			vals[args[i].(string)] = args[i+1]
+			val := args[i+1]
+			// Check if val is of type error. If error type doesn't
+			// implement json.Marshaler or encoding.TextMarshaler
+			// then set val to err.Error() so that it gets marshaled
+			if err, ok := val.(error); ok {
+				switch err.(type) {
+				case json.Marshaler, encoding.TextMarshaler:
+				default:
+					val = err.Error()
+				}
+			}
+			vals[args[i].(string)] = val
 		}
 	}
 
@@ -357,6 +374,8 @@ func (z *intLogger) Named(name string) Logger {
 
 	if nz.name != "" {
 		nz.name = nz.name + "." + name
+	} else {
+		nz.name = name
 	}
 
 	return &nz

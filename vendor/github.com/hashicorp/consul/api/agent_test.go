@@ -2,11 +2,14 @@ package api
 
 import (
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/testutil/retry"
 	"github.com/hashicorp/serf/serf"
 )
 
@@ -22,7 +25,7 @@ func TestAPI_AgentSelf(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	name := info["Config"]["NodeName"]
+	name := info["Config"]["NodeName"].(string)
 	if name == "" {
 		t.Fatalf("bad: %v", info)
 	}
@@ -40,24 +43,28 @@ func TestAPI_AgentMetrics(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if len(metrics.Gauges) < 0 {
-		t.Fatalf("bad: %v", metrics)
-	}
-
-	if metrics.Gauges[0].Name != "consul.runtime.alloc_bytes" {
-		t.Fatalf("bad: %v", metrics.Gauges[0])
-	}
+	retry.Run(t, func(r *retry.R) {
+		for _, g := range metrics.Gauges {
+			if g.Name == "consul.runtime.alloc_bytes" {
+				return
+			}
+		}
+		r.Fatalf("missing runtime metrics")
+	})
 }
 
 func TestAPI_AgentReload(t *testing.T) {
 	t.Parallel()
 
 	// Create our initial empty config file, to be overwritten later
-	configFile := testutil.TempFile(t, "reload")
-	if _, err := configFile.Write([]byte("{}")); err != nil {
-		t.Fatalf("err: %s", err)
+	cfgDir := testutil.TempDir(t, "consul-config")
+	defer os.RemoveAll(cfgDir)
+
+	cfgFilePath := filepath.Join(cfgDir, "reload.json")
+	configFile, err := os.Create(cfgFilePath)
+	if err != nil {
+		t.Fatalf("Unable to create file %v, got error:%v", cfgFilePath, err)
 	}
-	configFile.Close()
 
 	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.Args = []string{"-config-file", configFile.Name()}
@@ -68,7 +75,7 @@ func TestAPI_AgentReload(t *testing.T) {
 
 	// Update the config file with a service definition
 	config := `{"service":{"name":"redis", "port":1234}}`
-	err := ioutil.WriteFile(configFile.Name(), []byte(config), 0644)
+	err = ioutil.WriteFile(configFile.Name(), []byte(config), 0644)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -88,6 +95,29 @@ func TestAPI_AgentReload(t *testing.T) {
 	}
 	if service.Port != 1234 {
 		t.Fatalf("bad: %v", service.Port)
+	}
+}
+
+func TestAPI_AgentMembersOpts(t *testing.T) {
+	t.Parallel()
+	c, s1 := makeClient(t)
+	_, s2 := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
+		c.Datacenter = "dc2"
+	})
+	defer s1.Stop()
+	defer s2.Stop()
+
+	agent := c.Agent()
+
+	s2.JoinWAN(t, s1.WANAddr)
+
+	members, err := agent.MembersOpts(MembersOpts{WAN: true})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(members) != 2 {
+		t.Fatalf("bad: %v", members)
 	}
 }
 
@@ -467,6 +497,69 @@ func TestAPI_AgentChecks(t *testing.T) {
 	}
 }
 
+func TestAPI_AgentScriptCheck(t *testing.T) {
+	t.Parallel()
+	c, s := makeClientWithConfig(t, nil, func(c *testutil.TestServerConfig) {
+		c.EnableScriptChecks = true
+	})
+	defer s.Stop()
+
+	agent := c.Agent()
+
+	t.Run("node script check", func(t *testing.T) {
+		reg := &AgentCheckRegistration{
+			Name: "foo",
+			AgentServiceCheck: AgentServiceCheck{
+				Interval: "10s",
+				Args:     []string{"sh", "-c", "false"},
+			},
+		}
+		if err := agent.CheckRegister(reg); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		checks, err := agent.Checks()
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if _, ok := checks["foo"]; !ok {
+			t.Fatalf("missing check: %v", checks)
+		}
+	})
+
+	t.Run("service script check", func(t *testing.T) {
+		reg := &AgentServiceRegistration{
+			Name: "bar",
+			Port: 1234,
+			Checks: AgentServiceChecks{
+				&AgentServiceCheck{
+					Interval: "10s",
+					Args:     []string{"sh", "-c", "false"},
+				},
+			},
+		}
+		if err := agent.ServiceRegister(reg); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		services, err := agent.Services()
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if _, ok := services["bar"]; !ok {
+			t.Fatalf("missing service: %v", services)
+		}
+
+		checks, err := agent.Checks()
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		if _, ok := checks["service:bar"]; !ok {
+			t.Fatalf("missing check: %v", checks)
+		}
+	})
+}
+
 func TestAPI_AgentCheckStartPassing(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
@@ -607,7 +700,9 @@ func TestAPI_AgentJoin(t *testing.T) {
 	}
 
 	// Join ourself
-	addr := info["Config"]["AdvertiseAddr"].(string)
+	addr := info["DebugConfig"]["SerfAdvertiseAddrLAN"].(string)
+	// strip off 'tcp://'
+	addr = addr[len("tcp://"):]
 	err = agent.Join(addr, false)
 	if err != nil {
 		t.Fatalf("err: %v", err)
