@@ -900,7 +900,7 @@ func TestParse(t *testing.T) {
 			&Config{
 				Templates: &TemplateConfigs{
 					&TemplateConfig{
-						Perms: FileMode(0600),
+						Perms: NewFileMode(0600),
 					},
 				},
 			},
@@ -1374,7 +1374,7 @@ func TestParse(t *testing.T) {
 			&Config{
 				Templates: &TemplateConfigs{
 					&TemplateConfig{
-						Perms: FileMode(0600),
+						Perms: NewFileMode(0600),
 					},
 				},
 			},
@@ -1392,10 +1392,10 @@ func TestParse(t *testing.T) {
 			&Config{
 				Templates: &TemplateConfigs{
 					&TemplateConfig{
-						Perms: FileMode(0600),
+						Perms: NewFileMode(0600),
 					},
 					&TemplateConfig{
-						Perms: FileMode(0600),
+						Perms: NewFileMode(0600),
 					},
 				},
 			},

@@ -250,7 +250,7 @@ func Parse(s string) (*Config, error) {
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(
 			ConsulStringToStructFunc(),
-			StringToFileModeFunc(),
+			ValueToFileModeFunc(),
 			signals.StringToSignalFunc(),
 			StringToWaitDurationHookFunc(),
 			mapstructure.StringToSliceHookFunc(","),

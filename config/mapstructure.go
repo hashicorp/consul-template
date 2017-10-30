@@ -9,27 +9,33 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-// StringToFileModeFunc returns a function that converts strings to os.FileMode
+// ValueToFileModeFunc returns a function that converts strings to os.FileMode
 // value. This is designed to be used with mapstructure for parsing out a
 // filemode value.
-func StringToFileModeFunc() mapstructure.DecodeHookFunc {
+func ValueToFileModeFunc() mapstructure.DecodeHookFunc {
 	return func(
 		f reflect.Type,
 		t reflect.Type,
 		data interface{}) (interface{}, error) {
-		if f.Kind() != reflect.String {
-			return data, nil
-		}
-		if t != reflect.TypeOf(os.FileMode(0)) {
+		if t != reflect.TypeOf(FileMode{}) {
 			return data, nil
 		}
 
-		// Convert it by parsing
-		v, err := strconv.ParseUint(data.(string), 8, 12)
-		if err != nil {
-			return data, err
+		var v uint64
+		if f.Kind() == reflect.String {
+			// Convert it by parsing
+			var err error
+			v, err = strconv.ParseUint(data.(string), 8, 12)
+			if err != nil {
+				return data, err
+			}
+		} else if f.Kind() == reflect.Int {
+			v = uint64(data.(int))
+		} else {
+			return data, nil
 		}
-		return os.FileMode(v), nil
+
+		return NewFileMode(os.FileMode(v)), nil
 	}
 }
 

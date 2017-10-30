@@ -39,38 +39,6 @@ func BoolPresent(b *bool) bool {
 	return true
 }
 
-// FileMode returns a pointer to the given os.FileMode.
-func FileMode(o os.FileMode) *os.FileMode {
-	return &o
-}
-
-// FileModeVal returns the value of the os.FileMode at the pointer, or 0 if the
-// pointer is nil.
-func FileModeVal(o *os.FileMode) os.FileMode {
-	if o == nil {
-		return 0
-	}
-	return *o
-}
-
-// FileModeGoString returns the value of the os.FileMode for printing in a
-// string.
-func FileModeGoString(o *os.FileMode) string {
-	if o == nil {
-		return "(*os.FileMode)(nil)"
-	}
-	return fmt.Sprintf("%q", *o)
-}
-
-// FileModePresent returns a boolean indiciating if the pointer is nil, or if
-// the pointer is pointing to the zero value.
-func FileModePresent(o *os.FileMode) bool {
-	if o == nil {
-		return false
-	}
-	return *o != 0
-}
-
 // Int returns a pointer to the given int.
 func Int(i int) *int {
 	return &i

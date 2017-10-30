@@ -5,7 +5,67 @@ import (
 	"reflect"
 	"testing"
 	"time"
+	"os"
 )
+
+func TestFileMode(t *testing.T) {
+	t.Run("new", func(t *testing.T) {
+		fmVal := os.FileMode(0123)
+		fm := NewFileMode(fmVal)
+		if *fm.Value != fmVal {
+			t.Errorf("\nexp: %q\nact: %q", fmVal, fm.Value)
+		}
+	})
+
+	t.Run("is_set", func(t *testing.T) {
+		fm1 := NewFileMode(0123)
+		if !fm1.IsSet() {
+			t.Errorf("\nexp: %v\nact: %v", true, false)
+		}
+
+		fm2 := FileMode{}
+		if fm2.IsSet() {
+			t.Errorf("\nexp: %v\nact: %v", false, true)
+		}
+	})
+
+	t.Run("finalize", func(t *testing.T) {
+		fm := NewFileMode(0123)
+		if !fm.IsSet() {
+			t.Errorf("\nexp: %v\nact: %v", true, false)
+		}
+		fm.Finalize()
+		if fm.IsSet() {
+			t.Errorf("\nexp: %v\nact: %v", false, true)
+		}
+	})
+
+	cases := []struct {
+		name string
+		m    FileMode
+		e    string
+	}{
+		{
+			"nil",
+			FileMode{},
+			"(*os.FileMode)(nil)",
+		},
+		{
+			"present",
+			NewFileMode(0),
+			`"----------"`,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			s := tc.m.GoString()
+			if tc.e != s {
+				t.Errorf("\nexp: %q\nact: %q", tc.e, s)
+			}
+		})
+	}
+}
 
 func TestTemplateConfig_Copy(t *testing.T) {
 	cases := []struct {
@@ -29,7 +89,7 @@ func TestTemplateConfig_Copy(t *testing.T) {
 				Contents:       String("contents"),
 				Destination:    String("destination"),
 				Exec:           &ExecConfig{Command: String("command")},
-				Perms:          FileMode(0600),
+				Perms:          NewFileMode(0600),
 				Source:         String("source"),
 				Wait:           &WaitConfig{Min: TimeDuration(10)},
 				LeftDelim:      String("left_delim"),
@@ -249,27 +309,27 @@ func TestTemplateConfig_Merge(t *testing.T) {
 		},
 		{
 			"perms_overrides",
-			&TemplateConfig{Perms: FileMode(0600)},
-			&TemplateConfig{Perms: FileMode(0000)},
-			&TemplateConfig{Perms: FileMode(0000)},
+			&TemplateConfig{Perms: NewFileMode(0600)},
+			&TemplateConfig{Perms: NewFileMode(0000)},
+			&TemplateConfig{Perms: NewFileMode(0000)},
 		},
 		{
 			"perms_empty_one",
-			&TemplateConfig{Perms: FileMode(0600)},
+			&TemplateConfig{Perms: NewFileMode(0600)},
 			&TemplateConfig{},
-			&TemplateConfig{Perms: FileMode(0600)},
+			&TemplateConfig{Perms: NewFileMode(0600)},
 		},
 		{
 			"perms_empty_two",
 			&TemplateConfig{},
-			&TemplateConfig{Perms: FileMode(0600)},
-			&TemplateConfig{Perms: FileMode(0600)},
+			&TemplateConfig{Perms: NewFileMode(0600)},
+			&TemplateConfig{Perms: NewFileMode(0600)},
 		},
 		{
 			"perms_same",
-			&TemplateConfig{Perms: FileMode(0600)},
-			&TemplateConfig{Perms: FileMode(0600)},
-			&TemplateConfig{Perms: FileMode(0600)},
+			&TemplateConfig{Perms: NewFileMode(0600)},
+			&TemplateConfig{Perms: NewFileMode(0600)},
+			&TemplateConfig{Perms: NewFileMode(0600)},
 		},
 		{
 			"source_overrides",
@@ -410,7 +470,7 @@ func TestTemplateConfig_Finalize(t *testing.T) {
 					Splay:        TimeDuration(0 * time.Second),
 					Timeout:      TimeDuration(DefaultTemplateCommandTimeout),
 				},
-				Perms:  FileMode(DefaultTemplateFilePerms),
+				Perms:  FileMode{},
 				Source: String(""),
 				Wait: &WaitConfig{
 					Enabled: Bool(false),

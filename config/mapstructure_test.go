@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -10,10 +9,10 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-func TestStringToFileModeFunc(t *testing.T) {
-	f := StringToFileModeFunc()
+func TestValueToFileModeFunc(t *testing.T) {
+	f := ValueToFileModeFunc()
 	strType := reflect.TypeOf("")
-	fmType := reflect.TypeOf(os.FileMode(0))
+	fmType := reflect.TypeOf(FileMode{})
 	u32Type := reflect.TypeOf(uint32(0))
 
 	cases := []struct {
@@ -22,11 +21,11 @@ func TestStringToFileModeFunc(t *testing.T) {
 		expected interface{}
 		err      bool
 	}{
-		{strType, fmType, "0600", os.FileMode(0600), false},
-		{strType, fmType, "4600", os.FileMode(04600), false},
+		{strType, fmType, "0600", NewFileMode(0600), false},
+		{strType, fmType, "4600", NewFileMode(04600), false},
 
 		// Prepends 0 automatically
-		{strType, fmType, "600", os.FileMode(0600), false},
+		{strType, fmType, "600", NewFileMode(0600), false},
 
 		// Invalid file mode
 		{strType, fmType, "12345", "12345", true},
