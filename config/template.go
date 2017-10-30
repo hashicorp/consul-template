@@ -203,7 +203,7 @@ func (c *TemplateConfig) Merge(o *TemplateConfig) *TemplateConfig {
 	}
 
 	if o.Perms.IsSet() {
-	    r.Perms = o.Perms
+		r.Perms = o.Perms
 	}
 
 	if o.Source != nil {
