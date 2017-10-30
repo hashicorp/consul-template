@@ -29,7 +29,7 @@ var (
 	_ Dependency = (*HealthServiceQuery)(nil)
 
 	// HealthServiceQueryRe is the regular expression to use.
-	HealthServiceQueryRe = regexp.MustCompile(`\A` + tagRe + nameRe + dcRe + nearRe + filterRe + `\z`)
+	HealthServiceQueryRe = regexp.MustCompile(`\A` + tagRe + serviceNameRe + dcRe + nearRe + filterRe + `\z`)
 )
 
 func init() {

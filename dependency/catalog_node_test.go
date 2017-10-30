@@ -51,6 +51,15 @@ func TestNewCatalogNodeQuery(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"periods",
+			"node.bar.com@dc1",
+			&CatalogNodeQuery{
+				name: "node.bar.com",
+				dc:   "dc1",
+			},
+			false,
+		},
 	}
 
 	for i, tc := range cases {
