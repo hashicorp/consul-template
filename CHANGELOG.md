@@ -21,6 +21,8 @@ IMPROVEMENTS:
 
   * Add `indent` function for indenting blocks of text in templates
 
+  * Allow additional colons in the template command on the CLI [GH-1026]
+
 ## v0.19.3 (September 11, 2017)
 
 BUG FIXES:
