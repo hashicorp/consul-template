@@ -2,6 +2,13 @@
 
 ## v0.19.4.dev (Unreleased)
 
+BREAKING CHANGES:
+
+  * The version of Consul Template is now taken into account when using
+    de-duplication mode. Without bundling the version, it's challenging to
+    upgrade existing clusters or run multiple versions of Consul Template on the
+    same cluster and template simultaneously. [GH-1025]
+
 BUG FIXES:
 
   * Remove references to unsupported `dump_signal` configuration
