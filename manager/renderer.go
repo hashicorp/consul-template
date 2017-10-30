@@ -11,14 +11,24 @@ import (
 	"github.com/pkg/errors"
 )
 
+var (
+	// ErrNoParentDir is the error returned with the parent directory is missing
+	// and the user disabled it.
+	ErrNoParentDir = errors.New("parent directory is missing")
+
+	// ErrMissingDest is the error returned with the destination is empty.
+	ErrMissingDest = errors.New("missing destination")
+)
+
 // RenderInput is used as input to the render function.
 type RenderInput struct {
-	Backup    bool
-	Contents  []byte
-	Dry       bool
-	DryStream io.Writer
-	Path      string
-	Perms     os.FileMode
+	Backup         bool
+	Contents       []byte
+	CreateDestDirs bool
+	Dry            bool
+	DryStream      io.Writer
+	Path           string
+	Perms          os.FileMode
 }
 
 // RenderResult is returned and stored. It contains the status of the render
@@ -58,7 +68,7 @@ func Render(i *RenderInput) (*RenderResult, error) {
 	if i.Dry {
 		fmt.Fprintf(i.DryStream, "> %s\n%s", i.Path, i.Contents)
 	} else {
-		if err := AtomicWrite(i.Path, i.Contents, i.Perms, i.Backup); err != nil {
+		if err := AtomicWrite(i.Path, i.CreateDestDirs, i.Contents, i.Perms, i.Backup); err != nil {
 			return nil, errors.Wrap(err, "failed writing file")
 		}
 	}
@@ -85,15 +95,19 @@ func Render(i *RenderInput) (*RenderResult, error) {
 //
 // If no errors occur, the Tempfile is "renamed" (moved) to the destination
 // path.
-func AtomicWrite(path string, contents []byte, perms os.FileMode, backup bool) error {
+func AtomicWrite(path string, createDestDirs bool, contents []byte, perms os.FileMode, backup bool) error {
 	if path == "" {
-		return fmt.Errorf("missing destination")
+		return ErrMissingDest
 	}
 
 	parent := filepath.Dir(path)
 	if _, err := os.Stat(parent); os.IsNotExist(err) {
-		if err := os.MkdirAll(parent, 0755); err != nil {
-			return err
+		if createDestDirs {
+			if err := os.MkdirAll(parent, 0755); err != nil {
+				return err
+			}
+		} else {
+			return ErrNoParentDir
 		}
 	}
 

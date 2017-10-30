@@ -415,8 +415,12 @@ template {
 
   # This is the destination path on disk where the source template will render.
   # If the parent directories do not exist, Consul Template will attempt to
-  # create them.
+  # create them, unless create_dest_dirs is false.
   destination = "/path/on/disk/where/template/will/render.txt"
+
+  # This options tells Consul Template to create the parent directories of the
+  # destination path if they do not exist. The default value is true.
+  create_dest_dirs = true
 
   # This option allows embedding the contents of a template in the configuration
   # file rather then supplying the `source` path to the template file. This is

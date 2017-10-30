@@ -27,6 +27,7 @@ func TestTemplateConfig_Copy(t *testing.T) {
 				Command:        String("command"),
 				CommandTimeout: TimeDuration(10 * time.Second),
 				Contents:       String("contents"),
+				CreateDestDirs: Bool(true),
 				Destination:    String("destination"),
 				Exec:           &ExecConfig{Command: String("command")},
 				Perms:          FileMode(0600),
@@ -174,6 +175,30 @@ func TestTemplateConfig_Merge(t *testing.T) {
 			&TemplateConfig{Contents: String("contents")},
 			&TemplateConfig{Contents: String("contents")},
 			&TemplateConfig{Contents: String("contents")},
+		},
+		{
+			"create_dest_dirs_overrides",
+			&TemplateConfig{CreateDestDirs: Bool(false)},
+			&TemplateConfig{CreateDestDirs: Bool(true)},
+			&TemplateConfig{CreateDestDirs: Bool(true)},
+		},
+		{
+			"create_dest_dirs_empty_one",
+			&TemplateConfig{CreateDestDirs: Bool(false)},
+			&TemplateConfig{},
+			&TemplateConfig{CreateDestDirs: Bool(false)},
+		},
+		{
+			"create_dest_dirs_empty_two",
+			&TemplateConfig{},
+			&TemplateConfig{CreateDestDirs: Bool(false)},
+			&TemplateConfig{CreateDestDirs: Bool(false)},
+		},
+		{
+			"create_dest_dirs_same",
+			&TemplateConfig{CreateDestDirs: Bool(false)},
+			&TemplateConfig{CreateDestDirs: Bool(false)},
+			&TemplateConfig{CreateDestDirs: Bool(false)},
 		},
 		{
 			"destination_overrides",
@@ -393,6 +418,7 @@ func TestTemplateConfig_Finalize(t *testing.T) {
 				Command:        String(""),
 				CommandTimeout: TimeDuration(DefaultTemplateCommandTimeout),
 				Contents:       String(""),
+				CreateDestDirs: Bool(true),
 				Destination:    String(""),
 				ErrMissingKey:  Bool(false),
 				Exec: &ExecConfig{

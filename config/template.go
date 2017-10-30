@@ -48,6 +48,10 @@ type TemplateConfig struct {
 	// must be specified, but not both.
 	Contents *string `mapstructure:"contents"`
 
+	// CreateDestDirs tells Consul Template to create the parent directories of
+	// the destination path if they do not exist. The default value is true.
+	CreateDestDirs *bool `mapstructure:"create_dest_dirs"`
+
 	// Destination is the location on disk where the template should be rendered.
 	// This is required unless running in debug/dry mode.
 	Destination *string `mapstructure:"destination"`
@@ -102,6 +106,8 @@ func (c *TemplateConfig) Copy() *TemplateConfig {
 	o.CommandTimeout = c.CommandTimeout
 
 	o.Contents = c.Contents
+
+	o.CreateDestDirs = c.CreateDestDirs
 
 	o.Destination = c.Destination
 
@@ -159,6 +165,10 @@ func (c *TemplateConfig) Merge(o *TemplateConfig) *TemplateConfig {
 		r.Contents = o.Contents
 	}
 
+	if o.CreateDestDirs != nil {
+		r.CreateDestDirs = o.CreateDestDirs
+	}
+
 	if o.Destination != nil {
 		r.Destination = o.Destination
 	}
@@ -211,6 +221,10 @@ func (c *TemplateConfig) Finalize() {
 
 	if c.Contents == nil {
 		c.Contents = String("")
+	}
+
+	if c.CreateDestDirs == nil {
+		c.CreateDestDirs = Bool(true)
 	}
 
 	if c.Destination == nil {
@@ -267,6 +281,7 @@ func (c *TemplateConfig) GoString() string {
 		"Command:%s, "+
 		"CommandTimeout:%s, "+
 		"Contents:%s, "+
+		"CreateDestDirs:%s, "+
 		"Destination:%s, "+
 		"ErrMissingKey:%s, "+
 		"Exec:%#v, "+
@@ -280,6 +295,7 @@ func (c *TemplateConfig) GoString() string {
 		StringGoString(c.Command),
 		TimeDurationGoString(c.CommandTimeout),
 		StringGoString(c.Contents),
+		BoolGoString(c.CreateDestDirs),
 		StringGoString(c.Destination),
 		BoolGoString(c.ErrMissingKey),
 		c.Exec,
