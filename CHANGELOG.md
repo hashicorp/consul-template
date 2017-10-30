@@ -21,6 +21,9 @@ BUG FIXES:
 
   * Do not sort results when `~near` queries are used [GH-1027]
 
+  * Handle integer overflow in exponential backoff calculations
+    [GH-1031, GH-1028]
+
 IMPROVEMENTS:
 
   * Compile with Go 1.9.2
