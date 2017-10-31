@@ -42,7 +42,7 @@ IMPROVEMENTS:
 
   * Allow additional colons in the template command on the CLI [GH-1026]
 
-  * Add Vault Transit example for key exfiltration [Gh-1014]
+  * Add Vault Transit example for key exfiltration [GH-1014]
 
   * Add a new option for disabling recursive directory creation per template
     [GH-1033]
