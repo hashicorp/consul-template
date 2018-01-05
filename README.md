@@ -1254,6 +1254,12 @@ This function can be chained to manipulate the output:
 {{ env "CLUSTER_ID" | toLower }}
 ```
 
+Reads the given environment variable and if it does not exist or is blank use a default value, ex `12345`.
+
+```liquid
+{{ or (env "CLUSTER_ID") "12345" }}
+```
+
 ##### `executeTemplate`
 
 Executes and returns a defined template.
