@@ -23,19 +23,19 @@ templates watching the same path return the same data.
 Consider the following two templates:
 
 ```liquid
-{{- # /tmp/cert.tpl -}}
+{{- /* /tmp/cert.tpl */ -}}
 {{ with secret "pki/issue/my-domain-dot-com" "common_name=foo.example.com" }}
 {{ .Data.certificate }}{{ end }}
 ```
 
 ```liquid
-{{- # /tmp/ca.tpl -}}
+{{- /* /tmp/ca.tpl */ -}}
 {{ with secret "pki/issue/my-domain-dot-com" "common_name=foo.example.com" }}
 {{ .Data.ca_chain }}{{ end }}
 ```
 
 ```liquid
-{{- # /tmp/key.tpl -}}
+{{- /* /tmp/key.tpl */ -}}
 {{ with secret "pki/issue/my-domain-dot-com" "common_name=foo.example.com" }}
 {{ .Data.private_key }}{{ end }}
 ```
