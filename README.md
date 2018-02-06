@@ -152,7 +152,7 @@ consul {
   token = "abcd1234"
 
   rate_limit {
-    # Enable rate limit with throttle max requests/sec per endpoint.
+    # Enable rate limit with throttle max requests/sec to consul agent.
     enabled = true
 
     # Adds a random delay between consecutive calls
@@ -160,9 +160,9 @@ consul {
 
     # When watching a resource, if the resource is fetched before that amount
     # of time, do not try to fetch the resource again until this timeout occurs.
-    # Setting this value to 30 minute, means you will never be notified of changes
-    # faster than every 30 seconds between 2 updates.
-    min_delay_between_updates = "30s"
+    # Setting this value to 10 seconds means you will never be notified of changes
+    # faster than every 10 seconds between 2 updates.
+    min_delay_between_updates = "10s"
   }
   # This controls the retry behavior when an error is returned from Consul.
   # Consul Template is highly fault tolerant, meaning it does not exit in the

@@ -213,6 +213,7 @@ func Parse(s string) (*Config, error) {
 		"auth",
 		"consul",
 		"consul.auth",
+		"consul.rate_limit",
 		"consul.retry",
 		"consul.ssl",
 		"consul.transport",
