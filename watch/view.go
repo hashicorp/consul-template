@@ -126,7 +126,6 @@ func (v *View) DataAndLastIndex() (interface{}, uint64) {
 func (v *View) poll(viewCh chan<- *View, errCh chan<- error) {
 	var retries int
 	for {
-		start := time.Now()
 		doneCh := make(chan struct{}, 1)
 		successCh := make(chan struct{}, 1)
 		fetchErrCh := make(chan error, 1)
@@ -151,13 +150,7 @@ func (v *View) poll(viewCh chan<- *View, errCh chan<- error) {
 			if v.once {
 				return
 			}
-			elapsed := time.Since(start)
-			if v.rateLimitFunc != nil {
-				wait, sleep := v.rateLimitFunc(elapsed)
-				if wait {
-					<-time.After(sleep)
-				}
-			}
+
 		case <-successCh:
 			// We successfully received a non-error response from the server. This
 			// does not mean we have data (that's dataCh's job), but rather this
@@ -221,6 +214,7 @@ func (v *View) fetch(doneCh, successCh chan<- struct{}, errCh chan<- error) {
 			return
 		default:
 		}
+		start := time.Now()
 
 		data, rm, err := v.dependency.Fetch(v.clients, &dep.QueryOptions{
 			AllowStale: allowStale,
@@ -260,6 +254,15 @@ func (v *View) fetch(doneCh, successCh chan<- struct{}, errCh chan<- error) {
 
 		if v.maxStale != 0 {
 			allowStale = true
+		}
+
+		if v.rateLimitFunc != nil {
+			elapsed := time.Since(start)
+			wait, sleep := v.rateLimitFunc(elapsed)
+			if wait {
+				log.Printf("[TRACE] (view) %s %s elapsed, sleeping for %s", v.dependency, elapsed, sleep)
+				<-time.After(sleep)
+			}
 		}
 
 		if rm.LastIndex == v.lastIndex {
