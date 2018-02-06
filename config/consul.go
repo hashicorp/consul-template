@@ -11,6 +11,9 @@ type ConsulConfig struct {
 	// Auth is the HTTP basic authentication for communicating with Consul.
 	Auth *AuthConfig `mapstructure:"auth"`
 
+	// RateLimit is the configuration for re-query on success.
+	RateLimit *RateLimitConfig `mapstructure:"rate_limit"`
+
 	// Retry is the configuration for specifying how to behave on failure.
 	Retry *RetryConfig `mapstructure:"retry"`
 
@@ -30,6 +33,7 @@ type ConsulConfig struct {
 func DefaultConsulConfig() *ConsulConfig {
 	return &ConsulConfig{
 		Auth:      DefaultAuthConfig(),
+		RateLimit: DefaultRateLimitConfig(),
 		Retry:     DefaultRetryConfig(),
 		SSL:       DefaultSSLConfig(),
 		Transport: DefaultTransportConfig(),
@@ -48,6 +52,10 @@ func (c *ConsulConfig) Copy() *ConsulConfig {
 
 	if c.Auth != nil {
 		o.Auth = c.Auth.Copy()
+	}
+
+	if c.RateLimit != nil {
+		o.RateLimit = c.RateLimit.Copy()
 	}
 
 	if c.Retry != nil {
@@ -93,6 +101,10 @@ func (c *ConsulConfig) Merge(o *ConsulConfig) *ConsulConfig {
 		r.Auth = r.Auth.Merge(o.Auth)
 	}
 
+	if o.RateLimit != nil {
+		r.RateLimit = r.RateLimit.Merge(o.RateLimit)
+	}
+
 	if o.Retry != nil {
 		r.Retry = r.Retry.Merge(o.Retry)
 	}
@@ -124,6 +136,11 @@ func (c *ConsulConfig) Finalize() {
 		c.Auth = DefaultAuthConfig()
 	}
 	c.Auth.Finalize()
+
+	if c.RateLimit == nil {
+		c.RateLimit = DefaultRateLimitConfig()
+	}
+	c.RateLimit.Finalize()
 
 	if c.Retry == nil {
 		c.Retry = DefaultRetryConfig()
@@ -157,6 +174,7 @@ func (c *ConsulConfig) GoString() string {
 	return fmt.Sprintf("&ConsulConfig{"+
 		"Address:%s, "+
 		"Auth:%#v, "+
+		"RateLimit:%#v,"+
 		"Retry:%#v, "+
 		"SSL:%#v, "+
 		"Token:%t, "+
@@ -164,6 +182,7 @@ func (c *ConsulConfig) GoString() string {
 		"}",
 		StringGoString(c.Address),
 		c.Auth,
+		c.RateLimit,
 		c.Retry,
 		c.SSL,
 		StringPresent(c.Token),

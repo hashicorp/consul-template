@@ -23,11 +23,12 @@ func TestConsulConfig_Copy(t *testing.T) {
 		{
 			"same_enabled",
 			&ConsulConfig{
-				Address: String("1.2.3.4"),
-				Auth:    &AuthConfig{Enabled: Bool(true)},
-				Retry:   &RetryConfig{Enabled: Bool(true)},
-				SSL:     &SSLConfig{Enabled: Bool(true)},
-				Token:   String("abcd1234"),
+				Address:   String("1.2.3.4"),
+				Auth:      &AuthConfig{Enabled: Bool(true)},
+				RateLimit: &RateLimitConfig{Enabled: Bool(true)},
+				Retry:     &RetryConfig{Enabled: Bool(true)},
+				SSL:       &SSLConfig{Enabled: Bool(true)},
+				Token:     String("abcd1234"),
 				Transport: &TransportConfig{
 					DialKeepAlive: TimeDuration(20 * time.Second),
 				},
@@ -247,6 +248,11 @@ func TestConsulConfig_Finalize(t *testing.T) {
 					Enabled:  Bool(false),
 					Username: String(""),
 					Password: String(""),
+				},
+				RateLimit: &RateLimitConfig{
+					MinDelayBetweenUpdates: TimeDuration(DefaultMinDelayBetweenUpdates),
+					RandomBackoff:          TimeDuration(DefaultRandomBackoff),
+					Enabled:                Bool(true),
 				},
 				Retry: &RetryConfig{
 					Backoff:    TimeDuration(DefaultRetryBackoff),

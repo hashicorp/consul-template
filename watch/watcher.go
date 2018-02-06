@@ -13,6 +13,7 @@ import (
 const dataBufferSize = 2048
 
 type RetryFunc func(int) (bool, time.Duration)
+type RateLimitFunc func(time.Duration) (bool, time.Duration)
 
 // Watcher is a top-level manager for views that poll Consul for data.
 type Watcher struct {
@@ -37,6 +38,11 @@ type Watcher struct {
 	// once signals if this watcher should tell views to retrieve data exactly
 	// one time intead of polling infinitely.
 	once bool
+
+	// rateLimitFuncs specifies the different ways to retry based on the upstream.
+	rateLimitFuncConsul  RateLimitFunc
+	rateLimitFuncDefault RateLimitFunc
+	rateLimitFuncVault   RateLimitFunc
 
 	// retryFuncs specifies the different ways to retry based on the upstream.
 	retryFuncConsul  RetryFunc
@@ -65,6 +71,11 @@ type NewWatcherInput struct {
 	// VaultToken is the vault token to renew.
 	VaultToken string
 
+	// RateLimitFuncs specify the different ways to retry based on the upstream.
+	RateLimitFuncConsul  RateLimitFunc
+	RateLimitFuncDefault RateLimitFunc
+	RateLimitFuncVault   RateLimitFunc
+
 	// RetryFuncs specify the different ways to retry based on the upstream.
 	RetryFuncConsul  RetryFunc
 	RetryFuncDefault RetryFunc
@@ -79,16 +90,19 @@ type NewWatcherInput struct {
 // NewWatcher creates a new watcher using the given API client.
 func NewWatcher(i *NewWatcherInput) (*Watcher, error) {
 	w := &Watcher{
-		clients:          i.Clients,
-		depViewMap:       make(map[string]*View),
-		dataCh:           make(chan *View, dataBufferSize),
-		errCh:            make(chan error),
-		maxStale:         i.MaxStale,
-		once:             i.Once,
-		retryFuncConsul:  i.RetryFuncConsul,
-		retryFuncDefault: i.RetryFuncDefault,
-		retryFuncVault:   i.RetryFuncVault,
-		vaultGrace:       i.VaultGrace,
+		clients:              i.Clients,
+		depViewMap:           make(map[string]*View),
+		dataCh:               make(chan *View, dataBufferSize),
+		errCh:                make(chan error),
+		maxStale:             i.MaxStale,
+		once:                 i.Once,
+		rateLimitFuncConsul:  i.RateLimitFuncConsul,
+		rateLimitFuncDefault: i.RateLimitFuncDefault,
+		rateLimitFuncVault:   i.RateLimitFuncVault,
+		retryFuncConsul:      i.RetryFuncConsul,
+		retryFuncDefault:     i.RetryFuncDefault,
+		retryFuncVault:       i.RetryFuncVault,
+		vaultGrace:           i.VaultGrace,
 	}
 
 	// Start a watcher for the Vault renew if that config was specified
@@ -137,22 +151,27 @@ func (w *Watcher) Add(d dep.Dependency) (bool, error) {
 
 	// Choose the correct retry function based off of the dependency's type.
 	var retryFunc RetryFunc
+	var rateLimitFunc RateLimitFunc
 	switch d.Type() {
 	case dep.TypeConsul:
 		retryFunc = w.retryFuncConsul
+		rateLimitFunc = w.rateLimitFuncConsul
 	case dep.TypeVault:
 		retryFunc = w.retryFuncVault
+		rateLimitFunc = w.rateLimitFuncVault
 	default:
 		retryFunc = w.retryFuncDefault
+		rateLimitFunc = w.rateLimitFuncDefault
 	}
 
 	v, err := NewView(&NewViewInput{
-		Dependency: d,
-		Clients:    w.clients,
-		MaxStale:   w.maxStale,
-		Once:       w.once,
-		RetryFunc:  retryFunc,
-		VaultGrace: w.vaultGrace,
+		Dependency:    d,
+		Clients:       w.clients,
+		MaxStale:      w.maxStale,
+		Once:          w.once,
+		RateLimitFunc: rateLimitFunc,
+		RetryFunc:     retryFunc,
+		VaultGrace:    w.vaultGrace,
 	})
 	if err != nil {
 		return false, errors.Wrap(err, "watcher")

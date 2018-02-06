@@ -119,6 +119,9 @@ func TestPoll_once(t *testing.T) {
 func TestPoll_retries(t *testing.T) {
 	view, err := NewView(&NewViewInput{
 		Dependency: &TestDepRetry{},
+		RateLimitFunc: func(delay time.Duration) (bool, time.Duration) {
+			return true, 0 * time.Millisecond
+		},
 		RetryFunc: func(retry int) (bool, time.Duration) {
 			return retry < 1, 250 * time.Millisecond
 		},

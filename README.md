@@ -151,6 +151,19 @@ consul {
   # This option is also available via the environment variable CONSUL_TOKEN.
   token = "abcd1234"
 
+  rate_limit {
+    # Enable rate limit with throttle max requests/sec per endpoint.
+    enabled = true
+
+    # Adds a random delay between consecutive calls
+    random_backoff = "33ms"
+
+    # When watching a resource, if the resource is fetched before that amount
+    # of time, do not try to fetch the resource again until this timeout occurs.
+    # Setting this value to 30 minute, means you will never be notified of changes
+    # faster than every 30 seconds between 2 updates.
+    min_delay_between_updates = "30s"
+  }
   # This controls the retry behavior when an error is returned from Consul.
   # Consul Template is highly fault tolerant, meaning it does not exit in the
   # face of failure. Instead, it uses exponential back-off and retry functions
