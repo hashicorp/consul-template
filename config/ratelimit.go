@@ -10,7 +10,7 @@ const (
 	// DefaultRandomBackoff is the default max delay added between successful calls.
 	DefaultRandomBackoff = 33 * time.Millisecond
 	// DefaultMinDelayBetweenUpdates is the default delay between successful.
-	DefaultMinDelayBetweenUpdates = 500 * time.Millisecond
+	DefaultMinDelayBetweenUpdates = 100 * time.Millisecond
 )
 
 // RateLimitFunc is the signature of a function to sleep between calls
