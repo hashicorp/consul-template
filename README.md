@@ -2158,7 +2158,7 @@ following to generate all binaries:
 $ make bin
 ```
 
-If you just want to run the tests:
+If you want to run the tests, first [install consul locally](https://www.consul.io/docs/install/index.html), then:
 
 ```shell
 $ make test
