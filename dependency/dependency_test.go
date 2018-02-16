@@ -31,7 +31,7 @@ func TestMain(m *testing.M) {
 		c.Stderr = ioutil.Discard
 	})
 	if err != nil {
-		log.Fatal("failed to start consul server")
+		log.Fatal(err)
 	}
 	testConsul = consul
 
