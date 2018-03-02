@@ -842,12 +842,21 @@ func (r *Runner) init() error {
 	// config templates is kept so templates can lookup their commands and output
 	// destinations.
 	for _, ctmpl := range *r.config.Templates {
+		leftDelim := config.StringVal(ctmpl.LeftDelim)
+		if leftDelim == "" {
+			leftDelim = config.StringVal(r.config.Defaults.LeftDelim)
+		}
+		rightDelim := config.StringVal(ctmpl.RightDelim)
+		if ctmpl.RightDelim != nil {
+			rightDelim = config.StringVal(r.config.Defaults.RightDelim)
+		}
+
 		tmpl, err := template.NewTemplate(&template.NewTemplateInput{
 			Source:        config.StringVal(ctmpl.Source),
 			Contents:      config.StringVal(ctmpl.Contents),
 			ErrMissingKey: config.BoolVal(ctmpl.ErrMissingKey),
-			LeftDelim:     config.StringVal(ctmpl.LeftDelim),
-			RightDelim:    config.StringVal(ctmpl.RightDelim),
+			LeftDelim:     leftDelim,
+			RightDelim:    rightDelim,
 		})
 		if err != nil {
 			return err
