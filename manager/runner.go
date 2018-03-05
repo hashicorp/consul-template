@@ -847,7 +847,7 @@ func (r *Runner) init() error {
 			leftDelim = config.StringVal(r.config.Defaults.LeftDelim)
 		}
 		rightDelim := config.StringVal(ctmpl.RightDelim)
-		if ctmpl.RightDelim != nil {
+		if rightDelim == "" {
 			rightDelim = config.StringVal(r.config.Defaults.RightDelim)
 		}
 
