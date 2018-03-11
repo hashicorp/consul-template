@@ -35,7 +35,7 @@ type Watcher struct {
 	maxStale time.Duration
 
 	// once signals if this watcher should tell views to retrieve data exactly
-	// one time intead of polling infinitely.
+	// one time instead of polling infinitely.
 	once bool
 
 	// retryFuncs specifies the different ways to retry based on the upstream.
