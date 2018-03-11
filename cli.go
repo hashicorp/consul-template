@@ -715,7 +715,7 @@ Options:
 
   -vault-grace=<duration>
       Sets the grace period between lease renewal and secret re-acquisition - if
-      the remaning lease duration is less than this value, Consul Template will
+      the remaining lease duration is less than this value, Consul Template will
       acquire a new secret from Vault
 
   -vault-renew-token
