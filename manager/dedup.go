@@ -257,7 +257,7 @@ func (d *DedupManager) UpdateDeps(t *template.Template, deps []dep.Dependency) e
 	return nil
 }
 
-// UpdateCh returns a channel to watch for depedency updates
+// UpdateCh returns a channel to watch for dependency updates
 func (d *DedupManager) UpdateCh() <-chan struct{} {
 	return d.updateCh
 }

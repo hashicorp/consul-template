@@ -176,7 +176,7 @@ func (w *Watcher) Watching(d dep.Dependency) bool {
 }
 
 // ForceWatching is used to force setting the internal state of watching
-// a depedency. This is only used for unit testing purposes.
+// a dependency. This is only used for unit testing purposes.
 func (w *Watcher) ForceWatching(d dep.Dependency, enabled bool) {
 	w.Lock()
 	defer w.Unlock()
