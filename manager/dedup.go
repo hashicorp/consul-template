@@ -70,7 +70,7 @@ type DedupManager struct {
 	// clients is used to access the underlying clients
 	clients *dep.ClientSet
 
-	// Brain is where we inject udpates
+	// Brain is where we inject updates
 	brain *template.Brain
 
 	// templates is the set of templates we are trying to dedup
