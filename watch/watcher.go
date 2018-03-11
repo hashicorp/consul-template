@@ -116,7 +116,7 @@ func (w *Watcher) ErrCh() <-chan error {
 	return w.errCh
 }
 
-// Add adds the given dependency to the list of monitored depedencies
+// Add adds the given dependency to the list of monitored dependencies
 // and start the associated view. If the dependency already exists, no action is
 // taken.
 //

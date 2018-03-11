@@ -139,7 +139,7 @@ type RenderEvent struct {
 	UpdatedAt time.Time
 
 	// Used is the full list of dependencies seen in the template. Because of
-	// the n-pass evaluation, this number can change over time. The dependecnies
+	// the n-pass evaluation, this number can change over time. The dependencies
 	// in this list may or may not have data. This just contains the list of all
 	// dependencies parsed out of the template with the current data.
 	UsedDeps *dep.Set
