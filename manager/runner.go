@@ -496,7 +496,7 @@ func (r *Runner) Signal(s os.Signal) error {
 // Run iterates over each template in this Runner and conditionally executes
 // the template rendering and command execution.
 //
-// The template is rendered atomicly. If and only if the template render
+// The template is rendered atomically. If and only if the template render
 // completes successfully, the optional commands will be executed, if given.
 // Please note that all templates are rendered **and then** any commands are
 // executed.
