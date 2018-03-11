@@ -67,7 +67,7 @@ type DedupManager struct {
 	// config is the deduplicate configuration
 	config *config.DedupConfig
 
-	// clients is used to access the underlying clinets
+	// clients is used to access the underlying clients
 	clients *dep.ClientSet
 
 	// Brain is where we inject udpates
