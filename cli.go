@@ -76,7 +76,7 @@ func (cli *CLI) Run(args []string) int {
 	// Save original config (defaults + parsed flags) for handling reloads
 	cliConfig := config.Copy()
 
-	// Load configuration paths, with CLI taking precendence
+	// Load configuration paths, with CLI taking precedence
 	config, err = loadConfigs(paths, cliConfig)
 	if err != nil {
 		return logError(err, ExitCodeConfigError)
@@ -538,7 +538,7 @@ func (cli *CLI) ParseFlags(args []string) (*config.Config, []string, bool, bool,
 
 // loadConfigs loads the configuration from the list of paths. The optional
 // configuration is the list of overrides to apply at the very end, taking
-// precendence over any configurations that were loaded from the paths. If any
+// precedence over any configurations that were loaded from the paths. If any
 // errors occur when reading or parsing those sub-configs, it is returned.
 func loadConfigs(paths []string, o *config.Config) (*config.Config, error) {
 	finalC := config.DefaultConfig()
