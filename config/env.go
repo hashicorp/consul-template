@@ -12,7 +12,7 @@ import (
 // for mapstructure's decoding.
 type EnvConfig struct {
 	// BlacklistEnv specifies a list of environment variables to explicitly
-	// disclude from the list of environment variables populated to the child.
+	// exclude from the list of environment variables populated to the child.
 	// If both WhitelistEnv and BlacklistEnv are provided, BlacklistEnv takes
 	// precedence over the values in WhitelistEnv.
 	Blacklist []string `mapstructure:"blacklist"`
