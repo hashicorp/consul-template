@@ -1011,7 +1011,7 @@ func (r *Runner) childEnv() []string {
 		m["VAULT_TLS_SERVER_NAME"] = config.StringVal(r.config.Vault.SSL.ServerName)
 	}
 
-	// Append runner-supplied env (this is supplied programatically).
+	// Append runner-supplied env (this is supplied programmatically).
 	for k, v := range r.Env {
 		m[k] = v
 	}

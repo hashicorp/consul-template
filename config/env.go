@@ -18,7 +18,7 @@ type EnvConfig struct {
 	Blacklist []string `mapstructure:"blacklist"`
 
 	// CustomEnv specifies custom environment variables to pass to the child
-	// process. These are provided programatically, override any environment
+	// process. These are provided programmatically, override any environment
 	// variables of the same name, are ignored from whitelist/blacklist, and
 	// are still included even if PristineEnv is set to true.
 	Custom []string `mapstructure:"custom"`
