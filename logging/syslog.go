@@ -15,7 +15,7 @@ var syslogPriorityMap = map[string]gsyslog.Priority{
 	"ERR":   gsyslog.LOG_ERR,
 }
 
-// SyslogWrapper is used to cleaup log messages before writing them to a
+// SyslogWrapper is used to cleanup log messages before writing them to a
 // Syslogger. Implements the io.Writer interface.
 type SyslogWrapper struct {
 	l    gsyslog.Syslogger

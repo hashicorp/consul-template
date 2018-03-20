@@ -76,7 +76,7 @@ func (cli *CLI) Run(args []string) int {
 	// Save original config (defaults + parsed flags) for handling reloads
 	cliConfig := config.Copy()
 
-	// Load configuration paths, with CLI taking precendence
+	// Load configuration paths, with CLI taking precedence
 	config, err = loadConfigs(paths, cliConfig)
 	if err != nil {
 		return logError(err, ExitCodeConfigError)
@@ -162,7 +162,7 @@ func (cli *CLI) Run(args []string) int {
 				// Also, the reason we do a lookup instead of a direct syscall.SIGCHLD
 				// is because that isn't defined on Windows.
 			default:
-				// Propogate the signal to the child process
+				// Propagate the signal to the child process
 				runner.Signal(s)
 			}
 		case <-cli.stopCh:
@@ -538,7 +538,7 @@ func (cli *CLI) ParseFlags(args []string) (*config.Config, []string, bool, bool,
 
 // loadConfigs loads the configuration from the list of paths. The optional
 // configuration is the list of overrides to apply at the very end, taking
-// precendence over any configurations that were loaded from the paths. If any
+// precedence over any configurations that were loaded from the paths. If any
 // errors occur when reading or parsing those sub-configs, it is returned.
 func loadConfigs(paths []string, o *config.Config) (*config.Config, error) {
 	finalC := config.DefaultConfig()
@@ -715,7 +715,7 @@ Options:
 
   -vault-grace=<duration>
       Sets the grace period between lease renewal and secret re-acquisition - if
-      the remaning lease duration is less than this value, Consul Template will
+      the remaining lease duration is less than this value, Consul Template will
       acquire a new secret from Vault
 
   -vault-renew-token

@@ -67,10 +67,10 @@ type DedupManager struct {
 	// config is the deduplicate configuration
 	config *config.DedupConfig
 
-	// clients is used to access the underlying clinets
+	// clients is used to access the underlying clients
 	clients *dep.ClientSet
 
-	// Brain is where we inject udpates
+	// Brain is where we inject updates
 	brain *template.Brain
 
 	// templates is the set of templates we are trying to dedup
@@ -257,7 +257,7 @@ func (d *DedupManager) UpdateDeps(t *template.Template, deps []dep.Dependency) e
 	return nil
 }
 
-// UpdateCh returns a channel to watch for depedency updates
+// UpdateCh returns a channel to watch for dependency updates
 func (d *DedupManager) UpdateCh() <-chan struct{} {
 	return d.updateCh
 }

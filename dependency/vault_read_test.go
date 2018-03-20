@@ -72,7 +72,7 @@ func TestVaultReadQuery_Fetch(t *testing.T) {
 	defer vault.Stop()
 
 	vault.CreateSecret("foo/bar", map[string]interface{}{
-		"ttl": "100ms", // explictly make this a short duration for testing
+		"ttl": "100ms", // explicitly make this a short duration for testing
 		"zip": "zap",
 	})
 
