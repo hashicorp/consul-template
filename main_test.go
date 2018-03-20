@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"testing"
+	"fmt"
 
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul/testutil"
@@ -20,7 +21,7 @@ func TestMain(m *testing.M) {
 		c.Stderr = ioutil.Discard
 	})
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(fmt.Errorf("failed to start consul server: %v", err))
 	}
 	testConsul = consul
 
