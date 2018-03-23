@@ -18,6 +18,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	dep "github.com/hashicorp/consul-template/dependency"
+	socktmpl "github.com/hashicorp/go-sockaddr/template"
 	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -1188,4 +1189,14 @@ func sandboxedPath(sandbox, s string) (string, error) {
 		}
 	}
 	return path, nil
+}
+
+// sockaddr wraps go-sockaddr templating
+func sockaddr(args ...string) (string, error) {
+	t := fmt.Sprintf("{{ %s }} ", strings.Join(args, " "))
+	k, err := socktmpl.Parse(t)
+	if err != nil {
+		return "", err
+	}
+	return k, nil
 }
