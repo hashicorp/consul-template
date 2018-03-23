@@ -1797,6 +1797,18 @@ minconns: "2"
 
 Note: Consul stores all KV data as strings. Thus true is "true", 1 is "1", etc.
 
+##### `sockaddr`
+
+Takes a quote-escaped template string as an argument and passes it on to
+[hashicorp/go-sockaddr](https://github.com/hashicorp/go-sockaddr) templating engine.
+
+```liquid
+{{ sockaddr "GetPrivateIP" }}
+```
+
+See [hashicorp/go-sockaddr documentation](https://godoc.org/github.com/hashicorp/go-sockaddr)
+for more information.
+
 ---
 
 #### Math Functions

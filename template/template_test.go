@@ -1517,6 +1517,17 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"helper_sockaddr",
+			&NewTemplateInput{
+				Contents: `{{ sockaddr "GetAllInterfaces | include \"type\" \"IPv4\"" | contains "127.0.0.1" }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"true",
+			false,
+		},
+		{
 			"math_add",
 			&NewTemplateInput{
 				Contents: `{{ 2 | add 2 }}`,
