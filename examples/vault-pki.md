@@ -31,7 +31,7 @@ Consider the following two templates:
 ```liquid
 {{- /* /tmp/ca.tpl */ -}}
 {{ with secret "pki/issue/my-domain-dot-com" "common_name=foo.example.com" }}
-{{ .Data.ca_chain }}{{ end }}
+{{ .Data.issuing_ca }}{{ end }}
 ```
 
 ```liquid
