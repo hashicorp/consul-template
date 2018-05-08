@@ -3,6 +3,12 @@
 ## v0.19.5 (Unreleased)
 
 BUG FIXES:
+  * The de-duplication feature was incorrectly calculating the hash of dependency 
+    values over an unstable encoding of the data. This meant that in most cases 
+    the templates were being re-written to KV and on all watching template 
+    instances every minimum update time (i.e. `wait { min = X }`). At best this
+    was a lot of wasted work, in some cases it caused 100% CPU usage when template 
+    instance leadership was split. [GH-1099, GH-1095]
 
 
 ## v0.19.4 (October 30, 2017)
