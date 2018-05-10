@@ -58,6 +58,21 @@ func datacentersFunc(b *Brain, used, missing *dep.Set) func(ignore ...bool) ([]s
 	}
 }
 
+// getHostnameFunc returns a current hostname from /proc/sys/kernel/hostname
+func getHostnameFunc() func() (string, error) {
+	return func() (string, error) {
+		hostname, err := os.Hostname()
+		if err != nil {
+			return "", fmt.Errorf(
+				"hostname: can't get current hostname, reason^ %s",
+				err.Error(),
+			)
+		}
+
+		return hostname, nil
+	}
+}
+
 // envFunc returns a function which checks the value of an environment variable.
 // Invokers can specify their own environment, which takes precedences over any
 // real environment variables

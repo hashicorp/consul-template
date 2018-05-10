@@ -128,6 +128,12 @@ func TestTemplate_Execute(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	currentHostname, err := os.Hostname()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	f.WriteString("test")
 	defer os.Remove(f.Name())
 
@@ -1070,6 +1076,15 @@ func TestTemplate_Execute(t *testing.T) {
 				}(),
 			},
 			"",
+			false,
+		},
+		{
+			"helper_hostname",
+			&NewTemplateInput{
+				Contents: `{{ hostname }}`,
+			},
+			nil,
+			currentHostname,
 			false,
 		},
 		{

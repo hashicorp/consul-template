@@ -230,6 +230,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"containsNone":    containsSomeFunc(true, false),
 		"containsNotAll":  containsSomeFunc(false, true),
 		"env":             envFunc(i.env),
+		"hostname":        getHostnameFunc(),
 		"executeTemplate": executeTemplateFunc(i.t),
 		"explode":         explode,
 		"in":              in,
