@@ -224,6 +224,8 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"base64URLEncode": base64URLEncode,
 		"byKey":           byKey,
 		"byTag":           byTag,
+		"withTag":         withTag,
+		"withTags":        withTags,
 		"contains":        contains,
 		"containsAll":     containsSomeFunc(true, true),
 		"containsAny":     containsSomeFunc(false, false),

@@ -821,6 +821,70 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"helper_with_tag",
+			&NewTemplateInput{
+				Contents: `{{ range $services := service "webapp" | withTag "prod" | withTag "staging" }}{{ $services.Address }}{{ end }}:{{ range $services := service "webapp" | withTag "test" }}{{ $services.Address }}{{ end }}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewHealthServiceQuery("webapp")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, []*dep.HealthService{
+						&dep.HealthService{
+							Address: "1.2.3.4",
+							Tags:    []string{"prod", "staging"},
+						},
+						&dep.HealthService{
+							Address: "5.6.7.8",
+							Tags:    []string{"staging"},
+						},
+						&dep.HealthService{
+							Address: "55.66.77.88",
+							Tags:    []string{"test"},
+						},
+					})
+					return b
+				}(),
+			},
+			"1.2.3.4:55.66.77.88",
+			false,
+		},
+		{
+			"helper_with_tags",
+			&NewTemplateInput{
+				Contents: `{{ $tags := "prod staging testing" | split " "}}{{ range $services := service "webapp" | withTags $tags }}{{ $services.Address }}{{ end }}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewHealthServiceQuery("webapp")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, []*dep.HealthService{
+						&dep.HealthService{
+							Address: "1.2.3.4",
+							Tags:    []string{"prod", "staging", "testing"},
+						},
+						&dep.HealthService{
+							Address: "5.6.7.8",
+							Tags:    []string{"staging"},
+						},
+						&dep.HealthService{
+							Address: "55.66.77.88",
+							Tags:    []string{"testing"},
+						},
+					})
+					return b
+				}(),
+			},
+			"1.2.3.4",
+			false,
+		},
+		{
 			"helper_contains",
 			&NewTemplateInput{
 				Contents: `{{ range service "webapp" }}{{ if .Tags | contains "prod" }}{{ .Address }}{{ end }}{{ end }}`,
