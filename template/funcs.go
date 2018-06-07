@@ -539,6 +539,108 @@ func byTag(in interface{}) (map[string][]interface{}, error) {
 	return m, nil
 }
 
+// withTag is a template func that takes services and filter them
+// by tag.
+//
+// {{ $s := service "service-name" | withTag "tagone" | withTag "tagtwo" }}
+//
+func withTag(tag string, in interface{}) ([]interface{}, error) {
+	var (
+		m   []interface{}
+		err error
+	)
+
+	switch typed := in.(type) {
+	case nil:
+	case []*dep.CatalogSnippet:
+		for _, snippet := range typed {
+			if isTagExists(snippet.Tags, tag) {
+				m = append(m, snippet)
+			}
+		}
+
+	case []*dep.CatalogService:
+		for _, service := range typed {
+			if isTagExists(service.ServiceTags, tag) {
+				m = append(m, service)
+			}
+		}
+
+	case []*dep.HealthService:
+		for _, service := range typed {
+			if isTagExists(service.Tags, tag) {
+				m = append(m, service)
+			}
+		}
+
+	case []interface{}:
+		m, err = filterServicesByTag(
+			typed,
+			tag,
+		)
+
+		if err != nil {
+			return nil, fmt.Errorf(
+				"withTag: can't filter services by tag %s, reason: %s",
+				tag,
+				err.Error(),
+			)
+		}
+
+	default:
+		return nil, fmt.Errorf(
+			"withTag: wrong argument type %T",
+			in,
+		)
+	}
+
+	return m, nil
+}
+
+// withTags is a template func that takes services and filter them
+// by tags.
+//
+// {{ $s := service "service-name" | withTags $requiredTags }}
+//
+func withTags(tags []string, in interface{}) ([]interface{}, error) {
+	var (
+		m []interface{}
+	)
+
+	switch typed := in.(type) {
+
+	case nil:
+	case []*dep.CatalogSnippet:
+		for _, snippet := range typed {
+			if isTagsExists(snippet.Tags, tags) {
+				m = append(m, snippet)
+			}
+		}
+
+	case []*dep.CatalogService:
+		for _, service := range typed {
+			if isTagsExists(service.ServiceTags, tags) {
+				m = append(m, service)
+			}
+		}
+
+	case []*dep.HealthService:
+		for _, service := range typed {
+			if isTagsExists(service.Tags, tags) {
+				m = append(m, service)
+			}
+		}
+
+	default:
+		return nil, fmt.Errorf(
+			"withTags: wrong argument type %T",
+			in,
+		)
+	}
+
+	return m, nil
+}
+
 // contains is a function that have reverse arguments of "in" and is designed to
 // be used as a pipe instead of a function:
 //
