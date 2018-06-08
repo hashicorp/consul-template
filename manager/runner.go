@@ -501,7 +501,7 @@ func (r *Runner) Signal(s os.Signal) error {
 // Please note that all templates are rendered **and then** any commands are
 // executed.
 func (r *Runner) Run() error {
-	log.Printf("[INFO] (runner) initiating run")
+	log.Printf("[DEBUG] (runner) initiating run")
 
 	var newRenderEvent, wouldRenderAny, renderedAny bool
 	runCtx := &templateRunCtx{
