@@ -9,6 +9,7 @@ BUG FIXES:
     instances every minimum update time (i.e. `wait { min = X }`). At best this
     was a lot of wasted work, in some cases it caused 100% CPU usage when template 
     instance leadership was split. [GH-1099, GH-1095]
+  * Fixed an issue where we waited unnecessarily for a child process to exit [GH-1101]
 
 IMPROVEMENTS:
 
