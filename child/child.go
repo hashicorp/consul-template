@@ -362,9 +362,13 @@ func (c *Child) kill() {
 	exited := false
 	process := c.cmd.Process
 
-	select {
-	case <-c.stopCh:
-	case <-c.randomSplay():
+	if c.cmd.ProcessState == nil {
+		select {
+		case <-c.stopCh:
+		case <-c.randomSplay():
+		}
+	} else {
+		log.Printf("[DEBUG] (runner) Kill() called but process dead; not waiting for splay.")
 	}
 
 	if c.killSignal != nil {
