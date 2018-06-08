@@ -10,6 +10,10 @@ BUG FIXES:
     was a lot of wasted work, in some cases it caused 100% CPU usage when template 
     instance leadership was split. [GH-1099, GH-1095]
 
+IMPROVEMENTS:
+
+  * Initiating runner log level moved to DEBUG [GH-1088]
+
 
 ## v0.19.4 (October 30, 2017)
 
