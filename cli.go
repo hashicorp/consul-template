@@ -193,6 +193,14 @@ func (cli *CLI) ParseFlags(args []string) (*config.Config, []string, bool, bool,
 
 	c := config.DefaultConfig()
 
+	if s := os.Getenv("CT_LOCAL_CONFIG"); s != "" {
+		envConfig, err := config.Parse(s)
+		if err != nil {
+			return nil, nil, false, false, false, err
+		}
+		c = c.Merge(envConfig)
+	}
+
 	// configPaths stores the list of configuration paths on disk
 	configPaths := make([]string, 0, 6)
 
