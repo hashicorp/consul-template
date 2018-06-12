@@ -1,6 +1,6 @@
 # Consul Template CHANGELOG
 
-## v0.19.5 (Unreleased)
+## v0.19.5 (June 12, 2018)
 
 BUG FIXES:
   * The de-duplication feature was incorrectly calculating the hash of dependency 
