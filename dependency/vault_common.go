@@ -24,7 +24,17 @@ type Secret struct {
 
 	// Data is the actual contents of the secret. The format of the data
 	// is arbitrary and up to the secret backend.
+	// For a K/V mount of version 2, Data will hold the "data" key of the data
+	// response, unwrapping into the actual secrets, thus "do the right thing"
+	// for that type, rather than adhere strictly to agnosticism.
 	Data map[string]interface{}
+
+	// Metadata is set for K/V version 2 mounts, and holds the metadata from the
+	// "contents" of the secret, at the top-level.  It's the sibling to the data
+	// which we include in Data for this special-case.
+	// If not a K/V version 2 mount, or something else which bundles the concept
+	// of metadata, then this will be left as a nil map, rather than an empty map.
+	Metadata map[string]interface{}
 
 	// Warnings contains any warnings related to the operation. These
 	// are not issues that caused the command to fail, but that the
@@ -107,16 +117,16 @@ func vaultSecretRenewable(s *Secret) bool {
 // transformSecret transforms an api secret into our secret. This does not deep
 // copy underlying deep data structures, so it's not safe to modify the vault
 // secret as that may modify the data in the transformed secret.
-func transformSecret(theirs *api.Secret) *Secret {
+func transformSecret(theirs *api.Secret, isKV2 bool) *Secret {
 	var ours Secret
-	updateSecret(&ours, theirs)
+	updateSecret(&ours, theirs, isKV2)
 	return &ours
 }
 
 // updateSecret updates our secret with the new data from the api, careful to
 // not overwrite missing data. Renewals don't include the original secret, and
 // we don't want to delete that data accidentally.
-func updateSecret(ours *Secret, theirs *api.Secret) {
+func updateSecret(ours *Secret, theirs *api.Secret, isKV2 bool) {
 	if theirs.RequestID != "" {
 		ours.RequestID = theirs.RequestID
 	}
@@ -134,7 +144,12 @@ func updateSecret(ours *Secret, theirs *api.Secret) {
 	}
 
 	if len(theirs.Data) != 0 {
-		ours.Data = theirs.Data
+		if isKV2 {
+			ours.Data = theirs.Data["data"].(map[string]interface{})
+			ours.Metadata = theirs.Data["metadata"].(map[string]interface{})
+		} else {
+			ours.Data = theirs.Data
+		}
 	}
 
 	if len(theirs.Warnings) != 0 {

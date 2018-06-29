@@ -32,7 +32,7 @@ func NewVaultTokenQuery(token string) (*VaultTokenQuery, error) {
 	return &VaultTokenQuery{
 		stopCh:      make(chan struct{}, 1),
 		vaultSecret: vaultSecret,
-		secret:      transformSecret(vaultSecret),
+		secret:      transformSecret(vaultSecret, false),
 	}, nil
 }
 
@@ -71,7 +71,7 @@ func (d *VaultTokenQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interfa
 			case renewal := <-renewer.RenewCh():
 				log.Printf("[TRACE] %s: successfully renewed", d)
 				printVaultWarnings(d, renewal.Secret.Warnings)
-				updateSecret(d.secret, renewal.Secret)
+				updateSecret(d.secret, renewal.Secret, false)
 			case <-d.stopCh:
 				return nil, nil, ErrStopped
 			}

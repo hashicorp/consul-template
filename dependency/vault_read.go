@@ -3,7 +3,6 @@ package dependency
 import (
 	"fmt"
 	"log"
-	"net/url"
 	"strings"
 	"time"
 
@@ -25,6 +24,11 @@ type VaultReadQuery struct {
 
 	// vaultSecret is the actual Vault secret which we are renewing
 	vaultSecret *api.Secret
+
+	// isKV2 is possibly set non-false on the first read and indicates that a
+	// transformation will be needed to the path and to reading the secrets.
+	isKV2     bool
+	mountPath string
 }
 
 // NewVaultReadQuery creates a new datacenter dependency.
@@ -77,7 +81,7 @@ func (d *VaultReadQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interfac
 				case renewal := <-renewer.RenewCh():
 					log.Printf("[TRACE] %s: successfully renewed", d)
 					printVaultWarnings(d, renewal.Secret.Warnings)
-					updateSecret(d.secret, renewal.Secret)
+					updateSecret(d.secret, renewal.Secret, d.isKV2)
 				case <-d.stopCh:
 					return nil, nil, ErrStopped
 				}
@@ -96,6 +100,11 @@ func (d *VaultReadQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interfac
 	}
 
 	// We don't have a secret, or the prior renewal failed
+
+	if err := d.checkForKV2(clients, opts); err != nil {
+		return nil, nil, errors.Wrap(err, "checking for K/V version 2 for "+d.String())
+	}
+
 	vaultSecret, err := d.readSecret(clients, opts)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, d.String())
@@ -106,7 +115,7 @@ func (d *VaultReadQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interfac
 
 	// Create the cloned secret which will be exposed to the template.
 	d.vaultSecret = vaultSecret
-	d.secret = transformSecret(vaultSecret)
+	d.secret = transformSecret(vaultSecret, d.isKV2)
 
 	return respWithMetadata(d.secret)
 }
@@ -131,17 +140,111 @@ func (d *VaultReadQuery) Type() Type {
 	return TypeVault
 }
 
+// checkForKV2 checks to see if the secret is on a K/V version 2 (or
+// equivalent) mount.  Mutates d to set isKV2 and mountPath.
+//
+// Vault K/V version 2 requires path mutations and adjusts how the secrets are
+// returned.
+//
+// This should be used to augment d on first call, to avoid pre-flights on
+// every update.  Downside to caching is that if a mount is upgraded then we
+// won't catch it and we'll have to be restarted.  Do we _need_ to handle an
+// upgrade?  Perhaps on a signal?
+//
+// Problem: there's no way to check for K/V 2 within the mount without checking
+// a path which might be a data item and the API method to check is  explicitly
+// marked "Due to the nature of its intended usage, there is no guarantee on
+// backwards compatibility for this endpoint."
+// <https://www.vaultproject.io/api/system/internal-ui-mounts.html>
+//
+// We have very little choice here.  To support K/V version 2 without mandating
+// it for everything, we need a probe, we'll have to use the internal API and
+// keep it isolated to this function, so that future breaking updates can be
+// handled here.
+//
+// The check includes the actual mount-path; rather than assuming that it's one
+// component, we'll do as the vault CLI tool does and use the mount information
+// returned here.
+func (d *VaultReadQuery) checkForKV2(clients *ClientSet, opts *QueryOptions) error {
+	// Have checked that this API handles arbitrary strings and just inspects
+	// the first component.
+	preflightPath := "sys/internal/ui/mounts/" + d.path
+	contextLabel := "preflight(" + d.String() + ")"
+	log.Printf("[TRACE] %s: GET %s", contextLabel, "/v1/"+preflightPath)
+	mountInfo, err := clients.Vault().Logical().Read(preflightPath)
+	if err != nil {
+		return errors.Wrap(err, contextLabel)
+	}
+	if mountInfo == nil {
+		return fmt.Errorf("no mount information available at %q", preflightPath)
+	}
+	mountOptionsRaw, ok := mountInfo.Data["options"]
+	if !ok {
+		log.Printf("[DEBUG] %s: missing 'options' key", contextLabel)
+		return nil
+	}
+	mountOptions, ok := mountOptionsRaw.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("couldn't parse options in preflight response, bad map type %T", mountOptionsRaw)
+	}
+	versionRaw, ok := mountOptions["version"]
+	if !ok {
+		// This is the _normal_ case for a v1 mount
+		log.Printf("[DEBUG] %s: options missing 'version' key, assuming v1 mount", contextLabel)
+		return nil
+	}
+
+	// We explicitly check for 2, not 3 or any other value.  The changes for v2
+	// were significant enough that we can't make any assumptions.
+	versionString, ok := versionRaw.(string)
+	if !ok {
+		log.Printf("[DEBUG] %q: options.version is not a string: %#+v", contextLabel, versionRaw)
+		return nil
+	}
+	if versionString != "2" {
+		log.Printf("[DEBUG] %s: options.version exists but is not 2: %q", contextLabel, versionString)
+		return nil
+	}
+
+	d.isKV2 = true
+
+	if mountPathRaw, ok := mountInfo.Data["path"]; ok {
+		d.mountPath, ok = mountPathRaw.(string)
+		if !ok {
+			log.Printf("[DEBUG] %s: mountpath in .path is not a string: %#+v", contextLabel, mountPathRaw)
+		}
+	}
+
+	log.Printf("[DEBUG] %s: version %q mount at %q", contextLabel, versionString, d.mountPath)
+	return nil
+}
+
+// readSecret handles changing the path as needed for special mount-points (eg,
+// K/V v2) but still returns the top-level Vault *api.Secret always, because
+// there's metadata which callers might need.  It's up to callers to probe down
+// into the 'data' member for K/V v2.
 func (d *VaultReadQuery) readSecret(clients *ClientSet, opts *QueryOptions) (*api.Secret, error) {
-	log.Printf("[TRACE] %s: GET %s", d, &url.URL{
-		Path:     "/v1/" + d.path,
-		RawQuery: opts.String(),
-	})
-	vaultSecret, err := clients.Vault().Logical().Read(d.path)
+	var queryPath string
+	if d.isKV2 {
+		// d.mountPath ends with a /.
+		// If someone asks us for reading the mountpoint, we'll have a shorter path
+		// than a mountPath.
+		if len(d.path) < len(d.mountPath) {
+			return nil, fmt.Errorf("won't probe a mount-point for secrets on itself: %q", d.path)
+		}
+		queryPath = d.mountPath + "data/" + strings.TrimPrefix(d.path, d.mountPath)
+	} else {
+		queryPath = d.path
+	}
+
+	log.Printf("[TRACE] %s: GET %s", d, "/v1/"+queryPath)
+	vaultSecret, err := clients.Vault().Logical().Read(queryPath)
 	if err != nil {
 		return nil, errors.Wrap(err, d.String())
 	}
 	if vaultSecret == nil {
-		return nil, fmt.Errorf("no secret exists at %s", d.path)
+		return nil, fmt.Errorf("no secret read from %q", queryPath)
 	}
+
 	return vaultSecret, nil
 }

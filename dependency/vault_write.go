@@ -28,6 +28,12 @@ type VaultWriteQuery struct {
 	dataHash string
 	secret   *Secret
 
+	// FIXME: we need K/V version 2 here, because even though our write logic
+	// exists for transit backends, you can write to any path.  So all the logic
+	// from vault_read.go needs to be abstracted out and made available here.
+	// For the time being, because I only need the ability to read from a K/V v2
+	// mount, that's not being implemented.
+
 	// vaultSecret is the actual Vault secret which we are renewing
 	vaultSecret *api.Secret
 }
@@ -84,7 +90,7 @@ func (d *VaultWriteQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interfa
 				case renewal := <-renewer.RenewCh():
 					log.Printf("[TRACE] %s: successfully renewed", d)
 					printVaultWarnings(d, renewal.Secret.Warnings)
-					updateSecret(d.secret, renewal.Secret)
+					updateSecret(d.secret, renewal.Secret, false /* FIXME: K/V v2 */)
 				case <-d.stopCh:
 					return nil, nil, ErrStopped
 				}
@@ -113,7 +119,7 @@ func (d *VaultWriteQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interfa
 
 	// Create the cloned secret which will be exposed to the template.
 	d.vaultSecret = vaultSecret
-	d.secret = transformSecret(vaultSecret)
+	d.secret = transformSecret(vaultSecret, false /* FIXME K/V v2 */)
 
 	return respWithMetadata(d.secret)
 }
