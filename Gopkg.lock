@@ -9,13 +9,25 @@
 
 [[projects]]
   name = "github.com/SAP/go-hdb"
-  packages = ["driver","driver/sqltrace","internal/bufio","internal/protocol","internal/unicode","internal/unicode/cesu8"]
+  packages = [
+    "driver",
+    "driver/sqltrace",
+    "internal/bufio",
+    "internal/protocol",
+    "internal/unicode",
+    "internal/unicode/cesu8"
+  ]
   revision = "5155b87edff9ebf661f8102079fa3463ac83b7af"
   version = "v0.9.2"
 
 [[projects]]
   name = "github.com/SermoDigital/jose"
-  packages = [".","crypto","jws","jwt"]
+  packages = [
+    ".",
+    "crypto",
+    "jws",
+    "jwt"
+  ]
   revision = "f6df55f235c24f236d11dbcf665249a59ac2021f"
   version = "1.1"
 
@@ -70,13 +82,24 @@
 [[projects]]
   branch = "master"
   name = "github.com/gocql/gocql"
-  packages = [".","internal/lru","internal/murmur","internal/streams"]
+  packages = [
+    ".",
+    "internal/lru",
+    "internal/murmur",
+    "internal/streams"
+  ]
   revision = "f5cee644705e9593c342bfabe667720580a5289f"
 
 [[projects]]
   branch = "master"
   name = "github.com/golang/protobuf"
-  packages = ["proto","ptypes","ptypes/any","ptypes/duration","ptypes/timestamp"]
+  packages = [
+    "proto",
+    "ptypes",
+    "ptypes/any",
+    "ptypes/duration",
+    "ptypes/timestamp"
+  ]
   revision = "1643683e1b54a9e88ad26d98f81400c8c9d9f4f9"
 
 [[projects]]
@@ -94,8 +117,13 @@
 [[projects]]
   branch = "master"
   name = "github.com/hashicorp/consul"
-  packages = ["api","lib/freeport","testutil","testutil/retry"]
-  revision = "610f3c86a089817b5bd5729a3b8c2db33a9ae2b0"
+  packages = [
+    "api",
+    "lib/freeport",
+    "testutil",
+    "testutil/retry"
+  ]
+  revision = "73e3252076f69a06386a98a528bb79fa43bd538e"
 
 [[projects]]
   branch = "master"
@@ -160,13 +188,26 @@
 [[projects]]
   branch = "master"
   name = "github.com/hashicorp/golang-lru"
-  packages = [".","simplelru"]
+  packages = [
+    ".",
+    "simplelru"
+  ]
   revision = "0a025b7e63adc15a622f29b0b2c4c3848243bbf6"
 
 [[projects]]
   branch = "master"
   name = "github.com/hashicorp/hcl"
-  packages = [".","hcl/ast","hcl/parser","hcl/scanner","hcl/strconv","hcl/token","json/parser","json/scanner","json/token"]
+  packages = [
+    ".",
+    "hcl/ast",
+    "hcl/parser",
+    "hcl/scanner",
+    "hcl/strconv",
+    "hcl/token",
+    "json/parser",
+    "json/scanner",
+    "json/token"
+  ]
   revision = "23c074d0eceb2b8a5bfdbb271ab780cde70f05a8"
 
 [[projects]]
@@ -183,7 +224,53 @@
 
 [[projects]]
   name = "github.com/hashicorp/vault"
-  packages = ["api","audit","builtin/logical/database/dbplugin","builtin/logical/pki","builtin/logical/transit","helper/builtinplugins","helper/certutil","helper/compressutil","helper/consts","helper/errutil","helper/forwarding","helper/jsonutil","helper/kdf","helper/keysutil","helper/locksutil","helper/logformat","helper/mlock","helper/parseutil","helper/pgpkeys","helper/pluginutil","helper/policyutil","helper/reload","helper/salt","helper/strutil","helper/tlsutil","helper/wrapping","helper/xor","http","logical","logical/framework","physical","physical/inmem","plugins","plugins/database/cassandra","plugins/database/hana","plugins/database/mongodb","plugins/database/mssql","plugins/database/mysql","plugins/database/postgresql","plugins/helper/database/connutil","plugins/helper/database/credsutil","plugins/helper/database/dbutil","shamir","vault","version"]
+  packages = [
+    "api",
+    "audit",
+    "builtin/logical/database/dbplugin",
+    "builtin/logical/pki",
+    "builtin/logical/transit",
+    "helper/builtinplugins",
+    "helper/certutil",
+    "helper/compressutil",
+    "helper/consts",
+    "helper/errutil",
+    "helper/forwarding",
+    "helper/jsonutil",
+    "helper/kdf",
+    "helper/keysutil",
+    "helper/locksutil",
+    "helper/logformat",
+    "helper/mlock",
+    "helper/parseutil",
+    "helper/pgpkeys",
+    "helper/pluginutil",
+    "helper/policyutil",
+    "helper/reload",
+    "helper/salt",
+    "helper/strutil",
+    "helper/tlsutil",
+    "helper/wrapping",
+    "helper/xor",
+    "http",
+    "logical",
+    "logical/framework",
+    "physical",
+    "physical/inmem",
+    "plugins",
+    "plugins/database/cassandra",
+    "plugins/database/hana",
+    "plugins/database/mongodb",
+    "plugins/database/mssql",
+    "plugins/database/mysql",
+    "plugins/database/postgresql",
+    "plugins/helper/database/connutil",
+    "plugins/helper/database/credsutil",
+    "plugins/helper/database/dbutil",
+    "shamir",
+    "vault",
+    "version"
+  ]
   revision = "6b29fb2b7f70ed538ee2b3c057335d706b6d4e36"
   version = "v0.8.3"
 
@@ -202,13 +289,30 @@
 [[projects]]
   branch = "master"
   name = "github.com/keybase/go-crypto"
-  packages = ["brainpool","cast5","curve25519","ed25519","ed25519/internal/edwards25519","openpgp","openpgp/armor","openpgp/ecdh","openpgp/elgamal","openpgp/errors","openpgp/packet","openpgp/s2k","rsa"]
+  packages = [
+    "brainpool",
+    "cast5",
+    "curve25519",
+    "ed25519",
+    "ed25519/internal/edwards25519",
+    "openpgp",
+    "openpgp/armor",
+    "openpgp/ecdh",
+    "openpgp/elgamal",
+    "openpgp/errors",
+    "openpgp/packet",
+    "openpgp/s2k",
+    "rsa"
+  ]
   revision = "f63716704117f5bd34d8f0f068f7e8369d20d4ab"
 
 [[projects]]
   branch = "master"
   name = "github.com/lib/pq"
-  packages = [".","oid"]
+  packages = [
+    ".",
+    "oid"
+  ]
   revision = "b609790bd85edf8e9ab7e0f8912750a786177bcf"
 
 [[projects]]
@@ -261,6 +365,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/mitchellh/hashstructure"
+  packages = ["."]
+  revision = "2bca23e0e452137f789efbc8610126fd8b94f73b"
+
+[[projects]]
+  branch = "master"
   name = "github.com/mitchellh/mapstructure"
   packages = ["."]
   revision = "06020f85339e21b2478f756a78e295255ffa4d6a"
@@ -310,13 +420,28 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
-  packages = ["curve25519","ed25519","ed25519/internal/edwards25519","hkdf","md4","ssh"]
+  packages = [
+    "curve25519",
+    "ed25519",
+    "ed25519/internal/edwards25519",
+    "hkdf",
+    "md4",
+    "ssh"
+  ]
   revision = "2509b142fb2b797aa7587dad548f113b2c0f20ce"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
-  packages = ["context","http2","http2/hpack","idna","internal/timeseries","lex/httplex","trace"]
+  packages = [
+    "context",
+    "http2",
+    "http2/hpack",
+    "idna",
+    "internal/timeseries",
+    "lex/httplex",
+    "trace"
+  ]
   revision = "c73622c77280266305273cb545f54516ced95b93"
 
 [[projects]]
@@ -328,7 +453,22 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
-  packages = ["collate","collate/build","internal/colltab","internal/gen","internal/tag","internal/triegen","internal/ucd","language","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable"]
+  packages = [
+    "collate",
+    "collate/build",
+    "internal/colltab",
+    "internal/gen",
+    "internal/tag",
+    "internal/triegen",
+    "internal/ucd",
+    "language",
+    "secure/bidirule",
+    "transform",
+    "unicode/bidi",
+    "unicode/cldr",
+    "unicode/norm",
+    "unicode/rangetable"
+  ]
   revision = "6eab0e8f74e86c598ec3b6fad4888e0c11482d48"
 
 [[projects]]
@@ -339,7 +479,27 @@
 
 [[projects]]
   name = "google.golang.org/grpc"
-  packages = [".","balancer","codes","connectivity","credentials","grpclb/grpc_lb_v1/messages","grpclog","health","health/grpc_health_v1","internal","keepalive","metadata","naming","peer","resolver","stats","status","tap","transport"]
+  packages = [
+    ".",
+    "balancer",
+    "codes",
+    "connectivity",
+    "credentials",
+    "grpclb/grpc_lb_v1/messages",
+    "grpclog",
+    "health",
+    "health/grpc_health_v1",
+    "internal",
+    "keepalive",
+    "metadata",
+    "naming",
+    "peer",
+    "resolver",
+    "stats",
+    "status",
+    "tap",
+    "transport"
+  ]
   revision = "61d37c5d657a47e4404fd6823bd598341a2595de"
   version = "v1.7.1"
 
@@ -352,7 +512,13 @@
 [[projects]]
   branch = "v2"
   name = "gopkg.in/mgo.v2"
-  packages = [".","bson","internal/json","internal/sasl","internal/scram"]
+  packages = [
+    ".",
+    "bson",
+    "internal/json",
+    "internal/sasl",
+    "internal/scram"
+  ]
   revision = "3f83fa5005286a7fe593b055f0d7771a7dce4655"
 
 [[projects]]
@@ -364,6 +530,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f358fd620a69bb998b763b39524179401763a5b47351aceeaf6137b9eb17c889"
+  inputs-digest = "944798c240be8f27174cc9ea5f8865eb5bb0a83d1576b7705167ef8018b4dc07"
   solver-name = "gps-cdcl"
   solver-version = 1
