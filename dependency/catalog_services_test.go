@@ -70,6 +70,10 @@ func TestCatalogServicesQuery_Fetch(t *testing.T) {
 					Name: "consul",
 					Tags: ServiceTags([]string{}),
 				},
+				&CatalogSnippet{
+					Name: "service-meta",
+					Tags: ServiceTags([]string{"tag1"}),
+				},
 			},
 		},
 	}

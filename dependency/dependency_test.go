@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/vault/builtin/logical/pki"
 	"github.com/hashicorp/vault/builtin/logical/transit"
@@ -43,6 +44,19 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 	testClients = clients
+
+	serviceMetaService := &api.AgentServiceRegistration{
+		ID:   "service-meta",
+		Name: "service-meta",
+		Tags: []string{"tag1"},
+		Meta: map[string]string{
+			"meta1": "value1",
+		},
+	}
+
+	if err := testClients.consul.client.Agent().ServiceRegister(serviceMetaService); err != nil {
+		panic(err)
+	}
 
 	exitCh := make(chan int, 1)
 	func() {

@@ -161,7 +161,31 @@ func TestCatalogServiceQuery_Fetch(t *testing.T) {
 					ServiceName:    "consul",
 					ServiceAddress: "",
 					ServiceTags:    ServiceTags([]string{}),
+					ServiceMeta:    map[string]string{},
 					ServicePort:    testConsul.Config.Ports.Server,
+				},
+			},
+		},
+		{
+			"service-meta",
+			"service-meta",
+			[]*CatalogService{
+				&CatalogService{
+					Node:       testConsul.Config.NodeName,
+					Address:    testConsul.Config.Bind,
+					Datacenter: "dc1",
+					TaggedAddresses: map[string]string{
+						"lan": "127.0.0.1",
+						"wan": "127.0.0.1",
+					},
+					NodeMeta: map[string]string{
+						"consul-network-segment": "",
+					},
+					ServiceID:      "service-meta",
+					ServiceName:    "service-meta",
+					ServiceAddress: "",
+					ServiceTags:    ServiceTags([]string{"tag1"}),
+					ServiceMeta:    map[string]string{"meta1": "value1"},
 				},
 			},
 		},
