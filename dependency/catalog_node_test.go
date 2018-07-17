@@ -109,6 +109,14 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 						Port:    testConsul.Config.Ports.Server,
 						Tags:    ServiceTags([]string{}),
 					},
+					&CatalogNodeService{
+						ID:      "service-meta",
+						Service: "service-meta",
+						Tags:    ServiceTags([]string{"tag1"}),
+						Meta: map[string]string{
+							"meta1": "value1",
+						},
+					},
 				},
 			},
 		},
