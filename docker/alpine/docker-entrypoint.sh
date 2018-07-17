@@ -12,12 +12,6 @@ set -e
 CT_DATA_DIR=/consul-template/config
 CT_CONFIG_DIR=/consul-template/config
 
-# You can also set the CT_LOCAL_CONFIG environment variable to pass some
-# Consul Template configuration JSON without having to bind any volumes.
-if [ -n "$CT_LOCAL_CONFIG" ]; then
-  echo "$CT_LOCAL_CONFIG" > "$CT_CONFIG_DIR/local-config.hcl"
-fi
-
 # If the user is trying to run consul-template directly with some arguments, then
 # pass them to consul-template.
 if [ "${1:0:1}" = '-' ]; then
