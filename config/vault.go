@@ -53,8 +53,14 @@ type VaultConfig struct {
 
 	// Token is the Vault token to communicate with for requests. It may be
 	// a wrapped token or a real token. This can also be set via the VAULT_TOKEN
-	// environment variable.
+	// environment variable, or via a file either via a ~/.vault-token file or
+	// more explicitly through the `token_file` configuration setting.
 	Token *string `mapstructure:"token" json:"-"`
+
+	// TokenFile is the path of  file that contains a Vault token. It may
+	// be a wrapped token or a real token. This can also be set via the VAULT_TOKEN
+	// environment variable or inline in the `token` configuration setting.
+	TokenFile *string `mapstructure:"token_file" json:"-"`
 
 	// Transport configures the low-level network connection details.
 	Transport *TransportConfig `mapstructure:"transport"`
@@ -102,6 +108,8 @@ func (c *VaultConfig) Copy() *VaultConfig {
 	}
 
 	o.Token = c.Token
+
+	o.TokenFile = c.TokenFile
 
 	if c.Transport != nil {
 		o.Transport = c.Transport.Copy()
@@ -156,6 +164,10 @@ func (c *VaultConfig) Merge(o *VaultConfig) *VaultConfig {
 
 	if o.Token != nil {
 		r.Token = o.Token
+	}
+
+	if o.TokenFile != nil {
+		r.TokenFile = o.TokenFile
 	}
 
 	if o.Transport != nil {
@@ -219,10 +231,21 @@ func (c *VaultConfig) Finalize() {
 	}
 	c.SSL.Finalize()
 
+	// Order of precedence
+	// 1. `token` configuration value
+	// 2. `token_file` configuration value
+	// 3. `VAULT_TOKEN`` environment variable
+	// 4. `~/.vault-token`` file
 	if c.Token == nil {
-		c.Token = stringFromEnv([]string{
-			"VAULT_TOKEN",
-		}, "")
+		if c.TokenFile != nil {
+			c.Token = stringFromFile([]string{*c.TokenFile}, "")
+		}
+
+		if StringVal(c.Token) == "" {
+			c.Token = stringFromEnv([]string{
+				"VAULT_TOKEN",
+			}, "")
+		}
 
 		if StringVal(c.Token) == "" {
 			if homePath != "" {
@@ -263,6 +286,7 @@ func (c *VaultConfig) GoString() string {
 		"Retry:%#v, "+
 		"SSL:%#v, "+
 		"Token:%t, "+
+		"TokenFile:%t, "+
 		"Transport:%#v, "+
 		"UnwrapToken:%s"+
 		"}",
@@ -273,6 +297,7 @@ func (c *VaultConfig) GoString() string {
 		c.Retry,
 		c.SSL,
 		StringPresent(c.Token),
+		StringPresent(c.TokenFile),
 		c.Transport,
 		BoolGoString(c.UnwrapToken),
 	)

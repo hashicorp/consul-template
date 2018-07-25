@@ -32,6 +32,7 @@ func TestVaultConfig_Copy(t *testing.T) {
 				Retry:      &RetryConfig{Enabled: Bool(true)},
 				SSL:        &SSLConfig{Enabled: Bool(true)},
 				Token:      String("token"),
+				TokenFile:  String("/token/file"),
 				Transport: &TransportConfig{
 					DialKeepAlive: TimeDuration(20 * time.Second),
 				},
@@ -178,6 +179,30 @@ func TestVaultConfig_Merge(t *testing.T) {
 			&VaultConfig{Token: String("token")},
 		},
 		{
+			"token_file_overrides",
+			&VaultConfig{TokenFile: String("/token/file")},
+			&VaultConfig{TokenFile: String("")},
+			&VaultConfig{TokenFile: String("")},
+		},
+		{
+			"token_file_empty_one",
+			&VaultConfig{TokenFile: String("/token/file")},
+			&VaultConfig{},
+			&VaultConfig{TokenFile: String("/token/file")},
+		},
+		{
+			"token_file_empty_two",
+			&VaultConfig{},
+			&VaultConfig{TokenFile: String("/token/file")},
+			&VaultConfig{TokenFile: String("/token/file")},
+		},
+		{
+			"token_file_same",
+			&VaultConfig{TokenFile: String("/token/file")},
+			&VaultConfig{TokenFile: String("/token/file")},
+			&VaultConfig{TokenFile: String("/token/file")},
+		},
+		{
 			"unwrap_token_overrides",
 			&VaultConfig{UnwrapToken: Bool(true)},
 			&VaultConfig{UnwrapToken: Bool(false)},
@@ -306,6 +331,31 @@ func TestVaultConfig_Merge(t *testing.T) {
 				t.Errorf("\nexp: %#v\nact: %#v", tc.r, r)
 			}
 		})
+	}
+}
+
+func TestVaultConfig_FinalizeWithTokenFile(t *testing.T) {
+	tmpToken := "adc378cb-8d13-4939-b819-f80ec5b17d60"
+
+	tmpTokenFile, err := ioutil.TempFile(os.TempDir(), "")
+	defer os.Remove(tmpTokenFile.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ioutil.WriteFile(
+		tmpTokenFile.Name(),
+		[]byte(tmpToken),
+		0400)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	i := &VaultConfig{TokenFile: String(tmpTokenFile.Name())}
+	i.Finalize()
+
+	if !(tmpToken == *i.Token) {
+		t.Errorf("\nexp: %#v\nact: %#v", tmpToken, i)
 	}
 }
 

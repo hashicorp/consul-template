@@ -275,8 +275,19 @@ vault {
   # assumption that you provide it with a Vault token; it does not have the
   # incorporated logic to generate tokens via Vault's auth methods.
   #
-  # This value can also be specified via the environment variable VAULT_TOKEN.
+  # This value can also be specified via the environment variable VAULT_TOKEN,
+  # the ~/.vault-token file in the home directory of the process owner
+  # or by using the `token_file` parameter.
+  #
+  # The order of precendence is as follows:
+  # 1. `token` configuration value
+  # 2. `token_file` configuration value
+  # 3. `VAULT_TOKEN` environment variables
+  # 4. `~/.vault-token` file
   token = "abcd1234"
+
+  # Read the Vault token from a file
+  # token_file = "/var/lib/vault/vault-token"
 
   # This tells Consul Template that the provided token is actually a wrapped
   # token that should be unwrapped using Vault's cubbyhole response wrapping

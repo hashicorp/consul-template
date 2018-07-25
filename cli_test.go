@@ -597,6 +597,16 @@ func TestCLI_ParseFlags(t *testing.T) {
 			false,
 		},
 		{
+			"vault-token-file",
+			[]string{"-vault-token-file", "/token/file"},
+			&config.Config{
+				Vault: &config.VaultConfig{
+					TokenFile: config.String("/token/file"),
+				},
+			},
+			false,
+		},
+		{
 			"vault-transport-dial-keep-alive",
 			[]string{"-vault-transport-dial-keep-alive", "30s"},
 			&config.Config{
