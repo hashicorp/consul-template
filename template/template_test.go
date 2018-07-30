@@ -1206,6 +1206,28 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"helper_indent_negative",
+			&NewTemplateInput{
+				Contents: `{{ "hello\nhello\r\nHELLO\r\nhello\nHELLO" | indent -4 }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"    hello\n    hello\r\n    HELLO\r\n    hello\n    HELLO",
+			true,
+		},
+		{
+			"helper_indent_zero",
+			&NewTemplateInput{
+				Contents: `{{ "hello\nhello\r\nHELLO\r\nhello\nHELLO" | indent 0 }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"hello\nhello\r\nHELLO\r\nhello\nHELLO",
+			false,
+		},
+		{
 			"helper_loop",
 			&NewTemplateInput{
 				Contents: `{{ range loop 3 }}1{{ end }}`,
