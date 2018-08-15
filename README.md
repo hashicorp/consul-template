@@ -811,6 +811,23 @@ maxconns:15
 minconns:5
 ```
 
+##### `safels`
+
+Same as [ls](#ls), but refuse to render template, if the KV prefix query return blank/empty data.
+
+This is especially useful, for rendering mission critical files, that are being populated by consul-template.
+
+For example:
+
+```text
+/root/.ssh/authorized_keys
+/etc/sysconfig/iptables
+```
+
+Using `safels` on empty prefixes will result in template output not being rendered at all.
+
+To learn how `safels` was born see [CT-1131](https://github.com/hashicorp/consul-template/issues/1131) [C-3975](https://github.com/hashicorp/consul/issues/3975) and [CR-82](https://github.com/hashicorp/consul-replicate/issues/82).
+
 ##### `node`
 
 Query [Consul][consul] for a node in the catalog.
@@ -1151,6 +1168,23 @@ nested/config/value "value"
 
 Unlike `ls`, `tree` returns **all** keys under the prefix, just like the Unix
 `tree` command.
+
+##### `safetree`
+
+Same as [tree](#tree), but refuse to render template, if the KV prefix query return blank/empty data.
+
+This is especially useful, for rendering mission critical files, that are being populated by consul-template.
+
+For example:
+
+```text
+/root/.ssh/authorized_keys
+/etc/sysconfig/iptables
+```
+
+Using `safetree` on empty prefixes will result in template output not being rendered at all.
+
+To learn how `safetree` was born see [CT-1131](https://github.com/hashicorp/consul-template/issues/1131) [C-3975](https://github.com/hashicorp/consul/issues/3975) and [CR-82](https://github.com/hashicorp/consul-replicate/issues/82).
 
 ---
 
