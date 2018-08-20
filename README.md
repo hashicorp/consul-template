@@ -811,7 +811,7 @@ maxconns:15
 minconns:5
 ```
 
-##### `safels`
+##### `safeLs`
 
 Same as [ls](#ls), but refuse to render template, if the KV prefix query return blank/empty data.
 
@@ -824,9 +824,9 @@ For example:
 /etc/sysconfig/iptables
 ```
 
-Using `safels` on empty prefixes will result in template output not being rendered at all.
+Using `safeLs` on empty prefixes will result in template output not being rendered at all.
 
-To learn how `safels` was born see [CT-1131](https://github.com/hashicorp/consul-template/issues/1131) [C-3975](https://github.com/hashicorp/consul/issues/3975) and [CR-82](https://github.com/hashicorp/consul-replicate/issues/82).
+To learn how `safeLs` was born see [CT-1131](https://github.com/hashicorp/consul-template/issues/1131) [C-3975](https://github.com/hashicorp/consul/issues/3975) and [CR-82](https://github.com/hashicorp/consul-replicate/issues/82).
 
 ##### `node`
 
@@ -1169,7 +1169,7 @@ nested/config/value "value"
 Unlike `ls`, `tree` returns **all** keys under the prefix, just like the Unix
 `tree` command.
 
-##### `safetree`
+##### `safeTree`
 
 Same as [tree](#tree), but refuse to render template, if the KV prefix query return blank/empty data.
 
@@ -1182,9 +1182,9 @@ For example:
 /etc/sysconfig/iptables
 ```
 
-Using `safetree` on empty prefixes will result in template output not being rendered at all.
+Using `safeTree` on empty prefixes will result in template output not being rendered at all.
 
-To learn how `safetree` was born see [CT-1131](https://github.com/hashicorp/consul-template/issues/1131) [C-3975](https://github.com/hashicorp/consul/issues/3975) and [CR-82](https://github.com/hashicorp/consul-replicate/issues/82).
+To learn how `safeTree` was born see [CT-1131](https://github.com/hashicorp/consul-template/issues/1131) [C-3975](https://github.com/hashicorp/consul/issues/3975) and [CR-82](https://github.com/hashicorp/consul-replicate/issues/82).
 
 ---
 

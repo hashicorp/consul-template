@@ -208,7 +208,7 @@ func keyWithDefaultFunc(b *Brain, used, missing *dep.Set) func(string, string) (
 	}
 }
 
-func safelsFunc(b *Brain, used, missing *dep.Set) func(string) ([]*dep.KeyPair, error) {
+func safeLsFunc(b *Brain, used, missing *dep.Set) func(string) ([]*dep.KeyPair, error) {
 	// call lsFunc but explicitly mark that empty data set returned on monitored KV prefix is NOT safe
 	return lsFunc(b, used, missing, false)
 }
@@ -239,7 +239,7 @@ func lsFunc(b *Brain, used, missing *dep.Set, emptyIsSafe bool) func(string) ([]
 
 			if len(result) == 0 {
 				if emptyIsSafe {
-					// Operator used potentially unsafe ls function in the template instead of the safels
+					// Operator used potentially unsafe ls function in the template instead of the safeLs
 					return result, nil
 				}
 			} else {
@@ -248,11 +248,11 @@ func lsFunc(b *Brain, used, missing *dep.Set, emptyIsSafe bool) func(string) ([]
 			}
 
 			// If we reach this part of the code result is completely empty as value returned no KV pairs
-			// Operator selected to use safels on the specific KV prefix so we will refuse to render template
+			// Operator selected to use safeLs on the specific KV prefix so we will refuse to render template
 			// by marking d as missing
 		}
 
-		// b.Recall either returned an error or safels entered unsafe case
+		// b.Recall either returned an error or safeLs entered unsafe case
 		missing.Add(d)
 
 		return result, nil
@@ -425,7 +425,7 @@ func servicesFunc(b *Brain, used, missing *dep.Set) func(...string) ([]*dep.Cata
 	}
 }
 
-func safetreeFunc(b *Brain, used, missing *dep.Set) func(string) ([]*dep.KeyPair, error) {
+func safeTreeFunc(b *Brain, used, missing *dep.Set) func(string) ([]*dep.KeyPair, error) {
 	// call treeFunc but explicitly mark that empty data set returned on monitored KV prefix is NOT safe
 	return treeFunc(b, used, missing, false)
 }
@@ -457,7 +457,7 @@ func treeFunc(b *Brain, used, missing *dep.Set, emptyIsSafe bool) func(string) (
 
 			if len(result) == 0 {
 				if emptyIsSafe {
-					// Operator used potentially unsafe tree function in the template instead of the safetree
+					// Operator used potentially unsafe tree function in the template instead of the safeTree
 					return result, nil
 				}
 			} else {
@@ -466,11 +466,11 @@ func treeFunc(b *Brain, used, missing *dep.Set, emptyIsSafe bool) func(string) (
 			}
 
 			// If we reach this part of the code result is completely empty as value returned no KV pairs
-			// Operator selected to use safetree on the specific KV prefix so we will refuse to render template
+			// Operator selected to use safeTree on the specific KV prefix so we will refuse to render template
 			// by marking d as missing
 		}
 
-		// b.Recall either returned an error or safetree entered unsafe case
+		// b.Recall either returned an error or safeTree entered unsafe case
 		missing.Add(d)
 
 		return result, nil
