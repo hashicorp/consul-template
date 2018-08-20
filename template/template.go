@@ -206,7 +206,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"keyExists":    keyExistsFunc(i.brain, i.used, i.missing),
 		"keyOrDefault": keyWithDefaultFunc(i.brain, i.used, i.missing),
 		"ls":           lsFunc(i.brain, i.used, i.missing, true),
-		"safels":       safelsFunc(i.brain, i.used, i.missing),
+		"safeLs":       safeLsFunc(i.brain, i.used, i.missing),
 		"node":         nodeFunc(i.brain, i.used, i.missing),
 		"nodes":        nodesFunc(i.brain, i.used, i.missing),
 		"secret":       secretFunc(i.brain, i.used, i.missing),
@@ -214,7 +214,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"service":      serviceFunc(i.brain, i.used, i.missing),
 		"services":     servicesFunc(i.brain, i.used, i.missing),
 		"tree":         treeFunc(i.brain, i.used, i.missing, true),
-		"safetree":     safetreeFunc(i.brain, i.used, i.missing),
+		"safeTree":     safeTreeFunc(i.brain, i.used, i.missing),
 
 		// Scratch
 		"scratch": func() *Scratch { return &scratch },
