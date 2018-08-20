@@ -50,7 +50,7 @@
   version = "v7"
 
 [[projects]]
-  name = "github.com/burntsushi/toml"
+  name = "github.com/BurntSushi/toml"
   packages = ["."]
   revision = "b26d9c308763d68093482582cea63d69be07a0f0"
   version = "v0.3.0"
