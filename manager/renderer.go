@@ -158,10 +158,8 @@ func AtomicWrite(path string, createDestDirs bool, contents []byte, perms os.Fil
 	// If we got this far, it means we are about to save the file. Copy the
 	// current contents of the file onto disk (if it exists) so we have a backup.
 	if backup {
-		if _, err := os.Stat(path); !os.IsNotExist(err) {
-			if err := copyFile(path, path+".bak"); err != nil {
-				return err
-			}
+		if _, err := maybeCopyFile(path, path+".bak"); err != nil {
+			return err
 		}
 	}
 
@@ -172,32 +170,40 @@ func AtomicWrite(path string, createDestDirs bool, contents []byte, perms os.Fil
 	return nil
 }
 
-// copyFile copies the file at src to the path at dst. Any errors that occur
-// are returned.
-func copyFile(src, dst string) error {
+// maybeCopyFile copies the file at src to the path at dst.
+// If the source file does not exist, false is returned.
+// If the copy operation succeeds, true is returned.
+// Any other errors that occur are returned.
+func maybeCopyFile(src, dst string) (bool,error) {
 	s, err := os.Open(src)
+	if os.IsNotExist(err) {
+		return false, nil
+	}
 	if err != nil {
-		return err
+		return true, err
 	}
 	defer s.Close()
 
 	stat, err := s.Stat()
 	if err != nil {
-		return err
+		return true, err
 	}
 
 	d, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, stat.Mode())
 	if err != nil {
-		return err
+		return true, err
 	}
 	if _, err := io.Copy(d, s); err != nil {
 		d.Close()
-		return err
+		return true, err
 	}
 	if err := d.Close(); err != nil {
-		return err
+		return true, err
 	}
 
 	// io.Copy can restrict file permissions based on umask.
-	return os.Chmod(dst, stat.Mode())
+	if err := os.Chmod(dst, stat.Mode()); err != nil {
+		return true, err
+	}
+	return true, nil
 }
