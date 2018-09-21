@@ -242,9 +242,9 @@ func (c *Child) Stop() {
 		log.Printf("[WARN] (child) already stopped")
 		return
 	}
+	c.stopped = true
 	c.kill()
 	close(c.stopCh)
-	c.stopped = true
 }
 
 func (c *Child) start() error {
@@ -362,13 +362,15 @@ func (c *Child) kill() {
 	exited := false
 	process := c.cmd.Process
 
-	if c.cmd.ProcessState == nil {
+	if !c.running() {
+		log.Printf("[DEBUG] (runner) Kill() called but process dead; not waiting for splay.")
+	} else if c.stopped {
+		log.Printf("[DEBUG] (runner) Stopping; not waiting for splay.")
+	} else {
 		select {
 		case <-c.stopCh:
 		case <-c.randomSplay():
 		}
-	} else {
-		log.Printf("[DEBUG] (runner) Kill() called but process dead; not waiting for splay.")
 	}
 
 	if c.killSignal != nil {
