@@ -1304,6 +1304,17 @@ You will need to have a reasonable format about your data in Consul. Please see
 [Go's text/template package][text-template] for more information.
 
 
+##### `explodeMap`
+
+Takes the value of a map and converts it into a deeply-nested map for parsing/traversing,
+using the same logic as `explode`.
+
+```liquid
+{{ scratch.MapSet "example", "foo/bar", "a" }}
+{{ scratch.MapSet "example", "foo/baz", "b" }}
+{{ scratch.Get "example" | explode | toYAML }}
+```
+
 ##### `indent`
 
 Indents a block of text by prefixing N number of spaces per line.

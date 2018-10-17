@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"text/template"
@@ -601,6 +602,24 @@ func explodeHelper(m map[string]interface{}, k, v, p string) error {
 	}
 
 	return nil
+}
+
+// explodeMap turns a single-level map into a deeply-nested hash.
+func explodeMap(mapIn map[string]interface{}) (map[string]interface{}, error) {
+	mapOut := make(map[string]interface{})
+
+	var keys []string
+	for k := range mapIn {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for i := range keys {
+		if err := explodeHelper(mapOut, keys[i], fmt.Sprintf("%v", mapIn[keys[i]]), keys[i]); err != nil {
+			return nil, errors.Wrap(err, "explodeMap")
+		}
+	}
+	return mapOut, nil
 }
 
 // in searches for a given value in a given interface.
