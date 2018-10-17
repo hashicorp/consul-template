@@ -180,8 +180,8 @@ func TestCanShare(t *testing.T) {
 func TestDeepCopyAndSortTags(t *testing.T) {
 	t.Parallel()
 
-	tags := []string{"hello", "world", "these", "are", "tags"}
-	expected := []string{"are", "hello", "tags", "these", "world"}
+	tags := []string{"hello", "world", "these", "are", "tags", "foo:bar", "baz=qux"}
+	expected := []string{"are", "baz=qux", "foo:bar", "hello", "tags", "these", "world"}
 
 	result := deepCopyAndSortTags(tags)
 	if !reflect.DeepEqual(result, expected) {
