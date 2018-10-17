@@ -257,6 +257,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"env":             envFunc(i.env),
 		"executeTemplate": executeTemplateFunc(i.t),
 		"explode":         explode,
+		"explodeMap":      explodeMap,
 		"in":              in,
 		"indent":          indent,
 		"loop":            loop,
