@@ -116,6 +116,15 @@ func TestNewCatalogServiceQuery(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"tag_name_with_colon",
+			"tag:value.name",
+			&CatalogServiceQuery{
+				name: "name",
+				tag:  "tag:value",
+			},
+			false,
+		},
 	}
 
 	for i, tc := range cases {
