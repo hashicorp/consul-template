@@ -580,8 +580,8 @@ func explode(pairs []*dep.KeyPair) (map[string]interface{}, error) {
 	return m, nil
 }
 
-// explodeHelper is a recursive helper for explode.
-func explodeHelper(m map[string]interface{}, k, v, p string) error {
+// explodeHelper is a recursive helper for explode and explodeMap
+func explodeHelper(m map[string]interface{}, k string, v interface{}, p string) error {
 	if strings.Contains(k, "/") {
 		parts := strings.Split(k, "/")
 		top := parts[0]
@@ -615,7 +615,7 @@ func explodeMap(mapIn map[string]interface{}) (map[string]interface{}, error) {
 	sort.Strings(keys)
 
 	for i := range keys {
-		if err := explodeHelper(mapOut, keys[i], fmt.Sprintf("%v", mapIn[keys[i]]), keys[i]); err != nil {
+		if err := explodeHelper(mapOut, keys[i], mapIn[keys[i]], keys[i]); err != nil {
 			return nil, errors.Wrap(err, "explodeMap")
 		}
 	}
