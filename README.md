@@ -79,7 +79,7 @@ $ consul-template -h
 
 ### Command Line Flags
 
-The CLI interface supports all options in the configuration file and visa-versa. Here are a few examples of common integrations on the command line.
+The CLI interface supports all options in the configuration file and vice-versa. Here are a few examples of common integrations on the command line.
 
 Render the template on disk at `/tmp/template.ctmpl` to `/tmp/result`:
 
