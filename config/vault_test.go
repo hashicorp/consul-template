@@ -25,13 +25,14 @@ func TestVaultConfig_Copy(t *testing.T) {
 		{
 			"same_enabled",
 			&VaultConfig{
-				Address:    String("address"),
-				Enabled:    Bool(true),
-				Grace:      TimeDuration(1 * time.Minute),
-				RenewToken: Bool(true),
-				Retry:      &RetryConfig{Enabled: Bool(true)},
-				SSL:        &SSLConfig{Enabled: Bool(true)},
-				Token:      String("token"),
+				Address:             String("address"),
+				Enabled:             Bool(true),
+				Grace:               TimeDuration(1 * time.Minute),
+				RenewToken:          Bool(true),
+				Retry:               &RetryConfig{Enabled: Bool(true)},
+				SSL:                 &SSLConfig{Enabled: Bool(true)},
+				Token:               String("token"),
+				VaultAgentTokenFile: String("/tmp/vault/agent/token"),
 				Transport: &TransportConfig{
 					DialKeepAlive: TimeDuration(20 * time.Second),
 				},

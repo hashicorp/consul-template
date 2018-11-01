@@ -53,8 +53,14 @@ type VaultConfig struct {
 
 	// Token is the Vault token to communicate with for requests. It may be
 	// a wrapped token or a real token. This can also be set via the VAULT_TOKEN
-	// environment variable.
+	// environment variable, or via configuration setting `vault-agent-token-file`.
 	Token *string `mapstructure:"token" json:"-"`
+
+	// VautlAgentTokenFile is the path of file that contains a Vault Agent token.
+	// If vault_agent_token_file specified:
+	//   - Consul Template will not try to renew token
+	//   - Consul Template will periodically stat token file and reload it if changed
+	VaultAgentTokenFile *string `mapstructure:"vault_agent_token_file" json:"-"`
 
 	// Transport configures the low-level network connection details.
 	Transport *TransportConfig `mapstructure:"transport"`
@@ -102,6 +108,8 @@ func (c *VaultConfig) Copy() *VaultConfig {
 	}
 
 	o.Token = c.Token
+
+	o.VaultAgentTokenFile = c.VaultAgentTokenFile
 
 	if c.Transport != nil {
 		o.Transport = c.Transport.Copy()
@@ -156,6 +164,10 @@ func (c *VaultConfig) Merge(o *VaultConfig) *VaultConfig {
 
 	if o.Token != nil {
 		r.Token = o.Token
+	}
+
+	if o.VaultAgentTokenFile != nil {
+		r.VaultAgentTokenFile = o.VaultAgentTokenFile
 	}
 
 	if o.Transport != nil {
@@ -219,6 +231,11 @@ func (c *VaultConfig) Finalize() {
 	}
 	c.SSL.Finalize()
 
+	// Order of precedence
+	// 1. `token` configuration value
+	// 2. `VAULT_TOKEN` environment variable
+	// 3. `~/.vault-token` file
+	// 4. `vault_agent_token_file` configuration value
 	if c.Token == nil {
 		c.Token = stringFromEnv([]string{
 			"VAULT_TOKEN",
@@ -231,6 +248,11 @@ func (c *VaultConfig) Finalize() {
 				}, "")
 			}
 		}
+
+	}
+	if c.VaultAgentTokenFile != nil {
+		c.Token = stringFromFile([]string{*c.VaultAgentTokenFile}, "")
+		c.RenewToken = Bool(false)
 	}
 
 	if c.Transport == nil {
@@ -263,16 +285,18 @@ func (c *VaultConfig) GoString() string {
 		"Retry:%#v, "+
 		"SSL:%#v, "+
 		"Token:%t, "+
+		"VaultAgentTokenFile:%t, "+
 		"Transport:%#v, "+
 		"UnwrapToken:%s"+
 		"}",
 		StringGoString(c.Address),
-		TimeDurationGoString(c.Grace),
 		BoolGoString(c.Enabled),
+		TimeDurationGoString(c.Grace),
 		BoolGoString(c.RenewToken),
 		c.Retry,
 		c.SSL,
 		StringPresent(c.Token),
+		StringPresent(c.VaultAgentTokenFile),
 		c.Transport,
 		BoolGoString(c.UnwrapToken),
 	)

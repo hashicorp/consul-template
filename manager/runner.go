@@ -1250,11 +1250,12 @@ func newWatcher(c *config.Config, clients *dep.ClientSet, once bool) (*watch.Wat
 	log.Printf("[INFO] (runner) creating watcher")
 
 	w, err := watch.NewWatcher(&watch.NewWatcherInput{
-		Clients:         clients,
-		MaxStale:        config.TimeDurationVal(c.MaxStale),
-		Once:            once,
-		RenewVault:      clients.Vault().Token() != "" && config.BoolVal(c.Vault.RenewToken),
-		RetryFuncConsul: watch.RetryFunc(c.Consul.Retry.RetryFunc()),
+		Clients:             clients,
+		MaxStale:            config.TimeDurationVal(c.MaxStale),
+		Once:                once,
+		RenewVault:          clients.Vault().Token() != "" && config.BoolVal(c.Vault.RenewToken),
+		VaultAgentTokenFile: config.StringVal(c.Vault.VaultAgentTokenFile),
+		RetryFuncConsul:     watch.RetryFunc(c.Consul.Retry.RetryFunc()),
 		// TODO: Add a sane default retry - right now this only affects "local"
 		// dependencies like reading a file from disk.
 		RetryFuncDefault: nil,

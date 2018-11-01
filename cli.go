@@ -513,6 +513,11 @@ func (cli *CLI) ParseFlags(args []string) (*config.Config, []string, bool, bool,
 		return nil
 	}), "vault-token", "")
 
+	flags.Var((funcVar)(func(s string) error {
+		c.Vault.VaultAgentTokenFile = config.String(s)
+		return nil
+	}), "vault-agent-token-file", "")
+
 	flags.Var((funcBoolVar)(func(b bool) error {
 		c.Vault.UnwrapToken = config.Bool(b)
 		return nil
@@ -767,6 +772,9 @@ Options:
 
   -vault-token=<token>
       Sets the Vault API token
+
+  -vault-agent-token-file=<token-file>
+      File to read Vault API token from.
 
   -vault-transport-dial-keep-alive=<duration>
       Sets the amount of time to use for keep-alives
