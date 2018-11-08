@@ -1169,12 +1169,12 @@ func TestTemplate_Execute(t *testing.T) {
 		{
 			"helper_explodemap",
 			&NewTemplateInput{
-				Contents: `{{ scratch.MapSet "explode-test" "foo/bar" "a"}}{{ scratch.MapSet "explode-test" "foo/baz" "b"}}{{ scratch.MapSet "explode-test" "qux" "c"}}{{ scratch.MapSet "explode-test" "zip/zap" "d"}}{{ scratch.Get "explode-test" | explodeMap }}`,
+				Contents: `{{ scratch.MapSet "explode-test" "foo/bar" "a"}}{{ scratch.MapSet "explode-test" "qux" "c"}}{{ scratch.MapSet "explode-test" "zip/zap" "d"}}{{ scratch.Get "explode-test" | explodeMap }}`,
 			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
-			"map[foo:map[bar:a baz:b] qux:c zip:map[zap:d]]",
+			"map[foo:map[bar:a] qux:c zip:map[zap:d]]",
 			false,
 		},
 		{
