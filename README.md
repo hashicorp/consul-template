@@ -1465,7 +1465,7 @@ using the same logic as `explode`.
 ```liquid
 {{ scratch.MapSet "example", "foo/bar", "a" }}
 {{ scratch.MapSet "example", "foo/baz", "b" }}
-{{ scratch.Get "example" | explode | toYAML }}
+{{ scratch.Get "example" | explodeMap | toYAML }}
 ```
 
 ##### `indent`
