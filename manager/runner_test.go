@@ -758,6 +758,9 @@ func TestRunner_Start(t *testing.T) {
 			t.Fatal(err)
 		case <-r.renderedCh:
 			// Just assert there is no panic
+			// wait a while in case r.child is retained for not being
+			// initailzed before r.stop()
+			time.Sleep(100 * time.Millisecond)
 		case <-time.After(2 * time.Second):
 			t.Fatal("timeout")
 		}
