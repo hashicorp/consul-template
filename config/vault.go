@@ -243,7 +243,7 @@ func (c *VaultConfig) Finalize() {
 			}, "")
 		}
 	}
-	if stringFromEnv([]string{"VAULT_TOKEN"}, "") != "" {
+	if StringVal(stringFromEnv([]string{"VAULT_TOKEN"}, "")) != "" {
 		c.Token = stringFromEnv([]string{
 			"VAULT_TOKEN",
 		}, "")
