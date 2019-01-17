@@ -232,23 +232,21 @@ func (c *VaultConfig) Finalize() {
 	c.SSL.Finalize()
 
 	// Order of precedence
-	// 1. `token` configuration value
+	// 1. `vault_agent_token_file` configuration value
 	// 2. `VAULT_TOKEN` environment variable
-	// 3. `~/.vault-token` file
-	// 4. `vault_agent_token_file` configuration value
+	// 3. `token` configuration value
+	// 4. `~/.vault-token` file
 	if c.Token == nil {
+		if homePath != "" {
+			c.Token = stringFromFile([]string{
+				homePath + "/.vault-token",
+			}, "")
+		}
+	}
+	if stringFromEnv([]string{"VAULT_TOKEN"}, "") != "" {
 		c.Token = stringFromEnv([]string{
 			"VAULT_TOKEN",
 		}, "")
-
-		if StringVal(c.Token) == "" {
-			if homePath != "" {
-				c.Token = stringFromFile([]string{
-					homePath + "/.vault-token",
-				}, "")
-			}
-		}
-
 	}
 	if c.VaultAgentTokenFile != nil {
 		c.Token = stringFromFile([]string{*c.VaultAgentTokenFile}, "")
