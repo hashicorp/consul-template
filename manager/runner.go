@@ -397,7 +397,7 @@ func (r *Runner) Stop() {
 	r.stopChild()
 
 	if err := r.deletePid(); err != nil {
-		log.Printf("[WARN] (runner) could not remove pid at %q: %s",
+		log.Printf("[WARN] (runner) could not remove pid at %v: %s",
 			r.config.PidFile, err)
 	}
 
