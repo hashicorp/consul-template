@@ -64,6 +64,7 @@ This short example assumes Consul is installed locally.
 
     ```shell
     $ cat out.txt
+    bar
     ```
 
 For more examples and use cases, please see the [examples folder][examples] in
