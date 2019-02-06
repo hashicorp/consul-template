@@ -20,7 +20,7 @@ Consul Template can run more than one template. At boot, all dependencies
 (external API requests) are mapped into a single list. This means that multiple
 templates watching the same path return the same data.
 
-Consider the following two templates:
+Consider the following three templates:
 
 ```liquid
 {{- /* /tmp/cert.tpl */ -}}
