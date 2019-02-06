@@ -1,8 +1,18 @@
-# Consul Template CHANGELOG
+## UNRELEASED
 
+IMPROVEMENTS:
+
+* Support for Consul service metadata [GH-1113]
+
+BUG FIXES:
+
+* The indent function no longer panics on negative spaces variable [GH-1127]
+
+ 
 ## v0.19.5 (June 12, 2018)
 
 BUG FIXES:
+
   * The de-duplication feature was incorrectly calculating the hash of dependency 
     values over an unstable encoding of the data. This meant that in most cases 
     the templates were being re-written to KV and on all watching template 
