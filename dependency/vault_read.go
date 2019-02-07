@@ -20,8 +20,9 @@ var (
 type VaultReadQuery struct {
 	stopCh chan struct{}
 
-	path   string
-	secret *Secret
+	path        string
+	queryValues url.Values
+	secret      *Secret
 
 	// vaultSecret is the actual Vault secret which we are renewing
 	vaultSecret *api.Secret
@@ -35,9 +36,15 @@ func NewVaultReadQuery(s string) (*VaultReadQuery, error) {
 		return nil, fmt.Errorf("vault.read: invalid format: %q", s)
 	}
 
+	secretURL, err := url.Parse(s)
+	if err != nil {
+		return nil, err
+	}
+
 	return &VaultReadQuery{
-		stopCh: make(chan struct{}, 1),
-		path:   s,
+		stopCh:      make(chan struct{}, 1),
+		path:        secretURL.Path,
+		queryValues: secretURL.Query(),
 	}, nil
 }
 
@@ -132,11 +139,12 @@ func (d *VaultReadQuery) Type() Type {
 }
 
 func (d *VaultReadQuery) readSecret(clients *ClientSet, opts *QueryOptions) (*api.Secret, error) {
+	queryString := d.queryValues.Encode()
 	log.Printf("[TRACE] %s: GET %s", d, &url.URL{
 		Path:     "/v1/" + d.path,
-		RawQuery: opts.String(),
+		RawQuery: queryString,
 	})
-	vaultSecret, err := clients.Vault().Logical().Read(d.path)
+	vaultSecret, err := clients.Vault().Logical().ReadWithData(d.path, d.queryValues)
 	if err != nil {
 		return nil, errors.Wrap(err, d.String())
 	}
