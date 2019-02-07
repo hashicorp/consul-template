@@ -1,11 +1,13 @@
 package transit
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
 
 	"github.com/hashicorp/vault/helper/errutil"
+	"github.com/hashicorp/vault/helper/keysutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
 )
@@ -60,8 +62,7 @@ min_encryption_version configured on the key.`,
 	}
 }
 
-func (b *backend) pathDatakeyWrite(
-	req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (b *backend) pathDatakeyWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	name := d.Get("name").(string)
 	ver := d.Get("key_version").(int)
 
@@ -98,16 +99,20 @@ func (b *backend) pathDatakeyWrite(
 	}
 
 	// Get the policy
-	p, lock, err := b.lm.GetPolicyShared(req.Storage, name)
-	if lock != nil {
-		defer lock.RUnlock()
-	}
+	p, _, err := b.lm.GetPolicy(ctx, keysutil.PolicyRequest{
+		Storage: req.Storage,
+		Name:    name,
+	})
 	if err != nil {
 		return nil, err
 	}
 	if p == nil {
 		return logical.ErrorResponse("encryption key not found"), logical.ErrInvalidRequest
 	}
+	if !b.System().CachingDisabled() {
+		p.Lock(false)
+	}
+	defer p.Unlock()
 
 	newKey := make([]byte, 32)
 	bits := d.Get("bits").(int)

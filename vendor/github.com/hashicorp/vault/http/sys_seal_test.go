@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"reflect"
 	"strconv"
 	"testing"
 
+	"github.com/go-test/deep"
+	"github.com/hashicorp/vault/helper/namespace"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/vault"
 )
@@ -26,11 +27,15 @@ func TestSysSealStatus(t *testing.T) {
 
 	var actual map[string]interface{}
 	expected := map[string]interface{}{
-		"sealed":   true,
-		"t":        json.Number("3"),
-		"n":        json.Number("3"),
-		"progress": json.Number("0"),
-		"nonce":    "",
+		"sealed":        true,
+		"t":             json.Number("3"),
+		"n":             json.Number("3"),
+		"progress":      json.Number("0"),
+		"nonce":         "",
+		"type":          "shamir",
+		"recovery_seal": false,
+		"initialized":   true,
+		"migration":     false,
 	}
 	testResponseStatus(t, resp, 200)
 	testResponseBody(t, resp, &actual)
@@ -48,8 +53,8 @@ func TestSysSealStatus(t *testing.T) {
 	} else {
 		expected["cluster_id"] = actual["cluster_id"]
 	}
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: expected: %#v\nactual: %#v", expected, actual)
+	if diff := deep.Equal(actual, expected); diff != nil {
+		t.Fatal(diff)
 	}
 }
 
@@ -62,7 +67,7 @@ func TestSysSealStatus_uninit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	testResponseStatus(t, resp, 400)
+	testResponseStatus(t, resp, 200)
 }
 
 func TestSysSeal(t *testing.T) {
@@ -74,11 +79,7 @@ func TestSysSeal(t *testing.T) {
 	resp := testHttpPut(t, token, addr+"/v1/sys/seal", nil)
 	testResponseStatus(t, resp, 204)
 
-	check, err := core.Sealed()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if !check {
+	if !core.Sealed() {
 		t.Fatal("should be sealed")
 	}
 }
@@ -92,11 +93,7 @@ func TestSysSeal_unsealed(t *testing.T) {
 	resp := testHttpPut(t, token, addr+"/v1/sys/seal", nil)
 	testResponseStatus(t, resp, 204)
 
-	check, err := core.Sealed()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if !check {
+	if !core.Sealed() {
 		t.Fatal("should be sealed")
 	}
 }
@@ -114,11 +111,15 @@ func TestSysUnseal(t *testing.T) {
 
 		var actual map[string]interface{}
 		expected := map[string]interface{}{
-			"sealed":   true,
-			"t":        json.Number("3"),
-			"n":        json.Number("3"),
-			"progress": json.Number(fmt.Sprintf("%d", i+1)),
-			"nonce":    "",
+			"sealed":        true,
+			"t":             json.Number("3"),
+			"n":             json.Number("3"),
+			"progress":      json.Number(fmt.Sprintf("%d", i+1)),
+			"nonce":         "",
+			"type":          "shamir",
+			"recovery_seal": false,
+			"initialized":   true,
+			"migration":     false,
 		}
 		if i == len(keys)-1 {
 			expected["sealed"] = false
@@ -145,8 +146,8 @@ func TestSysUnseal(t *testing.T) {
 		} else {
 			expected["cluster_id"] = actual["cluster_id"]
 		}
-		if !reflect.DeepEqual(actual, expected) {
-			t.Fatalf("bad: expected: \n%#v\nactual: \n%#v", expected, actual)
+		if diff := deep.Equal(actual, expected); diff != nil {
+			t.Fatal(diff)
 		}
 	}
 }
@@ -192,10 +193,14 @@ func TestSysUnseal_Reset(t *testing.T) {
 
 		var actual map[string]interface{}
 		expected := map[string]interface{}{
-			"sealed":   true,
-			"t":        json.Number("3"),
-			"n":        json.Number("5"),
-			"progress": json.Number(strconv.Itoa(i + 1)),
+			"sealed":        true,
+			"t":             json.Number("3"),
+			"n":             json.Number("5"),
+			"progress":      json.Number(strconv.Itoa(i + 1)),
+			"type":          "shamir",
+			"recovery_seal": false,
+			"initialized":   true,
+			"migration":     false,
 		}
 		testResponseStatus(t, resp, 200)
 		testResponseBody(t, resp, &actual)
@@ -217,8 +222,8 @@ func TestSysUnseal_Reset(t *testing.T) {
 		} else {
 			expected["cluster_id"] = actual["cluster_id"]
 		}
-		if !reflect.DeepEqual(actual, expected) {
-			t.Fatalf("\nexpected:\n%#v\nactual:\n%#v\n", expected, actual)
+		if diff := deep.Equal(actual, expected); diff != nil {
+			t.Fatal(diff)
 		}
 	}
 
@@ -228,10 +233,14 @@ func TestSysUnseal_Reset(t *testing.T) {
 
 	actual = map[string]interface{}{}
 	expected := map[string]interface{}{
-		"sealed":   true,
-		"t":        json.Number("3"),
-		"n":        json.Number("5"),
-		"progress": json.Number("0"),
+		"sealed":        true,
+		"t":             json.Number("3"),
+		"n":             json.Number("5"),
+		"progress":      json.Number("0"),
+		"type":          "shamir",
+		"recovery_seal": false,
+		"initialized":   true,
+		"migration":     false,
 	}
 	testResponseStatus(t, resp, 200)
 	testResponseBody(t, resp, &actual)
@@ -250,8 +259,8 @@ func TestSysUnseal_Reset(t *testing.T) {
 	} else {
 		expected["cluster_id"] = actual["cluster_id"]
 	}
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("\nexpected:\n%#v\nactual:\n%#v\n", expected, actual)
+	if diff := deep.Equal(actual, expected); diff != nil {
+		t.Fatal(diff)
 	}
 
 }
@@ -277,11 +286,11 @@ func TestSysSeal_Permissions(t *testing.T) {
 		},
 		ClientToken: root,
 	}
-	resp, err := core.HandleRequest(req)
+	resp, err := core.HandleRequest(namespace.RootContext(nil), req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if resp != nil {
+	if resp == nil || resp.IsError() {
 		t.Fatalf("bad: %#v", resp)
 	}
 
@@ -292,7 +301,7 @@ func TestSysSeal_Permissions(t *testing.T) {
 		"policies": []string{"test"},
 	}
 
-	resp, err = core.HandleRequest(req)
+	resp, err = core.HandleRequest(namespace.RootContext(nil), req)
 	if err != nil {
 		t.Fatalf("err: %v %v", err, resp)
 	}
@@ -315,11 +324,11 @@ func TestSysSeal_Permissions(t *testing.T) {
 		},
 		ClientToken: root,
 	}
-	resp, err = core.HandleRequest(req)
+	resp, err = core.HandleRequest(namespace.RootContext(nil), req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if resp != nil {
+	if resp == nil || resp.IsError() {
 		t.Fatalf("bad: %#v", resp)
 	}
 
@@ -336,11 +345,11 @@ func TestSysSeal_Permissions(t *testing.T) {
 		},
 		ClientToken: root,
 	}
-	resp, err = core.HandleRequest(req)
+	resp, err = core.HandleRequest(namespace.RootContext(nil), req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if resp != nil {
+	if resp == nil || resp.IsError() {
 		t.Fatalf("bad: %#v", resp)
 	}
 
@@ -357,11 +366,11 @@ func TestSysSeal_Permissions(t *testing.T) {
 		},
 		ClientToken: root,
 	}
-	resp, err = core.HandleRequest(req)
+	resp, err = core.HandleRequest(namespace.RootContext(nil), req)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	if resp != nil {
+	if resp == nil || resp.IsError() {
 		t.Fatalf("bad: %#v", resp)
 	}
 
