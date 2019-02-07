@@ -1444,7 +1444,9 @@ plugin.
 {{ plugin "my-plugin" }}
 ```
 
-This is most commonly combined with a JSON filter for customization:
+The plugin can take an arbitrary number of string arguments, and can be the 
+target of a pipeline that produces strings as well. This is most commonly 
+combined with a JSON filter for customization:
 
 ```liquid
 {{ tree "foo" | explode | toJSON | plugin "my-plugin" }}
@@ -1745,7 +1747,9 @@ $ NAME [INPUT...]
   inherited `PATH` so e.g. the plugin `cat` will run the first executable `cat`
   that is found on the `PATH`.
 
-- `INPUT` - input from the template - this will always be JSON if provided
+- `INPUT` - input from the template. There will be one INPUT for every argument passed
+  to the `plugin` function. If the arguments contain whitespace, that whitespace 
+  will be passed as if the argument were quoted by the shell.
 
 #### Important Notes
 
@@ -1756,7 +1760,8 @@ $ NAME [INPUT...]
 
 - Plugin output must be returned as a string on stdout. Only stdout will be
   parsed for output. Be sure to log all errors, debugging messages onto stderr
-  to avoid errors when Consul Template returns the value.
+  to avoid errors when Consul Template returns the value. Note that output to
+  stderr will only be output if the plugin returns a non-zero exit code.
 
 - Always `exit 0` or Consul Template will assume the plugin failed to execute
 
