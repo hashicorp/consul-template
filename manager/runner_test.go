@@ -911,3 +911,76 @@ func TestRunner_quiescence(t *testing.T) {
 		}
 	})
 }
+
+// multiTemplateExecWait verifies that multiple differing
+// templates that share a wait parameter call an exec function
+// https://github.com/hashicorp/consul-template/issues/1043
+func TestRunner_multiTemplateExecWait(t *testing.T) {
+	t.Parallel()
+
+	testConsul.SetKVString(t, "multi-exec-wait-foo", "bat")
+	testConsul.SetKVString(t, "multi-exec-wait-bar", "bat")
+
+	out, err := ioutil.TempFile("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(out.Name())
+
+	c := config.DefaultConfig().Merge(&config.Config{
+		Consul: &config.ConsulConfig{
+			Address: config.String(testConsul.HTTPAddr),
+		},
+		Wait: &config.WaitConfig{
+			Min: config.TimeDuration(5 * time.Millisecond),
+			Max: config.TimeDuration(10 * time.Millisecond),
+		},
+		Exec: &config.ExecConfig{
+			Command: config.String(`sleep 30`),
+		},
+		Templates: &config.TemplateConfigs{
+			&config.TemplateConfig{
+				Contents:    config.String(`{{ key "multi-exec-wait-foo" }}`),
+				Destination: config.String(out.Name()),
+			},
+			&config.TemplateConfig{
+				Contents:    config.String(`{{ key "multi-exec-wait-bar" }}`),
+				Destination: config.String(out.Name()),
+			},
+		},
+	})
+	c.Finalize()
+
+	r, err := NewRunner(c, false, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	go r.Start()
+	defer r.Stop()
+
+	select {
+	case err := <-r.ErrCh:
+		t.Fatal(err)
+	case <-r.renderedCh:
+		found := false
+		for i := 0; i < 5; i++ {
+			if found {
+				break
+			}
+
+			time.Sleep(100 * time.Millisecond)
+
+			r.childLock.RLock()
+			if r.child != nil {
+				found = true
+			}
+			r.childLock.RUnlock()
+		}
+		if !found {
+			t.Error("missing child process, exec was not called")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("timeout")
+	}
+}
