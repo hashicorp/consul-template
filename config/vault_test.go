@@ -28,6 +28,7 @@ func TestVaultConfig_Copy(t *testing.T) {
 				Address:    String("address"),
 				Enabled:    Bool(true),
 				Grace:      TimeDuration(1 * time.Minute),
+				Namespace:  String("foo"),
 				RenewToken: Bool(true),
 				Retry:      &RetryConfig{Enabled: Bool(true)},
 				SSL:        &SSLConfig{Enabled: Bool(true)},
@@ -152,6 +153,30 @@ func TestVaultConfig_Merge(t *testing.T) {
 			&VaultConfig{Grace: TimeDuration(5 * time.Minute)},
 			&VaultConfig{Grace: TimeDuration(5 * time.Minute)},
 			&VaultConfig{Grace: TimeDuration(5 * time.Minute)},
+		},
+		{
+			"namespace_overrides",
+			&VaultConfig{Namespace: String("foo")},
+			&VaultConfig{Namespace: String("bar")},
+			&VaultConfig{Namespace: String("bar")},
+		},
+		{
+			"namespace_empty_one",
+			&VaultConfig{Namespace: String("foo")},
+			&VaultConfig{},
+			&VaultConfig{Namespace: String("foo")},
+		},
+		{
+			"namespace_empty_two",
+			&VaultConfig{},
+			&VaultConfig{Namespace: String("bar")},
+			&VaultConfig{Namespace: String("bar")},
+		},
+		{
+			"namespace_same",
+			&VaultConfig{Namespace: String("foo")},
+			&VaultConfig{Namespace: String("foo")},
+			&VaultConfig{Namespace: String("foo")},
 		},
 		{
 			"token_overrides",
@@ -322,6 +347,7 @@ func TestVaultConfig_Finalize(t *testing.T) {
 				Address:    String(""),
 				Enabled:    Bool(false),
 				Grace:      TimeDuration(DefaultVaultGrace),
+				Namespace:  String(""),
 				RenewToken: Bool(DefaultVaultRenewToken),
 				Retry: &RetryConfig{
 					Backoff:    TimeDuration(DefaultRetryBackoff),
@@ -360,6 +386,7 @@ func TestVaultConfig_Finalize(t *testing.T) {
 				Address:    String("address"),
 				Enabled:    Bool(true),
 				Grace:      TimeDuration(DefaultVaultGrace),
+				Namespace:  String(""),
 				RenewToken: Bool(DefaultVaultRenewToken),
 				Retry: &RetryConfig{
 					Backoff:    TimeDuration(DefaultRetryBackoff),
@@ -398,6 +425,7 @@ func TestVaultConfig_Finalize(t *testing.T) {
 				Address:    String("address"),
 				Enabled:    Bool(true),
 				Grace:      TimeDuration(DefaultVaultGrace),
+				Namespace:  String(""),
 				RenewToken: Bool(DefaultVaultRenewToken),
 				Retry: &RetryConfig{
 					Backoff:    TimeDuration(DefaultRetryBackoff),
