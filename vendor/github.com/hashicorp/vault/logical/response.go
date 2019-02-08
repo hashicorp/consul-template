@@ -1,6 +1,7 @@
 package logical
 
 import (
+	"encoding/json"
 	"errors"
 
 	"github.com/hashicorp/vault/helper/wrapping"
@@ -23,6 +24,12 @@ const (
 	// This can only be specified for non-secrets, and should should be similarly
 	// avoided like the HTTPContentType. The value must be an integer.
 	HTTPStatusCode = "http_status_code"
+
+	// For unwrapping we may need to know whether the value contained in the
+	// raw body is already JSON-unmarshaled. The presence of this key indicates
+	// that it has already been unmarshaled. That way we don't need to simply
+	// ignore errors.
+	HTTPRawBodyAlreadyJSONDecoded = "http_raw_body_already_json_decoded"
 )
 
 // Response is a struct that stores the response of a request.
@@ -82,11 +89,12 @@ func (r *Response) Error() error {
 }
 
 // HelpResponse is used to format a help response
-func HelpResponse(text string, seeAlso []string) *Response {
+func HelpResponse(text string, seeAlso []string, oapiDoc interface{}) *Response {
 	return &Response{
 		Data: map[string]interface{}{
 			"help":     text,
 			"see_also": seeAlso,
+			"openapi":  oapiDoc,
 		},
 	}
 }
@@ -109,4 +117,55 @@ func ListResponse(keys []string) *Response {
 		resp.Data["keys"] = keys
 	}
 	return resp
+}
+
+// ListResponseWithInfo is used to format a response to a list operation and
+// return the keys as well as a map with corresponding key info.
+func ListResponseWithInfo(keys []string, keyInfo map[string]interface{}) *Response {
+	resp := ListResponse(keys)
+
+	keyInfoData := make(map[string]interface{})
+	for _, key := range keys {
+		val, ok := keyInfo[key]
+		if ok {
+			keyInfoData[key] = val
+		}
+	}
+
+	if len(keyInfoData) > 0 {
+		resp.Data["key_info"] = keyInfoData
+	}
+
+	return resp
+}
+
+// RespondWithStatusCode takes a response and converts it to a raw response with
+// the provided Status Code.
+func RespondWithStatusCode(resp *Response, req *Request, code int) (*Response, error) {
+	ret := &Response{
+		Data: map[string]interface{}{
+			HTTPContentType: "application/json",
+			HTTPStatusCode:  code,
+		},
+	}
+
+	if resp != nil {
+		httpResp := LogicalResponseToHTTPResponse(resp)
+
+		if req != nil {
+			httpResp.RequestID = req.ID
+		}
+
+		body, err := json.Marshal(httpResp)
+		if err != nil {
+			return nil, err
+		}
+
+		// We default to string here so that the value is HMAC'd via audit.
+		// Since this function is always marshaling to JSON, this is
+		// appropriate.
+		ret.Data[HTTPRawBody] = string(body)
+	}
+
+	return ret, nil
 }

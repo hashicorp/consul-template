@@ -71,10 +71,13 @@ func TestVaultReadQuery_Fetch(t *testing.T) {
 	clients, vault := testVaultServer(t)
 	defer vault.Stop()
 
-	vault.CreateSecret("foo/bar", map[string]interface{}{
+	err := vault.CreateSecret("foo/bar", map[string]interface{}{
 		"ttl": "100ms", // explicitly make this a short duration for testing
 		"zip": "zap",
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	cases := []struct {
 		name string

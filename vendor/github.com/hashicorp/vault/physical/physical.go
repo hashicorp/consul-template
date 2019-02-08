@@ -1,10 +1,11 @@
 package physical
 
 import (
+	"context"
 	"strings"
 	"sync"
 
-	log "github.com/mgutz/logxi/v1"
+	log "github.com/hashicorp/go-hclog"
 )
 
 const DefaultParallelOperations = 128
@@ -30,17 +31,17 @@ type ShutdownChannel chan struct{}
 // are expected to be thread safe.
 type Backend interface {
 	// Put is used to insert or update an entry
-	Put(entry *Entry) error
+	Put(ctx context.Context, entry *Entry) error
 
 	// Get is used to fetch an entry
-	Get(key string) (*Entry, error)
+	Get(ctx context.Context, key string) (*Entry, error)
 
 	// Delete is used to permanently delete an entry
-	Delete(key string) error
+	Delete(ctx context.Context, key string) error
 
-	// List is used ot list all the keys under a given
+	// List is used to list all the keys under a given
 	// prefix, up to the next prefix.
-	List(prefix string) ([]string, error)
+	List(ctx context.Context, prefix string) ([]string, error)
 }
 
 // HABackend is an extensions to the standard physical
@@ -55,10 +56,12 @@ type HABackend interface {
 	HAEnabled() bool
 }
 
-// Purgable is an optional interface for backends that support
-// purging of their caches.
-type Purgable interface {
-	Purge()
+// ToggleablePurgemonster is an interface for backends that can toggle on or
+// off special functionality and/or support purging. This is only used for the
+// cache, don't use it for other things.
+type ToggleablePurgemonster interface {
+	Purge(ctx context.Context)
+	SetEnabled(bool)
 }
 
 // RedirectDetect is an optional interface that an HABackend
@@ -72,6 +75,7 @@ type RedirectDetect interface {
 // Callback signatures for RunServiceDiscovery
 type ActiveFunction func() bool
 type SealedFunction func() bool
+type PerformanceStandbyFunction func() bool
 
 // ServiceDiscovery is an optional interface that an HABackend can implement.
 // If they do, the state of a backend is advertised to the service discovery
@@ -87,9 +91,14 @@ type ServiceDiscovery interface {
 	// status to sealed or unsealed.
 	NotifySealedStateChange() error
 
+	// NotifyPerformanceStandbyStateChange is used by Core to notify a backend
+	// capable of ServiceDiscovery that this Vault instance has changed it
+	// status to performance standby or standby.
+	NotifyPerformanceStandbyStateChange() error
+
 	// Run executes any background service discovery tasks until the
 	// shutdown channel is closed.
-	RunServiceDiscovery(waitGroup *sync.WaitGroup, shutdownCh ShutdownChannel, redirectAddr string, activeFunc ActiveFunction, sealedFunc SealedFunction) error
+	RunServiceDiscovery(waitGroup *sync.WaitGroup, shutdownCh ShutdownChannel, redirectAddr string, activeFunc ActiveFunction, sealedFunc SealedFunction, perfStandbyFunc PerformanceStandbyFunction) error
 }
 
 type Lock interface {
@@ -104,12 +113,6 @@ type Lock interface {
 
 	// Returns the value of the lock and if it is held
 	Value() (bool, string, error)
-}
-
-// Entry is used to represent data stored by the physical backend
-type Entry struct {
-	Key   string
-	Value []byte
 }
 
 // Factory is the factory function to create a physical backend.

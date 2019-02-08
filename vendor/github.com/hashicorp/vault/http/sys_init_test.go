@@ -61,9 +61,9 @@ func TestSysInit_pgpKeysEntries(t *testing.T) {
 	defer ln.Close()
 
 	resp := testHttpPut(t, "", addr+"/v1/sys/init", map[string]interface{}{
-		"secret_shares":   5,
-		"secret_threhold": 3,
-		"pgp_keys":        []string{"pgpkey1"},
+		"secret_shares":    5,
+		"secret_threshold": 3,
+		"pgp_keys":         []string{"pgpkey1"},
 	})
 	testResponseStatus(t, resp, 400)
 }
@@ -119,11 +119,7 @@ func TestSysInit_put(t *testing.T) {
 		}
 	}
 
-	seal, err := core.Sealed()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if seal {
+	if core.Sealed() {
 		t.Fatal("should not be sealed")
 	}
 }

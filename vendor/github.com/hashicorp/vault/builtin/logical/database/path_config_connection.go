@@ -1,10 +1,14 @@
 package database
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"net/url"
+	"strings"
 
 	"github.com/fatih/structs"
+	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/vault/builtin/logical/database/dbplugin"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
@@ -23,6 +27,8 @@ type DatabaseConfig struct {
 	// by each database type.
 	ConnectionDetails map[string]interface{} `json:"connection_details" structs:"connection_details" mapstructure:"connection_details"`
 	AllowedRoles      []string               `json:"allowed_roles" structs:"allowed_roles" mapstructure:"allowed_roles"`
+
+	RootCredentialsRotateStatements []string `json:"root_credentials_rotate_statements" structs:"root_credentials_rotate_statements" mapstructure:"root_credentials_rotate_statements"`
 }
 
 // pathResetConnection configures a path to reset a plugin.
@@ -48,22 +54,19 @@ func pathResetConnection(b *databaseBackend) *framework.Path {
 // pathConnectionReset resets a plugin by closing the existing instance and
 // creating a new one.
 func (b *databaseBackend) pathConnectionReset() framework.OperationFunc {
-	return func(req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		name := data.Get("name").(string)
 		if name == "" {
 			return logical.ErrorResponse(respErrEmptyName), nil
 		}
 
-		// Grab the mutex lock
-		b.Lock()
-		defer b.Unlock()
-
 		// Close plugin and delete the entry in the connections cache.
-		b.clearConnection(name)
+		if err := b.ClearConnection(name); err != nil {
+			return nil, err
+		}
 
 		// Execute plugin again, we don't need the object so throw away.
-		_, err := b.createDBObj(req.Storage, name)
-		if err != nil {
+		if _, err := b.GetConnection(ctx, req.Storage, name); err != nil {
 			return nil, err
 		}
 
@@ -102,9 +105,19 @@ func pathConfigurePluginConnection(b *databaseBackend) *framework.Path {
 				allowed to get creds from this database connection. If empty no
 				roles are allowed. If "*" all roles are allowed.`,
 			},
+
+			"root_rotation_statements": &framework.FieldSchema{
+				Type: framework.TypeStringSlice,
+				Description: `Specifies the database statements to be executed
+				to rotate the root user's credentials. See the plugin's API 
+				page for more information on support and formatting for this 
+				parameter.`,
+			},
 		},
 
+		ExistenceCheck: b.connectionExistenceCheck(),
 		Callbacks: map[logical.Operation]framework.OperationFunc{
+			logical.CreateOperation: b.connectionWriteHandler(),
 			logical.UpdateOperation: b.connectionWriteHandler(),
 			logical.ReadOperation:   b.connectionReadHandler(),
 			logical.DeleteOperation: b.connectionDeleteHandler(),
@@ -112,6 +125,22 @@ func pathConfigurePluginConnection(b *databaseBackend) *framework.Path {
 
 		HelpSynopsis:    pathConfigConnectionHelpSyn,
 		HelpDescription: pathConfigConnectionHelpDesc,
+	}
+}
+
+func (b *databaseBackend) connectionExistenceCheck() framework.ExistenceFunc {
+	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (bool, error) {
+		name := data.Get("name").(string)
+		if name == "" {
+			return false, errors.New(`missing "name" parameter`)
+		}
+
+		entry, err := req.Storage.Get(ctx, fmt.Sprintf("config/%s", name))
+		if err != nil {
+			return false, errors.New("failed to read connection configuration")
+		}
+
+		return entry != nil, nil
 	}
 }
 
@@ -129,8 +158,8 @@ func pathListPluginConnection(b *databaseBackend) *framework.Path {
 }
 
 func (b *databaseBackend) connectionListHandler() framework.OperationFunc {
-	return func(req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-		entries, err := req.Storage.List("config/")
+	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+		entries, err := req.Storage.List(ctx, "config/")
 		if err != nil {
 			return nil, err
 		}
@@ -141,13 +170,13 @@ func (b *databaseBackend) connectionListHandler() framework.OperationFunc {
 
 // connectionReadHandler reads out the connection configuration
 func (b *databaseBackend) connectionReadHandler() framework.OperationFunc {
-	return func(req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		name := data.Get("name").(string)
 		if name == "" {
 			return logical.ErrorResponse(respErrEmptyName), nil
 		}
 
-		entry, err := req.Storage.Get(fmt.Sprintf("config/%s", name))
+		entry, err := req.Storage.Get(ctx, fmt.Sprintf("config/%s", name))
 		if err != nil {
 			return nil, errors.New("failed to read connection configuration")
 		}
@@ -159,6 +188,19 @@ func (b *databaseBackend) connectionReadHandler() framework.OperationFunc {
 		if err := entry.DecodeJSON(&config); err != nil {
 			return nil, err
 		}
+
+		// Mask the password if it is in the url
+		if connURLRaw, ok := config.ConnectionDetails["connection_url"]; ok {
+			connURL := connURLRaw.(string)
+			if conn, err := url.Parse(connURL); err == nil {
+				if password, ok := conn.User.Password(); ok {
+					config.ConnectionDetails["connection_url"] = strings.Replace(connURL, password, "*****", -1)
+				}
+			}
+		}
+
+		delete(config.ConnectionDetails, "password")
+
 		return &logical.Response{
 			Data: structs.New(config).Map(),
 		}, nil
@@ -167,27 +209,19 @@ func (b *databaseBackend) connectionReadHandler() framework.OperationFunc {
 
 // connectionDeleteHandler deletes the connection configuration
 func (b *databaseBackend) connectionDeleteHandler() framework.OperationFunc {
-	return func(req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 		name := data.Get("name").(string)
 		if name == "" {
 			return logical.ErrorResponse(respErrEmptyName), nil
 		}
 
-		err := req.Storage.Delete(fmt.Sprintf("config/%s", name))
+		err := req.Storage.Delete(ctx, fmt.Sprintf("config/%s", name))
 		if err != nil {
 			return nil, errors.New("failed to delete connection configuration")
 		}
 
-		b.Lock()
-		defer b.Unlock()
-
-		if _, ok := b.connections[name]; ok {
-			err = b.connections[name].Close()
-			if err != nil {
-				return nil, err
-			}
-
-			delete(b.connections, name)
+		if err := b.ClearConnection(name); err != nil {
+			return nil, err
 		}
 
 		return nil, nil
@@ -197,20 +231,47 @@ func (b *databaseBackend) connectionDeleteHandler() framework.OperationFunc {
 // connectionWriteHandler returns a handler function for creating and updating
 // both builtin and plugin database types.
 func (b *databaseBackend) connectionWriteHandler() framework.OperationFunc {
-	return func(req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
-		pluginName := data.Get("plugin_name").(string)
-		if pluginName == "" {
-			return logical.ErrorResponse(respErrEmptyPluginName), nil
-		}
+	return func(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+		verifyConnection := data.Get("verify_connection").(bool)
 
 		name := data.Get("name").(string)
 		if name == "" {
 			return logical.ErrorResponse(respErrEmptyName), nil
 		}
 
-		verifyConnection := data.Get("verify_connection").(bool)
+		// Baseline
+		config := &DatabaseConfig{}
 
-		allowedRoles := data.Get("allowed_roles").([]string)
+		entry, err := req.Storage.Get(ctx, fmt.Sprintf("config/%s", name))
+		if err != nil {
+			return nil, errors.New("failed to read connection configuration")
+		}
+		if entry != nil {
+			if err := entry.DecodeJSON(config); err != nil {
+				return nil, err
+			}
+		}
+
+		if pluginNameRaw, ok := data.GetOk("plugin_name"); ok {
+			config.PluginName = pluginNameRaw.(string)
+		} else if req.Operation == logical.CreateOperation {
+			config.PluginName = data.Get("plugin_name").(string)
+		}
+		if config.PluginName == "" {
+			return logical.ErrorResponse(respErrEmptyPluginName), nil
+		}
+
+		if allowedRolesRaw, ok := data.GetOk("allowed_roles"); ok {
+			config.AllowedRoles = allowedRolesRaw.([]string)
+		} else if req.Operation == logical.CreateOperation {
+			config.AllowedRoles = data.Get("allowed_roles").([]string)
+		}
+
+		if rootRotationStatementsRaw, ok := data.GetOk("root_rotation_statements"); ok {
+			config.RootCredentialsRotateStatements = rootRotationStatementsRaw.([]string)
+		} else if req.Operation == logical.CreateOperation {
+			config.RootCredentialsRotateStatements = data.Get("root_rotation_statements").([]string)
+		}
 
 		// Remove these entries from the data before we store it keyed under
 		// ConnectionDetails.
@@ -218,45 +279,71 @@ func (b *databaseBackend) connectionWriteHandler() framework.OperationFunc {
 		delete(data.Raw, "plugin_name")
 		delete(data.Raw, "allowed_roles")
 		delete(data.Raw, "verify_connection")
+		delete(data.Raw, "root_rotation_statements")
 
-		config := &DatabaseConfig{
-			ConnectionDetails: data.Raw,
-			PluginName:        pluginName,
-			AllowedRoles:      allowedRoles,
-		}
-
-		db, err := dbplugin.PluginFactory(config.PluginName, b.System(), b.logger)
+		// Create a database plugin and initialize it.
+		db, err := dbplugin.PluginFactory(ctx, config.PluginName, b.System(), b.logger)
 		if err != nil {
 			return logical.ErrorResponse(fmt.Sprintf("error creating database object: %s", err)), nil
 		}
 
-		err = db.Initialize(config.ConnectionDetails, verifyConnection)
+		// If this is an update, take any new values, overwrite what was there
+		// before, and pass that in as the "new" set of values to the plugin,
+		// then save what results
+		if req.Operation == logical.CreateOperation {
+			config.ConnectionDetails = data.Raw
+		} else {
+			if config.ConnectionDetails == nil {
+				config.ConnectionDetails = make(map[string]interface{})
+			}
+			for k, v := range data.Raw {
+				config.ConnectionDetails[k] = v
+			}
+		}
+
+		config.ConnectionDetails, err = db.Init(ctx, config.ConnectionDetails, verifyConnection)
 		if err != nil {
 			db.Close()
 			return logical.ErrorResponse(fmt.Sprintf("error creating database object: %s", err)), nil
 		}
 
-		// Grab the mutex lock
 		b.Lock()
 		defer b.Unlock()
 
 		// Close and remove the old connection
 		b.clearConnection(name)
 
-		// Save the new connection
-		b.connections[name] = db
-
-		// Store it
-		entry, err := logical.StorageEntryJSON(fmt.Sprintf("config/%s", name), config)
+		id, err := uuid.GenerateUUID()
 		if err != nil {
 			return nil, err
 		}
-		if err := req.Storage.Put(entry); err != nil {
+
+		b.connections[name] = &dbPluginInstance{
+			Database: db,
+			name:     name,
+			id:       id,
+		}
+
+		// Store it
+		entry, err = logical.StorageEntryJSON(fmt.Sprintf("config/%s", name), config)
+		if err != nil {
+			return nil, err
+		}
+		if err := req.Storage.Put(ctx, entry); err != nil {
 			return nil, err
 		}
 
 		resp := &logical.Response{}
-		resp.AddWarning("Read access to this endpoint should be controlled via ACLs as it will return the connection details as is, including passwords, if any.")
+
+		// This is a simple test to to check for passwords in the connection_url paramater. If one exists,
+		// warn the user to use templated url string
+		if connURLRaw, ok := config.ConnectionDetails["connection_url"]; ok {
+			if connURL, err := url.Parse(connURLRaw.(string)); err == nil {
+				if _, ok := connURL.User.Password(); ok {
+					resp.AddWarning("Password found in connection_url, use a templated url to enable root rotation and prevent read access to password information.")
+				}
+			}
+		}
 
 		return resp, nil
 	}

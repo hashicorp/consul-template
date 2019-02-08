@@ -10,6 +10,7 @@ import (
 	"crypto/sha1"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -33,6 +34,7 @@ func GetHexFormatted(buf []byte, sep string) string {
 	return ret.String()
 }
 
+// ParseHexFormatted returns the raw bytes from a formatted hex string
 func ParseHexFormatted(in, sep string) []byte {
 	var ret bytes.Buffer
 	var err error
@@ -41,9 +43,8 @@ func ParseHexFormatted(in, sep string) []byte {
 	for _, inByte := range inBytes {
 		if inBits, err = strconv.ParseInt(inByte, 16, 8); err != nil {
 			return nil
-		} else {
-			ret.WriteByte(byte(inBits))
 		}
+		ret.WriteByte(byte(inBits))
 	}
 	return ret.Bytes()
 }
@@ -52,12 +53,12 @@ func ParseHexFormatted(in, sep string) []byte {
 // of the marshaled public key
 func GetSubjKeyID(privateKey crypto.Signer) ([]byte, error) {
 	if privateKey == nil {
-		return nil, errutil.InternalError{"passed-in private key is nil"}
+		return nil, errutil.InternalError{Err: "passed-in private key is nil"}
 	}
 
 	marshaledKey, err := x509.MarshalPKIXPublicKey(privateKey.Public())
 	if err != nil {
-		return nil, errutil.InternalError{fmt.Sprintf("error marshalling public key: %s", err)}
+		return nil, errutil.InternalError{Err: fmt.Sprintf("error marshalling public key: %s", err)}
 	}
 
 	subjKeyID := sha1.Sum(marshaledKey)
@@ -71,7 +72,7 @@ func ParsePKIMap(data map[string]interface{}) (*ParsedCertBundle, error) {
 	result := &CertBundle{}
 	err := mapstructure.Decode(data, result)
 	if err != nil {
-		return nil, errutil.UserError{err.Error()}
+		return nil, errutil.UserError{Err: err.Error()}
 	}
 
 	return result.ToParsedCertBundle()
@@ -97,19 +98,17 @@ func ParsePKIJSON(input []byte) (*ParsedCertBundle, error) {
 		return ParsePKIMap(secret.Data)
 	}
 
-	return nil, errutil.UserError{"unable to parse out of either secret data or a secret object"}
+	return nil, errutil.UserError{Err: "unable to parse out of either secret data or a secret object"}
 }
 
 // ParsePEMBundle takes a string of concatenated PEM-format certificate
 // and private key values and decodes/parses them, checking validity along
-// the way. There must be at max two certificates (a certificate and its
-// issuing certificate) and one private key.
+// the way. The first certificate must be the subject certificate and issuing
+// certificates may follow.  There must be at most one private key.
 func ParsePEMBundle(pemBundle string) (*ParsedCertBundle, error) {
 	if len(pemBundle) == 0 {
-		return nil, errutil.UserError{"empty pem bundle"}
+		return nil, errutil.UserError{Err: "empty pem bundle"}
 	}
-
-	pemBundle = strings.TrimSpace(pemBundle)
 
 	pemBytes := []byte(pemBundle)
 	var pemBlock *pem.Block
@@ -119,12 +118,12 @@ func ParsePEMBundle(pemBundle string) (*ParsedCertBundle, error) {
 	for len(pemBytes) > 0 {
 		pemBlock, pemBytes = pem.Decode(pemBytes)
 		if pemBlock == nil {
-			return nil, errutil.UserError{"no data found"}
+			return nil, errutil.UserError{Err: "no data found in PEM block"}
 		}
 
 		if signer, err := x509.ParseECPrivateKey(pemBlock.Bytes); err == nil {
 			if parsedBundle.PrivateKeyType != UnknownPrivateKey {
-				return nil, errutil.UserError{"more than one private key given; provide only one private key in the bundle"}
+				return nil, errutil.UserError{Err: "more than one private key given; provide only one private key in the bundle"}
 			}
 			parsedBundle.PrivateKeyFormat = ECBlock
 			parsedBundle.PrivateKeyType = ECPrivateKey
@@ -133,7 +132,7 @@ func ParsePEMBundle(pemBundle string) (*ParsedCertBundle, error) {
 
 		} else if signer, err := x509.ParsePKCS1PrivateKey(pemBlock.Bytes); err == nil {
 			if parsedBundle.PrivateKeyType != UnknownPrivateKey {
-				return nil, errutil.UserError{"more than one private key given; provide only one private key in the bundle"}
+				return nil, errutil.UserError{Err: "more than one private key given; provide only one private key in the bundle"}
 			}
 			parsedBundle.PrivateKeyType = RSAPrivateKey
 			parsedBundle.PrivateKeyFormat = PKCS1Block
@@ -143,7 +142,7 @@ func ParsePEMBundle(pemBundle string) (*ParsedCertBundle, error) {
 			parsedBundle.PrivateKeyFormat = PKCS8Block
 
 			if parsedBundle.PrivateKeyType != UnknownPrivateKey {
-				return nil, errutil.UserError{"More than one private key given; provide only one private key in the bundle"}
+				return nil, errutil.UserError{Err: "More than one private key given; provide only one private key in the bundle"}
 			}
 			switch signer := signer.(type) {
 			case *rsa.PrivateKey:
@@ -274,4 +273,29 @@ func ComparePublicKeys(key1Iface, key2Iface crypto.PublicKey) (bool, error) {
 	default:
 		return false, fmt.Errorf("cannot compare key with type %T", key1Iface)
 	}
+}
+
+// PasrsePublicKeyPEM is used to parse RSA and ECDSA public keys from PEMs
+func ParsePublicKeyPEM(data []byte) (interface{}, error) {
+	block, data := pem.Decode(data)
+	if block != nil {
+		var rawKey interface{}
+		var err error
+		if rawKey, err = x509.ParsePKIXPublicKey(block.Bytes); err != nil {
+			if cert, err := x509.ParseCertificate(block.Bytes); err == nil {
+				rawKey = cert.PublicKey
+			} else {
+				return nil, err
+			}
+		}
+
+		if rsaPublicKey, ok := rawKey.(*rsa.PublicKey); ok {
+			return rsaPublicKey, nil
+		}
+		if ecPublicKey, ok := rawKey.(*ecdsa.PublicKey); ok {
+			return ecPublicKey, nil
+		}
+	}
+
+	return nil, errors.New("data does not contain any valid RSA or ECDSA public keys")
 }

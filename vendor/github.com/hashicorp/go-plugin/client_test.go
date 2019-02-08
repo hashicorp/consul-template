@@ -3,12 +3,14 @@ package plugin
 import (
 	"bytes"
 	"crypto/sha256"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -17,7 +19,11 @@ import (
 
 func TestClient(t *testing.T) {
 	process := helperProcess("mock")
-	c := NewClient(&ClientConfig{Cmd: process, HandshakeConfig: testHandshake})
+	c := NewClient(&ClientConfig{
+		Cmd:             process,
+		HandshakeConfig: testHandshake,
+		Plugins:         testPluginMap,
+	})
 	defer c.Kill()
 
 	// Test that it parses the proper address
@@ -37,13 +43,14 @@ func TestClient(t *testing.T) {
 	// Test that it exits properly if killed
 	c.Kill()
 
-	if process.ProcessState == nil {
-		t.Fatal("should have process state")
-	}
-
 	// Test that it knows it is exited
 	if !c.Exited() {
 		t.Fatal("should say client has exited")
+	}
+
+	// this test isn't expected to get a client
+	if !c.killed() {
+		t.Fatal("Client should have failed")
 	}
 }
 
@@ -88,8 +95,8 @@ func TestClient_killStart(t *testing.T) {
 		t.Fatal("should say client has exited")
 	}
 
-	if process.ProcessState == nil {
-		t.Fatal("should have no process state")
+	if !c.killed() {
+		t.Fatal("process should have failed")
 	}
 
 	// Verify our path doesn't exist
@@ -170,6 +177,54 @@ func TestClient_testInterface(t *testing.T) {
 	if !c.Exited() {
 		t.Fatal("should say client has exited")
 	}
+
+	if c.killed() {
+		t.Fatal("process failed to exit gracefully")
+	}
+}
+
+func TestClient_grpc_servercrash(t *testing.T) {
+	process := helperProcess("test-grpc")
+	c := NewClient(&ClientConfig{
+		Cmd:              process,
+		HandshakeConfig:  testHandshake,
+		Plugins:          testGRPCPluginMap,
+		AllowedProtocols: []Protocol{ProtocolGRPC},
+	})
+	defer c.Kill()
+
+	if _, err := c.Start(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if v := c.Protocol(); v != ProtocolGRPC {
+		t.Fatalf("bad: %s", v)
+	}
+
+	// Grab the RPC client
+	client, err := c.Client()
+	if err != nil {
+		t.Fatalf("err should be nil, got %s", err)
+	}
+
+	// Grab the impl
+	raw, err := client.Dispense("test")
+	if err != nil {
+		t.Fatalf("err should be nil, got %s", err)
+	}
+
+	_, ok := raw.(testInterface)
+	if !ok {
+		t.Fatalf("bad: %#v", raw)
+	}
+
+	c.process.Kill()
+
+	select {
+	case <-c.doneCtx.Done():
+	case <-time.After(time.Second * 2):
+		t.Fatal("Context was not closed")
+	}
 }
 
 func TestClient_grpc(t *testing.T) {
@@ -177,7 +232,7 @@ func TestClient_grpc(t *testing.T) {
 	c := NewClient(&ClientConfig{
 		Cmd:              process,
 		HandshakeConfig:  testHandshake,
-		Plugins:          testPluginMap,
+		Plugins:          testGRPCPluginMap,
 		AllowedProtocols: []Protocol{ProtocolGRPC},
 	})
 	defer c.Kill()
@@ -218,6 +273,10 @@ func TestClient_grpc(t *testing.T) {
 	// Test that it knows it is exited
 	if !c.Exited() {
 		t.Fatal("should say client has exited")
+	}
+
+	if c.killed() {
+		t.Fatal("process failed to exit gracefully")
 	}
 }
 
@@ -304,6 +363,10 @@ func TestClient_reattach(t *testing.T) {
 	if !c.Exited() {
 		t.Fatal("should say client has exited")
 	}
+
+	if c.killed() {
+		t.Fatal("process failed to exit gracefully")
+	}
 }
 
 func TestClient_reattachNoProtocol(t *testing.T) {
@@ -361,6 +424,10 @@ func TestClient_reattachNoProtocol(t *testing.T) {
 	if !c.Exited() {
 		t.Fatal("should say client has exited")
 	}
+
+	if c.killed() {
+		t.Fatal("process failed to exit gracefully")
+	}
 }
 
 func TestClient_reattachGRPC(t *testing.T) {
@@ -368,7 +435,7 @@ func TestClient_reattachGRPC(t *testing.T) {
 	c := NewClient(&ClientConfig{
 		Cmd:              process,
 		HandshakeConfig:  testHandshake,
-		Plugins:          testPluginMap,
+		Plugins:          testGRPCPluginMap,
 		AllowedProtocols: []Protocol{ProtocolGRPC},
 	})
 	defer c.Kill()
@@ -386,7 +453,7 @@ func TestClient_reattachGRPC(t *testing.T) {
 	c = NewClient(&ClientConfig{
 		Reattach:         reattach,
 		HandshakeConfig:  testHandshake,
-		Plugins:          testPluginMap,
+		Plugins:          testGRPCPluginMap,
 		AllowedProtocols: []Protocol{ProtocolGRPC},
 	})
 
@@ -418,6 +485,10 @@ func TestClient_reattachGRPC(t *testing.T) {
 	// Test that it knows it is exited
 	if !c.Exited() {
 		t.Fatal("should say client has exited")
+	}
+
+	if c.killed() {
+		t.Fatal("process failed to exit gracefully")
 	}
 }
 
@@ -462,6 +533,7 @@ func TestClientStart_badVersion(t *testing.T) {
 		Cmd:             helperProcess("bad-version"),
 		StartTimeout:    50 * time.Millisecond,
 		HandshakeConfig: testHandshake,
+		Plugins:         testPluginMap,
 	}
 
 	c := NewClient(config)
@@ -473,11 +545,31 @@ func TestClientStart_badVersion(t *testing.T) {
 	}
 }
 
+func TestClientStart_badNegotiatedVersion(t *testing.T) {
+	config := &ClientConfig{
+		Cmd:          helperProcess("test-versioned-plugins"),
+		StartTimeout: 50 * time.Millisecond,
+		// test-versioned-plugins only has version 2
+		HandshakeConfig: testHandshake,
+		Plugins:         testPluginMap,
+	}
+
+	c := NewClient(config)
+	defer c.Kill()
+
+	_, err := c.Start()
+	if err == nil {
+		t.Fatal("err should not be nil")
+	}
+	fmt.Println(err)
+}
+
 func TestClient_Start_Timeout(t *testing.T) {
 	config := &ClientConfig{
 		Cmd:             helperProcess("start-timeout"),
 		StartTimeout:    50 * time.Millisecond,
 		HandshakeConfig: testHandshake,
+		Plugins:         testPluginMap,
 	}
 
 	c := NewClient(config)
@@ -496,6 +588,7 @@ func TestClient_Stderr(t *testing.T) {
 		Cmd:             process,
 		Stderr:          stderr,
 		HandshakeConfig: testHandshake,
+		Plugins:         testPluginMap,
 	})
 	defer c.Kill()
 
@@ -505,6 +598,10 @@ func TestClient_Stderr(t *testing.T) {
 
 	for !c.Exited() {
 		time.Sleep(10 * time.Millisecond)
+	}
+
+	if c.killed() {
+		t.Fatal("process failed to exit gracefully")
 	}
 
 	if !strings.Contains(stderr.String(), "HELLO\n") {
@@ -523,6 +620,7 @@ func TestClient_StderrJSON(t *testing.T) {
 		Cmd:             process,
 		Stderr:          stderr,
 		HandshakeConfig: testHandshake,
+		Plugins:         testPluginMap,
 	})
 	defer c.Kill()
 
@@ -532,6 +630,10 @@ func TestClient_StderrJSON(t *testing.T) {
 
 	for !c.Exited() {
 		time.Sleep(10 * time.Millisecond)
+	}
+
+	if c.killed() {
+		t.Fatal("process failed to exit gracefully")
 	}
 
 	if !strings.Contains(stderr.String(), "[\"HELLO\"]\n") {
@@ -569,7 +671,11 @@ func TestClient_Stdin(t *testing.T) {
 	os.Stdin = tf
 
 	process := helperProcess("stdin")
-	c := NewClient(&ClientConfig{Cmd: process, HandshakeConfig: testHandshake})
+	c := NewClient(&ClientConfig{
+		Cmd:             process,
+		HandshakeConfig: testHandshake,
+		Plugins:         testPluginMap,
+	})
 	defer c.Kill()
 
 	_, err = c.Start()
@@ -632,6 +738,7 @@ func TestClient_SecureConfig(t *testing.T) {
 		Hash:     sha256.New(),
 	}
 
+	process = helperProcess("test-interface")
 	c = NewClient(&ClientConfig{
 		Cmd:             process,
 		HandshakeConfig: testHandshake,
@@ -715,6 +822,10 @@ func TestClient_TLS(t *testing.T) {
 	if !c.Exited() {
 		t.Fatal("should say client has exited")
 	}
+
+	if c.killed() {
+		t.Fatal("process failed to exit gracefully")
+	}
 }
 
 func TestClient_TLS_grpc(t *testing.T) {
@@ -728,7 +839,7 @@ func TestClient_TLS_grpc(t *testing.T) {
 	c := NewClient(&ClientConfig{
 		Cmd:              process,
 		HandshakeConfig:  testHandshake,
-		Plugins:          testPluginMap,
+		Plugins:          testGRPCPluginMap,
 		TLSConfig:        tlsConfig,
 		AllowedProtocols: []Protocol{ProtocolGRPC},
 	})
@@ -759,9 +870,12 @@ func TestClient_TLS_grpc(t *testing.T) {
 	// Kill it
 	c.Kill()
 
-	// Test that it knows it is exited
 	if !c.Exited() {
 		t.Fatal("should say client has exited")
+	}
+
+	if c.killed() {
+		t.Fatal("process failed to exit gracefully")
 	}
 }
 
@@ -807,6 +921,233 @@ func TestClient_ping(t *testing.T) {
 	}
 }
 
+func TestClient_wrongVersion(t *testing.T) {
+	process := helperProcess("test-proto-upgraded-plugin")
+	c := NewClient(&ClientConfig{
+		Cmd:              process,
+		HandshakeConfig:  testHandshake,
+		Plugins:          testGRPCPluginMap,
+		AllowedProtocols: []Protocol{ProtocolGRPC},
+	})
+	defer c.Kill()
+
+	// Get the client
+	_, err := c.Client()
+	if err == nil {
+		t.Fatal("expected incorrect protocol version server")
+	}
+
+}
+
+func TestClient_legacyClient(t *testing.T) {
+	process := helperProcess("test-proto-upgraded-plugin")
+	c := NewClient(&ClientConfig{
+		Cmd:             process,
+		HandshakeConfig: testVersionedHandshake,
+		VersionedPlugins: map[int]PluginSet{
+			1: testPluginMap,
+		},
+	})
+	defer c.Kill()
+
+	// Get the client
+	client, err := c.Client()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c.NegotiatedVersion() != 1 {
+		t.Fatal("using incorrect version", c.NegotiatedVersion())
+	}
+
+	// Ping, should work
+	if err := client.Ping(); err == nil {
+		t.Fatal("expected error, should negotiate wrong plugin")
+	}
+}
+
+func TestClient_legacyServer(t *testing.T) {
+	// test using versioned plugins version when the server supports only
+	// supports one
+	process := helperProcess("test-proto-upgraded-client")
+	c := NewClient(&ClientConfig{
+		Cmd:             process,
+		HandshakeConfig: testVersionedHandshake,
+		VersionedPlugins: map[int]PluginSet{
+			2: testGRPCPluginMap,
+		},
+		AllowedProtocols: []Protocol{ProtocolGRPC},
+	})
+	defer c.Kill()
+
+	// Get the client
+	client, err := c.Client()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c.NegotiatedVersion() != 2 {
+		t.Fatal("using incorrect version", c.NegotiatedVersion())
+	}
+
+	// Ping, should work
+	if err := client.Ping(); err == nil {
+		t.Fatal("expected error, should negotiate wrong plugin")
+	}
+}
+
+func TestClient_versionedClient(t *testing.T) {
+	process := helperProcess("test-versioned-plugins")
+	c := NewClient(&ClientConfig{
+		Cmd:             process,
+		HandshakeConfig: testVersionedHandshake,
+		VersionedPlugins: map[int]PluginSet{
+			2: testGRPCPluginMap,
+		},
+		AllowedProtocols: []Protocol{ProtocolGRPC},
+	})
+	defer c.Kill()
+
+	if _, err := c.Start(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if v := c.Protocol(); v != ProtocolGRPC {
+		t.Fatalf("bad: %s", v)
+	}
+
+	// Grab the RPC client
+	client, err := c.Client()
+	if err != nil {
+		t.Fatalf("err should be nil, got %s", err)
+	}
+
+	if c.NegotiatedVersion() != 2 {
+		t.Fatal("using incorrect version", c.NegotiatedVersion())
+	}
+
+	// Grab the impl
+	raw, err := client.Dispense("test")
+	if err != nil {
+		t.Fatalf("err should be nil, got %s", err)
+	}
+
+	_, ok := raw.(testInterface)
+	if !ok {
+		t.Fatalf("bad: %#v", raw)
+	}
+
+	c.process.Kill()
+
+	select {
+	case <-c.doneCtx.Done():
+	case <-time.After(time.Second * 2):
+		t.Fatal("Context was not closed")
+	}
+}
+
+func TestClient_mtlsClient(t *testing.T) {
+	process := helperProcess("test-mtls")
+	c := NewClient(&ClientConfig{
+		AutoMTLS:        true,
+		Cmd:             process,
+		HandshakeConfig: testVersionedHandshake,
+		VersionedPlugins: map[int]PluginSet{
+			2: testGRPCPluginMap,
+		},
+		AllowedProtocols: []Protocol{ProtocolGRPC},
+	})
+	defer c.Kill()
+
+	if _, err := c.Start(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if v := c.Protocol(); v != ProtocolGRPC {
+		t.Fatalf("bad: %s", v)
+	}
+
+	// Grab the RPC client
+	client, err := c.Client()
+	if err != nil {
+		t.Fatalf("err should be nil, got %s", err)
+	}
+
+	if c.NegotiatedVersion() != 2 {
+		t.Fatal("using incorrect version", c.NegotiatedVersion())
+	}
+
+	// Grab the impl
+	raw, err := client.Dispense("test")
+	if err != nil {
+		t.Fatalf("err should be nil, got %s", err)
+	}
+
+	tester, ok := raw.(testInterface)
+	if !ok {
+		t.Fatalf("bad: %#v", raw)
+	}
+
+	n := tester.Double(3)
+	if n != 6 {
+		t.Fatal("invalid response", n)
+	}
+
+	c.process.Kill()
+
+	select {
+	case <-c.doneCtx.Done():
+	case <-time.After(time.Second * 2):
+		t.Fatal("Context was not closed")
+	}
+}
+
+func TestClient_mtlsNetRPCClient(t *testing.T) {
+	process := helperProcess("test-interface-mtls")
+	c := NewClient(&ClientConfig{
+		AutoMTLS:         true,
+		Cmd:              process,
+		HandshakeConfig:  testVersionedHandshake,
+		Plugins:          testPluginMap,
+		AllowedProtocols: []Protocol{ProtocolNetRPC},
+	})
+	defer c.Kill()
+
+	if _, err := c.Start(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Grab the RPC client
+	client, err := c.Client()
+	if err != nil {
+		t.Fatalf("err should be nil, got %s", err)
+	}
+
+	// Grab the impl
+	raw, err := client.Dispense("test")
+	if err != nil {
+		t.Fatalf("err should be nil, got %s", err)
+	}
+
+	tester, ok := raw.(testInterface)
+	if !ok {
+		t.Fatalf("bad: %#v", raw)
+	}
+
+	n := tester.Double(3)
+	if n != 6 {
+		t.Fatal("invalid response", n)
+	}
+
+	c.process.Kill()
+
+	select {
+	case <-c.doneCtx.Done():
+	case <-time.After(time.Second * 2):
+		t.Fatal("Context was not closed")
+	}
+}
+
 func TestClient_logger(t *testing.T) {
 	t.Run("net/rpc", func(t *testing.T) { testClient_logger(t, "netrpc") })
 	t.Run("grpc", func(t *testing.T) { testClient_logger(t, "grpc") })
@@ -814,19 +1155,21 @@ func TestClient_logger(t *testing.T) {
 
 func testClient_logger(t *testing.T, proto string) {
 	var buffer bytes.Buffer
+	mutex := new(sync.Mutex)
 	stderr := io.MultiWriter(os.Stderr, &buffer)
 	// Custom hclog.Logger
 	clientLogger := hclog.New(&hclog.LoggerOptions{
 		Name:   "test-logger",
 		Level:  hclog.Trace,
 		Output: stderr,
+		Mutex:  mutex,
 	})
 
 	process := helperProcess("test-interface-logger-" + proto)
 	c := NewClient(&ClientConfig{
 		Cmd:              process,
 		HandshakeConfig:  testHandshake,
-		Plugins:          testPluginMap,
+		Plugins:          testGRPCPluginMap,
 		Logger:           clientLogger,
 		AllowedProtocols: []Protocol{ProtocolNetRPC, ProtocolGRPC},
 	})
@@ -851,10 +1194,14 @@ func testClient_logger(t *testing.T, proto string) {
 
 	{
 		// Discard everything else, and capture the output we care about
+		mutex.Lock()
 		buffer.Reset()
+		mutex.Unlock()
 		impl.PrintKV("foo", "bar")
 		time.Sleep(100 * time.Millisecond)
+		mutex.Lock()
 		line, err := buffer.ReadString('\n')
+		mutex.Unlock()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -865,10 +1212,14 @@ func testClient_logger(t *testing.T, proto string) {
 
 	{
 		// Try an integer type
+		mutex.Lock()
 		buffer.Reset()
+		mutex.Unlock()
 		impl.PrintKV("foo", 12)
 		time.Sleep(100 * time.Millisecond)
+		mutex.Lock()
 		line, err := buffer.ReadString('\n')
+		mutex.Unlock()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -883,5 +1234,9 @@ func testClient_logger(t *testing.T, proto string) {
 	// Test that it knows it is exited
 	if !c.Exited() {
 		t.Fatal("should say client has exited")
+	}
+
+	if c.killed() {
+		t.Fatal("process failed to exit gracefully")
 	}
 }

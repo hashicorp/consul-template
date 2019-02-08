@@ -1,6 +1,7 @@
 package transit
 
 import (
+	"context"
 	"strconv"
 	"strings"
 	"testing"
@@ -9,24 +10,17 @@ import (
 )
 
 func TestTransit_ConfigSettings(t *testing.T) {
-	var b *backend
-	sysView := logical.TestSystemView()
-	storage := &logical.InmemStorage{}
-
-	b = Backend(&logical.BackendConfig{
-		StorageView: storage,
-		System:      sysView,
-	})
+	b, storage := createBackendWithSysView(t)
 
 	doReq := func(req *logical.Request) *logical.Response {
-		resp, err := b.HandleRequest(req)
-		if err != nil {
+		resp, err := b.HandleRequest(context.Background(), req)
+		if err != nil || (resp != nil && resp.IsError()) {
 			t.Fatalf("got err:\n%#v\nreq:\n%#v\n", err, *req)
 		}
 		return resp
 	}
 	doErrReq := func(req *logical.Request) {
-		resp, err := b.HandleRequest(req)
+		resp, err := b.HandleRequest(context.Background(), req)
 		if err == nil {
 			if resp == nil || !resp.IsError() {
 				t.Fatalf("expected error; req:\n%#v\n", *req)
