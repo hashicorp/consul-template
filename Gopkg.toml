@@ -32,8 +32,8 @@
   name = "github.com/hashicorp/logutils"
 
 [[constraint]]
+  branch = "master"
   name = "github.com/hashicorp/vault"
-  version = "1.0.2"
 
 [[constraint]]
   name = "github.com/mattn/go-shellwords"
