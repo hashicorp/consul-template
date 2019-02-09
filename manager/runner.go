@@ -161,6 +161,12 @@ type RenderEvent struct {
 
 	// LastDidRender marks the last time the template was written to disk.
 	LastDidRender time.Time
+
+	// ForQuiescence determines if this event is returned early in the
+	// render loop due to quiescence. When evaluating if all templates have
+	// been rendered we need to know if the event is triggered by quiesence
+	// and if we can skip evaluating it as a render event for those purposes
+	ForQuiescence bool
 }
 
 // NewRunner accepts a slice of TemplateConfigs and returns a pointer to the new
@@ -730,6 +736,8 @@ func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*
 	// We do not want to render the templates yet.
 	if q, ok := r.quiescenceMap[tmpl.ID()]; ok {
 		q.tick()
+		// This event is being returned early for quiescence
+		event.ForQuiescence = true
 		return event, nil
 	}
 
@@ -955,6 +963,13 @@ func (r *Runner) allTemplatesRendered() bool {
 		event, rendered := r.renderEvents[tmpl.ID()]
 		if !rendered {
 			return false
+		}
+
+		// Skip evaluation of events from quiescence as they will
+		// be default unrendered as we are still waiting for the
+		// specified period
+		if event.ForQuiescence {
+			continue
 		}
 
 		// The template might already exist on disk with the exact contents, but
