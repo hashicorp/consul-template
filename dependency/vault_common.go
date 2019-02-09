@@ -3,6 +3,8 @@ package dependency
 import (
 	"log"
 	"math/rand"
+	"path"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/vault/api"
@@ -191,5 +193,71 @@ func updateSecret(ours *Secret, theirs *api.Secret) {
 		if theirs.WrapInfo.WrappedAccessor != "" {
 			ours.WrapInfo.WrappedAccessor = theirs.WrapInfo.WrappedAccessor
 		}
+	}
+}
+
+func isKVv2(client *api.Client, path string) (string, bool, error) {
+	// We don't want to use a wrapping call here so save any custom value and
+	// restore after
+	currentWrappingLookupFunc := client.CurrentWrappingLookupFunc()
+	client.SetWrappingLookupFunc(nil)
+	defer client.SetWrappingLookupFunc(currentWrappingLookupFunc)
+	currentOutputCurlString := client.OutputCurlString()
+	client.SetOutputCurlString(false)
+	defer client.SetOutputCurlString(currentOutputCurlString)
+
+	r := client.NewRequest("GET", "/v1/sys/internal/ui/mounts/"+path)
+	resp, err := client.RawRequest(r)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+	if err != nil {
+		// If we get a 404 we are using an older version of vault, default to
+		// version 1
+		if resp != nil && resp.StatusCode == 404 {
+			return "", false, nil
+		}
+
+		return "", false, err
+	}
+
+	secret, err := api.ParseSecret(resp.Body)
+	if err != nil {
+		return "", false, err
+	}
+	var mountPath string
+	if mountPathRaw, ok := secret.Data["path"]; ok {
+		mountPath = mountPathRaw.(string)
+	}
+	var mountType string
+	if mountTypeRaw, ok := secret.Data["type"]; ok {
+		mountType = mountTypeRaw.(string)
+	}
+	options := secret.Data["options"]
+	if options == nil {
+		return mountPath, false, nil
+	}
+	versionRaw := options.(map[string]interface{})["version"]
+	if versionRaw == nil {
+		return mountPath, false, nil
+	}
+	version := versionRaw.(string)
+	switch version {
+	case "", "1":
+		return mountPath, false, nil
+	case "2":
+		return mountPath, mountType == "kv", nil
+	}
+
+	return mountPath, false, nil
+}
+
+func addPrefixToVKVPath(p, mountPath, apiPrefix string) string {
+	switch {
+	case p == mountPath, p == strings.TrimSuffix(mountPath, "/"):
+		return path.Join(mountPath, apiPrefix)
+	default:
+		p = strings.TrimPrefix(p, mountPath)
+		return path.Join(mountPath, apiPrefix, p)
 	}
 }

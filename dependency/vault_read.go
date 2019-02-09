@@ -23,6 +23,7 @@ type VaultReadQuery struct {
 	path        string
 	queryValues url.Values
 	secret      *Secret
+	isKVv2      *bool
 
 	// vaultSecret is the actual Vault secret which we are renewing
 	vaultSecret *api.Secret
@@ -144,7 +145,22 @@ func (d *VaultReadQuery) readSecret(clients *ClientSet, opts *QueryOptions) (*ap
 		Path:     "/v1/" + d.path,
 		RawQuery: queryString,
 	})
-	vaultSecret, err := clients.Vault().Logical().ReadWithData(d.path, d.queryValues)
+	vaultClient := clients.Vault()
+
+	// Check whether this secret refers to a KV v2 entry if we haven't yet.
+	if d.isKVv2 == nil {
+		mountPath, isKVv2, err := isKVv2(vaultClient, d.path)
+		if err != nil {
+			return nil, errors.Wrap(err, d.String())
+		}
+
+		if isKVv2 {
+			d.path = addPrefixToVKVPath(d.path, mountPath, "data")
+		}
+		d.isKVv2 = &isKVv2
+	}
+
+	vaultSecret, err := vaultClient.Logical().ReadWithData(d.path, d.queryValues)
 	if err != nil {
 		return nil, errors.Wrap(err, d.String())
 	}

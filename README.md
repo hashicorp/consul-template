@@ -788,6 +788,17 @@ renders
 FORWARDSoneword
 ```
 
+To access a versioned secret value (for the K/V version 2 backend):
+
+```liquid
+{{ with secret "secret/passwords?version=1" }}
+{{ .Data.data.wifi }}{{ end }}
+```
+
+Note the nested `.Data.data` syntax when referencing the secret value.
+For more information about using the K/V v2 backend, see the 
+[Vault Documentation](https://www.vaultproject.io/docs/secrets/kv/kv-v2.html).
+
 An example using write to generate PKI certificates:
 
 ```liquid
