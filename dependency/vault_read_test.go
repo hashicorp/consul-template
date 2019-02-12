@@ -29,7 +29,7 @@ func TestNewVaultReadQuery(t *testing.T) {
 			"path",
 			"path",
 			&VaultReadQuery{
-				path:        "path",
+				rawPath:     "path",
 				queryValues: url.Values{},
 			},
 			false,
@@ -38,7 +38,7 @@ func TestNewVaultReadQuery(t *testing.T) {
 			"leading_slash",
 			"/leading/slash",
 			&VaultReadQuery{
-				path:        "leading/slash",
+				rawPath:     "leading/slash",
 				queryValues: url.Values{},
 			},
 			false,
@@ -47,7 +47,7 @@ func TestNewVaultReadQuery(t *testing.T) {
 			"trailing_slash",
 			"trailing/slash/",
 			&VaultReadQuery{
-				path:        "trailing/slash",
+				rawPath:     "trailing/slash",
 				queryValues: url.Values{},
 			},
 			false,
@@ -56,7 +56,7 @@ func TestNewVaultReadQuery(t *testing.T) {
 			"query_param",
 			"path?version=3",
 			&VaultReadQuery{
-				path: "path",
+				rawPath: "path",
 				queryValues: url.Values{
 					"version": []string{"3"},
 				},

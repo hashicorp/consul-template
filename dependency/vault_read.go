@@ -20,10 +20,11 @@ var (
 type VaultReadQuery struct {
 	stopCh chan struct{}
 
-	path        string
+	rawPath     string
 	queryValues url.Values
 	secret      *Secret
 	isKVv2      *bool
+	secretPath  string
 
 	// vaultSecret is the actual Vault secret which we are renewing
 	vaultSecret *api.Secret
@@ -44,7 +45,7 @@ func NewVaultReadQuery(s string) (*VaultReadQuery, error) {
 
 	return &VaultReadQuery{
 		stopCh:      make(chan struct{}, 1),
-		path:        secretURL.Path,
+		rawPath:     secretURL.Path,
 		queryValues: secretURL.Query(),
 	}, nil
 }
@@ -131,7 +132,7 @@ func (d *VaultReadQuery) Stop() {
 
 // String returns the human-friendly version of this dependency.
 func (d *VaultReadQuery) String() string {
-	return fmt.Sprintf("vault.read(%s)", d.path)
+	return fmt.Sprintf("vault.read(%s)", d.rawPath)
 }
 
 // Type returns the type of this dependency.
@@ -140,32 +141,32 @@ func (d *VaultReadQuery) Type() Type {
 }
 
 func (d *VaultReadQuery) readSecret(clients *ClientSet, opts *QueryOptions) (*api.Secret, error) {
-	queryString := d.queryValues.Encode()
-	log.Printf("[TRACE] %s: GET %s", d, &url.URL{
-		Path:     "/v1/" + d.path,
-		RawQuery: queryString,
-	})
 	vaultClient := clients.Vault()
 
 	// Check whether this secret refers to a KV v2 entry if we haven't yet.
 	if d.isKVv2 == nil {
-		mountPath, isKVv2, err := isKVv2(vaultClient, d.path)
+		mountPath, isKVv2, err := isKVv2(vaultClient, d.rawPath)
 		if err != nil {
 			return nil, errors.Wrap(err, d.String())
 		}
 
 		if isKVv2 {
-			d.path = addPrefixToVKVPath(d.path, mountPath, "data")
+			d.secretPath = addPrefixToVKVPath(d.rawPath, mountPath, "data")
 		}
 		d.isKVv2 = &isKVv2
 	}
 
-	vaultSecret, err := vaultClient.Logical().ReadWithData(d.path, d.queryValues)
+	queryString := d.queryValues.Encode()
+	log.Printf("[TRACE] %s: GET %s", d, &url.URL{
+		Path:     "/v1/" + d.secretPath,
+		RawQuery: queryString,
+	})
+	vaultSecret, err := vaultClient.Logical().ReadWithData(d.secretPath, d.queryValues)
 	if err != nil {
 		return nil, errors.Wrap(err, d.String())
 	}
 	if vaultSecret == nil {
-		return nil, fmt.Errorf("no secret exists at %s", d.path)
+		return nil, fmt.Errorf("no secret exists at %s", d.secretPath)
 	}
 	return vaultSecret, nil
 }
