@@ -152,6 +152,8 @@ func (d *VaultReadQuery) readSecret(clients *ClientSet, opts *QueryOptions) (*ap
 
 		if isKVv2 {
 			d.secretPath = addPrefixToVKVPath(d.rawPath, mountPath, "data")
+		} else {
+			d.secretPath = d.rawPath
 		}
 		d.isKVv2 = &isKVv2
 	}
