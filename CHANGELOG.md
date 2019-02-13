@@ -3,6 +3,7 @@
 IMPROVEMENTS:
 
 * Support for Consul service metadata [GH-1113]
+* Support for Vault's KV v2 secrets engine, including versioned secrets [GH-1180].
 
 BUG FIXES:
 
