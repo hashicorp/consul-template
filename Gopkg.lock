@@ -290,7 +290,8 @@
   version = "v0.8.1"
 
 [[projects]]
-  digest = "1:067943f4fc285e3714bee874139fa8f6cf4a7a8cb7b615c96e6b0133c9af8d50"
+  branch = "master"
+  digest = "1:ac8c3b2c00d263ab59323ef42ca6a85145447a4fd8c9dd661d88156fe7efe006"
   name = "github.com/hashicorp/vault"
   packages = [
     "api",
@@ -303,6 +304,7 @@
     "helper/certutil",
     "helper/compressutil",
     "helper/consts",
+    "helper/cryptoutil",
     "helper/dbtxn",
     "helper/errutil",
     "helper/forwarding",
@@ -348,8 +350,15 @@
     "version",
   ]
   pruneopts = ""
-  revision = "37a1dc9c477c1c68c022d2084550f25bf20cac33"
-  version = "v1.0.2"
+  revision = "be968f0edd5991df4237ab184ab94ea649d15b43"
+
+[[projects]]
+  branch = "master"
+  digest = "1:18f7a8c6df80b7ad85be744c6b6334983539896350d77760e90d8462ff51be6d"
+  name = "github.com/hashicorp/vault-plugin-secrets-kv"
+  packages = ["."]
+  pruneopts = ""
+  revision = "edbfe287c5d9277cecf2c91c79ffcc34f19d2049"
 
 [[projects]]
   branch = "master"
@@ -401,44 +410,12 @@
   revision = "b609790bd85edf8e9ab7e0f8912750a786177bcf"
 
 [[projects]]
-  digest = "1:9ea83adf8e96d6304f394d40436f2eb44c1dc3250d223b74088cc253a6cd0a1c"
-  name = "github.com/mattn/go-colorable"
-  packages = ["."]
-  pruneopts = ""
-  revision = "167de6bfdfba052fa6b2d3664c8f5272e23c9072"
-  version = "v0.0.9"
-
-[[projects]]
-  digest = "1:78229b46ddb7434f881390029bd1af7661294af31f6802e0e1bedaad4ab0af3c"
-  name = "github.com/mattn/go-isatty"
-  packages = ["."]
-  pruneopts = ""
-  revision = "0360b2af4f38e8d38c7fce2a9f4e702702d73a39"
-  version = "v0.0.3"
-
-[[projects]]
   digest = "1:477cce5379198d3b8230b5c0961c61fcd1b337371cda81318e89a109245d83cb"
   name = "github.com/mattn/go-shellwords"
   packages = ["."]
   pruneopts = ""
   revision = "02e3cf038dcea8290e44424da473dd12be796a8a"
   version = "v1.0.3"
-
-[[projects]]
-  branch = "master"
-  digest = "1:50416da10e189bc201e122e20078fb8e680a439cbdd24aaece06c434b4415b60"
-  name = "github.com/mgutz/ansi"
-  packages = ["."]
-  pruneopts = ""
-  revision = "9520e82c474b0a04dd04f8a40959027271bab992"
-
-[[projects]]
-  digest = "1:47af139ef25cee26d54b8422b73a043ab5d8f5ec26a1ae49d3ca9212f1dbfdac"
-  name = "github.com/mgutz/logxi"
-  packages = ["v1"]
-  pruneopts = ""
-  revision = "aebf8a7d67ab4625e0fd4a665766fef9a709161b"
-  version = "v1"
 
 [[projects]]
   branch = "master"
@@ -549,22 +526,24 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:9489340a57b9ff6a1b6c8e16aaa65438b1fa0d6124a172d46a86f1b24fbcf639"
+  digest = "1:ee71b3559000aca2562869f53fe762743e84bf4f0993240d4c2e37f9122a032b"
   name = "golang.org/x/crypto"
   packages = [
+    "blake2b",
     "chacha20poly1305",
-    "chacha20poly1305/internal/chacha20",
     "cryptobyte",
     "cryptobyte/asn1",
     "curve25519",
     "ed25519",
     "ed25519/internal/edwards25519",
     "hkdf",
+    "internal/chacha20",
+    "internal/subtle",
     "poly1305",
     "ssh",
   ]
   pruneopts = ""
-  revision = "2509b142fb2b797aa7587dad548f113b2c0f20ce"
+  revision = "193df9c0f06f8bb35fba505183eaf0acc0136505"
 
 [[projects]]
   branch = "master"
@@ -586,7 +565,10 @@
   branch = "master"
   digest = "1:489610147902fe0c7229218c749bb25a8a9ecce0d726ae4f8662517319f32554"
   name = "golang.org/x/sys"
-  packages = ["unix"]
+  packages = [
+    "cpu",
+    "unix",
+  ]
   pruneopts = ""
   revision = "41f3e6584952bb034a481797859f6ab34b6803bd"
 
@@ -687,20 +669,22 @@
     "github.com/hashicorp/consul/api",
     "github.com/hashicorp/consul/testutil",
     "github.com/hashicorp/go-gatedio",
+    "github.com/hashicorp/go-hclog",
     "github.com/hashicorp/go-multierror",
     "github.com/hashicorp/go-rootcerts",
     "github.com/hashicorp/go-syslog",
     "github.com/hashicorp/hcl",
     "github.com/hashicorp/logutils",
+    "github.com/hashicorp/vault-plugin-secrets-kv",
     "github.com/hashicorp/vault/api",
     "github.com/hashicorp/vault/builtin/logical/pki",
     "github.com/hashicorp/vault/builtin/logical/transit",
+    "github.com/hashicorp/vault/helper/namespace",
     "github.com/hashicorp/vault/http",
     "github.com/hashicorp/vault/logical",
     "github.com/hashicorp/vault/physical/inmem",
     "github.com/hashicorp/vault/vault",
     "github.com/mattn/go-shellwords",
-    "github.com/mgutz/logxi/v1",
     "github.com/mitchellh/go-homedir",
     "github.com/mitchellh/hashstructure",
     "github.com/mitchellh/mapstructure",
