@@ -1237,6 +1237,7 @@ func newClientSet(c *config.Config) (*dep.ClientSet, error) {
 
 	if err := clients.CreateVaultClient(&dep.CreateVaultClientInput{
 		Address:                      config.StringVal(c.Vault.Address),
+		Namespace:                    config.StringVal(c.Vault.Namespace),
 		Token:                        config.StringVal(c.Vault.Token),
 		UnwrapToken:                  config.BoolVal(c.Vault.UnwrapToken),
 		SSLEnabled:                   config.BoolVal(c.Vault.SSL.Enabled),
