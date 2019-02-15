@@ -42,6 +42,10 @@ type VaultConfig struct {
 	// new secret to be read.
 	Grace *time.Duration `mapstructure:"grace"`
 
+	// Namespace is the Vault namespace to use for reading/writing secrets. This can
+	// also be set via the VAULT_NAMESPACE environment variable.
+	Namespace *string `mapstructure:"namespace"`
+
 	// RenewToken renews the Vault token.
 	RenewToken *bool `mapstructure:"renew_token"`
 
@@ -97,6 +101,8 @@ func (c *VaultConfig) Copy() *VaultConfig {
 
 	o.Grace = c.Grace
 
+	o.Namespace = c.Namespace
+
 	o.RenewToken = c.RenewToken
 
 	if c.Retry != nil {
@@ -150,6 +156,10 @@ func (c *VaultConfig) Merge(o *VaultConfig) *VaultConfig {
 		r.Grace = o.Grace
 	}
 
+	if o.Namespace != nil {
+		r.Namespace = o.Namespace
+	}
+
 	if o.RenewToken != nil {
 		r.RenewToken = o.RenewToken
 	}
@@ -191,6 +201,10 @@ func (c *VaultConfig) Finalize() {
 
 	if c.Grace == nil {
 		c.Grace = TimeDuration(DefaultVaultGrace)
+	}
+
+	if c.Namespace == nil {
+		c.Namespace = stringFromEnv([]string{"VAULT_NAMESPACE"}, "")
 	}
 
 	if c.RenewToken == nil {
@@ -279,6 +293,7 @@ func (c *VaultConfig) GoString() string {
 		"Address:%s, "+
 		"Enabled:%s, "+
 		"Grace:%s, "+
+		"Namespace:%s,"+
 		"RenewToken:%s, "+
 		"Retry:%#v, "+
 		"SSL:%#v, "+
@@ -290,6 +305,7 @@ func (c *VaultConfig) GoString() string {
 		StringGoString(c.Address),
 		BoolGoString(c.Enabled),
 		TimeDurationGoString(c.Grace),
+		StringGoString(c.Namespace),
 		BoolGoString(c.RenewToken),
 		c.Retry,
 		c.SSL,

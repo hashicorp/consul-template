@@ -1,11 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"testing"
-	"fmt"
 
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul/testutil"

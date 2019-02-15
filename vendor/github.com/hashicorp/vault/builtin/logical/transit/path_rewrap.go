@@ -1,10 +1,13 @@
 package transit
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/vault/helper/errutil"
+	"github.com/hashicorp/vault/helper/keysutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
 	"github.com/mitchellh/mapstructure"
@@ -51,15 +54,14 @@ to the min_encryption_version configured on the key.`,
 	}
 }
 
-func (b *backend) pathRewrapWrite(
-	req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (b *backend) pathRewrapWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	batchInputRaw := d.Raw["batch_input"]
 	var batchInputItems []BatchRequestItem
 	var err error
 	if batchInputRaw != nil {
 		err = mapstructure.Decode(batchInputRaw, &batchInputItems)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse batch input: %v", err)
+			return nil, errwrap.Wrapf("failed to parse batch input: {{err}}", err)
 		}
 
 		if len(batchInputItems) == 0 {
@@ -113,15 +115,18 @@ func (b *backend) pathRewrapWrite(
 	}
 
 	// Get the policy
-	p, lock, err := b.lm.GetPolicyShared(req.Storage, d.Get("name").(string))
-	if lock != nil {
-		defer lock.RUnlock()
-	}
+	p, _, err := b.lm.GetPolicy(ctx, keysutil.PolicyRequest{
+		Storage: req.Storage,
+		Name:    d.Get("name").(string),
+	})
 	if err != nil {
 		return nil, err
 	}
 	if p == nil {
 		return logical.ErrorResponse("encryption key not found"), logical.ErrInvalidRequest
+	}
+	if !b.System().CachingDisabled() {
+		p.Lock(false)
 	}
 
 	for i, item := range batchInputItems {
@@ -136,6 +141,7 @@ func (b *backend) pathRewrapWrite(
 				batchResponseItems[i].Error = err.Error()
 				continue
 			default:
+				p.Unlock()
 				return nil, err
 			}
 		}
@@ -147,13 +153,16 @@ func (b *backend) pathRewrapWrite(
 				batchResponseItems[i].Error = err.Error()
 				continue
 			case errutil.InternalError:
+				p.Unlock()
 				return nil, err
 			default:
+				p.Unlock()
 				return nil, err
 			}
 		}
 
 		if ciphertext == "" {
+			p.Unlock()
 			return nil, fmt.Errorf("empty ciphertext returned for input item %d", i)
 		}
 
@@ -167,6 +176,7 @@ func (b *backend) pathRewrapWrite(
 		}
 	} else {
 		if batchResponseItems[0].Error != "" {
+			p.Unlock()
 			return logical.ErrorResponse(batchResponseItems[0].Error), logical.ErrInvalidRequest
 		}
 		resp.Data = map[string]interface{}{
@@ -174,6 +184,7 @@ func (b *backend) pathRewrapWrite(
 		}
 	}
 
+	p.Unlock()
 	return resp, nil
 }
 

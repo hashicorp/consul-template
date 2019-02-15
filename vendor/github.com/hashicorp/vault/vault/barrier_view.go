@@ -1,8 +1,9 @@
 package vault
 
 import (
+	"context"
 	"errors"
-	"strings"
+	"sync"
 
 	"github.com/hashicorp/vault/logical"
 )
@@ -15,108 +16,85 @@ import (
 // BarrierView implements logical.Storage so it can be passed in as the
 // durable storage mechanism for logical views.
 type BarrierView struct {
-	barrier  BarrierStorage
-	prefix   string
-	readonly bool
+	storage         *logical.StorageView
+	readOnlyErr     error
+	readOnlyErrLock sync.RWMutex
+	iCheck          interface{}
 }
-
-var (
-	ErrRelativePath = errors.New("relative paths not supported")
-)
 
 // NewBarrierView takes an underlying security barrier and returns
 // a view of it that can only operate with the given prefix.
-func NewBarrierView(barrier BarrierStorage, prefix string) *BarrierView {
+func NewBarrierView(barrier logical.Storage, prefix string) *BarrierView {
 	return &BarrierView{
-		barrier: barrier,
-		prefix:  prefix,
+		storage: logical.NewStorageView(barrier, prefix),
 	}
 }
 
-// sanityCheck is used to perform a sanity check on a key
-func (v *BarrierView) sanityCheck(key string) error {
-	if strings.Contains(key, "..") {
-		return ErrRelativePath
-	}
-	return nil
+func (v *BarrierView) setICheck(iCheck interface{}) {
+	v.iCheck = iCheck
 }
 
-// logical.Storage impl.
-func (v *BarrierView) List(prefix string) ([]string, error) {
-	if err := v.sanityCheck(prefix); err != nil {
-		return nil, err
-	}
-	return v.barrier.List(v.expandKey(prefix))
+func (v *BarrierView) setReadOnlyErr(readOnlyErr error) {
+	v.readOnlyErrLock.Lock()
+	defer v.readOnlyErrLock.Unlock()
+	v.readOnlyErr = readOnlyErr
 }
 
-// logical.Storage impl.
-func (v *BarrierView) Get(key string) (*logical.StorageEntry, error) {
-	if err := v.sanityCheck(key); err != nil {
-		return nil, err
-	}
-	entry, err := v.barrier.Get(v.expandKey(key))
-	if err != nil {
-		return nil, err
-	}
+func (v *BarrierView) getReadOnlyErr() error {
+	v.readOnlyErrLock.RLock()
+	defer v.readOnlyErrLock.RUnlock()
+	return v.readOnlyErr
+}
+
+func (v *BarrierView) Prefix() string {
+	return v.storage.Prefix()
+}
+
+func (v *BarrierView) List(ctx context.Context, prefix string) ([]string, error) {
+	return v.storage.List(ctx, prefix)
+}
+
+func (v *BarrierView) Get(ctx context.Context, key string) (*logical.StorageEntry, error) {
+	return v.storage.Get(ctx, key)
+}
+
+// Put differs from List/Get because it checks read-only errors
+func (v *BarrierView) Put(ctx context.Context, entry *logical.StorageEntry) error {
 	if entry == nil {
-		return nil, nil
-	}
-	if entry != nil {
-		entry.Key = v.truncateKey(entry.Key)
+		return errors.New("cannot write nil entry")
 	}
 
-	return &logical.StorageEntry{
-		Key:   entry.Key,
-		Value: entry.Value,
-	}, nil
+	expandedKey := v.storage.ExpandKey(entry.Key)
+
+	roErr := v.getReadOnlyErr()
+	if roErr != nil {
+		if runICheck(v, expandedKey, roErr) {
+			return roErr
+		}
+	}
+
+	return v.storage.Put(ctx, entry)
 }
 
 // logical.Storage impl.
-func (v *BarrierView) Put(entry *logical.StorageEntry) error {
-	if err := v.sanityCheck(entry.Key); err != nil {
-		return err
+func (v *BarrierView) Delete(ctx context.Context, key string) error {
+	expandedKey := v.storage.ExpandKey(key)
+
+	roErr := v.getReadOnlyErr()
+	if roErr != nil {
+		if runICheck(v, expandedKey, roErr) {
+			return roErr
+		}
 	}
 
-	expandedKey := v.expandKey(entry.Key)
-
-	if v.readonly {
-		return logical.ErrReadOnly
-	}
-
-	nested := &Entry{
-		Key:   expandedKey,
-		Value: entry.Value,
-	}
-	return v.barrier.Put(nested)
-}
-
-// logical.Storage impl.
-func (v *BarrierView) Delete(key string) error {
-	if err := v.sanityCheck(key); err != nil {
-		return err
-	}
-
-	expandedKey := v.expandKey(key)
-
-	if v.readonly {
-		return logical.ErrReadOnly
-	}
-
-	return v.barrier.Delete(expandedKey)
+	return v.storage.Delete(ctx, key)
 }
 
 // SubView constructs a nested sub-view using the given prefix
 func (v *BarrierView) SubView(prefix string) *BarrierView {
-	sub := v.expandKey(prefix)
-	return &BarrierView{barrier: v.barrier, prefix: sub, readonly: v.readonly}
-}
-
-// expandKey is used to expand to the full key path with the prefix
-func (v *BarrierView) expandKey(suffix string) string {
-	return v.prefix + suffix
-}
-
-// truncateKey is used to remove the prefix of the key
-func (v *BarrierView) truncateKey(full string) string {
-	return strings.TrimPrefix(full, v.prefix)
+	return &BarrierView{
+		storage:     v.storage.SubView(prefix),
+		readOnlyErr: v.getReadOnlyErr(),
+		iCheck:      v.iCheck,
+	}
 }

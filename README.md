@@ -64,6 +64,7 @@ This short example assumes Consul is installed locally.
 
     ```shell
     $ cat out.txt
+    bar
     ```
 
 For more examples and use cases, please see the [examples folder][examples] in
@@ -269,6 +270,11 @@ vault {
   # This should also be less than or around 1/3 of your TTL for a predictable
   # behaviour. See https://github.com/hashicorp/vault/issues/3414
   grace = "5m"
+
+  # This is a Vault Enterprise namespace to use for reading/writing secrets.
+  #
+  # This value can also be specified via the environment variable VAULT_NAMESPACE.
+  namespace = "foo"
 
   # This is the token to use when communicating with the Vault server.
   # Like other tools that integrate with Vault, Consul Template makes the
@@ -793,6 +799,24 @@ renders
 ```text
 FORWARDSoneword
 ```
+
+To access a versioned secret value (for the K/V version 2 backend):
+
+```liquid
+{{ with secret "secret/passwords?version=1" }}
+{{ .Data.data.wifi }}{{ end }}
+```
+
+When omitting the `?version` parameter, the latest version of the secret will be
+fetched. Note the nested `.Data.data` syntax when referencing the secret value.
+For more information about using the K/V v2 backend, see the 
+[Vault Documentation](https://www.vaultproject.io/docs/secrets/kv/kv-v2.html).
+
+When using Vault versions 0.10.0/0.10.1, the secret path will have to be prefixed
+with "data", i.e. `secret/data/passwords` for the example above. This is not
+necessary for Vault versions after 0.10.1, as consul-template will detect the KV
+backend version being used. The version 2 KV backend did not exist prior to 0.10.0,
+so these are the only affected versions.
 
 An example using write to generate PKI certificates:
 
