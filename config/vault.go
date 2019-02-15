@@ -57,13 +57,14 @@ type VaultConfig struct {
 
 	// Token is the Vault token to communicate with for requests. It may be
 	// a wrapped token or a real token. This can also be set via the VAULT_TOKEN
-	// environment variable, or via configuration setting `vault-agent-token-file`.
+	// environment variable, or via the VaultAgentTokenFile.
 	Token *string `mapstructure:"token" json:"-"`
 
-	// VautlAgentTokenFile is the path of file that contains a Vault Agent token.
-	// If vault_agent_token_file specified:
-	//   - Consul Template will not try to renew token
-	//   - Consul Template will periodically stat token file and reload it if changed
+	// VaultAgentTokenFile is the path of file that contains a Vault Agent token.
+	// If vault_agent_token_file is specified:
+	//   - Consul Template will not try to renew the Vault token.
+	//   - Consul Template will periodically stat the file and update the token if it has
+	// changed.
 	VaultAgentTokenFile *string `mapstructure:"vault_agent_token_file" json:"-"`
 
 	// Transport configures the low-level network connection details.

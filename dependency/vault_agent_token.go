@@ -64,7 +64,7 @@ func (d *VaultAgentTokenQuery) Fetch(clients *ClientSet, opts *QueryOptions) (in
 	return respWithMetadata("")
 }
 
-// CanShare returns if this dependency is shareable.
+// CanShare returns if this dependency is sharable.
 func (d *VaultAgentTokenQuery) CanShare() bool {
 	return false
 }
@@ -84,7 +84,7 @@ func (d *VaultAgentTokenQuery) Type() Type {
 	return TypeVault
 }
 
-// watch watchers the file for changes
+// watch watches the file for changes
 func (d *VaultAgentTokenQuery) watch(lastStat os.FileInfo) <-chan *watchResult {
 	ch := make(chan *watchResult, 1)
 

@@ -282,13 +282,15 @@ vault {
   # incorporated logic to generate tokens via Vault's auth methods.
   #
   # This value can also be specified via the environment variable VAULT_TOKEN.
-  # Token from Vault Agent must be specified via vault_agent_token_file.
+  # When using a token from Vault Agent, the vault_agent_token_file setting
+  # should be used instead.
   token = "abcd1234"
 
-  # Read the Vault Agent token from a file
-  # If vault_agent_token_file specified:
-  # - Consul Template will not try to renew token
-  # - Consul Template will periodically stat token file and reread it if changed
+  # This tells Consul Template to load the Vault token from the contents of a file.
+  # If this field is specified:
+  # - Consul Template will not try to renew the Vault token.
+  # - Consul Template will periodically stat the file and update the token if it has
+  # changed.
   # vault_agent_token_file = "/tmp/vault/agent/token"
 
   # This tells Consul Template that the provided token is actually a wrapped
