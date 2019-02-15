@@ -81,12 +81,19 @@ func vaultRenewDuration(s *Secret) time.Duration {
 	// Convert to float seconds.
 	sleep := float64(time.Duration(base) * time.Second)
 
-	// Renew at 1/3 the remaining lease. This will give us an opportunity to retry
-	// at least one more time should the first renewal fail.
-	sleep = sleep / 3.0
+	if vaultSecretRenewable(s) {
+		// Renew at 1/3 the remaining lease. This will give us an opportunity to retry
+		// at least one more time should the first renewal fail.
+		sleep = sleep / 3.0
 
-	// Use a randomness so many clients do not hit Vault simultaneously.
-	sleep = sleep * (rand.Float64() + 1) / 2.0
+		// Use a randomness so many clients do not hit Vault simultaneously.
+		sleep = sleep * (rand.Float64() + 1) / 2.0
+	} else {
+		// For non-renewable leases set the renew duration to use much of the secret
+		// lease as possible. Use a stagger over 85%-95% of the lease duration so that
+		// many clients do not hit Vault simultaneously.
+		sleep = sleep * (.85 + rand.Float64()*0.1)
+	}
 
 	return time.Duration(sleep)
 }
