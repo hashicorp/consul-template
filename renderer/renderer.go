@@ -1,4 +1,4 @@
-package manager
+package renderer
 
 import (
 	"bytes"

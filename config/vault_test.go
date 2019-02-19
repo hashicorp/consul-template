@@ -36,7 +36,8 @@ func TestVaultConfig_Copy(t *testing.T) {
 				Transport: &TransportConfig{
 					DialKeepAlive: TimeDuration(20 * time.Second),
 				},
-				UnwrapToken: Bool(true),
+				UnwrapToken:         Bool(true),
+				VaultAgentTokenFile: String("/tmp/vault/agent/token"),
 			},
 		},
 	}
