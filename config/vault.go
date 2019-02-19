@@ -248,21 +248,14 @@ func (c *VaultConfig) Finalize() {
 
 	// Order of precedence
 	// 1. `vault_agent_token_file` configuration value
-	// 2. `VAULT_TOKEN` environment variable
-	// 3. `token` configuration value
-	// 4. `~/.vault-token` file
+	// 2. `token` configuration value`
+	// 3. `VAULT_TOKEN` environment variable
 	if c.Token == nil {
-		if homePath != "" {
-			c.Token = stringFromFile([]string{
-				homePath + "/.vault-token",
-			}, "")
-		}
-	}
-	if StringVal(stringFromEnv([]string{"VAULT_TOKEN"}, "")) != "" {
 		c.Token = stringFromEnv([]string{
 			"VAULT_TOKEN",
 		}, "")
 	}
+
 	if c.VaultAgentTokenFile != nil {
 		c.Token = stringFromFile([]string{*c.VaultAgentTokenFile}, "")
 		c.RenewToken = Bool(false)

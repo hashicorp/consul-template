@@ -283,7 +283,7 @@ vault {
   #
   # This value can also be specified via the environment variable VAULT_TOKEN.
   # When using a token from Vault Agent, the vault_agent_token_file setting
-  # should be used instead.
+  # should be used instead, as that will take precedence over this field.
   token = "abcd1234"
 
   # This tells Consul Template to load the Vault token from the contents of a file.
