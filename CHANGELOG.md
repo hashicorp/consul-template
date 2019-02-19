@@ -5,7 +5,7 @@ IMPROVEMENTS:
 * Support for Consul service metadata [GH-1113]
 * Support for Vault's KV v2 secrets engine, including versioned secrets [GH-1180].
 * Support for Vault Enterprise's namespaces feature [GH-1181].
-* A template's destination file will now have its user and group permissions preserved on supported OSes (Linux/MacOS). [GH-1061].
+* A template's destination file will now have its user and group permissions preserved on supported OSes (Linux/MacOS) [GH-1061].
 
 BUG FIXES:
 
