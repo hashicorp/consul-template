@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul-template/child"
 	"github.com/hashicorp/consul-template/config"
 	dep "github.com/hashicorp/consul-template/dependency"
+	"github.com/hashicorp/consul-template/renderer"
 	"github.com/hashicorp/consul-template/template"
 	"github.com/hashicorp/consul-template/watch"
 	"github.com/hashicorp/go-multierror"
@@ -747,7 +748,7 @@ func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*
 		log.Printf("[DEBUG] (runner) rendering %s", templateConfig.Display())
 
 		// Render the template, taking dry mode into account
-		result, err := Render(&RenderInput{
+		result, err := renderer.Render(&renderer.RenderInput{
 			Backup:         config.BoolVal(templateConfig.Backup),
 			Contents:       result.Output,
 			CreateDestDirs: config.BoolVal(templateConfig.CreateDestDirs),

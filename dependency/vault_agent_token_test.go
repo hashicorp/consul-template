@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul-template/renderer"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,7 +20,7 @@ func TestVaultAgentTokenQuery_Fetch(t *testing.T) {
 		log.Fatal(err)
 	}
 	defer os.Remove(tokenFile.Name())
-	ioutil.WriteFile(tokenFile.Name(), []byte("token1"), 0600)
+	renderer.AtomicWrite(tokenFile.Name(), false, []byte("token1"), 0644, false)
 
 	d, err := NewVaultAgentTokenQuery(tokenFile.Name())
 	if err != nil {
@@ -36,7 +37,7 @@ func TestVaultAgentTokenQuery_Fetch(t *testing.T) {
 	assert.Equal(t, "token1", clientSet.Vault().Token())
 
 	// Update the contents.
-	ioutil.WriteFile(tokenFile.Name(), []byte("token2"), 0600)
+	renderer.AtomicWrite(tokenFile.Name(), false, []byte("token2"), 0644, false)
 	_, _, err = d.Fetch(clientSet, nil)
 	if err != nil {
 		t.Fatal(err)
