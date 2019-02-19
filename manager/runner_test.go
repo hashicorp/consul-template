@@ -757,7 +757,23 @@ func TestRunner_Start(t *testing.T) {
 		case err := <-r.ErrCh:
 			t.Fatal(err)
 		case <-r.renderedCh:
-			// Just assert there is no panic
+			found := false
+			for i := 0; i < 5; i++ {
+				if found {
+					break
+				}
+
+				time.Sleep(100 * time.Millisecond)
+
+				r.childLock.RLock()
+				if r.child != nil {
+					found = true
+				}
+				r.childLock.RUnlock()
+			}
+			if !found {
+				t.Error("missing child")
+			}
 		case <-time.After(2 * time.Second):
 			t.Fatal("timeout")
 		}
