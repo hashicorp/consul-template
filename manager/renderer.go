@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
+	"syscall"
 
 	"github.com/pkg/errors"
 )
@@ -148,6 +150,18 @@ func AtomicWrite(path string, createDestDirs bool, contents []byte, perms os.Fil
 			}
 		} else {
 			perms = currentInfo.Mode()
+
+			// The file exists, so try to preserve the ownership as well.
+			sysInfo := currentInfo.Sys()
+			if sysInfo != nil {
+				stat, ok := sysInfo.(*syscall.Stat_t)
+				if ok {
+					if err := os.Chown(f.Name(), int(stat.Uid), int(stat.Gid)); err != nil {
+						log.Printf("[WARN] (runner) could not preserve file permissions for %q: %v",
+							f.Name(), err)
+					}
+				}
+			}
 		}
 	}
 
