@@ -271,6 +271,19 @@ func TestVaultReadQuery_Fetch_KVv2(t *testing.T) {
 			false,
 		},
 		{
+			"/data in path",
+			"secret/data/foo/bar",
+			&Secret{
+				Data: map[string]interface{}{
+					"data": map[string]interface{}{
+						"ttl": "100ms", // explicitly make this a short duration for testing
+						"zip": "zop",
+					},
+				},
+			},
+			false,
+		},
+		{
 			"version=1",
 			"secret/foo/bar?version=1",
 			&Secret{
@@ -352,37 +365,39 @@ func TestVaultReadQuery_Fetch_KVv2(t *testing.T) {
 		}
 	})
 
-	t.Run("fires_changes", func(t *testing.T) {
-		d, err := NewVaultReadQuery("secret/foo/bar")
-		if err != nil {
-			t.Fatal(err)
-		}
+	for _, dataPrefix := range []string{"", "/data"} {
+		t.Run(fmt.Sprintf("fires_changes%s", dataPrefix), func(t *testing.T) {
+			d, err := NewVaultReadQuery(fmt.Sprintf("secret%s/foo/bar", dataPrefix))
+			if err != nil {
+				t.Fatal(err)
+			}
 
-		_, qm, err := d.Fetch(clients, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
+			_, qm, err := d.Fetch(clients, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-		dataCh := make(chan interface{}, 1)
-		errCh := make(chan error, 1)
-		go func() {
-			for {
-				data, _, err := d.Fetch(clients, &QueryOptions{WaitIndex: qm.LastIndex})
-				if err != nil {
-					errCh <- err
+			dataCh := make(chan interface{}, 1)
+			errCh := make(chan error, 1)
+			go func() {
+				for {
+					data, _, err := d.Fetch(clients, &QueryOptions{WaitIndex: qm.LastIndex})
+					if err != nil {
+						errCh <- err
+						return
+					}
+					dataCh <- data
 					return
 				}
-				dataCh <- data
-				return
-			}
-		}()
+			}()
 
-		select {
-		case err := <-errCh:
-			t.Fatal(err)
-		case <-dataCh:
-		}
-	})
+			select {
+			case err := <-errCh:
+				t.Fatal(err)
+			case <-dataCh:
+			}
+		})
+	}
 }
 
 func TestVaultReadQuery_String(t *testing.T) {
