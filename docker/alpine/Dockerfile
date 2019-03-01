@@ -15,7 +15,17 @@ RUN addgroup consul-template && \
 
 # Set up certificates, our base tools, and Consul Template (CT).
 RUN apk add --no-cache ca-certificates curl gnupg libcap openssl && \
-    gpg --keyserver pgp.mit.edu --recv-keys 91A6E7F85D05C65630BEF18951852D87348FFC4C && \
+    BUILD_GPGKEY=91A6E7F85D05C65630BEF18951852D87348FFC4C; \
+    found=''; \
+    for server in \
+        hkp://p80.pool.sks-keyservers.net:80 \
+        hkp://keyserver.ubuntu.com:80 \
+        hkp://pgp.mit.edu:80 \
+    ; do \
+        echo "Fetching GPG key $BUILD_GPGKEY from $server"; \
+        gpg --keyserver "$server" --recv-keys "$BUILD_GPGKEY" && found=yes && break; \
+    done; \
+    test -z "$found" && echo >&2 "error: failed to fetch GPG key $BUILD_GPGKEY" && exit 1; \
     mkdir -p /tmp/build && \
     cd /tmp/build && \
     wget ${HASHICORP_RELEASES}/docker-base/${DOCKER_BASE_VERSION}/docker-base_${DOCKER_BASE_VERSION}_linux_amd64.zip && \
