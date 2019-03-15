@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"os"
+	"path/filepath"
 	"regexp"
 
 	"github.com/pkg/errors"
@@ -26,6 +28,13 @@ type KVGetQuery struct {
 	block bool
 }
 
+func getKey(k string) string {
+	if prefix, exists := os.LookupEnv("CONSUL_TEMPLATE_PREFIX"); exists {
+		return filepath.Join(prefix, k)
+	}
+	return k
+}
+
 // NewKVGetQuery parses a string into a dependency.
 func NewKVGetQuery(s string) (*KVGetQuery, error) {
 	if s != "" && !KVGetQueryRe.MatchString(s) {
@@ -33,10 +42,12 @@ func NewKVGetQuery(s string) (*KVGetQuery, error) {
 	}
 
 	m := regexpMatch(KVGetQueryRe, s)
+	key := getKey(m["key"])
+
 	return &KVGetQuery{
 		stopCh: make(chan struct{}, 1),
 		dc:     m["dc"],
-		key:    m["key"],
+		key:    key,
 	}, nil
 }
 
