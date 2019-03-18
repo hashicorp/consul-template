@@ -19,6 +19,6 @@ RUN wget https://releases.hashicorp.com/vault/0.11.5/vault_0.11.5_linux_amd64.zi
     rm vault_0.11.5_linux_amd64.zip
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
-ENTRYPOINT ["./entrypoint.sh"]
 
-CMD ["/usr/bin/consul-template"]
+#CMD ["/usr/bin/consul-template"]
+ENTRYPOINT ["./entrypoint.sh"]
