@@ -1,8 +1,11 @@
 package main // import "github.com/hashicorp/consul-template"
 
-import "os"
+import (
+	"github.com/hashicorp/consul-template/cli"
+	"os"
+)
 
 func main() {
-	cli := NewCLI(os.Stdout, os.Stderr)
-	os.Exit(cli.Run(os.Args))
+	cliInstance := cli.NewCLI(os.Stdout, os.Stderr)
+	os.Exit(cliInstance.Run(os.Args))
 }
