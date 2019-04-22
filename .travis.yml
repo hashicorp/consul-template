@@ -11,11 +11,8 @@ branches:
     - master
 
 env:
-  - GOMAXPROCS=4
-  - CONSUL_VERSION=1.4.2
-  - CONSUL_BIN_PATH=~/bin/consul
   # Enforce gomodules since Travis' workers download in the GOPATH where gomod is disabled by default.
-  - GO111MODULE=on
+  - GOMAXPROCS=4 CONSUL_VERSION=1.4.2 CONSUL_BIN_PATH=~/bin/consul GO111MODULE=on
 
 before_script:
   - make download-consul
