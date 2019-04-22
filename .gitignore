@@ -1,3 +1,5 @@
+# Ignore vendor explicitly since we're moving to go modules
+vendor
 /consul-template
 ### Custom ###
 /bin
