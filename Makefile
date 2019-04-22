@@ -2,12 +2,6 @@
 MKFILE_PATH := $(lastword $(MAKEFILE_LIST))
 CURRENT_DIR := $(patsubst %/,%,$(dir $(realpath $(MKFILE_PATH))))
 
-# Ensure GOPATH
-GOPATH ?= $(HOME)/go
-
-# List all our actual files, excluding vendor
-GOFILES ?= $(shell go list $(TEST) | grep -v /vendor/)
-
 # Tags specific for building
 GOTAGS ?=
 
@@ -21,8 +15,6 @@ OWNER := $(notdir $(patsubst %/,%,$(dir $(PROJECT))))
 NAME := $(notdir $(PROJECT))
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD)
 VERSION := $(shell awk -F\" '/Version/ { print $$2; exit }' "${CURRENT_DIR}/version/version.go")
-EXTERNAL_TOOLS = \
-	github.com/golang/dep/cmd/dep
 
 # Current system information
 GOOS ?= $(shell go env GOOS)
@@ -62,8 +54,8 @@ define make-xc-target
 			--interactive \
 			--rm \
 			--dns="8.8.8.8" \
-			--volume="${CURRENT_DIR}:/go/src/${PROJECT}" \
-			--workdir="/go/src/${PROJECT}" \
+			--volume="${CURRENT_DIR}:/app" \
+			--workdir="/app" \
 			"golang:${GOVERSION}" \
 			env \
 				CGO_ENABLED="0" \
@@ -84,22 +76,6 @@ define make-xc-target
   .PHONY: build
 endef
 $(foreach goarch,$(XC_ARCH),$(foreach goos,$(XC_OS),$(eval $(call make-xc-target,$(goos),$(goarch),$(if $(findstring windows,$(goos)),.exe,)))))
-
-# bootstrap installs the necessary go tools for development or build.
-bootstrap:
-	@echo "==> Bootstrapping ${PROJECT}"
-	@for t in ${EXTERNAL_TOOLS}; do \
-		echo "--> Installing $$t" ; \
-		go get -u "$$t"; \
-	done
-.PHONY: bootstrap
-
-# deps updates all dependencies for this project.
-deps:
-	@echo "==> Updating deps for ${PROJECT}"
-	@dep ensure -update
-	@dep prune
-.PHONY: deps
 
 # dev builds and installs the project locally.
 dev:
@@ -167,13 +143,13 @@ $(foreach target,$(DOCKER_TARGETS),$(eval $(call make-docker-target,$(target))))
 # test runs the test suite.
 test:
 	@echo "==> Testing ${NAME}"
-	@go test -timeout=30s -parallel=20 -tags="${GOTAGS}" ${GOFILES} ${TESTARGS}
+	@go test -timeout=30s -parallel=20 -tags="${GOTAGS}" ${TESTARGS}
 .PHONY: test
 
 # test-race runs the test suite.
 test-race:
 	@echo "==> Testing ${NAME} (race)"
-	@go test -timeout=60s -race -tags="${GOTAGS}" ${GOFILES} ${TESTARGS}
+	@go test -timeout=60s -race -tags="${GOTAGS}" ${TESTARGS}
 .PHONY: test-race
 
 # _cleanup removes any previous binaries
