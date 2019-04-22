@@ -16,6 +16,10 @@ NAME := $(notdir $(PROJECT))
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD)
 VERSION := $(shell awk -F\" '/Version/ { print $$2; exit }' "${CURRENT_DIR}/version/version.go")
 
+# Consul version to download for use in integration tests.
+CONSUL_VERSION ?= 1.4.2
+CONSUL_BIN_PATH ?= /usr/local/bin/consul
+
 # Current system information
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
@@ -139,6 +143,13 @@ define make-docker-target
   .PHONY: docker-push
 endef
 $(foreach target,$(DOCKER_TARGETS),$(eval $(call make-docker-target,$(target))))
+
+download-consul:
+	@curl -sLo \
+		consul.zip \
+		https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip
+	@unzip consul.zip
+	@mv consul ${CONSUL_BIN_PATH}
 
 # test runs the test suite.
 test:

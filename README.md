@@ -2192,7 +2192,14 @@ $ make dev
 This will compile the `consul-template` binary into `bin/consul-template` as
 well as your `$GOPATH` and run the test suite.
 
-If you want to run the tests, first [install consul locally](https://www.consul.io/docs/install/index.html), then:
+If you want to run the tests, first install Consul locally by running:
+ 
+```shell
+# Consul will be installed in your $PATH (/usr/local/bin/consul)
+$ sudo make download-consul
+```
+ 
+Now run the tests:
 
 ```shell
 $ make test

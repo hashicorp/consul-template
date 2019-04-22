@@ -6,21 +6,19 @@ language: go
 go:
   - 1.12.4
 
-env:
-  - GOMAXPROCS=4
-
 branches:
   only:
     - master
 
 env:
+  - GOMAXPROCS=4
   - CONSUL_VERSION=1.4.2
+  - CONSUL_BIN_PATH=~/bin/consul
+  # Enforce gomodules since Travis' workers download in the GOPATH where gomod is disabled by default.
+  - GO111MODULE=on
 
-before_install:
-  - curl -sLo consul.zip https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip
-  - unzip consul.zip
-  - mkdir -p ~/bin
-  - mv consul ~/bin
+before_script:
+  - make download-consul
   - export PATH="~/bin:$PATH"
 
 script: make test
