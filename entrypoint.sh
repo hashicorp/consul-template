@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -x
+set -e
 export VAULT_ADDR=https://vault.infra
 export VAULT_SKIP_VERIFY=true
 export CONSUL_HTTP_ADDR=$CONSUL_ADDR:8500
