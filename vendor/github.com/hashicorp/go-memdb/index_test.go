@@ -14,6 +14,7 @@ type TestObject struct {
 	ID       string
 	Foo      string
 	Fu       *string
+	Boo      *string
 	Bar      int
 	Baz      string
 	Bam      *bool
@@ -22,6 +23,11 @@ type TestObject struct {
 	QuxEmpty []string
 	Zod      map[string]string
 	ZodEmpty map[string]string
+	Int      int
+	Int8     int8
+	Int16    int16
+	Int32    int32
+	Int64    int64
 	Uint     uint
 	Uint8    uint8
 	Uint16   uint16
@@ -39,6 +45,7 @@ func testObj() *TestObject {
 		ID:  "my-cool-obj",
 		Foo: "Testing",
 		Fu:  String("Fu"),
+		Boo: nil,
 		Bar: 42,
 		Baz: "yep",
 		Bam: &b,
@@ -48,6 +55,11 @@ func testObj() *TestObject {
 			"instance_type": "m3.medium",
 			"":              "asdf",
 		},
+		Int:    int(1),
+		Int8:   int8(-1 << 7),
+		Int16:  int16(-1 << 15),
+		Int32:  int32(-1 << 31),
+		Int64:  int64(-1 << 63),
 		Uint:   uint(1),
 		Uint8:  uint8(1<<8 - 1),
 		Uint16: uint16(1<<16 - 1),
@@ -105,6 +117,18 @@ func TestStringFieldIndex_FromObject(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	if string(val) != "Fu\x00" {
+		t.Fatalf("bad: %s", val)
+	}
+	if !ok {
+		t.Fatalf("should be ok")
+	}
+
+	pointerField = StringFieldIndex{"Boo", false}
+	ok, val, err = pointerField.FromObject(obj)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if string(val) != "" {
 		t.Fatalf("bad: %s", val)
 	}
 	if !ok {
@@ -307,7 +331,7 @@ func TestStringMapFieldIndex_FromObject(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	if len(vals) != 2 {
-		t.Fatal("bad result length")
+		t.Fatalf("bad result length of %d", len(vals))
 	}
 	if string(vals[0]) != "Role\x00Server\x00" {
 		t.Fatalf("bad: %s", vals[0])
@@ -574,6 +598,154 @@ func generateUUID() ([]byte, string) {
 		buf[8:10],
 		buf[10:16])
 	return buf, uuid
+}
+
+func TestIntFieldIndex_FromObject(t *testing.T) {
+	obj := testObj()
+
+	eint := make([]byte, 10)
+	eint8 := make([]byte, 2)
+	eint16 := make([]byte, 3)
+	eint32 := make([]byte, 5)
+	eint64 := make([]byte, 10)
+	binary.PutVarint(eint, int64(obj.Int))
+	binary.PutVarint(eint8, int64(obj.Int8))
+	binary.PutVarint(eint16, int64(obj.Int16))
+	binary.PutVarint(eint32, int64(obj.Int32))
+	binary.PutVarint(eint64, obj.Int64)
+
+	cases := []struct {
+		Field         string
+		Expected      []byte
+		ErrorContains string
+	}{
+		{
+			Field:    "Int",
+			Expected: eint,
+		},
+		{
+			Field:    "Int8",
+			Expected: eint8,
+		},
+		{
+			Field:    "Int16",
+			Expected: eint16,
+		},
+		{
+			Field:    "Int32",
+			Expected: eint32,
+		},
+		{
+			Field:    "Int64",
+			Expected: eint64,
+		},
+		{
+			Field:         "IntGarbage",
+			ErrorContains: "is invalid",
+		},
+		{
+			Field:         "ID",
+			ErrorContains: "want an int",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.Field, func(t *testing.T) {
+			indexer := IntFieldIndex{c.Field}
+			ok, val, err := indexer.FromObject(obj)
+
+			if err != nil {
+				if ok {
+					t.Fatalf("okay and error")
+				}
+
+				if c.ErrorContains != "" && strings.Contains(err.Error(), c.ErrorContains) {
+					return
+				} else {
+					t.Fatalf("Unexpected error %v", err)
+				}
+			}
+
+			if !ok {
+				t.Fatalf("not okay and no error")
+			}
+
+			if !bytes.Equal(val, c.Expected) {
+				t.Fatalf("bad: %#v %#v", val, c.Expected)
+			}
+
+		})
+	}
+}
+
+func TestIntFieldIndex_FromArgs(t *testing.T) {
+	indexer := IntFieldIndex{"Foo"}
+	_, err := indexer.FromArgs()
+	if err == nil {
+		t.Fatalf("should get err")
+	}
+
+	_, err = indexer.FromArgs(int(1), int(2))
+	if err == nil {
+		t.Fatalf("should get err")
+	}
+
+	_, err = indexer.FromArgs("foo")
+	if err == nil {
+		t.Fatalf("should get err")
+	}
+
+	obj := testObj()
+	eint := make([]byte, 10)
+	eint8 := make([]byte, 2)
+	eint16 := make([]byte, 3)
+	eint32 := make([]byte, 5)
+	eint64 := make([]byte, 10)
+	binary.PutVarint(eint, int64(obj.Int))
+	binary.PutVarint(eint8, int64(obj.Int8))
+	binary.PutVarint(eint16, int64(obj.Int16))
+	binary.PutVarint(eint32, int64(obj.Int32))
+	binary.PutVarint(eint64, obj.Int64)
+
+	val, err := indexer.FromArgs(obj.Int)
+	if err != nil {
+		t.Fatalf("bad: %v", err)
+	}
+	if !bytes.Equal(val, eint) {
+		t.Fatalf("bad: %#v %#v", val, eint)
+	}
+
+	val, err = indexer.FromArgs(obj.Int8)
+	if err != nil {
+		t.Fatalf("bad: %v", err)
+	}
+	if !bytes.Equal(val, eint8) {
+		t.Fatalf("bad: %#v %#v", val, eint8)
+	}
+
+	val, err = indexer.FromArgs(obj.Int16)
+	if err != nil {
+		t.Fatalf("bad: %v", err)
+	}
+	if !bytes.Equal(val, eint16) {
+		t.Fatalf("bad: %#v %#v", val, eint16)
+	}
+
+	val, err = indexer.FromArgs(obj.Int32)
+	if err != nil {
+		t.Fatalf("bad: %v", err)
+	}
+	if !bytes.Equal(val, eint32) {
+		t.Fatalf("bad: %#v %#v", val, eint32)
+	}
+
+	val, err = indexer.FromArgs(obj.Int64)
+	if err != nil {
+		t.Fatalf("bad: %v", err)
+	}
+	if !bytes.Equal(val, eint64) {
+		t.Fatalf("bad: %#v %#v", val, eint64)
+	}
 }
 
 func TestUintFieldIndex_FromObject(t *testing.T) {

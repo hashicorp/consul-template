@@ -198,6 +198,12 @@ func TestComplexDB(t *testing.T) {
 		t.Fatalf("should get person")
 	}
 
+	raw, err = txn.First("people", "negative_age", int8(-23))
+	noErr(t, err)
+	if raw == nil {
+		t.Fatalf("should get person")
+	}
+
 	person := raw.(*TestPerson)
 	if person.First != "Alex" {
 		t.Fatalf("wrong person!")
@@ -232,6 +238,46 @@ func TestComplexDB(t *testing.T) {
 	place := raw.(*TestPlace)
 	if place.Name != "Maui" {
 		t.Fatalf("bad place (but isn't anywhere else really?): %v", place)
+	}
+
+	raw, err = txn.First("places", "name_tags", "HashiCorp", "North America")
+	noErr(t, err)
+	if raw == nil {
+		t.Fatalf("should get place")
+	}
+	place = raw.(*TestPlace)
+	if place.Name != "HashiCorp" {
+		t.Fatalf("bad place (but isn't anywhere else really?): %v", place)
+	}
+
+	raw, err = txn.First("places", "name_tags", "Maui")
+	noErr(t, err)
+	if raw == nil {
+		t.Fatalf("should get place")
+	}
+	place = raw.(*TestPlace)
+	if place.Name != "Maui" {
+		t.Fatalf("bad place (but isn't anywhere else really?): %v", place)
+	}
+
+	raw, err = txn.First("places", "name_tags_name_meta", "HashiCorp", "North America", "HashiCorp", "Food", "Pretty Good")
+	noErr(t, err)
+	if raw == nil {
+		t.Fatalf("should get place")
+	}
+	place = raw.(*TestPlace)
+	if place.Tags[1] != "USA" {
+		t.Fatalf("bad place: %v", place)
+	}
+
+	raw, err = txn.First("places", "name_tags_name_meta", "HashiCorp", "North America", "HashiCorp", "Piers", "Pretty Salty")
+	noErr(t, err)
+	if raw == nil {
+		t.Fatalf("should get place")
+	}
+	place = raw.(*TestPlace)
+	if place.Tags[1] != "Earth" {
+		t.Fatalf("bad place: %v", place)
 	}
 }
 
@@ -316,18 +362,25 @@ func testPopulateData(t *testing.T, db *MemDB) {
 	person2.First = "Mitchell"
 	person2.Last = "Hashimoto"
 	person2.Age = 27
+	person2.NegativeAge = -27
 
 	person3 := testPerson()
 	person3.First = "Alex"
 	person3.Last = "Dadgar"
 	person3.Age = 23
+	person3.NegativeAge = -23
 
 	person1.Sibling = person3
 	person3.Sibling = person1
 
 	place1 := testPlace()
+	place1.Tags = []string{"North America", "USA"}
+	place1.Meta = map[string]string{"Food": "Pretty Good"}
 	place2 := testPlace()
 	place2.Name = "Maui"
+	place3 := testPlace()
+	place3.Tags = []string{"North America", "Earth"}
+	place3.Meta = map[string]string{"Piers": "Pretty Salty"}
 
 	visit1 := &TestVisit{person1.ID, place1.ID}
 	visit2 := &TestVisit{person2.ID, place2.ID}
@@ -338,6 +391,7 @@ func testPopulateData(t *testing.T, db *MemDB) {
 	noErr(t, txn.Insert("people", person3))
 	noErr(t, txn.Insert("places", place1))
 	noErr(t, txn.Insert("places", place2))
+	noErr(t, txn.Insert("places", place3))
 	noErr(t, txn.Insert("visits", visit1))
 	noErr(t, txn.Insert("visits", visit2))
 
@@ -345,23 +399,34 @@ func testPopulateData(t *testing.T, db *MemDB) {
 	txn.Commit()
 }
 
+func expectErr(t *testing.T, err error) {
+	t.Helper()
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
 func noErr(t *testing.T, err error) {
+	t.Helper()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 }
 
 type TestPerson struct {
-	ID      string
-	First   string
-	Last    string
-	Age     uint8
-	Sibling *TestPerson
+	ID          string
+	First       string
+	Last        string
+	Age         uint8
+	NegativeAge int8
+	Sibling     *TestPerson
 }
 
 type TestPlace struct {
 	ID   string
 	Name string
+	Tags []string
+	Meta map[string]string
 }
 
 type TestVisit struct {
@@ -395,6 +460,11 @@ func testComplexSchema() *DBSchema {
 						Unique:  false,
 						Indexer: &UintFieldIndex{Field: "Age"},
 					},
+					"negative_age": &IndexSchema{
+						Name:    "negative_age",
+						Unique:  false,
+						Indexer: &IntFieldIndex{Field: "NegativeAge"},
+					},
 					"sibling": &IndexSchema{
 						Name:    "sibling",
 						Unique:  false,
@@ -414,6 +484,32 @@ func testComplexSchema() *DBSchema {
 						Name:    "name",
 						Unique:  true,
 						Indexer: &StringFieldIndex{Field: "Name"},
+					},
+					"name_tags": &IndexSchema{
+						Name:         "name_tags",
+						Unique:       true,
+						AllowMissing: true,
+						Indexer: &CompoundMultiIndex{
+							AllowMissing: true,
+							Indexes: []Indexer{
+								&StringFieldIndex{Field: "Name"},
+								&StringSliceFieldIndex{Field: "Tags"},
+							},
+						},
+					},
+					"name_tags_name_meta": &IndexSchema{
+						Name:         "name_tags_name_meta",
+						Unique:       true,
+						AllowMissing: true,
+						Indexer: &CompoundMultiIndex{
+							AllowMissing: true,
+							Indexes: []Indexer{
+								&StringFieldIndex{Field: "Name"},
+								&StringSliceFieldIndex{Field: "Tags"},
+								&StringFieldIndex{Field: "Name"},
+								&StringMapFieldIndex{Field: "Meta"},
+							},
+						},
 					},
 				},
 			},
@@ -447,10 +543,11 @@ func testComplexDB(t *testing.T) *MemDB {
 func testPerson() *TestPerson {
 	_, uuid := generateUUID()
 	obj := &TestPerson{
-		ID:    uuid,
-		First: "Armon",
-		Last:  "Dadgar",
-		Age:   26,
+		ID:          uuid,
+		First:       "Armon",
+		Last:        "Dadgar",
+		Age:         26,
+		NegativeAge: -26,
 	}
 	return obj
 }

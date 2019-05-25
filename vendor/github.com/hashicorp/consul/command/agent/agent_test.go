@@ -9,6 +9,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/hashicorp/consul/testrpc"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/testutil/retry"
@@ -81,8 +83,9 @@ func TestConfigFail(t *testing.T) {
 
 func TestRetryJoin(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), "")
+	a := agent.NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	shutdownCh := make(chan struct{})
 

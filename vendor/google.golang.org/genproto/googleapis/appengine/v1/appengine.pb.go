@@ -3,18 +3,17 @@
 
 package appengine
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import _ "google.golang.org/genproto/googleapis/api/annotations"
-import _ "google.golang.org/genproto/googleapis/iam/v1"
-import _ "google.golang.org/genproto/googleapis/iam/v1"
-import google_longrunning "google.golang.org/genproto/googleapis/longrunning"
-import _ "github.com/golang/protobuf/ptypes/empty"
-import google_protobuf5 "google.golang.org/genproto/protobuf/field_mask"
-
 import (
-	context "golang.org/x/net/context"
+	context "context"
+	fmt "fmt"
+	math "math"
+
+	proto "github.com/golang/protobuf/proto"
+	_ "github.com/golang/protobuf/ptypes/empty"
+	_ "google.golang.org/genproto/googleapis/api/annotations"
+	_ "google.golang.org/genproto/googleapis/iam/v1"
+	longrunning "google.golang.org/genproto/googleapis/longrunning"
+	field_mask "google.golang.org/genproto/protobuf/field_mask"
 	grpc "google.golang.org/grpc"
 )
 
@@ -23,8 +22,14 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
-// Fields that should be returned when [Version][google.appengine.v1.Version] resources
-// are retreived.
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the proto package it is being compiled against.
+// A compilation error at this line likely means your copy of the
+// proto package needs to be updated.
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
+
+// Fields that should be returned when [Version][google.appengine.v1.Version]
+// resources are retreived.
 type VersionView int32
 
 const (
@@ -41,6 +46,7 @@ var VersionView_name = map[int32]string{
 	0: "BASIC",
 	1: "FULL",
 }
+
 var VersionView_value = map[string]int32{
 	"BASIC": 0,
 	"FULL":  1,
@@ -49,18 +55,44 @@ var VersionView_value = map[string]int32{
 func (x VersionView) String() string {
 	return proto.EnumName(VersionView_name, int32(x))
 }
-func (VersionView) EnumDescriptor() ([]byte, []int) { return fileDescriptor1, []int{0} }
+
+func (VersionView) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_b28c1d276df09fd1, []int{0}
+}
 
 // Request message for `Applications.GetApplication`.
 type GetApplicationRequest struct {
 	// Name of the Application resource to get. Example: `apps/myapp`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *GetApplicationRequest) Reset()                    { *m = GetApplicationRequest{} }
-func (m *GetApplicationRequest) String() string            { return proto.CompactTextString(m) }
-func (*GetApplicationRequest) ProtoMessage()               {}
-func (*GetApplicationRequest) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{0} }
+func (m *GetApplicationRequest) Reset()         { *m = GetApplicationRequest{} }
+func (m *GetApplicationRequest) String() string { return proto.CompactTextString(m) }
+func (*GetApplicationRequest) ProtoMessage()    {}
+func (*GetApplicationRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b28c1d276df09fd1, []int{0}
+}
+
+func (m *GetApplicationRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetApplicationRequest.Unmarshal(m, b)
+}
+func (m *GetApplicationRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetApplicationRequest.Marshal(b, m, deterministic)
+}
+func (m *GetApplicationRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetApplicationRequest.Merge(m, src)
+}
+func (m *GetApplicationRequest) XXX_Size() int {
+	return xxx_messageInfo_GetApplicationRequest.Size(m)
+}
+func (m *GetApplicationRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetApplicationRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetApplicationRequest proto.InternalMessageInfo
 
 func (m *GetApplicationRequest) GetName() string {
 	if m != nil {
@@ -72,13 +104,36 @@ func (m *GetApplicationRequest) GetName() string {
 // Request message for 'Applications.RepairApplication'.
 type RepairApplicationRequest struct {
 	// Name of the application to repair. Example: `apps/myapp`
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *RepairApplicationRequest) Reset()                    { *m = RepairApplicationRequest{} }
-func (m *RepairApplicationRequest) String() string            { return proto.CompactTextString(m) }
-func (*RepairApplicationRequest) ProtoMessage()               {}
-func (*RepairApplicationRequest) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{1} }
+func (m *RepairApplicationRequest) Reset()         { *m = RepairApplicationRequest{} }
+func (m *RepairApplicationRequest) String() string { return proto.CompactTextString(m) }
+func (*RepairApplicationRequest) ProtoMessage()    {}
+func (*RepairApplicationRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b28c1d276df09fd1, []int{1}
+}
+
+func (m *RepairApplicationRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_RepairApplicationRequest.Unmarshal(m, b)
+}
+func (m *RepairApplicationRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_RepairApplicationRequest.Marshal(b, m, deterministic)
+}
+func (m *RepairApplicationRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RepairApplicationRequest.Merge(m, src)
+}
+func (m *RepairApplicationRequest) XXX_Size() int {
+	return xxx_messageInfo_RepairApplicationRequest.Size(m)
+}
+func (m *RepairApplicationRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_RepairApplicationRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RepairApplicationRequest proto.InternalMessageInfo
 
 func (m *RepairApplicationRequest) GetName() string {
 	if m != nil {
@@ -90,17 +145,40 @@ func (m *RepairApplicationRequest) GetName() string {
 // Request message for `Services.ListServices`.
 type ListServicesRequest struct {
 	// Name of the parent Application resource. Example: `apps/myapp`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Maximum results to return per page.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Continuation token for fetching the next page of results.
-	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *ListServicesRequest) Reset()                    { *m = ListServicesRequest{} }
-func (m *ListServicesRequest) String() string            { return proto.CompactTextString(m) }
-func (*ListServicesRequest) ProtoMessage()               {}
-func (*ListServicesRequest) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{2} }
+func (m *ListServicesRequest) Reset()         { *m = ListServicesRequest{} }
+func (m *ListServicesRequest) String() string { return proto.CompactTextString(m) }
+func (*ListServicesRequest) ProtoMessage()    {}
+func (*ListServicesRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b28c1d276df09fd1, []int{2}
+}
+
+func (m *ListServicesRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ListServicesRequest.Unmarshal(m, b)
+}
+func (m *ListServicesRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ListServicesRequest.Marshal(b, m, deterministic)
+}
+func (m *ListServicesRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListServicesRequest.Merge(m, src)
+}
+func (m *ListServicesRequest) XXX_Size() int {
+	return xxx_messageInfo_ListServicesRequest.Size(m)
+}
+func (m *ListServicesRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_ListServicesRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ListServicesRequest proto.InternalMessageInfo
 
 func (m *ListServicesRequest) GetParent() string {
 	if m != nil {
@@ -126,15 +204,38 @@ func (m *ListServicesRequest) GetPageToken() string {
 // Response message for `Services.ListServices`.
 type ListServicesResponse struct {
 	// The services belonging to the requested application.
-	Services []*Service `protobuf:"bytes,1,rep,name=services" json:"services,omitempty"`
+	Services []*Service `protobuf:"bytes,1,rep,name=services,proto3" json:"services,omitempty"`
 	// Continuation token for fetching the next page of results.
-	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *ListServicesResponse) Reset()                    { *m = ListServicesResponse{} }
-func (m *ListServicesResponse) String() string            { return proto.CompactTextString(m) }
-func (*ListServicesResponse) ProtoMessage()               {}
-func (*ListServicesResponse) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{3} }
+func (m *ListServicesResponse) Reset()         { *m = ListServicesResponse{} }
+func (m *ListServicesResponse) String() string { return proto.CompactTextString(m) }
+func (*ListServicesResponse) ProtoMessage()    {}
+func (*ListServicesResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b28c1d276df09fd1, []int{3}
+}
+
+func (m *ListServicesResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ListServicesResponse.Unmarshal(m, b)
+}
+func (m *ListServicesResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ListServicesResponse.Marshal(b, m, deterministic)
+}
+func (m *ListServicesResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListServicesResponse.Merge(m, src)
+}
+func (m *ListServicesResponse) XXX_Size() int {
+	return xxx_messageInfo_ListServicesResponse.Size(m)
+}
+func (m *ListServicesResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_ListServicesResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ListServicesResponse proto.InternalMessageInfo
 
 func (m *ListServicesResponse) GetServices() []*Service {
 	if m != nil {
@@ -153,13 +254,36 @@ func (m *ListServicesResponse) GetNextPageToken() string {
 // Request message for `Services.GetService`.
 type GetServiceRequest struct {
 	// Name of the resource requested. Example: `apps/myapp/services/default`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *GetServiceRequest) Reset()                    { *m = GetServiceRequest{} }
-func (m *GetServiceRequest) String() string            { return proto.CompactTextString(m) }
-func (*GetServiceRequest) ProtoMessage()               {}
-func (*GetServiceRequest) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{4} }
+func (m *GetServiceRequest) Reset()         { *m = GetServiceRequest{} }
+func (m *GetServiceRequest) String() string { return proto.CompactTextString(m) }
+func (*GetServiceRequest) ProtoMessage()    {}
+func (*GetServiceRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b28c1d276df09fd1, []int{4}
+}
+
+func (m *GetServiceRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetServiceRequest.Unmarshal(m, b)
+}
+func (m *GetServiceRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetServiceRequest.Marshal(b, m, deterministic)
+}
+func (m *GetServiceRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetServiceRequest.Merge(m, src)
+}
+func (m *GetServiceRequest) XXX_Size() int {
+	return xxx_messageInfo_GetServiceRequest.Size(m)
+}
+func (m *GetServiceRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetServiceRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetServiceRequest proto.InternalMessageInfo
 
 func (m *GetServiceRequest) GetName() string {
 	if m != nil {
@@ -171,31 +295,57 @@ func (m *GetServiceRequest) GetName() string {
 // Request message for `Services.UpdateService`.
 type UpdateServiceRequest struct {
 	// Name of the resource to update. Example: `apps/myapp/services/default`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// A Service resource containing the updated service. Only fields set in the
 	// field mask will be updated.
-	Service *Service `protobuf:"bytes,2,opt,name=service" json:"service,omitempty"`
+	Service *Service `protobuf:"bytes,2,opt,name=service,proto3" json:"service,omitempty"`
 	// Standard field mask for the set of fields to be updated.
-	UpdateMask *google_protobuf5.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
 	// Set to `true` to gradually shift traffic from one version to another
 	// single version. By default, traffic is shifted immediately.
 	// For gradual traffic migration, the target version
 	// must be located within instances that are configured for both
-	// [warmup requests](https://cloud.google.com/appengine/docs/admin-api/reference/rest/v1/apps.services.versions#inboundservicetype)
+	// [warmup
+	// requests](https://cloud.google.com/appengine/docs/admin-api/reference/rest/v1/apps.services.versions#inboundservicetype)
 	// and
-	// [automatic scaling](https://cloud.google.com/appengine/docs/admin-api/reference/rest/v1/apps.services.versions#automaticscaling).
+	// [automatic
+	// scaling](https://cloud.google.com/appengine/docs/admin-api/reference/rest/v1/apps.services.versions#automaticscaling).
 	// You must specify the
 	// [`shardBy`](https://cloud.google.com/appengine/docs/admin-api/reference/rest/v1/apps.services#shardby)
 	// field in the Service resource. Gradual traffic migration is not
 	// supported in the App Engine flexible environment. For examples, see
-	// [Migrating and Splitting Traffic](https://cloud.google.com/appengine/docs/admin-api/migrating-splitting-traffic).
-	MigrateTraffic bool `protobuf:"varint,4,opt,name=migrate_traffic,json=migrateTraffic" json:"migrate_traffic,omitempty"`
+	// [Migrating and Splitting
+	// Traffic](https://cloud.google.com/appengine/docs/admin-api/migrating-splitting-traffic).
+	MigrateTraffic       bool     `protobuf:"varint,4,opt,name=migrate_traffic,json=migrateTraffic,proto3" json:"migrate_traffic,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *UpdateServiceRequest) Reset()                    { *m = UpdateServiceRequest{} }
-func (m *UpdateServiceRequest) String() string            { return proto.CompactTextString(m) }
-func (*UpdateServiceRequest) ProtoMessage()               {}
-func (*UpdateServiceRequest) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{5} }
+func (m *UpdateServiceRequest) Reset()         { *m = UpdateServiceRequest{} }
+func (m *UpdateServiceRequest) String() string { return proto.CompactTextString(m) }
+func (*UpdateServiceRequest) ProtoMessage()    {}
+func (*UpdateServiceRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b28c1d276df09fd1, []int{5}
+}
+
+func (m *UpdateServiceRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_UpdateServiceRequest.Unmarshal(m, b)
+}
+func (m *UpdateServiceRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_UpdateServiceRequest.Marshal(b, m, deterministic)
+}
+func (m *UpdateServiceRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_UpdateServiceRequest.Merge(m, src)
+}
+func (m *UpdateServiceRequest) XXX_Size() int {
+	return xxx_messageInfo_UpdateServiceRequest.Size(m)
+}
+func (m *UpdateServiceRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_UpdateServiceRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_UpdateServiceRequest proto.InternalMessageInfo
 
 func (m *UpdateServiceRequest) GetName() string {
 	if m != nil {
@@ -211,7 +361,7 @@ func (m *UpdateServiceRequest) GetService() *Service {
 	return nil
 }
 
-func (m *UpdateServiceRequest) GetUpdateMask() *google_protobuf5.FieldMask {
+func (m *UpdateServiceRequest) GetUpdateMask() *field_mask.FieldMask {
 	if m != nil {
 		return m.UpdateMask
 	}
@@ -228,13 +378,36 @@ func (m *UpdateServiceRequest) GetMigrateTraffic() bool {
 // Request message for `Services.DeleteService`.
 type DeleteServiceRequest struct {
 	// Name of the resource requested. Example: `apps/myapp/services/default`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *DeleteServiceRequest) Reset()                    { *m = DeleteServiceRequest{} }
-func (m *DeleteServiceRequest) String() string            { return proto.CompactTextString(m) }
-func (*DeleteServiceRequest) ProtoMessage()               {}
-func (*DeleteServiceRequest) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{6} }
+func (m *DeleteServiceRequest) Reset()         { *m = DeleteServiceRequest{} }
+func (m *DeleteServiceRequest) String() string { return proto.CompactTextString(m) }
+func (*DeleteServiceRequest) ProtoMessage()    {}
+func (*DeleteServiceRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b28c1d276df09fd1, []int{6}
+}
+
+func (m *DeleteServiceRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_DeleteServiceRequest.Unmarshal(m, b)
+}
+func (m *DeleteServiceRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_DeleteServiceRequest.Marshal(b, m, deterministic)
+}
+func (m *DeleteServiceRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DeleteServiceRequest.Merge(m, src)
+}
+func (m *DeleteServiceRequest) XXX_Size() int {
+	return xxx_messageInfo_DeleteServiceRequest.Size(m)
+}
+func (m *DeleteServiceRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_DeleteServiceRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DeleteServiceRequest proto.InternalMessageInfo
 
 func (m *DeleteServiceRequest) GetName() string {
 	if m != nil {
@@ -247,19 +420,42 @@ func (m *DeleteServiceRequest) GetName() string {
 type ListVersionsRequest struct {
 	// Name of the parent Service resource. Example:
 	// `apps/myapp/services/default`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Controls the set of fields returned in the `List` response.
-	View VersionView `protobuf:"varint,2,opt,name=view,enum=google.appengine.v1.VersionView" json:"view,omitempty"`
+	View VersionView `protobuf:"varint,2,opt,name=view,proto3,enum=google.appengine.v1.VersionView" json:"view,omitempty"`
 	// Maximum results to return per page.
-	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Continuation token for fetching the next page of results.
-	PageToken string `protobuf:"bytes,4,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *ListVersionsRequest) Reset()                    { *m = ListVersionsRequest{} }
-func (m *ListVersionsRequest) String() string            { return proto.CompactTextString(m) }
-func (*ListVersionsRequest) ProtoMessage()               {}
-func (*ListVersionsRequest) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{7} }
+func (m *ListVersionsRequest) Reset()         { *m = ListVersionsRequest{} }
+func (m *ListVersionsRequest) String() string { return proto.CompactTextString(m) }
+func (*ListVersionsRequest) ProtoMessage()    {}
+func (*ListVersionsRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b28c1d276df09fd1, []int{7}
+}
+
+func (m *ListVersionsRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ListVersionsRequest.Unmarshal(m, b)
+}
+func (m *ListVersionsRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ListVersionsRequest.Marshal(b, m, deterministic)
+}
+func (m *ListVersionsRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListVersionsRequest.Merge(m, src)
+}
+func (m *ListVersionsRequest) XXX_Size() int {
+	return xxx_messageInfo_ListVersionsRequest.Size(m)
+}
+func (m *ListVersionsRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_ListVersionsRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ListVersionsRequest proto.InternalMessageInfo
 
 func (m *ListVersionsRequest) GetParent() string {
 	if m != nil {
@@ -292,15 +488,38 @@ func (m *ListVersionsRequest) GetPageToken() string {
 // Response message for `Versions.ListVersions`.
 type ListVersionsResponse struct {
 	// The versions belonging to the requested service.
-	Versions []*Version `protobuf:"bytes,1,rep,name=versions" json:"versions,omitempty"`
+	Versions []*Version `protobuf:"bytes,1,rep,name=versions,proto3" json:"versions,omitempty"`
 	// Continuation token for fetching the next page of results.
-	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *ListVersionsResponse) Reset()                    { *m = ListVersionsResponse{} }
-func (m *ListVersionsResponse) String() string            { return proto.CompactTextString(m) }
-func (*ListVersionsResponse) ProtoMessage()               {}
-func (*ListVersionsResponse) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{8} }
+func (m *ListVersionsResponse) Reset()         { *m = ListVersionsResponse{} }
+func (m *ListVersionsResponse) String() string { return proto.CompactTextString(m) }
+func (*ListVersionsResponse) ProtoMessage()    {}
+func (*ListVersionsResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b28c1d276df09fd1, []int{8}
+}
+
+func (m *ListVersionsResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ListVersionsResponse.Unmarshal(m, b)
+}
+func (m *ListVersionsResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ListVersionsResponse.Marshal(b, m, deterministic)
+}
+func (m *ListVersionsResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListVersionsResponse.Merge(m, src)
+}
+func (m *ListVersionsResponse) XXX_Size() int {
+	return xxx_messageInfo_ListVersionsResponse.Size(m)
+}
+func (m *ListVersionsResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_ListVersionsResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ListVersionsResponse proto.InternalMessageInfo
 
 func (m *ListVersionsResponse) GetVersions() []*Version {
 	if m != nil {
@@ -320,15 +539,38 @@ func (m *ListVersionsResponse) GetNextPageToken() string {
 type GetVersionRequest struct {
 	// Name of the resource requested. Example:
 	// `apps/myapp/services/default/versions/v1`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Controls the set of fields returned in the `Get` response.
-	View VersionView `protobuf:"varint,2,opt,name=view,enum=google.appengine.v1.VersionView" json:"view,omitempty"`
+	View                 VersionView `protobuf:"varint,2,opt,name=view,proto3,enum=google.appengine.v1.VersionView" json:"view,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
+	XXX_unrecognized     []byte      `json:"-"`
+	XXX_sizecache        int32       `json:"-"`
 }
 
-func (m *GetVersionRequest) Reset()                    { *m = GetVersionRequest{} }
-func (m *GetVersionRequest) String() string            { return proto.CompactTextString(m) }
-func (*GetVersionRequest) ProtoMessage()               {}
-func (*GetVersionRequest) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{9} }
+func (m *GetVersionRequest) Reset()         { *m = GetVersionRequest{} }
+func (m *GetVersionRequest) String() string { return proto.CompactTextString(m) }
+func (*GetVersionRequest) ProtoMessage()    {}
+func (*GetVersionRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b28c1d276df09fd1, []int{9}
+}
+
+func (m *GetVersionRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetVersionRequest.Unmarshal(m, b)
+}
+func (m *GetVersionRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetVersionRequest.Marshal(b, m, deterministic)
+}
+func (m *GetVersionRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetVersionRequest.Merge(m, src)
+}
+func (m *GetVersionRequest) XXX_Size() int {
+	return xxx_messageInfo_GetVersionRequest.Size(m)
+}
+func (m *GetVersionRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetVersionRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetVersionRequest proto.InternalMessageInfo
 
 func (m *GetVersionRequest) GetName() string {
 	if m != nil {
@@ -348,15 +590,38 @@ func (m *GetVersionRequest) GetView() VersionView {
 type CreateVersionRequest struct {
 	// Name of the parent resource to create this version under. Example:
 	// `apps/myapp/services/default`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Application deployment configuration.
-	Version *Version `protobuf:"bytes,2,opt,name=version" json:"version,omitempty"`
+	Version              *Version `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *CreateVersionRequest) Reset()                    { *m = CreateVersionRequest{} }
-func (m *CreateVersionRequest) String() string            { return proto.CompactTextString(m) }
-func (*CreateVersionRequest) ProtoMessage()               {}
-func (*CreateVersionRequest) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{10} }
+func (m *CreateVersionRequest) Reset()         { *m = CreateVersionRequest{} }
+func (m *CreateVersionRequest) String() string { return proto.CompactTextString(m) }
+func (*CreateVersionRequest) ProtoMessage()    {}
+func (*CreateVersionRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b28c1d276df09fd1, []int{10}
+}
+
+func (m *CreateVersionRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CreateVersionRequest.Unmarshal(m, b)
+}
+func (m *CreateVersionRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CreateVersionRequest.Marshal(b, m, deterministic)
+}
+func (m *CreateVersionRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CreateVersionRequest.Merge(m, src)
+}
+func (m *CreateVersionRequest) XXX_Size() int {
+	return xxx_messageInfo_CreateVersionRequest.Size(m)
+}
+func (m *CreateVersionRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_CreateVersionRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_CreateVersionRequest proto.InternalMessageInfo
 
 func (m *CreateVersionRequest) GetParent() string {
 	if m != nil {
@@ -376,18 +641,41 @@ func (m *CreateVersionRequest) GetVersion() *Version {
 type UpdateVersionRequest struct {
 	// Name of the resource to update. Example:
 	// `apps/myapp/services/default/versions/1`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// A Version containing the updated resource. Only fields set in the field
 	// mask will be updated.
-	Version *Version `protobuf:"bytes,2,opt,name=version" json:"version,omitempty"`
+	Version *Version `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
 	// Standard field mask for the set of fields to be updated.
-	UpdateMask *google_protobuf5.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask" json:"update_mask,omitempty"`
+	UpdateMask           *field_mask.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask,proto3" json:"update_mask,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
+	XXX_unrecognized     []byte                `json:"-"`
+	XXX_sizecache        int32                 `json:"-"`
 }
 
-func (m *UpdateVersionRequest) Reset()                    { *m = UpdateVersionRequest{} }
-func (m *UpdateVersionRequest) String() string            { return proto.CompactTextString(m) }
-func (*UpdateVersionRequest) ProtoMessage()               {}
-func (*UpdateVersionRequest) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{11} }
+func (m *UpdateVersionRequest) Reset()         { *m = UpdateVersionRequest{} }
+func (m *UpdateVersionRequest) String() string { return proto.CompactTextString(m) }
+func (*UpdateVersionRequest) ProtoMessage()    {}
+func (*UpdateVersionRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b28c1d276df09fd1, []int{11}
+}
+
+func (m *UpdateVersionRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_UpdateVersionRequest.Unmarshal(m, b)
+}
+func (m *UpdateVersionRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_UpdateVersionRequest.Marshal(b, m, deterministic)
+}
+func (m *UpdateVersionRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_UpdateVersionRequest.Merge(m, src)
+}
+func (m *UpdateVersionRequest) XXX_Size() int {
+	return xxx_messageInfo_UpdateVersionRequest.Size(m)
+}
+func (m *UpdateVersionRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_UpdateVersionRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_UpdateVersionRequest proto.InternalMessageInfo
 
 func (m *UpdateVersionRequest) GetName() string {
 	if m != nil {
@@ -403,7 +691,7 @@ func (m *UpdateVersionRequest) GetVersion() *Version {
 	return nil
 }
 
-func (m *UpdateVersionRequest) GetUpdateMask() *google_protobuf5.FieldMask {
+func (m *UpdateVersionRequest) GetUpdateMask() *field_mask.FieldMask {
 	if m != nil {
 		return m.UpdateMask
 	}
@@ -414,13 +702,36 @@ func (m *UpdateVersionRequest) GetUpdateMask() *google_protobuf5.FieldMask {
 type DeleteVersionRequest struct {
 	// Name of the resource requested. Example:
 	// `apps/myapp/services/default/versions/v1`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *DeleteVersionRequest) Reset()                    { *m = DeleteVersionRequest{} }
-func (m *DeleteVersionRequest) String() string            { return proto.CompactTextString(m) }
-func (*DeleteVersionRequest) ProtoMessage()               {}
-func (*DeleteVersionRequest) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{12} }
+func (m *DeleteVersionRequest) Reset()         { *m = DeleteVersionRequest{} }
+func (m *DeleteVersionRequest) String() string { return proto.CompactTextString(m) }
+func (*DeleteVersionRequest) ProtoMessage()    {}
+func (*DeleteVersionRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b28c1d276df09fd1, []int{12}
+}
+
+func (m *DeleteVersionRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_DeleteVersionRequest.Unmarshal(m, b)
+}
+func (m *DeleteVersionRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_DeleteVersionRequest.Marshal(b, m, deterministic)
+}
+func (m *DeleteVersionRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DeleteVersionRequest.Merge(m, src)
+}
+func (m *DeleteVersionRequest) XXX_Size() int {
+	return xxx_messageInfo_DeleteVersionRequest.Size(m)
+}
+func (m *DeleteVersionRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_DeleteVersionRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DeleteVersionRequest proto.InternalMessageInfo
 
 func (m *DeleteVersionRequest) GetName() string {
 	if m != nil {
@@ -433,17 +744,40 @@ func (m *DeleteVersionRequest) GetName() string {
 type ListInstancesRequest struct {
 	// Name of the parent Version resource. Example:
 	// `apps/myapp/services/default/versions/v1`.
-	Parent string `protobuf:"bytes,1,opt,name=parent" json:"parent,omitempty"`
+	Parent string `protobuf:"bytes,1,opt,name=parent,proto3" json:"parent,omitempty"`
 	// Maximum results to return per page.
-	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageSize int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Continuation token for fetching the next page of results.
-	PageToken string `protobuf:"bytes,3,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	PageToken            string   `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *ListInstancesRequest) Reset()                    { *m = ListInstancesRequest{} }
-func (m *ListInstancesRequest) String() string            { return proto.CompactTextString(m) }
-func (*ListInstancesRequest) ProtoMessage()               {}
-func (*ListInstancesRequest) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{13} }
+func (m *ListInstancesRequest) Reset()         { *m = ListInstancesRequest{} }
+func (m *ListInstancesRequest) String() string { return proto.CompactTextString(m) }
+func (*ListInstancesRequest) ProtoMessage()    {}
+func (*ListInstancesRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b28c1d276df09fd1, []int{13}
+}
+
+func (m *ListInstancesRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ListInstancesRequest.Unmarshal(m, b)
+}
+func (m *ListInstancesRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ListInstancesRequest.Marshal(b, m, deterministic)
+}
+func (m *ListInstancesRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListInstancesRequest.Merge(m, src)
+}
+func (m *ListInstancesRequest) XXX_Size() int {
+	return xxx_messageInfo_ListInstancesRequest.Size(m)
+}
+func (m *ListInstancesRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_ListInstancesRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ListInstancesRequest proto.InternalMessageInfo
 
 func (m *ListInstancesRequest) GetParent() string {
 	if m != nil {
@@ -469,15 +803,38 @@ func (m *ListInstancesRequest) GetPageToken() string {
 // Response message for `Instances.ListInstances`.
 type ListInstancesResponse struct {
 	// The instances belonging to the requested version.
-	Instances []*Instance `protobuf:"bytes,1,rep,name=instances" json:"instances,omitempty"`
+	Instances []*Instance `protobuf:"bytes,1,rep,name=instances,proto3" json:"instances,omitempty"`
 	// Continuation token for fetching the next page of results.
-	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	NextPageToken        string   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *ListInstancesResponse) Reset()                    { *m = ListInstancesResponse{} }
-func (m *ListInstancesResponse) String() string            { return proto.CompactTextString(m) }
-func (*ListInstancesResponse) ProtoMessage()               {}
-func (*ListInstancesResponse) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{14} }
+func (m *ListInstancesResponse) Reset()         { *m = ListInstancesResponse{} }
+func (m *ListInstancesResponse) String() string { return proto.CompactTextString(m) }
+func (*ListInstancesResponse) ProtoMessage()    {}
+func (*ListInstancesResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b28c1d276df09fd1, []int{14}
+}
+
+func (m *ListInstancesResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ListInstancesResponse.Unmarshal(m, b)
+}
+func (m *ListInstancesResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ListInstancesResponse.Marshal(b, m, deterministic)
+}
+func (m *ListInstancesResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListInstancesResponse.Merge(m, src)
+}
+func (m *ListInstancesResponse) XXX_Size() int {
+	return xxx_messageInfo_ListInstancesResponse.Size(m)
+}
+func (m *ListInstancesResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_ListInstancesResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ListInstancesResponse proto.InternalMessageInfo
 
 func (m *ListInstancesResponse) GetInstances() []*Instance {
 	if m != nil {
@@ -497,13 +854,36 @@ func (m *ListInstancesResponse) GetNextPageToken() string {
 type GetInstanceRequest struct {
 	// Name of the resource requested. Example:
 	// `apps/myapp/services/default/versions/v1/instances/instance-1`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *GetInstanceRequest) Reset()                    { *m = GetInstanceRequest{} }
-func (m *GetInstanceRequest) String() string            { return proto.CompactTextString(m) }
-func (*GetInstanceRequest) ProtoMessage()               {}
-func (*GetInstanceRequest) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{15} }
+func (m *GetInstanceRequest) Reset()         { *m = GetInstanceRequest{} }
+func (m *GetInstanceRequest) String() string { return proto.CompactTextString(m) }
+func (*GetInstanceRequest) ProtoMessage()    {}
+func (*GetInstanceRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b28c1d276df09fd1, []int{15}
+}
+
+func (m *GetInstanceRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetInstanceRequest.Unmarshal(m, b)
+}
+func (m *GetInstanceRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetInstanceRequest.Marshal(b, m, deterministic)
+}
+func (m *GetInstanceRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetInstanceRequest.Merge(m, src)
+}
+func (m *GetInstanceRequest) XXX_Size() int {
+	return xxx_messageInfo_GetInstanceRequest.Size(m)
+}
+func (m *GetInstanceRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetInstanceRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetInstanceRequest proto.InternalMessageInfo
 
 func (m *GetInstanceRequest) GetName() string {
 	if m != nil {
@@ -516,13 +896,36 @@ func (m *GetInstanceRequest) GetName() string {
 type DeleteInstanceRequest struct {
 	// Name of the resource requested. Example:
 	// `apps/myapp/services/default/versions/v1/instances/instance-1`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *DeleteInstanceRequest) Reset()                    { *m = DeleteInstanceRequest{} }
-func (m *DeleteInstanceRequest) String() string            { return proto.CompactTextString(m) }
-func (*DeleteInstanceRequest) ProtoMessage()               {}
-func (*DeleteInstanceRequest) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{16} }
+func (m *DeleteInstanceRequest) Reset()         { *m = DeleteInstanceRequest{} }
+func (m *DeleteInstanceRequest) String() string { return proto.CompactTextString(m) }
+func (*DeleteInstanceRequest) ProtoMessage()    {}
+func (*DeleteInstanceRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b28c1d276df09fd1, []int{16}
+}
+
+func (m *DeleteInstanceRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_DeleteInstanceRequest.Unmarshal(m, b)
+}
+func (m *DeleteInstanceRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_DeleteInstanceRequest.Marshal(b, m, deterministic)
+}
+func (m *DeleteInstanceRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DeleteInstanceRequest.Merge(m, src)
+}
+func (m *DeleteInstanceRequest) XXX_Size() int {
+	return xxx_messageInfo_DeleteInstanceRequest.Size(m)
+}
+func (m *DeleteInstanceRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_DeleteInstanceRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DeleteInstanceRequest proto.InternalMessageInfo
 
 func (m *DeleteInstanceRequest) GetName() string {
 	if m != nil {
@@ -535,13 +938,36 @@ func (m *DeleteInstanceRequest) GetName() string {
 type DebugInstanceRequest struct {
 	// Name of the resource requested. Example:
 	// `apps/myapp/services/default/versions/v1/instances/instance-1`.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name                 string   `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *DebugInstanceRequest) Reset()                    { *m = DebugInstanceRequest{} }
-func (m *DebugInstanceRequest) String() string            { return proto.CompactTextString(m) }
-func (*DebugInstanceRequest) ProtoMessage()               {}
-func (*DebugInstanceRequest) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{17} }
+func (m *DebugInstanceRequest) Reset()         { *m = DebugInstanceRequest{} }
+func (m *DebugInstanceRequest) String() string { return proto.CompactTextString(m) }
+func (*DebugInstanceRequest) ProtoMessage()    {}
+func (*DebugInstanceRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_b28c1d276df09fd1, []int{17}
+}
+
+func (m *DebugInstanceRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_DebugInstanceRequest.Unmarshal(m, b)
+}
+func (m *DebugInstanceRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_DebugInstanceRequest.Marshal(b, m, deterministic)
+}
+func (m *DebugInstanceRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DebugInstanceRequest.Merge(m, src)
+}
+func (m *DebugInstanceRequest) XXX_Size() int {
+	return xxx_messageInfo_DebugInstanceRequest.Size(m)
+}
+func (m *DebugInstanceRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_DebugInstanceRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DebugInstanceRequest proto.InternalMessageInfo
 
 func (m *DebugInstanceRequest) GetName() string {
 	if m != nil {
@@ -551,6 +977,7 @@ func (m *DebugInstanceRequest) GetName() string {
 }
 
 func init() {
+	proto.RegisterEnum("google.appengine.v1.VersionView", VersionView_name, VersionView_value)
 	proto.RegisterType((*GetApplicationRequest)(nil), "google.appengine.v1.GetApplicationRequest")
 	proto.RegisterType((*RepairApplicationRequest)(nil), "google.appengine.v1.RepairApplicationRequest")
 	proto.RegisterType((*ListServicesRequest)(nil), "google.appengine.v1.ListServicesRequest")
@@ -569,7 +996,85 @@ func init() {
 	proto.RegisterType((*GetInstanceRequest)(nil), "google.appengine.v1.GetInstanceRequest")
 	proto.RegisterType((*DeleteInstanceRequest)(nil), "google.appengine.v1.DeleteInstanceRequest")
 	proto.RegisterType((*DebugInstanceRequest)(nil), "google.appengine.v1.DebugInstanceRequest")
-	proto.RegisterEnum("google.appengine.v1.VersionView", VersionView_name, VersionView_value)
+}
+
+func init() {
+	proto.RegisterFile("google/appengine/v1/appengine.proto", fileDescriptor_b28c1d276df09fd1)
+}
+
+var fileDescriptor_b28c1d276df09fd1 = []byte{
+	// 1134 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x58, 0xdf, 0x6f, 0xdb, 0x54,
+	0x14, 0xc6, 0x6d, 0xba, 0x25, 0x27, 0x6b, 0xb6, 0xde, 0xb6, 0x10, 0xbc, 0x76, 0x0a, 0x1e, 0x2c,
+	0xa9, 0xa7, 0xc5, 0x9a, 0x07, 0xd3, 0x48, 0x01, 0xa9, 0xdd, 0xb4, 0x6a, 0x52, 0x11, 0x95, 0xbb,
+	0xed, 0x01, 0x09, 0x55, 0x6e, 0x7a, 0x63, 0x5d, 0x9a, 0xd8, 0xc6, 0x76, 0xb2, 0x6e, 0x10, 0x21,
+	0x31, 0x09, 0x01, 0x8f, 0x1b, 0x0f, 0x3c, 0x20, 0xed, 0x81, 0x7f, 0x86, 0x77, 0xfe, 0x01, 0x1e,
+	0xf8, 0x43, 0x90, 0xaf, 0xef, 0xb5, 0x63, 0xc7, 0xbf, 0x54, 0xc4, 0x5b, 0x7c, 0xef, 0x77, 0xef,
+	0xf9, 0xee, 0x77, 0x3e, 0xfb, 0x9c, 0x1b, 0xb8, 0x6e, 0x58, 0x96, 0x31, 0xc4, 0x8a, 0x6e, 0xdb,
+	0xd8, 0x34, 0x88, 0x89, 0x95, 0xc9, 0xed, 0xe8, 0xa1, 0x6b, 0x3b, 0x96, 0x67, 0xa1, 0xd5, 0x00,
+	0xd4, 0x8d, 0xc6, 0x27, 0xb7, 0xc5, 0x8d, 0x70, 0x25, 0x51, 0x74, 0xd3, 0xb4, 0x3c, 0xdd, 0x23,
+	0x96, 0xe9, 0x06, 0x4b, 0xc4, 0x0f, 0x32, 0xf6, 0x1d, 0x92, 0x3e, 0xc5, 0x31, 0x98, 0x94, 0x06,
+	0x23, 0xa6, 0xeb, 0xe9, 0x66, 0x9f, 0x45, 0x17, 0xdf, 0x4b, 0xc3, 0xb8, 0xd8, 0x99, 0x90, 0x7c,
+	0xc8, 0x04, 0x3b, 0x6e, 0x14, 0xe9, 0x1a, 0x83, 0x10, 0x7d, 0x44, 0x63, 0xe8, 0xa3, 0x23, 0xdb,
+	0x1a, 0x92, 0xfe, 0x73, 0x36, 0x2f, 0xc6, 0xe7, 0x63, 0x73, 0x5c, 0xa4, 0xa1, 0x65, 0x1a, 0xce,
+	0xd8, 0x34, 0x89, 0x69, 0x28, 0x96, 0x8d, 0x9d, 0xd8, 0x89, 0xaf, 0x32, 0x10, 0x7d, 0x3a, 0x1e,
+	0x0f, 0x14, 0x3c, 0xb2, 0x3d, 0xbe, 0x43, 0x2b, 0x39, 0x39, 0x20, 0x78, 0x78, 0x72, 0x34, 0xd2,
+	0xdd, 0xd3, 0x00, 0x21, 0xdd, 0x84, 0xf5, 0x3d, 0xec, 0xed, 0x44, 0x0a, 0x69, 0xf8, 0x9b, 0x31,
+	0x76, 0x3d, 0x84, 0xa0, 0x62, 0xea, 0x23, 0xdc, 0x14, 0x5a, 0x42, 0xa7, 0xa6, 0xd1, 0xdf, 0x52,
+	0x17, 0x9a, 0x1a, 0xb6, 0x75, 0xe2, 0x94, 0xc4, 0x13, 0x58, 0xdd, 0x27, 0xae, 0x77, 0x18, 0x88,
+	0xe6, 0x72, 0xe8, 0xdb, 0x70, 0xc1, 0xd6, 0x1d, 0x6c, 0x7a, 0x0c, 0xcc, 0x9e, 0xd0, 0x55, 0xa8,
+	0xd9, 0xba, 0x81, 0x8f, 0x5c, 0xf2, 0x02, 0x37, 0x17, 0x5a, 0x42, 0x67, 0x49, 0xab, 0xfa, 0x03,
+	0x87, 0xe4, 0x05, 0x46, 0x9b, 0x00, 0x74, 0xd2, 0xb3, 0x4e, 0xb1, 0xd9, 0x5c, 0xa4, 0x0b, 0x29,
+	0xfc, 0xb1, 0x3f, 0x20, 0x9d, 0xc1, 0x5a, 0x3c, 0x94, 0x6b, 0x5b, 0xa6, 0x8b, 0xd1, 0x3d, 0xa8,
+	0xb2, 0x9c, 0xb9, 0x4d, 0xa1, 0xb5, 0xd8, 0xa9, 0xab, 0x1b, 0xdd, 0x14, 0x5b, 0x75, 0xd9, 0x42,
+	0x2d, 0x44, 0xa3, 0x1b, 0x70, 0xd9, 0xc4, 0x67, 0xde, 0xd1, 0x4c, 0xd4, 0x05, 0x1a, 0x75, 0xd9,
+	0x1f, 0x3e, 0x08, 0x23, 0xb7, 0x61, 0x65, 0x0f, 0xf3, 0xc0, 0x79, 0x6a, 0xfc, 0x29, 0xc0, 0xda,
+	0x13, 0xfb, 0x44, 0xf7, 0x70, 0x31, 0x18, 0xdd, 0x85, 0x8b, 0x8c, 0x09, 0x8d, 0x5a, 0x44, 0x9b,
+	0x83, 0xd1, 0x36, 0xd4, 0xc7, 0x34, 0x06, 0x4d, 0x32, 0xd5, 0xa9, 0xae, 0x8a, 0x7c, 0x2d, 0xf7,
+	0x41, 0xf7, 0xa1, 0xef, 0x83, 0xcf, 0x75, 0xf7, 0x54, 0x83, 0x00, 0xee, 0xff, 0x46, 0x6d, 0xb8,
+	0x3c, 0x22, 0x86, 0xe3, 0xaf, 0xf6, 0x1c, 0x7d, 0x30, 0x20, 0xfd, 0x66, 0xa5, 0x25, 0x74, 0xaa,
+	0x5a, 0x83, 0x0d, 0x3f, 0x0e, 0x46, 0x25, 0x19, 0xd6, 0x1e, 0xe0, 0x21, 0x2e, 0x73, 0x12, 0xe9,
+	0x8d, 0x10, 0xb8, 0xe0, 0x69, 0xf0, 0x5e, 0x14, 0xba, 0xe0, 0x43, 0xa8, 0x4c, 0x08, 0x7e, 0x46,
+	0x8f, 0xdd, 0x50, 0x5b, 0xa9, 0xc7, 0x66, 0x7b, 0x3d, 0x25, 0xf8, 0x99, 0x46, 0xd1, 0x71, 0xef,
+	0x2c, 0xe6, 0x7a, 0xa7, 0x92, 0xe1, 0x9d, 0x88, 0x60, 0xe4, 0x1d, 0xf6, 0x32, 0xe7, 0x7b, 0x87,
+	0x2d, 0xd4, 0x42, 0x74, 0x69, 0xef, 0x7c, 0x45, 0xbd, 0xc3, 0xd7, 0xe7, 0xd8, 0xe1, 0x5c, 0xa2,
+	0x48, 0x03, 0x58, 0xbb, 0xef, 0x60, 0xdd, 0xc3, 0x89, 0x08, 0x59, 0xd2, 0xdf, 0x85, 0x8b, 0xec,
+	0x08, 0xb9, 0xa6, 0xe3, 0xbb, 0x71, 0xb0, 0x9f, 0x62, 0xe6, 0xec, 0x12, 0x47, 0x39, 0x67, 0x90,
+	0xff, 0xe4, 0xec, 0xc8, 0xb0, 0xc5, 0x04, 0xa5, 0xaf, 0x03, 0x3b, 0x3c, 0x62, 0xe5, 0xe0, 0x7f,
+	0xfd, 0x6c, 0x7d, 0x07, 0xeb, 0x89, 0x58, 0xcc, 0x7b, 0xdb, 0x50, 0xe3, 0xf5, 0x88, 0x9b, 0x6f,
+	0x33, 0x55, 0x27, 0xbe, 0x54, 0x8b, 0xf0, 0xa5, 0xed, 0xd7, 0x01, 0xb4, 0x87, 0xc3, 0xe0, 0x79,
+	0x9a, 0xdc, 0x84, 0xf5, 0x40, 0xbf, 0x32, 0x60, 0x2a, 0xf6, 0xf1, 0xd8, 0x28, 0x81, 0x95, 0x25,
+	0xa8, 0xcf, 0xf8, 0x16, 0xd5, 0x60, 0x69, 0x77, 0xe7, 0xf0, 0xd1, 0xfd, 0x2b, 0x6f, 0xa1, 0x2a,
+	0x54, 0x1e, 0x3e, 0xd9, 0xdf, 0xbf, 0x22, 0xa8, 0x2f, 0x97, 0xa0, 0x16, 0x2a, 0x84, 0xfe, 0x10,
+	0x60, 0x39, 0xa6, 0x19, 0xda, 0x4a, 0x15, 0x26, 0x2d, 0x87, 0xa2, 0x5c, 0x06, 0x1a, 0xa4, 0x40,
+	0xda, 0xfe, 0xe1, 0xaf, 0x7f, 0x5e, 0x2f, 0x7c, 0x84, 0xee, 0xf8, 0x85, 0xf9, 0xdb, 0x20, 0xd9,
+	0x9f, 0xea, 0xb6, 0xed, 0x2a, 0x32, 0xef, 0x03, 0xfc, 0x9f, 0xfc, 0xa5, 0x57, 0xe4, 0xa9, 0x12,
+	0xa5, 0xe0, 0x95, 0x00, 0xf5, 0x19, 0x6d, 0x51, 0x3b, 0x35, 0xf0, 0xbc, 0xfa, 0x62, 0x7e, 0x96,
+	0x13, 0xa4, 0x7c, 0x09, 0x73, 0x29, 0x45, 0x8c, 0x14, 0x79, 0x8a, 0x7e, 0x13, 0xa0, 0x11, 0x4f,
+	0x23, 0x4a, 0x17, 0x24, 0x35, 0xd7, 0x11, 0xb5, 0x99, 0x86, 0xa4, 0xfb, 0x05, 0x6f, 0x48, 0x38,
+	0x35, 0xf9, 0x5c, 0xd4, 0xde, 0x08, 0xb0, 0x1c, 0x33, 0x4d, 0x46, 0x56, 0xd3, 0x8c, 0x55, 0x44,
+	0xec, 0x01, 0x25, 0xf6, 0x99, 0xf4, 0xf1, 0x39, 0x88, 0xf5, 0x4e, 0xfc, 0x80, 0x3d, 0x41, 0x56,
+	0xff, 0x5e, 0x82, 0x2a, 0x2f, 0x11, 0xe8, 0x57, 0x01, 0x2e, 0xcd, 0xd6, 0x0c, 0xd4, 0xc9, 0x34,
+	0x56, 0xa2, 0xee, 0x89, 0x5b, 0x25, 0x90, 0xcc, 0x81, 0x0a, 0x25, 0xbe, 0x85, 0xda, 0xb9, 0x0e,
+	0x9c, 0x86, 0xdc, 0xd1, 0x4b, 0x01, 0x20, 0x2a, 0x28, 0xe8, 0x46, 0x96, 0xe9, 0xe2, 0x5f, 0x41,
+	0x31, 0xf7, 0x0b, 0x9c, 0x60, 0x51, 0x28, 0xdf, 0x14, 0xbd, 0x16, 0x60, 0x39, 0x56, 0x77, 0x32,
+	0x72, 0x99, 0x56, 0x9b, 0x8a, 0x72, 0x79, 0x8f, 0x92, 0x51, 0xa5, 0xb2, 0x92, 0xf4, 0xc2, 0xfa,
+	0xe1, 0xb3, 0x8a, 0x15, 0xa9, 0x0c, 0x56, 0x69, 0x85, 0xac, 0x24, 0x2b, 0xb5, 0xac, 0x44, 0x11,
+	0xab, 0x5f, 0xa8, 0xef, 0x67, 0x2a, 0x53, 0xa6, 0xef, 0xe7, 0xab, 0x57, 0x11, 0x2b, 0x96, 0x38,
+	0xb9, 0x2c, 0x2b, 0xf5, 0xf7, 0x0a, 0x54, 0x79, 0x07, 0x8d, 0x7e, 0x66, 0x16, 0x0f, 0x07, 0xb2,
+	0x2d, 0x9e, 0x68, 0xf0, 0x73, 0x2c, 0x9e, 0xec, 0xcf, 0xa5, 0xf7, 0x29, 0xc7, 0x6b, 0x68, 0x63,
+	0x3e, 0x9f, 0xd3, 0x90, 0x26, 0x3a, 0xa3, 0xb6, 0x66, 0x8b, 0xb3, 0x6d, 0x1d, 0xef, 0x46, 0xc5,
+	0xdc, 0x96, 0x39, 0x11, 0x39, 0x5d, 0x9d, 0x29, 0xfa, 0x29, 0x74, 0x0d, 0x8f, 0x9e, 0xe7, 0x9a,
+	0x04, 0x81, 0x82, 0xfc, 0xdc, 0xa2, 0x0c, 0xda, 0x6a, 0x2e, 0x83, 0x5e, 0xd8, 0xda, 0x7f, 0xcf,
+	0x9d, 0x92, 0xcf, 0x24, 0xad, 0x31, 0x2f, 0x62, 0xc2, 0xb4, 0x90, 0x73, 0x99, 0xa8, 0xaf, 0x16,
+	0xe0, 0xd2, 0xcc, 0xcd, 0xcf, 0x45, 0xcf, 0xa1, 0x11, 0xbf, 0x3c, 0x66, 0x94, 0x93, 0xd4, 0x1b,
+	0xa6, 0x98, 0xde, 0xc5, 0xce, 0x00, 0xa5, 0x77, 0x29, 0xad, 0x55, 0xb4, 0x92, 0xa4, 0x35, 0x45,
+	0x3f, 0x0a, 0xb0, 0x32, 0x77, 0x17, 0x45, 0xb7, 0x52, 0xb7, 0xcc, 0xba, 0xb3, 0x16, 0xa9, 0x72,
+	0x9d, 0x86, 0xdf, 0x94, 0x9a, 0x73, 0xe1, 0x7b, 0x0e, 0xdd, 0xb2, 0x27, 0xc8, 0xbb, 0x04, 0xde,
+	0xe9, 0x5b, 0xa3, 0xb4, 0xb8, 0xbb, 0x8d, 0x1d, 0xfe, 0x74, 0xe0, 0x77, 0xa7, 0x07, 0xc2, 0x97,
+	0x9f, 0x30, 0x98, 0x61, 0x0d, 0x75, 0xd3, 0xe8, 0x5a, 0x8e, 0xa1, 0x18, 0xd8, 0xa4, 0xbd, 0xab,
+	0x12, 0x4c, 0xe9, 0x36, 0x71, 0x63, 0xff, 0x27, 0x6c, 0x87, 0x0f, 0xc7, 0x17, 0x28, 0xf0, 0xce,
+	0xbf, 0x01, 0x00, 0x00, 0xff, 0xff, 0x89, 0x36, 0x22, 0x8f, 0x3d, 0x11, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -580,15 +1085,16 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// Client API for Instances service
-
+// InstancesClient is the client API for Instances service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type InstancesClient interface {
 	// Lists the instances of a version.
 	ListInstances(ctx context.Context, in *ListInstancesRequest, opts ...grpc.CallOption) (*ListInstancesResponse, error)
 	// Gets instance information.
 	GetInstance(ctx context.Context, in *GetInstanceRequest, opts ...grpc.CallOption) (*Instance, error)
 	// Stops a running instance.
-	DeleteInstance(ctx context.Context, in *DeleteInstanceRequest, opts ...grpc.CallOption) (*google_longrunning.Operation, error)
+	DeleteInstance(ctx context.Context, in *DeleteInstanceRequest, opts ...grpc.CallOption) (*longrunning.Operation, error)
 	// Enables debugging on a VM instance. This allows you to use the SSH
 	// command to connect to the virtual machine where the instance lives.
 	// While in "debug mode", the instance continues to serve live traffic.
@@ -597,7 +1103,7 @@ type InstancesClient interface {
 	// should be started.
 	//
 	// Only applicable for instances in App Engine flexible environment.
-	DebugInstance(ctx context.Context, in *DebugInstanceRequest, opts ...grpc.CallOption) (*google_longrunning.Operation, error)
+	DebugInstance(ctx context.Context, in *DebugInstanceRequest, opts ...grpc.CallOption) (*longrunning.Operation, error)
 }
 
 type instancesClient struct {
@@ -610,7 +1116,7 @@ func NewInstancesClient(cc *grpc.ClientConn) InstancesClient {
 
 func (c *instancesClient) ListInstances(ctx context.Context, in *ListInstancesRequest, opts ...grpc.CallOption) (*ListInstancesResponse, error) {
 	out := new(ListInstancesResponse)
-	err := grpc.Invoke(ctx, "/google.appengine.v1.Instances/ListInstances", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/google.appengine.v1.Instances/ListInstances", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -619,40 +1125,39 @@ func (c *instancesClient) ListInstances(ctx context.Context, in *ListInstancesRe
 
 func (c *instancesClient) GetInstance(ctx context.Context, in *GetInstanceRequest, opts ...grpc.CallOption) (*Instance, error) {
 	out := new(Instance)
-	err := grpc.Invoke(ctx, "/google.appengine.v1.Instances/GetInstance", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/google.appengine.v1.Instances/GetInstance", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *instancesClient) DeleteInstance(ctx context.Context, in *DeleteInstanceRequest, opts ...grpc.CallOption) (*google_longrunning.Operation, error) {
-	out := new(google_longrunning.Operation)
-	err := grpc.Invoke(ctx, "/google.appengine.v1.Instances/DeleteInstance", in, out, c.cc, opts...)
+func (c *instancesClient) DeleteInstance(ctx context.Context, in *DeleteInstanceRequest, opts ...grpc.CallOption) (*longrunning.Operation, error) {
+	out := new(longrunning.Operation)
+	err := c.cc.Invoke(ctx, "/google.appengine.v1.Instances/DeleteInstance", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *instancesClient) DebugInstance(ctx context.Context, in *DebugInstanceRequest, opts ...grpc.CallOption) (*google_longrunning.Operation, error) {
-	out := new(google_longrunning.Operation)
-	err := grpc.Invoke(ctx, "/google.appengine.v1.Instances/DebugInstance", in, out, c.cc, opts...)
+func (c *instancesClient) DebugInstance(ctx context.Context, in *DebugInstanceRequest, opts ...grpc.CallOption) (*longrunning.Operation, error) {
+	out := new(longrunning.Operation)
+	err := c.cc.Invoke(ctx, "/google.appengine.v1.Instances/DebugInstance", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// Server API for Instances service
-
+// InstancesServer is the server API for Instances service.
 type InstancesServer interface {
 	// Lists the instances of a version.
 	ListInstances(context.Context, *ListInstancesRequest) (*ListInstancesResponse, error)
 	// Gets instance information.
 	GetInstance(context.Context, *GetInstanceRequest) (*Instance, error)
 	// Stops a running instance.
-	DeleteInstance(context.Context, *DeleteInstanceRequest) (*google_longrunning.Operation, error)
+	DeleteInstance(context.Context, *DeleteInstanceRequest) (*longrunning.Operation, error)
 	// Enables debugging on a VM instance. This allows you to use the SSH
 	// command to connect to the virtual machine where the instance lives.
 	// While in "debug mode", the instance continues to serve live traffic.
@@ -661,7 +1166,7 @@ type InstancesServer interface {
 	// should be started.
 	//
 	// Only applicable for instances in App Engine flexible environment.
-	DebugInstance(context.Context, *DebugInstanceRequest) (*google_longrunning.Operation, error)
+	DebugInstance(context.Context, *DebugInstanceRequest) (*longrunning.Operation, error)
 }
 
 func RegisterInstancesServer(s *grpc.Server, srv InstancesServer) {
@@ -765,8 +1270,9 @@ var _Instances_serviceDesc = grpc.ServiceDesc{
 	Metadata: "google/appengine/v1/appengine.proto",
 }
 
-// Client API for Versions service
-
+// VersionsClient is the client API for Versions service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type VersionsClient interface {
 	// Lists the versions of a service.
 	ListVersions(ctx context.Context, in *ListVersionsRequest, opts ...grpc.CallOption) (*ListVersionsResponse, error)
@@ -775,7 +1281,7 @@ type VersionsClient interface {
 	// Specify the `FULL_VIEW` parameter to get the full resource.
 	GetVersion(ctx context.Context, in *GetVersionRequest, opts ...grpc.CallOption) (*Version, error)
 	// Deploys code and resource files to a new version.
-	CreateVersion(ctx context.Context, in *CreateVersionRequest, opts ...grpc.CallOption) (*google_longrunning.Operation, error)
+	CreateVersion(ctx context.Context, in *CreateVersionRequest, opts ...grpc.CallOption) (*longrunning.Operation, error)
 	// Updates the specified Version resource.
 	// You can specify the following fields depending on the App Engine
 	// environment and type of scaling that the version resource uses:
@@ -791,9 +1297,9 @@ type VersionsClient interface {
 	// * [`automatic_scaling.max_idle_instances`](https://cloud.google.com/appengine/docs/admin-api/reference/rest/v1/apps.services.versions#Version.FIELDS.automatic_scaling):
 	//   For Version resources that use automatic scaling and run in the App
 	//   Engine standard environment.
-	UpdateVersion(ctx context.Context, in *UpdateVersionRequest, opts ...grpc.CallOption) (*google_longrunning.Operation, error)
+	UpdateVersion(ctx context.Context, in *UpdateVersionRequest, opts ...grpc.CallOption) (*longrunning.Operation, error)
 	// Deletes an existing Version resource.
-	DeleteVersion(ctx context.Context, in *DeleteVersionRequest, opts ...grpc.CallOption) (*google_longrunning.Operation, error)
+	DeleteVersion(ctx context.Context, in *DeleteVersionRequest, opts ...grpc.CallOption) (*longrunning.Operation, error)
 }
 
 type versionsClient struct {
@@ -806,7 +1312,7 @@ func NewVersionsClient(cc *grpc.ClientConn) VersionsClient {
 
 func (c *versionsClient) ListVersions(ctx context.Context, in *ListVersionsRequest, opts ...grpc.CallOption) (*ListVersionsResponse, error) {
 	out := new(ListVersionsResponse)
-	err := grpc.Invoke(ctx, "/google.appengine.v1.Versions/ListVersions", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/google.appengine.v1.Versions/ListVersions", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -815,42 +1321,41 @@ func (c *versionsClient) ListVersions(ctx context.Context, in *ListVersionsReque
 
 func (c *versionsClient) GetVersion(ctx context.Context, in *GetVersionRequest, opts ...grpc.CallOption) (*Version, error) {
 	out := new(Version)
-	err := grpc.Invoke(ctx, "/google.appengine.v1.Versions/GetVersion", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/google.appengine.v1.Versions/GetVersion", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *versionsClient) CreateVersion(ctx context.Context, in *CreateVersionRequest, opts ...grpc.CallOption) (*google_longrunning.Operation, error) {
-	out := new(google_longrunning.Operation)
-	err := grpc.Invoke(ctx, "/google.appengine.v1.Versions/CreateVersion", in, out, c.cc, opts...)
+func (c *versionsClient) CreateVersion(ctx context.Context, in *CreateVersionRequest, opts ...grpc.CallOption) (*longrunning.Operation, error) {
+	out := new(longrunning.Operation)
+	err := c.cc.Invoke(ctx, "/google.appengine.v1.Versions/CreateVersion", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *versionsClient) UpdateVersion(ctx context.Context, in *UpdateVersionRequest, opts ...grpc.CallOption) (*google_longrunning.Operation, error) {
-	out := new(google_longrunning.Operation)
-	err := grpc.Invoke(ctx, "/google.appengine.v1.Versions/UpdateVersion", in, out, c.cc, opts...)
+func (c *versionsClient) UpdateVersion(ctx context.Context, in *UpdateVersionRequest, opts ...grpc.CallOption) (*longrunning.Operation, error) {
+	out := new(longrunning.Operation)
+	err := c.cc.Invoke(ctx, "/google.appengine.v1.Versions/UpdateVersion", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *versionsClient) DeleteVersion(ctx context.Context, in *DeleteVersionRequest, opts ...grpc.CallOption) (*google_longrunning.Operation, error) {
-	out := new(google_longrunning.Operation)
-	err := grpc.Invoke(ctx, "/google.appengine.v1.Versions/DeleteVersion", in, out, c.cc, opts...)
+func (c *versionsClient) DeleteVersion(ctx context.Context, in *DeleteVersionRequest, opts ...grpc.CallOption) (*longrunning.Operation, error) {
+	out := new(longrunning.Operation)
+	err := c.cc.Invoke(ctx, "/google.appengine.v1.Versions/DeleteVersion", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// Server API for Versions service
-
+// VersionsServer is the server API for Versions service.
 type VersionsServer interface {
 	// Lists the versions of a service.
 	ListVersions(context.Context, *ListVersionsRequest) (*ListVersionsResponse, error)
@@ -859,7 +1364,7 @@ type VersionsServer interface {
 	// Specify the `FULL_VIEW` parameter to get the full resource.
 	GetVersion(context.Context, *GetVersionRequest) (*Version, error)
 	// Deploys code and resource files to a new version.
-	CreateVersion(context.Context, *CreateVersionRequest) (*google_longrunning.Operation, error)
+	CreateVersion(context.Context, *CreateVersionRequest) (*longrunning.Operation, error)
 	// Updates the specified Version resource.
 	// You can specify the following fields depending on the App Engine
 	// environment and type of scaling that the version resource uses:
@@ -875,9 +1380,9 @@ type VersionsServer interface {
 	// * [`automatic_scaling.max_idle_instances`](https://cloud.google.com/appengine/docs/admin-api/reference/rest/v1/apps.services.versions#Version.FIELDS.automatic_scaling):
 	//   For Version resources that use automatic scaling and run in the App
 	//   Engine standard environment.
-	UpdateVersion(context.Context, *UpdateVersionRequest) (*google_longrunning.Operation, error)
+	UpdateVersion(context.Context, *UpdateVersionRequest) (*longrunning.Operation, error)
 	// Deletes an existing Version resource.
-	DeleteVersion(context.Context, *DeleteVersionRequest) (*google_longrunning.Operation, error)
+	DeleteVersion(context.Context, *DeleteVersionRequest) (*longrunning.Operation, error)
 }
 
 func RegisterVersionsServer(s *grpc.Server, srv VersionsServer) {
@@ -1003,17 +1508,18 @@ var _Versions_serviceDesc = grpc.ServiceDesc{
 	Metadata: "google/appengine/v1/appengine.proto",
 }
 
-// Client API for Services service
-
+// ServicesClient is the client API for Services service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type ServicesClient interface {
 	// Lists all the services in the application.
 	ListServices(ctx context.Context, in *ListServicesRequest, opts ...grpc.CallOption) (*ListServicesResponse, error)
 	// Gets the current configuration of the specified service.
 	GetService(ctx context.Context, in *GetServiceRequest, opts ...grpc.CallOption) (*Service, error)
 	// Updates the configuration of the specified service.
-	UpdateService(ctx context.Context, in *UpdateServiceRequest, opts ...grpc.CallOption) (*google_longrunning.Operation, error)
+	UpdateService(ctx context.Context, in *UpdateServiceRequest, opts ...grpc.CallOption) (*longrunning.Operation, error)
 	// Deletes the specified service and all enclosed versions.
-	DeleteService(ctx context.Context, in *DeleteServiceRequest, opts ...grpc.CallOption) (*google_longrunning.Operation, error)
+	DeleteService(ctx context.Context, in *DeleteServiceRequest, opts ...grpc.CallOption) (*longrunning.Operation, error)
 }
 
 type servicesClient struct {
@@ -1026,7 +1532,7 @@ func NewServicesClient(cc *grpc.ClientConn) ServicesClient {
 
 func (c *servicesClient) ListServices(ctx context.Context, in *ListServicesRequest, opts ...grpc.CallOption) (*ListServicesResponse, error) {
 	out := new(ListServicesResponse)
-	err := grpc.Invoke(ctx, "/google.appengine.v1.Services/ListServices", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/google.appengine.v1.Services/ListServices", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1035,42 +1541,41 @@ func (c *servicesClient) ListServices(ctx context.Context, in *ListServicesReque
 
 func (c *servicesClient) GetService(ctx context.Context, in *GetServiceRequest, opts ...grpc.CallOption) (*Service, error) {
 	out := new(Service)
-	err := grpc.Invoke(ctx, "/google.appengine.v1.Services/GetService", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/google.appengine.v1.Services/GetService", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *servicesClient) UpdateService(ctx context.Context, in *UpdateServiceRequest, opts ...grpc.CallOption) (*google_longrunning.Operation, error) {
-	out := new(google_longrunning.Operation)
-	err := grpc.Invoke(ctx, "/google.appengine.v1.Services/UpdateService", in, out, c.cc, opts...)
+func (c *servicesClient) UpdateService(ctx context.Context, in *UpdateServiceRequest, opts ...grpc.CallOption) (*longrunning.Operation, error) {
+	out := new(longrunning.Operation)
+	err := c.cc.Invoke(ctx, "/google.appengine.v1.Services/UpdateService", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *servicesClient) DeleteService(ctx context.Context, in *DeleteServiceRequest, opts ...grpc.CallOption) (*google_longrunning.Operation, error) {
-	out := new(google_longrunning.Operation)
-	err := grpc.Invoke(ctx, "/google.appengine.v1.Services/DeleteService", in, out, c.cc, opts...)
+func (c *servicesClient) DeleteService(ctx context.Context, in *DeleteServiceRequest, opts ...grpc.CallOption) (*longrunning.Operation, error) {
+	out := new(longrunning.Operation)
+	err := c.cc.Invoke(ctx, "/google.appengine.v1.Services/DeleteService", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// Server API for Services service
-
+// ServicesServer is the server API for Services service.
 type ServicesServer interface {
 	// Lists all the services in the application.
 	ListServices(context.Context, *ListServicesRequest) (*ListServicesResponse, error)
 	// Gets the current configuration of the specified service.
 	GetService(context.Context, *GetServiceRequest) (*Service, error)
 	// Updates the configuration of the specified service.
-	UpdateService(context.Context, *UpdateServiceRequest) (*google_longrunning.Operation, error)
+	UpdateService(context.Context, *UpdateServiceRequest) (*longrunning.Operation, error)
 	// Deletes the specified service and all enclosed versions.
-	DeleteService(context.Context, *DeleteServiceRequest) (*google_longrunning.Operation, error)
+	DeleteService(context.Context, *DeleteServiceRequest) (*longrunning.Operation, error)
 }
 
 func RegisterServicesServer(s *grpc.Server, srv ServicesServer) {
@@ -1174,8 +1679,9 @@ var _Services_serviceDesc = grpc.ServiceDesc{
 	Metadata: "google/appengine/v1/appengine.proto",
 }
 
-// Client API for Applications service
-
+// ApplicationsClient is the client API for Applications service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type ApplicationsClient interface {
 	// Gets information about an application.
 	GetApplication(ctx context.Context, in *GetApplicationRequest, opts ...grpc.CallOption) (*Application, error)
@@ -1183,7 +1689,7 @@ type ApplicationsClient interface {
 	// project, for example a Cloud Storage bucket or App Engine service account.
 	// Use this method if you receive an error message about a missing feature,
 	// for example "*Error retrieving the App Engine service account*".
-	RepairApplication(ctx context.Context, in *RepairApplicationRequest, opts ...grpc.CallOption) (*google_longrunning.Operation, error)
+	RepairApplication(ctx context.Context, in *RepairApplicationRequest, opts ...grpc.CallOption) (*longrunning.Operation, error)
 }
 
 type applicationsClient struct {
@@ -1196,24 +1702,23 @@ func NewApplicationsClient(cc *grpc.ClientConn) ApplicationsClient {
 
 func (c *applicationsClient) GetApplication(ctx context.Context, in *GetApplicationRequest, opts ...grpc.CallOption) (*Application, error) {
 	out := new(Application)
-	err := grpc.Invoke(ctx, "/google.appengine.v1.Applications/GetApplication", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/google.appengine.v1.Applications/GetApplication", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *applicationsClient) RepairApplication(ctx context.Context, in *RepairApplicationRequest, opts ...grpc.CallOption) (*google_longrunning.Operation, error) {
-	out := new(google_longrunning.Operation)
-	err := grpc.Invoke(ctx, "/google.appengine.v1.Applications/RepairApplication", in, out, c.cc, opts...)
+func (c *applicationsClient) RepairApplication(ctx context.Context, in *RepairApplicationRequest, opts ...grpc.CallOption) (*longrunning.Operation, error) {
+	out := new(longrunning.Operation)
+	err := c.cc.Invoke(ctx, "/google.appengine.v1.Applications/RepairApplication", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// Server API for Applications service
-
+// ApplicationsServer is the server API for Applications service.
 type ApplicationsServer interface {
 	// Gets information about an application.
 	GetApplication(context.Context, *GetApplicationRequest) (*Application, error)
@@ -1221,7 +1726,7 @@ type ApplicationsServer interface {
 	// project, for example a Cloud Storage bucket or App Engine service account.
 	// Use this method if you receive an error message about a missing feature,
 	// for example "*Error retrieving the App Engine service account*".
-	RepairApplication(context.Context, *RepairApplicationRequest) (*google_longrunning.Operation, error)
+	RepairApplication(context.Context, *RepairApplicationRequest) (*longrunning.Operation, error)
 }
 
 func RegisterApplicationsServer(s *grpc.Server, srv ApplicationsServer) {
@@ -1279,81 +1784,4 @@ var _Applications_serviceDesc = grpc.ServiceDesc{
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "google/appengine/v1/appengine.proto",
-}
-
-func init() { proto.RegisterFile("google/appengine/v1/appengine.proto", fileDescriptor1) }
-
-var fileDescriptor1 = []byte{
-	// 1134 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x58, 0xdf, 0x6f, 0xdb, 0x54,
-	0x14, 0xc6, 0x6d, 0xba, 0x25, 0x27, 0x6b, 0xb6, 0xde, 0xb6, 0x10, 0xbc, 0x76, 0x0a, 0x1e, 0x2c,
-	0xa9, 0xa7, 0xc5, 0x9a, 0x07, 0xd3, 0x48, 0x01, 0xa9, 0xdd, 0xb4, 0x6a, 0x52, 0x11, 0x95, 0xbb,
-	0xed, 0x01, 0x09, 0x55, 0x6e, 0x7a, 0x63, 0x5d, 0x9a, 0xd8, 0xc6, 0x76, 0xb2, 0x6e, 0x10, 0x21,
-	0x31, 0x09, 0x01, 0x8f, 0x1b, 0x0f, 0x3c, 0x20, 0xed, 0x81, 0x7f, 0x86, 0x77, 0xfe, 0x01, 0x1e,
-	0xf8, 0x43, 0x90, 0xaf, 0xef, 0xb5, 0x63, 0xc7, 0xbf, 0x54, 0xc4, 0x5b, 0x7c, 0xef, 0x77, 0xef,
-	0xf9, 0xee, 0x77, 0x3e, 0xfb, 0x9c, 0x1b, 0xb8, 0x6e, 0x58, 0x96, 0x31, 0xc4, 0x8a, 0x6e, 0xdb,
-	0xd8, 0x34, 0x88, 0x89, 0x95, 0xc9, 0xed, 0xe8, 0xa1, 0x6b, 0x3b, 0x96, 0x67, 0xa1, 0xd5, 0x00,
-	0xd4, 0x8d, 0xc6, 0x27, 0xb7, 0xc5, 0x8d, 0x70, 0x25, 0x51, 0x74, 0xd3, 0xb4, 0x3c, 0xdd, 0x23,
-	0x96, 0xe9, 0x06, 0x4b, 0xc4, 0x0f, 0x32, 0xf6, 0x1d, 0x92, 0x3e, 0xc5, 0x31, 0x98, 0x94, 0x06,
-	0x23, 0xa6, 0xeb, 0xe9, 0x66, 0x9f, 0x45, 0x17, 0xdf, 0x4b, 0xc3, 0xb8, 0xd8, 0x99, 0x90, 0x7c,
-	0xc8, 0x04, 0x3b, 0x6e, 0x14, 0xe9, 0x1a, 0x83, 0x10, 0x7d, 0x44, 0x63, 0xe8, 0xa3, 0x23, 0xdb,
-	0x1a, 0x92, 0xfe, 0x73, 0x36, 0x2f, 0xc6, 0xe7, 0x63, 0x73, 0x5c, 0xa4, 0xa1, 0x65, 0x1a, 0xce,
-	0xd8, 0x34, 0x89, 0x69, 0x28, 0x96, 0x8d, 0x9d, 0xd8, 0x89, 0xaf, 0x32, 0x10, 0x7d, 0x3a, 0x1e,
-	0x0f, 0x14, 0x3c, 0xb2, 0x3d, 0xbe, 0x43, 0x2b, 0x39, 0x39, 0x20, 0x78, 0x78, 0x72, 0x34, 0xd2,
-	0xdd, 0xd3, 0x00, 0x21, 0xdd, 0x84, 0xf5, 0x3d, 0xec, 0xed, 0x44, 0x0a, 0x69, 0xf8, 0x9b, 0x31,
-	0x76, 0x3d, 0x84, 0xa0, 0x62, 0xea, 0x23, 0xdc, 0x14, 0x5a, 0x42, 0xa7, 0xa6, 0xd1, 0xdf, 0x52,
-	0x17, 0x9a, 0x1a, 0xb6, 0x75, 0xe2, 0x94, 0xc4, 0x13, 0x58, 0xdd, 0x27, 0xae, 0x77, 0x18, 0x88,
-	0xe6, 0x72, 0xe8, 0xdb, 0x70, 0xc1, 0xd6, 0x1d, 0x6c, 0x7a, 0x0c, 0xcc, 0x9e, 0xd0, 0x55, 0xa8,
-	0xd9, 0xba, 0x81, 0x8f, 0x5c, 0xf2, 0x02, 0x37, 0x17, 0x5a, 0x42, 0x67, 0x49, 0xab, 0xfa, 0x03,
-	0x87, 0xe4, 0x05, 0x46, 0x9b, 0x00, 0x74, 0xd2, 0xb3, 0x4e, 0xb1, 0xd9, 0x5c, 0xa4, 0x0b, 0x29,
-	0xfc, 0xb1, 0x3f, 0x20, 0x9d, 0xc1, 0x5a, 0x3c, 0x94, 0x6b, 0x5b, 0xa6, 0x8b, 0xd1, 0x3d, 0xa8,
-	0xb2, 0x9c, 0xb9, 0x4d, 0xa1, 0xb5, 0xd8, 0xa9, 0xab, 0x1b, 0xdd, 0x14, 0x5b, 0x75, 0xd9, 0x42,
-	0x2d, 0x44, 0xa3, 0x1b, 0x70, 0xd9, 0xc4, 0x67, 0xde, 0xd1, 0x4c, 0xd4, 0x05, 0x1a, 0x75, 0xd9,
-	0x1f, 0x3e, 0x08, 0x23, 0xb7, 0x61, 0x65, 0x0f, 0xf3, 0xc0, 0x79, 0x6a, 0xfc, 0x29, 0xc0, 0xda,
-	0x13, 0xfb, 0x44, 0xf7, 0x70, 0x31, 0x18, 0xdd, 0x85, 0x8b, 0x8c, 0x09, 0x8d, 0x5a, 0x44, 0x9b,
-	0x83, 0xd1, 0x36, 0xd4, 0xc7, 0x34, 0x06, 0x4d, 0x32, 0xd5, 0xa9, 0xae, 0x8a, 0x7c, 0x2d, 0xf7,
-	0x41, 0xf7, 0xa1, 0xef, 0x83, 0xcf, 0x75, 0xf7, 0x54, 0x83, 0x00, 0xee, 0xff, 0x46, 0x6d, 0xb8,
-	0x3c, 0x22, 0x86, 0xe3, 0xaf, 0xf6, 0x1c, 0x7d, 0x30, 0x20, 0xfd, 0x66, 0xa5, 0x25, 0x74, 0xaa,
-	0x5a, 0x83, 0x0d, 0x3f, 0x0e, 0x46, 0x25, 0x19, 0xd6, 0x1e, 0xe0, 0x21, 0x2e, 0x73, 0x12, 0xe9,
-	0x8d, 0x10, 0xb8, 0xe0, 0x69, 0xf0, 0x5e, 0x14, 0xba, 0xe0, 0x43, 0xa8, 0x4c, 0x08, 0x7e, 0x46,
-	0x8f, 0xdd, 0x50, 0x5b, 0xa9, 0xc7, 0x66, 0x7b, 0x3d, 0x25, 0xf8, 0x99, 0x46, 0xd1, 0x71, 0xef,
-	0x2c, 0xe6, 0x7a, 0xa7, 0x92, 0xe1, 0x9d, 0x88, 0x60, 0xe4, 0x1d, 0xf6, 0x32, 0xe7, 0x7b, 0x87,
-	0x2d, 0xd4, 0x42, 0x74, 0x69, 0xef, 0x7c, 0x45, 0xbd, 0xc3, 0xd7, 0xe7, 0xd8, 0xe1, 0x5c, 0xa2,
-	0x48, 0x03, 0x58, 0xbb, 0xef, 0x60, 0xdd, 0xc3, 0x89, 0x08, 0x59, 0xd2, 0xdf, 0x85, 0x8b, 0xec,
-	0x08, 0xb9, 0xa6, 0xe3, 0xbb, 0x71, 0xb0, 0x9f, 0x62, 0xe6, 0xec, 0x12, 0x47, 0x39, 0x67, 0x90,
-	0xff, 0xe4, 0xec, 0xc8, 0xb0, 0xc5, 0x04, 0xa5, 0xaf, 0x03, 0x3b, 0x3c, 0x62, 0xe5, 0xe0, 0x7f,
-	0xfd, 0x6c, 0x7d, 0x07, 0xeb, 0x89, 0x58, 0xcc, 0x7b, 0xdb, 0x50, 0xe3, 0xf5, 0x88, 0x9b, 0x6f,
-	0x33, 0x55, 0x27, 0xbe, 0x54, 0x8b, 0xf0, 0xa5, 0xed, 0xd7, 0x01, 0xb4, 0x87, 0xc3, 0xe0, 0x79,
-	0x9a, 0xdc, 0x84, 0xf5, 0x40, 0xbf, 0x32, 0x60, 0x2a, 0xf6, 0xf1, 0xd8, 0x28, 0x81, 0x95, 0x25,
-	0xa8, 0xcf, 0xf8, 0x16, 0xd5, 0x60, 0x69, 0x77, 0xe7, 0xf0, 0xd1, 0xfd, 0x2b, 0x6f, 0xa1, 0x2a,
-	0x54, 0x1e, 0x3e, 0xd9, 0xdf, 0xbf, 0x22, 0xa8, 0x2f, 0x97, 0xa0, 0x16, 0x2a, 0x84, 0xfe, 0x10,
-	0x60, 0x39, 0xa6, 0x19, 0xda, 0x4a, 0x15, 0x26, 0x2d, 0x87, 0xa2, 0x5c, 0x06, 0x1a, 0xa4, 0x40,
-	0xda, 0xfe, 0xe1, 0xaf, 0x7f, 0x5e, 0x2f, 0x7c, 0x84, 0xee, 0xf8, 0x85, 0xf9, 0xdb, 0x20, 0xd9,
-	0x9f, 0xea, 0xb6, 0xed, 0x2a, 0x32, 0xef, 0x03, 0xfc, 0x9f, 0xfc, 0xa5, 0x57, 0xe4, 0xa9, 0x12,
-	0xa5, 0xe0, 0x95, 0x00, 0xf5, 0x19, 0x6d, 0x51, 0x3b, 0x35, 0xf0, 0xbc, 0xfa, 0x62, 0x7e, 0x96,
-	0x13, 0xa4, 0x7c, 0x09, 0x73, 0x29, 0x45, 0x8c, 0x14, 0x79, 0x8a, 0x7e, 0x13, 0xa0, 0x11, 0x4f,
-	0x23, 0x4a, 0x17, 0x24, 0x35, 0xd7, 0x11, 0xb5, 0x99, 0x86, 0xa4, 0xfb, 0x05, 0x6f, 0x48, 0x38,
-	0x35, 0xf9, 0x5c, 0xd4, 0xde, 0x08, 0xb0, 0x1c, 0x33, 0x4d, 0x46, 0x56, 0xd3, 0x8c, 0x55, 0x44,
-	0xec, 0x01, 0x25, 0xf6, 0x99, 0xf4, 0xf1, 0x39, 0x88, 0xf5, 0x4e, 0xfc, 0x80, 0x3d, 0x41, 0x56,
-	0xff, 0x5e, 0x82, 0x2a, 0x2f, 0x11, 0xe8, 0x57, 0x01, 0x2e, 0xcd, 0xd6, 0x0c, 0xd4, 0xc9, 0x34,
-	0x56, 0xa2, 0xee, 0x89, 0x5b, 0x25, 0x90, 0xcc, 0x81, 0x0a, 0x25, 0xbe, 0x85, 0xda, 0xb9, 0x0e,
-	0x9c, 0x86, 0xdc, 0xd1, 0x4b, 0x01, 0x20, 0x2a, 0x28, 0xe8, 0x46, 0x96, 0xe9, 0xe2, 0x5f, 0x41,
-	0x31, 0xf7, 0x0b, 0x9c, 0x60, 0x51, 0x28, 0xdf, 0x14, 0xbd, 0x16, 0x60, 0x39, 0x56, 0x77, 0x32,
-	0x72, 0x99, 0x56, 0x9b, 0x8a, 0x72, 0x79, 0x8f, 0x92, 0x51, 0xa5, 0xb2, 0x92, 0xf4, 0xc2, 0xfa,
-	0xe1, 0xb3, 0x8a, 0x15, 0xa9, 0x0c, 0x56, 0x69, 0x85, 0xac, 0x24, 0x2b, 0xb5, 0xac, 0x44, 0x11,
-	0xab, 0x5f, 0xa8, 0xef, 0x67, 0x2a, 0x53, 0xa6, 0xef, 0xe7, 0xab, 0x57, 0x11, 0x2b, 0x96, 0x38,
-	0xb9, 0x2c, 0x2b, 0xf5, 0xf7, 0x0a, 0x54, 0x79, 0x07, 0x8d, 0x7e, 0x66, 0x16, 0x0f, 0x07, 0xb2,
-	0x2d, 0x9e, 0x68, 0xf0, 0x73, 0x2c, 0x9e, 0xec, 0xcf, 0xa5, 0xf7, 0x29, 0xc7, 0x6b, 0x68, 0x63,
-	0x3e, 0x9f, 0xd3, 0x90, 0x26, 0x3a, 0xa3, 0xb6, 0x66, 0x8b, 0xb3, 0x6d, 0x1d, 0xef, 0x46, 0xc5,
-	0xdc, 0x96, 0x39, 0x11, 0x39, 0x5d, 0x9d, 0x29, 0xfa, 0x29, 0x74, 0x0d, 0x8f, 0x9e, 0xe7, 0x9a,
-	0x04, 0x81, 0x82, 0xfc, 0xdc, 0xa2, 0x0c, 0xda, 0x6a, 0x2e, 0x83, 0x5e, 0xd8, 0xda, 0x7f, 0xcf,
-	0x9d, 0x92, 0xcf, 0x24, 0xad, 0x31, 0x2f, 0x62, 0xc2, 0xb4, 0x90, 0x73, 0x99, 0xa8, 0xaf, 0x16,
-	0xe0, 0xd2, 0xcc, 0xcd, 0xcf, 0x45, 0xcf, 0xa1, 0x11, 0xbf, 0x3c, 0x66, 0x94, 0x93, 0xd4, 0x1b,
-	0xa6, 0x98, 0xde, 0xc5, 0xce, 0x00, 0xa5, 0x77, 0x29, 0xad, 0x55, 0xb4, 0x92, 0xa4, 0x35, 0x45,
-	0x3f, 0x0a, 0xb0, 0x32, 0x77, 0x17, 0x45, 0xb7, 0x52, 0xb7, 0xcc, 0xba, 0xb3, 0x16, 0xa9, 0x72,
-	0x9d, 0x86, 0xdf, 0x94, 0x9a, 0x73, 0xe1, 0x7b, 0x0e, 0xdd, 0xb2, 0x27, 0xc8, 0xbb, 0x04, 0xde,
-	0xe9, 0x5b, 0xa3, 0xb4, 0xb8, 0xbb, 0x8d, 0x1d, 0xfe, 0x74, 0xe0, 0x77, 0xa7, 0x07, 0xc2, 0x97,
-	0x9f, 0x30, 0x98, 0x61, 0x0d, 0x75, 0xd3, 0xe8, 0x5a, 0x8e, 0xa1, 0x18, 0xd8, 0xa4, 0xbd, 0xab,
-	0x12, 0x4c, 0xe9, 0x36, 0x71, 0x63, 0xff, 0x27, 0x6c, 0x87, 0x0f, 0xc7, 0x17, 0x28, 0xf0, 0xce,
-	0xbf, 0x01, 0x00, 0x00, 0xff, 0xff, 0x89, 0x36, 0x22, 0x8f, 0x3d, 0x11, 0x00, 0x00,
 }

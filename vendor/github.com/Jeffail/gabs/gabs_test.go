@@ -42,8 +42,134 @@ func TestBasic(t *testing.T) {
 	}
 }
 
+func TestJSONPointer(t *testing.T) {
+	sample := []byte(`{
+		"a": {
+			"nested1": {
+				"value1": 5
+			}
+		},
+		"": {
+			"can we access": "this?"
+		},
+		"what/a/pain": "ouch1",
+		"what~a~pain": "ouch2",
+		"what~/a/~pain": "ouch3",
+		"b": 10,
+		"c": [
+			"first",
+			"second",
+			{
+				"nested2": {
+					"value2": 15
+				}
+			},
+			[
+				"fifth",
+				"sixth"
+			],
+			"fourth"
+		],
+		"d": {
+			"": {
+				"what about": "this?"
+			}
+		}
+	}`)
+
+	type testCase struct {
+		path  string
+		value string
+		err   string
+	}
+	tests := []testCase{
+		{
+			path: "foo",
+			err:  "failed to resolve JSON pointer: path must begin with '/'",
+		},
+		{
+			path: "/a/doesnotexist",
+			err:  "failed to resolve JSON pointer: index '1' value 'doesnotexist' was not found",
+		},
+		{
+			path:  "/a",
+			value: `{"nested1":{"value1":5}}`,
+		},
+		{
+			path:  "/what~1a~1pain",
+			value: `"ouch1"`,
+		},
+		{
+			path:  "/what~0a~0pain",
+			value: `"ouch2"`,
+		},
+		{
+			path:  "/what~0~1a~1~0pain",
+			value: `"ouch3"`,
+		},
+		{
+			path:  "/",
+			value: `{"can we access":"this?"}`,
+		},
+		{
+			path:  "//can we access",
+			value: `"this?"`,
+		},
+		{
+			path:  "/d/",
+			value: `{"what about":"this?"}`,
+		},
+		{
+			path:  "/d//what about",
+			value: `"this?"`,
+		},
+		{
+			path:  "/c/1",
+			value: `"second"`,
+		},
+		{
+			path:  "/c/2/nested2/value2",
+			value: `15`,
+		},
+		{
+			path: "/c/notindex/value2",
+			err:  `failed to resolve JSON pointer: could not parse index '1' value 'notindex' into array index: strconv.Atoi: parsing "notindex": invalid syntax`,
+		},
+		{
+			path: "/c/10/value2",
+			err:  `failed to resolve JSON pointer: index '1' value '10' exceeded target array size of '5'`,
+		},
+	}
+
+	root, err := ParseJSON(sample)
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	for _, test := range tests {
+		t.Run(test.path, func(tt *testing.T) {
+			var result *Container
+			result, err = root.JSONPointer(test.path)
+			if len(test.err) > 0 {
+				if err == nil {
+					tt.Errorf("Expected error: %v", test.err)
+				} else if exp, act := test.err, err.Error(); exp != act {
+					tt.Errorf("Wrong error returned: %v != %v", act, exp)
+				}
+				return
+			} else if err != nil {
+				tt.Error(err)
+				return
+			}
+			if exp, act := test.value, result.String(); exp != act {
+				tt.Errorf("Wrong result: %v != %v", act, exp)
+			}
+		})
+	}
+}
+
 func TestExists(t *testing.T) {
-	sample := []byte(`{"test":{"value":10},"test2":20}`)
+	sample := []byte(`{"test":{"value":10,"nullvalue":null},"test2":20,"testnull":null}`)
 
 	val, err := ParseJSON(sample)
 	if err != nil {
@@ -58,7 +184,9 @@ func TestExists(t *testing.T) {
 		{[]string{"one", "two", "three"}, false},
 		{[]string{"test"}, true},
 		{[]string{"test", "value"}, true},
+		{[]string{"test", "nullvalue"}, true},
 		{[]string{"test2"}, true},
+		{[]string{"testnull"}, true},
 		{[]string{"test2", "value"}, false},
 		{[]string{"test", "value2"}, false},
 		{[]string{"test", "VALUE"}, false},
@@ -247,6 +375,11 @@ func TestDeletes(t *testing.T) {
 				"value1":20,
 				"value2":42,
 				"value3":92
+			},
+			"another":{
+				"value1":null,
+				"value2":null,
+				"value3":null
 			}
 		}
 	}`))
@@ -254,28 +387,49 @@ func TestDeletes(t *testing.T) {
 	if err := jsonParsed.Delete("outter", "inner", "value2"); err != nil {
 		t.Error(err)
 	}
+	if err := jsonParsed.Delete("outter", "inner", "value4"); err == nil {
+		t.Error(fmt.Errorf("value4 should not have been found in outter.inner"))
+	}
+	if err := jsonParsed.Delete("outter", "another", "value1"); err != nil {
+		t.Error(err)
+	}
+	if err := jsonParsed.Delete("outter", "another", "value4"); err == nil {
+		t.Error(fmt.Errorf("value4 should not have been found in outter.another"))
+	}
 	if err := jsonParsed.DeleteP("outter.alsoInner.value1"); err != nil {
 		t.Error(err)
 	}
+	if err := jsonParsed.DeleteP("outter.alsoInner.value4"); err == nil {
+		t.Error(fmt.Errorf("value4 should not have been found in outter.alsoInner"))
+	}
+	if err := jsonParsed.DeleteP("outter.another.value2"); err != nil {
+		t.Error(err)
+	}
+	if err := jsonParsed.Delete("outter.another.value4"); err == nil {
+		t.Error(fmt.Errorf("value4 should not have been found in outter.another"))
+	}
 
-	expected := `{"outter":{"alsoInner":{"value2":42,"value3":92},"inner":{"value1":10,"value3":32}}}`
+	expected := `{"outter":{"alsoInner":{"value2":42,"value3":92},"another":{"value3":null},"inner":{"value1":10,"value3":32}}}`
 	if actual := jsonParsed.String(); actual != expected {
 		t.Errorf("Unexpected result from deletes: %v != %v", actual, expected)
 	}
 }
 
 func TestExamples(t *testing.T) {
-	jsonParsed, _ := ParseJSON([]byte(`{
-		"outter":{
-			"inner":{
-				"value1":10,
-				"value2":22
-			},
-			"alsoInner":{
-				"value1":20
-			}
+	jsonParsed, err := ParseJSON([]byte(`{
+	"outter":{
+		"inner":{
+			"value1":10,
+			"value2":22
+		},
+		"alsoInner":{
+			"value1":20,
+			"array1":[
+				30, 40
+			]
 		}
-	}`))
+	}
+}`))
 
 	var value float64
 	var ok bool
@@ -287,6 +441,15 @@ func TestExamples(t *testing.T) {
 
 	value, ok = jsonParsed.Search("outter", "inner", "value1").Data().(float64)
 	if value != 10.0 || !ok {
+		t.Errorf("wrong value: %v, %v", value, ok)
+	}
+
+	gObj, err := jsonParsed.JSONPointer("/outter/alsoInner/array1/1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	value, ok = gObj.Data().(float64)
+	if value != 40.0 || !ok {
 		t.Errorf("wrong value: %v, %v", value, ok)
 	}
 
@@ -758,6 +921,65 @@ func TestArraysThree(t *testing.T) {
 	}
 }
 
+func TestSetJSONPointer(t *testing.T) {
+	type testCase struct {
+		input   string
+		pointer string
+		value   interface{}
+		output  string
+	}
+	tests := []testCase{
+		{
+			input:   `{"foo":{"bar":"baz"}}`,
+			pointer: "/foo/bar",
+			value:   "qux",
+			output:  `{"foo":{"bar":"qux"}}`,
+		},
+		{
+			input:   `{"foo":["bar","ignored","baz"]}`,
+			pointer: "/foo/2",
+			value:   "qux",
+			output:  `{"foo":["bar","ignored","qux"]}`,
+		},
+		{
+			input:   `{"foo":["bar","ignored",{"bar":"baz"}]}`,
+			pointer: "/foo/2/bar",
+			value:   "qux",
+			output:  `{"foo":["bar","ignored",{"bar":"qux"}]}`,
+		},
+	}
+
+	for _, test := range tests {
+		gObj, err := ParseJSON([]byte(test.input))
+		if err != nil {
+			t.Errorf("Failed to parse '%v': %v", test.input, err)
+			continue
+		}
+		if err = gObj.SetJSONPointer(test.value, test.pointer); err != nil {
+			t.Error(err)
+			continue
+		}
+		if exp, act := test.output, gObj.String(); exp != act {
+			t.Errorf("Wrong result: %v != %v", act, exp)
+		}
+	}
+}
+
+func TestArrayReplace(t *testing.T) {
+	json1 := New()
+
+	json1.Set(1, "first")
+	json1.ArrayAppend(2, "first")
+	json1.ArrayAppend(3, "second")
+
+	expected := `{"first":[1,2],"second":[3]}`
+	received := json1.String()
+
+	if expected != received {
+		t.Errorf("Wrong output, expected: %v, received: %v", expected, received)
+	}
+}
+
 func TestArraysRoot(t *testing.T) {
 	sample := []byte(`["test1"]`)
 
@@ -1052,5 +1274,140 @@ func TestNilSet(t *testing.T) {
 	}
 	if _, err := obj.SetIndex("new", 0); err != ErrNotArray {
 		t.Errorf("Expected ErrNotArray: %v, %s", err, obj.Data())
+	}
+}
+
+func TestLargeSampleWithHtmlEscape(t *testing.T) {
+	sample := []byte(`{
+	"test": {
+		"innerTest": {
+			"value": 10,
+			"value2": "<title>Title</title>",
+			"value3": {
+				"moreValue": 45
+			}
+		}
+	},
+	"test2": 20
+}`)
+
+	sampleWithHTMLEscape := []byte(`{
+	"test": {
+		"innerTest": {
+			"value": 10,
+			"value2": "\u003ctitle\u003eTitle\u003c/title\u003e",
+			"value3": {
+				"moreValue": 45
+			}
+		}
+	},
+	"test2": 20
+}`)
+
+	val, err := ParseJSON(sample)
+	if err != nil {
+		t.Errorf("Failed to parse: %v", err)
+		return
+	}
+
+	exp := string(sample)
+	res := string(val.EncodeJSON(EncodeOptIndent("", "\t")))
+	if exp != res {
+		t.Errorf("Wrong conversion without html escaping: %s != %s", res, exp)
+	}
+
+	exp = string(sampleWithHTMLEscape)
+	res = string(val.EncodeJSON(EncodeOptHTMLEscape(true), EncodeOptIndent("", "\t")))
+	if exp != res {
+		t.Errorf("Wrong conversion with html escaping: %s != %s", exp, res)
+	}
+}
+
+func TestMergeCases(t *testing.T) {
+	type testCase struct {
+		first    string
+		second   string
+		expected string
+	}
+
+	testCases := []testCase{
+		{
+			first:    `{"outter":{"value1":"one"}}`,
+			second:   `{"outter":{"inner":{"value3": "threre"}},"outter2":{"value2": "two"}}`,
+			expected: `{"outter":{"inner":{"value3":"threre"},"value1":"one"},"outter2":{"value2":"two"}}`,
+		},
+		{
+			first:    `{"outter":["first"]}`,
+			second:   `{"outter":["second"]}`,
+			expected: `{"outter":["first","second"]}`,
+		},
+		{
+			first:    `{"outter":["first",{"inner":"second"}]}`,
+			second:   `{"outter":["third"]}`,
+			expected: `{"outter":["first",{"inner":"second"},"third"]}`,
+		},
+		{
+			first:    `{"outter":["first",{"inner":"second"}]}`,
+			second:   `{"outter":"third"}`,
+			expected: `{"outter":["first",{"inner":"second"},"third"]}`,
+		},
+		{
+			first:    `{"outter":"first"}`,
+			second:   `{"outter":"second"}`,
+			expected: `{"outter":["first","second"]}`,
+		},
+		{
+			first:    `{"outter":{"inner":"first"}}`,
+			second:   `{"outter":{"inner":"second"}}`,
+			expected: `{"outter":{"inner":["first","second"]}}`,
+		},
+		{
+			first:    `{"outter":{"inner":"first"}}`,
+			second:   `{"outter":"second"}`,
+			expected: `{"outter":[{"inner":"first"},"second"]}`,
+		},
+		{
+			first:    `{"outter":{"inner":"second"}}`,
+			second:   `{"outter":{"inner":{"inner2":"first"}}}`,
+			expected: `{"outter":{"inner":["second",{"inner2":"first"}]}}`,
+		},
+		{
+			first:    `{"outter":{"inner":["second"]}}`,
+			second:   `{"outter":{"inner":{"inner2":"first"}}}`,
+			expected: `{"outter":{"inner":["second",{"inner2":"first"}]}}`,
+		},
+		{
+			first:    `{"outter":"second"}`,
+			second:   `{"outter":{"inner":"first"}}`,
+			expected: `{"outter":["second",{"inner":"first"}]}`,
+		},
+		{
+			first:    `{"outter":"first"}`,
+			second:   `{"outter":["second"]}`,
+			expected: `{"outter":["first","second"]}`,
+		},
+	}
+
+	for i, test := range testCases {
+		var firstContainer, secondContainer *Container
+		var err error
+
+		firstContainer, err = ParseJSON([]byte(test.first))
+		if err != nil {
+			t.Errorf("[%d] Failed to parse '%v': %v", i, test.first, err)
+		}
+
+		secondContainer, err = ParseJSON([]byte(test.second))
+		if err != nil {
+			t.Errorf("[%d] Failed to parse '%v': %v", i, test.second, err)
+		}
+
+		if err = firstContainer.Merge(secondContainer); err != nil {
+			t.Errorf("[%d] Failed to merge: '%v': %v", i, test.first, err)
+		}
+
+		if exp, act := test.expected, firstContainer.String(); exp != act {
+			t.Errorf("[%d] Wrong result: %v != %v", i, act, exp)
+		}
 	}
 }

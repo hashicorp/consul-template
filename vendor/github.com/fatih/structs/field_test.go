@@ -135,7 +135,7 @@ func TestField_Set(t *testing.T) {
 
 func TestField_NotSettable(t *testing.T) {
 	a := map[int]Baz{
-		4: Baz{
+		4: {
 			A: "value",
 		},
 	}

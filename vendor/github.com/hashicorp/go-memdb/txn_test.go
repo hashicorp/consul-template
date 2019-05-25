@@ -2,6 +2,7 @@ package memdb
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -1157,5 +1158,88 @@ func TestTxn_Defer_Abort(t *testing.T) {
 	// Ensure deferred did not run
 	if res != "" {
 		t.Fatalf("bad: %q", res)
+	}
+}
+
+func TestTxn_LowerBound(t *testing.T) {
+
+	basicRows := []TestObject{
+		{ID: "00001", Foo: "1", Qux: []string{"a"}},
+		{ID: "00002", Foo: "2", Qux: []string{"a"}},
+		{ID: "00004", Foo: "3", Qux: []string{"a"}},
+		{ID: "00005", Foo: "4", Qux: []string{"a"}},
+		{ID: "00010", Foo: "5", Qux: []string{"a"}},
+		{ID: "10010", Foo: "6", Qux: []string{"a"}},
+	}
+
+	cases := []struct {
+		Name   string
+		Rows   []TestObject
+		Search string
+		Want   []TestObject
+	}{
+		{
+			Name:   "all",
+			Rows:   basicRows,
+			Search: "0",
+			Want:   basicRows,
+		},
+		{
+			Name:   "subset existing bound",
+			Rows:   basicRows,
+			Search: "00005",
+			Want: []TestObject{
+				{ID: "00005", Foo: "4", Qux: []string{"a"}},
+				{ID: "00010", Foo: "5", Qux: []string{"a"}},
+				{ID: "10010", Foo: "6", Qux: []string{"a"}},
+			},
+		},
+		{
+			Name:   "subset non-existent bound",
+			Rows:   basicRows,
+			Search: "00006",
+			Want: []TestObject{
+				{ID: "00010", Foo: "5", Qux: []string{"a"}},
+				{ID: "10010", Foo: "6", Qux: []string{"a"}},
+			},
+		},
+		{
+			Name:   "empty subset",
+			Rows:   basicRows,
+			Search: "99999",
+			Want:   []TestObject{},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			db := testDB(t)
+
+			txn := db.Txn(true)
+			for _, row := range tc.Rows {
+				err := txn.Insert("main", row)
+				if err != nil {
+					t.Fatalf("err inserting: %s", err)
+				}
+			}
+			txn.Commit()
+
+			txn = db.Txn(false)
+			defer txn.Abort()
+			iterator, err := txn.LowerBound("main", "id", tc.Search)
+			if err != nil {
+				t.Fatalf("err lower bound: %s", err)
+			}
+
+			// Now range scan and built a result set
+			result := []TestObject{}
+			for obj := iterator.Next(); obj != nil; obj = iterator.Next() {
+				result = append(result, obj.(TestObject))
+			}
+
+			if !reflect.DeepEqual(result, tc.Want) {
+				t.Fatalf(" got: %#v\nwant: %#v", result, tc.Want)
+			}
+		})
 	}
 }

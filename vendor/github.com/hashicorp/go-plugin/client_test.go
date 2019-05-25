@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -616,10 +617,22 @@ func TestClient_Stderr(t *testing.T) {
 func TestClient_StderrJSON(t *testing.T) {
 	stderr := new(bytes.Buffer)
 	process := helperProcess("stderr-json")
+
+	var logBuf bytes.Buffer
+	mutex := new(sync.Mutex)
+	// Custom hclog.Logger
+	testLogger := hclog.New(&hclog.LoggerOptions{
+		Name:   "test-logger",
+		Level:  hclog.Trace,
+		Output: &logBuf,
+		Mutex:  mutex,
+	})
+
 	c := NewClient(&ClientConfig{
 		Cmd:             process,
 		Stderr:          stderr,
 		HandshakeConfig: testHandshake,
+		Logger:          testLogger,
 		Plugins:         testPluginMap,
 	})
 	defer c.Kill()
@@ -636,12 +649,18 @@ func TestClient_StderrJSON(t *testing.T) {
 		t.Fatal("process failed to exit gracefully")
 	}
 
-	if !strings.Contains(stderr.String(), "[\"HELLO\"]\n") {
-		t.Fatalf("bad log data: '%s'", stderr.String())
+	logOut := logBuf.String()
+
+	if !strings.Contains(logOut, "[\"HELLO\"]\n") {
+		t.Fatalf("missing json list: '%s'", logOut)
 	}
 
-	if !strings.Contains(stderr.String(), "12345\n") {
-		t.Fatalf("bad log data: '%s'", stderr.String())
+	if !strings.Contains(logOut, "12345\n") {
+		t.Fatalf("missing line with raw number: '%s'", logOut)
+	}
+
+	if !strings.Contains(logOut, "{\"a\":1}") {
+		t.Fatalf("missing json object: '%s'", logOut)
 	}
 }
 
@@ -1238,5 +1257,39 @@ func testClient_logger(t *testing.T, proto string) {
 
 	if c.killed() {
 		t.Fatal("process failed to exit gracefully")
+	}
+}
+
+// Test that we continue to consume stderr over long lines.
+func TestClient_logStderr(t *testing.T) {
+	orig := stdErrBufferSize
+	stdErrBufferSize = 32
+	defer func() {
+		stdErrBufferSize = orig
+	}()
+
+	stderr := bytes.Buffer{}
+	c := NewClient(&ClientConfig{
+		Stderr: &stderr,
+		Cmd: &exec.Cmd{
+			Path: "test",
+		},
+	})
+	c.clientWaitGroup.Add(1)
+
+	msg := `
+this line is more than 32 bytes long
+and this line is more than 32 bytes long
+{"a": "b", "@level": "debug"}
+this line is short
+`
+
+	reader := strings.NewReader(msg)
+
+	c.logStderr(reader)
+	read := stderr.String()
+
+	if read != msg {
+		t.Fatalf("\nexpected output: %q\ngot output:      %q", msg, read)
 	}
 }

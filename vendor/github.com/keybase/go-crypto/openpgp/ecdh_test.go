@@ -2,12 +2,21 @@ package openpgp
 
 import (
 	"bytes"
-	"github.com/keybase/go-crypto/openpgp/armor"
-	"github.com/keybase/go-crypto/openpgp/packet"
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"io"
 	"io/ioutil"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/keybase/go-crypto/brainpool"
+	"github.com/keybase/go-crypto/curve25519"
+	"github.com/keybase/go-crypto/openpgp/armor"
+	"github.com/keybase/go-crypto/openpgp/ecdh"
+	"github.com/keybase/go-crypto/openpgp/packet"
 )
 
 const privKey = `-----BEGIN PGP PRIVATE KEY BLOCK-----
@@ -107,8 +116,10 @@ func TestECDHDecryption(t *testing.T) {
 	}
 }
 
-func ecdhRoundtrip(t *testing.T, privKey string) {
-	entities, err := ReadArmoredKeyRing(strings.NewReader(privKey))
+func ecdhEncryptionRoundtrip(t *testing.T, privKey string, pubKey string) {
+	// Encryption
+	// ----------
+	entities, err := ReadArmoredKeyRing(strings.NewReader(pubKey))
 	if err != nil {
 		t.Fatalf("error opening keys: %v", err)
 	}
@@ -120,7 +131,7 @@ func ecdhRoundtrip(t *testing.T, privKey string) {
 	}
 	buf := new(bytes.Buffer)
 	armored, err := armor.Encode(buf, "PGP MESSAGE", nil)
-	writer, err := Encrypt(armored, entities[:1], nil, nil, nil)
+	writer, err := Encrypt(armored, entities, nil, nil, nil)
 	if err != nil {
 		t.Fatalf("Failed to Encrypt: %s", err)
 	}
@@ -128,6 +139,16 @@ func ecdhRoundtrip(t *testing.T, privKey string) {
 	io.Copy(writer, bytes.NewBufferString(msgstr))
 	writer.Close()
 	armored.Close()
+
+	// Decryption
+	// ----------
+	entities, err = ReadArmoredKeyRing(strings.NewReader(privKey))
+	if err != nil {
+		t.Fatalf("error opening keys: %v", err)
+	}
+	if len(entities) != 1 {
+		t.Fatal("expected only 1 key")
+	}
 
 	block, err := armor.Decode(bytes.NewBuffer(buf.Bytes()))
 	md, err := ReadMessage(block.Body, entities, nil, nil)
@@ -142,12 +163,12 @@ func ecdhRoundtrip(t *testing.T, privKey string) {
 }
 
 func TestECDHRoundTrip(t *testing.T) {
-	ecdhRoundtrip(t, privKey384)
-	ecdhRoundtrip(t, privKey521)
+	ecdhEncryptionRoundtrip(t, privKey384, privKey384)
+	ecdhEncryptionRoundtrip(t, privKey521, privKey521)
 }
 
 func TestECDHRoundTripCv25519(t *testing.T) {
-	ecdhRoundtrip(t, privKeyCv25519)
+	ecdhEncryptionRoundtrip(t, privKeyCv25519, privKeyCv25519)
 }
 
 func TestInvalid(t *testing.T) {
@@ -233,9 +254,9 @@ func TestInvalidEddsaSignatureImport(t *testing.T) {
 }
 
 func TestECDHBitLengths(t *testing.T) {
-	readAndGetBitLength := func(armored string) (uint16) {
+	readAndGetBitLength := func(armored string) uint16 {
 		entities, err := ReadArmoredKeyRing(strings.NewReader(armored))
-		if err  != nil {
+		if err != nil {
 			t.Fatalf("Error in ReadArmoredKeyRing: %v", err)
 		}
 		bitLen, err := entities[0].PrimaryKey.BitLength()
@@ -253,6 +274,124 @@ func TestECDHBitLengths(t *testing.T) {
 	}
 	if bLen := readAndGetBitLength(privKeyCv25519); bLen != 256 {
 		t.Fatalf("Got BitLength %d, expected 256", bLen)
+	}
+}
+
+func generateEccKeysForTest(t *testing.T, signCurve, encCurve elliptic.Curve) *Entity {
+	uid := packet.NewUserId("Go-Crypto PGP Test", "Test Only Do Not Use", "alice@example.com")
+
+	// Generate keys and create a new entity
+	currentTime := time.Now()
+	signingPriv, err := ecdsa.GenerateKey(signCurve, rand.Reader)
+	if err != nil {
+		t.Fatalf("Failed to generate ecdsa key: %s", err)
+	}
+	signingPrivKey := packet.NewECDSAPrivateKey(currentTime, signingPriv)
+	entity := &Entity{
+		PrimaryKey: &signingPrivKey.PublicKey,
+		PrivateKey: signingPrivKey,
+		Identities: make(map[string]*Identity),
+	}
+	isPrimaryId := true
+	entity.Identities[uid.Id] = &Identity{
+		Name:   uid.Name,
+		UserId: uid,
+		SelfSignature: &packet.Signature{
+			CreationTime: currentTime,
+			SigType:      packet.SigTypePositiveCert,
+			PubKeyAlgo:   packet.PubKeyAlgoECDSA,
+			Hash:         crypto.SHA512,
+			IsPrimaryId:  &isPrimaryId,
+			FlagsValid:   true,
+			FlagSign:     true,
+			FlagCertify:  true,
+			IssuerKeyId:  &entity.PrimaryKey.KeyId,
+		},
+	}
+	encryptPriv, err := ecdh.GenerateKey(encCurve, rand.Reader)
+	if err != nil {
+		t.Fatalf("Failed to generate ecdh key: %s", err)
+	}
+	encryptPrivKey := packet.NewECDHPrivateKey(currentTime, encryptPriv)
+	subkey := Subkey{
+		PublicKey:  &encryptPrivKey.PublicKey,
+		PrivateKey: encryptPrivKey,
+		Sig: &packet.Signature{
+			CreationTime:              currentTime,
+			SigType:                   packet.SigTypeSubkeyBinding,
+			PubKeyAlgo:                packet.PubKeyAlgoECDSA,
+			Hash:                      crypto.SHA512,
+			FlagsValid:                true,
+			FlagEncryptStorage:        true,
+			FlagEncryptCommunications: true,
+			IssuerKeyId:               &entity.PrimaryKey.KeyId,
+		},
+	}
+	subkey.PrivateKey.IsSubkey = true
+	subkey.PublicKey.IsSubkey = true
+	entity.Subkeys = append(entity.Subkeys, subkey)
+	return entity
+}
+
+func eccKeyGenRoundtrip(t *testing.T, curve elliptic.Curve) {
+	t.Logf("eccKeyGenRoundtrip(%s)", curve.Params().Name)
+
+	// Generate keys and create a new entity
+	entity := generateEccKeysForTest(t, elliptic.P521(), curve)
+
+	// Serialize private bundle and serialize public bundle
+	var privateArmor string
+	{
+		var buf bytes.Buffer
+		writer, _ := armor.Encode(&buf, "PGP PRIVATE KEY BLOCK", nil)
+		err := entity.SerializePrivate(writer, nil)
+		if err != nil {
+			t.Fatalf("Failed to serialize private key: %s", err)
+		}
+		writer.Close()
+		privateArmor = buf.String()
+	}
+
+	t.Logf("Private key:\n%s", privateArmor)
+
+	var publicArmor string
+	{
+		var buf bytes.Buffer
+		writer, _ := armor.Encode(&buf, "PGP PUBLIC KEY BLOCK", nil)
+		err := entity.Serialize(writer)
+		if err != nil {
+			t.Fatalf("Failed to serialize public key: %s", err)
+		}
+		writer.Close()
+		publicArmor = buf.String()
+	}
+
+	t.Logf("Public key:\n%s", publicArmor)
+
+	// Encryption roundtrip
+	ecdhEncryptionRoundtrip(t, privateArmor, publicArmor)
+}
+
+func TestECCKeyGeneration(t *testing.T) {
+	for _, curve := range []elliptic.Curve{
+		curve25519.Cv25519(),
+		elliptic.P224(), elliptic.P384(), elliptic.P256(), elliptic.P521(),
+		brainpool.P256r1(), brainpool.P384r1(), brainpool.P512r1(),
+	} {
+		eccKeyGenRoundtrip(t, curve)
+	}
+}
+
+func TestECDHBadSharedKey(t *testing.T) {
+	entities, err := ReadArmoredKeyRing(strings.NewReader(privKeyCv25519))
+	if err != nil {
+		t.Fatalf("error opening keys: %v", err)
+	}
+	block, err := armor.Decode(strings.NewReader(payloadCv25519BadKey))
+	_, err = ReadMessage(block.Body, entities, nil, nil)
+	if err == nil {
+		// Expect an error, but not panic.
+		t.Fatal("Expected read to fail")
 	}
 }
 
@@ -459,6 +598,20 @@ XUNWZ/WrMOJHerpQvMvPNjEwMSGnsIZPh8/Hafj7j8OauMG5EWgCrzsxv1mgsRXP
 QkNog/5dM9JIAcT8RpDaFecdhRag6ZPuRKmNuhiFtR7o0spcqX2UkJ3FPB7UydX3
 ch9PkTNL1BVD++JqYQE9eaIqlCTAsHwCgO6pQkQqPUvB
 =y7cW
+-----END PGP MESSAGE-----
+
+`
+
+// This message is encrypted against cv25519 public key, but the X of
+// shared public key point is truncated by 1 byte. This used to panic
+// in curve25519 package.
+const payloadCv25519BadKey = `-----BEGIN PGP MESSAGE-----
+
+wU4DR1BH23/8iIwSAQdAAMZtmqYOggdGAIZiiDAEZ6A2HBBeC0T5QJeZyjH3GQsg
+n7sPof7QULJ/Fty3BpvXAWkK/S5AOjfjMTUcbeLHaJrS4AHkBHYdpJUSIy/4JSkE
+RQX1BOGpL+CO4EDhFi7gX+IBho2T4DHlL71ZaRBM8SCnxVt2OisXabbEKiI+6jdv
+PQTqtFy9X7/g5+N1jJ4VJlOmKeAN5KKO0UHANZoGGZr3etDvZsbicxMuXOFBrwA=
+=uD58
 -----END PGP MESSAGE-----
 
 `

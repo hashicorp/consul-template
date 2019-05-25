@@ -7,8 +7,9 @@ import (
 
 func TestListFormatFuncSingle(t *testing.T) {
 	expected := `1 error occurred:
+	* foo
 
-* foo`
+`
 
 	errors := []error{
 		errors.New("foo"),
@@ -22,9 +23,10 @@ func TestListFormatFuncSingle(t *testing.T) {
 
 func TestListFormatFuncMultiple(t *testing.T) {
 	expected := `2 errors occurred:
+	* foo
+	* bar
 
-* foo
-* bar`
+`
 
 	errors := []error{
 		errors.New("foo"),

@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/testrpc"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
 	"github.com/mitchellh/cli"
@@ -32,8 +34,9 @@ func TestCatalogListServicesCommand_Validation(t *testing.T) {
 
 func TestCatalogListServicesCommand(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Add another service with tags for testing
 	if err := a.Client().Agent().ServiceRegister(&api.AgentServiceRegistration{

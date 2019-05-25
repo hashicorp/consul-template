@@ -162,7 +162,7 @@ func ExampleCompose() {
 	// ja-US <nil>
 	// nl-US-u-nu-arabic <nil>
 	// nl-1901-u-co-phonebk <nil>
-	// nl-1901-u-nu-arabic <nil>
+	// nl-1901-u-co-phonebk-nu-arabic <nil>
 	// und-1901-u-co-phonebk <nil>
 	// de-u-co-phonebk <nil>
 	// de-1901 <nil>
@@ -205,7 +205,7 @@ func ExampleParse_errors() {
 	// ac-u: ill-formed
 }
 
-func ExampleParent() {
+func ExampleTag_Parent() {
 	p := func(tag string) {
 		fmt.Printf("parent(%v): %v\n", tag, language.Make(tag).Parent())
 	}

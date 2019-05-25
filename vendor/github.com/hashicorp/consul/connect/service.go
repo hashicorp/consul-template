@@ -69,10 +69,11 @@ func NewService(serviceName string, client *api.Client) (*Service, error) {
 func NewServiceWithLogger(serviceName string, client *api.Client,
 	logger *log.Logger) (*Service, error) {
 	s := &Service{
-		service: serviceName,
-		client:  client,
-		logger:  logger,
-		tlsCfg:  newDynamicTLSConfig(defaultTLSConfig()),
+		service:              serviceName,
+		client:               client,
+		logger:               logger,
+		tlsCfg:               newDynamicTLSConfig(defaultTLSConfig(), logger),
+		httpResolverFromAddr: ConsulResolverFromAddrFunc(client),
 	}
 
 	// Set up root and leaf watches
@@ -120,7 +121,7 @@ func NewDevServiceWithTLSConfig(serviceName string, logger *log.Logger,
 	s := &Service{
 		service: serviceName,
 		logger:  logger,
-		tlsCfg:  newDynamicTLSConfig(tlsCfg),
+		tlsCfg:  newDynamicTLSConfig(tlsCfg, logger),
 	}
 	return s, nil
 }
@@ -155,7 +156,7 @@ func (s *Service) ServerTLSConfig() *tls.Config {
 }
 
 // Dial connects to a remote Connect-enabled server. The passed Resolver is used
-// to discover a single candidate instance which will be dialled and have it's
+// to discover a single candidate instance which will be dialed and have it's
 // TLS certificate verified against the expected identity. Failures are returned
 // directly with no retries. Repeated dials may use different instances
 // depending on the Resolver implementation.

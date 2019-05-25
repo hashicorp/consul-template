@@ -30,6 +30,20 @@ func TestBaseScalarMult(t *testing.T) {
 	}
 }
 
+func TestTestVectors(t *testing.T) {
+	for _, tv := range testVectors {
+		var got [32]byte
+		ScalarMult(&got, &tv.In, &tv.Base)
+		if !bytes.Equal(got[:], tv.Expect[:]) {
+			t.Logf("    in = %x", tv.In)
+			t.Logf("  base = %x", tv.Base)
+			t.Logf("   got = %x", got)
+			t.Logf("expect = %x", tv.Expect)
+			t.Fail()
+		}
+	}
+}
+
 // TestHighBitIgnored tests the following requirement in RFC 7748:
 //
 //	When receiving such an array, implementations of X25519 (but not X448) MUST

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 )
 
@@ -31,9 +32,10 @@ func TestCatalogListNodesCommand_Validation(t *testing.T) {
 
 func TestCatalogListNodesCommand(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	t.Run("simple", func(t *testing.T) {
 		ui := cli.NewMockUi()
 		c := New(ui)

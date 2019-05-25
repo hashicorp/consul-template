@@ -22,6 +22,7 @@ func TestReader(t *testing.T) {
 		"testdata/pi.txt.lz4",
 		"testdata/random.data.lz4",
 		"testdata/repeat.txt.lz4",
+		"testdata/pg_control.tar.lz4",
 	}
 
 	for _, fname := range goldenFiles {

@@ -34,11 +34,11 @@ func TestOCSPDecode(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(resp.ThisUpdate, expected.ThisUpdate) {
-		t.Errorf("resp.ThisUpdate: got %d, want %d", resp.ThisUpdate, expected.ThisUpdate)
+		t.Errorf("resp.ThisUpdate: got %v, want %v", resp.ThisUpdate, expected.ThisUpdate)
 	}
 
 	if !reflect.DeepEqual(resp.NextUpdate, expected.NextUpdate) {
-		t.Errorf("resp.NextUpdate: got %d, want %d", resp.NextUpdate, expected.NextUpdate)
+		t.Errorf("resp.NextUpdate: got %v, want %v", resp.NextUpdate, expected.NextUpdate)
 	}
 
 	if resp.Status != expected.Status {
@@ -220,15 +220,15 @@ func TestOCSPResponse(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(resp.ThisUpdate, template.ThisUpdate) {
-		t.Errorf("resp.ThisUpdate: got %d, want %d", resp.ThisUpdate, template.ThisUpdate)
+		t.Errorf("resp.ThisUpdate: got %v, want %v", resp.ThisUpdate, template.ThisUpdate)
 	}
 
 	if !reflect.DeepEqual(resp.NextUpdate, template.NextUpdate) {
-		t.Errorf("resp.NextUpdate: got %d, want %d", resp.NextUpdate, template.NextUpdate)
+		t.Errorf("resp.NextUpdate: got %v, want %v", resp.NextUpdate, template.NextUpdate)
 	}
 
 	if !reflect.DeepEqual(resp.RevokedAt, template.RevokedAt) {
-		t.Errorf("resp.RevokedAt: got %d, want %d", resp.RevokedAt, template.RevokedAt)
+		t.Errorf("resp.RevokedAt: got %v, want %v", resp.RevokedAt, template.RevokedAt)
 	}
 
 	if !reflect.DeepEqual(resp.Extensions, template.ExtraExtensions) {
@@ -236,7 +236,7 @@ func TestOCSPResponse(t *testing.T) {
 	}
 
 	if !resp.ProducedAt.Equal(producedAt) {
-		t.Errorf("resp.ProducedAt: got %d, want %d", resp.ProducedAt, producedAt)
+		t.Errorf("resp.ProducedAt: got %v, want %v", resp.ProducedAt, producedAt)
 	}
 
 	if resp.Status != template.Status {

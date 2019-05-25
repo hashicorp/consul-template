@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/consul/lib"
 	memdb "github.com/hashicorp/go-memdb"
 	"github.com/hashicorp/memberlist"
-	"github.com/hashicorp/net-rpc-msgpackrpc"
+	msgpackrpc "github.com/hashicorp/net-rpc-msgpackrpc"
 	"github.com/hashicorp/yamux"
 )
 
@@ -204,8 +204,8 @@ func (s *Server) forward(method string, info structs.RPCInfo, args interface{}, 
 		return true, err
 	}
 
-	// Check if we can allow a stale read
-	if info.IsRead() && info.AllowStaleRead() {
+	// Check if we can allow a stale read, ensure our local DB is initialized
+	if info.IsRead() && info.AllowStaleRead() && !s.raft.LastContact().IsZero() {
 		return false, nil
 	}
 
@@ -415,7 +415,18 @@ RUN_QUERY:
 
 	// Block up to the timeout if we didn't see anything fresh.
 	err := fn(ws, state)
-	if err == nil && queryMeta.Index > 0 && queryMeta.Index <= queryOpts.MinQueryIndex {
+	// Note we check queryOpts.MinQueryIndex is greater than zero to determine if
+	// blocking was requested by client, NOT meta.Index since the state function
+	// might return zero if something is not initialized and care wasn't taken to
+	// handle that special case (in practice this happened a lot so fixing it
+	// systematically here beats trying to remember to add zero checks in every
+	// state method). We also need to ensure that unless there is an error, we
+	// return an index > 0 otherwise the client will never block and burn CPU and
+	// requests.
+	if err == nil && queryMeta.Index < 1 {
+		queryMeta.Index = 1
+	}
+	if err == nil && queryOpts.MinQueryIndex > 0 && queryMeta.Index <= queryOpts.MinQueryIndex {
 		if expired := ws.Watch(timeout.C); !expired {
 			// If a restore may have woken us up then bail out from
 			// the query immediately. This is slightly race-ey since

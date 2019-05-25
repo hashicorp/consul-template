@@ -301,7 +301,7 @@ func ExampleIsZero() {
 		Enabled bool
 	}
 
-	// Nothing is initalized
+	// Nothing is initialized
 	a := &Server{}
 	isZeroA := IsZero(a)
 

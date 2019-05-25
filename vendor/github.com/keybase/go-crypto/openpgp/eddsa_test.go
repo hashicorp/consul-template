@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/keybase/go-crypto/ed25519"
 	"github.com/keybase/go-crypto/openpgp/armor"
 	"github.com/keybase/go-crypto/openpgp/clearsign"
 	"github.com/keybase/go-crypto/openpgp/packet"
@@ -36,6 +37,10 @@ func TestEd25519RoundTrip(t *testing.T) {
 	}
 	if !entities[0].PrimaryKey.PubKeyAlgo.CanSign() {
 		t.Fatal("key cannot sign")
+	}
+	pk := entities[0].PrimaryKey.PublicKey
+	if _, ok := pk.(ed25519.PublicKey); !ok {
+		t.Fatalf("expected PublicKey to be of type ed25519.PublicKey, got %T", pk)
 	}
 	buf := new(bytes.Buffer)
 	err = ArmoredDetachSign(buf, entities[0], bytes.NewBufferString(testString), nil)
@@ -181,6 +186,13 @@ func TestEd25519SerializeKey(t *testing.T) {
 		t.Fatalf("error opening keys: %v", err)
 	}
 
+	pk := entities[0].PrivateKey.PrivateKey
+	eddsaPriv, ok := pk.(*packet.EdDSAPrivateKey)
+	if !ok {
+		t.Fatalf("Expected to get EdDSAPrivateKey type, got %T", pk)
+	}
+	seed := eddsaPriv.Seed()
+
 	var buf bytes.Buffer
 	err = entities[0].SerializePrivate(&buf, nil)
 	if err != nil {
@@ -195,6 +207,18 @@ func TestEd25519SerializeKey(t *testing.T) {
 	entities, err = ReadArmoredKeyRing(strings.NewReader(armored))
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	// Re-read, see if the same seed comes back. Very unlikely that it didn't,
+	// because then subkey verification during reading wouldn't have worked.
+	pk = entities[0].PrivateKey.PrivateKey
+	eddsaPriv, ok = pk.(*packet.EdDSAPrivateKey)
+	if !ok {
+		t.Fatalf("Expected to get EdDSAPrivateKey type, got %T", pk)
+	}
+	seed2 := eddsaPriv.Seed()
+	if bytes.Compare(seed, seed2) != 0 {
+		t.Fatal("Got different seed back")
 	}
 }
 

@@ -9,12 +9,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/testrpc"
+
 	"github.com/hashicorp/consul/agent/structs"
 )
 
 func TestTxnEndpoint_Bad_JSON(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	buf := bytes.NewBuffer([]byte("{"))
@@ -33,7 +35,7 @@ func TestTxnEndpoint_Bad_JSON(t *testing.T) {
 
 func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
@@ -59,7 +61,7 @@ func TestTxnEndpoint_Bad_Size_Item(t *testing.T) {
 
 func TestTxnEndpoint_Bad_Size_Net(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	value := strings.Repeat("X", maxKVSize/2)
@@ -100,7 +102,7 @@ func TestTxnEndpoint_Bad_Size_Net(t *testing.T) {
 
 func TestTxnEndpoint_Bad_Size_Ops(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
 
 	buf := bytes.NewBuffer([]byte(fmt.Sprintf(`
@@ -128,8 +130,9 @@ func TestTxnEndpoint_Bad_Size_Ops(t *testing.T) {
 func TestTxnEndpoint_KV_Actions(t *testing.T) {
 	t.Parallel()
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), "")
+		a := NewTestAgent(t, t.Name(), "")
 		defer a.Shutdown()
+		testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 		// Make sure all incoming fields get converted properly to the internal
 		// RPC format.
@@ -363,7 +366,7 @@ func TestTxnEndpoint_KV_Actions(t *testing.T) {
 
 	// Verify an error inside a transaction.
 	t.Run("", func(t *testing.T) {
-		a := NewTestAgent(t.Name(), "")
+		a := NewTestAgent(t, t.Name(), "")
 		defer a.Shutdown()
 
 		buf := bytes.NewBuffer([]byte(`

@@ -10,9 +10,9 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
+	"testing"
 	"time"
 
 	metrics "github.com/armon/go-metrics"
@@ -26,6 +26,8 @@ import (
 	"github.com/hashicorp/consul/lib/freeport"
 	"github.com/hashicorp/consul/logger"
 	"github.com/hashicorp/consul/testutil/retry"
+
+	"github.com/stretchr/testify/require"
 )
 
 func init() {
@@ -91,25 +93,28 @@ type TestAgent struct {
 }
 
 // NewTestAgent returns a started agent with the given name and
-// configuration. It panics if the agent could not be started. The
+// configuration. It fails the test if the Agent could not be started. The
 // caller should call Shutdown() to stop the agent and remove temporary
 // directories.
-func NewTestAgent(name string, hcl string) *TestAgent {
+func NewTestAgent(t *testing.T, name string, hcl string) *TestAgent {
 	a := &TestAgent{Name: name, HCL: hcl}
-	a.Start()
+	a.Start(t)
 	return a
 }
 
-type panicFailer struct{}
-
-func (f *panicFailer) Log(args ...interface{}) { fmt.Println(args...) }
-func (f *panicFailer) FailNow()                { panic("failed") }
-
-// Start starts a test agent. It panics if the agent could not be started.
-func (a *TestAgent) Start() *TestAgent {
-	if a.Agent != nil {
-		panic("TestAgent already started")
+func NewUnstartedAgent(t *testing.T, name string, hcl string) (*Agent, error) {
+	c := TestConfig(config.Source{Name: name, Format: "hcl", Data: hcl})
+	a, err := New(c)
+	if err != nil {
+		return nil, err
 	}
+	return a, nil
+}
+
+// Start starts a test agent. It fails the test if the agent could not be started.
+func (a *TestAgent) Start(t *testing.T) *TestAgent {
+	require := require.New(t)
+	require.Nil(a.Agent, "TestAgent already started")
 	var hclDataDir string
 	if a.DataDir == "" {
 		name := "agent"
@@ -118,36 +123,31 @@ func (a *TestAgent) Start() *TestAgent {
 		}
 		name = strings.Replace(name, "/", "_", -1)
 		d, err := ioutil.TempDir(TempDir, name)
-		if err != nil {
-			panic(fmt.Sprintf("Error creating data dir %s: %s", filepath.Join(TempDir, name), err))
-		}
+		require.NoError(err, fmt.Sprintf("Error creating data dir %s: %s", filepath.Join(TempDir, name), err))
 		hclDataDir = `data_dir = "` + d + `"`
 	}
 	id := NodeID()
 
 	for i := 10; i >= 0; i-- {
 		a.Config = TestConfig(
+			randomPortsSource(a.UseTLS),
 			config.Source{Name: a.Name, Format: "hcl", Data: a.HCL},
 			config.Source{Name: a.Name + ".data_dir", Format: "hcl", Data: hclDataDir},
-			randomPortsSource(a.UseTLS),
 		)
 
 		// write the keyring
 		if a.Key != "" {
 			writeKey := func(key, filename string) {
 				path := filepath.Join(a.Config.DataDir, filename)
-				if err := initKeyring(path, key); err != nil {
-					panic(fmt.Sprintf("Error creating keyring %s: %s", path, err))
-				}
+				err := initKeyring(path, key)
+				require.NoError(err, fmt.Sprintf("Error creating keyring %s: %s", path, err))
 			}
 			writeKey(a.Key, SerfLANKeyring)
 			writeKey(a.Key, SerfWANKeyring)
 		}
 
 		agent, err := New(a.Config)
-		if err != nil {
-			panic(fmt.Sprintf("Error creating agent: %s", err))
-		}
+		require.NoError(err, fmt.Sprintf("Error creating agent: %s", err))
 
 		logOutput := a.LogOutput
 		if logOutput == nil {
@@ -163,8 +163,7 @@ func (a *TestAgent) Start() *TestAgent {
 			a.Agent = agent
 			break
 		} else if i == 0 {
-			fmt.Println(id, a.Name, "Error starting agent:", err)
-			runtime.Goexit()
+			require.Fail("%s %s Error starting agent: %s", id, a.Name, err)
 		} else if a.ExpectConfigError {
 			// Panic the error since this can be caught if needed. Pretty gross way to
 			// detect errors but enough for now and this is a tiny edge case that I'd
@@ -183,8 +182,7 @@ func (a *TestAgent) Start() *TestAgent {
 		// the data dir, such as in the Raft configuration.
 		if a.DataDir != "" {
 			if err := os.RemoveAll(a.DataDir); err != nil {
-				fmt.Println(id, a.Name, "Error resetting data dir:", err)
-				runtime.Goexit()
+				require.Fail("%s %s Error resetting data dir: %s", id, a.Name, err)
 			}
 		}
 	}
@@ -193,7 +191,7 @@ func (a *TestAgent) Start() *TestAgent {
 	a.Agent.StartSync()
 
 	var out structs.IndexedNodes
-	retry.Run(&panicFailer{}, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
 		if len(a.httpServers) == 0 {
 			r.Fatal(a.Name, "waiting for server")
 		}
@@ -379,6 +377,10 @@ func TestConfig(sources ...config.Source) *config.RuntimeConfig {
 	// Disable connect proxy execution since it causes all kinds of problems with
 	// self-executing tests etc.
 	cfg.ConnectTestDisableManagedProxies = true
+	// Effectively disables the delay after root rotation before requesting CSRs
+	// to make test deterministic. 0 results in default jitter being applied but a
+	// tiny delay is effectively thre same.
+	cfg.ConnectTestCALeafRootChangeSpread = 1 * time.Nanosecond
 
 	return &cfg
 }

@@ -2,11 +2,13 @@ package iradix
 
 import (
 	"fmt"
+	"math/rand"
 	"reflect"
 	"sort"
 	"testing"
+	"testing/quick"
 
-	"github.com/hashicorp/uuid"
+	"github.com/hashicorp/go-uuid"
 )
 
 func CopyTree(t *Tree) *Tree {
@@ -55,7 +57,10 @@ func TestRadix_HugeTxn(t *testing.T) {
 	txn1 := r.Txn()
 	var expect []string
 	for i := 0; i < defaultModifiedCache*100; i++ {
-		gen := uuid.GenerateUUID()
+		gen, err := uuid.GenerateUUID()
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
 		txn1.Insert([]byte(gen), i)
 		expect = append(expect, gen)
 	}
@@ -85,7 +90,10 @@ func TestRadix(t *testing.T) {
 	var min, max string
 	inp := make(map[string]interface{})
 	for i := 0; i < 1000; i++ {
-		gen := uuid.GenerateUUID()
+		gen, err := uuid.GenerateUUID()
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
 		inp[gen] = i
 		if gen < min || i == 0 {
 			min = gen
@@ -167,7 +175,7 @@ func TestRoot(t *testing.T) {
 	}
 	val, ok := r.Get(nil)
 	if !ok || val != true {
-		t.Fatalf("bad: %v %#v", val)
+		t.Fatalf("bad: %#v", val)
 	}
 	r, val, ok = r.Delete(nil)
 	if !ok || val != true {
@@ -1486,5 +1494,283 @@ func TestTrackMutate_cachedNodeChange(t *testing.T) {
 				t.Fatalf("bad: %s", path)
 			}
 		}
+	}
+}
+
+func TestLenTxn(t *testing.T) {
+	r := New()
+
+	if r.Len() != 0 {
+		t.Fatalf("not starting with empty tree")
+	}
+
+	txn := r.Txn()
+	keys := []string{
+		"foo/bar/baz",
+		"foo/baz/bar",
+		"foo/zip/zap",
+		"foobar",
+		"nochange",
+	}
+	for _, k := range keys {
+		txn.Insert([]byte(k), nil)
+	}
+	r = txn.Commit()
+
+	if r.Len() != len(keys) {
+		t.Fatalf("bad: expected %d, got %d", len(keys), r.Len())
+	}
+
+	txn = r.Txn()
+	for _, k := range keys {
+		txn.Delete([]byte(k))
+	}
+	r = txn.Commit()
+
+	if r.Len() != 0 {
+		t.Fatalf("tree len should be zero, got %d", r.Len())
+	}
+}
+
+func TestIterateLowerBound(t *testing.T) {
+	fixedLenKeys := []string{
+		"00000",
+		"00001",
+		"00004",
+		"00010",
+		"00020",
+		"20020",
+	}
+
+	mixedLenKeys := []string{
+		"a1",
+		"abc",
+		"barbazboo",
+		"foo",
+		"found",
+		"zap",
+		"zip",
+	}
+
+	type exp struct {
+		keys   []string
+		search string
+		want   []string
+	}
+	cases := []exp{
+		exp{
+			fixedLenKeys,
+			"00000",
+			fixedLenKeys,
+		}, exp{
+			fixedLenKeys,
+			"00003",
+			[]string{
+				"00004",
+				"00010",
+				"00020",
+				"20020",
+			},
+		}, exp{
+			fixedLenKeys,
+			"00010",
+			[]string{
+				"00010",
+				"00020",
+				"20020",
+			},
+		}, exp{
+			fixedLenKeys,
+			"20000",
+			[]string{
+				"20020",
+			},
+		}, exp{
+			fixedLenKeys,
+			"20020",
+			[]string{
+				"20020",
+			},
+		}, exp{
+			fixedLenKeys,
+			"20022",
+			[]string{},
+		}, exp{
+			mixedLenKeys,
+			"A", // before all lower case letters
+			mixedLenKeys,
+		}, exp{
+			mixedLenKeys,
+			"a1",
+			mixedLenKeys,
+		}, exp{
+			mixedLenKeys,
+			"b",
+			[]string{
+				"barbazboo",
+				"foo",
+				"found",
+				"zap",
+				"zip",
+			},
+		}, exp{
+			mixedLenKeys,
+			"bar",
+			[]string{
+				"barbazboo",
+				"foo",
+				"found",
+				"zap",
+				"zip",
+			},
+		}, exp{
+			mixedLenKeys,
+			"barbazboo0",
+			[]string{
+				"foo",
+				"found",
+				"zap",
+				"zip",
+			},
+		}, exp{
+			mixedLenKeys,
+			"zippy",
+			[]string{},
+		}, exp{
+			mixedLenKeys,
+			"zi",
+			[]string{
+				"zip",
+			},
+		},
+
+		// This is a case found by TestIterateLowerBoundFuzz simplified by hand. The
+		// lowest node should be the first, but it is split on the same char as the
+		// second char in the search string. My initial implementation didn't take
+		// that into account (i.e. propagate the fact that we already know we are
+		// greater than the input key into the recursion). This would skip the first
+		// result.
+		exp{
+			[]string{
+				"bb",
+				"bc",
+			},
+			"ac",
+			[]string{"bb", "bc"},
+		},
+
+		// This is a case found by TestIterateLowerBoundFuzz.
+		exp{
+			[]string{"aaaba", "aabaa", "aabab", "aabcb", "aacca", "abaaa", "abacb", "abbcb", "abcaa", "abcba", "abcbb", "acaaa", "acaab", "acaac", "acaca", "acacb", "acbaa", "acbbb", "acbcc", "accca", "babaa", "babcc", "bbaaa", "bbacc", "bbbab", "bbbac", "bbbcc", "bbcab", "bbcca", "bbccc", "bcaac", "bcbca", "bcbcc", "bccac", "bccbc", "bccca", "caaab", "caacc", "cabac", "cabbb", "cabbc", "cabcb", "cacac", "cacbc", "cacca", "cbaba", "cbabb", "cbabc", "cbbaa", "cbbab", "cbbbc", "cbcbb", "cbcbc", "cbcca", "ccaaa", "ccabc", "ccaca", "ccacc", "ccbac", "cccaa", "cccac", "cccca"},
+			"cbacb",
+			[]string{"cbbaa", "cbbab", "cbbbc", "cbcbb", "cbcbc", "cbcca", "ccaaa", "ccabc", "ccaca", "ccacc", "ccbac", "cccaa", "cccac", "cccca"},
+		},
+	}
+
+	for idx, test := range cases {
+		t.Run(fmt.Sprintf("case%03d", idx), func(t *testing.T) {
+			r := New()
+
+			// Insert keys
+			for _, k := range test.keys {
+				var ok bool
+				r, _, ok = r.Insert([]byte(k), nil)
+				if ok {
+					t.Fatalf("duplicate key %s in keys", k)
+				}
+			}
+			if r.Len() != len(test.keys) {
+				t.Fatal("failed adding keys")
+			}
+			// Get and seek iterator
+			root := r.Root()
+			iter := root.Iterator()
+			if test.search != "" {
+				iter.SeekLowerBound([]byte(test.search))
+			}
+
+			// Consume all the keys
+			out := []string{}
+			for {
+				key, _, ok := iter.Next()
+				if !ok {
+					break
+				}
+				out = append(out, string(key))
+			}
+			if !reflect.DeepEqual(out, test.want) {
+				t.Fatalf("mis-match: key=%s\n  got=%v\n  want=%v", test.search,
+					out, test.want)
+			}
+		})
+	}
+}
+
+type readableString string
+
+func (s readableString) Generate(rand *rand.Rand, size int) reflect.Value {
+	// Pick a random string from a limited alphabet that makes it easy to read the
+	// failure cases. Also never includes a null byte as we don't support that.
+	const letters = "abcdefghijklmnopqrstuvwxyz/-_0123456789"
+
+	b := make([]byte, size)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return reflect.ValueOf(readableString(b))
+}
+
+func TestIterateLowerBoundFuzz(t *testing.T) {
+	r := New()
+	set := []string{}
+
+	// This specifies a property where each call adds a new random key to the radix
+	// tree (with a null byte appended since our tree doesn't support one key
+	// being a prefix of another and treats null bytes specially).
+	//
+	// It also maintains a plain sorted list of the same set of keys and asserts
+	// that iterating from some random key to the end using LowerBound produces
+	// the same list as filtering all sorted keys that are lower.
+
+	radixAddAndScan := func(newKey, searchKey readableString) []string {
+		// Append a null byte
+		key := []byte(newKey + "\x00")
+		r, _, _ = r.Insert(key, nil)
+
+		// Now iterate the tree from searchKey to the end
+		it := r.Root().Iterator()
+		result := []string{}
+		it.SeekLowerBound([]byte(searchKey))
+		for {
+			key, _, ok := it.Next()
+			if !ok {
+				break
+			}
+			// Strip the null byte and append to result set
+			result = append(result, string(key[0:len(key)-1]))
+		}
+		return result
+	}
+
+	sliceAddSortAndFilter := func(newKey, searchKey readableString) []string {
+		// Append the key to the set and re-sort
+		set = append(set, string(newKey))
+		sort.Strings(set)
+
+		t.Logf("Current Set: %#v", set)
+
+		result := []string{}
+		var prev string
+		for _, k := range set {
+			if k >= string(searchKey) && k != prev {
+				result = append(result, k)
+			}
+			prev = k
+		}
+		return result
+	}
+
+	if err := quick.CheckEqual(radixAddAndScan, sliceAddSortAndFilter, nil); err != nil {
+		t.Error(err)
 	}
 }

@@ -27,6 +27,7 @@ func testConfig() *Config {
 	config.MemberlistConfig.GossipInterval = 5 * time.Millisecond
 	config.MemberlistConfig.ProbeInterval = 50 * time.Millisecond
 	config.MemberlistConfig.ProbeTimeout = 25 * time.Millisecond
+	config.MemberlistConfig.TCPTimeout = 1 * time.Millisecond
 	config.MemberlistConfig.SuspicionMult = 1
 
 	config.NodeName = fmt.Sprintf("Node %s", config.MemberlistConfig.BindAddr)
@@ -173,6 +174,9 @@ func TestSerf_eventsLeave(t *testing.T) {
 	eventCh := make(chan Event, 4)
 	s1Config := testConfig()
 	s1Config.EventCh = eventCh
+	// Make the reap interval longer in this test
+	// so that the leave does not also cause a reap
+	s1Config.ReapInterval = 30 * time.Second
 
 	s2Config := testConfig()
 
@@ -318,13 +322,59 @@ func TestSerf_eventsUser_sizeLimit(t *testing.T) {
 	defer s1.Shutdown()
 
 	name := "this is too large an event"
-	payload := make([]byte, UserEventSizeLimit)
+	payload := make([]byte, s1Config.UserEventSizeLimit)
 	err = s1.UserEvent(name, payload, false)
 	if err == nil {
 		t.Fatalf("expect error")
 	}
-	if !strings.HasPrefix(err.Error(), "user event exceeds limit of ") {
+	if !strings.HasPrefix(err.Error(), "user event exceeds") {
 		t.Fatalf("should get size limit error")
+	}
+}
+
+func TestSerf_getQueueMax(t *testing.T) {
+	s := &Serf{
+		config: DefaultConfig(),
+	}
+
+	// We don't need a running Serf so fake it out with the required
+	// state.
+	s.members = make(map[string]*memberState)
+	for i := 0; i < 100; i++ {
+		name := fmt.Sprintf("Member%d", i)
+		s.members[name] = &memberState{
+			Member: Member{
+				Name: name,
+			},
+		}
+	}
+
+	// Default mode just uses the max depth.
+	if got, want := s.getQueueMax(), 4096; got != want {
+		t.Fatalf("got %d want %d", got, want)
+	}
+
+	// Now configure a min which should take precedence.
+	s.config.MinQueueDepth = 1024
+	if got, want := s.getQueueMax(), 1024; got != want {
+		t.Fatalf("got %d want %d", got, want)
+	}
+
+	// Bring it under the number of nodes, so the calculation based on
+	// the number of nodes takes precedence.
+	s.config.MinQueueDepth = 16
+	if got, want := s.getQueueMax(), 200; got != want {
+		t.Fatalf("got %d want %d", got, want)
+	}
+
+	// Try adjusting the node count.
+	s.members["another"] = &memberState{
+		Member: Member{
+			Name: "another",
+		},
+	}
+	if got, want := s.getQueueMax(), 202; got != want {
+		t.Fatalf("got %d want %d", got, want)
 	}
 }
 
@@ -1268,9 +1318,12 @@ func TestSerf_Leave_SnapshotRecovery(t *testing.T) {
 	}
 	defer os.RemoveAll(td)
 
+	// Use a longer reap interval to allow the leave intent to propagate before the node is reaped
 	s1Config := testConfig()
+	s1Config.ReapInterval = 30 * time.Second
 	s2Config := testConfig()
 	s2Config.SnapshotPath = td + "snap"
+	s2Config.ReapInterval = 30 * time.Second
 
 	s1, err := Create(s1Config)
 	if err != nil {

@@ -38,7 +38,7 @@ func (id *SpiffeIDSigning) Authorize(ixn *structs.Intention) (bool, bool) {
 // allowed to sign CSRs for that entity (i.e. represents the trust domain for
 // that entity).
 //
-// I choose to make this a fixed centralised method here for now rather than a
+// I choose to make this a fixed centralized method here for now rather than a
 // method on CertURI interface since we don't intend this to be extensible
 // outside and it's easier to reason about the security properties when they are
 // all in one place with "whitelist" semantics.
@@ -49,7 +49,7 @@ func (id *SpiffeIDSigning) CanSign(cu CertURI) bool {
 		// that we could open this up later for example to support external
 		// federation of roots and cross-signing external roots that have different
 		// URI structure but it's simpler to start off restrictive.
-		return id == other
+		return id.URI().String() == other.URI().String()
 	case *SpiffeIDService:
 		// The host component of the service must be an exact match for now under
 		// ascii case folding (since hostnames are case-insensitive). Later we might

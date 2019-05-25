@@ -196,7 +196,32 @@ func TestWithMessage(t *testing.T) {
 			t.Errorf("WithMessage(%v, %q): got: %q, want %q", tt.err, tt.message, got, tt.want)
 		}
 	}
+}
 
+func TestWithMessagefNil(t *testing.T) {
+	got := WithMessagef(nil, "no error")
+	if got != nil {
+		t.Errorf("WithMessage(nil, \"no error\"): got %#v, expected nil", got)
+	}
+}
+
+func TestWithMessagef(t *testing.T) {
+	tests := []struct {
+		err     error
+		message string
+		want    string
+	}{
+		{io.EOF, "read error", "read error: EOF"},
+		{WithMessagef(io.EOF, "read error without format specifier"), "client error", "client error: read error without format specifier: EOF"},
+		{WithMessagef(io.EOF, "read error with %d format specifier", 1), "client error", "client error: read error with 1 format specifier: EOF"},
+	}
+
+	for _, tt := range tests {
+		got := WithMessagef(tt.err, tt.message).Error()
+		if got != tt.want {
+			t.Errorf("WithMessage(%v, %q): got: %q, want %q", tt.err, tt.message, got, tt.want)
+		}
+	}
 }
 
 // errors.New, etc values are not expected to be compared by value

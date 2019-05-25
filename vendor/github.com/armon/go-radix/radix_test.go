@@ -106,18 +106,18 @@ func TestDelete(t *testing.T) {
 
 func TestDeletePrefix(t *testing.T) {
 	type exp struct {
-		inp[] string
-		prefix string
-		out[] string
+		inp        []string
+		prefix     string
+		out        []string
 		numDeleted int
 	}
 
 	cases := []exp{
-		{[]string{"", "A", "AB", "ABC", "R", "S"}, "A", []string{"", "R", "S"},  3},
-		{[]string{"", "A", "AB", "ABC", "R", "S"}, "ABC", []string{"", "A", "AB", "R", "S"},  1},
-		{[]string{"", "A", "AB", "ABC", "R", "S"}, "", []string{},  6},
-		{[]string{"", "A", "AB", "ABC", "R", "S"}, "S", []string{"", "A", "AB", "ABC", "R"},  1},
-		{[]string{"", "A", "AB", "ABC", "R", "S"}, "SS", []string{"", "A", "AB", "ABC", "R", "S"},  0},
+		{[]string{"", "A", "AB", "ABC", "R", "S"}, "A", []string{"", "R", "S"}, 3},
+		{[]string{"", "A", "AB", "ABC", "R", "S"}, "ABC", []string{"", "A", "AB", "R", "S"}, 1},
+		{[]string{"", "A", "AB", "ABC", "R", "S"}, "", []string{}, 6},
+		{[]string{"", "A", "AB", "ABC", "R", "S"}, "S", []string{"", "A", "AB", "ABC", "R"}, 1},
+		{[]string{"", "A", "AB", "ABC", "R", "S"}, "SS", []string{"", "A", "AB", "ABC", "R", "S"}, 0},
 	}
 
 	for _, test := range cases {

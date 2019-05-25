@@ -116,7 +116,7 @@ func checkSignedMessage(t *testing.T, signedHex, expected string) {
 		return
 	}
 
-	if !md.IsSigned || md.SignedByKeyId != 0xa34d7e18c20c31bb || md.SignedBy == nil || md.IsEncrypted || md.IsSymmetricallyEncrypted || len(md.EncryptedToKeyIds) != 0 || md.IsSymmetricallyEncrypted {
+	if !md.IsSigned || md.SignedByKeyId != 0xa34d7e18c20c31bb || md.SignedBy == nil || md.IsEncrypted || md.IsSymmetricallyEncrypted || len(md.EncryptedToKeyIds) != 0 || md.DecryptedWith != (Key{}) || md.MultiSig {
 		t.Errorf("bad MessageDetails: %#v", md)
 	}
 
@@ -209,7 +209,7 @@ func TestSignedEncryptedMessage(t *testing.T) {
 			return
 		}
 
-		if !md.IsSigned || md.SignedByKeyId != test.signedByKeyId || md.SignedBy == nil || !md.IsEncrypted || md.IsSymmetricallyEncrypted || len(md.EncryptedToKeyIds) == 0 || md.EncryptedToKeyIds[0] != test.encryptedToKeyId {
+		if !md.IsSigned || md.SignedByKeyId != test.signedByKeyId || md.SignedBy == nil || !md.IsEncrypted || md.IsSymmetricallyEncrypted || len(md.EncryptedToKeyIds) == 0 || md.EncryptedToKeyIds[0] != test.encryptedToKeyId || md.MultiSig {
 			t.Errorf("#%d: bad MessageDetails: %#v", i, md)
 		}
 
@@ -494,7 +494,7 @@ func TestGNUS2KDummySigningSubkey(t *testing.T) {
 	key := testSerializePrivate(t, gnuDummyS2KPrivateKeyWithSigningSubkey, gnuDummyS2KPrivateKeyWithSigningSubkeyPassphrase, 2)
 	_, err := trySigning(key)
 	if err != nil {
-		t.Fatal("Got a signing failure: %s\n", err)
+		t.Fatalf("Got a signing failure: %v\n", err)
 	}
 }
 
@@ -897,6 +897,31 @@ func TestIllformedArmors(t *testing.T) {
 	}
 }
 
+func TestSignedTextMessageNoSignature(t *testing.T) {
+	kring, _ := ReadKeyRing(readerFromHex(testKeys1And2Hex))
+
+	md, err := ReadMessage(readerFromHex(signedTextMessageMalformed), kring, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !md.IsSigned || md.SignedByKeyId != 0xa34d7e18c20c31bb || md.SignedBy == nil || md.IsEncrypted || md.IsSymmetricallyEncrypted || len(md.EncryptedToKeyIds) != 0 || md.IsSymmetricallyEncrypted || md.MultiSig {
+		t.Errorf("bad MessageDetails: %#v", md)
+	}
+
+	contents, err := ioutil.ReadAll(md.UnverifiedBody)
+	if err != nil {
+		t.Errorf("error reading UnverifiedBody: %s", err)
+	}
+	if string(contents) != signedTextInput {
+		t.Errorf("bad UnverifiedBody got:%s want:%s", string(contents), signedTextInput)
+	}
+	if md.SignatureError == nil || md.Signature != nil {
+		t.Fatalf("Expected SignatureError, got nil")
+	}
+	t.Logf("SignatureError is: %s", md.SignatureError)
+}
+
 const testKey1KeyId = 0xA34D7E18C20C31BB
 const testKey3KeyId = 0x338934250CCC0360
 
@@ -922,6 +947,11 @@ const dsaElGamalTestKeysHex = "9501e1044dfcb16a110400aa3e5c1a1f43dd28c2ffae8abf5
 const signedMessageHex = "a3019bc0cbccc0c4b8d8b74ee2108fe16ec6d3ca490cbe362d3f8333d3f352531472538b8b13d353b97232f352158c20943157c71c16064626063656269052062e4e01987e9b6fccff4b7df3a34c534b23e679cbec3bc0f8f6e64dfb4b55fe3f8efa9ce110ddb5cd79faf1d753c51aecfa669f7e7aa043436596cccc3359cb7dd6bbe9ecaa69e5989d9e57209571edc0b2fa7f57b9b79a64ee6e99ce1371395fee92fec2796f7b15a77c386ff668ee27f6d38f0baa6c438b561657377bf6acff3c5947befd7bf4c196252f1d6e5c524d0300"
 
 const signedTextMessageHex = "a3019bc0cbccc8c4b8d8b74ee2108fe16ec6d36a250cbece0c178233d3f352531472538b8b13d35379b97232f352158ca0b4312f57c71c1646462606365626906a062e4e019811591798ff99bf8afee860b0d8a8c2a85c3387e3bcf0bb3b17987f2bbcfab2aa526d930cbfd3d98757184df3995c9f3e7790e36e3e9779f06089d4c64e9e47dd6202cb6e9bc73c5d11bb59fbaf89d22d8dc7cf199ddf17af96e77c5f65f9bbed56f427bd8db7af37f6c9984bf9385efaf5f184f986fb3e6adb0ecfe35bbf92d16a7aa2a344fb0bc52fb7624f0200"
+
+// Same message as signedTextMessageHex but "signature packet" is
+// dropped from the end. So this message claims to be signed but it
+// cannot be verified, so verification should fail.
+const signedTextMessageMalformed = "900d03010201a34d7e18c20c31bb01cb2674004d4300d05369676e6564206d6573736167650d0a6c696e6520320d0a6c696e6520330d0a"
 
 const signedEncryptedMessageHex = "848c032a67d68660df41c70103ff5789d0de26b6a50c985a02a13131ca829c413a35d0e6fa8d6842599252162808ac7439c72151c8c6183e76923fe3299301414d0c25a2f06a2257db3839e7df0ec964773f6e4c4ac7ff3b48c444237166dd46ba8ff443a5410dc670cb486672fdbe7c9dfafb75b4fea83af3a204fe2a7dfa86bd20122b4f3d2646cbeecb8f7be8d2c03b018bd210b1d3791e1aba74b0f1034e122ab72e760492c192383cf5e20b5628bd043272d63df9b923f147eb6091cd897553204832aba48fec54aa447547bb16305a1024713b90e77fd0065f1918271947549205af3c74891af22ee0b56cd29bfec6d6e351901cd4ab3ece7c486f1e32a792d4e474aed98ee84b3f591c7dff37b64e0ecd68fd036d517e412dcadf85840ce184ad7921ad446c4ee28db80447aea1ca8d4f574db4d4e37688158ddd19e14ee2eab4873d46947d65d14a23e788d912cf9a19624ca7352469b72a83866b7c23cb5ace3deab3c7018061b0ba0f39ed2befe27163e5083cf9b8271e3e3d52cc7ad6e2a3bd81d4c3d7022f8d"
 

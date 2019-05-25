@@ -26,4 +26,4 @@ test::	$(BIN)
 .PHONY: world
 world::
 	mkdir -p bin
-	gox -os="solaris darwin freebsd linux windows" -arch="386 amd64 arm" -output="bin/sockaddr_{{.OS}}_{{.Arch}}" .
+	gox -os="solaris darwin freebsd linux windows android" -arch="386 amd64 arm" -output="bin/sockaddr_{{.OS}}_{{.Arch}}" .

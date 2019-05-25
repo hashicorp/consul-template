@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"os"
 	"strings"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
 )
 
 func TestInmemSignal(t *testing.T) {
-	buf := bytes.NewBuffer(nil)
+	buf := newBuffer()
 	inm := NewInmemSink(10*time.Millisecond, 50*time.Millisecond)
 	sig := NewInmemSignal(inm, syscall.SIGUSR1, buf)
 	defer sig.Stop()
@@ -33,7 +34,7 @@ func TestInmemSignal(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 
 	// Check the output
-	out := string(buf.Bytes())
+	out := buf.String()
 	if !strings.Contains(out, "[G] 'foo': 42") {
 		t.Fatalf("bad: %v", out)
 	}
@@ -55,4 +56,27 @@ func TestInmemSignal(t *testing.T) {
 	if !strings.Contains(out, "[S] 'zxcv.b': Count: 1 Sum: 42") {
 		t.Fatalf("bad: %v", out)
 	}
+}
+
+func newBuffer() *syncBuffer {
+	return &syncBuffer{buf: bytes.NewBuffer(nil)}
+}
+
+type syncBuffer struct {
+	buf  *bytes.Buffer
+	lock sync.Mutex
+}
+
+func (s *syncBuffer) Write(p []byte) (int, error) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	return s.buf.Write(p)
+}
+
+func (s *syncBuffer) String() string {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	return s.buf.String()
 }

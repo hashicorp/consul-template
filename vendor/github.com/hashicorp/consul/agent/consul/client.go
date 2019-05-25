@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/router"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
 )
@@ -48,6 +49,13 @@ const (
 type Client struct {
 	config *Config
 
+	// acls is used to resolve tokens to effective policies
+	acls *ACLResolver
+
+	// DEPRECATED (ACL-Legacy-Compat) - Only needed while we support both
+	// useNewACLs is a flag to indicate whether we are using the new ACL system
+	useNewACLs int32
+
 	// Connection pool to consul servers
 	connPool *pool.ConnPool
 
@@ -78,13 +86,19 @@ type Client struct {
 	EnterpriseClient
 }
 
-// NewClient is used to construct a new Consul client from the
-// configuration, potentially returning an error
+// NewClient is used to construct a new Consul client from the configuration,
+// potentially returning an error.
+// NewClient only used to help setting up a client for testing. Normal code
+// exercises NewClientLogger.
 func NewClient(config *Config) (*Client, error) {
-	return NewClientLogger(config, nil)
+	c, err := tlsutil.NewConfigurator(config.ToTLSUtilConfig(), nil)
+	if err != nil {
+		return nil, err
+	}
+	return NewClientLogger(config, nil, c)
 }
 
-func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
+func NewClientLogger(config *Config, logger *log.Logger, tlsConfigurator *tlsutil.Configurator) (*Client, error) {
 	// Check the protocol version
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -105,12 +119,6 @@ func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
 		config.LogOutput = os.Stderr
 	}
 
-	// Create the tls Wrapper
-	tlsWrap, err := config.tlsConfig().OutgoingTLSWrapper()
-	if err != nil {
-		return nil, err
-	}
-
 	// Create a logger
 	if logger == nil {
 		logger = log.New(config.LogOutput, "", log.LstdFlags)
@@ -121,7 +129,7 @@ func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
 		LogOutput:  config.LogOutput,
 		MaxTime:    clientRPCConnMaxIdle,
 		MaxStreams: clientMaxStreams,
-		TLSWrapper: tlsWrap,
+		TLSWrapper: tlsConfigurator.OutgoingRPCWrapper(),
 		ForceTLS:   config.VerifyOutgoing,
 	}
 
@@ -141,12 +149,31 @@ func NewClientLogger(config *Config, logger *log.Logger) (*Client, error) {
 		return nil, err
 	}
 
+	c.useNewACLs = 0
+	aclConfig := ACLResolverConfig{
+		Config:      config,
+		Delegate:    c,
+		Logger:      logger,
+		AutoDisable: true,
+		CacheConfig: clientACLCacheConfig,
+		Sentinel:    nil,
+	}
+	var err error
+	if c.acls, err = NewACLResolver(&aclConfig); err != nil {
+		c.Shutdown()
+		return nil, fmt.Errorf("Failed to create ACL resolver: %v", err)
+	}
+
 	// Initialize the LAN Serf
 	c.serf, err = c.setupSerf(config.SerfLANConfig,
 		c.eventCh, serfLANSnapshot)
 	if err != nil {
 		c.Shutdown()
 		return nil, fmt.Errorf("Failed to start lan serf: %v", err)
+	}
+
+	if c.acls.ACLsEnabled() {
+		go c.monitorACLMode()
 	}
 
 	// Start maintenance task for servers
@@ -357,6 +384,16 @@ func (c *Client) Stats() map[string]map[string]string {
 		},
 		"serf_lan": c.serf.Stats(),
 		"runtime":  runtimeStats(),
+	}
+
+	if c.ACLsEnabled() {
+		if c.UseLegacyACLs() {
+			stats["consul"]["acl"] = "legacy"
+		} else {
+			stats["consul"]["acl"] = "enabled"
+		}
+	} else {
+		stats["consul"]["acl"] = "disabled"
 	}
 
 	for outerKey, outerValue := range c.enterpriseStats() {

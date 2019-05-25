@@ -361,3 +361,238 @@ func TestVersionString(t *testing.T) {
 		}
 	}
 }
+
+func TestEqual(t *testing.T) {
+	cases := []struct {
+		v1       string
+		v2       string
+		expected bool
+	}{
+		{"1.2.3", "1.4.5", false},
+		{"1.2-beta", "1.2-beta", true},
+		{"1.2", "1.1.4", false},
+		{"1.2", "1.2-beta", false},
+		{"1.2+foo", "1.2+beta", true},
+		{"v1.2", "v1.2-beta", false},
+		{"v1.2+foo", "v1.2+beta", true},
+		{"v1.2.3.4", "v1.2.3.4", true},
+		{"v1.2.0.0", "v1.2", true},
+		{"v1.2.0.0.1", "v1.2", false},
+		{"v1.2", "v1.2.0.0", true},
+		{"v1.2", "v1.2.0.0.1", false},
+		{"v1.2.0.0", "v1.2.0.0.1", false},
+		{"v1.2.3.0", "v1.2.3.4", false},
+		{"1.7rc2", "1.7rc1", false},
+		{"1.7rc2", "1.7", false},
+		{"1.2.0", "1.2.0-X-1.2.0+metadata~dist", false},
+	}
+
+	for _, tc := range cases {
+		v1, err := NewVersion(tc.v1)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		v2, err := NewVersion(tc.v2)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		actual := v1.Equal(v2)
+		expected := tc.expected
+		if actual != expected {
+			t.Fatalf(
+				"%s <=> %s\nexpected: %t\nactual: %t",
+				tc.v1, tc.v2,
+				expected, actual)
+		}
+	}
+}
+
+func TestGreaterThan(t *testing.T) {
+	cases := []struct {
+		v1       string
+		v2       string
+		expected bool
+	}{
+		{"1.2.3", "1.4.5", false},
+		{"1.2-beta", "1.2-beta", false},
+		{"1.2", "1.1.4", true},
+		{"1.2", "1.2-beta", true},
+		{"1.2+foo", "1.2+beta", false},
+		{"v1.2", "v1.2-beta", true},
+		{"v1.2+foo", "v1.2+beta", false},
+		{"v1.2.3.4", "v1.2.3.4", false},
+		{"v1.2.0.0", "v1.2", false},
+		{"v1.2.0.0.1", "v1.2", true},
+		{"v1.2", "v1.2.0.0", false},
+		{"v1.2", "v1.2.0.0.1", false},
+		{"v1.2.0.0", "v1.2.0.0.1", false},
+		{"v1.2.3.0", "v1.2.3.4", false},
+		{"1.7rc2", "1.7rc1", true},
+		{"1.7rc2", "1.7", false},
+		{"1.2.0", "1.2.0-X-1.2.0+metadata~dist", true},
+	}
+
+	for _, tc := range cases {
+		v1, err := NewVersion(tc.v1)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		v2, err := NewVersion(tc.v2)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		actual := v1.GreaterThan(v2)
+		expected := tc.expected
+		if actual != expected {
+			t.Fatalf(
+				"%s > %s\nexpected: %t\nactual: %t",
+				tc.v1, tc.v2,
+				expected, actual)
+		}
+	}
+}
+
+func TestLessThan(t *testing.T) {
+	cases := []struct {
+		v1       string
+		v2       string
+		expected bool
+	}{
+		{"1.2.3", "1.4.5", true},
+		{"1.2-beta", "1.2-beta", false},
+		{"1.2", "1.1.4", false},
+		{"1.2", "1.2-beta", false},
+		{"1.2+foo", "1.2+beta", false},
+		{"v1.2", "v1.2-beta", false},
+		{"v1.2+foo", "v1.2+beta", false},
+		{"v1.2.3.4", "v1.2.3.4", false},
+		{"v1.2.0.0", "v1.2", false},
+		{"v1.2.0.0.1", "v1.2", false},
+		{"v1.2", "v1.2.0.0", false},
+		{"v1.2", "v1.2.0.0.1", true},
+		{"v1.2.0.0", "v1.2.0.0.1", true},
+		{"v1.2.3.0", "v1.2.3.4", true},
+		{"1.7rc2", "1.7rc1", false},
+		{"1.7rc2", "1.7", true},
+		{"1.2.0", "1.2.0-X-1.2.0+metadata~dist", false},
+	}
+
+	for _, tc := range cases {
+		v1, err := NewVersion(tc.v1)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		v2, err := NewVersion(tc.v2)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		actual := v1.LessThan(v2)
+		expected := tc.expected
+		if actual != expected {
+			t.Fatalf(
+				"%s < %s\nexpected: %t\nactual: %t",
+				tc.v1, tc.v2,
+				expected, actual)
+		}
+	}
+}
+
+func TestGreaterThanOrEqual(t *testing.T) {
+	cases := []struct {
+		v1       string
+		v2       string
+		expected bool
+	}{
+		{"1.2.3", "1.4.5", false},
+		{"1.2-beta", "1.2-beta", true},
+		{"1.2", "1.1.4", true},
+		{"1.2", "1.2-beta", true},
+		{"1.2+foo", "1.2+beta", true},
+		{"v1.2", "v1.2-beta", true},
+		{"v1.2+foo", "v1.2+beta", true},
+		{"v1.2.3.4", "v1.2.3.4", true},
+		{"v1.2.0.0", "v1.2", true},
+		{"v1.2.0.0.1", "v1.2", true},
+		{"v1.2", "v1.2.0.0", true},
+		{"v1.2", "v1.2.0.0.1", false},
+		{"v1.2.0.0", "v1.2.0.0.1", false},
+		{"v1.2.3.0", "v1.2.3.4", false},
+		{"1.7rc2", "1.7rc1", true},
+		{"1.7rc2", "1.7", false},
+		{"1.2.0", "1.2.0-X-1.2.0+metadata~dist", true},
+	}
+
+	for _, tc := range cases {
+		v1, err := NewVersion(tc.v1)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		v2, err := NewVersion(tc.v2)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		actual := v1.GreaterThanOrEqual(v2)
+		expected := tc.expected
+		if actual != expected {
+			t.Fatalf(
+				"%s >= %s\nexpected: %t\nactual: %t",
+				tc.v1, tc.v2,
+				expected, actual)
+		}
+	}
+}
+
+func TestLessThanOrEqual(t *testing.T) {
+	cases := []struct {
+		v1       string
+		v2       string
+		expected bool
+	}{
+		{"1.2.3", "1.4.5", true},
+		{"1.2-beta", "1.2-beta", true},
+		{"1.2", "1.1.4", false},
+		{"1.2", "1.2-beta", false},
+		{"1.2+foo", "1.2+beta", true},
+		{"v1.2", "v1.2-beta", false},
+		{"v1.2+foo", "v1.2+beta", true},
+		{"v1.2.3.4", "v1.2.3.4", true},
+		{"v1.2.0.0", "v1.2", true},
+		{"v1.2.0.0.1", "v1.2", false},
+		{"v1.2", "v1.2.0.0", true},
+		{"v1.2", "v1.2.0.0.1", true},
+		{"v1.2.0.0", "v1.2.0.0.1", true},
+		{"v1.2.3.0", "v1.2.3.4", true},
+		{"1.7rc2", "1.7rc1", false},
+		{"1.7rc2", "1.7", true},
+		{"1.2.0", "1.2.0-X-1.2.0+metadata~dist", false},
+	}
+
+	for _, tc := range cases {
+		v1, err := NewVersion(tc.v1)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		v2, err := NewVersion(tc.v2)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		actual := v1.LessThanOrEqual(v2)
+		expected := tc.expected
+		if actual != expected {
+			t.Fatalf(
+				"%s <= %s\nexpected: %t\nactual: %t",
+				tc.v1, tc.v2,
+				expected, actual)
+		}
+	}
+}

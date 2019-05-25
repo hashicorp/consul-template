@@ -83,13 +83,14 @@ func TestGlob(t *testing.T) {
 
 	// Non-matches
 	for _, pattern := range []string{
-		"test*", // Implicit substring match
-		"*is",   // Partial match
-		"*no*",  // Globs without a match between them
-		" ",     // Plain white space
-		"* ",    // Trailing white space
-		" *",    // Leading white space
-		"*ʤ*",   // Non-matching unicode
+		"test*",               // Implicit substring match
+		"*is",                 // Partial match
+		"*no*",                // Globs without a match between them
+		" ",                   // Plain white space
+		"* ",                  // Trailing white space
+		" *",                  // Leading white space
+		"*ʤ*",                 // Non-matching unicode
+		"this*this is a test", // Repeated prefix
 	} {
 		testGlobNoMatch(t, pattern, "this is a test")
 	}

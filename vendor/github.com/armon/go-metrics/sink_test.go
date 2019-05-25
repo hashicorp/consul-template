@@ -3,24 +3,40 @@ package metrics
 import (
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 )
 
 type MockSink struct {
+	lock sync.Mutex
+
 	keys   [][]string
 	vals   []float32
 	labels [][]Label
+}
+
+func (m *MockSink) getKeys() [][]string {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	return m.keys
 }
 
 func (m *MockSink) SetGauge(key []string, val float32) {
 	m.SetGaugeWithLabels(key, val, nil)
 }
 func (m *MockSink) SetGaugeWithLabels(key []string, val float32, labels []Label) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
 	m.keys = append(m.keys, key)
 	m.vals = append(m.vals, val)
 	m.labels = append(m.labels, labels)
 }
 func (m *MockSink) EmitKey(key []string, val float32) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
 	m.keys = append(m.keys, key)
 	m.vals = append(m.vals, val)
 	m.labels = append(m.labels, nil)
@@ -29,6 +45,9 @@ func (m *MockSink) IncrCounter(key []string, val float32) {
 	m.IncrCounterWithLabels(key, val, nil)
 }
 func (m *MockSink) IncrCounterWithLabels(key []string, val float32, labels []Label) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
 	m.keys = append(m.keys, key)
 	m.vals = append(m.vals, val)
 	m.labels = append(m.labels, labels)
@@ -37,6 +56,9 @@ func (m *MockSink) AddSample(key []string, val float32) {
 	m.AddSampleWithLabels(key, val, nil)
 }
 func (m *MockSink) AddSampleWithLabels(key []string, val float32, labels []Label) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
 	m.keys = append(m.keys, key)
 	m.vals = append(m.vals, val)
 	m.labels = append(m.labels, labels)

@@ -3,33 +3,66 @@
 
 package appengine
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import _ "google.golang.org/genproto/googleapis/api/annotations"
-import _ "google.golang.org/genproto/googleapis/type/latlng"
+import (
+	fmt "fmt"
+	math "math"
+
+	proto "github.com/golang/protobuf/proto"
+	_ "google.golang.org/genproto/googleapis/api/annotations"
+	_ "google.golang.org/genproto/googleapis/type/latlng"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
-// Metadata for the given [google.cloud.location.Location][google.cloud.location.Location].
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the proto package it is being compiled against.
+// A compilation error at this line likely means your copy of the
+// proto package needs to be updated.
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
+
+// Metadata for the given
+// [google.cloud.location.Location][google.cloud.location.Location].
 type LocationMetadata struct {
 	// App Engine Standard Environment is available in the given location.
 	//
 	// @OutputOnly
-	StandardEnvironmentAvailable bool `protobuf:"varint,2,opt,name=standard_environment_available,json=standardEnvironmentAvailable" json:"standard_environment_available,omitempty"`
+	StandardEnvironmentAvailable bool `protobuf:"varint,2,opt,name=standard_environment_available,json=standardEnvironmentAvailable,proto3" json:"standard_environment_available,omitempty"`
 	// App Engine Flexible Environment is available in the given location.
 	//
 	// @OutputOnly
-	FlexibleEnvironmentAvailable bool `protobuf:"varint,4,opt,name=flexible_environment_available,json=flexibleEnvironmentAvailable" json:"flexible_environment_available,omitempty"`
+	FlexibleEnvironmentAvailable bool     `protobuf:"varint,4,opt,name=flexible_environment_available,json=flexibleEnvironmentAvailable,proto3" json:"flexible_environment_available,omitempty"`
+	XXX_NoUnkeyedLiteral         struct{} `json:"-"`
+	XXX_unrecognized             []byte   `json:"-"`
+	XXX_sizecache                int32    `json:"-"`
 }
 
-func (m *LocationMetadata) Reset()                    { *m = LocationMetadata{} }
-func (m *LocationMetadata) String() string            { return proto.CompactTextString(m) }
-func (*LocationMetadata) ProtoMessage()               {}
-func (*LocationMetadata) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{0} }
+func (m *LocationMetadata) Reset()         { *m = LocationMetadata{} }
+func (m *LocationMetadata) String() string { return proto.CompactTextString(m) }
+func (*LocationMetadata) ProtoMessage()    {}
+func (*LocationMetadata) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c86665b4be2de7f4, []int{0}
+}
+
+func (m *LocationMetadata) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_LocationMetadata.Unmarshal(m, b)
+}
+func (m *LocationMetadata) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_LocationMetadata.Marshal(b, m, deterministic)
+}
+func (m *LocationMetadata) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_LocationMetadata.Merge(m, src)
+}
+func (m *LocationMetadata) XXX_Size() int {
+	return xxx_messageInfo_LocationMetadata.Size(m)
+}
+func (m *LocationMetadata) XXX_DiscardUnknown() {
+	xxx_messageInfo_LocationMetadata.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_LocationMetadata proto.InternalMessageInfo
 
 func (m *LocationMetadata) GetStandardEnvironmentAvailable() bool {
 	if m != nil {
@@ -49,9 +82,9 @@ func init() {
 	proto.RegisterType((*LocationMetadata)(nil), "google.appengine.v1.LocationMetadata")
 }
 
-func init() { proto.RegisterFile("google/appengine/v1/location.proto", fileDescriptor6) }
+func init() { proto.RegisterFile("google/appengine/v1/location.proto", fileDescriptor_c86665b4be2de7f4) }
 
-var fileDescriptor6 = []byte{
+var fileDescriptor_c86665b4be2de7f4 = []byte{
 	// 236 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x74, 0x90, 0x41, 0x4b, 0xc3, 0x40,
 	0x10, 0x85, 0x89, 0x88, 0x48, 0x40, 0x90, 0x7a, 0xb0, 0x94, 0x22, 0xd2, 0x93, 0xa7, 0x5d, 0x8a,

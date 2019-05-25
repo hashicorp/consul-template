@@ -35,15 +35,17 @@ func newHashShake256() hash.Hash {
 }
 
 // testDigests contains functions returning hash.Hash instances
-// with output-length equal to the KAT length for both SHA-3 and
-// SHAKE instances.
+// with output-length equal to the KAT length for SHA-3, Keccak
+// and SHAKE instances.
 var testDigests = map[string]func() hash.Hash{
-	"SHA3-224": New224,
-	"SHA3-256": New256,
-	"SHA3-384": New384,
-	"SHA3-512": New512,
-	"SHAKE128": newHashShake128,
-	"SHAKE256": newHashShake256,
+	"SHA3-224":   New224,
+	"SHA3-256":   New256,
+	"SHA3-384":   New384,
+	"SHA3-512":   New512,
+	"Keccak-256": NewLegacyKeccak256,
+	"Keccak-512": NewLegacyKeccak512,
+	"SHAKE128":   newHashShake128,
+	"SHAKE256":   newHashShake256,
 }
 
 // testShakes contains functions that return ShakeHash instances for
@@ -121,6 +123,46 @@ func TestKeccakKats(t *testing.T) {
 			}
 		}
 	})
+}
+
+// TestKeccak does a basic test of the non-standardized Keccak hash functions.
+func TestKeccak(t *testing.T) {
+	tests := []struct {
+		fn   func() hash.Hash
+		data []byte
+		want string
+	}{
+		{
+			NewLegacyKeccak256,
+			[]byte("abc"),
+			"4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45",
+		},
+		{
+			NewLegacyKeccak512,
+			[]byte("abc"),
+			"18587dc2ea106b9a1563e32b3312421ca164c7f1f07bc922a9c83d77cea3a1e5d0c69910739025372dc14ac9642629379540c17e2a65b19d77aa511a9d00bb96",
+		},
+		{
+			NewLegacyKeccak512,
+			nil,
+			"0eab42de4c3ceb9235fc91acffe746b29c29a8c366b7c60e4e67c466f36a4304c00fa9caf9d87976ba469bcbe06713b435f091ef2769fb160cdab33d3670680e",
+		},
+		{
+			NewLegacyKeccak512,
+			[]byte("nothing up my sleeve"),
+			"72fbfa955ab1d2da9357a50dbd63fde722b9ebbe5733dc6a2187c7d70f6565a516343c8b4bab9c282b16ba0c819f04aa71e5d076322a0f9bd59c3e078b27c85e",
+		},
+	}
+
+	for _, u := range tests {
+		h := u.fn()
+		h.Write(u.data)
+		got := h.Sum(nil)
+		want := decodeHex(u.want)
+		if !bytes.Equal(got, want) {
+			t.Errorf("unexpected hash for size %d: got '%x' want '%s'", h.Size()*8, got, u.want)
+		}
+	}
 }
 
 // TestUnalignedWrite tests that writing data in an arbitrary pattern with

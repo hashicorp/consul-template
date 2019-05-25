@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/armon/go-metrics"
+	metrics "github.com/armon/go-metrics"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
@@ -19,7 +19,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-uuid"
+	uuid "github.com/hashicorp/go-uuid"
 )
 
 // Config is the configuration for the State.
@@ -51,10 +51,16 @@ type ServiceState struct {
 	// Deleted is true when the service record has been marked as deleted
 	// but has not been removed on the server yet.
 	Deleted bool
+
+	// WatchCh is closed when the service state changes suitable for use in a
+	// memdb.WatchSet when watching agent local changes with hash-based blocking.
+	WatchCh chan struct{}
 }
 
-// Clone returns a shallow copy of the object. The service record still
-// points to the original service record and must not be modified.
+// Clone returns a shallow copy of the object. The service record still points
+// to the original service record and must not be modified. The WatchCh is also
+// still pointing to the original so the clone will be update when the original
+// is.
 func (s *ServiceState) Clone() *ServiceState {
 	s2 := new(ServiceState)
 	*s2 = *s
@@ -170,8 +176,9 @@ type State struct {
 	// Services tracks the local services
 	services map[string]*ServiceState
 
-	// Checks tracks the local checks
-	checks map[types.CheckID]*CheckState
+	// Checks tracks the local checks. checkAliases are aliased checks.
+	checks       map[types.CheckID]*CheckState
+	checkAliases map[string]map[types.CheckID]chan<- struct{}
 
 	// metadata tracks the node metadata fields
 	metadata map[string]string
@@ -182,6 +189,17 @@ type State struct {
 
 	// tokens contains the ACL tokens
 	tokens *token.Store
+
+	// notifyHandlers is a map of registered channel listeners that are sent
+	// messages whenever state changes occur. For now these events only include
+	// service registration and deregistration since that is all that is needed
+	// but the same mechanism could be used for other state changes.
+	//
+	// Note that we haven't refactored managedProxyHandlers into this mechanism
+	// yet because that is soon to be deprecated and removed so it's easier to
+	// just leave them separate until managed proxies are removed entirely. Any
+	// future notifications should re-use this mechanism though.
+	notifyHandlers map[chan<- struct{}]struct{}
 
 	// managedProxies is a map of all managed connect proxies registered locally on
 	// this agent. This is NOT kept in sync with servers since it's agent-local
@@ -205,8 +223,10 @@ func NewState(c Config, lg *log.Logger, tokens *token.Store) *State {
 		logger:               lg,
 		services:             make(map[string]*ServiceState),
 		checks:               make(map[types.CheckID]*CheckState),
+		checkAliases:         make(map[string]map[types.CheckID]chan<- struct{}),
 		metadata:             make(map[string]string),
 		tokens:               tokens,
+		notifyHandlers:       make(map[chan<- struct{}]struct{}),
 		managedProxies:       make(map[string]*ManagedProxy),
 		managedProxyHandlers: make(map[chan<- struct{}]struct{}),
 	}
@@ -245,6 +265,12 @@ func (l *State) serviceToken(id string) string {
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
 func (l *State) AddService(service *structs.NodeService, token string) error {
+	l.Lock()
+	defer l.Unlock()
+	return l.addServiceLocked(service, token)
+}
+
+func (l *State) addServiceLocked(service *structs.NodeService, token string) error {
 	if service == nil {
 		return fmt.Errorf("no service")
 	}
@@ -254,10 +280,28 @@ func (l *State) AddService(service *structs.NodeService, token string) error {
 		service.ID = service.Service
 	}
 
-	l.SetServiceState(&ServiceState{
+	l.setServiceStateLocked(&ServiceState{
 		Service: service,
 		Token:   token,
 	})
+	return nil
+}
+
+// AddServiceWithChecks adds a service and its check tp the local state atomically
+func (l *State) AddServiceWithChecks(service *structs.NodeService, checks []*structs.HealthCheck, token string) error {
+	l.Lock()
+	defer l.Unlock()
+
+	if err := l.addServiceLocked(service, token); err != nil {
+		return err
+	}
+
+	for _, check := range checks {
+		if err := l.addCheckLocked(check, token); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -266,6 +310,28 @@ func (l *State) AddService(service *structs.NodeService, token string) error {
 func (l *State) RemoveService(id string) error {
 	l.Lock()
 	defer l.Unlock()
+	return l.removeServiceLocked(id)
+}
+
+// RemoveServiceWithChecks removes a service and its check from the local state atomically
+func (l *State) RemoveServiceWithChecks(serviceID string, checkIDs []types.CheckID) error {
+	l.Lock()
+	defer l.Unlock()
+
+	if err := l.removeServiceLocked(serviceID); err != nil {
+		return err
+	}
+
+	for _, id := range checkIDs {
+		if err := l.removeCheckLocked(id); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (l *State) removeServiceLocked(id string) error {
 
 	s := l.services[id]
 	if s == nil || s.Deleted {
@@ -277,7 +343,12 @@ func (l *State) RemoveService(id string) error {
 	// entry around until it is actually removed.
 	s.InSync = false
 	s.Deleted = true
+	if s.WatchCh != nil {
+		close(s.WatchCh)
+		s.WatchCh = nil
+	}
 	l.TriggerSyncChanges()
+	l.broadcastUpdateLocked()
 
 	return nil
 }
@@ -311,9 +382,10 @@ func (l *State) Services() map[string]*structs.NodeService {
 	return m
 }
 
-// ServiceState returns a shallow copy of the current service state
-// record. The service record still points to the original service
-// record and must not be modified.
+// ServiceState returns a shallow copy of the current service state record. The
+// service record still points to the original service record and must not be
+// modified. The WatchCh for the copy returned will also be closed when the
+// actual service state is changed.
 func (l *State) ServiceState(id string) *ServiceState {
 	l.RLock()
 	defer l.RUnlock()
@@ -332,8 +404,21 @@ func (l *State) SetServiceState(s *ServiceState) {
 	l.Lock()
 	defer l.Unlock()
 
+	l.setServiceStateLocked(s)
+}
+
+func (l *State) setServiceStateLocked(s *ServiceState) {
+	s.WatchCh = make(chan struct{})
+
+	old, hasOld := l.services[s.Service.ID]
 	l.services[s.Service.ID] = s
+
+	if hasOld && old.WatchCh != nil {
+		close(old.WatchCh)
+	}
+
 	l.TriggerSyncChanges()
+	l.broadcastUpdateLocked()
 }
 
 // ServiceStates returns a shallow copy of all service state records.
@@ -379,6 +464,13 @@ func (l *State) checkToken(id types.CheckID) string {
 // This entry is persistent and the agent will make a best effort to
 // ensure it is registered
 func (l *State) AddCheck(check *structs.HealthCheck, token string) error {
+	l.Lock()
+	defer l.Unlock()
+
+	return l.addCheckLocked(check, token)
+}
+
+func (l *State) addCheckLocked(check *structs.HealthCheck, token string) error {
 	if check == nil {
 		return fmt.Errorf("no check")
 	}
@@ -392,28 +484,65 @@ func (l *State) AddCheck(check *structs.HealthCheck, token string) error {
 
 	// if there is a serviceID associated with the check, make sure it exists before adding it
 	// NOTE - This logic may be moved to be handled within the Agent's Addcheck method after a refactor
-	if check.ServiceID != "" && l.Service(check.ServiceID) == nil {
+	if _, ok := l.services[check.ServiceID]; check.ServiceID != "" && !ok {
 		return fmt.Errorf("Check %q refers to non-existent service %q", check.CheckID, check.ServiceID)
 	}
 
 	// hard-set the node name
 	check.Node = l.config.NodeName
 
-	l.SetCheckState(&CheckState{
+	l.setCheckStateLocked(&CheckState{
 		Check: check,
 		Token: token,
 	})
 	return nil
 }
 
+// AddAliasCheck creates an alias check. When any check for the srcServiceID is
+// changed, checkID will reflect that using the same semantics as
+// checks.CheckAlias.
+//
+// This is a local optimization so that the Alias check doesn't need to use
+// blocking queries against the remote server for check updates for local
+// services.
+func (l *State) AddAliasCheck(checkID types.CheckID, srcServiceID string, notifyCh chan<- struct{}) error {
+	l.Lock()
+	defer l.Unlock()
+
+	m, ok := l.checkAliases[srcServiceID]
+	if !ok {
+		m = make(map[types.CheckID]chan<- struct{})
+		l.checkAliases[srcServiceID] = m
+	}
+	m[checkID] = notifyCh
+
+	return nil
+}
+
+// RemoveAliasCheck removes the mapping for the alias check.
+func (l *State) RemoveAliasCheck(checkID types.CheckID, srcServiceID string) {
+	l.Lock()
+	defer l.Unlock()
+
+	if m, ok := l.checkAliases[srcServiceID]; ok {
+		delete(m, checkID)
+		if len(m) == 0 {
+			delete(l.checkAliases, srcServiceID)
+		}
+	}
+}
+
 // RemoveCheck is used to remove a health check from the local state.
 // The agent will make a best effort to ensure it is deregistered
-// todo(fs): RemoveService returns an error for a non-existant service. RemoveCheck should as well.
+// todo(fs): RemoveService returns an error for a non-existent service. RemoveCheck should as well.
 // todo(fs): Check code that calls this to handle the error.
 func (l *State) RemoveCheck(id types.CheckID) error {
 	l.Lock()
 	defer l.Unlock()
+	return l.removeCheckLocked(id)
+}
 
+func (l *State) removeCheckLocked(id types.CheckID) error {
 	c := l.checks[id]
 	if c == nil || c.Deleted {
 		return fmt.Errorf("Check %q does not exist", id)
@@ -486,6 +615,20 @@ func (l *State) UpdateCheck(id types.CheckID, status, output string) {
 		return
 	}
 
+	// If this is a check for an aliased service, then notify the waiters.
+	if aliases, ok := l.checkAliases[c.Check.ServiceID]; ok && len(aliases) > 0 {
+		for _, notifyCh := range aliases {
+			// Do not block. All notify channels should be buffered to at
+			// least 1 in which case not-blocking does not result in loss
+			// of data because a failed send means a notification is
+			// already queued. This must be called with the lock held.
+			select {
+			case notifyCh <- struct{}{}:
+			default:
+			}
+		}
+	}
+
 	// Update status and mark out of sync
 	c.Check.Status = status
 	c.Check.Output = output
@@ -537,6 +680,10 @@ func (l *State) SetCheckState(c *CheckState) {
 	l.Lock()
 	defer l.Unlock()
 
+	l.setCheckStateLocked(c)
+}
+
+func (l *State) setCheckStateLocked(c *CheckState) {
 	l.checks[c.Check.CheckID] = c
 	l.TriggerSyncChanges()
 }
@@ -609,22 +756,31 @@ func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token,
 	// Construct almost all of the NodeService that needs to be registered by the
 	// caller outside of the lock.
 	svc := &structs.NodeService{
-		Kind:             structs.ServiceKindConnectProxy,
-		ID:               target.ID + "-proxy",
-		Service:          target.ID + "-proxy",
-		ProxyDestination: target.Service,
-		Address:          cfg.BindAddress,
-		Port:             cfg.BindPort,
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      target.ID + "-proxy",
+		Service: target.Service + "-proxy",
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: target.Service,
+			LocalServiceAddress:    cfg.LocalServiceAddress,
+			LocalServicePort:       cfg.LocalServicePort,
+		},
+		Address: cfg.BindAddress,
+		Port:    cfg.BindPort,
+	}
+
+	// Set default port now while the target is known
+	if svc.Proxy.LocalServicePort < 1 {
+		svc.Proxy.LocalServicePort = target.Port
 	}
 
 	// Lock now. We can't lock earlier as l.Service would deadlock and shouldn't
-	// anyway to minimise the critical section.
+	// anyway to minimize the critical section.
 	l.Lock()
 	defer l.Unlock()
 
 	pToken := restoredProxyToken
 
-	// Does this proxy instance allready exist?
+	// Does this proxy instance already exist?
 	if existing, ok := l.managedProxies[svc.ID]; ok {
 		// Keep the existing proxy token so we don't have to restart proxy to
 		// re-inject token.
@@ -651,14 +807,14 @@ func (l *State) AddProxy(proxy *structs.ConnectManagedProxy, token,
 	// Allocate port if needed (min and max inclusive).
 	rangeLen := l.config.ProxyBindMaxPort - l.config.ProxyBindMinPort + 1
 	if svc.Port < 1 && l.config.ProxyBindMinPort > 0 && rangeLen > 0 {
-		// This should be a really short list so don't bother optimising lookup yet.
+		// This should be a really short list so don't bother optimizing lookup yet.
 	OUTER:
 		for _, offset := range rand.Perm(rangeLen) {
 			p := l.config.ProxyBindMinPort + offset
 			// See if this port was already allocated to another proxy
 			for _, other := range l.managedProxies {
 				if other.Proxy.ProxyService.Port == p {
-					// allready taken, skip to next random pick in the range
+					// already taken, skip to next random pick in the range
 					continue OUTER
 				}
 			}
@@ -748,6 +904,41 @@ func (l *State) Proxies() map[string]*ManagedProxy {
 		m[id] = p
 	}
 	return m
+}
+
+// broadcastUpdateLocked assumes l is locked and delivers an update to all
+// registered watchers.
+func (l *State) broadcastUpdateLocked() {
+	for ch := range l.notifyHandlers {
+		// Do not block
+		select {
+		case ch <- struct{}{}:
+		default:
+		}
+	}
+}
+
+// Notify will register a channel to receive messages when the local state
+// changes. Only service add/remove are supported for now. See notes on
+// l.notifyHandlers for more details.
+//
+// This will not block on channel send so ensure the channel has a buffer. Note
+// that any buffer size is generally fine since actual data is not sent over the
+// channel, so a dropped send due to a full buffer does not result in any loss
+// of data. The fact that a buffer already contains a notification means that
+// the receiver will still be notified that changes occurred.
+func (l *State) Notify(ch chan<- struct{}) {
+	l.Lock()
+	defer l.Unlock()
+	l.notifyHandlers[ch] = struct{}{}
+}
+
+// StopNotify will deregister a channel receiving state change notifications.
+// Pair this with all calls to Notify to clean up state.
+func (l *State) StopNotify(ch chan<- struct{}) {
+	l.Lock()
+	defer l.Unlock()
+	delete(l.notifyHandlers, ch)
 }
 
 // NotifyProxy will register a channel to receive messages when the
@@ -1083,7 +1274,7 @@ func (l *State) deleteService(id string) error {
 		l.logger.Printf("[INFO] agent: Deregistered service %q", id)
 		return nil
 
-	case acl.IsErrPermissionDenied(err):
+	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
 		// todo(fs): mark the service to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
 		l.services[id].InSync = true
@@ -1121,7 +1312,7 @@ func (l *State) deleteCheck(id types.CheckID) error {
 		l.logger.Printf("[INFO] agent: Deregistered check %q", id)
 		return nil
 
-	case acl.IsErrPermissionDenied(err):
+	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
 		// todo(fs): mark the check to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
 		l.checks[id].InSync = true
@@ -1189,7 +1380,7 @@ func (l *State) syncService(id string) error {
 		l.logger.Printf("[INFO] agent: Synced service %q", id)
 		return nil
 
-	case acl.IsErrPermissionDenied(err):
+	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
 		// todo(fs): mark the service and the checks to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
 		l.services[id].InSync = true
@@ -1238,7 +1429,7 @@ func (l *State) syncCheck(id types.CheckID) error {
 		l.logger.Printf("[INFO] agent: Synced check %q", id)
 		return nil
 
-	case acl.IsErrPermissionDenied(err):
+	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
 		// todo(fs): mark the check to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
 		l.checks[id].InSync = true
@@ -1270,7 +1461,7 @@ func (l *State) syncNodeInfo() error {
 		l.logger.Printf("[INFO] agent: Synced node info")
 		return nil
 
-	case acl.IsErrPermissionDenied(err):
+	case acl.IsErrPermissionDenied(err), acl.IsErrNotFound(err):
 		// todo(fs): mark the node info to be in sync to prevent excessive retrying before next full sync
 		// todo(fs): some backoff strategy might be a better solution
 		l.nodeInfoInSync = true

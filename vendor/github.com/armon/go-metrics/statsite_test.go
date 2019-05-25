@@ -9,12 +9,6 @@ import (
 	"time"
 )
 
-func acceptConn(addr string) net.Conn {
-	ln, _ := net.Listen("tcp", addr)
-	conn, _ := ln.Accept()
-	return conn
-}
-
 func TestStatsite_Flatten(t *testing.T) {
 	s := &StatsiteSink{}
 	flat := s.flattenKey([]string{"a", "b", "c", "d"})
@@ -44,9 +38,16 @@ func TestStatsite_PushFullQueue(t *testing.T) {
 
 func TestStatsite_Conn(t *testing.T) {
 	addr := "localhost:7523"
+
+	ln, _ := net.Listen("tcp", addr)
+
 	done := make(chan bool)
 	go func() {
-		conn := acceptConn(addr)
+		conn, err := ln.Accept()
+		if err != nil {
+			t.Fatalf("unexpected err %s", err)
+		}
+
 		reader := bufio.NewReader(conn)
 
 		line, err := reader.ReadString('\n')

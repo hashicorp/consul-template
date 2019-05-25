@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/testrpc"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testutil/retry"
@@ -16,8 +18,9 @@ import (
 
 func TestEventFire(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	body := bytes.NewBuffer([]byte("test"))
 	url := "/v1/event/fire/test?node=Node&service=foo&tag=bar"
@@ -55,10 +58,11 @@ func TestEventFire(t *testing.T) {
 
 func TestEventFire_token(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), TestACLConfig()+`
+	a := NewTestAgent(t, t.Name(), TestACLConfig()+`
 		acl_default_policy = "deny"
 	`)
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Create an ACL token
 	args := structs.ACLRequest{
@@ -66,7 +70,7 @@ func TestEventFire_token(t *testing.T) {
 		Op:         structs.ACLSet,
 		ACL: structs.ACL{
 			Name:  "User token",
-			Type:  structs.ACLTypeClient,
+			Type:  structs.ACLTokenTypeClient,
 			Rules: testEventPolicy,
 		},
 		WriteRequest: structs.WriteRequest{Token: "root"},
@@ -116,8 +120,9 @@ func TestEventFire_token(t *testing.T) {
 
 func TestEventList(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	p := &UserEvent{Name: "test"}
 	if err := a.UserEvent("dc1", "root", p); err != nil {
@@ -148,8 +153,9 @@ func TestEventList(t *testing.T) {
 
 func TestEventList_Filter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	p := &UserEvent{Name: "test"}
 	if err := a.UserEvent("dc1", "root", p); err != nil {
@@ -185,8 +191,9 @@ func TestEventList_Filter(t *testing.T) {
 
 func TestEventList_ACLFilter(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), TestACLConfig())
+	a := NewTestAgent(t, t.Name(), TestACLConfig())
 	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	// Fire an event.
 	p := &UserEvent{Name: "foo"}
@@ -235,8 +242,9 @@ func TestEventList_ACLFilter(t *testing.T) {
 
 func TestEventList_Blocking(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	p := &UserEvent{Name: "test"}
 	if err := a.UserEvent("dc1", "root", p); err != nil {
@@ -286,8 +294,9 @@ func TestEventList_Blocking(t *testing.T) {
 
 func TestEventList_EventBufOrder(t *testing.T) {
 	t.Parallel()
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Fire some events in a non-sequential order
 	expected := &UserEvent{Name: "foo"}

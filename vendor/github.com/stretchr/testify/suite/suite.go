@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var allTestsFilter = func(_, _ string) (bool, error) { return true, nil }
 var matchMethod = flag.String("testify.m", "", "regular expression to select tests of the testify suite to run")
 
 // Suite is a basic testing suite with methods for storing and
@@ -54,10 +55,32 @@ func (suite *Suite) Assert() *assert.Assertions {
 	return suite.Assertions
 }
 
+func failOnPanic(t *testing.T) {
+	r := recover()
+	if r != nil {
+		t.Errorf("test panicked: %v", r)
+		t.FailNow()
+	}
+}
+
+// Run provides suite functionality around golang subtests.  It should be
+// called in place of t.Run(name, func(t *testing.T)) in test suite code.
+// The passed-in func will be executed as a subtest with a fresh instance of t.
+// Provides compatibility with go test pkg -run TestSuite/TestName/SubTestName.
+func (suite *Suite) Run(name string, subtest func()) bool {
+	oldT := suite.T()
+	defer suite.SetT(oldT)
+	return oldT.Run(name, func(t *testing.T) {
+		suite.SetT(t)
+		subtest()
+	})
+}
+
 // Run takes a testing suite and runs all of the tests attached
 // to it.
 func Run(t *testing.T, suite TestingSuite) {
 	suite.SetT(t)
+	defer failOnPanic(t)
 
 	if setupAllSuite, ok := suite.(SetupAllSuite); ok {
 		setupAllSuite.SetupSuite()
@@ -83,10 +106,18 @@ func Run(t *testing.T, suite TestingSuite) {
 				F: func(t *testing.T) {
 					parentT := suite.T()
 					suite.SetT(t)
+					defer failOnPanic(t)
+
 					if setupTestSuite, ok := suite.(SetupTestSuite); ok {
 						setupTestSuite.SetupTest()
 					}
+					if beforeTestSuite, ok := suite.(BeforeTest); ok {
+						beforeTestSuite.BeforeTest(methodFinder.Elem().Name(), method.Name)
+					}
 					defer func() {
+						if afterTestSuite, ok := suite.(AfterTest); ok {
+							afterTestSuite.AfterTest(methodFinder.Elem().Name(), method.Name)
+						}
 						if tearDownTestSuite, ok := suite.(TearDownTestSuite); ok {
 							tearDownTestSuite.TearDownTest()
 						}
@@ -98,10 +129,20 @@ func Run(t *testing.T, suite TestingSuite) {
 			tests = append(tests, test)
 		}
 	}
+	runTests(t, tests)
+}
 
-	if !testing.RunTests(func(_, _ string) (bool, error) { return true, nil },
-		tests) {
-		t.Fail()
+func runTests(t testing.TB, tests []testing.InternalTest) {
+	r, ok := t.(runner)
+	if !ok { // backwards compatibility with Go 1.6 and below
+		if !testing.RunTests(allTestsFilter, tests) {
+			t.Fail()
+		}
+		return
+	}
+
+	for _, test := range tests {
+		r.Run(test.Name, test.F)
 	}
 }
 
@@ -112,4 +153,8 @@ func methodFilter(name string) (bool, error) {
 		return false, nil
 	}
 	return regexp.MatchString(*matchMethod, name)
+}
+
+type runner interface {
+	Run(name string, f func(t *testing.T)) bool
 }

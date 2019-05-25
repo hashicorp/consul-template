@@ -75,6 +75,7 @@ func TestDiscover(t *testing.T) {
 	)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Replay-Nonce", "testnonce")
 		fmt.Fprintf(w, `{
 			"new-reg": %q,
 			"new-authz": %q,
@@ -99,6 +100,9 @@ func TestDiscover(t *testing.T) {
 	}
 	if dir.RevokeURL != revoke {
 		t.Errorf("dir.RevokeURL = %q; want %q", dir.RevokeURL, revoke)
+	}
+	if _, exist := c.nonces["testnonce"]; !exist {
+		t.Errorf("c.nonces = %q; want 'testnonce' in the map", c.nonces)
 	}
 }
 
@@ -147,7 +151,11 @@ func TestRegister(t *testing.T) {
 		return false
 	}
 
-	c := Client{Key: testKeyEC, dir: &Directory{RegURL: ts.URL}}
+	c := Client{
+		Key:          testKeyEC,
+		DirectoryURL: ts.URL,
+		dir:          &Directory{RegURL: ts.URL},
+	}
 	a := &Account{Contact: contacts}
 	var err error
 	if a, err = c.Register(context.Background(), a, prompt); err != nil {
@@ -351,7 +359,11 @@ func TestAuthorize(t *testing.T) {
 				auth *Authorization
 				err  error
 			)
-			cl := Client{Key: testKeyEC, dir: &Directory{AuthzURL: ts.URL}}
+			cl := Client{
+				Key:          testKeyEC,
+				DirectoryURL: ts.URL,
+				dir:          &Directory{AuthzURL: ts.URL},
+			}
 			switch test.typ {
 			case "dns":
 				auth, err = cl.Authorize(context.Background(), test.value)
@@ -422,7 +434,11 @@ func TestAuthorizeValid(t *testing.T) {
 		w.Write([]byte(`{"status":"valid"}`))
 	}))
 	defer ts.Close()
-	client := Client{Key: testKey, dir: &Directory{AuthzURL: ts.URL}}
+	client := Client{
+		Key:          testKey,
+		DirectoryURL: ts.URL,
+		dir:          &Directory{AuthzURL: ts.URL},
+	}
 	_, err := client.Authorize(context.Background(), "example.com")
 	if err != nil {
 		t.Errorf("err = %v", err)
@@ -1037,6 +1053,53 @@ func TestNonce_fetchError(t *testing.T) {
 	}
 }
 
+func TestNonce_popWhenEmpty(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "HEAD" {
+			t.Errorf("r.Method = %q; want HEAD", r.Method)
+		}
+		switch r.URL.Path {
+		case "/dir-with-nonce":
+			w.Header().Set("Replay-Nonce", "dirnonce")
+		case "/new-nonce":
+			w.Header().Set("Replay-Nonce", "newnonce")
+		case "/dir-no-nonce", "/empty":
+			// No nonce in the header.
+		default:
+			t.Errorf("Unknown URL: %s", r.URL)
+		}
+	}))
+	defer ts.Close()
+	ctx := context.Background()
+
+	tt := []struct {
+		dirURL, popURL, nonce string
+		wantOK                bool
+	}{
+		{ts.URL + "/dir-with-nonce", ts.URL + "/new-nonce", "dirnonce", true},
+		{ts.URL + "/dir-no-nonce", ts.URL + "/new-nonce", "newnonce", true},
+		{ts.URL + "/dir-no-nonce", ts.URL + "/empty", "", false},
+	}
+	for _, test := range tt {
+		t.Run(fmt.Sprintf("nonce:%s wantOK:%v", test.nonce, test.wantOK), func(t *testing.T) {
+			c := Client{DirectoryURL: test.dirURL}
+			v, err := c.popNonce(ctx, test.popURL)
+			if !test.wantOK {
+				if err == nil {
+					t.Fatalf("c.popNonce(%q) returned nil error", test.popURL)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("c.popNonce(%q): %v", test.popURL, err)
+			}
+			if v != test.nonce {
+				t.Errorf("c.popNonce(%q) = %q; want %q", test.popURL, v, test.nonce)
+			}
+		})
+	}
+}
+
 func TestNonce_postJWS(t *testing.T) {
 	var count int
 	seen := make(map[string]bool)
@@ -1070,7 +1133,11 @@ func TestNonce_postJWS(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	client := Client{Key: testKey, dir: &Directory{AuthzURL: ts.URL}}
+	client := Client{
+		Key:          testKey,
+		DirectoryURL: ts.URL, // nonces are fetched from here first
+		dir:          &Directory{AuthzURL: ts.URL},
+	}
 	if _, err := client.Authorize(context.Background(), "example.com"); err != nil {
 		t.Errorf("client.Authorize 1: %v", err)
 	}

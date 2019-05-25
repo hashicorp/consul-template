@@ -3,17 +3,44 @@ package connect
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/asn1"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
 	"net/url"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/api"
 )
+
+// parseLeafX509Cert will parse an X509 certificate
+// from the TLS certificate and store the parsed
+// value in the TLS certificate as the Leaf field.
+func parseLeafX509Cert(leaf *tls.Certificate) error {
+	if leaf == nil {
+		// nothing to parse for nil cert
+		return nil
+	}
+
+	if leaf.Leaf != nil {
+		// leaf cert was already parsed
+		return nil
+	}
+
+	cert, err := x509.ParseCertificate(leaf.Certificate[0])
+
+	if err != nil {
+		return err
+	}
+
+	leaf.Leaf = cert
+	return nil
+}
 
 // verifierFunc is a function that can accept rawCertificate bytes from a peer
 // and verify them against a given tls.Config. It's called from the
@@ -83,6 +110,33 @@ func devTLSConfigFromFiles(caFile, certFile,
 	return cfg, nil
 }
 
+// PKIXNameFromRawSubject attempts to parse a DER encoded "Subject" as a PKIX
+// Name. It's useful for inspecting root certificates in an x509.CertPool which
+// only expose RawSubject via the Subjects method.
+func PKIXNameFromRawSubject(raw []byte) (*pkix.Name, error) {
+	var subject pkix.RDNSequence
+	if _, err := asn1.Unmarshal(raw, &subject); err != nil {
+		return nil, err
+	}
+	var name pkix.Name
+	name.FillFromRDNSequence(&subject)
+	return &name, nil
+}
+
+// CommonNamesFromCertPool returns the common names of the certificates in the
+// cert pool.
+func CommonNamesFromCertPool(p *x509.CertPool) ([]string, error) {
+	var names []string
+	for _, rawSubj := range p.Subjects() {
+		n, err := PKIXNameFromRawSubject(rawSubj)
+		if err != nil {
+			return nil, err
+		}
+		names = append(names, n.CommonName)
+	}
+	return names, nil
+}
+
 // CertURIFromConn is a helper to extract the service identifier URI from a
 // net.Conn. If the net.Conn is not a *tls.Conn then an error is always
 // returned. If the *tls.Conn didn't present a valid connect certificate, or is
@@ -121,7 +175,7 @@ func extractCertURI(certs []*x509.Certificate) (*url.URL, error) {
 	return cert.URIs[0], nil
 }
 
-// verifyServerCertMatchesURI is used on tls connections dialled to a connect
+// verifyServerCertMatchesURI is used on tls connections dialed to a connect
 // server to ensure that the certificate it presented has the correct identity.
 func verifyServerCertMatchesURI(certs []*x509.Certificate,
 	expected connect.CertURI) error {
@@ -132,12 +186,17 @@ func verifyServerCertMatchesURI(certs []*x509.Certificate,
 		return errors.New("peer certificate mismatch")
 	}
 
-	// We may want to do better than string matching later in some special
-	// cases and/or encapsulate the "match" logic inside the CertURI
-	// implementation but for now this is all we need.
-	if gotURI.String() == expectedStr {
+	// Override the hostname since we rely on x509 constraints to limit ability to
+	// spoof the trust domain if needed (i.e. because a root is shared with other
+	// PKI or Consul clusters). This allows for seamless migrations between trust
+	// domains.
+	expectURI := expected.URI()
+	expectURI.Host = gotURI.Host
+	if strings.ToLower(gotURI.String()) == strings.ToLower(expectURI.String()) {
+		// OK!
 		return nil
 	}
+
 	return fmt.Errorf("peer certificate mismatch got %s, want %s",
 		gotURI.String(), expectedStr)
 }
@@ -194,7 +253,7 @@ func newServerSideVerifier(client *api.Client, serviceName string) verifierFunc 
 // clientSideVerifier is a verifierFunc that performs verification of certificates
 // on the client end of the connection. For now it is just basic TLS
 // verification since the identity check needs additional state and becomes
-// clunky to customise the callback for every outgoing request. That is done
+// clunky to customize the callback for every outgoing request. That is done
 // within Service.Dial for now.
 func clientSideVerifier(tlsCfg *tls.Config, rawCerts [][]byte) error {
 	_, err := verifyChain(tlsCfg, rawCerts, true)
@@ -244,10 +303,10 @@ func verifyChain(tlsCfg *tls.Config, rawCerts [][]byte, client bool) (*x509.Cert
 
 // dynamicTLSConfig represents the state for returning a tls.Config that can
 // have root and leaf certificates updated dynamically with all existing clients
-// and servers automatically picking up the changes. It requires initialising
+// and servers automatically picking up the changes. It requires initializing
 // with a valid base config from which all the non-certificate and verification
 // params are used. The base config passed should not be modified externally as
-// it is assumed to be serialised by the embedded mutex.
+// it is assumed to be serialized by the embedded mutex.
 type dynamicTLSConfig struct {
 	base *tls.Config
 
@@ -267,12 +326,17 @@ type tlsCfgUpdate struct {
 // newDynamicTLSConfig returns a dynamicTLSConfig constructed from base.
 // base.Certificates[0] is used as the initial leaf and base.RootCAs is used as
 // the initial roots.
-func newDynamicTLSConfig(base *tls.Config) *dynamicTLSConfig {
+func newDynamicTLSConfig(base *tls.Config, logger *log.Logger) *dynamicTLSConfig {
 	cfg := &dynamicTLSConfig{
 		base: base,
 	}
 	if len(base.Certificates) > 0 {
 		cfg.leaf = &base.Certificates[0]
+		// If this does error then future calls to Ready will fail
+		// It is better to handle not-Ready rather than failing
+		if err := parseLeafX509Cert(cfg.leaf); err != nil && logger != nil {
+			logger.Printf("[ERR] Error parsing configured leaf certificate: %v", err)
+		}
 	}
 	if base.RootCAs != nil {
 		cfg.roots = base.RootCAs
@@ -334,17 +398,37 @@ func (cfg *dynamicTLSConfig) SetRoots(roots *x509.CertPool) error {
 func (cfg *dynamicTLSConfig) SetLeaf(leaf *tls.Certificate) error {
 	cfg.Lock()
 	defer cfg.Unlock()
+	if err := parseLeafX509Cert(leaf); err != nil {
+		return err
+	}
 	cfg.leaf = leaf
+
 	cfg.notify()
 	return nil
 }
 
 // notify is called under lock during an update to check if we are now ready.
 func (cfg *dynamicTLSConfig) notify() {
-	if cfg.readyCh != nil && cfg.leaf != nil && cfg.roots != nil {
+	if cfg.readyCh != nil && cfg.leaf != nil && cfg.roots != nil && cfg.leaf.Leaf != nil {
 		close(cfg.readyCh)
 		cfg.readyCh = nil
 	}
+}
+
+func (cfg *dynamicTLSConfig) VerifyLeafWithRoots() error {
+	cfg.RLock()
+	defer cfg.RUnlock()
+
+	if cfg.roots == nil {
+		return fmt.Errorf("No roots are set")
+	} else if cfg.leaf == nil {
+		return fmt.Errorf("No leaf certificate is set")
+	} else if cfg.leaf.Leaf == nil {
+		return fmt.Errorf("Leaf certificate has not been parsed")
+	}
+
+	_, err := cfg.leaf.Leaf.Verify(x509.VerifyOptions{Roots: cfg.roots})
+	return err
 }
 
 // Roots returns the current CA root CertPool.
@@ -364,19 +448,19 @@ func (cfg *dynamicTLSConfig) Leaf() *tls.Certificate {
 // Ready returns whether or not both roots and a leaf certificate are
 // configured. If both are non-nil, they are assumed to be valid and usable.
 func (cfg *dynamicTLSConfig) Ready() bool {
-	cfg.RLock()
-	defer cfg.RUnlock()
-	return cfg.leaf != nil && cfg.roots != nil
+	// not locking because VerifyLeafWithRoots will do that
+	return cfg.VerifyLeafWithRoots() == nil
 }
 
 // ReadyWait returns a chan that is closed when the the Service becomes ready
 // for use for the first time. Note that if the Service is ready when it is
 // called it returns a nil chan. Ready means that it has root and leaf
-// certificates configured which we assume are valid. The service may
-// subsequently stop being "ready" if it's certificates expire or are revoked
-// and an error prevents new ones being loaded but this method will not stop
-// returning a nil chan in that case. It is only useful for initial startup. For
-// ongoing health Ready() should be used.
+// certificates configured but not that the combination is valid nor that
+// the current time is within the validity window of the certificate. The
+// service may subsequently stop being "ready" if it's certificates expire
+// or are revoked and an error prevents new ones from being loaded but this
+// method will not stop returning a nil chan in that case. It is only useful
+// for initial startup. For ongoing health Ready() should be used.
 func (cfg *dynamicTLSConfig) ReadyWait() <-chan struct{} {
 	return cfg.readyCh
 }

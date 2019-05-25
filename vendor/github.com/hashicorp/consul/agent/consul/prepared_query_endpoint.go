@@ -60,7 +60,7 @@ func (p *PreparedQuery) Apply(args *structs.PreparedQueryRequest, reply *string)
 	*reply = args.Query.ID
 
 	// Get the ACL token for the request for the checks below.
-	rule, err := p.srv.resolveToken(args.Token)
+	rule, err := p.srv.ResolveToken(args.Token)
 	if err != nil {
 		return err
 	}
@@ -534,6 +534,11 @@ func (p *PreparedQuery) execute(query *structs.PreparedQuery,
 		nodes = nodeMetaFilter(query.Service.NodeMeta, nodes)
 	}
 
+	// Apply the service metadata filters, if any.
+	if len(query.Service.ServiceMeta) > 0 {
+		nodes = serviceMetaFilter(query.Service.ServiceMeta, nodes)
+	}
+
 	// Apply the tag filters, if any.
 	if len(query.Service.Tags) > 0 {
 		nodes = tagFilter(query.Service.Tags, nodes)
@@ -610,6 +615,16 @@ func nodeMetaFilter(filters map[string]string, nodes structs.CheckServiceNodes) 
 	var filtered structs.CheckServiceNodes
 	for _, node := range nodes {
 		if structs.SatisfiesMetaFilters(node.Node.Meta, filters) {
+			filtered = append(filtered, node)
+		}
+	}
+	return filtered
+}
+
+func serviceMetaFilter(filters map[string]string, nodes structs.CheckServiceNodes) structs.CheckServiceNodes {
+	var filtered structs.CheckServiceNodes
+	for _, node := range nodes {
+		if structs.SatisfiesMetaFilters(node.Service.Meta, filters) {
 			filtered = append(filtered, node)
 		}
 	}

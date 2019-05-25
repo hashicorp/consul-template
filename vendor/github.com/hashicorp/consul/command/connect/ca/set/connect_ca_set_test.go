@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 )
 
@@ -23,9 +24,10 @@ func TestConnectCASetConfigCommand_noTabs(t *testing.T) {
 func TestConnectCASetConfigCommand(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 	ui := cli.NewMockUi()
 	c := New(ui)
 	args := []string{

@@ -22,7 +22,7 @@ import (
 	"github.com/hashicorp/vault/vault"
 
 	hclog "github.com/hashicorp/go-hclog"
-	logicalKv "github.com/hashicorp/vault-plugin-secrets-kv"
+	//logicalKv "github.com/hashicorp/vault-plugin-secrets-kv"
 )
 
 var testConsul *testutil.TestServer
@@ -154,7 +154,7 @@ func testVaultServer(t *testing.T) (*ClientSet, *vaultServer) {
 		LogicalBackends: map[string]logical.Factory{
 			"pki":     pki.Factory,
 			"transit": transit.Factory,
-			"kv":      logicalKv.Factory,
+			//"kv":      logicalKv.Factory,
 		},
 	})
 	if err != nil {

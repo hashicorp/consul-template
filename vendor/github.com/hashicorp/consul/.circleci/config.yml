@@ -1,0 +1,205 @@
+---
+version: 2
+
+references:
+  images:
+    go: &GOLANG_IMAGE circleci/golang:1.11.4
+    middleman: &MIDDLEMAN_IMAGE hashicorp/middleman-hashicorp:0.3.35
+    ember: &EMBER_IMAGE circleci/node:8-browsers
+
+  paths:
+    test-results: &TEST_RESULTS_DIR /tmp/test-results
+
+  cache:
+    yarn: &YARN_CACHE_KEY consul-ui-v1-{{ checksum "ui-v2/yarn.lock" }}
+    rubygem: &RUBYGEM_CACHE_KEY static-site-gems-v1-{{ checksum "Gemfile.lock" }}
+
+  environment: &ENVIRONMENT
+    TEST_RESULTS_DIR: *TEST_RESULTS_DIR
+    GOTESTSUM_RELEASE: 0.3.3
+    EMAIL: noreply@hashicorp.com
+    GIT_AUTHOR_NAME: circleci-consul
+    GIT_COMMITTER_NAME: circleci-consul
+
+jobs:
+  dev-build:
+    docker:
+      - image: *GOLANG_IMAGE
+    working_directory: /go/src/github.com/hashicorp/consul
+    steps:
+      - checkout
+      - run: make dev
+
+      # save dev build to CircleCI
+      - store_artifacts:
+          path: /go/bin/consul
+
+      # save dev build to pass to downstream jobs
+      - persist_to_workspace:
+          root: /go/bin
+          paths:
+            - consul
+
+  # Nomad 0.8 builds on go0.10
+  # Run integration tests on nomad/v0.8.7
+  nomad-integration-0_8:
+    docker:
+      - image: circleci/golang:1.10
+    environment:
+      <<: *ENVIRONMENT
+      NOMAD_WORKING_DIR: &NOMAD_WORKING_DIR /go/src/github.com/hashicorp/nomad
+      NOMAD_VERSION: v0.8.7
+    steps: &NOMAD_INTEGRATION_TEST_STEPS
+      - run: git clone https://github.com/hashicorp/nomad.git --branch ${NOMAD_VERSION} ${NOMAD_WORKING_DIR}
+
+      # get consul binary
+      - attach_workspace:
+          at: /go/bin
+
+      # make test result directory
+      - run: mkdir -p $TEST_RESULTS_DIR
+
+      # make dev build of nomad
+      - run:
+          command: make dev
+          working_directory: *NOMAD_WORKING_DIR
+
+      # update gotestsum
+      - run: curl -sSL "https://github.com/gotestyourself/gotestsum/releases/download/v${GOTESTSUM_RELEASE}/gotestsum_${GOTESTSUM_RELEASE}_linux_amd64.tar.gz" | tar --overwrite -xz -C /usr/local/bin gotestsum
+
+      # run integration tests
+      - run:
+          command: gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/results.xml -- ./command/agent/consul -run TestConsul
+          working_directory: *NOMAD_WORKING_DIR
+
+      # store test results for CircleCI
+      - store_test_results:
+          path: *TEST_RESULTS_DIR
+      - store_artifacts:
+          path: *TEST_RESULTS_DIR
+
+  # run integration tests on nomad/master
+  nomad-integration-master:
+    docker:
+      - image: *GOLANG_IMAGE
+    environment:
+      <<: *ENVIRONMENT
+      NOMAD_WORKING_DIR: /go/src/github.com/hashicorp/nomad
+      NOMAD_VERSION: master
+    steps: *NOMAD_INTEGRATION_TEST_STEPS
+
+  build-website:
+    # setting the working_directory along with the checkout path allows us to not have
+    # to cd into the website/ directory for commands
+    working_directory: ~/project/website
+    docker:
+      - image: *MIDDLEMAN_IMAGE
+    steps:
+      - checkout:
+          path: ~/project
+
+      # restores gem cache
+      - restore_cache:
+          key: *RUBYGEM_CACHE_KEY
+
+      - run:
+          name: install gems
+          command: bundle check || bundle install --path vendor/bundle --retry=3
+
+      # saves gem cache if we have changed the Gemfile
+      - save_cache:
+          key: *RUBYGEM_CACHE_KEY
+          paths:
+            - ~/project/website/vendor/bundle
+
+      - run:
+          name: middleman build
+          command: bundle exec middleman build
+
+      - run:
+          name: website deploy
+          command: ./scripts/deploy.sh
+
+  # build frontend yarn cache
+  frontend-cache:
+    docker:
+      - image: *EMBER_IMAGE
+    steps:
+      - checkout
+
+      # cache yarn deps
+      - restore_cache:
+          key: *YARN_CACHE_KEY
+
+      - run:
+          name: install yarn packages
+          command: cd ui-v2 && yarn install
+
+      - save_cache:
+          key: *YARN_CACHE_KEY
+          paths:
+            - ui-v2/node_modules
+
+  # build ember so frontend tests run faster
+  ember-build:
+    docker:
+      - image: *EMBER_IMAGE
+    steps:
+      - checkout
+      - restore_cache:
+          key: *YARN_CACHE_KEY
+      - run: cd ui-v2 && yarn build-ci --output-path=dist
+
+      # saves the build to a workspace to be passed to a downstream job
+      - persist_to_workspace:
+          root: ui-v2
+          paths:
+            - dist
+
+  # run ember frontend tests
+  ember-test:
+    docker:
+      - image: *EMBER_IMAGE
+    environment:
+      EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
+      EMBER_TEST_REPORT: test-results/report.xml #outputs test report for CircleCI test summary
+    parallelism: 4
+    steps:
+      - checkout
+      - restore_cache:
+          key: *YARN_CACHE_KEY
+      - attach_workspace:
+          at: ui-v2
+      - run:
+          working_directory: ui-v2
+          command: node_modules/ember-cli/bin/ember exam --split=$CIRCLE_NODE_TOTAL --partition=`expr $CIRCLE_NODE_INDEX + 1` --path dist --silent -r xunit
+      - store_test_results:
+          path: ui-v2/test-results
+
+workflows:
+  version: 2
+  test-integrations:
+    jobs:
+      - dev-build
+      - nomad-integration-master:
+          requires:
+            - dev-build
+      - nomad-integration-0_8:
+          requires:
+            - dev-build
+  website:
+    jobs:
+      - build-website:
+          context: static-sites
+          filters:
+            branches:
+              only: stable-website
+  frontend:
+    jobs:
+      - frontend-cache
+      - ember-build:
+          requires:
+            - frontend-cache
+      - ember-test:
+          requires:
+            - ember-build

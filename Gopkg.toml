@@ -5,7 +5,11 @@
 
 [[constraint]]
   name = "github.com/hashicorp/consul"
-  branch = "master"
+  version = "~1.4.5"
+
+[[constraint]]
+  name = "github.com/hashicorp/vault"
+  version = "~1.0.3"
 
 [[constraint]]
   branch = "master"
@@ -24,22 +28,22 @@
   name = "github.com/hashicorp/go-syslog"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/hashicorp/hcl"
+  version = "1.0.0"
 
 [[constraint]]
   branch = "master"
   name = "github.com/hashicorp/logutils"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/hashicorp/vault"
-
-[[constraint]]
   name = "github.com/mattn/go-shellwords"
   version = "1.0.3"
 
 [[constraint]]
+  name = "github.com/hashicorp/go-hclog"
+  revision = "4783caec6f2e5cdd47fab8b2bb47ce2ce5c546b7"
+
+[[override]]
   name = "github.com/mgutz/logxi"
   version = "1.0.0"
 
@@ -57,7 +61,7 @@
 
 [[constraint]]
   name = "github.com/stretchr/testify"
-  version = "1.1.4"
+  version = "1.3.0"
 
 [[constraint]]
   branch = "v2"

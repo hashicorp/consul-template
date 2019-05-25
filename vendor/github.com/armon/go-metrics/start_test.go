@@ -53,7 +53,7 @@ func Test_GlobalMetrics(t *testing.T) {
 				t.Fatalf("got key %s want %s", got, want)
 			}
 			if got, want := s.vals[0], tt.val; !reflect.DeepEqual(got, want) {
-				t.Fatalf("got val %s want %s", got, want)
+				t.Fatalf("got val %v want %v", got, want)
 			}
 		})
 	}
@@ -82,7 +82,7 @@ func Test_GlobalMetrics_Labels(t *testing.T) {
 				t.Fatalf("got key %s want %s", got, want)
 			}
 			if got, want := s.vals[0], tt.val; !reflect.DeepEqual(got, want) {
-				t.Fatalf("got val %s want %s", got, want)
+				t.Fatalf("got val %v want %v", got, want)
 			}
 			if got, want := s.labels[0], tt.labels; !reflect.DeepEqual(got, want) {
 				t.Fatalf("got val %s want %s", got, want)
@@ -124,7 +124,7 @@ func Test_GlobalMetrics_DefaultLabels(t *testing.T) {
 				t.Fatalf("got key %s want %s", got, want)
 			}
 			if got, want := s.vals[0], tt.val; !reflect.DeepEqual(got, want) {
-				t.Fatalf("got val %s want %s", got, want)
+				t.Fatalf("got val %v want %v", got, want)
 			}
 			if got, want := s.labels[0], tt.labels; !reflect.DeepEqual(got, want) {
 				t.Fatalf("got val %s want %s", got, want)
@@ -166,8 +166,10 @@ func Test_GlobalMetrics_UpdateFilter(t *testing.T) {
 	globalMetrics.Store(&Metrics{Config: Config{
 		AllowedPrefixes: []string{"a"},
 		BlockedPrefixes: []string{"b"},
+		AllowedLabels:   []string{"1"},
+		BlockedLabels:   []string{"2"},
 	}})
-	UpdateFilter([]string{"c"}, []string{"d"})
+	UpdateFilterAndLabels([]string{"c"}, []string{"d"}, []string{"3"}, []string{"4"})
 
 	m := globalMetrics.Load().(*Metrics)
 	if m.AllowedPrefixes[0] != "c" {
@@ -175,6 +177,18 @@ func Test_GlobalMetrics_UpdateFilter(t *testing.T) {
 	}
 	if m.BlockedPrefixes[0] != "d" {
 		t.Fatalf("bad: %v", m.BlockedPrefixes)
+	}
+	if m.AllowedLabels[0] != "3" {
+		t.Fatalf("bad: %v", m.AllowedPrefixes)
+	}
+	if m.BlockedLabels[0] != "4" {
+		t.Fatalf("bad: %v", m.AllowedPrefixes)
+	}
+	if _, ok := m.allowedLabels["3"]; !ok {
+		t.Fatalf("bad: %v", m.allowedLabels)
+	}
+	if _, ok := m.blockedLabels["4"]; !ok {
+		t.Fatalf("bad: %v", m.blockedLabels)
 	}
 }
 

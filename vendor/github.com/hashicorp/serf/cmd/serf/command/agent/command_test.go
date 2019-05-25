@@ -2,18 +2,15 @@ package agent
 
 import (
 	"bytes"
-	"github.com/hashicorp/serf/client"
-	"github.com/hashicorp/serf/testutil"
-	"github.com/mitchellh/cli"
 	"log"
 	"os"
 	"testing"
 	"time"
-)
 
-func TestCommand_implements(t *testing.T) {
-	var _ cli.Command = new(Command)
-}
+	"github.com/hashicorp/serf/client"
+	"github.com/hashicorp/serf/testutil"
+	"github.com/mitchellh/cli"
+)
 
 func TestCommandRun(t *testing.T) {
 	shutdownCh := make(chan struct{})
@@ -52,7 +49,7 @@ func TestCommandRun(t *testing.T) {
 		if code != 0 {
 			t.Fatalf("bad code: %d", code)
 		}
-	case <-time.After(50 * time.Millisecond):
+	case <-time.After(2 * time.Second):
 		t.Fatalf("timeout")
 	}
 }

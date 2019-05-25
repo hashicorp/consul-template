@@ -28,6 +28,7 @@ func testWatch(size, fire int, useCtx bool) error {
 	var cancelFn context.CancelFunc
 	if useCtx {
 		ctx, cancelFn = context.WithCancel(context.Background())
+		defer cancelFn()
 	} else {
 		timeoutCh = make(chan time.Time)
 	}

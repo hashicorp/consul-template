@@ -18,8 +18,11 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/consul/testutil/retry"
+	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-uuid"
+
+	"github.com/stretchr/testify/require"
 )
 
 func configureTLS(config *Config) {
@@ -43,6 +46,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	config.Bootstrap = true
 	config.Datacenter = "dc1"
 	config.DataDir = dir
+	config.LogOutput = testutil.TestWriter(t)
 
 	// bind the rpc server to a random port. config.RPCAdvertise will be
 	// set to the listen address unless it was set in the configuration.
@@ -84,7 +88,7 @@ func testServerConfig(t *testing.T) (string, *Config) {
 	config.ServerHealthInterval = 50 * time.Millisecond
 	config.AutopilotInterval = 100 * time.Millisecond
 
-	config.Build = "0.8.0"
+	config.Build = "1.4.0"
 
 	config.CoordinateUpdatePeriod = 100 * time.Millisecond
 	config.LeaveDrainTime = 1 * time.Millisecond
@@ -100,7 +104,8 @@ func testServerConfig(t *testing.T) (string, *Config) {
 		Config: map[string]interface{}{
 			"PrivateKey":     "",
 			"RootCert":       "",
-			"RotationPeriod": 90 * 24 * time.Hour,
+			"RotationPeriod": "2160h",
+			"LeafCertTTL":    "72h",
 		},
 	}
 
@@ -136,6 +141,15 @@ func testServerDCExpect(t *testing.T, dc string, expect int) (string, *Server) {
 	})
 }
 
+func testServerDCExpectNonVoter(t *testing.T, dc string, expect int) (string, *Server) {
+	return testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = dc
+		c.Bootstrap = false
+		c.BootstrapExpect = expect
+		c.NonVoter = true
+	})
+}
+
 func testServerWithConfig(t *testing.T, cb func(*Config)) (string, *Server) {
 	dir, config := testServerConfig(t)
 	if cb != nil {
@@ -165,7 +179,11 @@ func newServer(c *Config) (*Server, error) {
 		w = os.Stderr
 	}
 	logger := log.New(w, c.NodeName+" - ", log.LstdFlags|log.Lmicroseconds)
-	srv, err := NewServerLogger(c, logger, new(token.Store))
+	tlsConf, err := tlsutil.NewConfigurator(c.ToTLSUtilConfig(), logger)
+	if err != nil {
+		return nil, err
+	}
+	srv, err := NewServerLogger(c, logger, new(token.Store), tlsConf)
 	if err != nil {
 		return nil, err
 	}
@@ -224,6 +242,71 @@ func TestServer_JoinLAN(t *testing.T) {
 	})
 }
 
+func TestServer_LANReap(t *testing.T) {
+	t.Parallel()
+
+	configureServer := func(c *Config) {
+		c.SerfFloodInterval = 100 * time.Millisecond
+		c.SerfLANConfig.ReconnectTimeout = 250 * time.Millisecond
+		c.SerfLANConfig.TombstoneTimeout = 250 * time.Millisecond
+		c.SerfLANConfig.ReapInterval = 300 * time.Millisecond
+	}
+
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = true
+		configureServer(c)
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+		configureServer(c)
+	})
+	defer os.RemoveAll(dir2)
+
+	dir3, s3 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = false
+		configureServer(c)
+	})
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	// Try to join
+	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s1)
+
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	testrpc.WaitForLeader(t, s2.RPC, "dc1")
+	testrpc.WaitForLeader(t, s3.RPC, "dc1")
+
+	retry.Run(t, func(r *retry.R) {
+		require.Len(r, s1.LANMembers(), 3)
+		require.Len(r, s2.LANMembers(), 3)
+		require.Len(r, s3.LANMembers(), 3)
+	})
+
+	// Check the router has both
+	retry.Run(t, func(r *retry.R) {
+		require.Len(r, s1.serverLookup.Servers(), 3)
+		require.Len(r, s2.serverLookup.Servers(), 3)
+		require.Len(r, s3.serverLookup.Servers(), 3)
+	})
+
+	// shutdown the second dc
+	s2.Shutdown()
+
+	retry.Run(t, func(r *retry.R) {
+		require.Len(r, s1.LANMembers(), 2)
+		servers := s1.serverLookup.Servers()
+		require.Len(r, servers, 2)
+		// require.Equal(r, s1.config.NodeName, servers[0].Name)
+	})
+}
+
 func TestServer_JoinWAN(t *testing.T) {
 	t.Parallel()
 	dir1, s1 := testServer(t)
@@ -254,6 +337,47 @@ func TestServer_JoinWAN(t *testing.T) {
 			r.Fatalf("got %d datacenters want %d", got, want)
 		}
 	})
+}
+
+func TestServer_WANReap(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerWithConfig(t, func(c *Config) {
+		c.Datacenter = "dc1"
+		c.Bootstrap = true
+		c.SerfFloodInterval = 100 * time.Millisecond
+		c.SerfWANConfig.ReconnectTimeout = 250 * time.Millisecond
+		c.SerfWANConfig.TombstoneTimeout = 250 * time.Millisecond
+		c.SerfWANConfig.ReapInterval = 500 * time.Millisecond
+	})
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerDC(t, "dc2")
+	defer os.RemoveAll(dir2)
+
+	// Try to join
+	joinWAN(t, s2, s1)
+	retry.Run(t, func(r *retry.R) {
+		require.Len(r, s1.WANMembers(), 2)
+		require.Len(r, s2.WANMembers(), 2)
+	})
+
+	// Check the router has both
+	retry.Run(t, func(r *retry.R) {
+		require.Len(r, s1.router.GetDatacenters(), 2)
+		require.Len(r, s2.router.GetDatacenters(), 2)
+	})
+
+	// shutdown the second dc
+	s2.Shutdown()
+
+	retry.Run(t, func(r *retry.R) {
+		require.Len(r, s1.WANMembers(), 1)
+		datacenters := s1.router.GetDatacenters()
+		require.Len(r, datacenters, 1)
+		require.Equal(r, "dc1", datacenters[0])
+	})
+
 }
 
 func TestServer_JoinWAN_Flood(t *testing.T) {
@@ -496,6 +620,7 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 	}
 	defer os.RemoveAll(dir1)
 	defer s1.Shutdown()
+	testrpc.WaitForTestAgent(t, s1.RPC, "dc1")
 
 	dir2, conf2 := testServerConfig(t)
 	conf2.Bootstrap = false
@@ -511,6 +636,7 @@ func TestServer_JoinLAN_TLS(t *testing.T) {
 
 	// Try to join
 	joinLAN(t, s2, s1)
+	testrpc.WaitForTestAgent(t, s2.RPC, "dc1")
 
 	// Verify Raft has established a peer
 	retry.Run(t, func(r *retry.R) {
@@ -576,6 +702,58 @@ func TestServer_Expect(t *testing.T) {
 	if termAfter != termBefore {
 		t.Fatalf("looks like an election took place")
 	}
+}
+
+func TestServer_Expect_NonVoters(t *testing.T) {
+	t.Parallel()
+	dir1, s1 := testServerDCExpectNonVoter(t, "dc1", 3)
+	defer os.RemoveAll(dir1)
+	defer s1.Shutdown()
+
+	dir2, s2 := testServerDCExpectNonVoter(t, "dc1", 3)
+	defer os.RemoveAll(dir2)
+	defer s2.Shutdown()
+
+	dir3, s3 := testServerDCExpect(t, "dc1", 3)
+	defer os.RemoveAll(dir3)
+	defer s3.Shutdown()
+
+	dir4, s4 := testServerDCExpect(t, "dc1", 3)
+	defer os.RemoveAll(dir4)
+	defer s4.Shutdown()
+
+	dir5, s5 := testServerDCExpect(t, "dc1", 3)
+	defer os.RemoveAll(dir5)
+	defer s5.Shutdown()
+
+	// Join the first three servers.
+	joinLAN(t, s2, s1)
+	joinLAN(t, s3, s1)
+
+	// Should have no peers yet since the bootstrap didn't occur.
+	retry.Run(t, func(r *retry.R) {
+		r.Check(wantPeers(s1, 0))
+		r.Check(wantPeers(s2, 0))
+		r.Check(wantPeers(s3, 0))
+	})
+
+	// Join the fourth node.
+	joinLAN(t, s4, s1)
+	joinLAN(t, s5, s1)
+
+	// Now we have three servers so we should bootstrap.
+	retry.Run(t, func(r *retry.R) {
+		r.Check(wantPeers(s1, 3))
+		r.Check(wantPeers(s2, 3))
+		r.Check(wantPeers(s3, 3))
+		r.Check(wantPeers(s4, 3))
+	})
+
+	// Make sure a leader is elected
+	testrpc.WaitForLeader(t, s1.RPC, "dc1")
+	retry.Run(t, func(r *retry.R) {
+		r.Check(wantRaft([]*Server{s1, s2, s3, s4, s5}))
+	})
 }
 
 func TestServer_BadExpect(t *testing.T) {

@@ -98,6 +98,19 @@ func (t *TestMapWalker) MapElem(m, k, v reflect.Value) error {
 	return nil
 }
 
+type TestMapElemReplaceWalker struct {
+	ValueFn func(v reflect.Value) reflect.Value
+}
+
+func (t *TestMapElemReplaceWalker) Map(m reflect.Value) error {
+	return nil
+}
+
+func (t *TestMapElemReplaceWalker) MapElem(m, k, v reflect.Value) error {
+	m.SetMapIndex(k, t.ValueFn(v))
+	return nil
+}
+
 type TestSliceWalker struct {
 	Count    int
 	SliceVal reflect.Value
@@ -352,6 +365,61 @@ func TestWalk_Map(t *testing.T) {
 	expectedV := map[string]bool{"foov": true, "barv": true}
 	if !reflect.DeepEqual(w.Values, expectedV) {
 		t.Fatalf("Bad values: %#v", w.Values)
+	}
+}
+
+func TestWalk_Map_ReplaceValue(t *testing.T) {
+	w := &TestMapElemReplaceWalker{
+		ValueFn: func(v reflect.Value) reflect.Value {
+			if v.Type().Kind() == reflect.String {
+				return reflect.ValueOf("replaced")
+			}
+
+			if v.Type().Kind() == reflect.Interface {
+				if elem := v.Elem(); elem.Type() == reflect.TypeOf(map[string]interface{}{}) {
+					newMap := make(map[string]interface{})
+					for _, k := range elem.MapKeys() {
+						newMap[k.String()] = elem.MapIndex(k).Interface()
+					}
+					newMap["extra-replaced"] = "not-replaced"
+					return reflect.ValueOf(newMap)
+				} else if elem.Type().Kind() == reflect.String {
+					return reflect.ValueOf("replaced")
+				}
+			}
+
+			return v
+		},
+	}
+
+	type S struct {
+		Foo map[string]interface{}
+	}
+
+	data := &S{
+		Foo: map[string]interface{}{
+			"foo": map[string]interface{}{
+				"bar": map[string]string{"baz": "should-get-replaced"},
+			},
+		},
+	}
+
+	expected := &S{
+		Foo: map[string]interface{}{
+			"foo": map[string]interface{}{
+				"bar":            map[string]string{"baz": "replaced"},
+				"extra-replaced": "replaced",
+			},
+		},
+	}
+
+	err := Walk(data, w)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if !reflect.DeepEqual(data, expected) {
+		t.Fatalf("Values not equal: %#v", data)
 	}
 }
 

@@ -24,11 +24,6 @@ package agent
 import (
 	"bufio"
 	"fmt"
-	"github.com/armon/go-metrics"
-	"github.com/hashicorp/go-msgpack/codec"
-	"github.com/hashicorp/logutils"
-	"github.com/hashicorp/serf/coordinate"
-	"github.com/hashicorp/serf/serf"
 	"io"
 	"log"
 	"net"
@@ -38,6 +33,12 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/logutils"
+	"github.com/hashicorp/serf/coordinate"
+	"github.com/hashicorp/serf/serf"
 )
 
 const (
@@ -435,7 +436,7 @@ func (i *AgentIPC) handleClient(client *IPCClient) {
 				// The second part of this if is to block socket
 				// errors from Windows which appear to happen every
 				// time there is an EOF.
-				if err != io.EOF && !strings.Contains(err.Error(), "WSARecv") {
+				if err != io.EOF && !strings.Contains(strings.ToLower(err.Error()), "wsarecv") {
 					i.logger.Printf("[ERR] agent.ipc: failed to decode request header: %v", err)
 				}
 			}

@@ -7,6 +7,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/testrpc"
+
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/connect"
 	ca "github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/structs"
@@ -16,26 +20,25 @@ import (
 func TestConnectCARoots_empty(t *testing.T) {
 	t.Parallel()
 
-	assert := assert.New(t)
-	a := NewTestAgent(t.Name(), "connect { enabled = false }")
+	require := require.New(t)
+	a := NewTestAgent(t, t.Name(), "connect { enabled = false }")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	req, _ := http.NewRequest("GET", "/v1/connect/ca/roots", nil)
 	resp := httptest.NewRecorder()
-	obj, err := a.srv.ConnectCARoots(resp, req)
-	assert.Nil(err)
-
-	value := obj.(structs.IndexedCARoots)
-	assert.Equal(value.ActiveRootID, "")
-	assert.Len(value.Roots, 0)
+	_, err := a.srv.ConnectCARoots(resp, req)
+	require.Error(err)
+	require.Contains(err.Error(), "Connect must be enabled")
 }
 
 func TestConnectCARoots_list(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	// Set some CAs. Note that NewTestAgent already bootstraps one CA so this just
 	// adds a second and makes it active.
@@ -62,12 +65,14 @@ func TestConnectCAConfig(t *testing.T) {
 	t.Parallel()
 
 	assert := assert.New(t)
-	a := NewTestAgent(t.Name(), "")
+	a := NewTestAgent(t, t.Name(), "")
 	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
 
 	expected := &structs.ConsulCAProviderConfig{
 		RotationPeriod: 90 * 24 * time.Hour,
 	}
+	expected.LeafCertTTL = 72 * time.Hour
 
 	// Get the initial config.
 	{
@@ -89,7 +94,8 @@ func TestConnectCAConfig(t *testing.T) {
 		{
 			"Provider": "consul",
 			"Config": {
-				"RotationPeriod": 3600000000000
+				"LeafCertTTL": "72h",
+				"RotationPeriod": "1h"
 			}
 		}`))
 		req, _ := http.NewRequest("PUT", "/v1/connect/ca/configuration", body)

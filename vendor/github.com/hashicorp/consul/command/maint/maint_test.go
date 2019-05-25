@@ -41,7 +41,7 @@ func TestMaintCommand_ConflictingArgs(t *testing.T) {
 
 func TestMaintCommand_NoArgs(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 
 	// Register the service and put it into maintenance mode
@@ -49,7 +49,7 @@ func TestMaintCommand_NoArgs(t *testing.T) {
 		ID:      "test",
 		Service: "test",
 	}
-	if err := a.AddService(service, nil, false, ""); err != nil {
+	if err := a.AddService(service, nil, false, "", agent.ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	if err := a.EnableServiceMaintenance("test", "broken 1", ""); err != nil {
@@ -90,7 +90,7 @@ func TestMaintCommand_NoArgs(t *testing.T) {
 
 func TestMaintCommand_EnableNodeMaintenance(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 
 	ui := cli.NewMockUi()
@@ -114,7 +114,7 @@ func TestMaintCommand_EnableNodeMaintenance(t *testing.T) {
 
 func TestMaintCommand_DisableNodeMaintenance(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 
 	ui := cli.NewMockUi()
@@ -137,7 +137,7 @@ func TestMaintCommand_DisableNodeMaintenance(t *testing.T) {
 
 func TestMaintCommand_EnableServiceMaintenance(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 
 	// Register the service
@@ -145,7 +145,7 @@ func TestMaintCommand_EnableServiceMaintenance(t *testing.T) {
 		ID:      "test",
 		Service: "test",
 	}
-	if err := a.AddService(service, nil, false, ""); err != nil {
+	if err := a.AddService(service, nil, false, "", agent.ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -171,7 +171,7 @@ func TestMaintCommand_EnableServiceMaintenance(t *testing.T) {
 
 func TestMaintCommand_DisableServiceMaintenance(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 
 	// Register the service
@@ -179,7 +179,7 @@ func TestMaintCommand_DisableServiceMaintenance(t *testing.T) {
 		ID:      "test",
 		Service: "test",
 	}
-	if err := a.AddService(service, nil, false, ""); err != nil {
+	if err := a.AddService(service, nil, false, "", agent.ConfigSourceLocal); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -204,7 +204,7 @@ func TestMaintCommand_DisableServiceMaintenance(t *testing.T) {
 
 func TestMaintCommand_ServiceMaintenance_NoService(t *testing.T) {
 	t.Parallel()
-	a := agent.NewTestAgent(t.Name(), ``)
+	a := agent.NewTestAgent(t, t.Name(), ``)
 	defer a.Shutdown()
 
 	ui := cli.NewMockUi()

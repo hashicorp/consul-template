@@ -19,8 +19,9 @@ would be possible given the limited entry points exposed by DNS.
 See the [Geo Failover Guide](/docs/guides/geo-failover.html) for details and
 examples for using prepared queries to implement geo failover for services.
 
-See the ACL Guide's [prepared query rules](/docs/guides/acl.html#prepared-query-rules)
-section for more details about how prepared queries work with Consul's ACL system.
+See the [prepared query rules](/docs/agent/acl-rules.html#prepared-query-rules)
+section of the agent ACL documentation for more details about how prepared
+queries work with Consul's ACL system.
 
 ### Prepared Query Templates
 
@@ -103,7 +104,7 @@ populate the query before it is executed. All of the string fields inside the
       }
     }
     ```
-  This will map all names of the form "&lt;service&gt;.query.consul" over DNS to a query
+  This will map all names of the form `<service>.query.consul` over DNS to a query
   that will select an instance of the service in the agent's own network segment.
 
 Using templates, it is possible to apply prepared query behaviors to many
@@ -142,12 +143,13 @@ successfully.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required  |
-| ---------------- | ----------------- | ------------- |
-| `NO`             | `none`            | `query:write` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
+| ---------------- | ----------------- | ------------- | ------------- |
+| `NO`             | `none`            | `none`        | `query:write` |
 
 ### Parameters
 
@@ -233,6 +235,10 @@ The table below shows this endpoint's support for
     key/value pairs that will be used for filtering the query results to nodes
     with the given metadata values present.
 
+  - `ServiceMeta` `(map<string|string>: nil)` - Specifies a list of user-defined
+    key/value pairs that will be used for filtering the query results to services
+    with the given metadata values present.
+
   - `Connect` `(bool: false)` - If true, only [Connect-capable](/docs/connect/index.html) services
     for the specified service name will be returned. This includes both
 	natively integrated services and proxies. For proxies, the proxy name
@@ -262,7 +268,8 @@ The table below shows this endpoint's support for
     "Near": "node1",
     "OnlyPassing": false,
     "Tags": ["primary", "!experimental"],
-    "NodeMeta": {"instance_type": "m3.large"}
+    "NodeMeta": {"instance_type": "m3.large"},
+    "ServiceMeta": {"environment": "production"}
   },
   "DNS": {
     "TTL": "10s"
@@ -276,7 +283,7 @@ The table below shows this endpoint's support for
 $ curl \
     --request POST \
     --data @payload.json \
-    https://consul.rocks/v1/query
+    http://127.0.0.1:8500/v1/query
 ```
 
 ### Sample Response
@@ -297,12 +304,13 @@ This endpoint returns a list of all prepared queries.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required |
-| ---------------- | ----------------- | ------------ |
-| `NO`             | `none`            | `query:read` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `none`            | `none`        | `query:read` |
 
 ### Parameters
 
@@ -314,7 +322,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/query
+    http://127.0.0.1:8500/v1/query
 ```
 
 ### Sample Response
@@ -334,7 +342,8 @@ $ curl \
       },
       "OnlyPassing": false,
       "Tags": ["primary", "!experimental"],
-      "NodeMeta": {"instance_type": "m3.large"}
+      "NodeMeta": {"instance_type": "m3.large"},
+      "ServiceMeta": {"environment": "production"}
     },
     "DNS": {
       "TTL": "10s"
@@ -358,12 +367,13 @@ given ID, an error is returned.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required  |
-| ---------------- | ----------------- | ------------- |
-| `NO`             | `none`            | `query:write` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
+| ---------------- | ----------------- | ------------- | ------------- |
+| `NO`             | `none`            | `none`        | `query:write` |
 
 ### Parameters
 
@@ -383,7 +393,7 @@ more information.
 $ curl \
     --request PUT \
     --data @payload.json \
-    https://consul.rocks/v1/query/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
+    http://127.0.0.1:8500/v1/query/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
 ```
 
 ## Read Prepared Query
@@ -397,12 +407,13 @@ given ID, an error is returned.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required |
-| ---------------- | ----------------- | ------------ |
-| `NO`             | `none`            | `query:read` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `none`            | `none`        | `query:read` |
 
 ### Parameters
 
@@ -417,7 +428,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-  https://consul.rocks/v1/query/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
+  http://127.0.0.1:8500/v1/query/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
 ```
 
 ### Sample Response
@@ -436,12 +447,13 @@ given ID, an error is returned.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required  |
-| ---------------- | ----------------- | ------------- |
-| `NO`             | `none`            | `query:write` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required  |
+| ---------------- | ----------------- | ------------- | ------------- |
+| `NO`             | `none`            | `none`        | `query:write` |
 
 ### Parameters
 
@@ -457,7 +469,7 @@ The table below shows this endpoint's support for
 ```text
 $ curl \
     --request DELETE \
-    https://consul.rocks/v1/query/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
+    http://127.0.0.1:8500/v1/query/8f246b77-f3e1-ff88-5b48-8ec93abf3e05
 ```
 
 ## Execute Prepared Query
@@ -471,12 +483,13 @@ given ID, an error is returned.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required |
-| ---------------- | ----------------- | ------------ |
-| `NO`             | `none`            | `depends`<sup>1</sup>    |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `none`            | `simple`      | `depends`<sup>1</sup>    |
 
 <sup>1</sup> If an ACL Token was bound to the query when it was defined then it
 will be used when executing the request. Otherwise, the client's supplied ACL
@@ -513,7 +526,7 @@ Token will be used.
 
 ```text
 $ curl \
-    https://consul.rocks/v1/query/8f246b77-f3e1-ff88-5b48-8ec93abf3e05/execute?near=_agent
+    http://127.0.0.1:8500/v1/query/8f246b77-f3e1-ff88-5b48-8ec93abf3e05/execute?near=_agent
 ```
 
 ### Sample Response
@@ -598,12 +611,13 @@ interpolation.
 
 The table below shows this endpoint's support for
 [blocking queries](/api/index.html#blocking-queries),
-[consistency modes](/api/index.html#consistency-modes), and
+[consistency modes](/api/index.html#consistency-modes),
+[agent caching](/api/index.html#agent-caching), and
 [required ACLs](/api/index.html#acls).
 
-| Blocking Queries | Consistency Modes | ACL Required |
-| ---------------- | ----------------- | ------------ |
-| `NO`             | `none`            | `query:read` |
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `none`            | `none`        | `query:read` |
 
 ### Parameters
 
@@ -620,7 +634,7 @@ The table below shows this endpoint's support for
 
 ```text
 $ curl \
-    https://consul.rocks/v1/query/8f246b77-f3e1-ff88-5b48-8ec93abf3e05/explain
+    http://127.0.0.1:8500/v1/query/8f246b77-f3e1-ff88-5b48-8ec93abf3e05/explain
 ```
 
 ### Sample Response
