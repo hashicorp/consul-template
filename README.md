@@ -20,6 +20,16 @@ this functionality might prove useful.
 
 ---
 
+## Community Support
+
+If you have questions about how consul-template works, its capabilities or
+anything other than a bug (use github's issue tracker for those), please see
+our community support resources.
+
+Community portal: https://discuss.hashicorp.com/c/consul
+
+Other resources: https://www.consul.io/community.html
+
 
 ## Installation
 
