@@ -23,12 +23,16 @@ this functionality might prove useful.
 ## Community Support
 
 If you have questions about how consul-template works, its capabilities or
-anything other than a bug (use github's issue tracker for those), please see
-our community support resources.
+anything other than a bug or feature request (use github's issue tracker for
+those), please see our community support resources.
 
 Community portal: https://discuss.hashicorp.com/c/consul
 
 Other resources: https://www.consul.io/community.html
+
+Additionally, for issues and pull requests, we'll be using the :+1: reactions
+as a rough voting system to help gauge community priorities. So please add :+1:
+to any issue or pull request you'd like to see worked on. Thanks.
 
 
 ## Installation
