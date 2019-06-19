@@ -1,0 +1,14 @@
+version: 2.1
+jobs:
+  build:
+    environment:
+      CONSUL_VERSION: 1.5.1
+    docker:
+      - image: circleci/golang:latest
+    working_directory: /go/src/github.com/hashicorp/consul-template
+    steps:
+      - checkout
+      - run: |
+          sudo curl -sL https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip | zcat > /usr/local/bin/consul
+          chmod 755 /usr/local/bin/consul
+      - run: go test -v ./...
