@@ -9,6 +9,7 @@ jobs:
     steps:
       - checkout
       - run: |
-          sudo curl -sL https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip | zcat > /usr/local/bin/consul
-          chmod 755 /usr/local/bin/consul
-      - run: go test -v ./...
+          sudo curl -sLo consul.zip https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip
+          unzip consul.zip
+          sudo cp consul /usr/local/bin/
+      - run: make test
