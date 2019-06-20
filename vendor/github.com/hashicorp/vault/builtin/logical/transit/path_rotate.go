@@ -1,6 +1,9 @@
 package transit
 
 import (
+	"context"
+
+	"github.com/hashicorp/vault/helper/keysutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/logical/framework"
 )
@@ -24,25 +27,28 @@ func (b *backend) pathRotate() *framework.Path {
 	}
 }
 
-func (b *backend) pathRotateWrite(
-	req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
+func (b *backend) pathRotateWrite(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
 	name := d.Get("name").(string)
 
 	// Get the policy
-	p, lock, err := b.lm.GetPolicyExclusive(req.Storage, name)
-	if lock != nil {
-		defer lock.Unlock()
-	}
+	p, _, err := b.lm.GetPolicy(ctx, keysutil.PolicyRequest{
+		Storage: req.Storage,
+		Name:    name,
+	})
 	if err != nil {
 		return nil, err
 	}
 	if p == nil {
 		return logical.ErrorResponse("key not found"), logical.ErrInvalidRequest
 	}
+	if !b.System().CachingDisabled() {
+		p.Lock(true)
+	}
 
 	// Rotate the policy
-	err = p.Rotate(req.Storage)
+	err = p.Rotate(ctx, req.Storage)
 
+	p.Unlock()
 	return nil, err
 }
 

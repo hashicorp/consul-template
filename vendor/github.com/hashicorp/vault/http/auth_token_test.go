@@ -70,7 +70,7 @@ func TestAuthTokenCreate(t *testing.T) {
 		t.Fatal(err)
 	}
 	if secret.Auth.LeaseDuration != 1800 {
-		t.Errorf("expected 1800 seconds, got %q", secret.Auth.LeaseDuration)
+		t.Errorf("expected 1800 seconds, got %d", secret.Auth.LeaseDuration)
 	}
 
 	explicitMaxCreateRequest.ExplicitMaxTTL = "2h"
@@ -165,7 +165,7 @@ func TestAuthTokenRenew(t *testing.T) {
 	if err == nil {
 		t.Fatal("should not be allowed to renew root token")
 	}
-	if !strings.Contains(err.Error(), "lease is not renewable") {
+	if !strings.Contains(err.Error(), "invalid lease ID") {
 		t.Fatalf("wrong error; got %v", err)
 	}
 

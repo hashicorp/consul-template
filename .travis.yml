@@ -4,7 +4,7 @@ sudo: false
 language: go
 
 go:
-  - 1.10.1
+  - 1.11.5
 
 env:
   - GOMAXPROCS=4
@@ -14,7 +14,7 @@ branches:
     - master
 
 env:
-  - CONSUL_VERSION=1.2.0
+  - CONSUL_VERSION=1.4.2
 
 before_install:
   - curl -sLo consul.zip https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip

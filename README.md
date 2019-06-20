@@ -20,6 +20,20 @@ this functionality might prove useful.
 
 ---
 
+## Community Support
+
+If you have questions about how consul-template works, its capabilities or
+anything other than a bug or feature request (use github's issue tracker for
+those), please see our community support resources.
+
+Community portal: https://discuss.hashicorp.com/c/consul
+
+Other resources: https://www.consul.io/community.html
+
+Additionally, for issues and pull requests, we'll be using the :+1: reactions
+as a rough voting system to help gauge community priorities. So please add :+1:
+to any issue or pull request you'd like to see worked on. Thanks.
+
 
 ## Installation
 
@@ -64,6 +78,7 @@ This short example assumes Consul is installed locally.
 
     ```shell
     $ cat out.txt
+    bar
     ```
 
 For more examples and use cases, please see the [examples folder][examples] in
@@ -79,7 +94,7 @@ $ consul-template -h
 
 ### Command Line Flags
 
-The CLI interface supports all options in the configuration file and visa-versa. Here are a few examples of common integrations on the command line.
+The CLI interface supports all options in the configuration file and vice-versa. Here are a few examples of common integrations on the command line.
 
 Render the template on disk at `/tmp/template.ctmpl` to `/tmp/result`:
 
@@ -270,13 +285,27 @@ vault {
   # behaviour. See https://github.com/hashicorp/vault/issues/3414
   grace = "5m"
 
+  # This is a Vault Enterprise namespace to use for reading/writing secrets.
+  #
+  # This value can also be specified via the environment variable VAULT_NAMESPACE.
+  namespace = "foo"
+
   # This is the token to use when communicating with the Vault server.
   # Like other tools that integrate with Vault, Consul Template makes the
   # assumption that you provide it with a Vault token; it does not have the
   # incorporated logic to generate tokens via Vault's auth methods.
   #
   # This value can also be specified via the environment variable VAULT_TOKEN.
+  # When using a token from Vault Agent, the vault_agent_token_file setting
+  # should be used instead, as that will take precedence over this field.
   token = "abcd1234"
+
+  # This tells Consul Template to load the Vault token from the contents of a file.
+  # If this field is specified:
+  # - Consul Template will not try to renew the Vault token.
+  # - Consul Template will periodically stat the file and update the token if it has
+  # changed.
+  # vault_agent_token_file = "/tmp/vault/agent/token"
 
   # This tells Consul Template that the provided token is actually a wrapped
   # token that should be unwrapped using Vault's cubbyhole response wrapping
@@ -786,6 +815,24 @@ renders
 ```text
 FORWARDSoneword
 ```
+
+To access a versioned secret value (for the K/V version 2 backend):
+
+```liquid
+{{ with secret "secret/passwords?version=1" }}
+{{ .Data.data.wifi }}{{ end }}
+```
+
+When omitting the `?version` parameter, the latest version of the secret will be
+fetched. Note the nested `.Data.data` syntax when referencing the secret value.
+For more information about using the K/V v2 backend, see the 
+[Vault Documentation](https://www.vaultproject.io/docs/secrets/kv/kv-v2.html).
+
+When using Vault versions 0.10.0/0.10.1, the secret path will have to be prefixed
+with "data", i.e. `secret/data/passwords` for the example above. This is not
+necessary for Vault versions after 0.10.1, as consul-template will detect the KV
+backend version being used. The version 2 KV backend did not exist prior to 0.10.0,
+so these are the only affected versions.
 
 An example using write to generate PKI certificates:
 
@@ -1443,7 +1490,9 @@ plugin.
 {{ plugin "my-plugin" }}
 ```
 
-This is most commonly combined with a JSON filter for customization:
+The plugin can take an arbitrary number of string arguments, and can be the 
+target of a pipeline that produces strings as well. This is most commonly 
+combined with a JSON filter for customization:
 
 ```liquid
 {{ tree "foo" | explode | toJSON | plugin "my-plugin" }}
@@ -1744,7 +1793,9 @@ $ NAME [INPUT...]
   inherited `PATH` so e.g. the plugin `cat` will run the first executable `cat`
   that is found on the `PATH`.
 
-- `INPUT` - input from the template - this will always be JSON if provided
+- `INPUT` - input from the template. There will be one INPUT for every argument passed
+  to the `plugin` function. If the arguments contain whitespace, that whitespace 
+  will be passed as if the argument were quoted by the shell.
 
 #### Important Notes
 
@@ -1755,7 +1806,8 @@ $ NAME [INPUT...]
 
 - Plugin output must be returned as a string on stdout. Only stdout will be
   parsed for output. Be sure to log all errors, debugging messages onto stderr
-  to avoid errors when Consul Template returns the value.
+  to avoid errors when Consul Template returns the value. Note that output to
+  stderr will only be output if the plugin returns a non-zero exit code.
 
 - Always `exit 0` or Consul Template will assume the plugin failed to execute
 

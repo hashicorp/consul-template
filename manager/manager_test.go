@@ -1,10 +1,10 @@
 package manager
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"testing"
-	"fmt"
 
 	"github.com/hashicorp/consul-template/config"
 	dep "github.com/hashicorp/consul-template/dependency"

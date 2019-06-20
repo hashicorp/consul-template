@@ -1,8 +1,13 @@
 Please note that the Consul Template issue tracker is reserved
 for bug reports and enhancements. For general usage questions,
-please use the Consul mailing list:
+please use the Consul Community Portal or the Consul mailing list:
 
+    https://discuss.hashicorp.com/c/consul
     https://groups.google.com/forum/#!forum/consul-tool
+
+Please try to simplify the issue as much as possible and include all the
+details to replicate it. The shorter and simpler the bug is to reproduce the
+quicker it can be addressed. Thanks.
 
 ### Consul Template version
 

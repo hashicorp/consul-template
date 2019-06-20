@@ -6,6 +6,8 @@ import (
 	"fmt"
 	mathrand "math/rand"
 	"time"
+
+	"github.com/hashicorp/errwrap"
 )
 
 const (
@@ -117,7 +119,7 @@ func mult(a, b uint8) (out uint8) {
 
 	ret := expTable[sum]
 
-	// Ensure we return zero if either a or be are zero but aren't subject to
+	// Ensure we return zero if either a or b are zero but aren't subject to
 	// timing attacks
 	goodVal = ret
 
@@ -188,7 +190,7 @@ func Split(secret []byte, parts, threshold int) ([][]byte, error) {
 	for idx, val := range secret {
 		p, err := makePolynomial(val, uint8(threshold-1))
 		if err != nil {
-			return nil, fmt.Errorf("failed to generate polynomial: %v", err)
+			return nil, errwrap.Wrapf("failed to generate polynomial: {{err}}", err)
 		}
 
 		// Generate a `parts` number of (x,y) pairs
@@ -250,7 +252,7 @@ func Combine(parts [][]byte) ([]byte, error) {
 			y_samples[i] = part[idx]
 		}
 
-		// Interpolte the polynomial and compute the value at 0
+		// Interpolate the polynomial and compute the value at 0
 		val := interpolatePolynomial(x_samples, y_samples, 0)
 
 		// Evaluate the 0th value to get the intercept
