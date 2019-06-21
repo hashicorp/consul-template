@@ -2210,7 +2210,7 @@ If you want to compile a specific binary, set `XC_OS` and `XC_ARCH` or run the
 following to generate all binaries:
 
 ```shell
-$ make bin
+$ make build
 ```
 
 If you want to run the tests, first [install consul locally](https://www.consul.io/docs/install/index.html), then:
