@@ -173,7 +173,7 @@ $(foreach target,$(DOCKER_TARGETS),$(eval $(call make-docker-target,$(target))))
 # test runs the test suite.
 test:
 	@echo "==> Testing ${NAME}"
-	@go test -timeout=30s -parallel=20 -tags="${GOTAGS}" ./... ${TESTARGS}
+	@go test -timeout=30s -parallel=20 -failfast -tags="${GOTAGS}" ./... ${TESTARGS}
 .PHONY: test
 
 # test-race runs the test suite.
