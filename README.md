@@ -981,6 +981,9 @@ This will returns services which are deemed "passing" or "warning" according to
 their node and service-level checks defined in Consul. Please note that the
 comma implies an "or", not an "and".
 
+**Note:** Due to the use of dot `.` to delimit TAG, the `service` command will
+not recognize service names containing dots.
+
 **Note:** There is an architectural difference between the following:
 
 ```liquid
@@ -993,6 +996,7 @@ passing. The latter will return all services registered with the Consul agent
 and perform client-side filtering. As a general rule, do not use the "passing"
 argument alone if you want only healthy services - simply omit the second
 argument instead.
+
 
 ##### `services`
 
@@ -1861,6 +1865,14 @@ func main() {
 ```
 
 ## Caveats
+
+### Dots in Service Names
+
+Using dots `.` in service names will conflict with the use of dots for [TAG
+delineation](https://github.com/hashicorp/consul-template#service) in the
+template. Dots already [interfere with using
+DNS](https://www.consul.io/docs/agent/services.html#service-and-tag-names-with-dns)
+for service names, so we recommend avoiding dots wherever possible.
 
 ### Once Mode
 
