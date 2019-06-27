@@ -14,7 +14,7 @@ RUN addgroup consul-template && \
     adduser -S -G consul-template consul-template
 
 # Set up certificates, our base tools, and Consul Template (CT).
-RUN apk add --no-cache ca-certificates curl gnupg libcap openssl && \
+RUN apk add --no-cache ca-certificates curl gnupg libcap openssl jq && \
     BUILD_GPGKEY=91A6E7F85D05C65630BEF18951852D87348FFC4C; \
     found=''; \
     for server in \
