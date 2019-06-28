@@ -95,6 +95,9 @@ func TestDedup_UpdateDeps(t *testing.T) {
 func TestDedup_FollowerUpdate(t *testing.T) {
 	t.Parallel()
 
+	// hangs on this sometimes, so make as short as possible
+	lockWaitTime = 100 * time.Millisecond
+
 	// Create a template
 	tmpl, err := template.NewTemplate(&template.NewTemplateInput{
 		Contents: `template-3 {{ range service "consul" }}{{ .Node }}{{ end }}`,
