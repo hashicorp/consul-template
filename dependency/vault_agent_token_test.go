@@ -27,8 +27,8 @@ func TestVaultAgentTokenQuery_Fetch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	clientSet := NewClientSet()
-	clientSet.CreateVaultClient(&CreateVaultClientInput{})
+	clientSet, vault := testVaultServer(t)
+	defer vault.Stop()
 	_, _, err = d.Fetch(clientSet, nil)
 	if err != nil {
 		t.Fatal(err)
