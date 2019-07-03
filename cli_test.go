@@ -698,6 +698,17 @@ func TestCLI_ParseFlags(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"once-wait",
+			[]string{"-once", "-wait", "10s"},
+			&config.Config{
+				Wait: &config.WaitConfig{
+					Enabled: config.Bool(false),
+				},
+				Once: true,
+			},
+			false,
+		},
 	}
 
 	for i, tc := range cases {
@@ -705,17 +716,22 @@ func TestCLI_ParseFlags(t *testing.T) {
 			out := gatedio.NewByteBuffer()
 			cli := NewCLI(out, out)
 
-			a, _, _, _, _, err := cli.ParseFlags(tc.f)
+			a, _, _, _, err := cli.ParseFlags(tc.f)
 			if (err != nil) != tc.err {
 				t.Fatal(err)
 			}
-
-			if tc.e != nil {
-				tc.e = config.DefaultConfig().Merge(tc.e)
+			if a != nil {
+				a.Finalize()
 			}
 
-			if !reflect.DeepEqual(tc.e, a) {
-				t.Errorf("\nexp: %#v\nact: %#v\nout: %q", tc.e, a, out.String())
+			var e *config.Config
+			if tc.e != nil {
+				e = config.DefaultConfig().Merge(tc.e)
+				e.Finalize()
+			}
+
+			if !reflect.DeepEqual(e, a) {
+				t.Errorf("\nexp: %#v\nact: %#v\nout: %q", e, a, out.String())
 			}
 		})
 	}
@@ -799,6 +815,7 @@ func TestCLI_Run(t *testing.T) {
 		go func() {
 			ch <- cli.Run([]string{"consul-template",
 				"-once",
+				"-wait", "30s", // should not wait
 				"-consul-addr", testConsul.HTTPAddr,
 				"-vault-renew-token=false",
 				"-template", f.Name() + ":" + dest.Name(),

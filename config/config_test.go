@@ -1440,6 +1440,61 @@ func TestParse(t *testing.T) {
 	}
 }
 
+func TestFinalize(t *testing.T) {
+	// Testing Once disabling Wait
+	cases := []struct {
+		name string
+		expt *Config
+		test *Config
+	}{
+		{
+			"null-case",
+			&Config{
+				Wait: &WaitConfig{
+					Enabled: Bool(true),
+					Min:     TimeDuration(10 * time.Second),
+					Max:     TimeDuration(20 * time.Second),
+				},
+			},
+			&Config{
+				Wait: &WaitConfig{
+					Enabled: Bool(true),
+					Min:     TimeDuration(10 * time.Second),
+					Max:     TimeDuration(20 * time.Second),
+				},
+				Once: false,
+			},
+		},
+		{
+			"once-disables-wait",
+			&Config{
+				Wait: &WaitConfig{
+					Enabled: Bool(false),
+					Min:     nil,
+					Max:     nil,
+				},
+			},
+			&Config{
+				Wait: &WaitConfig{
+					Enabled: Bool(true),
+					Min:     TimeDuration(10 * time.Second),
+					Max:     TimeDuration(20 * time.Second),
+				},
+				Once: true,
+			},
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			tc.test.Finalize()
+			if !reflect.DeepEqual(tc.expt.Wait, tc.test.Wait) {
+				t.Errorf("\nexp: %#v\nact: %#v", tc.expt.Wait, tc.test.Wait)
+			}
+		})
+	}
+}
+
 func TestConfig_Merge(t *testing.T) {
 	cases := []struct {
 		name string

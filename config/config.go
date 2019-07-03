@@ -79,6 +79,10 @@ type Config struct {
 
 	// Wait is the quiescence timers.
 	Wait *WaitConfig `mapstructure:"wait"`
+
+	// Additional command line options
+	// Run once, executing each template exactly once, and exit
+	Once bool
 }
 
 // Copy returns a deep copy of the current configuration. This is useful because
@@ -125,6 +129,8 @@ func (c *Config) Copy() *Config {
 	if c.Wait != nil {
 		o.Wait = c.Wait.Copy()
 	}
+
+	o.Once = c.Once
 
 	return &o
 }
@@ -192,6 +198,8 @@ func (c *Config) Merge(o *Config) *Config {
 	if o.Wait != nil {
 		r.Wait = r.Wait.Merge(o.Wait)
 	}
+
+	r.Once = o.Once
 
 	return r
 }
@@ -380,7 +388,8 @@ func (c *Config) GoString() string {
 		"Syslog:%#v, "+
 		"Templates:%#v, "+
 		"Vault:%#v, "+
-		"Wait:%#v"+
+		"Wait:%#v,"+
+		"Once:%#v"+
 		"}",
 		c.Consul,
 		c.Dedup,
@@ -394,6 +403,7 @@ func (c *Config) GoString() string {
 		c.Templates,
 		c.Vault,
 		c.Wait,
+		c.Once,
 	)
 }
 
@@ -474,6 +484,11 @@ func (c *Config) Finalize() {
 		c.Wait = DefaultWaitConfig()
 	}
 	c.Wait.Finalize()
+
+	// disable Wait if -once was specified
+	if c.Once {
+		c.Wait = &WaitConfig{Enabled: Bool(false)}
+	}
 }
 
 func stringFromEnv(list []string, def string) *string {
