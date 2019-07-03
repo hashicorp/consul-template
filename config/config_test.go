@@ -8,6 +8,8 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/vault/api"
 )
 
 func TestParse(t *testing.T) {
@@ -1848,7 +1850,7 @@ func TestDefaultConfig(t *testing.T) {
 			false,
 		},
 		{
-			"VAULT_CA_PATH",
+			api.EnvVaultCAPath,
 			"ca_path",
 			&Config{
 				Vault: &VaultConfig{
@@ -1860,7 +1862,7 @@ func TestDefaultConfig(t *testing.T) {
 			false,
 		},
 		{
-			"VAULT_CA_CERT",
+			api.EnvVaultCACert,
 			"ca_cert",
 			&Config{
 				Vault: &VaultConfig{
@@ -1872,7 +1874,7 @@ func TestDefaultConfig(t *testing.T) {
 			false,
 		},
 		{
-			"VAULT_TLS_SERVER_NAME",
+			api.EnvVaultTLSServerName,
 			"server_name",
 			&Config{
 				Vault: &VaultConfig{
@@ -1887,15 +1889,16 @@ func TestDefaultConfig(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.env), func(t *testing.T) {
+			r := DefaultConfig().Merge(tc.e)
+			r.Finalize()
+
 			if err := os.Setenv(tc.env, tc.val); err != nil {
 				t.Fatal(err)
 			}
 			defer os.Unsetenv(tc.env)
-
-			r := DefaultConfig()
-			r.Merge(tc.e)
-
 			c := DefaultConfig()
+			c.Finalize()
+
 			if !reflect.DeepEqual(r, c) {
 				t.Errorf("\nexp: %#v\nact: %#v", r, c)
 			}
