@@ -1434,7 +1434,7 @@ func TestParse(t *testing.T) {
 				t.Fatal(err)
 			}
 			if !reflect.DeepEqual(tc.e, c) {
-				t.Errorf("\nexp: %#v\nact: %#v", tc.e, c)
+				t.Errorf("Config diff: %s", tc.e.Diff(c))
 			}
 		})
 	}
@@ -1730,7 +1730,7 @@ func TestConfig_Merge(t *testing.T) {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
 			r := tc.a.Merge(tc.b)
 			if !reflect.DeepEqual(tc.r, r) {
-				t.Errorf("\nexp: %#v\nact: %#v", tc.r, r)
+				t.Errorf("Config diff: %s", tc.r.Diff(r))
 			}
 		})
 	}
@@ -1955,7 +1955,7 @@ func TestDefaultConfig(t *testing.T) {
 			c.Finalize()
 
 			if !reflect.DeepEqual(r, c) {
-				t.Errorf("\nexp: %#v\nact: %#v", r, c)
+				t.Errorf("Config diff: %s", r.Diff(c))
 			}
 		})
 	}

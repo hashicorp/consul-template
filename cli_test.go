@@ -720,9 +720,7 @@ func TestCLI_ParseFlags(t *testing.T) {
 			if (err != nil) != tc.err {
 				t.Fatal(err)
 			}
-			if a != nil {
-				a.Finalize()
-			}
+			a.Finalize()
 
 			var e *config.Config
 			if tc.e != nil {
@@ -731,7 +729,7 @@ func TestCLI_ParseFlags(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(e, a) {
-				t.Errorf("\nexp: %#v\nact: %#v\nout: %q", e, a, out.String())
+				t.Errorf("Config diff: %soutput: %q", e.Diff(a), out)
 			}
 		})
 	}
