@@ -17,7 +17,8 @@ import (
 func TestRunner_Receive(t *testing.T) {
 	t.Parallel()
 
-	r, err := NewRunner(config.DefaultConfig(), true, true)
+	c := config.TestConfig(&config.Config{Once: true})
+	r, err := NewRunner(c, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -446,10 +447,11 @@ func TestRunner_Run(t *testing.T) {
 
 			var out bytes.Buffer
 
-			c := config.DefaultConfig().Merge(tc.c)
+			c := config.TestConfig(tc.c)
+			c.Once = true
 			c.Finalize()
 
-			r, err := NewRunner(c, true, true)
+			r, err := NewRunner(c, true)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -500,7 +502,7 @@ func TestRunner_Start(t *testing.T) {
 		})
 		c.Finalize()
 
-		r, err := NewRunner(c, false, false)
+		r, err := NewRunner(c, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -543,7 +545,7 @@ func TestRunner_Start(t *testing.T) {
 		})
 		c.Finalize()
 
-		r, err := NewRunner(c, false, false)
+		r, err := NewRunner(c, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -592,7 +594,7 @@ func TestRunner_Start(t *testing.T) {
 		})
 		c.Finalize()
 
-		r, err := NewRunner(c, false, false)
+		r, err := NewRunner(c, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -642,7 +644,7 @@ func TestRunner_Start(t *testing.T) {
 		})
 		c.Finalize()
 
-		r, err := NewRunner(c, false, false)
+		r, err := NewRunner(c, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -689,7 +691,7 @@ func TestRunner_Start(t *testing.T) {
 		})
 		c.Finalize()
 
-		r, err := NewRunner(c, false, false)
+		r, err := NewRunner(c, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -742,10 +744,11 @@ func TestRunner_Start(t *testing.T) {
 					Destination: config.String(out.Name()),
 				},
 			},
+			Once: true,
 		})
 		c.Finalize()
 
-		r, err := NewRunner(c, false, true)
+		r, err := NewRunner(c, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -823,7 +826,7 @@ func TestRunner_Start(t *testing.T) {
 		})
 		c.Finalize()
 
-		r, err := NewRunner(c, false, false)
+		r, err := NewRunner(c, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -871,10 +874,11 @@ func TestRunner_Start(t *testing.T) {
 					Contents: config.String(`{{ key "render-in-memory" }}`),
 				},
 			},
+			Once: true,
 		})
 		c.Finalize()
 
-		r, err := NewRunner(c, true, true)
+		r, err := NewRunner(c, true)
 		if err != nil {
 			t.Fatal(err)
 		}

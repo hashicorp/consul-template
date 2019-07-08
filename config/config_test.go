@@ -1434,7 +1434,62 @@ func TestParse(t *testing.T) {
 				t.Fatal(err)
 			}
 			if !reflect.DeepEqual(tc.e, c) {
-				t.Errorf("\nexp: %#v\nact: %#v", tc.e, c)
+				t.Errorf("Config diff: %s", tc.e.Diff(c))
+			}
+		})
+	}
+}
+
+func TestFinalize(t *testing.T) {
+	// Testing Once disabling Wait
+	cases := []struct {
+		name string
+		expt *Config
+		test *Config
+	}{
+		{
+			"null-case",
+			&Config{
+				Wait: &WaitConfig{
+					Enabled: Bool(true),
+					Min:     TimeDuration(10 * time.Second),
+					Max:     TimeDuration(20 * time.Second),
+				},
+			},
+			&Config{
+				Wait: &WaitConfig{
+					Enabled: Bool(true),
+					Min:     TimeDuration(10 * time.Second),
+					Max:     TimeDuration(20 * time.Second),
+				},
+				Once: false,
+			},
+		},
+		{
+			"once-disables-wait",
+			&Config{
+				Wait: &WaitConfig{
+					Enabled: Bool(false),
+					Min:     nil,
+					Max:     nil,
+				},
+			},
+			&Config{
+				Wait: &WaitConfig{
+					Enabled: Bool(true),
+					Min:     TimeDuration(10 * time.Second),
+					Max:     TimeDuration(20 * time.Second),
+				},
+				Once: true,
+			},
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			tc.test.Finalize()
+			if !reflect.DeepEqual(tc.expt.Wait, tc.test.Wait) {
+				t.Errorf("\nexp: %#v\nact: %#v", tc.expt.Wait, tc.test.Wait)
 			}
 		})
 	}
@@ -1675,7 +1730,7 @@ func TestConfig_Merge(t *testing.T) {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
 			r := tc.a.Merge(tc.b)
 			if !reflect.DeepEqual(tc.r, r) {
-				t.Errorf("\nexp: %#v\nact: %#v", tc.r, r)
+				t.Errorf("Config diff: %s", tc.r.Diff(r))
 			}
 		})
 	}
@@ -1900,7 +1955,7 @@ func TestDefaultConfig(t *testing.T) {
 			c.Finalize()
 
 			if !reflect.DeepEqual(r, c) {
-				t.Errorf("\nexp: %#v\nact: %#v", r, c)
+				t.Errorf("Config diff: %s", r.Diff(c))
 			}
 		})
 	}

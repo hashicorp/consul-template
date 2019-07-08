@@ -1902,6 +1902,8 @@ loop returns a response. Consul Template waits until it gets a response from
 Consul for all dependencies before rendering a template. It does not wait until
 that response is non-empty though.
 
+**Note:** Once mode implicitly disables any wait/quiescence timers specified in configuration files or passed on the command line.
+
 ### Exec Mode
 
 As of version 0.16.0, Consul Template has the ability to maintain an arbitrary
