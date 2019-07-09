@@ -1,6 +1,6 @@
 # Consul Template
 
-[![Build Status](http://img.shields.io/travis/hashicorp/consul-template.svg?style=flat-square)](https://travis-ci.org/hashicorp/consul-template)
+[![CircleCI](https://circleci.com/gh/hashicorp/consul-template.svg?style=svg)](https://circleci.com/gh/hashicorp/consul-template)
 [![Go Documentation](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](https://godoc.org/github.com/hashicorp/consul-template)
 
 This project provides a convenient way to populate values from [Consul][consul]
