@@ -57,6 +57,38 @@ func TestStrutil_EquivalentSlices(t *testing.T) {
 	}
 }
 
+func TestStrutil_ListContainsGlob(t *testing.T) {
+	haystack := []string{
+		"dev",
+		"ops*",
+		"root/*",
+		"*-dev",
+		"_*_",
+	}
+	if StrListContainsGlob(haystack, "tubez") {
+		t.Fatalf("Value shouldn't exist")
+	}
+	if !StrListContainsGlob(haystack, "root/test") {
+		t.Fatalf("Value should exist")
+	}
+	if !StrListContainsGlob(haystack, "ops_test") {
+		t.Fatalf("Value should exist")
+	}
+	if !StrListContainsGlob(haystack, "ops") {
+		t.Fatalf("Value should exist")
+	}
+	if !StrListContainsGlob(haystack, "dev") {
+		t.Fatalf("Value should exist")
+	}
+	if !StrListContainsGlob(haystack, "test-dev") {
+		t.Fatalf("Value should exist")
+	}
+	if !StrListContainsGlob(haystack, "_test_") {
+		t.Fatalf("Value should exist")
+	}
+
+}
+
 func TestStrutil_ListContains(t *testing.T) {
 	haystack := []string{
 		"dev",
@@ -317,7 +349,7 @@ func TestGlobbedStringsMatch(t *testing.T) {
 		actual := GlobbedStringsMatch(tc.item, tc.val)
 
 		if actual != tc.expect {
-			t.Fatalf("Bad testcase %#v, expected %b, got %b", tc, tc.expect, actual)
+			t.Fatalf("Bad testcase %#v, expected %t, got %t", tc, tc.expect, actual)
 		}
 	}
 }
@@ -326,6 +358,22 @@ func TestTrimStrings(t *testing.T) {
 	input := []string{"abc", "123", "abcd ", "123  "}
 	expected := []string{"abc", "123", "abcd", "123"}
 	actual := TrimStrings(input)
+	if !reflect.DeepEqual(expected, actual) {
+		t.Fatalf("Bad TrimStrings: expected:%#v, got:%#v", expected, actual)
+	}
+}
+
+func TestRemoveEmpty(t *testing.T) {
+	input := []string{"abc", "", "abc", ""}
+	expected := []string{"abc", "abc"}
+	actual := RemoveEmpty(input)
+	if !reflect.DeepEqual(expected, actual) {
+		t.Fatalf("Bad TrimStrings: expected:%#v, got:%#v", expected, actual)
+	}
+
+	input = []string{""}
+	expected = []string{}
+	actual = RemoveEmpty(input)
 	if !reflect.DeepEqual(expected, actual) {
 		t.Fatalf("Bad TrimStrings: expected:%#v, got:%#v", expected, actual)
 	}
@@ -365,5 +413,162 @@ func TestStrutil_AppendIfMissing(t *testing.T) {
 	}
 	if keys[1] != "bar" {
 		t.Fatalf("expected slice to still contain key 'bar': %v", keys)
+	}
+}
+
+func TestStrUtil_RemoveDuplicates(t *testing.T) {
+	type tCase struct {
+		input     []string
+		expect    []string
+		lowercase bool
+	}
+
+	tCases := []tCase{
+		tCase{[]string{}, []string{}, false},
+		tCase{[]string{}, []string{}, true},
+		tCase{[]string{"a", "b", "a"}, []string{"a", "b"}, false},
+		tCase{[]string{"A", "b", "a"}, []string{"A", "a", "b"}, false},
+		tCase{[]string{"A", "b", "a"}, []string{"a", "b"}, true},
+	}
+
+	for _, tc := range tCases {
+		actual := RemoveDuplicates(tc.input, tc.lowercase)
+
+		if !reflect.DeepEqual(actual, tc.expect) {
+			t.Fatalf("Bad testcase %#v, expected %v, got %v", tc, tc.expect, actual)
+		}
+	}
+}
+
+func TestStrUtil_ParseStringSlice(t *testing.T) {
+	type tCase struct {
+		input  string
+		sep    string
+		expect []string
+	}
+
+	tCases := []tCase{
+		tCase{"", "", []string{}},
+		tCase{"   ", ",", []string{}},
+		tCase{",   ", ",", []string{"", ""}},
+		tCase{"a", ",", []string{"a"}},
+		tCase{" a, b,   c   ", ",", []string{"a", "b", "c"}},
+		tCase{" a; b;   c   ", ";", []string{"a", "b", "c"}},
+		tCase{" a :: b  ::   c   ", "::", []string{"a", "b", "c"}},
+	}
+
+	for _, tc := range tCases {
+		actual := ParseStringSlice(tc.input, tc.sep)
+
+		if !reflect.DeepEqual(actual, tc.expect) {
+			t.Fatalf("Bad testcase %#v, expected %v, got %v", tc, tc.expect, actual)
+		}
+	}
+}
+
+func TestStrUtil_MergeSlices(t *testing.T) {
+	res := MergeSlices([]string{"a", "c", "d"}, []string{}, []string{"c", "f", "a"}, nil, []string{"foo"})
+
+	expect := []string{"a", "c", "d", "f", "foo"}
+
+	if !reflect.DeepEqual(res, expect) {
+		t.Fatalf("expected %v, got %v", expect, res)
+	}
+}
+
+func TestDifference(t *testing.T) {
+	testCases := []struct {
+		Name           string
+		SetA           []string
+		SetB           []string
+		Lowercase      bool
+		ExpectedResult []string
+	}{
+		{
+			Name:           "case_sensitive",
+			SetA:           []string{"a", "b", "c"},
+			SetB:           []string{"b", "c"},
+			Lowercase:      false,
+			ExpectedResult: []string{"a"},
+		},
+		{
+			Name:           "case_insensitive",
+			SetA:           []string{"a", "B", "c"},
+			SetB:           []string{"b", "C"},
+			Lowercase:      true,
+			ExpectedResult: []string{"a"},
+		},
+		{
+			Name:           "no_match",
+			SetA:           []string{"a", "b", "c"},
+			SetB:           []string{"d"},
+			Lowercase:      false,
+			ExpectedResult: []string{"a", "b", "c"},
+		},
+		{
+			Name:           "empty_set_a",
+			SetA:           []string{},
+			SetB:           []string{"d", "e"},
+			Lowercase:      false,
+			ExpectedResult: []string{},
+		},
+		{
+			Name:           "empty_set_b",
+			SetA:           []string{"a", "b"},
+			SetB:           []string{},
+			Lowercase:      false,
+			ExpectedResult: []string{"a", "b"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			actualResult := Difference(tc.SetA, tc.SetB, tc.Lowercase)
+
+			if !reflect.DeepEqual(actualResult, tc.ExpectedResult) {
+				t.Fatalf("expected %v, got %v", tc.ExpectedResult, actualResult)
+			}
+		})
+	}
+}
+
+func TestStrUtil_EqualStringMaps(t *testing.T) {
+	m1 := map[string]string{
+		"foo": "a",
+	}
+	m2 := map[string]string{
+		"foo": "a",
+		"bar": "b",
+	}
+	var m3 map[string]string
+
+	m4 := map[string]string{
+		"dog": "",
+	}
+
+	m5 := map[string]string{
+		"cat": "",
+	}
+
+	tests := []struct {
+		a      map[string]string
+		b      map[string]string
+		result bool
+	}{
+		{m1, m1, true},
+		{m2, m2, true},
+		{m1, m2, false},
+		{m2, m1, false},
+		{m2, m2, true},
+		{m3, m1, false},
+		{m3, m3, true},
+		{m4, m5, false},
+	}
+
+	for i, test := range tests {
+		actual := EqualStringMaps(test.a, test.b)
+		if actual != test.result {
+			t.Fatalf("case %d, expected %v, got %v", i, test.result, actual)
+		}
 	}
 }

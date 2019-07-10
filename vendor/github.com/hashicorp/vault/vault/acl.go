@@ -1,13 +1,19 @@
 package vault
 
 import (
+	"context"
+	"fmt"
 	"reflect"
 	"strings"
 
-	"github.com/armon/go-radix"
+	radix "github.com/armon/go-radix"
 	"github.com/hashicorp/errwrap"
+	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/vault/helper/identity"
+	"github.com/hashicorp/vault/helper/namespace"
 	"github.com/hashicorp/vault/helper/strutil"
 	"github.com/hashicorp/vault/logical"
+	"github.com/mitchellh/copystructure"
 )
 
 // ACL is used to wrap a set of policies to provide
@@ -16,20 +22,53 @@ type ACL struct {
 	// exactRules contains the path policies that are exact
 	exactRules *radix.Tree
 
-	// globRules contains the path policies that glob
-	globRules *radix.Tree
+	// prefixRules contains the path policies that are a prefix
+	prefixRules *radix.Tree
 
 	// root is enabled if the "root" named policy is present.
 	root bool
+
+	// Stores policies that are actually RGPs for later fetching
+	rgpPolicies []*Policy
 }
 
-// New is used to construct a policy based ACL from a set of policies.
-func NewACL(policies []*Policy) (*ACL, error) {
+type PolicyCheckOpts struct {
+	RootPrivsRequired bool
+	Unauth            bool
+}
+
+type AuthResults struct {
+	ACLResults  *ACLResults
+	Allowed     bool
+	RootPrivs   bool
+	DeniedError bool
+	Error       *multierror.Error
+}
+
+type ACLResults struct {
+	Allowed            bool
+	RootPrivs          bool
+	IsRoot             bool
+	MFAMethods         []string
+	ControlGroup       *ControlGroup
+	CapabilitiesBitmap uint32
+}
+
+// NewACL is used to construct a policy based ACL from a set of policies.
+func NewACL(ctx context.Context, policies []*Policy) (*ACL, error) {
 	// Initialize
 	a := &ACL{
-		exactRules: radix.New(),
-		globRules:  radix.New(),
-		root:       false,
+		exactRules:  radix.New(),
+		prefixRules: radix.New(),
+		root:        false,
+	}
+
+	ns, err := namespace.FromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if ns == nil {
+		return nil, namespace.ErrNoNamespace
 	}
 
 	// Inject each policy
@@ -38,30 +77,48 @@ func NewACL(policies []*Policy) (*ACL, error) {
 		if policy == nil {
 			continue
 		}
+
+		switch policy.Type {
+		case PolicyTypeACL:
+		case PolicyTypeRGP:
+			a.rgpPolicies = append(a.rgpPolicies, policy)
+			continue
+		default:
+			return nil, fmt.Errorf("unable to parse policy (wrong type)")
+		}
+
 		// Check if this is root
 		if policy.Name == "root" {
+			if ns.ID != namespace.RootNamespaceID {
+				return nil, fmt.Errorf("root policy is only allowed in root namespace")
+			}
+
+			if len(policies) != 1 {
+				return nil, fmt.Errorf("other policies present along with root")
+			}
 			a.root = true
 		}
+
 		for _, pc := range policy.Paths {
 			// Check which tree to use
 			tree := a.exactRules
-			if pc.Glob {
-				tree = a.globRules
+			if pc.IsPrefix {
+				tree = a.prefixRules
 			}
 
 			// Check for an existing policy
-			raw, ok := tree.Get(pc.Prefix)
+			raw, ok := tree.Get(pc.Path)
 			if !ok {
 				clonedPerms, err := pc.Permissions.Clone()
 				if err != nil {
 					return nil, errwrap.Wrapf("error cloning ACL permissions: {{err}}", err)
 				}
-				tree.Insert(pc.Prefix, clonedPerms)
+				tree.Insert(pc.Path, clonedPerms)
 				continue
 			}
 
 			// these are the ones already in the tree
-			existingPerms := raw.(*Permissions)
+			existingPerms := raw.(*ACLPermissions)
 
 			switch {
 			case existingPerms.CapabilitiesBitmap&DenyCapabilityInt > 0:
@@ -106,7 +163,11 @@ func NewACL(policies []*Policy) (*ACL, error) {
 
 			if len(pc.Permissions.AllowedParameters) > 0 {
 				if existingPerms.AllowedParameters == nil {
-					existingPerms.AllowedParameters = pc.Permissions.AllowedParameters
+					clonedAllowed, err := copystructure.Copy(pc.Permissions.AllowedParameters)
+					if err != nil {
+						return nil, err
+					}
+					existingPerms.AllowedParameters = clonedAllowed.(map[string][]interface{})
 				} else {
 					for key, value := range pc.Permissions.AllowedParameters {
 						pcValue, ok := existingPerms.AllowedParameters[key]
@@ -124,7 +185,11 @@ func NewACL(policies []*Policy) (*ACL, error) {
 
 			if len(pc.Permissions.DeniedParameters) > 0 {
 				if existingPerms.DeniedParameters == nil {
-					existingPerms.DeniedParameters = pc.Permissions.DeniedParameters
+					clonedDenied, err := copystructure.Copy(pc.Permissions.DeniedParameters)
+					if err != nil {
+						return nil, err
+					}
+					existingPerms.DeniedParameters = clonedDenied.(map[string][]interface{})
 				} else {
 					for key, value := range pc.Permissions.DeniedParameters {
 						pcValue, ok := existingPerms.DeniedParameters[key]
@@ -140,40 +205,64 @@ func NewACL(policies []*Policy) (*ACL, error) {
 				}
 			}
 
-		INSERT:
-			tree.Insert(pc.Prefix, existingPerms)
+			if len(pc.Permissions.RequiredParameters) > 0 {
+				if len(existingPerms.RequiredParameters) == 0 {
+					existingPerms.RequiredParameters = pc.Permissions.RequiredParameters
+				} else {
+					for _, v := range pc.Permissions.RequiredParameters {
+						if !strutil.StrListContains(existingPerms.RequiredParameters, v) {
+							existingPerms.RequiredParameters = append(existingPerms.RequiredParameters, v)
+						}
+					}
+				}
+			}
 
+			if len(pc.Permissions.MFAMethods) > 0 {
+				if existingPerms.MFAMethods == nil {
+					existingPerms.MFAMethods = pc.Permissions.MFAMethods
+				} else {
+					for _, method := range pc.Permissions.MFAMethods {
+						existingPerms.MFAMethods = append(existingPerms.MFAMethods, method)
+					}
+				}
+				existingPerms.MFAMethods = strutil.RemoveDuplicates(existingPerms.MFAMethods, false)
+			}
+
+			// No need to dedupe this list since any authorization can satisfy any factor
+			if pc.Permissions.ControlGroup != nil {
+				if len(pc.Permissions.ControlGroup.Factors) > 0 {
+					if existingPerms.ControlGroup == nil {
+						existingPerms.ControlGroup = pc.Permissions.ControlGroup
+					} else {
+						for _, authz := range pc.Permissions.ControlGroup.Factors {
+							existingPerms.ControlGroup.Factors = append(existingPerms.ControlGroup.Factors, authz)
+						}
+					}
+				}
+			}
+
+		INSERT:
+			tree.Insert(pc.Path, existingPerms)
 		}
 	}
 	return a, nil
 }
 
-func (a *ACL) Capabilities(path string) (pathCapabilities []string) {
-	// Fast-path root
-	if a.root {
+func (a *ACL) Capabilities(ctx context.Context, path string) (pathCapabilities []string) {
+	req := &logical.Request{
+		Path: path,
+		// doesn't matter, but use List to trigger fallback behavior so we can
+		// model real behavior
+		Operation: logical.ListOperation,
+	}
+
+	res := a.AllowOperation(ctx, req, true)
+	if res.IsRoot {
 		return []string{RootCapability}
 	}
 
-	// Find an exact matching rule, look for glob if no match
-	var capabilities uint32
-	raw, ok := a.exactRules.Get(path)
+	capabilities := res.CapabilitiesBitmap
 
-	if ok {
-		perm := raw.(*Permissions)
-		capabilities = perm.CapabilitiesBitmap
-		goto CHECK
-	}
-
-	// Find a glob rule, default deny if no match
-	_, raw, ok = a.globRules.LongestPrefix(path)
-	if !ok {
-		return []string{DenyCapability}
-	} else {
-		perm := raw.(*Permissions)
-		capabilities = perm.CapabilitiesBitmap
-	}
-
-CHECK:
 	if capabilities&SudoCapabilityInt > 0 {
 		pathCapabilities = append(pathCapabilities, SudoCapability)
 	}
@@ -201,47 +290,74 @@ CHECK:
 	return
 }
 
-// AllowOperation is used to check if the given operation is permitted. The
-// first bool indicates if an op is allowed, the second whether sudo priviliges
-// exist for that op and path.
-func (a *ACL) AllowOperation(req *logical.Request) (bool, bool) {
+// AllowOperation is used to check if the given operation is permitted.
+func (a *ACL) AllowOperation(ctx context.Context, req *logical.Request, capCheckOnly bool) (ret *ACLResults) {
+	ret = new(ACLResults)
+
 	// Fast-path root
 	if a.root {
-		return true, true
+		ret.Allowed = true
+		ret.RootPrivs = true
+		ret.IsRoot = true
+		return
 	}
 	op := req.Operation
-	path := req.Path
 
 	// Help is always allowed
 	if op == logical.HelpOperation {
-		return true, false
+		ret.Allowed = true
+		return
 	}
 
-	var permissions *Permissions
+	var permissions *ACLPermissions
+
+	ns, err := namespace.FromContext(ctx)
+	if err != nil {
+		return
+	}
+	path := ns.Path + req.Path
 
 	// Find an exact matching rule, look for glob if no match
 	var capabilities uint32
 	raw, ok := a.exactRules.Get(path)
 	if ok {
-		permissions = raw.(*Permissions)
+		permissions = raw.(*ACLPermissions)
 		capabilities = permissions.CapabilitiesBitmap
 		goto CHECK
 	}
+	if op == logical.ListOperation {
+		raw, ok = a.exactRules.Get(strings.TrimSuffix(path, "/"))
+		if ok {
+			permissions = raw.(*ACLPermissions)
+			capabilities = permissions.CapabilitiesBitmap
+			goto CHECK
+		}
+	}
 
 	// Find a glob rule, default deny if no match
-	_, raw, ok = a.globRules.LongestPrefix(path)
+	_, raw, ok = a.prefixRules.LongestPrefix(path)
 	if !ok {
-		return false, false
-	} else {
-		permissions = raw.(*Permissions)
-		capabilities = permissions.CapabilitiesBitmap
+		return
 	}
+	permissions = raw.(*ACLPermissions)
+	capabilities = permissions.CapabilitiesBitmap
 
 CHECK:
 	// Check if the minimum permissions are met
 	// If "deny" has been explicitly set, only deny will be in the map, so we
 	// only need to check for the existence of other values
-	sudo := capabilities&SudoCapabilityInt > 0
+	ret.RootPrivs = capabilities&SudoCapabilityInt > 0
+
+	// This is after the RootPrivs check so we can gate on it being from sudo
+	// rather than policy root
+	if capCheckOnly {
+		ret.CapabilitiesBitmap = capabilities
+		return ret
+	}
+
+	ret.MFAMethods = permissions.MFAMethods
+	ret.ControlGroup = permissions.ControlGroup
+
 	operationAllowed := false
 	switch op {
 	case logical.ReadOperation:
@@ -261,21 +377,21 @@ CHECK:
 		operationAllowed = capabilities&UpdateCapabilityInt > 0
 
 	default:
-		return false, false
+		return
 	}
 
 	if !operationAllowed {
-		return false, sudo
+		return
 	}
 
 	if permissions.MaxWrappingTTL > 0 {
 		if req.WrapInfo == nil || req.WrapInfo.TTL > permissions.MaxWrappingTTL {
-			return false, sudo
+			return
 		}
 	}
 	if permissions.MinWrappingTTL > 0 {
 		if req.WrapInfo == nil || req.WrapInfo.TTL < permissions.MinWrappingTTL {
-			return false, sudo
+			return
 		}
 	}
 	// This situation can happen because of merging, even though in a single
@@ -283,15 +399,22 @@ CHECK:
 	if permissions.MinWrappingTTL != 0 &&
 		permissions.MaxWrappingTTL != 0 &&
 		permissions.MaxWrappingTTL < permissions.MinWrappingTTL {
-		return false, sudo
+		return
 	}
 
 	// Only check parameter permissions for operations that can modify
 	// parameters.
-	if op == logical.UpdateOperation || op == logical.CreateOperation {
+	if op == logical.ReadOperation || op == logical.UpdateOperation || op == logical.CreateOperation {
+		for _, parameter := range permissions.RequiredParameters {
+			if _, ok := req.Data[strings.ToLower(parameter)]; !ok {
+				return
+			}
+		}
+
 		// If there are no data fields, allow
 		if len(req.Data) == 0 {
-			return true, sudo
+			ret.Allowed = true
+			return
 		}
 
 		if len(permissions.DeniedParameters) == 0 {
@@ -300,15 +423,15 @@ CHECK:
 
 		// Check if all parameters have been denied
 		if _, ok := permissions.DeniedParameters["*"]; ok {
-			return false, sudo
+			return
 		}
 
 		for parameter, value := range req.Data {
-			// Check if parameter has been explictly denied
+			// Check if parameter has been explicitly denied
 			if valueSlice, ok := permissions.DeniedParameters[strings.ToLower(parameter)]; ok {
 				// If the value exists in denied values slice, deny
 				if valueInParameterList(value, valueSlice) {
-					return false, sudo
+					return
 				}
 			}
 		}
@@ -316,30 +439,61 @@ CHECK:
 	ALLOWED_PARAMETERS:
 		// If we don't have any allowed parameters set, allow
 		if len(permissions.AllowedParameters) == 0 {
-			return true, sudo
+			ret.Allowed = true
+			return
 		}
 
 		_, allowedAll := permissions.AllowedParameters["*"]
 		if len(permissions.AllowedParameters) == 1 && allowedAll {
-			return true, sudo
+			ret.Allowed = true
+			return
 		}
 
 		for parameter, value := range req.Data {
 			valueSlice, ok := permissions.AllowedParameters[strings.ToLower(parameter)]
 			// Requested parameter is not in allowed list
 			if !ok && !allowedAll {
-				return false, sudo
+				return
 			}
 
 			// If the value doesn't exists in the allowed values slice,
 			// deny
 			if ok && !valueInParameterList(value, valueSlice) {
-				return false, sudo
+				return
 			}
 		}
 	}
 
-	return true, sudo
+	ret.Allowed = true
+	return
+}
+
+func (c *Core) performPolicyChecks(ctx context.Context, acl *ACL, te *logical.TokenEntry, req *logical.Request, inEntity *identity.Entity, opts *PolicyCheckOpts) *AuthResults {
+	ret := new(AuthResults)
+
+	// First, perform normal ACL checks if requested. The only time no ACL
+	// should be applied is if we are only processing EGPs against a login
+	// path in which case opts.Unauth will be set.
+	if acl != nil && !opts.Unauth {
+		ret.ACLResults = acl.AllowOperation(ctx, req, false)
+		ret.RootPrivs = ret.ACLResults.RootPrivs
+		// Root is always allowed; skip Sentinel/MFA checks
+		if ret.ACLResults.IsRoot {
+			//logger.Warn("token is root, skipping checks")
+			ret.Allowed = true
+			return ret
+		}
+		if !ret.ACLResults.Allowed {
+			return ret
+		}
+		if !ret.RootPrivs && opts.RootPrivsRequired {
+			return ret
+		}
+	}
+
+	c.performEntPolicyChecks(ctx, acl, te, req, inEntity, opts, ret)
+
+	return ret
 }
 
 func valueInParameterList(v interface{}, list []interface{}) bool {

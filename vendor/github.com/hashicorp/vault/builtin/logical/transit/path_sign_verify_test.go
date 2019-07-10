@@ -1,25 +1,21 @@
 package transit
 
 import (
+	"context"
 	"encoding/base64"
+	"strconv"
 	"strings"
 	"testing"
 
 	"golang.org/x/crypto/ed25519"
 
+	"github.com/hashicorp/vault/helper/keysutil"
 	"github.com/hashicorp/vault/logical"
 	"github.com/mitchellh/mapstructure"
 )
 
 func TestTransit_SignVerify_P256(t *testing.T) {
-	var b *backend
-	sysView := logical.TestSystemView()
-	storage := &logical.InmemStorage{}
-
-	b = Backend(&logical.BackendConfig{
-		StorageView: storage,
-		System:      sysView,
-	})
+	b, storage := createBackendWithSysView(t)
 
 	// First create a key
 	req := &logical.Request{
@@ -30,18 +26,19 @@ func TestTransit_SignVerify_P256(t *testing.T) {
 			"type": "ecdsa-p256",
 		},
 	}
-	_, err := b.HandleRequest(req)
+	_, err := b.HandleRequest(context.Background(), req)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Now, change the key value to something we control
-	p, lock, err := b.lm.GetPolicyShared(storage, "foo")
+	p, _, err := b.lm.GetPolicy(context.Background(), keysutil.PolicyRequest{
+		Storage: storage,
+		Name:    "foo",
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	// We don't care as we're the only one using this
-	lock.RUnlock()
 
 	// Useful code to output a key for openssl verification
 	/*
@@ -64,7 +61,7 @@ func TestTransit_SignVerify_P256(t *testing.T) {
 		}
 	*/
 
-	keyEntry := p.Keys[p.LatestVersion]
+	keyEntry := p.Keys[strconv.Itoa(p.LatestVersion)]
 	_, ok := keyEntry.EC_X.SetString("7336010a6da5935113d26d9ea4bb61b3b8d102c9a8083ed432f9b58fd7e80686", 16)
 	if !ok {
 		t.Fatal("could not set X")
@@ -77,8 +74,8 @@ func TestTransit_SignVerify_P256(t *testing.T) {
 	if !ok {
 		t.Fatal("could not set D")
 	}
-	p.Keys[p.LatestVersion] = keyEntry
-	if err = p.Persist(storage); err != nil {
+	p.Keys[strconv.Itoa(p.LatestVersion)] = keyEntry
+	if err = p.Persist(context.Background(), storage); err != nil {
 		t.Fatal(err)
 	}
 	req.Data = map[string]interface{}{
@@ -86,8 +83,9 @@ func TestTransit_SignVerify_P256(t *testing.T) {
 	}
 
 	signRequest := func(req *logical.Request, errExpected bool, postpath string) string {
+		t.Helper()
 		req.Path = "sign/foo" + postpath
-		resp, err := b.HandleRequest(req)
+		resp, err := b.HandleRequest(context.Background(), req)
 		if err != nil && !errExpected {
 			t.Fatal(err)
 		}
@@ -111,9 +109,10 @@ func TestTransit_SignVerify_P256(t *testing.T) {
 	}
 
 	verifyRequest := func(req *logical.Request, errExpected bool, postpath, sig string) {
+		t.Helper()
 		req.Path = "verify/foo" + postpath
 		req.Data["signature"] = sig
-		resp, err := b.HandleRequest(req)
+		resp, err := b.HandleRequest(context.Background(), req)
 		if err != nil && !errExpected {
 			t.Fatalf("got error: %v, sig was %v", err, sig)
 		}
@@ -156,48 +155,69 @@ func TestTransit_SignVerify_P256(t *testing.T) {
 	verifyRequest(req, false, "/sha2-224", sig)
 
 	// Reset and test algorithm selection in the data
-	req.Data["algorithm"] = "sha2-224"
+	req.Data["hash_algorithm"] = "sha2-224"
 	sig = signRequest(req, false, "")
 	verifyRequest(req, false, "", sig)
 
-	req.Data["algorithm"] = "sha2-384"
+	req.Data["hash_algorithm"] = "sha2-384"
 	sig = signRequest(req, false, "")
 	verifyRequest(req, false, "", sig)
+
+	req.Data["prehashed"] = true
+	sig = signRequest(req, false, "")
+	verifyRequest(req, false, "", sig)
+	delete(req.Data, "prehashed")
+
+	// Test marshaling selection
+	// Bad value
+	req.Data["marshaling_algorithm"] = "asn2"
+	sig = signRequest(req, true, "")
+	// Use the default, verify we can't validate with jws
+	req.Data["marshaling_algorithm"] = "asn1"
+	sig = signRequest(req, false, "")
+	req.Data["marshaling_algorithm"] = "jws"
+	verifyRequest(req, true, "", sig)
+	// Sign with jws, verify we can validate
+	sig = signRequest(req, false, "")
+	verifyRequest(req, false, "", sig)
+	// If we change marshaling back to asn1 we shouldn't be able to verify
+	delete(req.Data, "marshaling_algorithm")
+	verifyRequest(req, true, "", sig)
 
 	// Test 512 and save sig for later to ensure we can't validate once min
 	// decryption version is set
-	req.Data["algorithm"] = "sha2-512"
+	req.Data["hash_algorithm"] = "sha2-512"
 	sig = signRequest(req, false, "")
 	verifyRequest(req, false, "", sig)
 
 	v1sig := sig
 
 	// Test bad algorithm
-	req.Data["algorithm"] = "foobar"
+	req.Data["hash_algorithm"] = "foobar"
 	signRequest(req, true, "")
 
 	// Test bad input
-	req.Data["algorithm"] = "sha2-256"
+	req.Data["hash_algorithm"] = "sha2-256"
 	req.Data["input"] = "foobar"
 	signRequest(req, true, "")
 
 	// Rotate and set min decryption version
-	err = p.Rotate(storage)
+	err = p.Rotate(context.Background(), storage)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = p.Rotate(storage)
+	err = p.Rotate(context.Background(), storage)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	p.MinDecryptionVersion = 2
-	if err = p.Persist(storage); err != nil {
+	if err = p.Persist(context.Background(), storage); err != nil {
 		t.Fatal(err)
 	}
 
 	req.Data["input"] = "dGhlIHF1aWNrIGJyb3duIGZveA=="
-	req.Data["algorithm"] = "sha2-256"
+	req.Data["hash_algorithm"] = "sha2-256"
 	// Make sure signing still works fine
 	sig = signRequest(req, false, "")
 	verifyRequest(req, false, "", sig)
@@ -206,14 +226,7 @@ func TestTransit_SignVerify_P256(t *testing.T) {
 }
 
 func TestTransit_SignVerify_ED25519(t *testing.T) {
-	var b *backend
-	sysView := logical.TestSystemView()
-	storage := &logical.InmemStorage{}
-
-	b = Backend(&logical.BackendConfig{
-		StorageView: storage,
-		System:      sysView,
-	})
+	b, storage := createBackendWithSysView(t)
 
 	// First create a key
 	req := &logical.Request{
@@ -224,7 +237,7 @@ func TestTransit_SignVerify_ED25519(t *testing.T) {
 			"type": "ed25519",
 		},
 	}
-	_, err := b.HandleRequest(req)
+	_, err := b.HandleRequest(context.Background(), req)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -239,30 +252,33 @@ func TestTransit_SignVerify_ED25519(t *testing.T) {
 			"derived": true,
 		},
 	}
-	_, err = b.HandleRequest(req)
+	_, err = b.HandleRequest(context.Background(), req)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Get the keys for later
-	fooP, lock, err := b.lm.GetPolicyShared(storage, "foo")
+	fooP, _, err := b.lm.GetPolicy(context.Background(), keysutil.PolicyRequest{
+		Storage: storage,
+		Name:    "foo",
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	// We don't care as we're the only one using this
-	lock.RUnlock()
 
-	barP, lock, err := b.lm.GetPolicyShared(storage, "bar")
+	barP, _, err := b.lm.GetPolicy(context.Background(), keysutil.PolicyRequest{
+		Storage: storage,
+		Name:    "bar",
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	lock.RUnlock()
 
 	signRequest := func(req *logical.Request, errExpected bool, postpath string) string {
 		// Delete any key that exists in the request
 		delete(req.Data, "public_key")
 		req.Path = "sign/" + postpath
-		resp, err := b.HandleRequest(req)
+		resp, err := b.HandleRequest(context.Background(), req)
 		if err != nil && !errExpected {
 			t.Fatal(err)
 		}
@@ -292,7 +308,7 @@ func TestTransit_SignVerify_ED25519(t *testing.T) {
 	verifyRequest := func(req *logical.Request, errExpected bool, postpath, sig string) {
 		req.Path = "verify/" + postpath
 		req.Data["signature"] = sig
-		resp, err := b.HandleRequest(req)
+		resp, err := b.HandleRequest(context.Background(), req)
 		if err != nil && !errExpected {
 			t.Fatalf("got error: %v, sig was %v", err, sig)
 		}
@@ -328,7 +344,7 @@ func TestTransit_SignVerify_ED25519(t *testing.T) {
 				Operation: logical.ReadOperation,
 				Path:      "keys/" + postpath,
 			}
-			keyReadResp, err := b.HandleRequest(keyReadReq)
+			keyReadResp, err := b.HandleRequest(context.Background(), keyReadReq)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -343,7 +359,7 @@ func TestTransit_SignVerify_ED25519(t *testing.T) {
 			keyReadReq.Data = map[string]interface{}{
 				"context": "abcd",
 			}
-			keyReadResp, err = b.HandleRequest(keyReadReq)
+			keyReadResp, err = b.HandleRequest(context.Background(), keyReadReq)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -376,28 +392,28 @@ func TestTransit_SignVerify_ED25519(t *testing.T) {
 	v1sig := sig
 
 	// Rotate and set min decryption version
-	err = fooP.Rotate(storage)
+	err = fooP.Rotate(context.Background(), storage)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = fooP.Rotate(storage)
+	err = fooP.Rotate(context.Background(), storage)
 	if err != nil {
 		t.Fatal(err)
 	}
 	fooP.MinDecryptionVersion = 2
-	if err = fooP.Persist(storage); err != nil {
+	if err = fooP.Persist(context.Background(), storage); err != nil {
 		t.Fatal(err)
 	}
-	err = barP.Rotate(storage)
+	err = barP.Rotate(context.Background(), storage)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = barP.Rotate(storage)
+	err = barP.Rotate(context.Background(), storage)
 	if err != nil {
 		t.Fatal(err)
 	}
 	barP.MinDecryptionVersion = 2
-	if err = barP.Persist(storage); err != nil {
+	if err = barP.Persist(context.Background(), storage); err != nil {
 		t.Fatal(err)
 	}
 

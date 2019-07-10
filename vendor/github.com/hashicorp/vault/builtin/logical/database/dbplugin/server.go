@@ -3,69 +3,47 @@ package dbplugin
 import (
 	"crypto/tls"
 
-	"github.com/hashicorp/go-plugin"
+	plugin "github.com/hashicorp/go-plugin"
+	"github.com/hashicorp/vault/helper/pluginutil"
 )
 
 // Serve is called from within a plugin and wraps the provided
 // Database implementation in a databasePluginRPCServer object and starts a
 // RPC server.
 func Serve(db Database, tlsProvider func() (*tls.Config, error)) {
-	dbPlugin := &DatabasePlugin{
-		impl: db,
+	plugin.Serve(ServeConfig(db, tlsProvider))
+}
+
+func ServeConfig(db Database, tlsProvider func() (*tls.Config, error)) *plugin.ServeConfig {
+	// pluginSets is the map of plugins we can dispense.
+	pluginSets := map[int]plugin.PluginSet{
+		3: plugin.PluginSet{
+			"database": &DatabasePlugin{
+				GRPCDatabasePlugin: &GRPCDatabasePlugin{
+					Impl: db,
+				},
+			},
+		},
+		4: plugin.PluginSet{
+			"database": &GRPCDatabasePlugin{
+				Impl: db,
+			},
+		},
 	}
 
-	// pluginMap is the map of plugins we can dispense.
-	var pluginMap = map[string]plugin.Plugin{
-		"database": dbPlugin,
+	conf := &plugin.ServeConfig{
+		HandshakeConfig:  handshakeConfig,
+		VersionedPlugins: pluginSets,
+		TLSProvider:      tlsProvider,
+		GRPCServer:       plugin.DefaultGRPCServer,
 	}
 
-	plugin.Serve(&plugin.ServeConfig{
-		HandshakeConfig: handshakeConfig,
-		Plugins:         pluginMap,
-		TLSProvider:     tlsProvider,
-	})
-}
+	// If we do not have gRPC support fallback to version 3
+	// Remove this block in 0.13
+	if !pluginutil.GRPCSupport() {
+		conf.GRPCServer = nil
+		delete(conf.VersionedPlugins, 4)
+	}
 
-// ---- RPC server domain ----
-
-// databasePluginRPCServer implements an RPC version of Database and is run
-// inside a plugin. It wraps an underlying implementation of Database.
-type databasePluginRPCServer struct {
-	impl Database
-}
-
-func (ds *databasePluginRPCServer) Type(_ struct{}, resp *string) error {
-	var err error
-	*resp, err = ds.impl.Type()
-	return err
-}
-
-func (ds *databasePluginRPCServer) CreateUser(args *CreateUserRequest, resp *CreateUserResponse) error {
-	var err error
-	resp.Username, resp.Password, err = ds.impl.CreateUser(args.Statements, args.UsernameConfig, args.Expiration)
-
-	return err
-}
-
-func (ds *databasePluginRPCServer) RenewUser(args *RenewUserRequest, _ *struct{}) error {
-	err := ds.impl.RenewUser(args.Statements, args.Username, args.Expiration)
-
-	return err
-}
-
-func (ds *databasePluginRPCServer) RevokeUser(args *RevokeUserRequest, _ *struct{}) error {
-	err := ds.impl.RevokeUser(args.Statements, args.Username)
-
-	return err
-}
-
-func (ds *databasePluginRPCServer) Initialize(args *InitializeRequest, _ *struct{}) error {
-	err := ds.impl.Initialize(args.Config, args.VerifyConnection)
-
-	return err
-}
-
-func (ds *databasePluginRPCServer) Close(_ struct{}, _ *struct{}) error {
-	ds.impl.Close()
-	return nil
+	return conf
 }

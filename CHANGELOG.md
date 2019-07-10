@@ -1,8 +1,25 @@
-# Consul Template CHANGELOG
+## UNRELEASED
 
+## v0.20.0 (February 19, 2019)
+
+IMPROVEMENTS:
+
+* Support for Consul service metadata [GH-1113]
+* Support for Vault's KV v2 secrets engine, including versioned secrets [GH-1180].
+* Support for Vault Enterprise's namespaces feature [GH-1181].
+* Support for a new config parameter, `vault_agent_token_file`, which supports loading the Vault token from the contents of a dynamically updated file. This is intended for use in environments like Kubernetes [GH-1185].
+* A template's destination file will now have its user and group permissions preserved on supported OSes (Linux/MacOS) [GH-1061].
+
+BUG FIXES:
+
+* The indent function no longer panics on negative spaces variable [GH-1127]
+* Fixed an issue that caused `exec` to not be called with multiple templates and `wait` configured [GH-1043]
+* Fixed an issue where Consul Template did not wait for most of a non-renewable secret's lease before attempting to refresh the secret. [GH-1183]
+ 
 ## v0.19.5 (June 12, 2018)
 
 BUG FIXES:
+
   * The de-duplication feature was incorrectly calculating the hash of dependency 
     values over an unstable encoding of the data. This meant that in most cases 
     the templates were being re-written to KV and on all watching template 

@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/hashicorp/go-syslog"
+	gsyslog "github.com/hashicorp/go-syslog"
 	"github.com/hashicorp/logutils"
 )
 
@@ -15,8 +15,10 @@ func TestSyslogFilter(t *testing.T) {
 	}
 
 	// Travis does not support syslog for some reason
-	if travis := os.Getenv("TRAVIS"); travis != "" {
-		t.SkipNow()
+	for _, ci_env := range []string{"TRAVIS", "CIRCLECI"} {
+		if ci := os.Getenv(ci_env); ci != "" {
+			t.SkipNow()
+		}
 	}
 
 	l, err := gsyslog.NewLogger(gsyslog.LOG_NOTICE, "LOCAL0", "consul-template")

@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul-template/child"
 	"github.com/hashicorp/consul-template/config"
 	dep "github.com/hashicorp/consul-template/dependency"
+	"github.com/hashicorp/consul-template/renderer"
 	"github.com/hashicorp/consul-template/template"
 	"github.com/hashicorp/consul-template/watch"
 	"github.com/hashicorp/go-multierror"
@@ -36,10 +37,8 @@ type Runner struct {
 	// construct other objects and pass data.
 	config *config.Config
 
-	// dry signals that output should be sent to stdout instead of committed to
-	// disk. once indicates the runner should execute each template exactly one
-	// time and then stop.
-	dry, once bool
+	// signals sending output to STDOUT instead of to a file.
+	dry bool
 
 	// outStream and errStream are the io.Writer streams where the runner will
 	// write information. These can be modified by calling SetOutStream and
@@ -161,17 +160,23 @@ type RenderEvent struct {
 
 	// LastDidRender marks the last time the template was written to disk.
 	LastDidRender time.Time
+
+	// ForQuiescence determines if this event is returned early in the
+	// render loop due to quiescence. When evaluating if all templates have
+	// been rendered we need to know if the event is triggered by quiesence
+	// and if we can skip evaluating it as a render event for those purposes
+	ForQuiescence bool
 }
 
 // NewRunner accepts a slice of TemplateConfigs and returns a pointer to the new
 // Runner and any error that occurred during creation.
-func NewRunner(config *config.Config, dry, once bool) (*Runner, error) {
-	log.Printf("[INFO] (runner) creating new runner (dry: %v, once: %v)", dry, once)
+func NewRunner(config *config.Config, dry bool) (*Runner, error) {
+	log.Printf("[INFO] (runner) creating new runner (dry: %v, once: %v)",
+		dry, config.Once)
 
 	runner := &Runner{
 		config: config,
 		dry:    dry,
-		once:   once,
 	}
 
 	if err := runner.init(); err != nil {
@@ -298,7 +303,7 @@ func (r *Runner) Start() {
 
 			// If we are running in once mode and all our templates are rendered,
 			// then we should exit here.
-			if r.once {
+			if r.config.Once {
 				log.Printf("[INFO] (runner) once mode and all templates rendered")
 
 				if r.child != nil {
@@ -386,6 +391,7 @@ func (r *Runner) Start() {
 func (r *Runner) Stop() {
 	r.internalStop(false)
 }
+
 
 // StopImmediately behaves like Stop but won't wait for any splay on any child
 // process it may be running.
@@ -661,7 +667,7 @@ func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*
 	// If we are in once mode and this template was already rendered, move
 	// onto the next one. We do not want to re-render the template if we are
 	// in once mode, and we certainly do not want to re-run any commands.
-	if r.once {
+	if r.config.Once {
 		r.renderEventsLock.RLock()
 		event, ok := r.renderEvents[tmpl.ID()]
 		r.renderEventsLock.RUnlock()
@@ -745,6 +751,8 @@ func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*
 	// We do not want to render the templates yet.
 	if q, ok := r.quiescenceMap[tmpl.ID()]; ok {
 		q.tick()
+		// This event is being returned early for quiescence
+		event.ForQuiescence = true
 		return event, nil
 	}
 
@@ -754,7 +762,7 @@ func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*
 		log.Printf("[DEBUG] (runner) rendering %s", templateConfig.Display())
 
 		// Render the template, taking dry mode into account
-		result, err := Render(&RenderInput{
+		result, err := renderer.Render(&renderer.RenderInput{
 			Backup:         config.BoolVal(templateConfig.Backup),
 			Contents:       result.Output,
 			CreateDestDirs: config.BoolVal(templateConfig.CreateDestDirs),
@@ -842,7 +850,7 @@ func (r *Runner) init() error {
 	}
 
 	// Create the watcher
-	watcher, err := newWatcher(r.config, clients, r.once)
+	watcher, err := newWatcher(r.config, clients, r.config.Once)
 	if err != nil {
 		return fmt.Errorf("runner: %s", err)
 	}
@@ -901,7 +909,7 @@ func (r *Runner) init() error {
 	r.quiescenceCh = make(chan *template.Template)
 
 	if *r.config.Dedup.Enabled {
-		if r.once {
+		if r.config.Once {
 			log.Printf("[INFO] (runner) disabling de-duplication in once mode")
 		} else {
 			r.dedup, err = NewDedupManager(r.config.Dedup, clients, r.brain, r.templates)
@@ -970,6 +978,13 @@ func (r *Runner) allTemplatesRendered() bool {
 		event, rendered := r.renderEvents[tmpl.ID()]
 		if !rendered {
 			return false
+		}
+
+		// Skip evaluation of events from quiescence as they will
+		// be default unrendered as we are still waiting for the
+		// specified period
+		if event.ForQuiescence {
+			continue
 		}
 
 		// The template might already exist on disk with the exact contents, but
@@ -1237,6 +1252,7 @@ func newClientSet(c *config.Config) (*dep.ClientSet, error) {
 
 	if err := clients.CreateVaultClient(&dep.CreateVaultClientInput{
 		Address:                      config.StringVal(c.Vault.Address),
+		Namespace:                    config.StringVal(c.Vault.Namespace),
 		Token:                        config.StringVal(c.Vault.Token),
 		UnwrapToken:                  config.BoolVal(c.Vault.UnwrapToken),
 		SSLEnabled:                   config.BoolVal(c.Vault.SSL.Enabled),
@@ -1265,11 +1281,12 @@ func newWatcher(c *config.Config, clients *dep.ClientSet, once bool) (*watch.Wat
 	log.Printf("[INFO] (runner) creating watcher")
 
 	w, err := watch.NewWatcher(&watch.NewWatcherInput{
-		Clients:         clients,
-		MaxStale:        config.TimeDurationVal(c.MaxStale),
-		Once:            once,
-		RenewVault:      clients.Vault().Token() != "" && config.BoolVal(c.Vault.RenewToken),
-		RetryFuncConsul: watch.RetryFunc(c.Consul.Retry.RetryFunc()),
+		Clients:             clients,
+		MaxStale:            config.TimeDurationVal(c.MaxStale),
+		Once:                c.Once,
+		RenewVault:          clients.Vault().Token() != "" && config.BoolVal(c.Vault.RenewToken),
+		VaultAgentTokenFile: config.StringVal(c.Vault.VaultAgentTokenFile),
+		RetryFuncConsul:     watch.RetryFunc(c.Consul.Retry.RetryFunc()),
 		// TODO: Add a sane default retry - right now this only affects "local"
 		// dependencies like reading a file from disk.
 		RetryFuncDefault: nil,

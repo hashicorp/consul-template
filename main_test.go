@@ -1,11 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"testing"
-	"fmt"
 
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul/testutil"
@@ -20,6 +20,7 @@ func TestMain(m *testing.M) {
 		c.Stdout = ioutil.Discard
 		c.Stderr = ioutil.Discard
 	})
+	log.SetOutput(ioutil.Discard)
 	if err != nil {
 		log.Fatal(fmt.Errorf("failed to start consul server: %v", err))
 	}

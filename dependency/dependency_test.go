@@ -1,6 +1,7 @@
 package dependency
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -14,12 +15,14 @@ import (
 	"github.com/hashicorp/consul/testutil"
 	"github.com/hashicorp/vault/builtin/logical/pki"
 	"github.com/hashicorp/vault/builtin/logical/transit"
+	"github.com/hashicorp/vault/helper/namespace"
 	"github.com/hashicorp/vault/http"
 	"github.com/hashicorp/vault/logical"
 	"github.com/hashicorp/vault/physical/inmem"
 	"github.com/hashicorp/vault/vault"
 
-	logxi "github.com/mgutz/logxi/v1"
+	hclog "github.com/hashicorp/go-hclog"
+	logicalKv "github.com/hashicorp/vault-plugin-secrets-kv"
 )
 
 var testConsul *testutil.TestServer
@@ -31,6 +34,7 @@ func TestMain(m *testing.M) {
 		c.Stdout = ioutil.Discard
 		c.Stderr = ioutil.Discard
 	})
+	log.SetOutput(ioutil.Discard)
 	if err != nil {
 		log.Fatal(fmt.Errorf("failed to start consul server: %v", err))
 	}
@@ -129,14 +133,14 @@ func (s *vaultServer) CreateSecret(path string, data map[string]interface{}) err
 		Data:        data,
 		ClientToken: s.Token,
 	}
-	_, err := s.core.HandleRequest(req)
+	_, err := s.core.HandleRequest(namespace.RootContext(context.Background()), req)
 	return err
 }
 
 // testVaultServer is a helper for creating a Vault server and returning the
 // appropriate client to connect to it.
 func testVaultServer(t *testing.T) (*ClientSet, *vaultServer) {
-	inm, err := inmem.NewInmem(nil, logxi.NullLog)
+	inm, err := inmem.NewInmem(nil, hclog.NewNullLogger())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,11 +150,12 @@ func testVaultServer(t *testing.T) (*ClientSet, *vaultServer) {
 		DisableCache:    true,
 		DefaultLeaseTTL: 2 * time.Second,
 		MaxLeaseTTL:     3 * time.Second,
-		Logger:          logxi.NullLog,
+		Logger:          hclog.NewNullLogger(),
 		Physical:        inm,
 		LogicalBackends: map[string]logical.Factory{
 			"pki":     pki.Factory,
 			"transit": transit.Factory,
+			"kv":      logicalKv.Factory,
 		},
 	})
 	if err != nil {
@@ -165,10 +170,7 @@ func testVaultServer(t *testing.T) (*ClientSet, *vaultServer) {
 		}
 	}
 
-	sealed, err := core.Sealed()
-	if err != nil {
-		t.Fatal(err)
-	}
+	sealed := core.Sealed()
 	if sealed {
 		t.Fatal("vault should not be sealed")
 	}

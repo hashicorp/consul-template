@@ -1,20 +1,14 @@
 package transit
 
 import (
+	"context"
 	"testing"
 
 	"github.com/hashicorp/vault/logical"
 )
 
 func TestTransit_Hash(t *testing.T) {
-	var b *backend
-	sysView := logical.TestSystemView()
-	storage := &logical.InmemStorage{}
-
-	b = Backend(&logical.BackendConfig{
-		StorageView: storage,
-		System:      sysView,
-	})
+	b, storage := createBackendWithSysView(t)
 
 	req := &logical.Request{
 		Storage:   storage,
@@ -26,7 +20,7 @@ func TestTransit_Hash(t *testing.T) {
 	}
 
 	doRequest := func(req *logical.Request, errExpected bool, expected string) {
-		resp, err := b.HandleRequest(req)
+		resp, err := b.HandleRequest(context.Background(), req)
 		if err != nil && !errExpected {
 			t.Fatal(err)
 		}
