@@ -83,11 +83,20 @@ func TestNewVaultReadQuery(t *testing.T) {
 	}
 }
 
-func TestVaultReadQuery_Fetch(t *testing.T) {
+func TestVaultReadQuery_Fetch_KVv1(t *testing.T) {
 	t.Parallel()
 
-	clients, vault := testVaultServer(t)
-	defer vault.Stop()
+	clients, vault := testVaultServer(t, "read_fetch_v1", "1")
+	secretsPath := vault.secretsPath
+	// Enable v1 kv for versioned secrets
+	vc := clients.Vault()
+	if err := vc.Sys().TuneMount(secretsPath, api.MountConfigInput{
+		Options: map[string]string{
+			"version": "1",
+		},
+	}); err != nil {
+		t.Fatalf("Error tuning secrets engine: %s", err)
+	}
 
 	err := vault.CreateSecret("foo/bar", map[string]interface{}{
 		"ttl": "100ms", // explicitly make this a short duration for testing
@@ -105,7 +114,7 @@ func TestVaultReadQuery_Fetch(t *testing.T) {
 	}{
 		{
 			"exists",
-			"secret/foo/bar",
+			secretsPath + "/foo/bar",
 			&Secret{
 				Data: map[string]interface{}{
 					"ttl": "100ms",
@@ -146,7 +155,7 @@ func TestVaultReadQuery_Fetch(t *testing.T) {
 	}
 
 	t.Run("stops", func(t *testing.T) {
-		d, err := NewVaultReadQuery("secret/foo/bar")
+		d, err := NewVaultReadQuery(secretsPath + "/foo/bar")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -183,7 +192,7 @@ func TestVaultReadQuery_Fetch(t *testing.T) {
 	})
 
 	t.Run("fires_changes", func(t *testing.T) {
-		d, err := NewVaultReadQuery("secret/foo/bar")
+		d, err := NewVaultReadQuery(secretsPath + "/foo/bar")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -218,18 +227,8 @@ func TestVaultReadQuery_Fetch(t *testing.T) {
 func TestVaultReadQuery_Fetch_KVv2(t *testing.T) {
 	t.Parallel()
 
-	clients, vault := testVaultServer(t)
-	defer vault.Stop()
-
-	// Enable v2 kv for versioned secrets
-	vc := clients.Vault()
-	if err := vc.Sys().TuneMount("secret", api.MountConfigInput{
-		Options: map[string]string{
-			"version": "2",
-		},
-	}); err != nil {
-		t.Fatalf("Error tuning secrets engine: %s", err)
-	}
+	clients, vault := testVaultServer(t, "read_fetch_v2", "2")
+	secretsPath := vault.secretsPath
 
 	// Write an initial value to the secret path
 	err := vault.CreateSecret("data/foo/bar", map[string]interface{}{
@@ -261,7 +260,7 @@ func TestVaultReadQuery_Fetch_KVv2(t *testing.T) {
 	}{
 		{
 			"exists",
-			"secret/foo/bar",
+			secretsPath + "/foo/bar",
 			&Secret{
 				Data: map[string]interface{}{
 					"data": map[string]interface{}{
@@ -274,7 +273,7 @@ func TestVaultReadQuery_Fetch_KVv2(t *testing.T) {
 		},
 		{
 			"/data in path",
-			"secret/data/foo/bar",
+			secretsPath + "/data/foo/bar",
 			&Secret{
 				Data: map[string]interface{}{
 					"data": map[string]interface{}{
@@ -287,7 +286,7 @@ func TestVaultReadQuery_Fetch_KVv2(t *testing.T) {
 		},
 		{
 			"version=1",
-			"secret/foo/bar?version=1",
+			secretsPath + "/foo/bar?version=1",
 			&Secret{
 				Data: map[string]interface{}{
 					"data": map[string]interface{}{
@@ -331,7 +330,7 @@ func TestVaultReadQuery_Fetch_KVv2(t *testing.T) {
 	}
 
 	t.Run("stops", func(t *testing.T) {
-		d, err := NewVaultReadQuery("secret/foo/bar")
+		d, err := NewVaultReadQuery(secretsPath + "/foo/bar")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -369,7 +368,8 @@ func TestVaultReadQuery_Fetch_KVv2(t *testing.T) {
 
 	for _, dataPrefix := range []string{"", "/data"} {
 		t.Run(fmt.Sprintf("fires_changes%s", dataPrefix), func(t *testing.T) {
-			d, err := NewVaultReadQuery(fmt.Sprintf("secret%s/foo/bar", dataPrefix))
+			d, err := NewVaultReadQuery(fmt.Sprintf("%s%s/foo/bar",
+				secretsPath, dataPrefix))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -406,9 +406,7 @@ func TestVaultReadQuery_Fetch_KVv2(t *testing.T) {
 // pki ca public cert even even when running unauthenticated client.
 func TestVaultReadQuery_Fetch_PKI_Anonymous(t *testing.T) {
 	t.Parallel()
-
-	clients, vault := testVaultServer(t)
-	defer vault.Stop()
+	clients := testClients
 
 	err := clients.Vault().Sys().Mount("pki", &api.MountInput{
 		Type: "pki",
@@ -418,21 +416,23 @@ func TestVaultReadQuery_Fetch_PKI_Anonymous(t *testing.T) {
 	}
 
 	vc := clients.Vault()
-	_, err = vc.Logical().Write("sys/policies/acl/secrets-only", map[string]interface{}{
-		"policy": `path "secret/*" { capabilities = ["create", "read"] }`,
-	})
+	_, err = vc.Logical().Write("sys/policies/acl/secrets-only",
+		map[string]interface{}{
+			"policy": `path "secret/*" { capabilities = ["create", "read"] }`,
+		})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	_, err = vc.Logical().Write("pki/root/generate/internal", map[string]interface{}{
-		"common_name": "example.com",
-		"ttl":         "24h",
-	})
+	_, err = vc.Logical().Write("pki/root/generate/internal",
+		map[string]interface{}{
+			"common_name": "example.com",
+			"ttl":         "24h",
+		})
 
 	anonClient := NewClientSet()
 	anonClient.CreateVaultClient(&CreateVaultClientInput{
-		Address: vault.Address,
+		Address: vaultAddr,
 		Token:   "",
 	})
 	_, err = anonClient.vault.client.Auth().Token().LookupSelf()

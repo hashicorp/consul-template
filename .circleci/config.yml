@@ -3,13 +3,18 @@ jobs:
   build:
     environment:
       CONSUL_VERSION: 1.5.1
+      VAULT_VERSION: 1.1.3
     docker:
       - image: circleci/golang:latest
     working_directory: /go/src/github.com/hashicorp/consul-template
     steps:
       - checkout
       - run: |
-          sudo curl -sLo consul.zip https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip
+          curl -sLo consul.zip https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip
           unzip consul.zip
           sudo cp consul /usr/local/bin/
+      - run: |
+          curl -sLo vault.zip https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip
+          unzip vault.zip
+          sudo cp vault /usr/local/bin/
       - run: make test

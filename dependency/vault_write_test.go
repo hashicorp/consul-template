@@ -74,8 +74,7 @@ func TestNewVaultWriteQuery(t *testing.T) {
 func TestVaultWriteQuery_Fetch(t *testing.T) {
 	t.Parallel()
 
-	clients, vault := testVaultServer(t)
-	defer vault.Stop()
+	clients := testClients
 
 	if err := clients.Vault().Sys().Mount("transit", &api.MountInput{
 		Type: "transit",
