@@ -256,7 +256,15 @@ func (c *VaultConfig) Finalize() {
 		}, "")
 	}
 
-	if c.VaultAgentTokenFile != nil {
+	if c.VaultAgentTokenFile == nil {
+		if StringVal(c.Token) == "" {
+			if homePath != "" {
+				c.Token = stringFromFile([]string{
+					homePath + "/.vault-token",
+				}, "")
+			}
+		}
+	} else {
 		c.Token = stringFromFile([]string{*c.VaultAgentTokenFile}, "")
 		c.RenewToken = Bool(false)
 	}
