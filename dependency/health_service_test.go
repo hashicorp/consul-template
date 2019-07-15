@@ -164,12 +164,13 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 					NodeMeta: map[string]string{
 						"consul-network-segment": "",
 					},
-					Address: testConsul.Config.Bind,
-					ID:      "consul",
-					Name:    "consul",
-					Tags:    []string{},
-					Status:  "passing",
-					Port:    testConsul.Config.Ports.Server,
+					ServiceMeta: map[string]string{},
+					Address:     testConsul.Config.Bind,
+					ID:          "consul",
+					Name:        "consul",
+					Tags:        []string{},
+					Status:      "passing",
+					Port:        testConsul.Config.Ports.Server,
 				},
 			},
 		},
@@ -192,12 +193,13 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 					NodeMeta: map[string]string{
 						"consul-network-segment": "",
 					},
-					Address: testConsul.Config.Bind,
-					ID:      "consul",
-					Name:    "consul",
-					Tags:    []string{},
-					Status:  "passing",
-					Port:    testConsul.Config.Ports.Server,
+					ServiceMeta: map[string]string{},
+					Address:     testConsul.Config.Bind,
+					ID:          "consul",
+					Name:        "consul",
+					Tags:        []string{},
+					Status:      "passing",
+					Port:        testConsul.Config.Ports.Server,
 				},
 			},
 		},
@@ -244,6 +246,8 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 				for _, v := range act.([]*HealthService) {
 					v.NodeID = ""
 					v.Checks = nil
+					// delete any version data from ServiceMeta
+					v.ServiceMeta = filterVersionMeta(v.ServiceMeta)
 				}
 			}
 

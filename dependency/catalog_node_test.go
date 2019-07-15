@@ -108,6 +108,7 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 						Service: "consul",
 						Port:    testConsul.Config.Ports.Server,
 						Tags:    ServiceTags([]string{}),
+						Meta:    map[string]string{},
 					},
 					&CatalogNodeService{
 						ID:      "service-meta",
@@ -142,6 +143,11 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 			if act != nil {
 				if n := act.(*CatalogNode).Node; n != nil {
 					n.ID = ""
+				}
+				// delete any version data from ServiceMeta
+				services := act.(*CatalogNode).Services
+				for i := range services {
+					services[i].Meta = filterVersionMeta(services[i].Meta)
 				}
 			}
 
