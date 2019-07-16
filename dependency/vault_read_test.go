@@ -3,6 +3,8 @@ package dependency
 import (
 	"fmt"
 	"net/url"
+	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -397,6 +399,64 @@ func TestVaultReadQuery_Fetch_KVv2(t *testing.T) {
 			case <-dataCh:
 			}
 		})
+	}
+}
+
+// TestVaultReadQuery_Fetch_PKI_Anonymous asserts that vault.read can fetch a
+// pki ca public cert even even when running unauthenticated client.
+func TestVaultReadQuery_Fetch_PKI_Anonymous(t *testing.T) {
+	t.Parallel()
+
+	clients, vault := testVaultServer(t)
+	defer vault.Stop()
+
+	err := clients.Vault().Sys().Mount("pki", &api.MountInput{
+		Type: "pki",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	vc := clients.Vault()
+	_, err = vc.Logical().Write("sys/policies/acl/secrets-only", map[string]interface{}{
+		"policy": `path "secret/*" { capabilities = ["create", "read"] }`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = vc.Logical().Write("pki/root/generate/internal", map[string]interface{}{
+		"common_name": "example.com",
+		"ttl":         "24h",
+	})
+
+	anonClient := NewClientSet()
+	anonClient.CreateVaultClient(&CreateVaultClientInput{
+		Address: vault.Address,
+		Token:   "",
+	})
+	_, err = anonClient.vault.client.Auth().Token().LookupSelf()
+	if err == nil || !strings.Contains(err.Error(), "missing client token") {
+		t.Fatalf("expected a missing client token error but found: %v", err)
+	}
+
+	d, err := NewVaultReadQuery("pki/cert/ca")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	act, _, err := d.Fetch(anonClient, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sec, ok := act.(*Secret)
+	if !ok {
+		t.Fatalf("expected secret but found %v", reflect.TypeOf(act))
+	}
+	cert, ok := sec.Data["certificate"].(string)
+	if !ok || !strings.Contains(cert, "BEGIN") {
+		t.Fatalf("expected a cert but found: %v", cert)
 	}
 }
 
