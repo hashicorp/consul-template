@@ -266,7 +266,6 @@ func (c *VaultConfig) Finalize() {
 		}
 	} else {
 		c.Token = stringFromFile([]string{*c.VaultAgentTokenFile}, "")
-		c.RenewToken = Bool(false)
 	}
 
 	if c.Transport == nil {
