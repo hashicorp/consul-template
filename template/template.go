@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"io/ioutil"
+	"os"
 	"text/template"
 
 	"github.com/pkg/errors"
@@ -88,11 +89,19 @@ func NewTemplate(i *NewTemplateInput) (*Template, error) {
 	t.errMissingKey = i.ErrMissingKey
 
 	if i.Source != "" {
-		contents, err := ioutil.ReadFile(i.Source)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to read template")
+		if i.Source == "-" {
+			contents, err := ioutil.ReadAll(os.Stdin)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to read template")
+			}
+			t.contents = string(contents)
+		} else {
+			contents, err := ioutil.ReadFile(i.Source)
+			if err != nil {
+				return nil, errors.Wrap(err, "failed to read template")
+			}
+			t.contents = string(contents)
 		}
-		t.contents = string(contents)
 	}
 
 	// Compute the MD5, encode as hex

@@ -727,6 +727,7 @@ Options:
 
   -template=<template>
        Adds a new template to watch on disk in the format 'in:out(:command)'
+	   Use - for stdin or stdout.
 
   -vault-addr=<address>
       Sets the address of the Vault server

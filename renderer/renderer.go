@@ -107,6 +107,11 @@ func AtomicWrite(path string, createDestDirs bool, contents []byte, perms os.Fil
 		return ErrMissingDest
 	}
 
+	if path == "-" {
+		os.Stdout.Write(contents)
+		return nil
+	}
+
 	parent := filepath.Dir(path)
 	if _, err := os.Stat(parent); os.IsNotExist(err) {
 		if createDestDirs {
