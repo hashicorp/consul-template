@@ -20,8 +20,6 @@ OWNER := $(notdir $(patsubst %/,%,$(dir $(PROJECT))))
 NAME := $(notdir $(PROJECT))
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD)
 VERSION := $(shell awk -F\" '/Version/ { print $$2; exit }' "${CURRENT_DIR}/version/version.go")
-EXTERNAL_TOOLS = \
-	github.com/golang/dep/cmd/dep
 
 # Current system information
 GOOS ?= $(shell go env GOOS)
@@ -100,8 +98,8 @@ bootstrap:
 # deps updates all dependencies for this project.
 deps:
 	@echo "==> Updating deps for ${PROJECT}"
-	@dep ensure -update
-	@dep prune
+	@go get -u ./...
+	@go mod tidy
 .PHONY: deps
 
 # dev builds and installs the project locally.
