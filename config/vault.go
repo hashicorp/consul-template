@@ -209,9 +209,13 @@ func (c *VaultConfig) Finalize() {
 	}
 
 	if c.RenewToken == nil {
+		default_renew := DefaultVaultRenewToken
+		if c.VaultAgentTokenFile != nil {
+			default_renew = false
+		}
 		c.RenewToken = boolFromEnv([]string{
 			"VAULT_RENEW_TOKEN",
-		}, DefaultVaultRenewToken)
+		}, default_renew)
 	}
 
 	if c.Retry == nil {
