@@ -242,7 +242,7 @@ func (c *VaultConfig) Finalize() {
 		c.SSL.ServerName = stringFromEnv([]string{api.EnvVaultTLSServerName}, "")
 	}
 	if c.SSL.Verify == nil {
-		c.SSL.Verify = antiboolFromEnv([]string{api.EnvVaultInsecure}, true)
+		c.SSL.Verify = antiboolFromEnv([]string{api.EnvVaultSkipVerify}, true)
 	}
 	c.SSL.Finalize()
 
