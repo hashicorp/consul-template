@@ -56,7 +56,7 @@
 
 [[projects]]
   digest = "1:289dd4d7abfb3ad2b5f728fbe9b1d5c1bf7d265a3eb9ef92869af1f7baba4c7a"
-  name = "github.com/burntsushi/toml"
+  name = "github.com/BurntSushi/toml"
   packages = ["."]
   pruneopts = ""
   revision = "b26d9c308763d68093482582cea63d69be07a0f0"
