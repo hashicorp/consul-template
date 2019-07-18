@@ -209,9 +209,13 @@ func (c *VaultConfig) Finalize() {
 	}
 
 	if c.RenewToken == nil {
+		default_renew := DefaultVaultRenewToken
+		if c.VaultAgentTokenFile != nil {
+			default_renew = false
+		}
 		c.RenewToken = boolFromEnv([]string{
 			"VAULT_RENEW_TOKEN",
-		}, DefaultVaultRenewToken)
+		}, default_renew)
 	}
 
 	if c.Retry == nil {
@@ -256,9 +260,16 @@ func (c *VaultConfig) Finalize() {
 		}, "")
 	}
 
-	if c.VaultAgentTokenFile != nil {
+	if c.VaultAgentTokenFile == nil {
+		if StringVal(c.Token) == "" {
+			if homePath != "" {
+				c.Token = stringFromFile([]string{
+					homePath + "/.vault-token",
+				}, "")
+			}
+		}
+	} else {
 		c.Token = stringFromFile([]string{*c.VaultAgentTokenFile}, "")
-		c.RenewToken = Bool(false)
 	}
 
 	if c.Transport == nil {
