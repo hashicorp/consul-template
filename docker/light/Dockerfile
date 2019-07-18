@@ -1,5 +1,5 @@
 FROM alpine:latest
-LABEL maintainer "Seth Vargo <seth@sethvargo.com> (@sethvargo)"
+LABEL maintainer "John Eikenberry <jae@zhar.net>"
 
 RUN apk add --no-cache ca-certificates
 ADD "./pkg/linux_amd64/consul-template" "/bin/consul-template"
