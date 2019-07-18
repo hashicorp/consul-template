@@ -8,6 +8,8 @@ import (
 )
 
 func TestWaitConfig_Copy(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name string
 		a    *WaitConfig
@@ -41,6 +43,8 @@ func TestWaitConfig_Copy(t *testing.T) {
 }
 
 func TestWaitConfig_Merge(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name string
 		a    *WaitConfig
@@ -156,6 +160,8 @@ func TestWaitConfig_Merge(t *testing.T) {
 }
 
 func TestWaitConfig_Finalize(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name string
 		i    *WaitConfig
@@ -194,6 +200,8 @@ func TestWaitConfig_Finalize(t *testing.T) {
 }
 
 func TestParseWaitConfig(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name string
 		i    string

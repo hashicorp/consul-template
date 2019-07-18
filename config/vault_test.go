@@ -8,6 +8,8 @@ import (
 )
 
 func TestVaultConfig_Copy(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name string
 		a    *VaultConfig
@@ -51,6 +53,8 @@ func TestVaultConfig_Copy(t *testing.T) {
 }
 
 func TestVaultConfig_Merge(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name string
 		a    *VaultConfig
@@ -334,6 +338,8 @@ func TestVaultConfig_Merge(t *testing.T) {
 }
 
 func TestVaultConfig_Finalize(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name string
 		i    *VaultConfig
@@ -467,6 +473,8 @@ func TestVaultConfig_Finalize(t *testing.T) {
 }
 
 func TestVaultConfig_TokenFileRenew(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name   string
 		act    *VaultConfig

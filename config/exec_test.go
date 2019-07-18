@@ -9,6 +9,8 @@ import (
 )
 
 func TestExecConfig_Copy(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name string
 		a    *ExecConfig
@@ -47,6 +49,8 @@ func TestExecConfig_Copy(t *testing.T) {
 }
 
 func TestExecConfig_Merge(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name string
 		a    *ExecConfig
@@ -282,6 +286,8 @@ func TestExecConfig_Merge(t *testing.T) {
 }
 
 func TestExecConfig_Finalize(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name string
 		i    *ExecConfig

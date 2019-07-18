@@ -8,6 +8,8 @@ import (
 )
 
 func TestTransportConfig_Copy(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name string
 		a    *TransportConfig
@@ -45,6 +47,8 @@ func TestTransportConfig_Copy(t *testing.T) {
 }
 
 func TestTransportConfig_Merge(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name string
 		a    *TransportConfig
@@ -256,6 +260,8 @@ func TestTransportConfig_Merge(t *testing.T) {
 }
 
 func TestTransportConfig_Finalize(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name string
 		i    *TransportConfig

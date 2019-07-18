@@ -23,6 +23,8 @@ func TestMain(m *testing.M) {
 }
 
 func TestParse(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name string
 		i    string
@@ -1451,6 +1453,8 @@ func TestParse(t *testing.T) {
 }
 
 func TestFinalize(t *testing.T) {
+	t.Parallel()
+
 	// Testing Once disabling Wait
 	cases := []struct {
 		name string
@@ -1506,6 +1510,8 @@ func TestFinalize(t *testing.T) {
 }
 
 func TestConfig_Merge(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name string
 		a    *Config
@@ -1747,6 +1753,8 @@ func TestConfig_Merge(t *testing.T) {
 }
 
 func TestFromPath(t *testing.T) {
+	t.Parallel()
+
 	f, err := ioutil.TempFile("", "")
 	if err != nil {
 		t.Fatal(err)
@@ -1840,6 +1848,7 @@ func TestFromPath(t *testing.T) {
 }
 
 func TestDefaultConfig(t *testing.T) {
+	// Can't use t.Parallel() as this sets/unsets environment variables
 	cases := []struct {
 		env string
 		val string
