@@ -12,6 +12,16 @@ import (
 	"github.com/hashicorp/vault/api"
 )
 
+func TestMain(m *testing.M) {
+	// clear out any potential local config for tests
+	os.Unsetenv("VAULT_ADDR")
+	os.Unsetenv("VAULT_TOKEN")
+	os.Unsetenv("VAULT_DEV_ROOT_TOKEN_ID")
+	homePath, _ = ioutil.TempDir("", "")
+
+	os.Exit(m.Run())
+}
+
 func TestParse(t *testing.T) {
 	cases := []struct {
 		name string
