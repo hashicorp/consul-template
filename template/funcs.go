@@ -358,6 +358,51 @@ func secretsFunc(b *Brain, used, missing *dep.Set) func(string) ([]string, error
 	}
 }
 
+// byMeta returns Services grouped by one or many ServiceMeta fields.
+func byMeta(meta string, services []*dep.HealthService) (groups map[string][]*dep.HealthService, err error) {
+	re := regexp.MustCompile("[^a-zA-Z0-9_-]")
+	normalize := func(x string) string {
+		return re.ReplaceAllString(x, "_")
+	}
+	getOrDefault := func(m map[string]string, key string) string {
+		realKey := strings.TrimSuffix(key, "|int")
+		if val, ok := m[realKey]; ok {
+			if val != "" {
+				return val
+			}
+		}
+		if strings.HasSuffix(key, "|int") {
+			return "0"
+		}
+		return fmt.Sprintf("_no_%s_", realKey)
+	}
+
+	metas := strings.Split(meta, ",")
+
+	groups = make(map[string][]*dep.HealthService)
+
+	for _, s := range services {
+		sm := s.ServiceMeta
+		keyParts := []string{}
+		for _, meta := range metas {
+			value := getOrDefault(sm, meta)
+			if strings.HasSuffix(meta, "|int") {
+				value = getOrDefault(sm, meta)
+				i, err := strconv.Atoi(value)
+				if err != nil {
+					return nil, errors.Wrap(err, fmt.Sprintf("cannot parse %v as number ", value))
+				}
+				value = fmt.Sprintf("%05d", i)
+			}
+			keyParts = append(keyParts, normalize(value))
+		}
+		key := strings.Join(keyParts, "_")
+		groups[key] = append(groups[key], s)
+	}
+
+	return groups, nil
+}
+
 // serviceFunc returns or accumulates health service dependencies.
 func serviceFunc(b *Brain, used, missing *dep.Set) func(...string) ([]*dep.HealthService, error) {
 	return func(s ...string) ([]*dep.HealthService, error) {

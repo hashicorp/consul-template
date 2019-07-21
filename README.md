@@ -1250,6 +1250,81 @@ Takes the list of services returned by the [`service`](#service) or
 {{ end }}{{ end }}
 ```
 
+##### `byMeta`
+
+Takes a list of services returned by the [`service`](#service) or
+[`services`](#services) and returns a map that groups services by ServiceMeta values.
+Multiple service meta keys can be passed as a comma separated string. `|int` can be added to
+a meta key to convert numbers from service meta values to padded numbers in `printf "%05d" % value`
+format (useful for sorting as Go Template sorts maps by keys).
+
+**Example**:
+
+If we have the following services registered in Consul:
+
+```json
+{
+  "Services": [
+     {
+       "ID": "redis-dev-1",
+       "Name": "redis",
+       "ServiceMeta": {
+         "environment": "dev",
+         "shard_number": "1"
+       },
+       ...
+     },
+     {
+       "ID": "redis-prod-1",
+       "Name": "redis",
+       "ServiceMeta": {
+         "environment": "prod",
+         "shard_number": "1"
+       },
+       ...
+     },
+     {
+       "ID": "redis-prod-2",
+       "Name": "redis",
+       "ServiceMeta": {
+         "environment": "prod",
+         "shard_number": "2",
+       },
+       ...
+     }
+   ]
+}
+```
+
+```liquid
+{{ service "redis|any" | byMeta "environment,shard_number|int" | toJson }}
+```
+
+The code above will produce a map of services grouped by meta:
+
+```json
+{
+  "dev_00001": [
+    {
+      "ID": "redis-dev-1",
+      ...
+    }
+  ],
+  "prod_00001": [
+    {
+      "ID": "redis-prod-1",
+      ...
+    }
+  ],
+  "prod_00002": [
+    {
+      "ID": "redis-prod-2",
+      ...
+    }
+  ]
+}
+```
+
 ##### `contains`
 
 Determines if a needle is within an iterable element.
