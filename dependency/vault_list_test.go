@@ -68,13 +68,16 @@ func TestNewVaultListQuery(t *testing.T) {
 func TestVaultListQuery_Fetch(t *testing.T) {
 	t.Parallel()
 
-	clients, vault := testVaultServer(t)
-	defer vault.Stop()
+	clients, vault := testVaultServer(t, "listfetch", "1")
+	secretsPath := vault.secretsPath
 
-	vault.CreateSecret("foo/bar", map[string]interface{}{
-		"ttl": "2s", // explicitly make this a short duration for testing
+	err := vault.CreateSecret("foo/bar", map[string]interface{}{
+		"ttl": "100ms", // explicitly make this a short duration for testing
 		"zip": "zap",
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	cases := []struct {
 		name string
@@ -83,7 +86,7 @@ func TestVaultListQuery_Fetch(t *testing.T) {
 	}{
 		{
 			"exists",
-			"secret/",
+			secretsPath,
 			[]string{"foo/"},
 		},
 		{
@@ -110,7 +113,7 @@ func TestVaultListQuery_Fetch(t *testing.T) {
 	}
 
 	t.Run("stops", func(t *testing.T) {
-		d, err := NewVaultListQuery("secret/foo/bar")
+		d, err := NewVaultListQuery(secretsPath + "/foo/bar")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -147,7 +150,7 @@ func TestVaultListQuery_Fetch(t *testing.T) {
 	})
 
 	t.Run("fires_changes", func(t *testing.T) {
-		d, err := NewVaultListQuery("secret/")
+		d, err := NewVaultListQuery(secretsPath)
 		if err != nil {
 			t.Fatal(err)
 		}

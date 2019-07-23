@@ -2228,7 +2228,7 @@ following to generate all binaries:
 $ make build
 ```
 
-If you want to run the tests, first [install consul locally](https://www.consul.io/docs/install/index.html), then:
+If you want to run the tests, first install [consul](https://www.consul.io/docs/install/index.html) and [vault](https://www.vaultproject.io/docs/install/) locally, then:
 
 ```shell
 $ make test

@@ -2,7 +2,6 @@ package dependency
 
 import (
 	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 	"testing"
@@ -12,12 +11,18 @@ import (
 )
 
 func TestVaultAgentTokenQuery_Fetch(t *testing.T) {
-	t.Parallel()
+	// Don't use t.Parallel() here as the SetToken() calls are global and break
+	// other tests if run in parallel
+
+	// reset token back to original
+	vc := testClients.Vault()
+	token := vc.Token()
+	defer vc.SetToken(token)
 
 	// Set up the Vault token file.
 	tokenFile, err := ioutil.TempFile("", "token1")
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 	defer os.Remove(tokenFile.Name())
 	renderer.AtomicWrite(tokenFile.Name(), false, []byte("token"), 0644, false)
@@ -27,8 +32,7 @@ func TestVaultAgentTokenQuery_Fetch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	clientSet, vault := testVaultServer(t)
-	defer vault.Stop()
+	clientSet := testClients
 	_, _, err = d.Fetch(clientSet, nil)
 	if err != nil {
 		t.Fatal(err)

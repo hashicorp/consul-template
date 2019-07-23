@@ -7,23 +7,17 @@ import (
 )
 
 func TestClientSet_unwrapVaultToken(t *testing.T) {
-	t.Parallel()
+	// Don't use t.Parallel() here as the SetWrappingLookupFunc is a global
+	// setting and breaks other tests if run in parallel
 
-	clients, server := testVaultServer(t)
-	defer server.Stop()
-
-	vault := clients.vault.client
-
-	// Grab the original token
-	originalToken, err := vault.Auth().Token().LookupSelf()
-	if err != nil {
-		t.Fatal(err)
-	}
+	vault := testClients.Vault()
 
 	// Create a wrapped token
 	vault.SetWrappingLookupFunc(func(operation, path string) string {
 		return "30s"
 	})
+	defer vault.SetWrappingLookupFunc(nil)
+
 	wrappedToken, err := vault.Auth().Token().Create(&api.TokenCreateRequest{
 		Lease: "1h",
 	})
@@ -31,22 +25,11 @@ func TestClientSet_unwrapVaultToken(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := clients.CreateVaultClient(&CreateVaultClientInput{
-		Address:     server.Address,
-		Token:       wrappedToken.WrapInfo.Token,
-		UnwrapToken: true,
-	}); err != nil {
-		t.Fatal(err)
-	}
+	token := vault.Token()
 
-	newToken := clients.vault.client.Token()
-
-	if newToken == originalToken.Data["id"] {
-		t.Errorf("expected %q to not be %q", newToken, originalToken.Data["id"])
-	}
-
-	if newToken == wrappedToken.WrapInfo.Token {
-		t.Errorf("expected %q to not be %q", newToken, wrappedToken.WrapInfo.Token)
+	if token == wrappedToken.WrapInfo.Token {
+		t.Errorf("expected %q to not be %q", token,
+			wrappedToken.WrapInfo.Token)
 	}
 
 	if _, err := vault.Auth().Token().LookupSelf(); err != nil {
