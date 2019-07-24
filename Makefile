@@ -45,9 +45,6 @@ LD_FLAGS ?= \
 # List of Docker targets to build
 DOCKER_TARGETS ?= alpine light scratch
 
-# List of tests to run
-TEST ?= ./...
-
 # Create a cross-compile target for every os-arch pairing. This will generate
 # a make target for each os/arch like "make linux/amd64" as well as generate a
 # meta target (build) for compiling everything.
@@ -173,7 +170,7 @@ $(foreach target,$(DOCKER_TARGETS),$(eval $(call make-docker-target,$(target))))
 # test runs the test suite.
 test:
 	@echo "==> Testing ${NAME}"
-	@go test -timeout=30s -parallel=20 -failfast -tags="${GOTAGS}" ./... ${TESTARGS}
+	@go test -count=1 -timeout=30s -parallel=20 -failfast -tags="${GOTAGS}" ./... ${TESTARGS}
 .PHONY: test
 
 # test-race runs the test suite.
