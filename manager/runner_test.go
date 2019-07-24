@@ -238,18 +238,16 @@ func TestRunner_Run(t *testing.T) {
 					}
 				}
 
-				go func() {
-					d, err := dep.NewKVGetQuery("foo")
-					if err != nil {
-						t.Fatal(err)
-					}
-					d.EnableBlocking()
-					r.Receive(d, "bar")
+				d, err := dep.NewKVGetQuery("foo")
+				if err != nil {
+					t.Fatal(err)
+				}
+				d.EnableBlocking()
+				r.Receive(d, "bar")
 
-					if err := r.Run(); err != nil {
-						t.Fatal(err)
-					}
-				}()
+				if err := r.Run(); err != nil {
+					t.Fatal(err)
+				}
 
 				select {
 				case <-r.RenderEventCh():
