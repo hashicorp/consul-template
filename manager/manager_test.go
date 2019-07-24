@@ -17,12 +17,12 @@ var testConsul *testutil.TestServer
 var testClients *dep.ClientSet
 
 func TestMain(m *testing.M) {
+	log.SetOutput(ioutil.Discard)
 	consul, err := testutil.NewTestServerConfig(func(c *testutil.TestServerConfig) {
 		c.LogLevel = "warn"
 		c.Stdout = ioutil.Discard
 		c.Stderr = ioutil.Discard
 	})
-	log.SetOutput(ioutil.Discard)
 	if err != nil {
 		log.Fatal(fmt.Errorf("failed to start consul server: %v", err))
 	}
