@@ -1,12 +1,30 @@
+### Builder
+#
+FROM golang:1.12 AS builder
+LABEL maintainer "John Eikenberry <jae@zhar.net>"
+
+ARG LD_FLAGS
+ARG GOTAGS
+
+WORKDIR "/go/src/github.com/hashicorp/consul-template"
+
+COPY . .
+
+RUN \
+  CGO_ENABLED="0" \
+  go build -a -o "/consul-template" -ldflags "${LD_FLAGS}" -tags "${GOTAGS}"
+
+### Final
+#
 FROM alpine:latest
 LABEL maintainer "John Eikenberry <jae@zhar.net>"
 
 # This is the release of https://github.com/hashicorp/docker-base to pull in order
 # to provide HashiCorp-built versions of basic utilities like dumb-init and gosu.
-ENV DOCKER_BASE_VERSION=0.0.4
+ARG DOCKER_BASE_VERSION="0.0.4"
 
 # This is the location of the releases.
-ENV HASHICORP_RELEASES=https://releases.hashicorp.com
+ARG HASHICORP_RELEASES="https://releases.hashicorp.com"
 
 # Create a consul-template user and group first so the IDs get set the same way,
 # even as the rest of this may change over time.
@@ -15,17 +33,8 @@ RUN addgroup consul-template && \
 
 # Set up certificates, our base tools, and Consul Template (CT).
 RUN apk add --no-cache ca-certificates curl gnupg libcap openssl && \
-    BUILD_GPGKEY=91A6E7F85D05C65630BEF18951852D87348FFC4C; \
-    found=''; \
-    for server in \
-        hkp://p80.pool.sks-keyservers.net:80 \
-        hkp://keyserver.ubuntu.com:80 \
-        hkp://pgp.mit.edu:80 \
-    ; do \
-        echo "Fetching GPG key $BUILD_GPGKEY from $server"; \
-        gpg --keyserver "$server" --recv-keys "$BUILD_GPGKEY" && found=yes && break; \
-    done; \
-    test -z "$found" && echo >&2 "error: failed to fetch GPG key $BUILD_GPGKEY" && exit 1; \
+    mkdir -p /etc/ssl/certs && update-ca-certificates --fresh && \
+    gpg --keyserver keys.gnupg.net --recv-keys "91A6E7F85D05C65630BEF18951852D87348FFC4C " && \
     mkdir -p /tmp/build && \
     cd /tmp/build && \
     wget ${HASHICORP_RELEASES}/docker-base/${DOCKER_BASE_VERSION}/docker-base_${DOCKER_BASE_VERSION}_linux_amd64.zip && \
@@ -41,7 +50,7 @@ RUN apk add --no-cache ca-certificates curl gnupg libcap openssl && \
     rm -rf /root/.gnupg
 
 # Install consul-template
-ADD "./pkg/linux_amd64/consul-template" "/bin/consul-template"
+COPY --from=builder "/consul-template" "/bin/consul-template"
 
 # The agent will be started with /consul-template/config as the configuration directory
 # so you can add additional config files in that location.
@@ -55,8 +64,9 @@ VOLUME /consul-template/data
 
 # The entry point script uses dumb-init as the top-level process to reap any
 # zombie processes created by Consul Template sub-processes.
-COPY docker/alpine/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-ENTRYPOINT ["docker-entrypoint.sh"]
+COPY "docker/alpine/docker-entrypoint.sh" "/bin/docker-entrypoint.sh"
+RUN chmod +x "/bin/docker-entrypoint.sh"
+ENTRYPOINT ["/bin/docker-entrypoint.sh"]
 
 # Run consul-template by default
 CMD ["/bin/consul-template"]
