@@ -209,6 +209,13 @@ func TestCatalogServiceQuery_Fetch(t *testing.T) {
 				}
 			}
 
+			// delete any version data from ServiceMeta
+			act_list := act.([]*CatalogService)
+			for i := range act_list {
+				act_list[i].ServiceMeta = filterVersionMeta(
+					act_list[i].ServiceMeta)
+			}
+
 			assert.Equal(t, tc.exp, act)
 		})
 	}
