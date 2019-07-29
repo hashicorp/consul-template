@@ -780,6 +780,74 @@ func TestRunner_Start(t *testing.T) {
 		}
 	})
 
+	// Exec would run before template rendering if Wait was defined.
+	t.Run("exec-wait", func(t *testing.T) {
+		t.Parallel()
+
+		testConsul.SetKVString(t, "exec-wait-foo", "foo")
+
+		firstOut, err := ioutil.TempFile("", "foo")
+		if err != nil {
+			t.Fatal(err)
+		}
+		os.Remove(firstOut.Name())       // remove ioutil created file
+		defer os.Remove(firstOut.Name()) // remove template created file
+
+		c := config.DefaultConfig().Merge(&config.Config{
+			Consul: &config.ConsulConfig{
+				Address: config.String(testConsul.HTTPAddr),
+			},
+			Wait: &config.WaitConfig{
+				Min: config.TimeDuration(5 * time.Millisecond),
+				Max: config.TimeDuration(10 * time.Millisecond),
+			},
+			Exec: &config.ExecConfig{
+				// `cat filename` would fail if template hadn't rendered
+				Command: config.String(`cat ` + firstOut.Name()),
+			},
+			Templates: &config.TemplateConfigs{
+				&config.TemplateConfig{
+					Contents:    config.String(`{{ key "exec-wait-foo" }}`),
+					Destination: config.String(firstOut.Name()),
+				},
+			},
+		})
+		c.Finalize()
+
+		r, err := NewRunner(c, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		go r.Start()
+		defer r.Stop()
+
+		select {
+		case err := <-r.ErrCh:
+			t.Fatal(err)
+		case <-r.renderedCh:
+			found := false
+			for i := 0; i < 5; i++ {
+				if found {
+					break
+				}
+
+				time.Sleep(100 * time.Millisecond)
+
+				r.childLock.RLock()
+				if r.child != nil {
+					found = true
+				}
+				r.childLock.RUnlock()
+			}
+			if !found {
+				t.Error("missing child process, exec was not called")
+			}
+		case <-time.After(2 * time.Second):
+			t.Fatal("timeout")
+		}
+	})
+
 	// verifies that multiple differing templates that share
 	// a wait parameter call an exec function
 	// https://github.com/hashicorp/consul-template/issues/1043

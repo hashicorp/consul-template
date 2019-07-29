@@ -221,31 +221,6 @@ func (r *Runner) Start() {
 	}
 
 	for {
-		// Enable quiescence for all templates if we have specified wait
-		// intervals.
-	NEXT_Q:
-		for _, t := range r.templates {
-			if _, ok := r.quiescenceMap[t.ID()]; ok {
-				continue NEXT_Q
-			}
-
-			for _, c := range r.templateConfigsFor(t) {
-				if *c.Wait.Enabled {
-					log.Printf("[DEBUG] (runner) enabling template-specific quiescence for %q", t.ID())
-					r.quiescenceMap[t.ID()] = newQuiescence(
-						r.quiescenceCh, *c.Wait.Min, *c.Wait.Max, t)
-					continue NEXT_Q
-				}
-			}
-
-			if *r.config.Wait.Enabled {
-				log.Printf("[DEBUG] (runner) enabling global quiescence for %q", t.ID())
-				r.quiescenceMap[t.ID()] = newQuiescence(
-					r.quiescenceCh, *r.config.Wait.Min, *r.config.Wait.Max, t)
-				continue NEXT_Q
-			}
-		}
-
 		// Warn the user if they are watching too many dependencies.
 		if r.watcher.Size() > saneViewLimit {
 			log.Printf("[WARN] (runner) watching %d dependencies - watching this "+
@@ -256,6 +231,32 @@ func (r *Runner) Start() {
 
 		if r.allTemplatesRendered() {
 			log.Printf("[DEBUG] (runner) all templates rendered")
+			// Enable quiescence for all templates if we have specified wait
+			// intervals.
+		NEXT_Q:
+			for _, t := range r.templates {
+				if _, ok := r.quiescenceMap[t.ID()]; ok {
+					continue NEXT_Q
+				}
+
+				for _, c := range r.templateConfigsFor(t) {
+					if *c.Wait.Enabled {
+						log.Printf("[DEBUG] (runner) enabling template-specific "+
+							"quiescence for %q", t.ID())
+						r.quiescenceMap[t.ID()] = newQuiescence(
+							r.quiescenceCh, *c.Wait.Min, *c.Wait.Max, t)
+						continue NEXT_Q
+					}
+				}
+
+				if *r.config.Wait.Enabled {
+					log.Printf("[DEBUG] (runner) enabling global quiescence for %q",
+						t.ID())
+					r.quiescenceMap[t.ID()] = newQuiescence(
+						r.quiescenceCh, *r.config.Wait.Min, *r.config.Wait.Max, t)
+					continue NEXT_Q
+				}
+			}
 
 			// If an exec command was given and a command is not currently running,
 			// spawn the child process for supervision.
