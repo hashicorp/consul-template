@@ -1,6 +1,7 @@
 ### Builder
 #
-FROM golang:1.12 AS builder
+ARG GOVERSION=latest
+FROM golang:${GOVERSION} AS builder
 LABEL maintainer "John Eikenberry <jae@zhar.net>"
 
 ARG LD_FLAGS
