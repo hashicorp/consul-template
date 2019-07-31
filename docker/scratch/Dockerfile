@@ -1,6 +1,6 @@
 ### Builder
 #
-ARG GOVERSION
+ARG GOVERSION=latest
 FROM golang:${GOVERSION} AS builder
 LABEL maintainer "John Eikenberry <jae@zhar.net>"
 
