@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/consul-template/config"
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul-template/template"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 var testConsul *testutil.TestServer

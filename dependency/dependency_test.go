@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/sdk/testutil"
 	vapi "github.com/hashicorp/vault/api"
 )
 
