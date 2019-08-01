@@ -1,7 +1,0 @@
-syntax = "proto3";
-
-option go_package = "github.com/hashicorp/vault/helper/identity/mfa";
-
-package mfa;
-
-message Secret {}
