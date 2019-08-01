@@ -9,6 +9,9 @@ jobs:
     working_directory: /go/src/github.com/hashicorp/consul-template
     steps:
       - checkout
+      - restore_cache:
+          keys:
+          - ct-modcache-v1-{{ checksum "go.mod" }}
       - run: |
           curl -sLo consul.zip https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip
           unzip consul.zip
@@ -17,4 +20,11 @@ jobs:
           curl -sLo vault.zip https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip
           unzip vault.zip
           sudo cp vault /usr/local/bin/
-      - run: make test
+      - run: |
+          export GO111MODULE=on
+          make test
+      - save_cache:
+          key: ct-modcache-v1-{{ checksum "go.mod" }}
+          paths:
+          - /go/pkg/mod
+
