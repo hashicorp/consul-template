@@ -495,6 +495,10 @@ template {
   left_delimiter  = "{{"
   right_delimiter = "}}"
 
+  # These are functions that are not permitted in the template. If a template
+  # includes one of these functions, it will exit with an error.
+  function_blacklist = []
+
   # This is the `minimum(:maximum)` to wait before rendering a new template to
   # disk and triggering a command, separated by a colon (`:`). If the optional
   # maximum value is omitted, it is assumed to be 4x the required minimum value.

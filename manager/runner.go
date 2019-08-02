@@ -851,11 +851,12 @@ func (r *Runner) init() error {
 	// destinations.
 	for _, ctmpl := range *r.config.Templates {
 		tmpl, err := template.NewTemplate(&template.NewTemplateInput{
-			Source:        config.StringVal(ctmpl.Source),
-			Contents:      config.StringVal(ctmpl.Contents),
-			ErrMissingKey: config.BoolVal(ctmpl.ErrMissingKey),
-			LeftDelim:     config.StringVal(ctmpl.LeftDelim),
-			RightDelim:    config.StringVal(ctmpl.RightDelim),
+			Source:            config.StringVal(ctmpl.Source),
+			Contents:          config.StringVal(ctmpl.Contents),
+			ErrMissingKey:     config.BoolVal(ctmpl.ErrMissingKey),
+			LeftDelim:         config.StringVal(ctmpl.LeftDelim),
+			RightDelim:        config.StringVal(ctmpl.RightDelim),
+			FunctionBlacklist: ctmpl.FunctionBlacklist,
 		})
 		if err != nil {
 			return err

@@ -1327,6 +1327,18 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"helper_plugin_disabled",
+			&NewTemplateInput{
+				Contents:          `{{ "1" | plugin "echo" }}`,
+				FunctionBlacklist: []string{"plugin"},
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"",
+			true,
+		},
+		{
 			"helper_regexMatch",
 			&NewTemplateInput{
 				Contents: `{{ "foo" | regexMatch "[a-z]+" }}`,

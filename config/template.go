@@ -75,6 +75,10 @@ type TemplateConfig struct {
 	// delimiter is utilized when parsing the template.
 	LeftDelim  *string `mapstructure:"left_delimiter"`
 	RightDelim *string `mapstructure:"right_delimiter"`
+
+	// FunctionBlacklist is a list of functions that this template is not
+	// permitted to run.
+	FunctionBlacklist []string `mapstructure:"function_blacklist"`
 }
 
 // DefaultTemplateConfig returns a configuration that is populated with the
@@ -122,6 +126,10 @@ func (c *TemplateConfig) Copy() *TemplateConfig {
 
 	o.LeftDelim = c.LeftDelim
 	o.RightDelim = c.RightDelim
+
+	for _, fun := range c.FunctionBlacklist {
+		o.FunctionBlacklist = append(o.FunctionBlacklist, fun)
+	}
 
 	return &o
 }
@@ -194,6 +202,10 @@ func (c *TemplateConfig) Merge(o *TemplateConfig) *TemplateConfig {
 
 	if o.RightDelim != nil {
 		r.RightDelim = o.RightDelim
+	}
+
+	for _, fun := range o.FunctionBlacklist {
+		r.FunctionBlacklist = append(r.FunctionBlacklist, fun)
 	}
 
 	return r
@@ -285,6 +297,7 @@ func (c *TemplateConfig) GoString() string {
 		"Wait:%#v, "+
 		"LeftDelim:%s, "+
 		"RightDelim:%s"+
+		"FunctionBlacklist:%s"+
 		"}",
 		BoolGoString(c.Backup),
 		StringGoString(c.Command),
@@ -299,6 +312,7 @@ func (c *TemplateConfig) GoString() string {
 		c.Wait,
 		StringGoString(c.LeftDelim),
 		StringGoString(c.RightDelim),
+		c.FunctionBlacklist,
 	)
 }
 
