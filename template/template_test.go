@@ -1329,11 +1329,11 @@ func TestTemplate_Execute(t *testing.T) {
 		{
 			"helper_plugin_disabled",
 			&NewTemplateInput{
-				Contents: `{{ "1" | plugin "echo" }}`,
+				Contents:          `{{ "1" | plugin "echo" }}`,
+				FunctionBlacklist: []string{"plugin"},
 			},
 			&ExecuteInput{
-				Brain:                NewBrain(),
-				BlacklistedFunctions: []string{"plugin"},
+				Brain: NewBrain(),
 			},
 			"",
 			true,
