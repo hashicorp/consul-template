@@ -940,14 +940,16 @@ func (r *Runner) templateConfigsFor(tmpl *template.Template) []*config.TemplateC
 
 // TemplateConfigMapping returns a mapping between the template ID and the set
 // of TemplateConfig represented by the template ID
-func (r *Runner) TemplateConfigMapping() map[string][]config.TemplateConfig {
-	m := make(map[string][]config.TemplateConfig, len(r.ctemplatesMap))
+func (r *Runner) TemplateConfigMapping() map[string][]*config.TemplateConfig {
+	// this method is primarily used to support embedding consul-template
+	// in other applications (ex. Nomad)
+	m := make(map[string][]*config.TemplateConfig, len(r.ctemplatesMap))
 
 	for id, set := range r.ctemplatesMap {
-		ctmpls := make([]config.TemplateConfig, len(set))
+		ctmpls := make([]*config.TemplateConfig, len(set))
 		m[id] = ctmpls
 		for i, ctmpl := range set {
-			ctmpls[i] = *ctmpl
+			ctmpls[i] = ctmpl
 		}
 	}
 
