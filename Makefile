@@ -15,8 +15,8 @@ GOMAXPROCS ?= 4
 
 # Get the project metadata
 GO_DOCKER_VERSION ?= 1.12
-PROJECT := $(CURRENT_DIR:$(GOPATH)/src/%=%)
-OWNER := $(notdir $(patsubst %/,%,$(dir $(PROJECT))))
+PROJECT := $(shell go list -m)
+OWNER := "hashicorp"
 NAME := $(notdir $(PROJECT))
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD)
 VERSION := $(shell awk -F\" '/Version/ { print $$2; exit }' "${CURRENT_DIR}/version/version.go")
