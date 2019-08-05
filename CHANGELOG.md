@@ -1,3 +1,10 @@
+## v0.21.0 (August 05, 2019)
+
+IMPROVEMENTS:
+
+* Migrated to use Go modules [[GH-1244](https://github.com/hashicorp/consul-template/pull/1244), [GH-1173](https://github.com/hashicorp/consul-template/issues/1173), [GH-1208](https://github.com/hashicorp/consul-template/pull/1208)[GH-1232](https://github.com/hashicorp/consul-template/pull/1232)]
+* Template blacklist feature [[GH-1243](https://github.com/hashicorp/consul-template/pull/1243)]
+
 ## v0.20.1 (July 30, 2019)
 
 BUG FIXES:
