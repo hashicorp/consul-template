@@ -59,6 +59,7 @@ define make-xc-target
 			GOOS="${1}" \
 			GOARCH="${2}" \
 			go build \
+				-mod vendor \
 				-a \
 				-o="pkg/${1}_${2}/${NAME}${3}" \
 				-ldflags "${LD_FLAGS}" \
@@ -76,6 +77,7 @@ $(foreach goarch,$(XC_ARCH),$(foreach goos,$(XC_OS),$(eval $(call make-xc-target
 
 # Use docker to create pristine builds for release
 pristine:
+	@go mod vendor
 	@docker run \
 		--interactive \
 		--user $$(id -u):$$(id -g) \
@@ -83,6 +85,8 @@ pristine:
 		--dns="8.8.8.8" \
 		--volume="${CURRENT_DIR}:/go/src/${PROJECT}" \
 		--workdir="/go/src/${PROJECT}" \
+		--env=CGO_ENABLED="0" \
+		--env=GO111MODULE=on \
 		"golang:${GO_DOCKER_VERSION}" env GOCACHE=/tmp make -j4 build
 
 # bootstrap installs the necessary go tools for development or build.
@@ -138,6 +142,7 @@ endif
 define make-docker-target
   docker-build/$1:
 		@echo "==> Building ${1} Docker container for ${PROJECT}"
+		@go mod vendor
 		@docker build \
 			--rm \
 			--force-rm \
@@ -184,6 +189,7 @@ test-race:
 _cleanup:
 	@rm -rf "${CURRENT_DIR}/pkg/"
 	@rm -rf "${CURRENT_DIR}/bin/"
+	@rm -rf "${CURRENT_DIR}/vendor/"
 .PHONY: _cleanup
 
 clean: _cleanup

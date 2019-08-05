@@ -13,7 +13,9 @@ COPY . .
 
 RUN \
   CGO_ENABLED="0" \
-  go build -a -o "/consul-template" -ldflags "${LD_FLAGS}" -tags "${GOTAGS}"
+  GO111MODULE=on \
+  go build -mod vendor -a -o "/consul-template" \
+    -ldflags "${LD_FLAGS}" -tags "${GOTAGS}"
 
 ### Final
 #
