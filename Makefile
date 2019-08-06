@@ -15,7 +15,7 @@ GOMAXPROCS ?= 4
 
 # Get the project metadata
 GO_DOCKER_VERSION ?= 1.12
-PROJECT := $(shell go list -m)
+PROJECT := $(shell go list -m -mod=vendor)
 OWNER := "hashicorp"
 NAME := $(notdir $(PROJECT))
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD)
