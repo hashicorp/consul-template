@@ -449,8 +449,9 @@ func TestTemplateConfig_Finalize(t *testing.T) {
 					Max:     TimeDuration(0 * time.Second),
 					Min:     TimeDuration(0 * time.Second),
 				},
-				LeftDelim:  String(""),
-				RightDelim: String(""),
+				LeftDelim:   String(""),
+				RightDelim:  String(""),
+				SandboxPath: String(""),
 			},
 		},
 	}

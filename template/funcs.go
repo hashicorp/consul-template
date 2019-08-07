@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -98,12 +99,15 @@ func executeTemplateFunc(t *template.Template) func(string, ...interface{}) (str
 }
 
 // fileFunc returns or accumulates file dependencies.
-func fileFunc(b *Brain, used, missing *dep.Set) func(string) (string, error) {
+func fileFunc(b *Brain, used, missing *dep.Set, sandboxPath string) func(string) (string, error) {
 	return func(s string) (string, error) {
 		if len(s) == 0 {
 			return "", nil
 		}
-
+		s, err := sandboxedPath(sandboxPath, s)
+		if err != nil {
+			return "", err
+		}
 		d, err := dep.NewFileQuery(s)
 		if err != nil {
 			return "", err
@@ -1160,4 +1164,24 @@ func modulo(b, a interface{}) (interface{}, error) {
 // blacklisted always returns an error, to be used in place of blacklisted template functions
 func blacklisted(...string) (string, error) {
 	return "", errors.New("function is disabled")
+}
+
+// sandboxedPath returns a path that's been prefixed by the sandbox path,
+// if any. If a sandbox path was provided, it will return an error if the
+// path falls outside the sandbox.
+func sandboxedPath(sandbox, s string) (string, error) {
+	path, err := filepath.Abs(filepath.Join(sandbox, s))
+	if err != nil {
+		return "", err
+	}
+	if sandbox != "" {
+		path, err := filepath.Rel(sandbox, path)
+		if err != nil {
+			return "", err
+		}
+		if strings.HasPrefix(path, "..") {
+			return "", fmt.Errorf("'%s' is outside of sandbox", s)
+		}
+	}
+	return path, nil
 }

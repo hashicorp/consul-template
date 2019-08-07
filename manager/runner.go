@@ -16,8 +16,8 @@ import (
 	"github.com/hashicorp/consul-template/renderer"
 	"github.com/hashicorp/consul-template/template"
 	"github.com/hashicorp/consul-template/watch"
-	"github.com/hashicorp/go-multierror"
-	"github.com/mattn/go-shellwords"
+	multierror "github.com/hashicorp/go-multierror"
+	shellwords "github.com/mattn/go-shellwords"
 	"github.com/pkg/errors"
 )
 
@@ -857,6 +857,7 @@ func (r *Runner) init() error {
 			LeftDelim:         config.StringVal(ctmpl.LeftDelim),
 			RightDelim:        config.StringVal(ctmpl.RightDelim),
 			FunctionBlacklist: ctmpl.FunctionBlacklist,
+			SandboxPath:       config.StringVal(ctmpl.SandboxPath),
 		})
 		if err != nil {
 			return err

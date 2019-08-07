@@ -49,6 +49,11 @@ type Template struct {
 	// functionBlacklist are functions not permitted to be executed
 	// when we render this template
 	functionBlacklist []string
+
+	// sandboxPath adds a prefix to any path provided to the `file` function
+	// and causes an error if a relative path tries to traverse outside that
+	// prefix.
+	sandboxPath string
 }
 
 // NewTemplateInput is used as input when creating the template.
@@ -70,6 +75,11 @@ type NewTemplateInput struct {
 	// FunctionBlacklist are functions not permitted to be executed
 	// when we render this template
 	FunctionBlacklist []string
+
+	// SandboxPath adds a prefix to any path provided to the `file` function
+	// and causes an error if a relative path tries to traverse outside that
+	// prefix.
+	SandboxPath string
 }
 
 // NewTemplate creates and parses a new Consul Template template at the given
@@ -95,6 +105,7 @@ func NewTemplate(i *NewTemplateInput) (*Template, error) {
 	t.rightDelim = i.RightDelim
 	t.errMissingKey = i.ErrMissingKey
 	t.functionBlacklist = i.FunctionBlacklist
+	t.sandboxPath = i.SandboxPath
 
 	if i.Source != "" {
 		contents, err := ioutil.ReadFile(i.Source)
@@ -138,10 +149,6 @@ type ExecuteInput struct {
 	// Values specified here will take precedence over any values in the
 	// environment when using the `env` function.
 	Env []string
-
-	// BlacklistedFunctions is a set of functions to be disabled
-	// when executing the template
-	BlacklistedFunctions []string
 }
 
 // ExecuteResult is the result of the template execution.
@@ -174,6 +181,7 @@ func (t *Template) Execute(i *ExecuteInput) (*ExecuteResult, error) {
 		used:              &used,
 		missing:           &missing,
 		functionBlacklist: t.functionBlacklist,
+		sandboxPath:       t.sandboxPath,
 	}))
 
 	if t.errMissingKey {
@@ -206,6 +214,7 @@ type funcMapInput struct {
 	brain             *Brain
 	env               []string
 	functionBlacklist []string
+	sandboxPath       string
 	used              *dep.Set
 	missing           *dep.Set
 }
@@ -217,7 +226,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 	r := template.FuncMap{
 		// API functions
 		"datacenters":  datacentersFunc(i.brain, i.used, i.missing),
-		"file":         fileFunc(i.brain, i.used, i.missing),
+		"file":         fileFunc(i.brain, i.used, i.missing, i.sandboxPath),
 		"key":          keyFunc(i.brain, i.used, i.missing),
 		"keyExists":    keyExistsFunc(i.brain, i.used, i.missing),
 		"keyOrDefault": keyWithDefaultFunc(i.brain, i.used, i.missing),
