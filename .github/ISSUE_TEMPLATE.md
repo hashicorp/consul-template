@@ -19,13 +19,18 @@ issue.
 ### Configuration
 
 ```hcl
-# Copy-paste your Consul Template configuration file here
+# Copy-paste your configuration files here. Only include what is necessary or
+# what you've changed from defaults. Include all referenced configurations.
+
 ```
 
 ```liquid
 # Copy-paste your Consul Template template here
 ```
 
+```liquid
+# Include sample data you reference in the template from Consul or Vault here.
+```
 
 ### Command
 
@@ -33,17 +38,14 @@ issue.
 # Place your Consul Template command here
 ```
 
-
 ### Debug output
 
 Provide a link to a GitHub Gist containing the complete debug
 output by running with `-log-level=trace`.
 
-
 ### Expected behavior
 
 What should have happened?
-
 
 ### Actual behavior
 
@@ -55,7 +57,6 @@ What actually happened?
 1.
 2.
 3.
-
 
 ### References
 
