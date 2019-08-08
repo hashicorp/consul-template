@@ -1250,6 +1250,18 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			// GH-1143
+			"helper_loop_var",
+			&NewTemplateInput{
+				Contents: `{{$n := 3 }}{{ range $i := loop $n }}{{ $i }}{{ end }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"012",
+			false,
+		},
+		{
 			"helper_join",
 			&NewTemplateInput{
 				Contents: `{{ "a,b,c" | split "," | join ";" }}`,
