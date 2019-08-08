@@ -1175,7 +1175,11 @@ func sandboxedPath(sandbox, s string) (string, error) {
 		return "", err
 	}
 	if sandbox != "" {
-		path, err := filepath.Rel(sandbox, path)
+		path, err := filepath.EvalSymlinks(path)
+		if err != nil {
+			return "", err
+		}
+		path, err = filepath.Rel(sandbox, path)
 		if err != nil {
 			return "", err
 		}
