@@ -79,6 +79,11 @@ type TemplateConfig struct {
 	// FunctionBlacklist is a list of functions that this template is not
 	// permitted to run.
 	FunctionBlacklist []string `mapstructure:"function_blacklist"`
+
+	// SandboxPath adds a prefix to any path provided to the `file` function
+	// and causes an error if a relative path tries to traverse outside that
+	// prefix.
+	SandboxPath *string `mapstructure:"sandbox_path"`
 }
 
 // DefaultTemplateConfig returns a configuration that is populated with the
@@ -130,6 +135,7 @@ func (c *TemplateConfig) Copy() *TemplateConfig {
 	for _, fun := range c.FunctionBlacklist {
 		o.FunctionBlacklist = append(o.FunctionBlacklist, fun)
 	}
+	o.SandboxPath = c.SandboxPath
 
 	return &o
 }
@@ -207,6 +213,9 @@ func (c *TemplateConfig) Merge(o *TemplateConfig) *TemplateConfig {
 	for _, fun := range o.FunctionBlacklist {
 		r.FunctionBlacklist = append(r.FunctionBlacklist, fun)
 	}
+	if o.SandboxPath != nil {
+		r.SandboxPath = o.SandboxPath
+	}
 
 	return r
 }
@@ -275,6 +284,10 @@ func (c *TemplateConfig) Finalize() {
 	if c.RightDelim == nil {
 		c.RightDelim = String("")
 	}
+
+	if c.SandboxPath == nil {
+		c.SandboxPath = String("")
+	}
 }
 
 // GoString defines the printable version of this struct.
@@ -298,6 +311,7 @@ func (c *TemplateConfig) GoString() string {
 		"LeftDelim:%s, "+
 		"RightDelim:%s"+
 		"FunctionBlacklist:%s"+
+		"SandboxPath:%s"+
 		"}",
 		BoolGoString(c.Backup),
 		StringGoString(c.Command),
@@ -313,6 +327,7 @@ func (c *TemplateConfig) GoString() string {
 		StringGoString(c.LeftDelim),
 		StringGoString(c.RightDelim),
 		c.FunctionBlacklist,
+		StringGoString(c.SandboxPath),
 	)
 }
 

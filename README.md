@@ -499,6 +499,11 @@ template {
   # includes one of these functions, it will exit with an error.
   function_blacklist = []
 
+  # If a sandbox path is provided, any path provided to the `file` function is
+  # prefixed by the sandbox path. Relative paths that try to traverse outside
+  # that prefix will exit with an error.
+  sandbox_path = ""
+
   # This is the `minimum(:maximum)` to wait before rendering a new template to
   # disk and triggering a command, separated by a colon (`:`). If the optional
   # maximum value is omitted, it is assumed to be 4x the required minimum value.
