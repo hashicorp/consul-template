@@ -1250,10 +1250,33 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"helper_loop_start",
+			&NewTemplateInput{
+				Contents: `{{ range loop 1 3 }}1{{ end }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"11",
+			false,
+		},
+		{
+			"helper_loop_text",
+			&NewTemplateInput{
+				Contents: `{{ range loop 1 "3" }}1{{ end }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"11",
+			false,
+		},
+		{
 			// GH-1143
 			"helper_loop_var",
 			&NewTemplateInput{
-				Contents: `{{$n := 3 }}{{ range $i := loop $n }}{{ $i }}{{ end }}`,
+				Contents: `{{$n := 3 }}` +
+					`{{ range $i := loop $n }}{{ $i }}{{ end }}`,
 			},
 			&ExecuteInput{
 				Brain: NewBrain(),
