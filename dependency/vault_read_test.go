@@ -460,6 +460,68 @@ func TestVaultReadQuery_Fetch_PKI_Anonymous(t *testing.T) {
 	}
 }
 
+// TestVaultReadQuery_Fetch_NonSecrets asserts that vault.read can fetch a
+// non-secret
+func TestVaultReadQuery_Fetch_NonSecrets(t *testing.T) {
+	t.Parallel()
+
+	var err error
+
+	clients := testClients
+
+	vc := clients.Vault()
+
+	err = vc.Sys().EnableAuth("approle", "approle", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = vc.Logical().Write("auth/approle/role/my-approle", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// create restricted token
+	_, err = vc.Logical().Write("sys/policies/acl/operator",
+		map[string]interface{}{
+			"policy": `path "auth/approle/role/my-approle/role-id" { capabilities = ["read"] }`,
+		})
+	secret, err := vc.Auth().Token().Create(&api.TokenCreateRequest{
+		Policies: []string{"operator"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	anonClient := NewClientSet()
+	anonClient.CreateVaultClient(&CreateVaultClientInput{
+		Address: vaultAddr,
+		Token:   secret.Auth.ClientToken,
+	})
+	_, err = anonClient.vault.client.Auth().Token().LookupSelf()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	d, err := NewVaultReadQuery("auth/approle/role/my-approle/role-id")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	act, _, err := d.Fetch(anonClient, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sec, ok := act.(*Secret)
+	if !ok {
+		t.Fatalf("expected secret but found %v", reflect.TypeOf(act))
+	}
+	if _, ok := sec.Data["role_id"]; !ok {
+		t.Fatalf("expected to find role_id but found: %v", sec.Data)
+	}
+}
+
 func TestVaultReadQuery_String(t *testing.T) {
 	t.Parallel()
 
