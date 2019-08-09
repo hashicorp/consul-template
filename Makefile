@@ -57,7 +57,6 @@ define make-xc-target
 			GOOS="${1}" \
 			GOARCH="${2}" \
 			go build \
-				-mod vendor \
 				-a \
 				-o="pkg/${1}_${2}/${NAME}${3}" \
 				-ldflags "${LD_FLAGS}" \
@@ -75,13 +74,13 @@ $(foreach goarch,$(XC_ARCH),$(foreach goos,$(XC_OS),$(eval $(call make-xc-target
 
 # Use docker to create pristine builds for release
 pristine:
-	@go mod vendor
 	@docker run \
 		--interactive \
 		--user $$(id -u):$$(id -g) \
 		--rm \
 		--dns="8.8.8.8" \
 		--volume="${CURRENT_DIR}:/go/src/${PROJECT}" \
+		--volume="${GOPATH}/pkg/mod:/go/pkg/mod" \
 		--workdir="/go/src/${PROJECT}" \
 		--env=CGO_ENABLED="0" \
 		--env=GO111MODULE=on \
@@ -138,6 +137,7 @@ define make-docker-target
 			--tag="${OWNER}/${NAME}:${1}" \
 			--tag="${OWNER}/${NAME}:${VERSION}-${1}" \
 			"${CURRENT_DIR}"
+		@rm -rf "${CURRENT_DIR}/vendor/"
   .PHONY: docker-build/$1
 
   docker-build:: docker-build/$1
@@ -171,7 +171,6 @@ test-race:
 _cleanup:
 	@rm -rf "${CURRENT_DIR}/pkg/"
 	@rm -rf "${CURRENT_DIR}/bin/"
-	@rm -rf "${CURRENT_DIR}/vendor/"
 .PHONY: _cleanup
 
 clean: _cleanup
