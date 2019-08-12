@@ -697,16 +697,39 @@ func indent(spaces int, s string) (string, error) {
 // 			print(i)
 // 		}
 //
-func loop(ints ...int64) (<-chan int64, error) {
-	var start, stop int64
-	switch len(ints) {
+func loop(ifaces ...interface{}) (<-chan int64, error) {
+
+	to64 := func(i interface{}) (int64, error) {
+		v := reflect.ValueOf(i)
+		switch v.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32:
+			return int64(v.Int()), nil
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32:
+			return int64(v.Uint()), nil
+		case reflect.String:
+			return parseInt(v.String())
+		}
+		return 0, fmt.Errorf("loop: bad argument type: %T", i)
+	}
+
+	var i1, i2 interface{}
+	switch len(ifaces) {
 	case 1:
-		start, stop = 0, ints[0]
+		i1, i2 = 0, ifaces[0]
 	case 2:
-		start, stop = ints[0], ints[1]
+		i1, i2 = ifaces[0], ifaces[1]
 	default:
-		return nil, fmt.Errorf("loop: wrong number of arguments, expected 1 or 2"+
-			", but got %d", len(ints))
+		return nil, fmt.Errorf("loop: wrong number of arguments, expected "+
+			"1 or 2, but got %d", len(ifaces))
+	}
+
+	start, err := to64(i1)
+	if err != nil {
+		return nil, err
+	}
+	stop, err := to64(i2)
+	if err != nil {
+		return nil, err
 	}
 
 	ch := make(chan int64)
