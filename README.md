@@ -500,8 +500,8 @@ template {
   function_blacklist = []
 
   # If a sandbox path is provided, any path provided to the `file` function is
-  # prefixed by the sandbox path. Relative paths that try to traverse outside
-  # that prefix will exit with an error.
+  # checked that it falls within the sandbox path. Relative paths that try to
+  # traverse outside the sandbox path will exit with an error.
   sandbox_path = ""
 
   # This is the `minimum(:maximum)` to wait before rendering a new template to

@@ -104,7 +104,7 @@ func fileFunc(b *Brain, used, missing *dep.Set, sandboxPath string) func(string)
 		if len(s) == 0 {
 			return "", nil
 		}
-		s, err := sandboxedPath(sandboxPath, s)
+		err := pathInSandbox(sandboxPath, s)
 		if err != nil {
 			return "", err
 		}
@@ -1166,26 +1166,21 @@ func blacklisted(...string) (string, error) {
 	return "", errors.New("function is disabled")
 }
 
-// sandboxedPath returns a path that's been prefixed by the sandbox path,
-// if any. If a sandbox path was provided, it will return an error if the
-// path falls outside the sandbox.
-func sandboxedPath(sandbox, s string) (string, error) {
-	path, err := filepath.Abs(filepath.Join(sandbox, s))
-	if err != nil {
-		return "", err
-	}
+// pathInSandbox returns an error if the provided path doesn't fall within the
+// sandbox or if the file can't be evaluated (missing, invalid symlink, etc.)
+func pathInSandbox(sandbox, path string) error {
 	if sandbox != "" {
-		path, err := filepath.EvalSymlinks(path)
+		s, err := filepath.EvalSymlinks(path)
 		if err != nil {
-			return "", err
+			return err
 		}
-		path, err = filepath.Rel(sandbox, path)
+		s, err = filepath.Rel(sandbox, s)
 		if err != nil {
-			return "", err
+			return err
 		}
-		if strings.HasPrefix(path, "..") {
-			return "", fmt.Errorf("'%s' is outside of sandbox", s)
+		if strings.HasPrefix(s, "..") {
+			return fmt.Errorf("'%s' is outside of sandbox", path)
 		}
 	}
-	return path, nil
+	return nil
 }
