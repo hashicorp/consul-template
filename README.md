@@ -956,7 +956,7 @@ The example above is querying Consul for healthy "web" services, in the "east-aw
 
 ```liquid
 {{ range service "web" }}
-server {{ .Name }}{{ .Address }}:{{ .Port }}{{ end }}
+server {{ .Name }} {{ .Address }}:{{ .Port }}{{ end }}
 ```
 
 renders the IP addresses of all _healthy_ nodes with a logical service named
