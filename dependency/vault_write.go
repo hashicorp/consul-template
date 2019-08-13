@@ -108,12 +108,14 @@ func (d *VaultWriteQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interfa
 		return nil, nil, errors.Wrap(err, d.String())
 	}
 
-	// Print any warnings
-	printVaultWarnings(d, vaultSecret.Warnings)
-
-	// Create the cloned secret which will be exposed to the template.
-	d.vaultSecret = vaultSecret
-	d.secret = transformSecret(vaultSecret)
+	// vaultSecret == nil when writing to KVv1 engines
+	if vaultSecret != nil {
+		// Print any warnings
+		printVaultWarnings(d, vaultSecret.Warnings)
+		// Create the cloned secret which will be exposed to the template.
+		d.vaultSecret = vaultSecret
+		d.secret = transformSecret(vaultSecret)
+	}
 
 	return respWithMetadata(d.secret)
 }
@@ -168,14 +170,20 @@ func (d *VaultWriteQuery) writeSecret(clients *ClientSet, opts *QueryOptions) (*
 		RawQuery: opts.String(),
 	})
 
-	vaultSecret, err := clients.Vault().Logical().Write(d.path, d.data)
+	data := d.data
+
+	_, isv2, _ := isKVv2(clients.Vault(), d.path)
+	if isv2 {
+		data = map[string]interface{}{"data": d.data}
+	}
+
+	vaultSecret, err := clients.Vault().Logical().Write(d.path, data)
 	if err != nil {
 		return nil, errors.Wrap(err, d.String())
 	}
-	if vaultSecret == nil {
-		if _, isv2, _ := isKVv2(clients.Vault(), d.path); isv2 {
-			return nil, fmt.Errorf("no secret exists at %s", d.path)
-		}
+	// vaultSecret is always nil when KVv1 engine (isv2==false)
+	if isv2 && vaultSecret == nil {
+		return nil, fmt.Errorf("no secret exists at %s", d.path)
 	}
 
 	return vaultSecret, nil

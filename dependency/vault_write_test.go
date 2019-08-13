@@ -74,8 +74,9 @@ func TestNewVaultWriteQuery(t *testing.T) {
 func TestVaultWriteSecretKV_Fetch(t *testing.T) {
 	t.Parallel()
 
-	// trigger a nil-pointer-deref panic in wq.Fetch() with KVv1 due to
-	// writeSecret() returning nil for vaultSecret
+	// previously triggered a nil-pointer-deref panic in wq.Fetch() with KVv1
+	// due to writeSecret() returning nil for vaultSecret
+	// see GH-1252
 	t.Run("write_secret_v1", func(t *testing.T) {
 		clients, vault := testVaultServer(t, "write_secret_v1", "1")
 		secretsPath := vault.secretsPath
@@ -96,6 +97,9 @@ func TestVaultWriteSecretKV_Fetch(t *testing.T) {
 		}
 
 		rq, err := NewVaultReadQuery(path)
+		if err != nil {
+			t.Fatal(err)
+		}
 		act, err := rq.readSecret(clients, nil)
 		if err != nil {
 			t.Fatal(err)
@@ -103,9 +107,10 @@ func TestVaultWriteSecretKV_Fetch(t *testing.T) {
 		assert.Equal(t, exp, act.Data)
 	})
 
-	// trigger vault returning "no data provided" with KVv2 as the data
-	// structure passed in didn't have additional wrapping map with the "data"
-	// key as used in KVv2
+	// previously triggered vault returning "no data provided" with KVv2 as the
+	// data structure passed in didn't have additional wrapping map with the
+	// "data" key as used in KVv2
+	// see GH-1252
 	t.Run("write_secret_v2", func(t *testing.T) {
 		clients, vault := testVaultServer(t, "write_secret_v2", "2")
 		secretsPath := vault.secretsPath
@@ -126,6 +131,9 @@ func TestVaultWriteSecretKV_Fetch(t *testing.T) {
 		}
 
 		rq, err := NewVaultReadQuery(path)
+		if err != nil {
+			t.Fatal(err)
+		}
 		act, err := rq.readSecret(clients, nil)
 		if err != nil {
 			t.Fatal(err)
