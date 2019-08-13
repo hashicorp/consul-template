@@ -232,10 +232,8 @@ func TestVaultReadQuery_Fetch_KVv2(t *testing.T) {
 
 	// Write an initial value to the secret path
 	err := vault.CreateSecret("data/foo/bar", map[string]interface{}{
-		"data": map[string]interface{}{
-			"ttl": "100ms", // explicitly make this a short duration for testing
-			"zip": "zap",
-		},
+		"ttl": "100ms", // explicitly make this a short duration for testing
+		"zip": "zap",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -243,10 +241,8 @@ func TestVaultReadQuery_Fetch_KVv2(t *testing.T) {
 
 	// Write a new value to increment the version
 	err = vault.CreateSecret("data/foo/bar", map[string]interface{}{
-		"data": map[string]interface{}{
-			"ttl": "100ms", // explicitly make this a short duration for testing
-			"zip": "zop",
-		},
+		"ttl": "100ms", // explicitly make this a short duration for testing
+		"zip": "zop",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -437,6 +433,7 @@ func TestVaultReadQuery_Fetch_PKI_Anonymous(t *testing.T) {
 	})
 	_, err = anonClient.vault.client.Auth().Token().LookupSelf()
 	if err == nil || !strings.Contains(err.Error(), "missing client token") {
+		// check environment for VAULT_TOKEN
 		t.Fatalf("expected a missing client token error but found: %v", err)
 	}
 
