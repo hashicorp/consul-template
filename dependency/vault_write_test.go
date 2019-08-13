@@ -71,6 +71,69 @@ func TestNewVaultWriteQuery(t *testing.T) {
 	}
 }
 
+func TestVaultWriteSecretKV_Fetch(t *testing.T) {
+	t.Parallel()
+
+	// trigger a nil-pointer-deref panic in wq.Fetch() with KVv1 due to
+	// writeSecret() returning nil for vaultSecret
+	t.Run("write_secret_v1", func(t *testing.T) {
+		clients, vault := testVaultServer(t, "write_secret_v1", "1")
+		secretsPath := vault.secretsPath
+
+		path := secretsPath + "/foo"
+		exp := map[string]interface{}{
+			"bar": "zed",
+		}
+
+		wq, err := NewVaultWriteQuery(path, exp)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		_, _, err = wq.Fetch(clients, &QueryOptions{})
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		rq, err := NewVaultReadQuery(path)
+		act, err := rq.readSecret(clients, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		assert.Equal(t, exp, act.Data)
+	})
+
+	// trigger vault returning "no data provided" with KVv2 as the data
+	// structure passed in didn't have additional wrapping map with the "data"
+	// key as used in KVv2
+	t.Run("write_secret_v2", func(t *testing.T) {
+		clients, vault := testVaultServer(t, "write_secret_v2", "2")
+		secretsPath := vault.secretsPath
+
+		path := secretsPath + "/data/foo"
+		exp := map[string]interface{}{
+			"bar": "zed",
+		}
+
+		wq, err := NewVaultWriteQuery(path, exp)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		_, _, err = wq.Fetch(clients, &QueryOptions{})
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		rq, err := NewVaultReadQuery(path)
+		act, err := rq.readSecret(clients, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		assert.Equal(t, exp, act.Data["data"])
+	})
+}
+
 func TestVaultWriteQuery_Fetch(t *testing.T) {
 	t.Parallel()
 
