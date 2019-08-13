@@ -870,7 +870,7 @@ Template to renew more often.
 Also consider enabling `error_on_missing_key` when working with templates that
 will interact with Vault. By default, Consul Template uses Go's templating
 language. When accessing a struct field or map key that does not exist, it
-defaults to printing "<no value>". This may not be the desired behavior,
+defaults to printing `<no value>`. This may not be the desired behavior,
 especially when working with passwords or other data. As such, it is recommended
 you set:
 
