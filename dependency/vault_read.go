@@ -147,7 +147,8 @@ func (d *VaultReadQuery) readSecret(clients *ClientSet, opts *QueryOptions) (*ap
 	if d.isKVv2 == nil {
 		mountPath, isKVv2, err := isKVv2(vaultClient, d.rawPath)
 		if err != nil {
-			log.Printf("[WARN] %s: failed to check if %s is KVv2, assume not: %s", d, d.rawPath, err)
+			log.Printf("[WARN] %s: failed to check if %s is KVv2, "+
+				"assume not: %s", d, d.rawPath, err)
 			isKVv2 = false
 			d.secretPath = d.rawPath
 		} else if isKVv2 {
@@ -163,12 +164,22 @@ func (d *VaultReadQuery) readSecret(clients *ClientSet, opts *QueryOptions) (*ap
 		Path:     "/v1/" + d.secretPath,
 		RawQuery: queryString,
 	})
-	vaultSecret, err := vaultClient.Logical().ReadWithData(d.secretPath, d.queryValues)
+	vaultSecret, err := vaultClient.Logical().ReadWithData(d.secretPath,
+		d.queryValues)
+
 	if err != nil {
 		return nil, errors.Wrap(err, d.String())
 	}
-	if vaultSecret == nil {
+	if vaultSecret == nil || deletedKVv2(vaultSecret) {
 		return nil, fmt.Errorf("no secret exists at %s", d.secretPath)
 	}
 	return vaultSecret, nil
+}
+
+func deletedKVv2(s *api.Secret) bool {
+	switch md := s.Data["metadata"].(type) {
+	case map[string]interface{}:
+		return md["deletion_time"] != ""
+	}
+	return false
 }

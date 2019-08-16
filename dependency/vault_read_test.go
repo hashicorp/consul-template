@@ -350,8 +350,11 @@ func TestVaultReadQuery_Fetch_KVv2(t *testing.T) {
 		if err == nil {
 			t.Fatal("Nil received when error expected")
 		}
-		exp_err := fmt.Errorf("no secret exists at %s", path)
-		assert.Equal(t, exp_err, errors.Cause(err))
+		exp_err := fmt.Sprintf("no secret exists at %s", path)
+		if errors.Cause(err).Error() != exp_err {
+			t.Fatalf("Unexpected error received.\nexpected '%s'\ngot: '%s'",
+				exp_err, errors.Cause(err))
+		}
 	})
 
 	t.Run("stops", func(t *testing.T) {
