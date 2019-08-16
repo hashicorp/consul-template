@@ -2208,12 +2208,7 @@ A: Configuration management tools are designed to be used in unison with Consul 
 
 ## Contributing
 
-To build and install Consul Template locally, you will need to install the
-Docker engine:
-
-- [Docker for Mac](https://docs.docker.com/engine/installation/mac/)
-- [Docker for Windows](https://docs.docker.com/engine/installation/windows/)
-- [Docker for Linux](https://docs.docker.com/engine/installation/linux/ubuntulinux/)
+To build and install Envconsul locally, you will need to [install Go][go].
 
 Clone the repository:
 
@@ -2255,3 +2250,4 @@ go test ./... -run SomeTestFunction_name
 [releases]: https://releases.hashicorp.com/consul-template "Consul Template Releases"
 [text-template]: https://golang.org/pkg/text/template/ "Go's text/template package"
 [vault]: https://www.vaultproject.io "Vault by HashiCorp"
+[go]: https://golang.org "Go programming language"
