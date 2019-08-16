@@ -149,6 +149,16 @@ func (v *vaultServer) CreateSecret(path string, data map[string]interface{},
 	return err
 }
 
+// deleteSecret lets us delete keys as needed for tests
+func (v *vaultServer) deleteSecret(path string) error {
+	path = v.secretsPath + "/" + path
+	_, err := testClients.Vault().Logical().Delete(path)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return err
+}
+
 func TestCanShare(t *testing.T) {
 	t.Parallel()
 

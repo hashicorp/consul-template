@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/vault/api"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -324,6 +325,34 @@ func TestVaultReadQuery_Fetch_KVv2(t *testing.T) {
 			assert.Equal(t, tc.exp, act)
 		})
 	}
+
+	t.Run("read_deleted", func(t *testing.T) {
+		// only needed for KVv2 as KVv1 doesn't have metadata
+		path := "data/foo/zed"
+		// create and delete a secret
+		err = vault.CreateSecret(path, map[string]interface{}{
+			"zip": "zop",
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = vault.deleteSecret(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// now look for entry with metadata but no data (deleted secret)
+		path = vault.secretsPath + "/" + path
+		d, err := NewVaultReadQuery(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, _, err = d.Fetch(clients, nil)
+		if err == nil {
+			t.Fatal("Nil received when error expected")
+		}
+		exp_err := fmt.Errorf("no secret exists at %s", path)
+		assert.Equal(t, exp_err, errors.Cause(err))
+	})
 
 	t.Run("stops", func(t *testing.T) {
 		d, err := NewVaultReadQuery(secretsPath + "/foo/bar")
