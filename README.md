@@ -1260,7 +1260,7 @@ Determines if a needle is within an iterable element.
 {{ end }}
 ```
 
-#### `containsAll`
+##### `containsAll`
 
 Returns `true` if all needles are within an iterable element, or `false`
 otherwise. Returns `true` if the list of needles is empty.
@@ -1271,7 +1271,7 @@ otherwise. Returns `true` if the list of needles is empty.
 {{ end }}
 ```
 
-#### `containsAny`
+##### `containsAny`
 
 Returns `true` if any needle is within an iterable element, or `false`
 otherwise. Returns `false` if the list of needles is empty.
@@ -1282,7 +1282,7 @@ otherwise. Returns `false` if the list of needles is empty.
 {{ end }}
 ```
 
-#### `containsNone`
+##### `containsNone`
 
 Returns `true` if no needles are within an iterable element, or `false`
 otherwise. Returns `true` if the list of needles is empty.
@@ -1293,7 +1293,7 @@ otherwise. Returns `true` if the list of needles is empty.
 {{ end }}
 ```
 
-#### `containsNotAll`
+##### `containsNotAll`
 
 Returns `true` if some needle is not within an iterable element, or `false`
 otherwise. Returns `false` if the list of needles is empty.
