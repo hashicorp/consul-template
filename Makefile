@@ -229,3 +229,8 @@ _sign:
 	@echo ""
 	@echo "And then upload the binaries in dist/!"
 .PHONY: _sign
+
+# Add/Update the "Table Of Contents" in the README.md
+toc:
+	@./scripts/readme-toc.sh
+.PHONY: toc
