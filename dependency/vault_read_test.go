@@ -77,6 +77,7 @@ func TestNewVaultReadQuery(t *testing.T) {
 
 			if act != nil {
 				act.stopCh = nil
+				act.sleepCh = nil
 			}
 
 			assert.Equal(t, tc.exp, act)
@@ -170,7 +171,10 @@ func TestVaultReadQuery_Fetch_KVv1(t *testing.T) {
 					errCh <- err
 					return
 				}
-				dataCh <- data
+				select {
+				case dataCh <- data:
+				case <-d.stopCh:
+				}
 			}
 		}()
 
@@ -372,7 +376,10 @@ func TestVaultReadQuery_Fetch_KVv2(t *testing.T) {
 					errCh <- err
 					return
 				}
-				dataCh <- data
+				select {
+				case dataCh <- data:
+				case <-d.stopCh:
+				}
 			}
 		}()
 
