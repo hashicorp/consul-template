@@ -64,6 +64,7 @@ func TestNewVaultWriteQuery(t *testing.T) {
 
 			if act != nil {
 				act.stopCh = nil
+				act.sleepCh = nil
 			}
 
 			assert.Equal(t, tc.exp, act)
@@ -233,7 +234,10 @@ func TestVaultWriteQuery_Fetch(t *testing.T) {
 					errCh <- err
 					return
 				}
-				dataCh <- data
+				select {
+				case dataCh <- data:
+				case <-d.stopCh:
+				}
 			}
 		}()
 

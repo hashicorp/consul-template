@@ -64,9 +64,47 @@ type SecretWrapInfo struct {
 	WrappedAccessor string
 }
 
-// vaultRenewDuration accepts a secret and returns the recommended amount of
+//
+type renewer interface {
+	Dependency
+	stopChan() chan struct{}
+	secrets() (*Secret, *api.Secret)
+}
+
+func renewSecret(clients *ClientSet, d renewer) error {
+	log.Printf("[TRACE] %s: starting renewer", d)
+
+	secret, vaultSecret := d.secrets()
+	renewer, err := clients.Vault().NewRenewer(&api.RenewerInput{
+		Secret: vaultSecret,
+	})
+	if err != nil {
+		return err
+	}
+	go renewer.Renew()
+	defer renewer.Stop()
+
+	for {
+		select {
+		case err := <-renewer.DoneCh():
+			if err != nil {
+				log.Printf("[WARN] %s: failed to renew: %s", d, err)
+			}
+			log.Printf("[WARN] %s: renewer done (maybe the lease expired)", d)
+			return nil
+		case renewal := <-renewer.RenewCh():
+			log.Printf("[TRACE] %s: successfully renewed", d)
+			printVaultWarnings(d, renewal.Secret.Warnings)
+			updateSecret(secret, renewal.Secret)
+		case <-d.stopChan():
+			return ErrStopped
+		}
+	}
+}
+
+// leaseCheckWait accepts a secret and returns the recommended amount of
 // time to sleep.
-func vaultRenewDuration(s *Secret) time.Duration {
+func leaseCheckWait(s *Secret) time.Duration {
 	// Handle whether this is an auth or a regular secret.
 	base := s.LeaseDuration
 	if s.Auth != nil && s.Auth.LeaseDuration > 0 {
