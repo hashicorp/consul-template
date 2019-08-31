@@ -165,8 +165,12 @@ func AtomicWrite(path string, createDestDirs bool, contents []byte, perms os.Fil
 	// If we got this far, it means we are about to save the file. Copy the
 	// current file so we have a backup. Note that os.Link preserves the Mode.
 	if backup {
-		if err := os.Link(path, path+".bak"); err != nil {
+		bak, old := path+".bak", path+".old.bak"
+		os.Rename(bak, old) // ignore error
+		if err := os.Link(path, bak); err != nil {
 			log.Printf("[WARN] (runner) could not backup %q: %v", path, err)
+		} else {
+			os.Remove(old) // ignore error
 		}
 	}
 

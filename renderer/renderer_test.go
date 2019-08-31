@@ -160,4 +160,41 @@ func TestAtomicWrite(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("backup_backup", func(t *testing.T) {
+		outDir, err := ioutil.TempDir("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(outDir)
+		outFile, err := ioutil.TempFile(outDir, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := outFile.Write([]byte("first")); err != nil {
+			t.Fatal(err)
+		}
+
+		contains := func(filename, content string) {
+			f, err := ioutil.ReadFile(filename + ".bak")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(f, []byte(content)) {
+				t.Fatalf("expected %q to be %q", f, []byte(content))
+			}
+		}
+
+		err = AtomicWrite(outFile.Name(), true, []byte("second"), 0644, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		contains(outFile.Name(), "first")
+
+		err = AtomicWrite(outFile.Name(), true, []byte("third"), 0644, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		contains(outFile.Name(), "second")
+	})
 }
