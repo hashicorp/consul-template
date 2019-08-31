@@ -1,3 +1,9 @@
+## v0.21.2 (August 31, 2019)
+
+BUG FIXES:
+
+* Fix regression in backup [[GH-1271](https://github.com/hashicorp/consul-template/pull/1271), [GH-1270](https://github.com/hashicorp/consul-template/issues/1270)]
+
 ## v0.21.1 (August 30, 2019)
 
 BUG FIXES:
