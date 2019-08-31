@@ -14,7 +14,7 @@ type TestDep struct {
 }
 
 func (d *TestDep) Fetch(clients *dep.ClientSet, opts *dep.QueryOptions) (interface{}, *dep.ResponseMetadata, error) {
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(time.Millisecond)
 	data := "this is some data"
 	rm := &dep.ResponseMetadata{LastIndex: 1}
 	return data, rm, nil
@@ -42,7 +42,7 @@ type TestDepStale struct {
 
 // Fetch is used to implement the dependency interface.
 func (d *TestDepStale) Fetch(clients *dep.ClientSet, opts *dep.QueryOptions) (interface{}, *dep.ResponseMetadata, error) {
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(time.Millisecond)
 
 	if opts == nil {
 		opts = &dep.QueryOptions{}
@@ -79,7 +79,7 @@ type TestDepFetchError struct {
 }
 
 func (d *TestDepFetchError) Fetch(clients *dep.ClientSet, opts *dep.QueryOptions) (interface{}, *dep.ResponseMetadata, error) {
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(time.Millisecond)
 	return nil, nil, fmt.Errorf("failed to contact server")
 }
 
@@ -129,7 +129,7 @@ type TestDepRetry struct {
 }
 
 func (d *TestDepRetry) Fetch(clients *dep.ClientSet, opts *dep.QueryOptions) (interface{}, *dep.ResponseMetadata, error) {
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(time.Millisecond)
 
 	d.Lock()
 	defer d.Unlock()
