@@ -31,6 +31,9 @@ type TemplateConfig struct {
 	// value is false.
 	Backup *bool `mapstructure:"backup"`
 
+	// Set the max number of backup files. The default value is 1.
+	RotatingBackups *int `mapstructure:"rotating_backups"`
+
 	// Command is the arbitrary command to execute after a template has
 	// successfully rendered. This is DEPRECATED. Use Exec instead.
 	Command *string `mapstructure:"command"`
@@ -105,6 +108,8 @@ func (c *TemplateConfig) Copy() *TemplateConfig {
 
 	o.Backup = c.Backup
 
+	o.RotatingBackups = c.RotatingBackups
+
 	o.Command = c.Command
 
 	o.CommandTimeout = c.CommandTimeout
@@ -160,6 +165,10 @@ func (c *TemplateConfig) Merge(o *TemplateConfig) *TemplateConfig {
 
 	if o.Backup != nil {
 		r.Backup = o.Backup
+	}
+
+	if o.RotatingBackups != nil {
+		r.RotatingBackups = o.RotatingBackups
 	}
 
 	if o.Command != nil {
@@ -225,6 +234,10 @@ func (c *TemplateConfig) Merge(o *TemplateConfig) *TemplateConfig {
 func (c *TemplateConfig) Finalize() {
 	if c.Backup == nil {
 		c.Backup = Bool(false)
+	}
+
+	if c.RotatingBackups == nil {
+		c.RotatingBackups = Int(1)
 	}
 
 	if c.Command == nil {
@@ -298,6 +311,7 @@ func (c *TemplateConfig) GoString() string {
 
 	return fmt.Sprintf("&TemplateConfig{"+
 		"Backup:%s, "+
+		"MaxBackup:%s, "+
 		"Command:%s, "+
 		"CommandTimeout:%s, "+
 		"Contents:%s, "+
@@ -314,6 +328,7 @@ func (c *TemplateConfig) GoString() string {
 		"SandboxPath:%s"+
 		"}",
 		BoolGoString(c.Backup),
+		IntGoString(c.RotatingBackups),
 		StringGoString(c.Command),
 		TimeDurationGoString(c.CommandTimeout),
 		StringGoString(c.Contents),

@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 )
 
@@ -25,7 +26,7 @@ func TestAtomicWrite(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if err := AtomicWrite(outFile.Name(), true, nil, 0644, false); err != nil {
+		if err := AtomicWrite(outFile.Name(), true, nil, 0644, false, 0); err != nil {
 			t.Fatal(err)
 		}
 
@@ -46,7 +47,7 @@ func TestAtomicWrite(t *testing.T) {
 		}
 		os.Chmod(outFile.Name(), 0600)
 
-		if err := AtomicWrite(outFile.Name(), true, nil, 0, false); err != nil {
+		if err := AtomicWrite(outFile.Name(), true, nil, 0, false, 0); err != nil {
 			t.Fatal(err)
 		}
 
@@ -71,7 +72,7 @@ func TestAtomicWrite(t *testing.T) {
 
 		// Try AtomicWrite to a file that doesn't exist yet
 		file := filepath.Join(outDir, "nope/not/it/create")
-		if err := AtomicWrite(file, true, nil, 0644, false); err != nil {
+		if err := AtomicWrite(file, true, nil, 0644, false, 0); err != nil {
 			t.Fatal(err)
 		}
 
@@ -90,46 +91,8 @@ func TestAtomicWrite(t *testing.T) {
 
 		// Try AtomicWrite to a file that doesn't exist yet
 		file := filepath.Join(outDir, "nope/not/it/nope-no-create")
-		if err := AtomicWrite(file, false, nil, 0644, false); err != ErrNoParentDir {
+		if err := AtomicWrite(file, false, nil, 0644, false, 0); err != ErrNoParentDir {
 			t.Fatalf("expected %q to be %q", err, ErrNoParentDir)
-		}
-	})
-
-	t.Run("backup", func(t *testing.T) {
-		outDir, err := ioutil.TempDir("", "")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.RemoveAll(outDir)
-		outFile, err := ioutil.TempFile(outDir, "")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err := os.Chmod(outFile.Name(), 0600); err != nil {
-			t.Fatal(err)
-		}
-		if _, err := outFile.Write([]byte("before")); err != nil {
-			t.Fatal(err)
-		}
-
-		if err := AtomicWrite(outFile.Name(), true, []byte("after"), 0644, true); err != nil {
-			t.Fatal(err)
-		}
-
-		f, err := ioutil.ReadFile(outFile.Name() + ".bak")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !bytes.Equal(f, []byte("before")) {
-			t.Fatalf("expected %q to be %q", f, []byte("before"))
-		}
-
-		if stat, err := os.Stat(outFile.Name() + ".bak"); err != nil {
-			t.Fatal(err)
-		} else {
-			if stat.Mode() != 0600 {
-				t.Fatalf("expected %d to be %d", stat.Mode(), 0600)
-			}
 		}
 	})
 
@@ -147,21 +110,22 @@ func TestAtomicWrite(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if err := AtomicWrite(outFile.Name(), true, nil, 0644, true); err != nil {
+		if err := AtomicWrite(outFile.Name(), true, nil, 0644, true, 1); err != nil {
 			t.Fatal(err)
 		}
 
-		// Shouldn't have a backup file, since the original file didn't exist
-		if _, err := os.Stat(outFile.Name() + ".bak"); err == nil {
-			t.Fatal("expected error")
-		} else {
-			if !os.IsNotExist(err) {
-				t.Fatalf("bad error: %s", err)
-			}
+		backups, err := filepath.Glob(outFile.Name() + ".*.bak")
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		if len(backups) != 0 {
+			t.Fatalf("file %s should not exists", backups)
 		}
 	})
+}
 
-	t.Run("backup_backup", func(t *testing.T) {
+func TestBackup(t *testing.T) {
+	for maxBackup := 1; maxBackup <= 10; maxBackup++ {
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
 			t.Fatal(err)
@@ -171,30 +135,47 @@ func TestAtomicWrite(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := outFile.Write([]byte("first")); err != nil {
+		if err := os.Chmod(outFile.Name(), 0600); err != nil {
 			t.Fatal(err)
 		}
-
-		contains := func(filename, content string) {
-			f, err := ioutil.ReadFile(filename + ".bak")
+		if _, err := outFile.Write([]byte("backup0")); err != nil {
+			t.Fatal(err)
+		}
+		for i := 1; i < 20; i++ {
+			if err := AtomicWrite(outFile.Name(), true, []byte("backup"+strconv.Itoa(i)), 0644, true, maxBackup); err != nil {
+				t.Fatal(err)
+			}
+			backups, err := filepath.Glob(outFile.Name() + ".*.bak")
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !bytes.Equal(f, []byte(content)) {
-				t.Fatalf("expected %q to be %q", f, []byte(content))
+			if i <= maxBackup {
+				if backups == nil || len(backups) != i {
+					t.Fatalf("expected %d backup file exists, but %d", i, len(backups))
+				}
+				for j := 0; j < i; j++ {
+					f, err := ioutil.ReadFile("/" + backups[j])
+					if err != nil {
+						t.Fatal(err)
+					}
+					if !bytes.Equal(f, []byte("backup"+strconv.Itoa(j))) {
+						t.Fatalf("expected %q to be %q", f, []byte("backup"+strconv.Itoa(j)))
+					}
+				}
+			} else {
+				if backups == nil || len(backups) != maxBackup {
+					t.Fatalf("expected %d backup file exists, but %d", maxBackup, len(backups))
+				}
+				for j := 0; j < maxBackup; j++ {
+					f, err := ioutil.ReadFile(backups[j])
+					if err != nil {
+						t.Fatal(err)
+					}
+					if !bytes.Equal(f, []byte("backup"+strconv.Itoa(i-maxBackup+j))) {
+						t.Fatalf("expected %q to be %q", f, []byte("backup"+strconv.Itoa(i-maxBackup+j)))
+					}
+				}
 			}
 		}
-
-		err = AtomicWrite(outFile.Name(), true, []byte("second"), 0644, true)
-		if err != nil {
-			t.Fatal(err)
-		}
-		contains(outFile.Name(), "first")
-
-		err = AtomicWrite(outFile.Name(), true, []byte("third"), 0644, true)
-		if err != nil {
-			t.Fatal(err)
-		}
-		contains(outFile.Name(), "second")
-	})
+	}
 }

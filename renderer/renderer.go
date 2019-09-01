@@ -3,13 +3,13 @@ package renderer
 import (
 	"bytes"
 	"fmt"
+	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
-
-	"github.com/pkg/errors"
+	"time"
 )
 
 const (
@@ -29,13 +29,14 @@ var (
 
 // RenderInput is used as input to the render function.
 type RenderInput struct {
-	Backup         bool
-	Contents       []byte
-	CreateDestDirs bool
-	Dry            bool
-	DryStream      io.Writer
-	Path           string
-	Perms          os.FileMode
+	Backup          bool
+	RotatingBackups int
+	Contents        []byte
+	CreateDestDirs  bool
+	Dry             bool
+	DryStream       io.Writer
+	Path            string
+	Perms           os.FileMode
 }
 
 // RenderResult is returned and stored. It contains the status of the render
@@ -75,7 +76,7 @@ func Render(i *RenderInput) (*RenderResult, error) {
 	if i.Dry {
 		fmt.Fprintf(i.DryStream, "> %s\n%s", i.Path, i.Contents)
 	} else {
-		if err := AtomicWrite(i.Path, i.CreateDestDirs, i.Contents, i.Perms, i.Backup); err != nil {
+		if err := AtomicWrite(i.Path, i.CreateDestDirs, i.Contents, i.Perms, i.Backup, i.RotatingBackups); err != nil {
 			return nil, errors.Wrap(err, "failed writing file")
 		}
 	}
@@ -102,7 +103,7 @@ func Render(i *RenderInput) (*RenderResult, error) {
 //
 // If no errors occur, the Tempfile is "renamed" (moved) to the destination
 // path.
-func AtomicWrite(path string, createDestDirs bool, contents []byte, perms os.FileMode, backup bool) error {
+func AtomicWrite(path string, createDestDirs bool, contents []byte, perms os.FileMode, backup bool, rotatingBackups int) error {
 	if path == "" {
 		return ErrMissingDest
 	}
@@ -165,12 +166,21 @@ func AtomicWrite(path string, createDestDirs bool, contents []byte, perms os.Fil
 	// If we got this far, it means we are about to save the file. Copy the
 	// current file so we have a backup. Note that os.Link preserves the Mode.
 	if backup {
-		bak, old := path+".bak", path+".old.bak"
-		os.Rename(bak, old) // ignore error
-		if err := os.Link(path, bak); err != nil {
+		if err := os.Link(path, path+"."+time.Now().Format("20060102150405.0000")+".bak"); err != nil {
 			log.Printf("[WARN] (runner) could not backup %q: %v", path, err)
-		} else {
-			os.Remove(old) // ignore error
+		}
+		if rotatingBackups > 0 {
+			backups, err := filepath.Glob(path + ".*.bak")
+			if err != nil {
+				log.Printf("[WARN] (runner) could not get backups in %q: %v", parent, err)
+			}
+			if len(backups) > rotatingBackups {
+				for i := 0; i < len(backups)-rotatingBackups; i++ {
+					if err := os.Remove(backups[i]); err != nil {
+						log.Printf("[WARN] (runner) could not remove backup %q: %v", backups[i], err)
+					}
+				}
+			}
 		}
 	}
 

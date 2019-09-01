@@ -748,13 +748,14 @@ func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*
 
 		// Render the template, taking dry mode into account
 		result, err := renderer.Render(&renderer.RenderInput{
-			Backup:         config.BoolVal(templateConfig.Backup),
-			Contents:       result.Output,
-			CreateDestDirs: config.BoolVal(templateConfig.CreateDestDirs),
-			Dry:            r.dry,
-			DryStream:      r.outStream,
-			Path:           config.StringVal(templateConfig.Destination),
-			Perms:          config.FileModeVal(templateConfig.Perms),
+			Backup:          config.BoolVal(templateConfig.Backup),
+			RotatingBackups: config.IntVal(templateConfig.RotatingBackups),
+			Contents:        result.Output,
+			CreateDestDirs:  config.BoolVal(templateConfig.CreateDestDirs),
+			Dry:             r.dry,
+			DryStream:       r.outStream,
+			Path:            config.StringVal(templateConfig.Destination),
+			Perms:           config.FileModeVal(templateConfig.Perms),
 		})
 		if err != nil {
 			return nil, errors.Wrap(err, "error rendering "+templateConfig.Display())
