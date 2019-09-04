@@ -22,7 +22,7 @@ var (
 // VaultWriteQuery is the dependency to Vault for a secret
 type VaultWriteQuery struct {
 	stopCh  chan struct{}
-	sleepCh <-chan time.Time
+	sleepCh chan time.Duration
 
 	path     string
 	data     map[string]interface{}
@@ -43,7 +43,7 @@ func NewVaultWriteQuery(s string, d map[string]interface{}) (*VaultWriteQuery, e
 
 	return &VaultWriteQuery{
 		stopCh:   make(chan struct{}, 1),
-		sleepCh:  make(chan time.Time, 1),
+		sleepCh:  make(chan time.Duration, 1),
 		path:     s,
 		data:     d,
 		dataHash: sha1Map(d),
@@ -59,7 +59,8 @@ func (d *VaultWriteQuery) Fetch(clients *ClientSet, opts *QueryOptions,
 	default:
 	}
 	select {
-	case <-d.sleepCh:
+	case dur := <-d.sleepCh:
+		time.Sleep(dur)
 	default:
 	}
 
@@ -91,7 +92,7 @@ func (d *VaultWriteQuery) Fetch(clients *ClientSet, opts *QueryOptions,
 	if !vaultSecretRenewable(d.secret) {
 		dur := leaseCheckWait(d.secret)
 		log.Printf("[TRACE] %s: non-renewable secret, set sleep for %s", d, dur)
-		d.sleepCh = time.After(dur)
+		d.sleepCh <- dur
 	}
 
 	return respWithMetadata(d.secret)
