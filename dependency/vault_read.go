@@ -19,7 +19,7 @@ var (
 // VaultReadQuery is the dependency to Vault for a secret
 type VaultReadQuery struct {
 	stopCh  chan struct{}
-	sleepCh <-chan time.Time
+	sleepCh chan time.Duration
 
 	rawPath     string
 	queryValues url.Values
@@ -46,7 +46,7 @@ func NewVaultReadQuery(s string) (*VaultReadQuery, error) {
 
 	return &VaultReadQuery{
 		stopCh:      make(chan struct{}, 1),
-		sleepCh:     make(chan time.Time, 1),
+		sleepCh:     make(chan time.Duration, 1),
 		rawPath:     secretURL.Path,
 		queryValues: secretURL.Query(),
 	}, nil
@@ -61,7 +61,8 @@ func (d *VaultReadQuery) Fetch(clients *ClientSet, opts *QueryOptions,
 	default:
 	}
 	select {
-	case <-d.sleepCh:
+	case dur := <-d.sleepCh:
+		time.Sleep(dur)
 	default:
 	}
 
@@ -82,7 +83,7 @@ func (d *VaultReadQuery) Fetch(clients *ClientSet, opts *QueryOptions,
 	if !vaultSecretRenewable(d.secret) {
 		dur := leaseCheckWait(d.secret)
 		log.Printf("[TRACE] %s: non-renewable secret, set sleep for %s", d, dur)
-		d.sleepCh = time.After(dur)
+		d.sleepCh <- dur
 	}
 
 	return respWithMetadata(d.secret)

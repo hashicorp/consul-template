@@ -292,6 +292,42 @@ func TestVaultWriteQuery_Fetch(t *testing.T) {
 		case <-dataCh:
 		}
 	})
+
+	t.Run("nonrenewable-sleeper", func(t *testing.T) {
+		d, err := NewVaultWriteQuery("transit/encrypt/test",
+			map[string]interface{}{
+				"plaintext": b64("test"),
+			})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		_, qm, err := d.Fetch(clients, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		errCh := make(chan error, 1)
+		go func() {
+			_, _, err := d.Fetch(clients,
+				&QueryOptions{WaitIndex: qm.LastIndex})
+			if err != nil {
+				errCh <- err
+			}
+			close(errCh)
+		}()
+
+		if err := <-errCh; err != nil {
+			t.Fatal(err)
+		}
+		if len(d.sleepCh) != 1 {
+			t.Fatalf("sleep channel has len %v, expected 1", len(d.sleepCh))
+		}
+		dur := <-d.sleepCh
+		if dur > 0 {
+			t.Fatalf("duration of sleep should be > 0")
+		}
+	})
 }
 
 func TestVaultWriteQuery_String(t *testing.T) {
