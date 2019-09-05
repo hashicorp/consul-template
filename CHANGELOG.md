@@ -1,3 +1,9 @@
+## v0.21.3 (September 05, 2019)
+
+BUG FIXES:
+
+* Fix regression in non-renewable sleep [[GH-1277](https://github.com/hashicorp/consul-template/pull/1277), [GH-1272](https://github.com/hashicorp/consul-template/issues/1272), [GH-1276](https://github.com/hashicorp/consul-template/issues/1276)]
+
 ## v0.21.2 (August 31, 2019)
 
 BUG FIXES:
