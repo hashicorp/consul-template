@@ -280,6 +280,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"toUpper":         toUpper,
 		"toYAML":          toYAML,
 		"split":           split,
+		"byMeta":          byMeta,
 
 		// Math functions
 		"add":      add,
