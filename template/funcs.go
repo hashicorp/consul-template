@@ -209,8 +209,13 @@ func keyWithDefaultFunc(b *Brain, used, missing *dep.Set) func(string, string) (
 	}
 }
 
+func safeLsFunc(b *Brain, used, missing *dep.Set) func(string) ([]*dep.KeyPair, error) {
+	// call lsFunc but explicitly mark that empty data set returned on monitored KV prefix is NOT safe
+	return lsFunc(b, used, missing, false)
+}
+
 // lsFunc returns or accumulates keyPrefix dependencies.
-func lsFunc(b *Brain, used, missing *dep.Set) func(string) ([]*dep.KeyPair, error) {
+func lsFunc(b *Brain, used, missing *dep.Set, emptyIsSafe bool) func(string) ([]*dep.KeyPair, error) {
 	return func(s string) ([]*dep.KeyPair, error) {
 		result := []*dep.KeyPair{}
 
@@ -232,9 +237,23 @@ func lsFunc(b *Brain, used, missing *dep.Set) func(string) ([]*dep.KeyPair, erro
 					result = append(result, pair)
 				}
 			}
-			return result, nil
+
+			if len(result) == 0 {
+				if emptyIsSafe {
+					// Operator used potentially unsafe ls function in the template instead of the safeLs
+					return result, nil
+				}
+			} else {
+				// non empty result is good so we just return the data
+				return result, nil
+			}
+
+			// If we reach this part of the code result is completely empty as value returned no KV pairs
+			// Operator selected to use safeLs on the specific KV prefix so we will refuse to render template
+			// by marking d as missing
 		}
 
+		// b.Recall either returned an error or safeLs entered unsafe case
 		missing.Add(d)
 
 		return result, nil
@@ -452,8 +471,13 @@ func servicesFunc(b *Brain, used, missing *dep.Set) func(...string) ([]*dep.Cata
 	}
 }
 
+func safeTreeFunc(b *Brain, used, missing *dep.Set) func(string) ([]*dep.KeyPair, error) {
+	// call treeFunc but explicitly mark that empty data set returned on monitored KV prefix is NOT safe
+	return treeFunc(b, used, missing, false)
+}
+
 // treeFunc returns or accumulates keyPrefix dependencies.
-func treeFunc(b *Brain, used, missing *dep.Set) func(string) ([]*dep.KeyPair, error) {
+func treeFunc(b *Brain, used, missing *dep.Set, emptyIsSafe bool) func(string) ([]*dep.KeyPair, error) {
 	return func(s string) ([]*dep.KeyPair, error) {
 		result := []*dep.KeyPair{}
 
@@ -476,9 +500,23 @@ func treeFunc(b *Brain, used, missing *dep.Set) func(string) ([]*dep.KeyPair, er
 					result = append(result, pair)
 				}
 			}
-			return result, nil
+
+			if len(result) == 0 {
+				if emptyIsSafe {
+					// Operator used potentially unsafe tree function in the template instead of the safeTree
+					return result, nil
+				}
+			} else {
+				// non empty result is good so we just return the data
+				return result, nil
+			}
+
+			// If we reach this part of the code result is completely empty as value returned no KV pairs
+			// Operator selected to use safeTree on the specific KV prefix so we will refuse to render template
+			// by marking d as missing
 		}
 
+		// b.Recall either returned an error or safeTree entered unsafe case
 		missing.Add(d)
 
 		return result, nil
