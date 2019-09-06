@@ -284,7 +284,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"toYAML":          toYAML,
 		"split":           split,
 		"byMeta":          byMeta,
-
+		"sockaddr":        sockaddr,
 		// Math functions
 		"add":      add,
 		"subtract": subtract,
