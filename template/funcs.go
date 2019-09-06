@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"text/template"
@@ -628,8 +629,8 @@ func explode(pairs []*dep.KeyPair) (map[string]interface{}, error) {
 	return m, nil
 }
 
-// explodeHelper is a recursive helper for explode.
-func explodeHelper(m map[string]interface{}, k, v, p string) error {
+// explodeHelper is a recursive helper for explode and explodeMap
+func explodeHelper(m map[string]interface{}, k string, v interface{}, p string) error {
 	if strings.Contains(k, "/") {
 		parts := strings.Split(k, "/")
 		top := parts[0]
@@ -650,6 +651,24 @@ func explodeHelper(m map[string]interface{}, k, v, p string) error {
 	}
 
 	return nil
+}
+
+// explodeMap turns a single-level map into a deeply-nested hash.
+func explodeMap(mapIn map[string]interface{}) (map[string]interface{}, error) {
+	mapOut := make(map[string]interface{})
+
+	var keys []string
+	for k := range mapIn {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for i := range keys {
+		if err := explodeHelper(mapOut, keys[i], mapIn[keys[i]], keys[i]); err != nil {
+			return nil, errors.Wrap(err, "explodeMap")
+		}
+	}
+	return mapOut, nil
 }
 
 // in searches for a given value in a given interface.
