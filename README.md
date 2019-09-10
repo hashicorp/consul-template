@@ -811,6 +811,23 @@ maxconns:15
 minconns:5
 ```
 
+##### `safeLs`
+
+Same as [ls](#ls), but refuse to render template, if the KV prefix query return blank/empty data.
+
+This is especially useful, for rendering mission critical files, that are being populated by consul-template.
+
+For example:
+
+```text
+/root/.ssh/authorized_keys
+/etc/sysconfig/iptables
+```
+
+Using `safeLs` on empty prefixes will result in template output not being rendered at all.
+
+To learn how `safeLs` was born see [CT-1131](https://github.com/hashicorp/consul-template/issues/1131) [C-3975](https://github.com/hashicorp/consul/issues/3975) and [CR-82](https://github.com/hashicorp/consul-replicate/issues/82).
+
 ##### `node`
 
 Query [Consul][consul] for a node in the catalog.
@@ -1152,6 +1169,23 @@ nested/config/value "value"
 Unlike `ls`, `tree` returns **all** keys under the prefix, just like the Unix
 `tree` command.
 
+##### `safeTree`
+
+Same as [tree](#tree), but refuse to render template, if the KV prefix query return blank/empty data.
+
+This is especially useful, for rendering mission critical files, that are being populated by consul-template.
+
+For example:
+
+```text
+/root/.ssh/authorized_keys
+/etc/sysconfig/iptables
+```
+
+Using `safeTree` on empty prefixes will result in template output not being rendered at all.
+
+To learn how `safeTree` was born see [CT-1131](https://github.com/hashicorp/consul-template/issues/1131) [C-3975](https://github.com/hashicorp/consul/issues/3975) and [CR-82](https://github.com/hashicorp/consul-replicate/issues/82).
+
 ---
 
 #### Scratch
@@ -1342,6 +1376,81 @@ Takes the list of services returned by the [`service`](#service) or
 {{ end }}{{ end }}
 ```
 
+##### `byMeta`
+
+Takes a list of services returned by the [`service`](#service) or
+[`services`](#services) and returns a map that groups services by ServiceMeta values.
+Multiple service meta keys can be passed as a comma separated string. `|int` can be added to
+a meta key to convert numbers from service meta values to padded numbers in `printf "%05d" % value`
+format (useful for sorting as Go Template sorts maps by keys).
+
+**Example**:
+
+If we have the following services registered in Consul:
+
+```json
+{
+  "Services": [
+     {
+       "ID": "redis-dev-1",
+       "Name": "redis",
+       "ServiceMeta": {
+         "environment": "dev",
+         "shard_number": "1"
+       },
+       ...
+     },
+     {
+       "ID": "redis-prod-1",
+       "Name": "redis",
+       "ServiceMeta": {
+         "environment": "prod",
+         "shard_number": "1"
+       },
+       ...
+     },
+     {
+       "ID": "redis-prod-2",
+       "Name": "redis",
+       "ServiceMeta": {
+         "environment": "prod",
+         "shard_number": "2",
+       },
+       ...
+     }
+   ]
+}
+```
+
+```liquid
+{{ service "redis|any" | byMeta "environment,shard_number|int" | toJson }}
+```
+
+The code above will produce a map of services grouped by meta:
+
+```json
+{
+  "dev_00001": [
+    {
+      "ID": "redis-dev-1",
+      ...
+    }
+  ],
+  "prod_00001": [
+    {
+      "ID": "redis-prod-1",
+      ...
+    }
+  ],
+  "prod_00002": [
+    {
+      "ID": "redis-prod-2",
+      ...
+    }
+  ]
+}
+```
+
 ##### `contains`
 
 Determines if a needle is within an iterable element.
@@ -1456,6 +1565,17 @@ You can also access deeply nested values:
 You will need to have a reasonable format about your data in Consul. Please see
 [Go's text/template package][text-template] for more information.
 
+
+##### `explodeMap`
+
+Takes the value of a map and converts it into a deeply-nested map for parsing/traversing,
+using the same logic as `explode`.
+
+```liquid
+{{ scratch.MapSet "example", "foo/bar", "a" }}
+{{ scratch.MapSet "example", "foo/baz", "b" }}
+{{ scratch.Get "example" | explodeMap | toYAML }}
+```
 
 ##### `indent`
 
@@ -1796,6 +1916,18 @@ minconns: "2"
 ```
 
 Note: Consul stores all KV data as strings. Thus true is "true", 1 is "1", etc.
+
+##### `sockaddr`
+
+Takes a quote-escaped template string as an argument and passes it on to
+[hashicorp/go-sockaddr](https://github.com/hashicorp/go-sockaddr) templating engine.
+
+```liquid
+{{ sockaddr "GetPrivateIP" }}
+```
+
+See [hashicorp/go-sockaddr documentation](https://godoc.org/github.com/hashicorp/go-sockaddr)
+for more information.
 
 ---
 

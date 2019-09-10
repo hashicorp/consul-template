@@ -394,3 +394,64 @@ func TestKill_noProcess(t *testing.T) {
 	c.killSignal = syscall.SIGUSR1
 	c.Kill()
 }
+
+func TestStop_noWaitForSplay(t *testing.T) {
+	t.Parallel()
+	c := testChild(t)
+	c.command = "bash"
+	c.args = []string{"-c", "trap 'echo one; exit' SIGUSR1; while true; do sleep 0.2; done"}
+	c.splay = 100 * time.Second
+	c.reloadSignal = nil
+	c.killSignal = syscall.SIGUSR1
+
+	out := gatedio.NewByteBuffer()
+	c.stdout, c.stderr = out, out
+
+	if err := c.Start(); err != nil {
+		t.Fatal(err)
+	}
+
+	// For some reason bash doesn't start immediately
+	time.Sleep(fileWaitSleepDelay)
+
+	killStartTime := time.Now()
+	c.StopImmediately()
+	killEndTime := time.Now()
+
+	expected := "one\n"
+	if out.String() != expected {
+		t.Errorf("expected %q to be %q", out.String(), expected)
+	}
+
+	if killEndTime.Sub(killStartTime) > 500*time.Millisecond {
+		t.Error("expected not to wait for splay")
+	}
+}
+
+func TestStop_childAlreadyDead(t *testing.T) {
+	t.Parallel()
+	c := testChild(t)
+	c.command = "bash"
+	c.args = []string{"-c", "exit 1"}
+	c.splay = 100 * time.Second
+	c.reloadSignal = nil
+	c.killSignal = syscall.SIGTERM
+
+	out := gatedio.NewByteBuffer()
+	c.stdout, c.stderr = out, out
+
+	if err := c.Start(); err != nil {
+		t.Fatal(err)
+	}
+
+	// For some reason bash doesn't start immediately
+	time.Sleep(fileWaitSleepDelay)
+
+	killStartTime := time.Now()
+	c.Stop()
+	killEndTime := time.Now()
+
+	if killEndTime.Sub(killStartTime) > 500*time.Millisecond {
+		t.Error("expected not to wait for splay")
+	}
+}
