@@ -273,3 +273,24 @@ func TestStop_stopsPolling(t *testing.T) {
 		// Successfully stopped
 	}
 }
+
+func TestRateLimiter(t *testing.T) {
+	// test for rate limiting delay working
+	elapsed := minDelayBetweenUpdates / 2 // simulate time passing
+	start := time.Now().Add(-elapsed)     // add negative to subtract
+	dur := rateLimiter(start)             // should close to elapsed
+	if !(dur > 0) {
+		t.Errorf("rate limiting duration should be > 0, found: %v", dur)
+	}
+	if dur > minDelayBetweenUpdates {
+		t.Errorf("rate limiting duration extected to be < %v, found %v",
+			minDelayBetweenUpdates, dur)
+	}
+	// test that you get 0 when enough time is past
+	elapsed = minDelayBetweenUpdates // simulate time passing
+	start = time.Now().Add(-elapsed) // add negative to subtract
+	dur = rateLimiter(start)         // should be 0
+	if dur != 0 {
+		t.Errorf("rate limiting duration should be 0, found: %v", dur)
+	}
+}
