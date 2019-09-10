@@ -27,8 +27,8 @@ GOARCH ?= $(shell go env GOARCH)
 
 # Default os-arch combination to build
 XC_OS ?= darwin freebsd linux netbsd openbsd solaris windows
-XC_ARCH ?= 386 amd64 arm
-XC_EXCLUDE ?= darwin/arm solaris/386 solaris/arm windows/arm
+XC_ARCH ?= 386 amd64 arm arm64
+XC_EXCLUDE ?= darwin/arm solaris/386 solaris/arm windows/arm darwin/arm64 freebsd/arm64 netbsd/arm64 openbsd/arm64 solaris/arm64 windows/arm64
 
 # GPG Signing key (blank by default, means no GPG signing)
 GPG_KEY ?=
