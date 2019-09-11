@@ -1,3 +1,21 @@
+## v0.22.0 (September 10, 2019)
+
+IMPROVEMENTS:
+
+* Add rate limiting to consul api calls [[GH-1279](https://github.com/hashicorp/consul-template/pull/1279)]
+* Add `byMeta` function [[GH-1237](https://github.com/hashicorp/consul-template/pull/1237)]
+* Add support for : and = in service tag values [[GH-1149](https://github.com/hashicorp/consul-template/pull/1149), [GH-1049](https://github.com/hashicorp/consul-template/issues/1049)]
+* Add `explodeMap` function [[GH-1148](https://github.com/hashicorp/consul-template/pull/1148)]
+* Don't wait for splay when stopping child runner [[GH-1141](https://github.com/hashicorp/consul-template/pull/1141)]
+* Add `safels` and `safetree` functions [[GH-1132](https://github.com/hashicorp/consul-template/pull/1132)]
+* Support Vault certificates with no lease [[GH-1106](https://github.com/hashicorp/consul-template/pull/1106)]
+* Add wrapper function for go-sockaddr templating [[GH-1087](https://github.com/hashicorp/consul-template/pull/1087)]
+* Build binaries for arm64 platform [[GH-1251](https://github.com/hashicorp/consul-template/pull/1251)]
+
+BUG FIXES:
+
+* Fix arm/arm64 builds by enabling CGO and restricting builds to Linux [workaround for [go/issues/32912](https://github.com/golang/go/issues/32912)]
+
 ## v0.21.3 (September 05, 2019)
 
 BUG FIXES:
