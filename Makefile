@@ -14,7 +14,7 @@ GOTAGS ?=
 GOMAXPROCS ?= 4
 
 # Get the project metadata
-GO_DOCKER_VERSION ?= 1.12
+GO_DOCKER_VERSION ?= 1.13
 PROJECT := $(shell go list -m -mod=vendor)
 OWNER := "hashicorp"
 NAME := $(notdir $(PROJECT))
@@ -81,7 +81,16 @@ endef
 $(foreach goarch,$(XC_ARCH),$(foreach goos,$(XC_OS),$(eval $(call make-xc-target,$(goos),$(goarch),$(if $(findstring windows,$(goos)),.exe,)))))
 
 # Use docker to create pristine builds for release
+# First build image w/ arm build requirements, then build all binaries
 pristine:
+	@docker build \
+		--rm \
+		--force-rm \
+		--no-cache \
+		--compress \
+		--file="docker/pristine/Dockerfile" \
+		--build-arg="GOVERSION=${GO_DOCKER_VERSION}" \
+		--tag="pristine-builder" .
 	@docker run \
 		--interactive \
 		--user $$(id -u):$$(id -g) \
@@ -90,9 +99,9 @@ pristine:
 		--volume="${CURRENT_DIR}:/go/src/${PROJECT}" \
 		--volume="${GOPATH}/pkg/mod:/go/pkg/mod" \
 		--workdir="/go/src/${PROJECT}" \
-		--env=CGO_ENABLED="0" \
 		--env=GO111MODULE=on \
-		"golang:${GO_DOCKER_VERSION}" env GOCACHE=/tmp make -j4 build
+		"pristine-builder" \
+		env GOCACHE=/tmp make -j4 build
 
 # dev builds and installs the project locally.
 dev:
