@@ -731,11 +731,6 @@ Options:
   -vault-addr=<address>
       Sets the address of the Vault server
 
-  -vault-grace=<duration>
-      Sets the grace period between lease renewal and secret re-acquisition - if
-      the remaining lease duration is less than this value, Consul Template will
-      acquire a new secret from Vault
-
   -vault-renew-token
       Periodically renew the provided Vault API token - this defaults to "true"
       and will renew the token at half of the lease duration

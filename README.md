@@ -369,19 +369,6 @@ vault {
   # of the address is required.
   address = "https://vault.service.consul:8200"
 
-  # This is the grace period between lease renewal of periodic secrets and secret
-  # re-acquisition. When renewing a secret, if the remaining lease is less than or
-  # equal to the configured grace, Consul Template will request a new credential.
-  # This prevents Vault from revoking the credential at expiration and Consul
-  # Template having a stale credential.
-  #
-  # Note: If you set this to a value that is higher than your default TTL or
-  # max TTL (as set in vault), Consul Template will always read a new secret!
-  #
-  # This should also be less than or around 1/3 of your TTL for a predictable
-  # behaviour. See https://github.com/hashicorp/vault/issues/3414
-  grace = "5m"
-
   # This is a Vault Enterprise namespace to use for reading/writing secrets.
   #
   # This value can also be specified via the environment variable VAULT_NAMESPACE.
