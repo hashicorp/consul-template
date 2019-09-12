@@ -11,6 +11,7 @@ import (
 )
 
 func TestFileSandbox(t *testing.T) {
+	t.Parallel()
 	// while most of the function can be tested lexigraphically,
 	// we need to be able to walk actual symlinks.
 	_, filename, _, _ := runtime.Caller(0)
@@ -82,6 +83,7 @@ func TestFileSandbox(t *testing.T) {
 }
 
 func Test_byMeta(t *testing.T) {
+	t.Parallel()
 	svcA := &dep.HealthService{
 		Node:                "",
 		NodeID:              "",
