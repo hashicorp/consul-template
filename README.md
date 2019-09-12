@@ -960,13 +960,11 @@ secret in plain-text on disk. If an attacker is able to get access to the file,
 they will have access to plain-text secrets.
 
 Please note that Vault does not support blocking queries. As a result, Consul
-Template will not immediately reload in the event a secret is changed as it does
-with Consul's key-value store. Consul Template will fetch a new secret at half
-the lease duration of the original secret. For example, most items in Vault's
-generic secret backend have a default 30 day lease. This means Consul Template
-will renew the secret every 15 days. As such, it is recommended that a smaller
-lease duration be used when generating the initial secret to force Consul
-Template to renew more often.
+Template will not immediately reload in the event a secret is changed as it
+does with Consul's key-value store. Consul Template will renew the secret with
+Vault's [Renewer API](https://godoc.org/github.com/hashicorp/vault/api#Renewer).
+The Renew API tries to use most of the time the secret is good, renewing at
+around 90% of the lease time (as set by Vault).
 
 Also consider enabling `error_on_missing_key` when working with templates that
 will interact with Vault. By default, Consul Template uses Go's templating
