@@ -53,7 +53,7 @@ BUG FIXES:
 * Fixed issue with templates not rendering with `-once` [[GH-1227](https://github.com/hashicorp/consul-template/pull/1227), [GH-1196](https://github.com/hashicorp/consul-template/issues/1196), [GH-1207](https://github.com/hashicorp/consul-template/issues/1207)]
 * Fixed regression with ~/.vault-token and with vault_agent_token_file not respecting renew_token [[GH-1228](https://github.com/hashicorp/consul-template/issues/1228), [GH-1189](https://github.com/hashicorp/consul-template/issues/1189)]
 * CA certificates missing from docker 'light' image [[GH-1200](https://github.com/hashicorp/consul-template/issues/1200)]
-* Fixed issue with dedup data garbage in Consul KV [[GH-1158](https://github.com/hashicorp/consul-template/issues/1158), [[GH-1168](https://github.com/hashicorp/consul-template/issues/1168)]
+* Fixed issue with dedup data garbage in Consul KV [[GH-1158](https://github.com/hashicorp/consul-template/issues/1158), [GH-1168](https://github.com/hashicorp/consul-template/issues/1168)]
 * Fixed bad case in import path [[GH-1139](https://github.com/hashicorp/consul-template/issues/1139)]
 * Documented limits on using "." in service names [[GH-1205](https://github.com/hashicorp/consul-template/issues/1205)]
 
