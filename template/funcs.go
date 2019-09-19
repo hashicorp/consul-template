@@ -472,6 +472,28 @@ func servicesFunc(b *Brain, used, missing *dep.Set) func(...string) ([]*dep.Cata
 	}
 }
 
+// queryFunc returns or accumulates catalog services dependencies.
+func queryFunc(b *Brain, used, missing *dep.Set) func(...string) ([]*dep.CatalogQuery, error) {
+	return func(s ...string) ([]*dep.CatalogQuery, error) {
+		result := []*dep.CatalogQuery{}
+
+		d, err := dep.NewCatalogPreparedQuery(strings.Join(s, ""))
+		if err != nil {
+			return nil, err
+		}
+
+		used.Add(d)
+
+		if value, ok := b.Recall(d); ok {
+			return value.([]*dep.CatalogQuery), nil
+		}
+
+		missing.Add(d)
+
+		return result, nil
+	}
+}
+
 func safeTreeFunc(b *Brain, used, missing *dep.Set) func(string) ([]*dep.KeyPair, error) {
 	// call treeFunc but explicitly mark that empty data set returned on monitored KV prefix is NOT safe
 	return treeFunc(b, used, missing, false)
