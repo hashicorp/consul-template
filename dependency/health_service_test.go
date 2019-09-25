@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -242,6 +243,10 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 					Tags:        []string{},
 					Status:      "passing",
 					Port:        testConsul.Config.Ports.Server,
+					Weights: &api.AgentWeights{
+						Passing: 1,
+						Warning: 1,
+					},
 				},
 			},
 		},
@@ -271,6 +276,10 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 					Tags:        []string{},
 					Status:      "passing",
 					Port:        testConsul.Config.Ports.Server,
+					Weights: &api.AgentWeights{
+						Passing: 1,
+						Warning: 1,
+					},
 				},
 			},
 		},
@@ -296,6 +305,10 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 					Name:    "service-meta",
 					Tags:    []string{"tag1"},
 					Status:  "passing",
+					Weights: &api.AgentWeights{
+						Passing: 1,
+						Warning: 1,
+					},
 				},
 			},
 		},
