@@ -48,6 +48,9 @@ type Config struct {
 	// Dedup is used to configure the dedup settings
 	Dedup *DedupConfig `mapstructure:"deduplicate"`
 
+	// Default is used to configure the defaults for templates
+	Defaults *DefaultsConfig `mapstructure:"defaults"`
+
 	// Exec is the configuration for exec/supervise mode.
 	Exec *ExecConfig `mapstructure:"exec"`
 
@@ -102,6 +105,10 @@ func (c *Config) Copy() *Config {
 
 	if c.Dedup != nil {
 		o.Dedup = c.Dedup.Copy()
+	}
+
+	if c.Defaults != nil {
+		o.Defaults = c.Defaults.Copy()
 	}
 
 	if c.Exec != nil {
@@ -161,6 +168,10 @@ func (c *Config) Merge(o *Config) *Config {
 
 	if o.Dedup != nil {
 		r.Dedup = r.Dedup.Merge(o.Dedup)
+	}
+
+	if o.Defaults != nil {
+		r.Defaults = r.Defaults.Merge(o.Defaults)
 	}
 
 	if o.Exec != nil {
@@ -229,6 +240,7 @@ func Parse(s string) (*Config, error) {
 		"consul.ssl",
 		"consul.transport",
 		"deduplicate",
+		"defaults",
 		"env",
 		"exec",
 		"exec.env",
@@ -383,6 +395,7 @@ func (c *Config) GoString() string {
 	return fmt.Sprintf("&Config{"+
 		"Consul:%#v, "+
 		"Dedup:%#v, "+
+		"Defaults:%#v, "+
 		"Exec:%#v, "+
 		"KillSignal:%s, "+
 		"LogLevel:%s, "+
@@ -397,6 +410,7 @@ func (c *Config) GoString() string {
 		"}",
 		c.Consul,
 		c.Dedup,
+		c.Defaults,
 		c.Exec,
 		SignalGoString(c.KillSignal),
 		StringGoString(c.LogLevel),
@@ -438,6 +452,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		Consul:    DefaultConsulConfig(),
 		Dedup:     DefaultDedupConfig(),
+		Defaults:  DefaultDefaultsConfig(),
 		Exec:      DefaultExecConfig(),
 		Syslog:    DefaultSyslogConfig(),
 		Templates: DefaultTemplateConfigs(),
@@ -464,6 +479,10 @@ func (c *Config) Finalize() {
 		c.Dedup = DefaultDedupConfig()
 	}
 	c.Dedup.Finalize()
+
+	if c.Defaults == nil {
+		c.Defaults = DefaultDefaultsConfig()
+	}
 
 	if c.Exec == nil {
 		c.Exec = DefaultExecConfig()
