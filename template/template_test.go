@@ -1285,6 +1285,17 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"helper_loop_parseInt",
+			&NewTemplateInput{
+				Contents: `{{ $i := print "3" | parseInt }}{{ range loop 1 $i }}1{{ end }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"11",
+			false,
+		},
+		{
 			// GH-1143
 			"helper_loop_var",
 			&NewTemplateInput{

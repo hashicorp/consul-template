@@ -805,9 +805,11 @@ func loop(ifaces ...interface{}) (<-chan int64, error) {
 	to64 := func(i interface{}) (int64, error) {
 		v := reflect.ValueOf(i)
 		switch v.Kind() {
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32:
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32,
+			reflect.Int64:
 			return int64(v.Int()), nil
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32:
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32,
+			reflect.Uint64:
 			return int64(v.Uint()), nil
 		case reflect.String:
 			return parseInt(v.String())
