@@ -1413,7 +1413,7 @@ If we have the following services registered in Consul:
 ```
 
 ```liquid
-{{ service "redis|any" | byMeta "environment,shard_number|int" | toJson }}
+{{ service "redis|any" | byMeta "environment,shard_number|int" | toJSON }}
 ```
 
 The code above will produce a map of services grouped by meta:
