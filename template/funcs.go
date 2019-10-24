@@ -19,6 +19,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	dep "github.com/hashicorp/consul-template/dependency"
+	"github.com/hashicorp/consul/api"
 	socktmpl "github.com/hashicorp/go-sockaddr/template"
 	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v2"
@@ -469,6 +470,36 @@ func servicesFunc(b *Brain, used, missing *dep.Set) func(...string) ([]*dep.Cata
 		missing.Add(d)
 
 		return result, nil
+	}
+}
+
+func connectCARootsFunc(b *Brain, used, missing *dep.Set,
+) func(...string) ([]*api.CARoot, error) {
+	return func(...string) ([]*api.CARoot, error) {
+		d := dep.NewConnectCAQuery()
+		used.Add(d)
+		if value, ok := b.Recall(d); ok {
+			return value.([]*api.CARoot), nil
+		}
+		missing.Add(d)
+		return nil, nil
+	}
+}
+
+func connectLeafFunc(b *Brain, used, missing *dep.Set,
+) func(...string) (*api.LeafCert, error) {
+	return func(s ...string) (*api.LeafCert, error) {
+		if len(s) == 0 || s[0] == "" {
+			return nil, nil
+		}
+		d := dep.NewConnectLeafQuery(s[0])
+		used.Add(d)
+		if value, ok := b.Recall(d); ok {
+			return value.(*api.LeafCert), nil
+		}
+		missing.Add(d)
+		return nil, nil
+
 	}
 }
 

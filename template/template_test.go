@@ -10,6 +10,7 @@ import (
 	"time"
 
 	dep "github.com/hashicorp/consul-template/dependency"
+	"github.com/hashicorp/consul/api"
 )
 
 func TestNewTemplate(t *testing.T) {
@@ -1604,6 +1605,49 @@ func TestTemplate_Execute(t *testing.T) {
 				Brain: NewBrain(),
 			},
 			"1",
+			false,
+		},
+		{
+			"leaf_cert",
+			&NewTemplateInput{
+				Contents: `{{with caLeaf "foo"}}` +
+					`{{.CertPEM}}{{.PrivateKeyPEM}}{{end}}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					d := dep.NewConnectLeafQuery("foo")
+					b := NewBrain()
+					b.Remember(d, &api.LeafCert{
+						Service:       "foo",
+						CertPEM:       "PEM",
+						PrivateKeyPEM: "KEY",
+					})
+					return b
+				}(),
+			},
+			"PEMKEY",
+			false,
+		},
+		{
+			"root_ca",
+			&NewTemplateInput{
+				Contents: `{{range caRoots}}{{.RootCertPEM}}{{end}}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					d := dep.NewConnectCAQuery()
+					b := NewBrain()
+					b.Remember(d, []*api.CARoot{
+						&api.CARoot{
+							Name:        "Consul CA Root Cert",
+							RootCertPEM: "PEM",
+							Active:      true,
+						},
+					})
+					return b
+				}(),
+			},
+			"PEM",
 			false,
 		},
 	}
