@@ -473,6 +473,32 @@ func servicesFunc(b *Brain, used, missing *dep.Set) func(...string) ([]*dep.Cata
 	}
 }
 
+// connectFunc returns or accumulates health connect dependencies.
+func connectFunc(b *Brain, used, missing *dep.Set) func(...string) ([]*dep.HealthService, error) {
+	return func(s ...string) ([]*dep.HealthService, error) {
+		result := []*dep.HealthService{}
+
+		if len(s) == 0 || s[0] == "" {
+			return result, nil
+		}
+
+		d, err := dep.NewHealthConnectQuery(strings.Join(s, "|"))
+		if err != nil {
+			return nil, err
+		}
+
+		used.Add(d)
+
+		if value, ok := b.Recall(d); ok {
+			return value.([]*dep.HealthService), nil
+		}
+
+		missing.Add(d)
+
+		return result, nil
+	}
+}
+
 func connectCARootsFunc(b *Brain, used, missing *dep.Set,
 ) func(...string) ([]*api.CARoot, error) {
 	return func(...string) ([]*api.CARoot, error) {

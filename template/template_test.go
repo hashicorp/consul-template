@@ -1650,7 +1650,43 @@ func TestTemplate_Execute(t *testing.T) {
 			"PEM",
 			false,
 		},
+		{
+			"func_connect",
+			&NewTemplateInput{
+				Contents: `{{ range connect "webapp" }}{{ .Address }}{{ end }}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewHealthConnectQuery("webapp")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, []*dep.HealthService{
+						&dep.HealthService{
+							Node:    "node1",
+							Address: "1.2.3.4",
+						},
+						&dep.HealthService{
+							Node:    "node2",
+							Address: "5.6.7.8",
+						},
+					})
+					return b
+				}(),
+			},
+			"1.2.3.45.6.7.8",
+			false,
+		},
 	}
+
+	//	struct {
+	//		name string
+	//		ti   *NewTemplateInput
+	//		i    *ExecuteInput
+	//		e    string
+	//		err  bool
+	//	}
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
