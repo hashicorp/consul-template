@@ -111,6 +111,13 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 						Meta:    map[string]string{},
 					},
 					&CatalogNodeService{
+						ID:      "foo",
+						Service: "foo-sidecar-proxy",
+						Tags:    ServiceTags([]string{}),
+						Meta:    map[string]string{},
+						Port:    21999,
+					},
+					&CatalogNodeService{
 						ID:      "service-meta",
 						Service: "service-meta",
 						Tags:    ServiceTags([]string{"tag1"}),

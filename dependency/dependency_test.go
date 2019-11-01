@@ -42,6 +42,8 @@ func TestMain(m *testing.M) {
 	}
 	testClients = clients
 
+	consul_agent := testClients.consul.client.Agent()
+	// service with meta data
 	serviceMetaService := &api.AgentServiceRegistration{
 		ID:   "service-meta",
 		Name: "service-meta",
@@ -50,9 +52,31 @@ func TestMain(m *testing.M) {
 			"meta1": "value1",
 		},
 	}
-
-	consul_agent := testClients.consul.client.Agent()
 	if err := consul_agent.ServiceRegister(serviceMetaService); err != nil {
+		Fatalf("%v", err)
+	}
+	// connect enabled service
+	testService := &api.AgentServiceRegistration{
+		Name:    "foo",
+		ID:      "foo",
+		Port:    12345,
+		Connect: &api.AgentServiceConnect{},
+	}
+	// this is based on what `consul connect proxy` command does at
+	// consul/command/connect/proxy/register.go (register method)
+	testConnect := &api.AgentServiceRegistration{
+		Kind: api.ServiceKindConnectProxy,
+		Name: "foo-sidecar-proxy",
+		ID:   "foo",
+		Port: 21999,
+		Proxy: &api.AgentServiceConnectProxyConfig{
+			DestinationServiceName: "foo"},
+	}
+
+	if err := consul_agent.ServiceRegister(testService); err != nil {
+		Fatalf("%v", err)
+	}
+	if err := consul_agent.ServiceRegister(testConnect); err != nil {
 		Fatalf("%v", err)
 	}
 
