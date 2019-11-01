@@ -639,6 +639,87 @@ provides the following functions:
 API functions interact with remote API calls, communicating with external
 services like [Consul][consul] and [Vault][vault].
 
+##### `caLeaf`
+
+Query [Consul][consul] for the leaf certificate representing a single service.
+
+```liquid
+{{ caLeaf "<NAME>" }}
+```
+
+For example:
+```liquid
+{{ with caLeaf "proxy" }}{{ .CertPEM }}{{ end }}
+```
+
+renders
+```text
+-----BEGIN CERTIFICATE-----
+MIICizCCAjGgAwIBAgIBCDAKBggqhkjOPQQDAjAWMRQwEgYDVQQDEwtDb25zdWwg
+...
+lXcQzfKlIYeFWvcAv4cA4W258gTtqaFRDRJ2i720eQ==
+-----END CERTIFICATE-----
+```
+
+The two most useful fields are `.CertPEM` and `.PrivateKeyPEM`. For a complete
+list of available fields, see consul's documentation on
+[LeafCert](https://godoc.org/github.com/hashicorp/consul/api#LeafCert).
+
+##### `caRoot`
+
+Query [Consul][consul] for all [connect][connect] trusted certificate authority
+(CA) root certificates.
+
+```liquid
+{{ caRoots }}
+```
+
+For example:
+```liquid
+{{ range caRoots }}{{ .RootCertPEM }}{{ end }}
+```
+
+renders
+```text
+-----BEGIN CERTIFICATE-----
+MIICWDCCAf+gAwIBAgIBBzAKBggqhkjOPQQDAjAWMRQwEgYDVQQDEwtDb25zdWwg
+...
+bcA+Su3r8qSRppTlc6D0UOYOWc1ykQKQOK7mIg==
+-----END CERTIFICATE-----
+
+```
+
+The most useful field is `.RootCertPEM`. For a complete list of available
+fields, see consul's documentation on
+[CARootList](https://godoc.org/github.com/hashicorp/consul/api#CARootList).
+
+
+##### `connect`
+
+Query [Consul][consul] for [connect][connect]-capable services based on their
+health.
+
+```liquid
+{{ connect "<TAG>.<NAME>@<DATACENTER>~<NEAR>|<FILTER>" }}
+```
+
+Syntax is exactly the same as for the [service](#service) function below.
+
+
+```liquid
+{{ range connect "web" }}
+server {{ .Name }} {{ .Address }}:{{ .Port }}{{ end }}
+```
+
+renders the IP addresses of all _healthy_ nodes with a logical
+[connect][connect]-capable service named "web":
+
+```text
+server web01 10.5.2.45:21000
+server web02 10.2.6.61:21000
+```
+
+
 ##### `datacenters`
 
 Query [Consul][consul] for all datacenters in its catalog.
@@ -2459,6 +2540,7 @@ go test ./... -run SomeTestFunction_name
 ```
 
 [consul]: https://www.consul.io "Consul by HashiCorp"
+[connect]: https://www.consul.io/docs/connect/ "Connect"
 [examples]: (https://github.com/hashicorp/consul-template/tree/master/examples) "Consul Template Examples"
 [hcl]: https://github.com/hashicorp/hcl "HashiCorp Configuration Language (hcl)"
 [releases]: https://releases.hashicorp.com/consul-template "Consul Template Releases"
