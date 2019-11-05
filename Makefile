@@ -18,7 +18,7 @@ GO_DOCKER_VERSION ?= 1.13
 PROJECT := $(shell go list -m -mod=vendor)
 OWNER := "hashicorp"
 NAME := $(notdir $(PROJECT))
-GIT_COMMIT ?= $(shell git rev-parse --short HEAD)
+GIT_COMMIT ?= $(shell git rev-parse --short HEAD || echo release)
 VERSION := $(shell awk -F\" '/Version/ { print $$2; exit }' "${CURRENT_DIR}/version/version.go")
 
 # Current system information
