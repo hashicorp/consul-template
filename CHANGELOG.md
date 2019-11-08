@@ -3,6 +3,7 @@
 SECURITY:
 
 * curl is vulnerable in the latest alpine docker image [[GH-1302](https://github.com/hashicorp/consul-template/issues/1302)]
+* fix breaking change for loop [[GH-1285](https://github.com/hashicorp/consul-template/issues/1285)]
 
 ## v0.22.0 (September 10, 2019)
 
