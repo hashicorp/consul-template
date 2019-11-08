@@ -1,3 +1,9 @@
+## v0.22.1 (Nov 08, 2019)
+
+SECURITY:
+
+* curl is vulnerable in the latest alpine docker image [[GH-1302](https://github.com/hashicorp/consul-template/issues/1302)]
+
 ## v0.22.0 (September 10, 2019)
 
 IMPROVEMENTS:
