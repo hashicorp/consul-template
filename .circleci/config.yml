@@ -3,7 +3,7 @@ jobs:
   build:
     environment:
       GO111MODULE: "on"
-      CONSUL_VERSION: 1.5.1
+      CONSUL_VERSION: 1.6.1
       VAULT_VERSION: 1.1.3
     docker:
       - image: circleci/golang:latest

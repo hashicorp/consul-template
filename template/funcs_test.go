@@ -10,6 +10,9 @@ import (
 	dep "github.com/hashicorp/consul-template/dependency"
 )
 
+// NOTE: the template functions are all tested in ./template_test.go and
+// the tests here are for ancillary code only.
+
 func TestFileSandbox(t *testing.T) {
 	t.Parallel()
 	// while most of the function can be tested lexigraphically,

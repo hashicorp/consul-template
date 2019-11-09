@@ -10,6 +10,7 @@ import (
 	"time"
 
 	dep "github.com/hashicorp/consul-template/dependency"
+	"github.com/hashicorp/consul/api"
 )
 
 func TestNewTemplate(t *testing.T) {
@@ -1606,7 +1607,86 @@ func TestTemplate_Execute(t *testing.T) {
 			"1",
 			false,
 		},
+		{
+			"leaf_cert",
+			&NewTemplateInput{
+				Contents: `{{with caLeaf "foo"}}` +
+					`{{.CertPEM}}{{.PrivateKeyPEM}}{{end}}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					d := dep.NewConnectLeafQuery("foo")
+					b := NewBrain()
+					b.Remember(d, &api.LeafCert{
+						Service:       "foo",
+						CertPEM:       "PEM",
+						PrivateKeyPEM: "KEY",
+					})
+					return b
+				}(),
+			},
+			"PEMKEY",
+			false,
+		},
+		{
+			"root_ca",
+			&NewTemplateInput{
+				Contents: `{{range caRoots}}{{.RootCertPEM}}{{end}}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					d := dep.NewConnectCAQuery()
+					b := NewBrain()
+					b.Remember(d, []*api.CARoot{
+						&api.CARoot{
+							Name:        "Consul CA Root Cert",
+							RootCertPEM: "PEM",
+							Active:      true,
+						},
+					})
+					return b
+				}(),
+			},
+			"PEM",
+			false,
+		},
+		{
+			"func_connect",
+			&NewTemplateInput{
+				Contents: `{{ range connect "webapp" }}{{ .Address }}{{ end }}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewHealthConnectQuery("webapp")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, []*dep.HealthService{
+						&dep.HealthService{
+							Node:    "node1",
+							Address: "1.2.3.4",
+						},
+						&dep.HealthService{
+							Node:    "node2",
+							Address: "5.6.7.8",
+						},
+					})
+					return b
+				}(),
+			},
+			"1.2.3.45.6.7.8",
+			false,
+		},
 	}
+
+	//	struct {
+	//		name string
+	//		ti   *NewTemplateInput
+	//		i    *ExecuteInput
+	//		e    string
+	//		err  bool
+	//	}
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {

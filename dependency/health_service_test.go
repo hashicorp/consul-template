@@ -140,6 +140,77 @@ func TestNewHealthServiceQuery(t *testing.T) {
 			assert.Equal(t, tc.exp, act)
 		})
 	}
+	// Connect
+	// all tests above also test connect, just need to check enabling it
+	t.Run("connect_query", func(t *testing.T) {
+		act, err := NewHealthConnectQuery("name")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if act != nil {
+			act.stopCh = nil
+		}
+		exp := &HealthServiceQuery{
+			filters: []string{"passing"},
+			name:    "name",
+			connect: true,
+		}
+
+		assert.Equal(t, exp, act)
+	})
+}
+
+func TestHealthConnectServiceQuery_Fetch(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		in   string
+		exp  []*HealthService
+	}{
+		{
+			"connect-service",
+			"foo",
+			[]*HealthService{
+				&HealthService{
+					Name:        "foo-sidecar-proxy",
+					ID:          "foo",
+					Port:        21999,
+					Status:      "passing",
+					Address:     "127.0.0.1",
+					NodeAddress: "127.0.0.1",
+					Tags:        ServiceTags([]string{}),
+					NodeMeta: map[string]string{
+						"consul-network-segment": ""},
+				},
+			},
+		},
+	}
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			d, err := NewHealthConnectQuery(tc.in)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer func() {
+				d.Stop()
+			}()
+			res, _, err := d.Fetch(testClients, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var act []*HealthService
+			if act = res.([]*HealthService); len(act) != 1 {
+				t.Fatal("Expected 1 result, got ", len(act))
+			}
+			// blank out fields we don't want to test
+			inst := act[0]
+			inst.Node, inst.NodeID = "", ""
+			inst.Checks = nil
+			inst.NodeTaggedAddresses = nil
+
+			assert.Equal(t, tc.exp, act)
+		})
+	}
 }
 
 func TestHealthServiceQuery_Fetch(t *testing.T) {
