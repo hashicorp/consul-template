@@ -7,9 +7,9 @@ import (
 	"io/ioutil"
 	"text/template"
 
-	"github.com/pkg/errors"
-
+	"github.com/Masterminds/sprig"
 	dep "github.com/hashicorp/consul-template/dependency"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -311,6 +311,12 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"spew_printf":  spewPrintf,
 		"spew_sdump":   spewSdump,
 		"spew_sprintf": spewSprintf,
+	}
+
+	// Add the Sprig functions to the funcmap
+	for k, v := range sprig.FuncMap() {
+		target := "sprig_" + k
+		r[target] = v
 	}
 
 	for _, bf := range i.functionDenylist {
