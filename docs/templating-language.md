@@ -82,6 +82,7 @@ provides the following functions:
   - [toYAML](#toyaml)
   - [sockaddr](#sockaddr)
   - [writeToFile](#writeToFile)
+- [Sprig Functions](#sprig-functions)
 - [Math Functions](#math-functions)
   - [add](#add)
   - [subtract](#subtract)
@@ -1610,6 +1611,13 @@ For example:
 {{ key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644" "append" }}
 {{ key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644" "append,newline" }}
 ```
+
+---
+
+## Sprig Functions
+
+Consul-template provides access to the Sprig library
+in templates. To use a Sprig function in your template, prepend `sprig_` to the function name.  A full list of Sprig functions can be found in the [Sprig Function Documentation](http://masterminds.github.io/sprig/)
 
 ---
 
