@@ -2503,7 +2503,7 @@ A: Configuration management tools are designed to be used in unison with Consul 
 
 ## Contributing
 
-To build and install Envconsul locally, you will need to [install Go][go].
+To build and install consul-template locally, you will need to [install Go][go].
 
 Clone the repository:
 
