@@ -13,10 +13,9 @@ then
   export VAULT_PATH=auth/eks/login
 fi
 
+export VAULT_TOKEN=$(vault write $VAULT_PATH role=read jwt=$SERVICE_ACCOUNT_TOKEN | grep -m 1 token | awk '{print $2}')
 if [ -z "$VAULT_TOKEN" ]; then
     echo "VAULT_TOKEN not set. Exiting ..."
     exit 1
 fi
-
-export VAULT_TOKEN=$(vault write $VAULT_PATH role=read jwt=$SERVICE_ACCOUNT_TOKEN | grep -m 1 token | awk '{print $2}')
 exec /usr/bin/consul-template "$@"
