@@ -11,7 +11,8 @@ COPY  --from=base /go/bin/consul-template /usr/bin/consul-template
 
 RUN apt update -y && \
     apt install wget -y && \
-    apt install unzip -y
+    apt install unzip -y && \
+    apt install procps -y
 
 RUN wget https://releases.hashicorp.com/vault/1.0.3/vault_1.0.3_linux_amd64.zip && \
     unzip vault_1.0.3_linux_amd64.zip && \
