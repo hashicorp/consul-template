@@ -25,11 +25,12 @@ func TestConsulConfig_Copy(t *testing.T) {
 		{
 			"same_enabled",
 			&ConsulConfig{
-				Address: String("1.2.3.4"),
-				Auth:    &AuthConfig{Enabled: Bool(true)},
-				Retry:   &RetryConfig{Enabled: Bool(true)},
-				SSL:     &SSLConfig{Enabled: Bool(true)},
-				Token:   String("abcd1234"),
+				Address:   String("1.2.3.4"),
+				Namespace: String("foo"),
+				Auth:      &AuthConfig{Enabled: Bool(true)},
+				Retry:     &RetryConfig{Enabled: Bool(true)},
+				SSL:       &SSLConfig{Enabled: Bool(true)},
+				Token:     String("abcd1234"),
 				Transport: &TransportConfig{
 					DialKeepAlive: TimeDuration(20 * time.Second),
 				},
@@ -103,6 +104,30 @@ func TestConsulConfig_Merge(t *testing.T) {
 			&ConsulConfig{Address: String("same")},
 			&ConsulConfig{Address: String("same")},
 			&ConsulConfig{Address: String("same")},
+		},
+		{
+			"namespace_overrides",
+			&ConsulConfig{Namespace: String("foo")},
+			&ConsulConfig{Namespace: String("bar")},
+			&ConsulConfig{Namespace: String("bar")},
+		},
+		{
+			"namespace_empty_one",
+			&ConsulConfig{Namespace: String("foo")},
+			&ConsulConfig{},
+			&ConsulConfig{Namespace: String("foo")},
+		},
+		{
+			"namespace_empty_two",
+			&ConsulConfig{},
+			&ConsulConfig{Namespace: String("bar")},
+			&ConsulConfig{Namespace: String("bar")},
+		},
+		{
+			"namespace_same",
+			&ConsulConfig{Namespace: String("foo")},
+			&ConsulConfig{Namespace: String("foo")},
+			&ConsulConfig{Namespace: String("foo")},
 		},
 		{
 			"auth_overrides",
@@ -248,7 +273,8 @@ func TestConsulConfig_Finalize(t *testing.T) {
 			"empty",
 			&ConsulConfig{},
 			&ConsulConfig{
-				Address: String(""),
+				Address:   String(""),
+				Namespace: String(""),
 				Auth: &AuthConfig{
 					Enabled:  Bool(false),
 					Username: String(""),

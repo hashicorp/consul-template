@@ -264,6 +264,11 @@ consul {
   # clients can connect.
   address = "127.0.0.1:8500"
 
+  # This is a Consul Enterprise namespace to use for reading/writing. This can
+  # also be set via the CONSUL_NAMESPACE environment variable.
+  # BETA: this is to be considered a beta feature as it has had limited testing
+  namespace = "foo"
+
   # This is the ACL token to use when connecting to Consul. If you did not
   # enable ACLs on your Consul cluster, you do not need to set this option.
   #
