@@ -8,8 +8,13 @@ When generating PKI certificates with Vault, the certificate, private key, and
 any intermediate certs are all returned as part of the same API call. Most
 software requires these files be placed in separate files on the system.
 
-**Note:** [`generate_lease`][generate_lease] must be set to `true` (non-default) on the
-Vault PKI role, otherwise certificate renewal won't work properly.
+**Note:** In previous versions of consul-template [`generate_lease`][generate_lease] needed
+to be set to `true` (non-default) on the Vault PKI role.  Without the lease the automatic
+certificate renewal wouldn't work properly based on the expiration date of the certificate alone. 
+As of v0.22.0 the certificate expiration details are now also used to monitor the renewal time
+without needing an associated lease in Vault.  If you are issuing a very large number of certificates
+there may be a performance advantage to not tracking every lease when leaving the default setting
+of [`generate_lease`][generate_lease] set to `false`.
 
 [vault]: https://www.vaultproject.io/ "Vault by HashiCorp"
 [generate_lease]: https://www.vaultproject.io/api/secret/pki/index.html#generate_lease
