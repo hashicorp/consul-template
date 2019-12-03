@@ -43,6 +43,7 @@ open() {
 # sleeps are needed when services depend on others already running
 open "consul agent -dev -log-level=warn -config-file=consul-services.json"
 open "python -m SimpleHTTPServer"
+# change to "python3 -m http.server" if you only have python3
 sleep 0.3
 open "consul connect proxy -sidecar-for webserver"
 sleep 0.3
