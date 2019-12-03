@@ -45,8 +45,7 @@ cat > consul-services.json << EOF
   "services": [
     {
       "name": "ingress",
-      "port": 8080,
-      "connect": {}
+      "port": 8080
     },
     {
       "name": "webserver",

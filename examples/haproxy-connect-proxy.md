@@ -45,8 +45,7 @@ cat > consul-services.json << EOF
   "services": [
     {
       "name": "ingress",
-      "port": 8080,
-      "connect": {}
+      "port": 8080
     },
     {
       "name": "webserver",
@@ -104,8 +103,7 @@ EOF
 #### certs.pem
 ```liquid
 cat > certs.pem.tmpl << EOF
-{{with caLeaf "ingress"}}{{.PrivateKeyPEM}}{{end}}
-{{with caLeaf "ingress"}}{{.CertPEM}}{{end}}
+{{with caLeaf "ingress"}}{{.PrivateKeyPEM}}{{.CertPEM}}{{end}}
 EOF
 ```
 
