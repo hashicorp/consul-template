@@ -294,6 +294,8 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"multiply": multiply,
 		"divide":   divide,
 		"modulo":   modulo,
+		"minimum":  minimum,
+		"maximum":  maximum,
 	}
 
 	for _, bf := range i.functionBlacklist {

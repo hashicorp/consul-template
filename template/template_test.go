@@ -1636,6 +1636,28 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"math_minimum",
+			&NewTemplateInput{
+				Contents: `{{ 3 | minimum 2 }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"2",
+			false,
+		},
+		{
+			"math_maximum",
+			&NewTemplateInput{
+				Contents: `{{ 3 | maximum 2 }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"3",
+			false,
+		},
+		{
 			"leaf_cert",
 			&NewTemplateInput{
 				Contents: `{{with caLeaf "foo"}}` +

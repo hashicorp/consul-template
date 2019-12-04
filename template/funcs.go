@@ -1344,6 +1344,148 @@ func modulo(b, a interface{}) (interface{}, error) {
 	}
 }
 
+// minimum returns the minimum between a and b.
+func minimum(b, a interface{}) (interface{}, error) {
+	av := reflect.ValueOf(a)
+	bv := reflect.ValueOf(b)
+
+	switch av.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		switch bv.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			if av.Int() < bv.Int() {
+				return av.Int(), nil
+			}
+			return bv.Int(), nil
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			if av.Int() < int64(bv.Uint()) {
+				return av.Int(), nil
+			}
+			return bv.Uint(), nil
+		case reflect.Float32, reflect.Float64:
+			if float64(av.Int()) < bv.Float() {
+				return av.Int(), nil
+			}
+			return bv.Float(), nil
+		default:
+			return nil, fmt.Errorf("minimum: unknown type for %q (%T)", bv, b)
+		}
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		switch bv.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			if int64(av.Uint()) < bv.Int() {
+				return av.Uint(), nil
+			}
+			return bv.Int(), nil
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			if av.Uint() < bv.Uint() {
+				return av.Uint(), nil
+			}
+			return bv.Uint(), nil
+		case reflect.Float32, reflect.Float64:
+			if float64(av.Uint()) < bv.Float() {
+				return av.Uint(), nil
+			}
+			return bv.Float(), nil
+		default:
+			return nil, fmt.Errorf("minimum: unknown type for %q (%T)", bv, b)
+		}
+	case reflect.Float32, reflect.Float64:
+		switch bv.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			if av.Float() < float64(bv.Int()) {
+				return av.Float(), nil
+			}
+			return bv.Int(), nil
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			if av.Float() < float64(bv.Uint()) {
+				return av.Float(), nil
+			}
+			return bv.Uint(), nil
+		case reflect.Float32, reflect.Float64:
+			if av.Float() < bv.Float() {
+				return av.Float(), nil
+			}
+			return bv.Float(), nil
+		default:
+			return nil, fmt.Errorf("minimum: unknown type for %q (%T)", bv, b)
+		}
+	default:
+		return nil, fmt.Errorf("minimum: unknown type for %q (%T)", av, a)
+	}
+}
+
+// maximum returns the maximum between a and b.
+func maximum(b, a interface{}) (interface{}, error) {
+	av := reflect.ValueOf(a)
+	bv := reflect.ValueOf(b)
+
+	switch av.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		switch bv.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			if av.Int() > bv.Int() {
+				return av.Int(), nil
+			}
+			return bv.Int(), nil
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			if av.Int() > int64(bv.Uint()) {
+				return av.Int(), nil
+			}
+			return bv.Uint(), nil
+		case reflect.Float32, reflect.Float64:
+			if float64(av.Int()) > bv.Float() {
+				return av.Int(), nil
+			}
+			return bv.Float(), nil
+		default:
+			return nil, fmt.Errorf("maximum: unknown type for %q (%T)", bv, b)
+		}
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		switch bv.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			if int64(av.Uint()) > bv.Int() {
+				return av.Uint(), nil
+			}
+			return bv.Int(), nil
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			if av.Uint() > bv.Uint() {
+				return av.Uint(), nil
+			}
+			return bv.Uint(), nil
+		case reflect.Float32, reflect.Float64:
+			if float64(av.Uint()) > bv.Float() {
+				return av.Uint(), nil
+			}
+			return bv.Float(), nil
+		default:
+			return nil, fmt.Errorf("maximum: unknown type for %q (%T)", bv, b)
+		}
+	case reflect.Float32, reflect.Float64:
+		switch bv.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			if av.Float() > float64(bv.Int()) {
+				return av.Float(), nil
+			}
+			return bv.Int(), nil
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			if av.Float() > float64(bv.Uint()) {
+				return av.Float(), nil
+			}
+			return bv.Uint(), nil
+		case reflect.Float32, reflect.Float64:
+			if av.Float() > bv.Float() {
+				return av.Float(), nil
+			}
+			return bv.Float(), nil
+		default:
+			return nil, fmt.Errorf("maximum: unknown type for %q (%T)", bv, b)
+		}
+	default:
+		return nil, fmt.Errorf("maximum: unknown type for %q (%T)", av, a)
+	}
+}
+
 // blacklisted always returns an error, to be used in place of blacklisted template functions
 func blacklisted(...string) (string, error) {
 	return "", errors.New("function is disabled")
