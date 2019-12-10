@@ -6,37 +6,25 @@ set -e
 # wouldn't do either of these functions so we'd leak zombies as well as do
 # unclean termination of all our sub-processes.
 
-# CONSUL_DATA_DIR is exposed as a volume for possible persistent storage.
 # CT_CONFIG_DIR isn't exposed as a volume but you can compose additional config
 # files in there if you use this image as a base, or use CT_LOCAL_CONFIG below.
-CT_DATA_DIR=/consul-template/config
 CT_CONFIG_DIR=/consul-template/config
 
-# If the user is trying to run consul-template directly with some arguments, then
-# pass them to consul-template.
-if [ "${1:0:1}" = '-' ]; then
-  set -- /bin/consul-template "$@"
+# If the user is trying to run consul-template directly with some arguments,
+# then pass them to consul-template.
+# On alpine /bin/sh is busybox which supports the bashism below.
+if [ "${1:0:1}" = '-' ]
+then
+    set -- /bin/consul-template "$@"
 fi
 
-# If we are running Consul, make sure it executes as the proper user.
-if [ "$1" = '/bin/consul-template' ]; then
-  # If the data or config dirs are bind mounted then chown them.
-  # Note: This checks for root ownership as that's the most common case.
-  if [ "$(stat -c %u /consul-template/data)" != "$(id -u consul-template)" ]; then
-    chown consul-template:consul-template /consul-template/data
-  fi
-  if [ "$(stat -c %u /consul-template/config)" != "$(id -u consul-template)" ]; then
-    chown consul-template:consul-template /consul-template/config
-  fi
-
-  # Set the configuration directory
+# Set the configuration directory
+if [ "$1" = '/bin/consul-template' ]
+then
   shift
   set -- /bin/consul-template \
     -config="$CT_CONFIG_DIR" \
     "$@"
-
-  # Run under the right user
-  set -- gosu consul-template "$@"
 fi
 
 exec "$@"
