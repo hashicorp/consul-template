@@ -1544,12 +1544,12 @@ func TestTemplate_Execute(t *testing.T) {
 		{
 			"helper_sockaddr",
 			&NewTemplateInput{
-				Contents: `{{ sockaddr "GetAllInterfaces | include \"type\" \"IPv4\"" | contains "127.0.0.1" }}`,
+				Contents: `{{ sockaddr "GetAllInterfaces | include \"flag\" \"loopback\" | include \"type\" \"IPv4\" | sort \"address\" | limit 1 | attr \"address\""}}`,
 			},
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
-			"true",
+			"127.0.0.1",
 			false,
 		},
 		{
