@@ -514,7 +514,7 @@ exec {
   # This defines the signal sent to the child process when Consul Template is
   # gracefully shutting down. The application should begin a graceful cleanup.
   # If the application does not terminate before the `kill_timeout`, it will
-  # be terminated (effectively "kill -9"). The default value is "SIGTERM".
+  # be terminated (effectively "kill -9"). The default value is "SIGINT".
   kill_signal = "SIGINT"
 
   # This defines the amount of time to wait for the child process to gracefully
