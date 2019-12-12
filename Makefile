@@ -55,8 +55,8 @@ define make-xc-target
 		@printf "%s%20s %s\n" "-->" "${1}/${2}:" "${PROJECT}"
 		case "$2" in \
 			arm) export CGO_ENABLED="1" ; \
-				  export GOARM=5 \
-				  export CC="arm-linux-gnueabi-gcc" ;; \
+				  export GOARM=6 \
+				  export CC="arm-linux-gnueabihf-gcc" ;; \
 			arm64) export CGO_ENABLED="1" ; \
 				  export CC="aarch64-linux-gnu-gcc" ;; \
 			*) export CGO_ENABLED="0" ;; \
