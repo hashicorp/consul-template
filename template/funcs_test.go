@@ -234,3 +234,36 @@ func Test_byMeta(t *testing.T) {
 		})
 	}
 }
+
+func Test_sha256Hex(t *testing.T) {
+	type args struct {
+		item string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			name:    "Should return the proper string",
+			args:    args{
+				item: "bladibla",
+			},
+			want:    "54cf4c66bcabb5c20e25331c01dd600b73369e97a947861bd8d3a0e0b8b3d70b",
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := sha256Hex(tt.args.item)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("sha256Hex() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("sha256Hex() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
