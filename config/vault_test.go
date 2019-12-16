@@ -27,7 +27,6 @@ func TestVaultConfig_Copy(t *testing.T) {
 			&VaultConfig{
 				Address:    String("address"),
 				Enabled:    Bool(true),
-				Grace:      TimeDuration(1 * time.Minute),
 				Namespace:  String("foo"),
 				RenewToken: Bool(true),
 				Retry:      &RetryConfig{Enabled: Bool(true)},
@@ -132,30 +131,6 @@ func TestVaultConfig_Merge(t *testing.T) {
 			&VaultConfig{Address: String("address")},
 			&VaultConfig{Address: String("address")},
 			&VaultConfig{Address: String("address")},
-		},
-		{
-			"grace_overrides",
-			&VaultConfig{Grace: TimeDuration(5 * time.Minute)},
-			&VaultConfig{Grace: TimeDuration(10 * time.Minute)},
-			&VaultConfig{Grace: TimeDuration(10 * time.Minute)},
-		},
-		{
-			"grace_empty_one",
-			&VaultConfig{Grace: TimeDuration(5 * time.Minute)},
-			&VaultConfig{},
-			&VaultConfig{Grace: TimeDuration(5 * time.Minute)},
-		},
-		{
-			"grace_empty_two",
-			&VaultConfig{},
-			&VaultConfig{Grace: TimeDuration(5 * time.Minute)},
-			&VaultConfig{Grace: TimeDuration(5 * time.Minute)},
-		},
-		{
-			"grace_same",
-			&VaultConfig{Grace: TimeDuration(5 * time.Minute)},
-			&VaultConfig{Grace: TimeDuration(5 * time.Minute)},
-			&VaultConfig{Grace: TimeDuration(5 * time.Minute)},
 		},
 		{
 			"namespace_overrides",
@@ -351,7 +326,6 @@ func TestVaultConfig_Finalize(t *testing.T) {
 			&VaultConfig{
 				Address:    String(""),
 				Enabled:    Bool(false),
-				Grace:      TimeDuration(DefaultVaultGrace),
 				Namespace:  String(""),
 				RenewToken: Bool(DefaultVaultRenewToken),
 				Retry: &RetryConfig{
@@ -390,7 +364,6 @@ func TestVaultConfig_Finalize(t *testing.T) {
 			&VaultConfig{
 				Address:    String("address"),
 				Enabled:    Bool(true),
-				Grace:      TimeDuration(DefaultVaultGrace),
 				Namespace:  String(""),
 				RenewToken: Bool(DefaultVaultRenewToken),
 				Retry: &RetryConfig{
@@ -429,7 +402,6 @@ func TestVaultConfig_Finalize(t *testing.T) {
 			&VaultConfig{
 				Address:    String("address"),
 				Enabled:    Bool(true),
-				Grace:      TimeDuration(DefaultVaultGrace),
 				Namespace:  String(""),
 				RenewToken: Bool(DefaultVaultRenewToken),
 				Retry: &RetryConfig{
