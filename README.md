@@ -2174,6 +2174,26 @@ func main() {
 
 ## Caveats
 
+### Docker Image Use
+
+The Alpine Docker image is configured to support an external volume to render
+shared templates to. If mounted you will need to make sure that the
+consul-template user in the docker image has write permissions to the
+directory. Also if you build your own image using these you need to be sure you
+have the permissions correct.
+
+**The consul-template user in docker has a UID of 100 and a GID of 1000.**
+
+This effects the in image directories /consul-template/config, used to add
+configuration when using this as a parent image, and /consul-template/data,
+exported as a VOLUME as a location to render shared results.
+
+Previously the image initially ran as root in order to ensure the permissions
+allowed it. But this ran against docker best practices and security policies.
+
+If you build your own image based on ours you can override these values with
+`--build-arg` parameters.
+
 ### Dots in Service Names
 
 Using dots `.` in service names will conflict with the use of dots for [TAG

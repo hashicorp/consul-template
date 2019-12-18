@@ -1,3 +1,10 @@
+## v0.24.0 (Dec NN, 2019)
+
+BREAKING CHANGES:
+
+* Alpine Docker image no longer runs as root and so doesn't change ownership of the /consul-template/data and /consul-template/config directories to the consul-template user. See the [Docker Image Use](https://github.com/hashicorp/consul-template#docker-image-use) topic in the documentation for more.
+
+
 ## v0.23.0 (Nov 13, 2019)
 
 IMPROVEMENTS:
