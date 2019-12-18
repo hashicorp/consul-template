@@ -29,7 +29,7 @@ GOARCH ?= $(shell go env GOARCH)
 XC_OS ?= darwin freebsd linux netbsd openbsd solaris windows
 XC_ARCH ?= 386 amd64 arm arm64
 # XC_EXCLUDE "arm64" entries excludes both arm and arm64
-XC_EXCLUDE ?= darwin/arm64 freebsd/arm64 netbsd/arm64 openbsd/arm64 solaris/386 solaris/arm64 windows/arm64
+XC_EXCLUDE ?= darwin/arm64 freebsd/arm64 netbsd/arm64 openbsd/arm64 solaris/arm64 windows/arm64 solaris/386
 
 # GPG Signing key (blank by default, means no GPG signing)
 GPG_KEY ?=
