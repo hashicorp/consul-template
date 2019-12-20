@@ -33,6 +33,9 @@ const (
 
 	// DefaultKillSignal is the default signal for termination.
 	DefaultKillSignal = syscall.SIGINT
+
+	// DefaultBlockQueryWaitTime is amount of time in seconds to do a blocking query for
+	DefaultBlockQueryWaitTime = 60 * time.Second
 )
 
 var (
@@ -84,6 +87,9 @@ type Config struct {
 	// Additional command line options
 	// Run once, executing each template exactly once, and exit
 	Once bool
+
+	// BlockQueryWaitTime is amount of time in seconds to do a blocking query for
+	BlockQueryWaitTime *time.Duration `mapstructure:"block_query_wait"`
 }
 
 // Copy returns a deep copy of the current configuration. This is useful because
@@ -135,6 +141,8 @@ func (c *Config) Copy() *Config {
 	}
 
 	o.Once = c.Once
+
+	o.BlockQueryWaitTime = c.BlockQueryWaitTime
 
 	return &o
 }
@@ -204,6 +212,8 @@ func (c *Config) Merge(o *Config) *Config {
 	}
 
 	r.Once = o.Once
+
+	r.BlockQueryWaitTime = o.BlockQueryWaitTime
 
 	return r
 }
@@ -394,6 +404,7 @@ func (c *Config) GoString() string {
 		"Vault:%#v, "+
 		"Wait:%#v,"+
 		"Once:%#v"+
+		"BlockQueryWaitTime:%#v"+
 		"}",
 		c.Consul,
 		c.Dedup,
@@ -408,6 +419,7 @@ func (c *Config) GoString() string {
 		c.Vault,
 		c.Wait,
 		c.Once,
+		TimeDurationGoString(c.BlockQueryWaitTime),
 	)
 }
 
@@ -516,6 +528,11 @@ func (c *Config) Finalize() {
 	// disable Wait if -once was specified
 	if c.Once {
 		c.Wait = &WaitConfig{Enabled: Bool(false)}
+	}
+
+	// defaults WaitTime to 60 seconds
+	if c.BlockQueryWaitTime == nil {
+		c.BlockQueryWaitTime = TimeDuration(DefaultBlockQueryWaitTime)
 	}
 }
 

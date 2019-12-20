@@ -196,10 +196,11 @@ func TestDedupConfig_Finalize(t *testing.T) {
 			"empty",
 			&DedupConfig{},
 			&DedupConfig{
-				Enabled:  Bool(false),
-				MaxStale: TimeDuration(DefaultDedupMaxStale),
-				Prefix:   String(DefaultDedupPrefix),
-				TTL:      TimeDuration(DefaultDedupTTL),
+				Enabled:            Bool(false),
+				MaxStale:           TimeDuration(DefaultDedupMaxStale),
+				Prefix:             String(DefaultDedupPrefix),
+				TTL:                TimeDuration(DefaultDedupTTL),
+				BlockQueryWaitTime: TimeDuration(DefaultDedupBlockQueryWaitTime),
 			},
 		},
 		{
@@ -208,10 +209,11 @@ func TestDedupConfig_Finalize(t *testing.T) {
 				MaxStale: TimeDuration(10 * time.Second),
 			},
 			&DedupConfig{
-				Enabled:  Bool(true),
-				MaxStale: TimeDuration(10 * time.Second),
-				Prefix:   String(DefaultDedupPrefix),
-				TTL:      TimeDuration(DefaultDedupTTL),
+				Enabled:            Bool(true),
+				MaxStale:           TimeDuration(10 * time.Second),
+				Prefix:             String(DefaultDedupPrefix),
+				TTL:                TimeDuration(DefaultDedupTTL),
+				BlockQueryWaitTime: TimeDuration(DefaultDedupBlockQueryWaitTime),
 			},
 		},
 		{
@@ -220,10 +222,11 @@ func TestDedupConfig_Finalize(t *testing.T) {
 				Prefix: String("prefix"),
 			},
 			&DedupConfig{
-				Enabled:  Bool(true),
-				MaxStale: TimeDuration(DefaultDedupMaxStale),
-				Prefix:   String("prefix"),
-				TTL:      TimeDuration(DefaultDedupTTL),
+				Enabled:            Bool(true),
+				MaxStale:           TimeDuration(DefaultDedupMaxStale),
+				Prefix:             String("prefix"),
+				TTL:                TimeDuration(DefaultDedupTTL),
+				BlockQueryWaitTime: TimeDuration(DefaultDedupBlockQueryWaitTime),
 			},
 		},
 		{
@@ -232,10 +235,24 @@ func TestDedupConfig_Finalize(t *testing.T) {
 				TTL: TimeDuration(10 * time.Second),
 			},
 			&DedupConfig{
-				Enabled:  Bool(true),
-				MaxStale: TimeDuration(DefaultDedupMaxStale),
-				Prefix:   String(DefaultDedupPrefix),
-				TTL:      TimeDuration(10 * time.Second),
+				Enabled:            Bool(true),
+				MaxStale:           TimeDuration(DefaultDedupMaxStale),
+				Prefix:             String(DefaultDedupPrefix),
+				TTL:                TimeDuration(10 * time.Second),
+				BlockQueryWaitTime: TimeDuration(DefaultDedupBlockQueryWaitTime),
+			},
+		},
+		{
+			"with_block_query_wait",
+			&DedupConfig{
+				BlockQueryWaitTime: TimeDuration(60 * time.Second),
+			},
+			&DedupConfig{
+				Enabled:            Bool(true),
+				MaxStale:           TimeDuration(DefaultDedupMaxStale),
+				Prefix:             String(DefaultDedupPrefix),
+				TTL:                TimeDuration(DefaultDedupTTL),
+				BlockQueryWaitTime: TimeDuration(60 * time.Second),
 			},
 		},
 	}

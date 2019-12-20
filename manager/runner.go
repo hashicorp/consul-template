@@ -1296,6 +1296,7 @@ func newWatcher(c *config.Config, clients *dep.ClientSet, once bool) (*watch.Wat
 		Clients:             clients,
 		MaxStale:            config.TimeDurationVal(c.MaxStale),
 		Once:                c.Once,
+		BlockQueryWaitTime:  config.TimeDurationVal(c.BlockQueryWaitTime),
 		RenewVault:          clients.Vault().Token() != "" && config.BoolVal(c.Vault.RenewToken),
 		VaultAgentTokenFile: config.StringVal(c.Vault.VaultAgentTokenFile),
 		RetryFuncConsul:     watch.RetryFunc(c.Consul.Retry.RetryFunc()),
