@@ -1,4 +1,4 @@
-## v0.24.0 (Jan XX, 2020)
+## v0.24.0 (Jan 08, 2020)
 
 BREAKING CHANGES:
 
