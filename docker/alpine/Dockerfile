@@ -75,7 +75,7 @@ VOLUME /consul-template/data
 COPY "docker/alpine/docker-entrypoint.sh" "/bin/docker-entrypoint.sh"
 RUN chmod +x "/bin/docker-entrypoint.sh"
 ENTRYPOINT ["/bin/docker-entrypoint.sh"]
-USER consul-template:consul-template
+USER ${UID}:${GID}
 
 # Run consul-template by default
 CMD ["/bin/consul-template"]
