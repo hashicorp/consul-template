@@ -22,13 +22,6 @@ RUN \
 FROM alpine:latest
 LABEL maintainer "John Eikenberry <jae@zhar.net>"
 
-# This is the release of https://github.com/hashicorp/docker-base to pull in
-# order to provide HashiCorp-built versions of basic utilities like dumb-init.
-ARG DOCKER_BASE_VERSION="0.0.4"
-
-# This is the location of the releases.
-ARG HASHICORP_RELEASES="https://releases.hashicorp.com"
-
 # UID and GID of consul-template user and group.
 # These are the defaults, this makes them explicit and overridable.
 ARG UID=100
@@ -39,23 +32,9 @@ ARG GID=1000
 RUN addgroup -g ${GID} consul-template && \
     adduser -u ${UID} -S -G consul-template consul-template
 
-# Set up certificates, our base tools, and Consul Template (CT).
-RUN apk add --no-cache ca-certificates curl gnupg libcap openssl && \
-    mkdir -p /etc/ssl/certs && update-ca-certificates --fresh && \
-    gpg --keyserver keys.gnupg.net --recv-keys "91A6E7F85D05C65630BEF18951852D87348FFC4C " && \
-    mkdir -p /tmp/build && \
-    cd /tmp/build && \
-    wget ${HASHICORP_RELEASES}/docker-base/${DOCKER_BASE_VERSION}/docker-base_${DOCKER_BASE_VERSION}_linux_amd64.zip && \
-    wget ${HASHICORP_RELEASES}/docker-base/${DOCKER_BASE_VERSION}/docker-base_${DOCKER_BASE_VERSION}_SHA256SUMS && \
-    wget ${HASHICORP_RELEASES}/docker-base/${DOCKER_BASE_VERSION}/docker-base_${DOCKER_BASE_VERSION}_SHA256SUMS.sig && \
-    gpg --batch --verify docker-base_${DOCKER_BASE_VERSION}_SHA256SUMS.sig docker-base_${DOCKER_BASE_VERSION}_SHA256SUMS && \
-    grep ${DOCKER_BASE_VERSION}_linux_amd64.zip docker-base_${DOCKER_BASE_VERSION}_SHA256SUMS | sha256sum -c && \
-    unzip docker-base_${DOCKER_BASE_VERSION}_linux_amd64.zip && \
-    cp bin/dumb-init /bin && \
-    cd /tmp && \
-    rm -rf /tmp/build && \
-    apk del gnupg openssl && \
-    rm -rf /root/.gnupg
+# Set up certificates, tini (formerly dumb-init), and Consul Template (CT).
+RUN apk add --no-cache ca-certificates tini && \
+    update-ca-certificates --fresh
 
 # Install consul-template
 COPY --from=builder "/consul-template" "/bin/consul-template"
@@ -73,7 +52,6 @@ VOLUME /consul-template/data
 # The entry point script uses dumb-init as the top-level process to reap any
 # zombie processes created by Consul Template sub-processes.
 COPY "docker/alpine/docker-entrypoint.sh" "/bin/docker-entrypoint.sh"
-RUN chmod +x "/bin/docker-entrypoint.sh"
 ENTRYPOINT ["/bin/docker-entrypoint.sh"]
 USER ${UID}:${GID}
 
