@@ -32,9 +32,8 @@ ARG GID=1000
 RUN addgroup -g ${GID} consul-template && \
     adduser -u ${UID} -S -G consul-template consul-template
 
-# Set up certificates, tini (formerly dumb-init), and Consul Template (CT).
-RUN apk add --no-cache ca-certificates tini && \
-    update-ca-certificates --fresh
+# Set up certificates, and tini (formerly dumb-init).
+RUN apk add --no-cache ca-certificates tini
 
 # Install consul-template
 COPY --from=builder "/consul-template" "/bin/consul-template"
