@@ -1,3 +1,10 @@
+## v0.24.1 (Jan 24, 2020)
+
+BUG FIXES:
+
+* Make user non-numeric to satisfy PSP [GH-1332](https://github.com/hashicorp/consul-template/pull/1332)
+* fatal error: PowerRegisterSuspendResumeNotification failure on windows [GH-1335](https://github.com/hashicorp/consul-template/issues/1335)
+
 ## v0.24.0 (Jan 08, 2020)
 
 BREAKING CHANGES:
