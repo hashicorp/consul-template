@@ -390,7 +390,7 @@ vault {
   # This tells Consul Template to load the Vault token from the contents of a file.
   # If this field is specified:
   # - by default Consul Template will not try to renew the Vault token, if you want it
-  # to renew you will nee dto specify renew_token = true as below.
+  # to renew you will need to specify renew_token = true as below.
   # - Consul Template will periodically stat the file and update the token if it has
   # changed.
   # vault_agent_token_file = "/tmp/vault/agent/token"
