@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x
+set -v
 set -e
 export VAULT_ADDR=https://vault.infra
 export VAULT_SKIP_VERIFY=true
