@@ -286,6 +286,15 @@ func TestVaultReadQuery_Fetch_KVv2(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Write a different secret with the path containing "data/data*/" prefix
+	err = vault.CreateSecret("data/datafoo/bar", map[string]interface{}{
+		"ttl": "100ms", // explicitly make this a short duration for testing
+		"zip": "zop",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	cases := []struct {
 		name string
 		i    string
@@ -326,6 +335,32 @@ func TestVaultReadQuery_Fetch_KVv2(t *testing.T) {
 					"data": map[string]interface{}{
 						"ttl": "100ms", // explicitly make this a short duration for testing
 						"zip": "zap",
+					},
+				},
+			},
+			false,
+		},
+		{
+			"/data in path and in prefix",
+			secretsPath + "/data/datafoo/bar",
+			&Secret{
+				Data: map[string]interface{}{
+					"data": map[string]interface{}{
+						"ttl": "100ms",
+						"zip": "zop",
+					},
+				},
+			},
+			false,
+		},
+		{
+			"without /data/ in path, but contains data prefix",
+			secretsPath + "/datafoo/bar",
+			&Secret{
+				Data: map[string]interface{}{
+					"data": map[string]interface{}{
+						"ttl": "100ms",
+						"zip": "zop",
 					},
 				},
 			},

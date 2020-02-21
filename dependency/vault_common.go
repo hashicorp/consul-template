@@ -339,8 +339,12 @@ func addPrefixToVKVPath(p, mountPath, apiPrefix string) string {
 		return path.Join(mountPath, apiPrefix)
 	default:
 		p = strings.TrimPrefix(p, mountPath)
-		// Don't add /data to the path if it's been added manually.
-		if strings.HasPrefix(p, apiPrefix) {
+		// Don't add /data/ to the path if it's been added manually.
+		apiPathPrefix := apiPrefix
+		if !strings.HasSuffix(apiPrefix, "/") {
+			apiPathPrefix += "/"
+		}
+		if strings.HasPrefix(p, apiPathPrefix) {
 			return path.Join(mountPath, p)
 		}
 		return path.Join(mountPath, apiPrefix, p)
