@@ -83,6 +83,7 @@ this functionality might prove useful.
       - [parseInt](#parseint)
       - [parseJSON](#parsejson)
       - [parseUint](#parseuint)
+      - [parseYAML](#parseyaml)
       - [plugin](#plugin)
       - [regexMatch](#regexmatch)
       - [regexReplaceAll](#regexreplaceall)
@@ -1780,6 +1781,17 @@ Takes the given string and parses it as a base-10 int64:
 ```liquid
 {{ "1" | parseUint }}
 ```
+
+##### `parseYAML`
+
+Takes the given input (usually the value from a key) and parses the result as
+YAML:
+
+```liquid
+{{ with $d := key "user/info" | parseYAML }}{{ $d.name }}{{ end }}
+```
+
+Note: The same caveats that apply to `parseJSON` apply to `parseYAML`.
 
 ##### `plugin`
 

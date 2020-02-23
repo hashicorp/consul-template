@@ -1376,6 +1376,39 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"helper_parseYAML",
+			&NewTemplateInput{
+				Contents: `{{ "foo: bar" | parseYAML }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"map[foo:bar]",
+			false,
+		},
+		{
+			"helper_parseYAMLv2",
+			&NewTemplateInput{
+				Contents: `{{ "foo: bar\nbaz: \"foo\"" | parseYAML }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"map[baz:foo foo:bar]",
+			false,
+		},
+		{
+			"helper_parseYAMLnested",
+			&NewTemplateInput{
+				Contents: `{{ "foo:\n  bar: \"baz\"\n  baz: 7" | parseYAML }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"map[foo:map[bar:baz baz:7]]",
+			false,
+		},
+		{
 			"helper_plugin",
 			&NewTemplateInput{
 				Contents: `{{ "1" | plugin "echo" }}`,
