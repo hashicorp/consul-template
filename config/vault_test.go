@@ -327,7 +327,7 @@ func TestVaultConfig_Finalize(t *testing.T) {
 				Address:    String(""),
 				Enabled:    Bool(false),
 				Namespace:  String(""),
-				RenewToken: Bool(DefaultVaultRenewToken),
+				RenewToken: Bool(false),
 				Retry: &RetryConfig{
 					Backoff:    TimeDuration(DefaultRetryBackoff),
 					MaxBackoff: TimeDuration(DefaultRetryMaxBackoff),
@@ -365,7 +365,7 @@ func TestVaultConfig_Finalize(t *testing.T) {
 				Address:    String("address"),
 				Enabled:    Bool(true),
 				Namespace:  String(""),
-				RenewToken: Bool(DefaultVaultRenewToken),
+				RenewToken: Bool(false),
 				Retry: &RetryConfig{
 					Backoff:    TimeDuration(DefaultRetryBackoff),
 					MaxBackoff: TimeDuration(DefaultRetryMaxBackoff),
@@ -403,7 +403,7 @@ func TestVaultConfig_Finalize(t *testing.T) {
 				Address:    String("address"),
 				Enabled:    Bool(true),
 				Namespace:  String(""),
-				RenewToken: Bool(DefaultVaultRenewToken),
+				RenewToken: Bool(false),
 				Retry: &RetryConfig{
 					Backoff:    TimeDuration(DefaultRetryBackoff),
 					MaxBackoff: TimeDuration(DefaultRetryMaxBackoff),
@@ -444,7 +444,7 @@ func TestVaultConfig_Finalize(t *testing.T) {
 	}
 }
 
-func TestVaultConfig_TokenFileRenew(t *testing.T) {
+func TestVaultConfig_TokenRenew(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
@@ -456,6 +456,16 @@ func TestVaultConfig_TokenFileRenew(t *testing.T) {
 		{
 			"base_renew",
 			&VaultConfig{},
+			&VaultConfig{
+				RenewToken: Bool(false),
+			},
+			[]string{"RenewToken"},
+		},
+		{
+			"base_renew_w_token",
+			&VaultConfig{
+				Token: String("a-token"),
+			},
 			&VaultConfig{
 				RenewToken: Bool(true),
 			},
