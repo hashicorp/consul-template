@@ -15,12 +15,12 @@ import (
 var (
 	// ErrTemplateContentsAndSource is the error returned when a template
 	// specifies both a "source" and "content" argument, which is not valid.
-	ErrTemplateContentsAndSource = errors.New("template: cannot specify both 'source' and 'content'")
+	ErrTemplateContentsAndSource = errors.New("template: cannot specify both 'source' and 'contents'")
 
 	// ErrTemplateMissingContentsAndSource is the error returned when a template
 	// does not specify either a "source" or "content" argument, which is not
 	// valid.
-	ErrTemplateMissingContentsAndSource = errors.New("template: must specify exactly one of 'source' or 'content'")
+	ErrTemplateMissingContentsAndSource = errors.New("template: must specify exactly one of 'source' or 'contents'")
 )
 
 // Template is the internal representation of an individual template to process.
