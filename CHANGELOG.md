@@ -1,3 +1,9 @@
+## v0.24.2 (XXX XX, 2020)
+
+BUG FIXES:
+
+- Fix issue reading kv2 vault secrets for key paths starting with "data" [[GH-1340](https://github.com/hashicorp/consul-template/issues/1340)]
+
 ## v0.24.1 (Jan 24, 2020)
 
 BUG FIXES:
