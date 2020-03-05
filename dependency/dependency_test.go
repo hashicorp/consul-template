@@ -126,7 +126,8 @@ func runTestVault() {
 	if err != nil || path == "" {
 		Fatalf("vault not found on $PATH")
 	}
-	args := []string{"server", "-dev", "-dev-root-token-id", vaultToken}
+	args := []string{"server", "-dev", "-dev-root-token-id", vaultToken,
+		"-dev-no-store-token"}
 	cmd := exec.Command("vault", args...)
 	cmd.Stdout = ioutil.Discard
 	cmd.Stderr = ioutil.Discard
