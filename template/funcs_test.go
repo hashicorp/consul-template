@@ -88,66 +88,33 @@ func TestFileSandbox(t *testing.T) {
 func Test_byMeta(t *testing.T) {
 	t.Parallel()
 	svcA := &dep.HealthService{
-		Node:                "",
-		NodeID:              "",
-		NodeAddress:         "",
-		NodeTaggedAddresses: nil,
-		NodeMeta:            nil,
 		ServiceMeta: map[string]string{
 			"version":         "v2",
 			"version_num":     "2",
 			"bad_version_num": "1zz",
 			"env":             "dev",
 		},
-		Address: "",
-		ID:      "svcA",
-		Name:    "",
-		Tags:    nil,
-		Checks:  nil,
-		Status:  "",
-		Port:    0,
+		ID: "svcA",
 	}
 
 	svcB := &dep.HealthService{
-		Node:                "",
-		NodeID:              "",
-		NodeAddress:         "",
-		NodeTaggedAddresses: nil,
-		NodeMeta:            nil,
 		ServiceMeta: map[string]string{
 			"version":         "v11",
 			"version_num":     "11",
 			"bad_version_num": "1zz",
 			"env":             "prod",
 		},
-		Address: "",
-		ID:      "svcB",
-		Name:    "",
-		Tags:    nil,
-		Checks:  nil,
-		Status:  "",
-		Port:    0,
+		ID: "svcB",
 	}
 
 	svcC := &dep.HealthService{
-		Node:                "",
-		NodeID:              "",
-		NodeAddress:         "",
-		NodeTaggedAddresses: nil,
-		NodeMeta:            nil,
 		ServiceMeta: map[string]string{
 			"version":         "v11",
 			"version_num":     "11",
 			"bad_version_num": "1zz",
 			"env":             "prod",
 		},
-		Address: "",
-		ID:      "svcC",
-		Name:    "",
-		Tags:    nil,
-		Checks:  nil,
-		Status:  "",
-		Port:    0,
+		ID: "svcC",
 	}
 
 	type args struct {
