@@ -459,6 +459,34 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"func_secret_read_versions",
+			&NewTemplateInput{
+				Contents: `{{with secret "secret/foo"}}{{.Data.zip}}{{end}}:{{with secret "secret/foo?version=1"}}{{.Data.zip}}{{end}}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewVaultReadQuery("secret/foo")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, &dep.Secret{
+						Data: map[string]interface{}{"zip": "zap"},
+					})
+					d1, err := dep.NewVaultReadQuery("secret/foo?version=1")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d1, &dep.Secret{
+						Data: map[string]interface{}{"zip": "zed"},
+					})
+					return b
+				}(),
+			},
+			"zap:zed",
+			false,
+		},
+		{
 			"func_secret_read_no_exist",
 			&NewTemplateInput{
 				Contents: `{{ with secret "secret/nope" }}{{ .Data.zip }}{{ end }}`,
