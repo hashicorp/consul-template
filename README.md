@@ -1452,11 +1452,11 @@ Takes the list of services returned by the [`service`](#service) or
 
 ##### `byMeta`
 
-Takes a list of services returned by the [`service`](#service) or
-[`services`](#services) and returns a map that groups services by ServiceMeta values.
-Multiple service meta keys can be passed as a comma separated string. `|int` can be added to
-a meta key to convert numbers from service meta values to padded numbers in `printf "%05d" % value`
-format (useful for sorting as Go Template sorts maps by keys).
+Takes a list of services returned by [`service`](#service) and returns a map
+that groups services by ServiceMeta values. Multiple service meta keys can be
+passed as a comma separated string. `|int` can be added to a meta key to
+convert numbers from service meta values to padded numbers in `printf "%05d" %
+value` format (useful for sorting as Go Template sorts maps by keys).
 
 **Example**:
 
