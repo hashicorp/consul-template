@@ -388,10 +388,8 @@ func byMeta(meta string, services []*dep.HealthService) (groups map[string][]*de
 	}
 	getOrDefault := func(m map[string]string, key string) string {
 		realKey := strings.TrimSuffix(key, "|int")
-		if val, ok := m[realKey]; ok {
-			if val != "" {
-				return val
-			}
+		if val := m[realKey]; val != "" {
+			return val
 		}
 		if strings.HasSuffix(key, "|int") {
 			return "0"
