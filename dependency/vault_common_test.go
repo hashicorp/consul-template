@@ -1,6 +1,7 @@
 package dependency
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -21,6 +22,16 @@ func TestVaultRenewDuration(t *testing.T) {
 	nonRenewableDur := leaseCheckWait(&nonRenewable).Seconds()
 	if nonRenewableDur < 85 || nonRenewableDur > 95 {
 		t.Fatalf("renewable duration is not within 85%% to 95%% of lease duration: %f", nonRenewableDur)
+	}
+
+	var data = map[string]interface{}{
+		"rotation_period": json.Number("60"),
+	}
+
+	nonRenewableRotated := Secret{LeaseDuration: 100, Data: data}
+	nonRenewableRotatedDur := leaseCheckWait(&nonRenewableRotated).Seconds()
+	if nonRenewableRotatedDur != 60 {
+		t.Fatalf("renewable duration is not 60: %f", nonRenewableRotatedDur)
 	}
 }
 
