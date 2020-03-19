@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 
 	"github.com/hashicorp/vault/api"
@@ -141,6 +142,19 @@ func leaseCheckWait(s *Secret) time.Duration {
 		}
 	}
 
+	// Handle if this is a secret with a rotation period.  If this is a rotating secret,
+	// the rotation period will be the duration to sleep before rendering the new secret.
+	var rotatingSecret bool
+	if rotationInterface, ok := s.Data["rotation_period"]; ok && s.LeaseID == "" {
+		if rotationData, err := rotationInterface.(json.Number).Int64(); err == nil {
+			if rotationData > 0 {
+				log.Printf("[DEBUG] Found rotation_period and set lease duration to %d seconds", rotationData)
+				base = int(rotationData)
+				rotatingSecret = true
+			}
+		}
+	}
+
 	// Ensure we have a lease duration, since sometimes this can be zero.
 	if base <= 0 {
 		base = int(VaultDefaultLeaseDuration.Seconds())
@@ -156,7 +170,9 @@ func leaseCheckWait(s *Secret) time.Duration {
 
 		// Use some randomness so many clients do not hit Vault simultaneously.
 		sleep = sleep * (rand.Float64() + 1) / 2.0
-	} else {
+	} else if !rotatingSecret {
+		// If the secret doesn't have a rotation period, this is a non-renewable leased
+		// secret.
 		// For non-renewable leases set the renew duration to use much of the secret
 		// lease as possible. Use a stagger over 85%-95% of the lease duration so that
 		// many clients do not hit Vault simultaneously.
