@@ -160,8 +160,10 @@ func TestCatalogServiceQuery_Fetch(t *testing.T) {
 					Address:    testConsul.Config.Bind,
 					Datacenter: "dc1",
 					TaggedAddresses: map[string]string{
-						"lan": "127.0.0.1",
-						"wan": "127.0.0.1",
+						"lan":      "127.0.0.1",
+						"wan":      "127.0.0.1",
+						"lan_ipv4": "127.0.0.1",
+						"wan_ipv4": "127.0.0.1",
 					},
 					NodeMeta: map[string]string{
 						"consul-network-segment": "",
@@ -184,8 +186,10 @@ func TestCatalogServiceQuery_Fetch(t *testing.T) {
 					Address:    testConsul.Config.Bind,
 					Datacenter: "dc1",
 					TaggedAddresses: map[string]string{
-						"lan": "127.0.0.1",
-						"wan": "127.0.0.1",
+						"lan":      "127.0.0.1",
+						"wan":      "127.0.0.1",
+						"lan_ipv4": "127.0.0.1",
+						"wan_ipv4": "127.0.0.1",
 					},
 					NodeMeta: map[string]string{
 						"consul-network-segment": "",
