@@ -26,12 +26,28 @@ func TestVaultRenewDuration(t *testing.T) {
 
 	var data = map[string]interface{}{
 		"rotation_period": json.Number("60"),
+		"ttl": json.Number("30"),
 	}
 
 	nonRenewableRotated := Secret{LeaseDuration: 100, Data: data}
 	nonRenewableRotatedDur := leaseCheckWait(&nonRenewableRotated).Seconds()
-	if nonRenewableRotatedDur != 60 {
-		t.Fatalf("renewable duration is not 60: %f", nonRenewableRotatedDur)
+
+	// We expect a 1 second cushion
+	if nonRenewableRotatedDur != 31 {
+		t.Fatalf("renewable duration is not 31: %f", nonRenewableRotatedDur)
+	}
+
+	data = map[string]interface{}{
+		"rotation_period": json.Number("30"),
+		"ttl": json.Number("5"),
+	}
+
+	nonRenewableRotated = Secret{LeaseDuration: 100, Data: data}
+	nonRenewableRotatedDur = leaseCheckWait(&nonRenewableRotated).Seconds()
+
+	// We expect a 1 second cushion
+	if nonRenewableRotatedDur != 6 {
+		t.Fatalf("renewable duration is not 6: %f", nonRenewableRotatedDur)
 	}
 }
 
