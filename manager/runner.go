@@ -875,11 +875,11 @@ func (r *Runner) init() error {
 	for _, ctmpl := range *r.config.Templates {
 		leftDelim := config.StringVal(ctmpl.LeftDelim)
 		if leftDelim == "" {
-			leftDelim = config.StringVal(r.config.Defaults.LeftDelim)
+			leftDelim = config.StringVal(r.config.DefaultDelims.Left)
 		}
 		rightDelim := config.StringVal(ctmpl.RightDelim)
 		if rightDelim == "" {
-			rightDelim = config.StringVal(r.config.Defaults.RightDelim)
+			rightDelim = config.StringVal(r.config.DefaultDelims.Right)
 		}
 
 		tmpl, err := template.NewTemplate(&template.NewTemplateInput{

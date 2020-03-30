@@ -321,14 +321,14 @@ func (cli *CLI) ParseFlags(args []string) (
 	}), "dedup", "")
 
 	flags.Var((funcVar)(func(s string) error {
-		c.Defaults.LeftDelim = config.String(s)
+		c.DefaultDelims.Left = config.String(s)
 		return nil
-	}), "defaults-left-delimiter", "")
+	}), "default-left-delimiter", "")
 
 	flags.Var((funcVar)(func(s string) error {
-		c.Defaults.RightDelim = config.String(s)
+		c.DefaultDelims.Right = config.String(s)
 		return nil
-	}), "defaults-right-delimiter", "")
+	}), "default-right-delimiter", "")
 
 	flags.BoolVar(&dry, "dry", false, "")
 
@@ -678,10 +678,10 @@ Options:
       Enable de-duplication mode - reduces load on Consul when many instances of
       Consul Template are rendering a common template
 
-  -defaults-left-delimiter
+  -default-left-delimiter
       The default left delimiter for templating
 
-  -defaults-right-delimiter
+  -default-right-delimiter
       The default right delimiter for templating
 
   -dry
