@@ -48,6 +48,9 @@ type Config struct {
 	// Dedup is used to configure the dedup settings
 	Dedup *DedupConfig `mapstructure:"deduplicate"`
 
+	// DefaultDelims is used to configure the default delimiters for templates
+	DefaultDelims *DefaultDelims `mapstructure:"default_delimiters"`
+
 	// Exec is the configuration for exec/supervise mode.
 	Exec *ExecConfig `mapstructure:"exec"`
 
@@ -102,6 +105,10 @@ func (c *Config) Copy() *Config {
 
 	if c.Dedup != nil {
 		o.Dedup = c.Dedup.Copy()
+	}
+
+	if c.DefaultDelims != nil {
+		o.DefaultDelims = c.DefaultDelims.Copy()
 	}
 
 	if c.Exec != nil {
@@ -161,6 +168,10 @@ func (c *Config) Merge(o *Config) *Config {
 
 	if o.Dedup != nil {
 		r.Dedup = r.Dedup.Merge(o.Dedup)
+	}
+
+	if o.DefaultDelims != nil {
+		r.DefaultDelims = r.DefaultDelims.Merge(o.DefaultDelims)
 	}
 
 	if o.Exec != nil {
@@ -229,6 +240,7 @@ func Parse(s string) (*Config, error) {
 		"consul.ssl",
 		"consul.transport",
 		"deduplicate",
+		"default_delimiters",
 		"env",
 		"exec",
 		"exec.env",
@@ -383,6 +395,7 @@ func (c *Config) GoString() string {
 	return fmt.Sprintf("&Config{"+
 		"Consul:%#v, "+
 		"Dedup:%#v, "+
+		"DefaultDelims:%#v, "+
 		"Exec:%#v, "+
 		"KillSignal:%s, "+
 		"LogLevel:%s, "+
@@ -397,6 +410,7 @@ func (c *Config) GoString() string {
 		"}",
 		c.Consul,
 		c.Dedup,
+		c.DefaultDelims,
 		c.Exec,
 		SignalGoString(c.KillSignal),
 		StringGoString(c.LogLevel),
@@ -436,13 +450,14 @@ func (expected *Config) Diff(actual *Config) string {
 // variables may be set which control the values for the default configuration.
 func DefaultConfig() *Config {
 	return &Config{
-		Consul:    DefaultConsulConfig(),
-		Dedup:     DefaultDedupConfig(),
-		Exec:      DefaultExecConfig(),
-		Syslog:    DefaultSyslogConfig(),
-		Templates: DefaultTemplateConfigs(),
-		Vault:     DefaultVaultConfig(),
-		Wait:      DefaultWaitConfig(),
+		Consul:        DefaultConsulConfig(),
+		Dedup:         DefaultDedupConfig(),
+		DefaultDelims: DefaultDefaultDelims(),
+		Exec:          DefaultExecConfig(),
+		Syslog:        DefaultSyslogConfig(),
+		Templates:     DefaultTemplateConfigs(),
+		Vault:         DefaultVaultConfig(),
+		Wait:          DefaultWaitConfig(),
 	}
 }
 
@@ -464,6 +479,10 @@ func (c *Config) Finalize() {
 		c.Dedup = DefaultDedupConfig()
 	}
 	c.Dedup.Finalize()
+
+	if c.DefaultDelims == nil {
+		c.DefaultDelims = DefaultDefaultDelims()
+	}
 
 	if c.Exec == nil {
 		c.Exec = DefaultExecConfig()

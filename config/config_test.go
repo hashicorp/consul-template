@@ -314,6 +314,30 @@ func TestParse(t *testing.T) {
 			false,
 		},
 		{
+			"default_left_delimiter",
+			`default_delimiters {
+				left = "<"
+			}`,
+			&Config{
+				DefaultDelims: &DefaultDelims{
+					Left: String("<"),
+				},
+			},
+			false,
+		},
+		{
+			"default_right_delimiter",
+			`default_delimiters {
+				right = ">"
+			}`,
+			&Config{
+				DefaultDelims: &DefaultDelims{
+					Right: String(">"),
+				},
+			},
+			false,
+		},
+		{
 			"exec",
 			`exec {}`,
 			&Config{
