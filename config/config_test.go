@@ -578,6 +578,18 @@ func TestParse(t *testing.T) {
 			false,
 		},
 		{
+			"syslog_name",
+			`syslog {
+				name = "name"
+			}`,
+			&Config{
+				Syslog: &SyslogConfig{
+					Name: String("name"),
+				},
+			},
+			false,
+		},
+		{
 			"template",
 			`template {}`,
 			&Config{
