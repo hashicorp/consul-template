@@ -22,7 +22,7 @@ type Config struct {
 	// Syslog and SyslogFacility are the syslog configuration options.
 	Syslog         bool   `json:"syslog"`
 	SyslogFacility string `json:"syslog_facility"`
-	// Name is the progname as it will appear in syslog output (if enabled).
+	// SyslogName is the progname as it will appear in syslog output (if enabled).
 	SyslogName     string `json:"name"`
 
 	// Writer is the output where logs should go. If syslog is enabled, data will
