@@ -622,8 +622,32 @@ template {
     min = "2s"
     max = "10s"
   }
-}
 
+  # These are example configurations for monitoring Consul Template metrics.
+  # This block is an HCL mapping to [OpenCensus](https://opencensus.io/) configurations for
+  # various exporters. Telemetry configuration is only supported in
+  # configuration files and not as CLI flags. Only one metric provider can
+  # be used at a given time.
+  telemetry {
+    stdout {
+      reporting_interval = "60s"
+      pretty_print = false
+      do_not_print_time = false
+    }
+
+    dogstatsd {
+      // address describes the destination for exporting dogstatsd data.
+      // e.g., udp://host:port tcp://host:port unix:///socket/path
+      address = "udp://127.0.0.1:8125"
+      reporting_interval = "60s"
+    }
+
+    prometheus {
+      reporting_interval = "60s"
+      port = 8888
+    }
+  }
+}
 ```
 
 Note that not all fields are required. If you are not retrieving secrets from

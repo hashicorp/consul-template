@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul-template/logging"
 	"github.com/hashicorp/consul-template/manager"
 	"github.com/hashicorp/consul-template/signals"
+	"github.com/hashicorp/consul-template/telemetry"
 	"github.com/hashicorp/consul-template/version"
 )
 
@@ -101,6 +102,13 @@ func (cli *CLI) Run(args []string) int {
 		fmt.Fprintf(cli.errStream, "%s\n", version.HumanVersion)
 		return ExitCodeOK
 	}
+
+	// Initialize telemetry
+	tel, err := telemetry.Init(config.Telemetry)
+	if err != nil {
+		return logError(err, ExitCodeConfigError)
+	}
+	defer tel.Stop()
 
 	// Initial runner
 	runner, err := manager.NewRunner(config, dry)
