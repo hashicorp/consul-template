@@ -555,7 +555,9 @@ template {
   command = "restart service foo"
 
   # This is the maximum amount of time to wait for the optional command to
-  # return. Default is 30s.
+  # return. If you set the timeout to 0s the command is run in the background
+  # without monitoring it for errors. If also using Once, consul-template can
+  # exit before the command is finished. Default is 30s.
   command_timeout = "60s"
 
   # Exit with an error when accessing a struct or map field/key that does not
