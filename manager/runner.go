@@ -556,23 +556,6 @@ func (r *Runner) Run() error {
 		}
 	}
 
-	// Check if we need to deliver any rendered signals
-	if wouldRenderAny || renderedAny {
-		// Send the signal that a template got rendered
-		select {
-		case r.renderedCh <- struct{}{}:
-		default:
-		}
-	}
-
-	// Check if we need to deliver any event signals
-	if newRenderEvent {
-		select {
-		case r.renderEventCh <- struct{}{}:
-		default:
-		}
-	}
-
 	// Perform the diff and update the known dependencies.
 	r.diffAndUpdateDeps(runCtx.depsMap)
 
@@ -598,6 +581,23 @@ func (r *Runner) Run() error {
 		}); err != nil {
 			s := fmt.Sprintf("failed to execute command %q from %s", command, t.Display())
 			errs = append(errs, errors.Wrap(err, s))
+		}
+	}
+
+	// Check if we need to deliver any rendered signals
+	if wouldRenderAny || renderedAny {
+		// Send the signal that a template got rendered
+		select {
+		case r.renderedCh <- struct{}{}:
+		default:
+		}
+	}
+
+	// Check if we need to deliver any event signals
+	if newRenderEvent {
+		select {
+		case r.renderEventCh <- struct{}{}:
+		default:
 		}
 	}
 
