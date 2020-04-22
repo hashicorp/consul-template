@@ -182,6 +182,10 @@ func TestHealthConnectServiceQuery_Fetch(t *testing.T) {
 					Tags:        ServiceTags([]string{}),
 					NodeMeta: map[string]string{
 						"consul-network-segment": ""},
+					Weights: api.AgentWeights{
+						Passing: 1,
+						Warning: 1,
+					},
 				},
 			},
 		},
