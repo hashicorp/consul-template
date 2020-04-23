@@ -336,6 +336,8 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 					v.Checks = nil
 					// delete any version data from ServiceMeta
 					v.ServiceMeta = filterVersionMeta(v.ServiceMeta)
+					v.NodeTaggedAddresses = filterAddresses(
+						v.NodeTaggedAddresses)
 				}
 			}
 
