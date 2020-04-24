@@ -346,6 +346,12 @@ kill_signal = "SIGINT"
 # less cluster load, but are more likely to have outdated data.
 max_stale = "10m"
 
+
+# This is amount of time in seconds to do a blocking query for.
+# Many endpoints in Consul support a feature known as "blocking queries". 
+# A blocking query is used to wait for a potential change using long polling.
+block_query_wait = "60s"
+
 # This is the log level. If you find a bug in Consul Template, please enable
 # debug logs so we can help identify the issue. This is also available as a
 # command line flag.

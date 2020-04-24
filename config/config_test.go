@@ -298,17 +298,19 @@ func TestParse(t *testing.T) {
 		{
 			"deduplicate",
 			`deduplicate {
-				enabled   = true
-				prefix    = "foo/bar"
-				max_stale = "100s"
-				TTL       = "500s"
+				enabled				= true
+				prefix				= "foo/bar"
+				max_stale			= "100s"
+				TTL					= "500s"
+				block_query_wait	= "200s"
 			}`,
 			&Config{
 				Dedup: &DedupConfig{
-					Enabled:  Bool(true),
-					Prefix:   String("foo/bar"),
-					MaxStale: TimeDuration(100 * time.Second),
-					TTL:      TimeDuration(500 * time.Second),
+					Enabled:            Bool(true),
+					Prefix:             String("foo/bar"),
+					MaxStale:           TimeDuration(100 * time.Second),
+					TTL:                TimeDuration(500 * time.Second),
+					BlockQueryWaitTime: TimeDuration(200 * time.Second),
 				},
 			},
 			false,
@@ -526,6 +528,14 @@ func TestParse(t *testing.T) {
 			`max_stale = "10s"`,
 			&Config{
 				MaxStale: TimeDuration(10 * time.Second),
+			},
+			false,
+		},
+		{
+			"block_query_wait",
+			`block_query_wait = "60s"`,
+			&Config{
+				BlockQueryWaitTime: TimeDuration(60 * time.Second),
 			},
 			false,
 		},
@@ -1642,6 +1652,18 @@ func TestConfig_Merge(t *testing.T) {
 			},
 			&Config{
 				MaxStale: TimeDuration(20 * time.Second),
+			},
+		},
+		{
+			"block_query_wait",
+			&Config{
+				BlockQueryWaitTime: TimeDuration(1 * time.Second),
+			},
+			&Config{
+				BlockQueryWaitTime: TimeDuration(60 * time.Second),
+			},
+			&Config{
+				BlockQueryWaitTime: TimeDuration(60 * time.Second),
 			},
 		},
 		{
