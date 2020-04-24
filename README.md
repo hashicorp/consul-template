@@ -103,6 +103,8 @@ this functionality might prove useful.
       - [multiply](#multiply)
       - [divide](#divide)
       - [modulo](#modulo)
+      - [minimum](#minimum)
+      - [maximum](#maximum)
 - [Plugins](#plugins)
   - [Authoring Plugins](#authoring-plugins)
     - [Important Notes](#important-notes)
@@ -2092,6 +2094,34 @@ This can also be used with a pipe function.
 ```
 
 Please take careful note of the order of arguments.
+
+##### `minimum`
+
+Returns the minimum of the two values.
+
+```liquid
+{{ minimum 2 5 }} // 2
+```
+
+This can also be used with a pipe function.
+
+```liquid
+{{ 5 | minimum 2 }} // 2
+```
+
+##### `maximum`
+
+Returns the maximum of the two values.
+
+```liquid
+{{ maximum 2 5 }} // 2
+```
+
+This can also be used with a pipe function.
+
+```liquid
+{{ 5 | maximum 2 }} // 2
+```
 
 ## Plugins
 

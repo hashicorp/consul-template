@@ -1,3 +1,9 @@
+## v0.25.0 (Unreleased)
+
+IMPROVEMENTS:
+
+* Add minimum and maximum math functions
+
 ## v0.24.2 (XXX XX, 2020)
 
 BUG FIXES:
