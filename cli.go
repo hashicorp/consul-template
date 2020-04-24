@@ -420,6 +420,11 @@ func (cli *CLI) ParseFlags(args []string) (
 	}), "syslog-facility", "")
 
 	flags.Var((funcVar)(func(s string) error {
+		c.Syslog.Name = config.String(s)
+	return nil
+	}), "syslog-name", "")
+
+	flags.Var((funcVar)(func(s string) error {
 		t, err := config.ParseTemplateConfig(s)
 		if err != nil {
 			return err
@@ -588,10 +593,10 @@ func logError(err error, status int) int {
 
 func (cli *CLI) setup(conf *config.Config) (*config.Config, error) {
 	if err := logging.Setup(&logging.Config{
-		Name:           version.Name,
 		Level:          config.StringVal(conf.LogLevel),
 		Syslog:         config.BoolVal(conf.Syslog.Enabled),
 		SyslogFacility: config.StringVal(conf.Syslog.Facility),
+		SyslogName:	config.StringVal(conf.Syslog.Name),
 		Writer:         cli.errStream,
 	}); err != nil {
 		return nil, err
@@ -735,6 +740,10 @@ Options:
   -syslog-facility=<facility>
       Set the facility where syslog should log - if this attribute is supplied,
       the -syslog flag must also be supplied
+
+  -syslog-name=<name>
+      Set the name of the application which will appear in syslog, if this
+      attribute is supplied, the -syslog flag must also be supplied
 
   -template=<template>
        Adds a new template to watch on disk in the format 'in:out(:command)'
