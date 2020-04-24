@@ -111,12 +111,15 @@ this functionality might prove useful.
   - [Authoring Plugins](#authoring-plugins)
     - [Important Notes](#important-notes)
 - [Caveats](#caveats)
+  - [Docker Image Use](#docker-image-use)
   - [Dots in Service Names](#dots-in-service-names)
   - [Once Mode](#once-mode)
   - [Exec Mode](#exec-mode)
   - [De-Duplication Mode](#de-duplication-mode)
   - [Termination on Error](#termination-on-error)
-  - [Command Environment](#command-environment)
+  - [Commands](#commands)
+    - [Environment](#environment)
+    - [Multiple Commands](#multiple-commands)
   - [Multi-phase Execution](#multi-phase-execution)
 - [Running and Process Lifecycle](#running-and-process-lifecycle)
 - [Debugging](#debugging)
@@ -562,6 +565,7 @@ template {
   # command will only run if the resulting template changes. The command must
   # return within 30s (configurable), and it must have a successful exit code.
   # Consul Template is not a replacement for a process monitor or init system.
+  # Please see the [Command](#command) section below for more.
   command = "restart service foo"
 
   # This is the maximum amount of time to wait for the optional command to
@@ -2451,7 +2455,9 @@ when you want it to continue to watch for changes. For these types of complex
 scripts, we recommend using a custom sh or bash script instead of putting the
 logic directly in the `consul-template` command or configuration file.
 
-### Command Environment
+### Commands
+
+#### Environment
 
 The current processes environment is used when executing commands with the following additional environment variables:
 
@@ -2466,6 +2472,28 @@ command executes. Other Consul tooling reads these environment variables,
 providing smooth integration with other Consul tools (like `consul maint` or
 `consul lock`). Additionally, exposing these environment variables gives power
 users the ability to further customize their command script.
+
+#### Multiple Commands
+
+The command configured for running on template rendering must be a single
+command. That is you cannot join multiple commands with `&&`, `;`, `|`, etc.
+This is a restriction of how they are executed. **However** you are able to do
+this by combining the multiple commands in an explicit shell command using `sh
+-c`. This is probably best explained by example.
+
+Say you have a couple scripts you need to run when a template is rendered,
+`/opt/foo` and `/opt/bar`, and you only want `/opt/bar` to run if `/opt/foo` is
+successful. You can do that with the command...
+
+`command = "sh -c '/opt/foo && /opt/bar'"`
+
+As this is a full shell command you can even use conditionals. So accomplishes the same thing.
+
+`command = "sh -c 'if /opt/foo; then /opt/bar ; fi'"`
+
+Using this method you can run as many shell commands as you need with whatever
+logic you need. Though it is suggested that if it gets too long you might want
+to wrap it in a shell script, deploy and run that.
 
 ### Multi-phase Execution
 
