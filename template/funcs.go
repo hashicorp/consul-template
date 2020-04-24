@@ -2,7 +2,9 @@ package template
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -1518,4 +1520,12 @@ func sockaddr(args ...string) (string, error) {
 		return "", err
 	}
 	return k, nil
+}
+
+// sha256Hex return the sha256 hex of a string
+func sha256Hex(item string) (string, error) {
+	h := sha256.New()
+	h.Write([]byte(item))
+	output := hex.EncodeToString(h.Sum(nil))
+	return output, nil
 }

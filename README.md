@@ -87,6 +87,7 @@ this functionality might prove useful.
       - [regexMatch](#regexmatch)
       - [regexReplaceAll](#regexreplaceall)
       - [replaceAll](#replaceall)
+      - [sha256Hex](#sha256hex)
       - [split](#split)
       - [timestamp](#timestamp)
       - [toJSON](#tojson)
@@ -1846,6 +1847,14 @@ This function can be chained with other functions as well:
 
 ```liquid
 {{ service "web" }}{{ .Name | replaceAll ":" "_" }}{{ end }}
+```
+
+##### `sha256Hex`
+
+Takes the argument as a string and compute the sha256_hex value
+
+```liquid
+{{ "bladibla" | sha256Hex }}
 ```
 
 ##### `split`
