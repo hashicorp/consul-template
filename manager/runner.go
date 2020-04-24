@@ -1249,6 +1249,7 @@ func newClientSet(c *config.Config) (*dep.ClientSet, error) {
 
 	if err := clients.CreateConsulClient(&dep.CreateConsulClientInput{
 		Address:                      config.StringVal(c.Consul.Address),
+		Namespace:                    config.StringVal(c.Consul.Namespace),
 		Token:                        config.StringVal(c.Consul.Token),
 		AuthEnabled:                  config.BoolVal(c.Consul.Auth.Enabled),
 		AuthUsername:                 config.StringVal(c.Consul.Auth.Username),
