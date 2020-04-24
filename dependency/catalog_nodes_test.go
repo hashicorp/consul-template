@@ -114,6 +114,7 @@ func TestCatalogNodesQuery_Fetch(t *testing.T) {
 			if act != nil {
 				for _, n := range act.([]*Node) {
 					n.ID = ""
+					n.TaggedAddresses = filterAddresses(n.TaggedAddresses)
 				}
 			}
 

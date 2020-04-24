@@ -215,6 +215,7 @@ func TestCatalogServiceQuery_Fetch(t *testing.T) {
 			if act != nil {
 				for _, s := range act.([]*CatalogService) {
 					s.ID = ""
+					s.TaggedAddresses = filterAddresses(s.TaggedAddresses)
 				}
 			}
 

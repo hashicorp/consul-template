@@ -150,6 +150,7 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 			if act != nil {
 				if n := act.(*CatalogNode).Node; n != nil {
 					n.ID = ""
+					n.TaggedAddresses = filterAddresses(n.TaggedAddresses)
 				}
 				// delete any version data from ServiceMeta
 				services := act.(*CatalogNode).Services
