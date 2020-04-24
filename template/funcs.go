@@ -981,6 +981,19 @@ func parseUint(s string) (uint64, error) {
 	return result, nil
 }
 
+// parseYAML returns a structure for valid YAML
+func parseYAML(s string) (interface{}, error) {
+	if s == "" {
+		return map[string]interface{}{}, nil
+	}
+
+	var data interface{}
+	if err := yaml.Unmarshal([]byte(s), &data); err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
 // plugin executes a subprocess as the given command string. It is assumed the
 // resulting command returns JSON which is then parsed and returned as the
 // value for use in the template.

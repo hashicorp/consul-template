@@ -273,6 +273,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"parseInt":        parseInt,
 		"parseJSON":       parseJSON,
 		"parseUint":       parseUint,
+		"parseYAML":       parseYAML,
 		"plugin":          plugin,
 		"regexReplaceAll": regexReplaceAll,
 		"regexMatch":      regexMatch,
