@@ -1,14 +1,48 @@
-## v0.25.0 (Unreleased)
+## v0.25.0 (Apr 27, 2020)
 
 IMPROVEMENTS:
 
-* Add minimum and maximum math functions
+* Add minimum and maximum math functions [[GH-1323](https://github.com/hashicorp/consul-template/pull/1323)]
 
-## v0.24.2 (XXX XX, 2020)
+* Allow overriding the default delimiter [[GH-1290](https://github.com/hashicorp/consul-template/pull/1290)]
+
+* Add weights field for HealthService [[GH-1288](https://github.com/hashicorp/consul-template/pull/1288)]
+
+* Beta support for Consul Namespaces (Consul Enterprise feature) [[GH-1320](https://github.com/hashicorp/consul-template/pull/1320), [GH-1303](https://github.com/hashicorp/consul-template/issues/1303)]
+
+* Added sha256Hex function [[GH-1327](https://github.com/hashicorp/consul-template/pull/1327)]
+
+* Make timeout for blocking query configurable [[GH-1329](https://github.com/hashicorp/consul-template/pull/1329)]
+
+* docker: alpine without docker-base [[GH-1333](https://github.com/hashicorp/consul-template/pull/1333)]
+
+* Add parseYAML helper [[GH-1344](https://github.com/hashicorp/consul-template/pull/1344)]
+
+* Add lease calculation for rotating secrets [[GH-1358](https://github.com/hashicorp/consul-template/pull/1358)]
+
+* Allow to set application name in syslog [[GH-1367](https://github.com/hashicorp/consul-template/pull/1367)]
+
 
 BUG FIXES:
 
-- Fix issue reading kv2 vault secrets for key paths starting with "data" [[GH-1340](https://github.com/hashicorp/consul-template/issues/1340)]
+* Don't renew vault token when no token is set [[GH-1352](https://github.com/hashicorp/consul-template/pull/1352), [GH-1297](https://github.com/hashicorp/consul-template/issues/1297)]
+
+* Fix bug looking up versioned vault secrets [[GH-1354](https://github.com/hashicorp/consul-template/pull/1354), [GH-1350](https://github.com/hashicorp/consul-template/issues/1350)]
+
+* Fix issue reading kv2 vault secrets for key paths starting with "data" [[GH-1341](https://github.com/hashicorp/consul-template/pull/1341), [GH-1340](https://github.com/hashicorp/consul-template/issues/1340)]
+
+* Fix data race in child.go [[GH-1373](https://github.com/hashicorp/consul-template/pull/1373), [GH-1372](https://github.com/hashicorp/consul-template/issues/1372)]
+
+* Fix issue with template commands when used as library [[GH-1370](https://github.com/hashicorp/consul-template/pull/1370), [GH-1369](https://github.com/hashicorp/consul-template/issues/1369)]
+
+DOCUMENTATION:
+
+* How to run multiple things in template commands [[GH-1375](https://github.com/hashicorp/consul-template/pull/1375)]
+
+* Template command_timeout clarifications [[GH-1370](https://github.com/hashicorp/consul-template/pull/1370), [GH-1369](https://github.com/hashicorp/consul-template/issues/1369)]
+
+* ByMeta does not accept `services` as input [[GH-1348](https://github.com/hashicorp/consul-template/issues/1348)]
+
 
 ## v0.24.1 (Jan 24, 2020)
 
