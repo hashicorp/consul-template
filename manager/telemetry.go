@@ -61,7 +61,7 @@ func newInstruments(meter metric.Meter) (*instruments, error) {
 
 	renderedTmpls, err := meter.NewInt64Counter("consul-template.templates_rendered",
 		metric.WithDescription("A counter of templates rendered with labels "+
-			"id=templateID and render=(did|would|quiescence)"))
+			"id=templateID and status=(rendered|would|quiescence)"))
 	if err != nil {
 		return nil, err
 	}

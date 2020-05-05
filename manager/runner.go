@@ -580,7 +580,7 @@ func (r *Runner) Run() error {
 			// Record that at least one template was rendered.
 			if event.DidRender {
 				renderedAny = true
-				label = "did"
+				label = "rendered"
 			}
 
 			if event.ForQuiescence {
@@ -591,7 +591,7 @@ func (r *Runner) Run() error {
 			if label != "" {
 				r.instruments.counterTemplatesRendered.Add(ctx, 1,
 					telemetry.NewLabel("id", tmpl.ID()),
-					telemetry.NewLabel("render", label))
+					telemetry.NewLabel("status", label))
 			}
 		}
 	}
