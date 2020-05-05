@@ -521,7 +521,8 @@ func (r *Runner) Receive(d dep.Dependency, data interface{}) {
 		r.brain.Remember(d, data)
 
 		r.instruments.counterDependenciesReceived.Add(context.Background(), 1,
-			telemetry.NewLabel("id", depID))
+			telemetry.NewLabel("id", depID),
+			telemetry.NewLabel("type", d.Type().String()))
 	}
 }
 

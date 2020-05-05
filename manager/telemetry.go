@@ -39,46 +39,46 @@ func newInstruments(meter metric.Meter) (*instruments, error) {
 		meter = telemetry.GlobalMeter()
 	}
 
-	deps, err := meter.NewInt64Measure("dependencies",
+	deps, err := meter.NewInt64Measure("consul-template.dependencies",
 		metric.WithDescription("The number of dependencies grouped by types "+
 			"with labels type=(consul|vault|local)"))
 	if err != nil {
 		return nil, err
 	}
 
-	depsRecv, err := meter.NewInt64Counter("dependencies_received",
-		metric.WithDescription("A counter of dependencies received with label "+
-			"id=dependencyString"))
+	depsRecv, err := meter.NewInt64Counter("consul-template.dependencies_received",
+		metric.WithDescription("A counter of dependencies received with labels "+
+			"type=(consul|vault|local) and id=dependencyString"))
 	if err != nil {
 		return nil, err
 	}
 
-	measureTmpls, err := meter.NewInt64Measure("templates",
+	measureTmpls, err := meter.NewInt64Measure("consul-template.templates",
 		metric.WithDescription("The number of templates configured."))
 	if err != nil {
 		return nil, err
 	}
 
-	renderedTmpls, err := meter.NewInt64Counter("templates_rendered",
+	renderedTmpls, err := meter.NewInt64Counter("consul-template.templates_rendered",
 		metric.WithDescription("A counter of templates rendered with labels "+
 			"id=templateID and render=(did|would|quiescence)"))
 	if err != nil {
 		return nil, err
 	}
 
-	actions, err := meter.NewInt64Counter("runner_actions", metric.WithDescription(
+	actions, err := meter.NewInt64Counter("consul-template.runner_actions", metric.WithDescription(
 		"A count of runner actions with labels action=(start|stop|run)"))
 	if err != nil {
 		return nil, err
 	}
 
-	cmdExecs, err := meter.NewInt64Counter("commands_exec", metric.WithDescription(
+	cmdExecs, err := meter.NewInt64Counter("consul-template.commands_exec", metric.WithDescription(
 		"The number of commands executed with labels status=(success|error)"))
 	if err != nil {
 		return nil, err
 	}
 
-	cmdExecTime, err := meter.NewFloat64Measure("commands_exec_time",
+	cmdExecTime, err := meter.NewFloat64Measure("consul-template.commands_exec_time",
 		metric.WithDescription("The execution time (seconds) of a template command. "+
 			"The template destination is used as the identifier"))
 	if err != nil {
