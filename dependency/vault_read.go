@@ -169,6 +169,8 @@ func (d *VaultReadQuery) readSecret(clients *ClientSet, opts *QueryOptions) (*ap
 	return vaultSecret, nil
 }
 
+func (d *VaultReadQuery) recordCounter(key, value string) {}
+
 func deletedKVv2(s *api.Secret) bool {
 	switch md := s.Data["metadata"].(type) {
 	case map[string]interface{}:

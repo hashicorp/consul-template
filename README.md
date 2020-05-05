@@ -2653,6 +2653,7 @@ to provide insight on performance of the templates.
 | `consul-template.runner_actions` | action=(start\|stop\|run) | A count of runner actions |
 | `consul-template.commands_exec` | status=(success\|error) | The number of commands executed after rendering templates |
 | `consul-template.commands_exec_time` | id=tmplDestination | The execution time (seconds) of a template command |
+| `consul-template.vault.token` | status=(configured\|renewed\|expired\|stopped) | A counter of vault token renewal statuses |
 
 ### Metric Samples
 

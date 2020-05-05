@@ -49,7 +49,8 @@ func TestNewVaultTokenQuery(t *testing.T) {
 				act.stopCh = nil
 			}
 
-			assert.Equal(t, tc.exp, act)
+			assert.Equal(t, tc.exp.secret, act.secret)
+			assert.Equal(t, tc.exp.vaultSecret, act.vaultSecret)
 		})
 	}
 }

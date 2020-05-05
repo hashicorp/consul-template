@@ -73,6 +73,9 @@ type renewer interface {
 	Dependency
 	stopChan() chan struct{}
 	secrets() (*Secret, *api.Secret)
+
+	// recordCounter is an abstraction from metrics reporting for a renewer
+	recordCounter(string, string)
 }
 
 func renewSecret(clients *ClientSet, d renewer) error {
@@ -93,14 +96,20 @@ func renewSecret(clients *ClientSet, d renewer) error {
 		case err := <-renewer.DoneCh():
 			if err != nil {
 				log.Printf("[WARN] %s: failed to renew: %s", d, err)
+				d.recordCounter("status", "stopped")
+			} else {
+				d.recordCounter("status", "expired")
 			}
+
 			log.Printf("[WARN] %s: renewer done (maybe the lease expired)", d)
 			return nil
 		case renewal := <-renewer.RenewCh():
 			log.Printf("[TRACE] %s: successfully renewed", d)
 			printVaultWarnings(d, renewal.Secret.Warnings)
 			updateSecret(secret, renewal.Secret)
+			d.recordCounter("status", "renewed")
 		case <-d.stopChan():
+			d.recordCounter("status", "stopped")
 			return ErrStopped
 		}
 	}
