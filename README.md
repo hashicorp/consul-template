@@ -26,87 +26,88 @@ this functionality might prove useful.
 - [Installation](#installation)
 - [Quick Example](#quick-example)
 - [Usage](#usage)
-  - [Command Line Flags](#command-line-flags)
-  - [Configuration File Format](#configuration-file-format)
-  - [Templating Language](#templating-language)
-    - [API Functions](#api-functions)
-      - [caLeaf](#caleaf)
-      - [caRoot](#caroot)
-      - [connect](#connect)
-      - [datacenters](#datacenters)
-      - [file](#file)
-      - [key](#key)
-      - [keyExists](#keyexists)
-      - [keyOrDefault](#keyordefault)
-      - [ls](#ls)
-      - [safeLs](#safels)
-      - [node](#node)
-      - [nodes](#nodes)
-      - [secret](#secret)
-      - [secrets](#secrets)
-      - [service](#service)
-      - [services](#services)
-      - [tree](#tree)
-      - [safeTree](#safetree)
-    - [Scratch](#scratch)
-      - [scratch.Key](#scratchkey)
-      - [scratch.Get](#scratchget)
-      - [scratch.Set](#scratchset)
-      - [scratch.SetX](#scratchsetx)
-      - [scratch.MapSet](#scratchmapset)
-      - [scratch.MapSetX](#scratchmapsetx)
-      - [scratch.MapValues](#scratchmapvalues)
-    - [Helper Functions](#helper-functions)
-      - [base64Decode](#base64decode)
-      - [base64Encode](#base64encode)
-      - [base64URLDecode](#base64urldecode)
-      - [base64URLEncode](#base64urlencode)
-      - [byKey](#bykey)
-      - [byTag](#bytag)
-      - [byMeta](#bymeta)
-      - [contains](#contains)
-      - [containsAll](#containsall)
-      - [containsAny](#containsany)
-      - [containsNone](#containsnone)
-      - [containsNotAll](#containsnotall)
-      - [env](#env)
-      - [executeTemplate](#executetemplate)
-      - [explode](#explode)
-      - [explodeMap](#explodemap)
-      - [indent](#indent)
-      - [in](#in)
-      - [loop](#loop)
-      - [join](#join)
-      - [trimSpace](#trimspace)
-      - [parseBool](#parsebool)
-      - [parseFloat](#parsefloat)
-      - [parseInt](#parseint)
-      - [parseJSON](#parsejson)
-      - [parseUint](#parseuint)
-      - [parseYAML](#parseyaml)
-      - [plugin](#plugin)
-      - [regexMatch](#regexmatch)
-      - [regexReplaceAll](#regexreplaceall)
-      - [replaceAll](#replaceall)
-      - [sha256Hex](#sha256hex)
-      - [split](#split)
-      - [timestamp](#timestamp)
-      - [toJSON](#tojson)
-      - [toJSONPretty](#tojsonpretty)
-      - [toLower](#tolower)
-      - [toTitle](#totitle)
-      - [toTOML](#totoml)
-      - [toUpper](#toupper)
-      - [toYAML](#toyaml)
-      - [sockaddr](#sockaddr)
-    - [Math Functions](#math-functions)
-      - [add](#add)
-      - [subtract](#subtract)
-      - [multiply](#multiply)
-      - [divide](#divide)
-      - [modulo](#modulo)
-      - [minimum](#minimum)
-      - [maximum](#maximum)
+- [Configuration](docs/config.md)
+  - [Command Line Flags](docs/config.md#command-line-flags)
+  - [Configuration File](docs/config.md#configuration-file)
+- [Templating Language](#templating-language)
+  - [API Functions](#api-functions)
+    - [caLeaf](#caleaf)
+    - [caRoot](#caroot)
+    - [connect](#connect)
+    - [datacenters](#datacenters)
+    - [file](#file)
+    - [key](#key)
+    - [keyExists](#keyexists)
+    - [keyOrDefault](#keyordefault)
+    - [ls](#ls)
+    - [safeLs](#safels)
+    - [node](#node)
+    - [nodes](#nodes)
+    - [secret](#secret)
+    - [secrets](#secrets)
+    - [service](#service)
+    - [services](#services)
+    - [tree](#tree)
+    - [safeTree](#safetree)
+  - [Scratch](#scratch)
+    - [scratch.Key](#scratchkey)
+    - [scratch.Get](#scratchget)
+    - [scratch.Set](#scratchset)
+    - [scratch.SetX](#scratchsetx)
+    - [scratch.MapSet](#scratchmapset)
+    - [scratch.MapSetX](#scratchmapsetx)
+    - [scratch.MapValues](#scratchmapvalues)
+  - [Helper Functions](#helper-functions)
+    - [base64Decode](#base64decode)
+    - [base64Encode](#base64encode)
+    - [base64URLDecode](#base64urldecode)
+    - [base64URLEncode](#base64urlencode)
+    - [byKey](#bykey)
+    - [byTag](#bytag)
+    - [byMeta](#bymeta)
+    - [contains](#contains)
+    - [containsAll](#containsall)
+    - [containsAny](#containsany)
+    - [containsNone](#containsnone)
+    - [containsNotAll](#containsnotall)
+    - [env](#env)
+    - [executeTemplate](#executetemplate)
+    - [explode](#explode)
+    - [explodeMap](#explodemap)
+    - [indent](#indent)
+    - [in](#in)
+    - [loop](#loop)
+    - [join](#join)
+    - [trimSpace](#trimspace)
+    - [parseBool](#parsebool)
+    - [parseFloat](#parsefloat)
+    - [parseInt](#parseint)
+    - [parseJSON](#parsejson)
+    - [parseUint](#parseuint)
+    - [parseYAML](#parseyaml)
+    - [plugin](#plugin)
+    - [regexMatch](#regexmatch)
+    - [regexReplaceAll](#regexreplaceall)
+    - [replaceAll](#replaceall)
+    - [sha256Hex](#sha256hex)
+    - [split](#split)
+    - [timestamp](#timestamp)
+    - [toJSON](#tojson)
+    - [toJSONPretty](#tojsonpretty)
+    - [toLower](#tolower)
+    - [toTitle](#totitle)
+    - [toTOML](#totoml)
+    - [toUpper](#toupper)
+    - [toYAML](#toyaml)
+    - [sockaddr](#sockaddr)
+  - [Math Functions](#math-functions)
+    - [add](#add)
+    - [subtract](#subtract)
+    - [multiply](#multiply)
+    - [divide](#divide)
+    - [modulo](#modulo)
+    - [minimum](#minimum)
+    - [maximum](#maximum)
 - [Plugins](#plugins)
   - [Authoring Plugins](#authoring-plugins)
     - [Important Notes](#important-notes)
@@ -191,491 +192,6 @@ This short example assumes Consul is installed locally.
 
 For more examples and use cases, please see the [examples folder][examples] in
 this repository.
-
-## Usage
-
-For the full list of options:
-
-```shell
-$ consul-template -h
-```
-
-### Command Line Flags
-
-The CLI interface supports all options in the configuration file and vice-versa. Here are a few examples of common integrations on the command line.
-
-Render the template on disk at `/tmp/template.ctmpl` to `/tmp/result`:
-
-```shell
-$ consul-template \
-    -template "/tmp/template.ctmpl:/tmp/result"
-```
-
-Render multiple templates in the same process. The optional third argument to
-the template is a command that will execute each time the template changes.
-
-```shell
-$ consul-template \
-    -template "/tmp/nginx.ctmpl:/var/nginx/nginx.conf:nginx -s reload" \
-    -template "/tmp/redis.ctmpl:/var/redis/redis.conf:service redis restart" \
-    -template "/tmp/haproxy.ctmpl:/var/haproxy/haproxy.conf"
-```
-
-Render a template using a custom Consul and Vault address:
-
-```shell
-$ consul-template \
-    -consul-addr "10.4.4.6:8500" \
-    -vault-addr "https://10.5.32.5:8200"
-```
-
-Render all templates and then spawn and monitor a child process as a supervisor:
-
-```shell
-$ consul-template \
-  -template "/tmp/in.ctmpl:/tmp/result" \
-  -exec "/sbin/my-server"
-```
-
-For more information on supervising, please see the
-[Consul Template Exec Mode documentation](#exec-mode).
-
-### Configuration File Format
-
-Configuration files are written in the [HashiCorp Configuration Language][hcl].
-By proxy, this means the configuration is also JSON compatible.
-
-```hcl
-# This denotes the start of the configuration section for Consul. All values
-# contained in this section pertain to Consul.
-consul {
-  # This block specifies the basic authentication information to pass with the
-  # request. For more information on authentication, please see the Consul
-  # documentation.
-  auth {
-    enabled  = true
-    username = "test"
-    password = "test"
-  }
-
-  # This is the address of the Consul agent. By default, this is
-  # 127.0.0.1:8500, which is the default bind and port for a local Consul
-  # agent. It is not recommended that you communicate directly with a Consul
-  # server, and instead communicate with the local Consul agent. There are many
-  # reasons for this, most importantly the Consul agent is able to multiplex
-  # connections to the Consul server and reduce the number of open HTTP
-  # connections. Additionally, it provides a "well-known" IP address for which
-  # clients can connect.
-  address = "127.0.0.1:8500"
-
-  # This is a Consul Enterprise namespace to use for reading/writing. This can
-  # also be set via the CONSUL_NAMESPACE environment variable.
-  # BETA: this is to be considered a beta feature as it has had limited testing
-  namespace = "foo"
-
-  # This is the ACL token to use when connecting to Consul. If you did not
-  # enable ACLs on your Consul cluster, you do not need to set this option.
-  #
-  # This option is also available via the environment variable CONSUL_TOKEN.
-  token = "abcd1234"
-
-  # This controls the retry behavior when an error is returned from Consul.
-  # Consul Template is highly fault tolerant, meaning it does not exit in the
-  # face of failure. Instead, it uses exponential back-off and retry functions
-  # to wait for the cluster to become available, as is customary in distributed
-  # systems.
-  retry {
-    # This enabled retries. Retries are enabled by default, so this is
-    # redundant.
-    enabled = true
-
-    # This specifies the number of attempts to make before giving up. Each
-    # attempt adds the exponential backoff sleep time. Setting this to
-    # zero will implement an unlimited number of retries.
-    attempts = 12
-
-    # This is the base amount of time to sleep between retry attempts. Each
-    # retry sleeps for an exponent of 2 longer than this base. For 5 retries,
-    # the sleep times would be: 250ms, 500ms, 1s, 2s, then 4s.
-    backoff = "250ms"
-
-    # This is the maximum amount of time to sleep between retry attempts.
-    # When max_backoff is set to zero, there is no upper limit to the
-    # exponential sleep between retry attempts.
-    # If max_backoff is set to 10s and backoff is set to 1s, sleep times
-    # would be: 1s, 2s, 4s, 8s, 10s, 10s, ...
-    max_backoff = "1m"
-  }
-
-  # This block configures the SSL options for connecting to the Consul server.
-  ssl {
-    # This enables SSL. Specifying any option for SSL will also enable it.
-    enabled = true
-
-    # This enables SSL peer verification. The default value is "true", which
-    # will check the global CA chain to make sure the given certificates are
-    # valid. If you are using a self-signed certificate that you have not added
-    # to the CA chain, you may want to disable SSL verification. However, please
-    # understand this is a potential security vulnerability.
-    verify = false
-
-    # This is the path to the certificate to use to authenticate. If just a
-    # certificate is provided, it is assumed to contain both the certificate and
-    # the key to convert to an X509 certificate. If both the certificate and
-    # key are specified, Consul Template will automatically combine them into an
-    # X509 certificate for you.
-    cert = "/path/to/client/cert"
-    key  = "/path/to/client/key"
-
-    # This is the path to the certificate authority to use as a CA. This is
-    # useful for self-signed certificates or for organizations using their own
-    # internal certificate authority.
-    ca_cert = "/path/to/ca"
-
-    # This is the path to a directory of PEM-encoded CA cert files. If both
-    # `ca_cert` and `ca_path` is specified, `ca_cert` is preferred.
-    ca_path = "path/to/certs/"
-
-    # This sets the SNI server name to use for validation.
-    server_name = "my-server.com"
-  }
-}
-
-# This is the signal to listen for to trigger a reload event. The default
-# value is shown below. Setting this value to the empty string will cause CT
-# to not listen for any reload signals.
-reload_signal = "SIGHUP"
-
-# This is the signal to listen for to trigger a graceful stop. The default
-# value is shown below. Setting this value to the empty string will cause CT
-# to not listen for any graceful stop signals.
-kill_signal = "SIGINT"
-
-# This is the maximum interval to allow "stale" data. By default, only the
-# Consul leader will respond to queries; any requests to a follower will
-# forward to the leader. In large clusters with many requests, this is not as
-# scalable, so this option allows any follower to respond to a query, so long
-# as the last-replicated data is within these bounds. Higher values result in
-# less cluster load, but are more likely to have outdated data.
-max_stale = "10m"
-
-
-# This is amount of time in seconds to do a blocking query for.
-# Many endpoints in Consul support a feature known as "blocking queries". 
-# A blocking query is used to wait for a potential change using long polling.
-block_query_wait = "60s"
-
-# This is the log level. If you find a bug in Consul Template, please enable
-# debug logs so we can help identify the issue. This is also available as a
-# command line flag.
-log_level = "warn"
-
-# This is the path to store a PID file which will contain the process ID of the
-# Consul Template process. This is useful if you plan to send custom signals
-# to the process.
-pid_file = "/path/to/pid"
-
-# This is the quiescence timers; it defines the minimum and maximum amount of
-# time to wait for the cluster to reach a consistent state before rendering a
-# template. This is useful to enable in systems that have a lot of flapping,
-# because it will reduce the the number of times a template is rendered.
-wait {
-  min = "5s"
-  max = "10s"
-}
-
-# This denotes the start of the configuration section for Vault. All values
-# contained in this section pertain to Vault.
-vault {
-  # This is the address of the Vault leader. The protocol (http(s)) portion
-  # of the address is required.
-  address = "https://vault.service.consul:8200"
-
-  # This is a Vault Enterprise namespace to use for reading/writing secrets.
-  #
-  # This value can also be specified via the environment variable VAULT_NAMESPACE.
-  namespace = "foo"
-
-  # This is the token to use when communicating with the Vault server.
-  # Like other tools that integrate with Vault, Consul Template makes the
-  # assumption that you provide it with a Vault token; it does not have the
-  # incorporated logic to generate tokens via Vault's auth methods.
-  #
-  # This value can also be specified via the environment variable VAULT_TOKEN.
-  # When using a token from Vault Agent, the vault_agent_token_file setting
-  # should be used instead, as that will take precedence over this field.
-  token = "abcd1234"
-
-  # This tells Consul Template to load the Vault token from the contents of a file.
-  # If this field is specified:
-  # - by default Consul Template will not try to renew the Vault token, if you want it
-  # to renew you will need to specify renew_token = true as below.
-  # - Consul Template will periodically stat the file and update the token if it has
-  # changed.
-  # vault_agent_token_file = "/tmp/vault/agent/token"
-
-  # This tells Consul Template that the provided token is actually a wrapped
-  # token that should be unwrapped using Vault's cubbyhole response wrapping
-  # before being used. Please see Vault's cubbyhole response wrapping
-  # documentation for more information.
-  unwrap_token = true
-
-  # This option tells Consul Template to automatically renew the Vault token
-  # given. If you are unfamiliar with Vault's architecture, Vault requires
-  # tokens be renewed at some regular interval or they will be revoked. Consul
-  # Template will automatically renew the token at half the lease duration of
-  # the token. The default value is true, but this option can be disabled if
-  # you want to renew the Vault token using an out-of-band process.
-  #
-  # Note that secrets specified in a template (using {{secret}} for example)
-  # are always renewed, even if this option is set to false. This option only
-  # applies to the top-level Vault token itself.
-  renew_token = true
-
-  # This section details the retry options for connecting to Vault. Please see
-  # the retry options in the Consul section for more information (they are the
-  # same).
-  retry {
-    # ...
-  }
-
-  # This section details the SSL options for connecting to the Vault server.
-  # Please see the SSL options in the Consul section for more information (they
-  # are the same).
-  ssl {
-    # ...
-  }
-}
-
-# This block defines the configuration for connecting to a syslog server for
-# logging.
-syslog {
-  # This enables syslog logging. Specifying any other option also enables
-  # syslog logging.
-  enabled = true
-
-  # This is the name of the syslog facility to log to.
-  facility = "LOCAL5"
-}
-
-# This block defines the configuration for de-duplication mode. Please see the
-# de-duplication mode documentation later in the README for more information
-# on how de-duplication mode operates.
-deduplicate {
-  # This enables de-duplication mode. Specifying any other options also enables
-  # de-duplication mode.
-  enabled = true
-
-  # This is the prefix to the path in Consul's KV store where de-duplication
-  # templates will be pre-rendered and stored.
-  prefix = "consul-template/dedup/"
-}
-
-# This block defines the configuration for exec mode. Please see the exec mode
-# documentation at the bottom of this README for more information on how exec
-# mode operates and the caveats of this mode.
-exec {
-  # This is the command to exec as a child process. There can be only one
-  # command per Consul Template process.
-  command = "/usr/bin/app"
-
-  # This is a random splay to wait before killing the command. The default
-  # value is 0 (no wait), but large clusters should consider setting a splay
-  # value to prevent all child processes from reloading at the same time when
-  # data changes occur. When this value is set to non-zero, Consul Template
-  # will wait a random period of time up to the splay value before reloading
-  # or killing the child process. This can be used to prevent the thundering
-  # herd problem on applications that do not gracefully reload.
-  splay = "5s"
-
-  env {
-    # This specifies if the child process should not inherit the parent
-    # process's environment. By default, the child will have full access to the
-    # environment variables of the parent. Setting this to true will send only
-    # the values specified in `custom_env` to the child process.
-    pristine = false
-
-    # This specifies additional custom environment variables in the form shown
-    # below to inject into the child's runtime environment. If a custom
-    # environment variable shares its name with a system environment variable,
-    # the custom environment variable takes precedence. Even if pristine,
-    # whitelist, or blacklist is specified, all values in this option
-    # are given to the child process.
-    custom = ["PATH=$PATH:/etc/myapp/bin"]
-
-    # This specifies a list of environment variables to exclusively include in
-    # the list of environment variables exposed to the child process. If
-    # specified, only those environment variables matching the given patterns
-    # are exposed to the child process. These strings are matched using Go's
-    # glob function, so wildcards are permitted.
-    whitelist = ["CONSUL_*"]
-
-    # This specifies a list of environment variables to exclusively prohibit in
-    # the list of environment variables exposed to the child process. If
-    # specified, any environment variables matching the given patterns will not
-    # be exposed to the child process, even if they are whitelisted. The values
-    # in this option take precedence over the values in the whitelist.
-    # These strings are matched using Go's glob function, so wildcards are
-    # permitted.
-    blacklist = ["VAULT_*"]
-  }
-
-  # This defines the signal that will be sent to the child process when a
-  # change occurs in a watched template. The signal will only be sent after the
-  # process is started, and the process will only be started after all
-  # dependent templates have been rendered at least once. The default value is
-  # nil, which tells Consul Template to stop the child process and spawn a new
-  # one instead of sending it a signal. This is useful for legacy applications
-  # or applications that cannot properly reload their configuration without a
-  # full reload.
-  reload_signal = ""
-
-  # This defines the signal sent to the child process when Consul Template is
-  # gracefully shutting down. The application should begin a graceful cleanup.
-  # If the application does not terminate before the `kill_timeout`, it will
-  # be terminated (effectively "kill -9"). The default value is "SIGINT".
-  kill_signal = "SIGINT"
-
-  # This defines the amount of time to wait for the child process to gracefully
-  # terminate when Consul Template exits. After this specified time, the child
-  # process will be force-killed (effectively "kill -9"). The default value is
-  # "30s".
-  kill_timeout = "2s"
-}
-
-# This block defines the configuration for a template. Unlike other blocks,
-# this block may be specified multiple times to configure multiple templates.
-# It is also possible to configure templates via the CLI directly.
-template {
-  # This is the source file on disk to use as the input template. This is often
-  # called the "Consul Template template". This option is required if not using
-  # the `contents` option.
-  source = "/path/on/disk/to/template.ctmpl"
-
-  # This is the destination path on disk where the source template will render.
-  # If the parent directories do not exist, Consul Template will attempt to
-  # create them, unless create_dest_dirs is false.
-  destination = "/path/on/disk/where/template/will/render.txt"
-
-  # This options tells Consul Template to create the parent directories of the
-  # destination path if they do not exist. The default value is true.
-  create_dest_dirs = true
-
-  # This option allows embedding the contents of a template in the configuration
-  # file rather then supplying the `source` path to the template file. This is
-  # useful for short templates. This option is mutually exclusive with the
-  # `source` option.
-  contents = "{{ keyOrDefault \"service/redis/maxconns@east-aws\" \"5\" }}"
-
-  # This is the optional command to run when the template is rendered. The
-  # command will only run if the resulting template changes. The command must
-  # return within 30s (configurable), and it must have a successful exit code.
-  # Consul Template is not a replacement for a process monitor or init system.
-  # Please see the [Command](#command) section below for more.
-  command = "restart service foo"
-
-  # This is the maximum amount of time to wait for the optional command to
-  # return. If you set the timeout to 0s the command is run in the background
-  # without monitoring it for errors. If also using Once, consul-template can
-  # exit before the command is finished. Default is 30s.
-  command_timeout = "60s"
-
-  # Exit with an error when accessing a struct or map field/key that does not
-  # exist. The default behavior will print "<no value>" when accessing a field
-  # that does not exist. It is highly recommended you set this to "true" when
-  # retrieving secrets from Vault.
-  error_on_missing_key = false
-
-  # This is the permission to render the file. If this option is left
-  # unspecified, Consul Template will attempt to match the permissions of the
-  # file that already exists at the destination path. If no file exists at that
-  # path, the permissions are 0644.
-  perms = 0600
-
-  # This option backs up the previously rendered template at the destination
-  # path before writing a new one. It keeps exactly one backup. This option is
-  # useful for preventing accidental changes to the data without having a
-  # rollback strategy.
-  backup = true
-
-  # These are the delimiters to use in the template. The default is "{{" and
-  # "}}", but for some templates, it may be easier to use a different delimiter
-  # that does not conflict with the output file itself.
-  left_delimiter  = "{{"
-  right_delimiter = "}}"
-
-  # These are functions that are not permitted in the template. If a template
-  # includes one of these functions, it will exit with an error.
-  function_blacklist = []
-
-  # If a sandbox path is provided, any path provided to the `file` function is
-  # checked that it falls within the sandbox path. Relative paths that try to
-  # traverse outside the sandbox path will exit with an error.
-  sandbox_path = ""
-
-  # This is the `minimum(:maximum)` to wait before rendering a new template to
-  # disk and triggering a command, separated by a colon (`:`). If the optional
-  # maximum value is omitted, it is assumed to be 4x the required minimum value.
-  # This is a numeric time with a unit suffix ("5s"). There is no default value.
-  # The wait value for a template takes precedence over any globally-configured
-  # wait.
-  wait {
-    min = "2s"
-    max = "10s"
-  }
-}
-
-# These are example configurations for monitoring Consul Template metrics.
-# This block is an HCL mapping to OpenTelemetry configurations for
-# various exporters. Configuring telemetry is only supported in
-# configuration files and not as CLI flags. Only one metric provider can
-# be used at a given time. More details on the metrics collected can be found
-# in the Telemetry section.
-telemetry {
-  stdout {
-    reporting_interval = "60s"
-    pretty_print = false
-    do_not_print_time = false
-  }
-
-  dogstatsd {
-    // address describes the destination for exporting dogstatsd data.
-    // e.g., udp://host:port tcp://host:port unix:///socket/path
-    address = "udp://127.0.0.1:8125"
-    reporting_interval = "60s"
-  }
-
-  prometheus {
-    reporting_interval = "60s"
-    port = 8888
-  }
-}
-```
-
-Note that not all fields are required. If you are not retrieving secrets from
-Vault, you do not need to specify a Vault configuration section. Similarly, if
-you are not logging to syslog, you do not need to specify a syslog
-configuration.
-
-For additional security, tokens may also be read from the environment using the
-`CONSUL_TOKEN` or `VAULT_TOKEN` environment variables respectively. It is highly
-recommended that you do not put your tokens in plain-text in a configuration
-file.
-
-Instruct Consul Template to use a configuration file with the `-config` flag:
-
-```shell
-$ consul-template -config "/my/config.hcl"
-```
-
-This argument may be specified multiple times to load multiple configuration
-files. The right-most configuration takes the highest precedence. If the path to
-a directory is provided (as opposed to the path to a file), all of the files in
-the given directory will be merged in
-[lexical order](http://golang.org/pkg/path/filepath/#Walk), recursively. Please
-note that symbolic links are _not_ followed.
-
-**Commands specified on the CLI take precedence over a config file!**
 
 ### Templating Language
 
@@ -2426,39 +1942,6 @@ carefully before use:
 - Individual template reload commands still fire independently of the exec
   command.
 
-### De-Duplication Mode
-
-Consul Template works by parsing templates to determine what data is needed and
-then watching Consul for any changes to that data. This allows Consul Template
-to efficiently re-render templates when a change occurs. However, if there are
-many instances of Consul Template rendering a common template there is a linear
-duplication of work as each instance is querying the same data.
-
-To make this pattern more efficient Consul Template supports work de-duplication
-across instances. This can be enabled with the `-dedup` flag or via the
-`deduplicate` configuration block. Once enabled, Consul Template uses leader
-election on a per-template basis to have only a single node perform the queries.
-Results are shared among other instances rendering the same template by passing
-compressed data through the Consul K/V store.
-
-Please note that no Vault data will be stored in the compressed template.
-Because ACLs around Vault are typically more closely controlled than those ACLs
-around Consul's KV, Consul Template will still request the secret from Vault on
-each iteration.
-
-When running in de-duplication mode, it is important that local template
-functions resolve correctly. For example, you may have a local template function
-that relies on the `env` helper like this:
-
-```hcl
-{{ key (env "KEY") }}
-```
-
-It is crucial that the environment variable `KEY` in this example is consistent
-across all machines engaged in de-duplicating this template. If the values are
-different, Consul Template will be unable to resolve the template, and you will
-not get a successful render.
-
 ### Termination on Error
 
 By default Consul Template is highly fault-tolerant. If Consul is unreachable or
@@ -2762,7 +2245,6 @@ go test ./... -run SomeTestFunction_name
 [consul]: https://www.consul.io "Consul by HashiCorp"
 [connect]: https://www.consul.io/docs/connect/ "Connect"
 [examples]: (https://github.com/hashicorp/consul-template/tree/master/examples) "Consul Template Examples"
-[hcl]: https://github.com/hashicorp/hcl "HashiCorp Configuration Language (hcl)"
 [releases]: https://releases.hashicorp.com/consul-template "Consul Template Releases"
 [text-template]: https://golang.org/pkg/text/template/ "Go's text/template package"
 [vault]: https://www.vaultproject.io "Vault by HashiCorp"
