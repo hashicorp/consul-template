@@ -62,15 +62,6 @@ func FileModeVal(o *os.FileMode) os.FileMode {
 	return *o
 }
 
-// FileModeCopy returns a copy of the os.FireMode
-func FileModeCopy(o *os.FileMode) *os.FileMode {
-	if o == nil {
-		return nil
-	}
-
-	return FileMode(*o)
-}
-
 // FileModeGoString returns the value of the os.FileMode for printing in a
 // string.
 func FileModeGoString(o *os.FileMode) string {
@@ -101,15 +92,6 @@ func IntVal(i *int) int {
 		return 0
 	}
 	return *i
-}
-
-// IntCopy returns a copy of the int pointer
-func IntCopy(i *int) *int {
-	if i == nil {
-		return nil
-	}
-
-	return Int(*i)
 }
 
 // IntGoString returns the value of the int for printing in a string.
@@ -181,15 +163,6 @@ func SignalVal(s *os.Signal) os.Signal {
 		return (os.Signal)(nil)
 	}
 	return *s
-}
-
-// SignalCopy returns a copy of the os.Signal
-func SignalCopy(s *os.Signal) *os.Signal {
-	if s == nil {
-		return nil
-	}
-
-	return Signal(*s)
 }
 
 // SignalGoString returns the value of the os.Signal for printing in a string.
