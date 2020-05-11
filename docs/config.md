@@ -8,13 +8,13 @@ configuration.
 
 - [Command Line Flags](#command-line-flags)
 - [Configuration File](#configuration-file)
-  - [Example](#example)
+- [Configuration Options](#configuration-options)
   - [Consul Template](#consul-template)
-    - [De-Duplication Mode](#de-duplication-mode)
   - [Consul](#consul)
+    - [De-Duplication Mode](#de-duplication-mode)
   - [Vault](#vault)
-  - [Exec mode](#exec-mode)
   - [Template](#template)
+  - [Exec mode](#exec-mode)
 
 ## Command Line Flags
 
@@ -94,10 +94,9 @@ file.
 
 ### Example
 
-The example configuration file below connects Consul Template to a Consul
-server and renders a template with a value from
-[Consul K/V store](https://www.consul.io/docs/agent/kv.html). The output is
-written to a file on disk.
+The example HCL configuration file below connects Consul Template to a Consul
+agent and renders a template with a value from [Consul KV][consul-kv]. The
+output is written to a file on disk.
 
 ```hcl
 consul {
@@ -121,11 +120,22 @@ template {
 }
 ```
 
+## Configuration Options
+
+This section covers the various options available to configure Consul Template,
+data sources, templates, and different run time modes. For simplicity, the
+configuration options are written in context of an HCL configuration file,
+however they can be set via CLI flags or written in JSON.
+
 ### Consul Template
 
-The below options are top level values to configure Consul Template.
+These options are top level values to configure Consul Template.
+They are not required and will fallback to default values when omitted.
 
 ```hcl
+# This denotes the start of the configuration section for Consul Template.
+# All values contained in this section pertain to Vault.
+
 # This is the signal to listen for to trigger a reload event. The default
 # value is shown below. Setting this value to the empty string will cause CT
 # to not listen for any reload signals.
@@ -154,11 +164,6 @@ block_query_wait = "60s"
 # command line flag.
 log_level = "warn"
 
-# This is the path to store a PID file which will contain the process ID of the
-# Consul Template process. This is useful if you plan to send custom signals
-# to the process.
-pid_file = "/path/to/pid"
-
 # This is the quiescence timers; it defines the minimum and maximum amount of
 # time to wait for the cluster to reach a consistent state before rendering a
 # template. This is useful to enable in systems that have a lot of flapping,
@@ -167,6 +172,16 @@ wait {
   min = "5s"
   max = "10s"
 }
+```
+
+To enable these features, declare the values in the configuration file or
+use the corresponding flags.
+
+```hcl
+# This is the path to store a PID file which will contain the process ID of the
+# Consul Template process. This is useful if you plan to send custom signals
+# to the process.
+pid_file = "/path/to/pid"
 
 # This block defines the configuration for connecting to a syslog server for
 # logging.
@@ -206,52 +221,11 @@ telemetry {
 }
 ```
 
-#### De-Duplication Mode
-
-Consul Template works by parsing templates to determine what data is needed and
-then watching Consul for any changes to that data. This allows Consul Template
-to efficiently re-render templates when a change occurs. However, if there are
-many instances of Consul Template rendering a common template there is a linear
-duplication of work as each instance is querying the same data.
-
-To make this pattern more efficient Consul Template supports work de-duplication
-across instances. This can be enabled with the `-dedup` flag or via the
-`deduplicate` configuration block. Once enabled, Consul Template uses leader
-election on a per-template basis to have only a single node perform the queries.
-Results are shared among other instances rendering the same template by passing
-compressed data through the Consul K/V store.
-
-```hcl
-deduplicate {
-  # This enables de-duplication mode. Specifying any other options also enables
-  # de-duplication mode.
-  enabled = true
-
-  # This is the prefix to the path in Consul's KV store where de-duplication
-  # templates will be pre-rendered and stored.
-  prefix = "consul-template/dedup/"
-}
-```
-
-Please note that no Vault data will be stored in the compressed template.
-Because ACLs around Vault are typically more closely controlled than those ACLs
-around Consul's KV, Consul Template will still request the secret from Vault on
-each iteration.
-
-When running in de-duplication mode, it is important that local template
-functions resolve correctly. For example, you may have a local template function
-that relies on the `env` helper like this:
-
-```hcl
-{{ key (env "KEY") }}
-```
-
-It is crucial that the environment variable `KEY` in this example is consistent
-across all machines engaged in de-duplicating this template. If the values are
-different, Consul Template will be unable to resolve the template, and you will
-not get a successful render.
-
 ### Consul
+
+Enable Consul Template to connect with [Consul][consul] by declaring the
+`consul` block. This configures a Consul client to query values from Consul
+features, like [Consul Catalog][consul-catalog] and [Consul KV][consul-kv].
 
 ```hcl
 # This denotes the start of the configuration section for Consul. All values
@@ -279,13 +253,15 @@ consul {
   # This is a Consul Enterprise namespace to use for reading/writing. This can
   # also be set via the CONSUL_NAMESPACE environment variable.
   # BETA: this is to be considered a beta feature as it has had limited testing
-  namespace = "foo"
+  namespace = ""
 
   # This is the ACL token to use when connecting to Consul. If you did not
   # enable ACLs on your Consul cluster, you do not need to set this option.
   #
   # This option is also available via the environment variable CONSUL_TOKEN.
-  token = "abcd1234"
+  # It is highly recommended that you do not put your token in plain-text in a
+  # configuration file.
+  token = ""
 
   # This controls the retry behavior when an error is returned from Consul.
   # Consul Template is highly fault tolerant, meaning it does not exit in the
@@ -350,7 +326,56 @@ consul {
 }
 ```
 
+#### De-Duplication Mode
+
+Consul Template works by parsing templates to determine what data is needed and
+then watching Consul for any changes to that data. This allows Consul Template
+to efficiently re-render templates when a change occurs. However, if there are
+many instances of Consul Template rendering a common template there is a linear
+duplication of work as each instance is querying the same data.
+
+To make this pattern more efficient Consul Template supports work de-duplication
+across instances. This can be enabled with the `-dedup` flag or via the top level
+`deduplicate` configuration block. Once enabled, Consul Template uses leader
+election on a per-template basis to have only a single node perform the queries.
+Results are shared among other instances rendering the same template by passing
+compressed data through the Consul K/V store.
+
+```hcl
+deduplicate {
+  # This enables de-duplication mode. Specifying any other options also enables
+  # de-duplication mode.
+  enabled = true
+
+  # This is the prefix to the path in Consul's KV store where de-duplication
+  # templates will be pre-rendered and stored.
+  prefix = "consul-template/dedup/"
+}
+```
+
+Please note that no Vault data will be stored in the compressed template.
+Because ACLs around Vault are typically more closely controlled than those ACLs
+around Consul's KV, Consul Template will still request the secret from Vault on
+each iteration.
+
+When running in de-duplication mode, it is important that local template
+functions resolve correctly. For example, you may have a local template function
+that relies on the `env` helper like this:
+
+```hcl
+{{ key (env "KEY") }}
+```
+
+It is crucial that the environment variable `KEY` in this example is consistent
+across all machines engaged in de-duplicating this template. If the values are
+different, Consul Template will be unable to resolve the template, and you will
+not get a successful render.
+
 ### Vault
+
+Enable Consul Template to connect with [Vault][vault] by declaring the `vault`
+block. This configures a Vault client to query secrets from Vault to render
+secret data into templates.
 
 ```hcl
 # This denotes the start of the configuration section for Vault. All values
@@ -363,7 +388,7 @@ vault {
   # This is a Vault Enterprise namespace to use for reading/writing secrets.
   #
   # This value can also be specified via the environment variable VAULT_NAMESPACE.
-  namespace = "foo"
+  namespace = ""
 
   # This is the token to use when communicating with the Vault server.
   # Like other tools that integrate with Vault, Consul Template makes the
@@ -371,9 +396,12 @@ vault {
   # incorporated logic to generate tokens via Vault's auth methods.
   #
   # This value can also be specified via the environment variable VAULT_TOKEN.
+  # It is highly recommended that you do not put your token in plain-text in a
+  # configuration file.
+  #
   # When using a token from Vault Agent, the vault_agent_token_file setting
   # should be used instead, as that will take precedence over this field.
-  token = "abcd1234"
+  token = ""
 
   # This tells Consul Template to load the Vault token from the contents of a file.
   # If this field is specified:
@@ -417,88 +445,13 @@ vault {
 }
 ```
 
-### Exec Mode
-
-```hcl
-# This block defines the configuration for exec mode. Please see the exec mode
-# documentation at the bottom of this README for more information on how exec
-# mode operates and the caveats of this mode.
-exec {
-  # This is the command to exec as a child process. There can be only one
-  # command per Consul Template process.
-  command = "/usr/bin/app"
-
-  # This is a random splay to wait before killing the command. The default
-  # value is 0 (no wait), but large clusters should consider setting a splay
-  # value to prevent all child processes from reloading at the same time when
-  # data changes occur. When this value is set to non-zero, Consul Template
-  # will wait a random period of time up to the splay value before reloading
-  # or killing the child process. This can be used to prevent the thundering
-  # herd problem on applications that do not gracefully reload.
-  splay = "5s"
-
-  env {
-    # This specifies if the child process should not inherit the parent
-    # process's environment. By default, the child will have full access to the
-    # environment variables of the parent. Setting this to true will send only
-    # the values specified in `custom_env` to the child process.
-    pristine = false
-
-    # This specifies additional custom environment variables in the form shown
-    # below to inject into the child's runtime environment. If a custom
-    # environment variable shares its name with a system environment variable,
-    # the custom environment variable takes precedence. Even if pristine,
-    # whitelist, or blacklist is specified, all values in this option
-    # are given to the child process.
-    custom = ["PATH=$PATH:/etc/myapp/bin"]
-
-    # This specifies a list of environment variables to exclusively include in
-    # the list of environment variables exposed to the child process. If
-    # specified, only those environment variables matching the given patterns
-    # are exposed to the child process. These strings are matched using Go's
-    # glob function, so wildcards are permitted.
-    whitelist = ["CONSUL_*"]
-
-    # This specifies a list of environment variables to exclusively prohibit in
-    # the list of environment variables exposed to the child process. If
-    # specified, any environment variables matching the given patterns will not
-    # be exposed to the child process, even if they are whitelisted. The values
-    # in this option take precedence over the values in the whitelist.
-    # These strings are matched using Go's glob function, so wildcards are
-    # permitted.
-    blacklist = ["VAULT_*"]
-  }
-
-  # This defines the signal that will be sent to the child process when a
-  # change occurs in a watched template. The signal will only be sent after the
-  # process is started, and the process will only be started after all
-  # dependent templates have been rendered at least once. The default value is
-  # nil, which tells Consul Template to stop the child process and spawn a new
-  # one instead of sending it a signal. This is useful for legacy applications
-  # or applications that cannot properly reload their configuration without a
-  # full reload.
-  reload_signal = ""
-
-  # This defines the signal sent to the child process when Consul Template is
-  # gracefully shutting down. The application should begin a graceful cleanup.
-  # If the application does not terminate before the `kill_timeout`, it will
-  # be terminated (effectively "kill -9"). The default value is "SIGINT".
-  kill_signal = "SIGINT"
-
-  # This defines the amount of time to wait for the child process to gracefully
-  # terminate when Consul Template exits. After this specified time, the child
-  # process will be force-killed (effectively "kill -9"). The default value is
-  # "30s".
-  kill_timeout = "2s"
-}
-```
-
 ### Templates
 
+A `template` block defines the configuration for a template. Unlike other
+blocks, this block may be specified multiple times to configure multiple
+templates. It is also possible to configure templates via the CLI directly.
+
 ```hcl
-# This block defines the configuration for a template. Unlike other blocks,
-# this block may be specified multiple times to configure multiple templates.
-# It is also possible to configure templates via the CLI directly.
 template {
   # This is the source file on disk to use as the input template. This is often
   # called the "Consul Template template". This option is required if not using
@@ -579,4 +532,85 @@ template {
 }
 ```
 
+### Exec Mode
+
+This block defines the configuration for running Consul Template in exec mode.
+Please see the [exec mode documentation](exec-mode.md) for more information on
+how exec mode operates and the caveats of this mode.
+
+```hcl
+exec {
+  # This is the command to exec as a child process. There can be only one
+  # command per Consul Template process.
+  command = "/usr/bin/app"
+
+  # This is a random splay to wait before killing the command. The default
+  # value is 0 (no wait), but large clusters should consider setting a splay
+  # value to prevent all child processes from reloading at the same time when
+  # data changes occur. When this value is set to non-zero, Consul Template
+  # will wait a random period of time up to the splay value before reloading
+  # or killing the child process. This can be used to prevent the thundering
+  # herd problem on applications that do not gracefully reload.
+  splay = "5s"
+
+  env {
+    # This specifies if the child process should not inherit the parent
+    # process's environment. By default, the child will have full access to the
+    # environment variables of the parent. Setting this to true will send only
+    # the values specified in `custom_env` to the child process.
+    pristine = false
+
+    # This specifies additional custom environment variables in the form shown
+    # below to inject into the child's runtime environment. If a custom
+    # environment variable shares its name with a system environment variable,
+    # the custom environment variable takes precedence. Even if pristine,
+    # whitelist, or blacklist is specified, all values in this option
+    # are given to the child process.
+    custom = ["PATH=$PATH:/etc/myapp/bin"]
+
+    # This specifies a list of environment variables to exclusively include in
+    # the list of environment variables exposed to the child process. If
+    # specified, only those environment variables matching the given patterns
+    # are exposed to the child process. These strings are matched using Go's
+    # glob function, so wildcards are permitted.
+    whitelist = ["CONSUL_*"]
+
+    # This specifies a list of environment variables to exclusively prohibit in
+    # the list of environment variables exposed to the child process. If
+    # specified, any environment variables matching the given patterns will not
+    # be exposed to the child process, even if they are whitelisted. The values
+    # in this option take precedence over the values in the whitelist.
+    # These strings are matched using Go's glob function, so wildcards are
+    # permitted.
+    blacklist = ["VAULT_*"]
+  }
+
+  # This defines the signal that will be sent to the child process when a
+  # change occurs in a watched template. The signal will only be sent after the
+  # process is started, and the process will only be started after all
+  # dependent templates have been rendered at least once. The default value is
+  # nil, which tells Consul Template to stop the child process and spawn a new
+  # one instead of sending it a signal. This is useful for legacy applications
+  # or applications that cannot properly reload their configuration without a
+  # full reload.
+  reload_signal = ""
+
+  # This defines the signal sent to the child process when Consul Template is
+  # gracefully shutting down. The application should begin a graceful cleanup.
+  # If the application does not terminate before the `kill_timeout`, it will
+  # be terminated (effectively "kill -9"). The default value is "SIGINT".
+  kill_signal = "SIGINT"
+
+  # This defines the amount of time to wait for the child process to gracefully
+  # terminate when Consul Template exits. After this specified time, the child
+  # process will be force-killed (effectively "kill -9"). The default value is
+  # "30s".
+  kill_timeout = "2s"
+}
+```
+
 [hcl]: https://github.com/hashicorp/hcl "HashiCorp Configuration Language (hcl)"
+[consul]: https://www.consul.io "Consul by HashiCorp"
+[consul-catalog]: https://www.consul.io/docs/commands/catalog.html "Consul Catalog"
+[consul-kv]: https://www.consul.io/docs/agent/kv.html "Consul KV"
+[vault]: https://www.vaultproject.io/ "Vault by HashiCorp"
