@@ -29,6 +29,14 @@ const (
 	TypeLocal
 )
 
+func (t Type) String() string {
+	if t > 2 {
+		return "unknown"
+	}
+
+	return []string{"consul", "vault", "local"}[t]
+}
+
 // Dependency is an interface for a dependency that Consul Template is capable
 // of watching.
 type Dependency interface {
