@@ -429,7 +429,7 @@ func (cli *CLI) ParseFlags(args []string) (
 
 	flags.Var((funcVar)(func(s string) error {
 		c.Syslog.Name = config.String(s)
-	return nil
+		return nil
 	}), "syslog-name", "")
 
 	flags.Var((funcVar)(func(s string) error {
@@ -604,7 +604,7 @@ func (cli *CLI) setup(conf *config.Config) (*config.Config, error) {
 		Level:          config.StringVal(conf.LogLevel),
 		Syslog:         config.BoolVal(conf.Syslog.Enabled),
 		SyslogFacility: config.StringVal(conf.Syslog.Facility),
-		SyslogName:	config.StringVal(conf.Syslog.Name),
+		SyslogName:     config.StringVal(conf.Syslog.Name),
 		Writer:         cli.errStream,
 	}); err != nil {
 		return nil, err
