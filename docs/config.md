@@ -120,14 +120,14 @@ template {
 }
 ```
 
-## Configuration Options
+# Configuration Options
 
 This section covers the various options available to configure Consul Template,
 data sources, templates, and different run time modes. For simplicity, the
 configuration options are written in context of an HCL configuration file,
 however they can be set via CLI flags or written in JSON.
 
-### Consul Template
+## Consul Template
 
 These options are top level values to configure Consul Template.
 They are not required and will fallback to default values when omitted.
@@ -175,7 +175,7 @@ wait {
 ```
 
 To enable these features, declare the values in the configuration file or
-use the corresponding flags.
+use the corresponding flags, if available.
 
 ```hcl
 # This is the path to store a PID file which will contain the process ID of the
@@ -193,13 +193,21 @@ syslog {
   # This is the name of the syslog facility to log to.
   facility = "LOCAL5"
 }
+```
 
-# These are example configurations for monitoring Consul Template metrics.
-# This block is an HCL mapping to OpenTelemetry configurations for
-# various exporters. Configuring telemetry is only supported in
-# configuration files and not as CLI flags. Only one metric provider can
-# be used at a given time. More details on the metrics collected can be found
-# in the Telemetry section.
+### Telemetry
+
+Enable telemetry reporting by configuring a metrics sink. These are example
+configurations for monitoring Consul Template metrics. This block is an HCL
+mapping to OpenTelemetry configurations for various exporters.
+
+*Note:* Configuring telemetry is only supported in configuration files and not
+as CLI flags. Only one metric provider can be used at a given time.
+
+More details about the metrics collected can be found on the
+[Telemetry documentation page](observability.md#telemetry).
+
+```
 telemetry {
   stdout {
     reporting_interval = "60s"
@@ -221,7 +229,7 @@ telemetry {
 }
 ```
 
-### Consul
+## Consul
 
 Enable Consul Template to connect with [Consul][consul] by declaring the
 `consul` block. This configures a Consul client to query values from Consul
@@ -326,7 +334,7 @@ consul {
 }
 ```
 
-#### De-Duplication Mode
+### De-Duplication Mode
 
 Consul Template works by parsing templates to determine what data is needed and
 then watching Consul for any changes to that data. This allows Consul Template
@@ -371,7 +379,7 @@ across all machines engaged in de-duplicating this template. If the values are
 different, Consul Template will be unable to resolve the template, and you will
 not get a successful render.
 
-### Vault
+## Vault
 
 Enable Consul Template to connect with [Vault][vault] by declaring the `vault`
 block. This configures a Vault client to query secrets from Vault to render
@@ -445,7 +453,7 @@ vault {
 }
 ```
 
-### Templates
+## Templates
 
 A `template` block defines the configuration for a template. Unlike other
 blocks, this block may be specified multiple times to configure multiple
@@ -532,7 +540,7 @@ template {
 }
 ```
 
-### Exec Mode
+## Exec Mode
 
 This block defines the configuration for running Consul Template in exec mode.
 Please see the [exec mode documentation](exec-mode.md) for more information on
