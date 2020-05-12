@@ -127,7 +127,7 @@ template {
 This section covers the various options available to configure Consul Template,
 data sources, templates, and different run time modes. For simplicity, the
 configuration options are written in context of an HCL configuration file,
-however they can be set via CLI flags or written in JSON.
+however they can be written in JSON or most options can be set via CLI flags.
 
 ## Consul Template
 

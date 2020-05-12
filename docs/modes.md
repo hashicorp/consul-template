@@ -15,7 +15,7 @@ once mode will wait until Consul returns data for that dependency. Please note
 that "returned data" and "empty data" are not mutually exclusive.
 
 To run in Once mode, include the `-once` flag or enable in the
-[configuration file](config.md#once-mode).
+[configuration file](configuration.md#once-mode).
 
 When you query for all healthy services named "foo" (`{{ service "foo" }}`), you
 are asking Consul - "give me all the healthy services named foo". If there are
@@ -51,7 +51,7 @@ duplication of work as each instance is querying the same data.
 
 To make this pattern more efficient Consul Template supports work de-duplication
 across instances. This can be enabled with the `-dedup` flag or via the top level
-[`deduplicate` configuration block](config.md#de-duplication-mode). Once enabled,
+[`deduplicate` configuration block](configuration.md#de-duplication-mode). Once enabled,
 Consul Template uses leader election on a per-template basis to have only a single
 node perform the queries. Results are shared among other instances rendering the
 same template by passing compressed data through the Consul K/V store.
@@ -84,7 +84,7 @@ activated, Consul Template will spawn and manage the lifecycle of the child
 process.
 
 Configuration options for running Consul Template in exec mode can be found in
-the [configuration documentation](config.md#exec-mode).
+the [configuration documentation](configuration.md#exec-mode).
 
 This mode is best-explained through example. Consider a simple application that
 reads a configuration file from disk and spawns a server from that

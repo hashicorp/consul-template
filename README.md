@@ -25,18 +25,16 @@ this functionality might prove useful.
 - [Community Support](#community-support)
 - [Installation](#installation)
 - [Quick Example](#quick-example)
-- [Usage](#usage)
-- [Configuration](docs/config.md)
-  - [Command Line Flags](docs/config.md#command-line-flags)
-  - [Configuration File](docs/config.md#configuration-file)
+- [Learn Guides](#learn-guides)
+- [Configuration](docs/configuration.md)
+  - [Command Line Flags](docs/configuration.md#command-line-flags)
+  - [Configuration File](docs/configuration.md#configuration-file)
+- [Reload Configuration and Templates](#reload-configuration-and-templates)
 - [Templating Language](docs/templating-language.md)
   - [API Functions](docs/templating-language.md#api-functions)
   - [Scratch](docs/templating-language.md#scratch)
   - [Helper Functions](docs/templating-language.md#helper-functions)
   - [Math Functions](docs/templating-language.md#math-functions)
-- [Plugins](#plugins)
-  - [Authoring Plugins](#authoring-plugins)
-    - [Important Notes](#important-notes)
 - [Observability](docs/observability.md)
   - [Logging](docs/observability.md#logging)
   - [Telemetry](docs/observability.md#telemetry)
@@ -44,6 +42,7 @@ this functionality might prove useful.
   - [Once Mode](docs/modes.md#once-mode)
   - [De-Duplication Mode](docs/modes.md#de-duplication-mode)
   - [Exec Mode](docs/modes.md#exec-mode)
+- [Plugins](docs/plugins.md)
 - [Caveats](#caveats)
   - [Docker Image Use](#docker-image-use)
   - [Dots in Service Names](#dots-in-service-names)  
@@ -52,7 +51,6 @@ this functionality might prove useful.
     - [Environment](#environment)
     - [Multiple Commands](#multiple-commands)
   - [Multi-phase Execution](#multi-phase-execution)
-- [Reload Configuration and Templates](#reload-configuration-and-templates)
 - [FAQ](#faq)
 - [Contributing](#contributing)
 
@@ -121,92 +119,43 @@ This short example assumes Consul is installed locally.
 For more examples and use cases, please see the [examples folder][examples] in
 this repository.
 
-## Plugins
+## Learn Guides
 
-### Authoring Plugins
+In addition to these [examples][examples], HashiCorp has published guides and
+official documentation to help walk through a few common use cases for Consul
+Template.
+* [Consul KV](https://learn.hashicorp.com/consul/developer-configuration/consul-template#use-case-consul-kv)
+* [Consul Catalog](https://learn.hashicorp.com/consul/developer-configuration/consul-template#use-case-discover-all-services)
+* [Vault Agent Templates](https://learn.hashicorp.com/vault/identity-access-management/agent-templates)
+* [Vault Secrets](https://www.vaultproject.io/docs/agent/template#example-template)
 
-For some use cases, it may be necessary to write a plugin that offloads work to
-another system. This is especially useful for things that may not fit in the
-"standard library" of Consul Template, but still need to be shared across
-multiple instances.
+## Configuration
 
-Consul Template plugins must have the following API:
+Configuration documentation has been moved to [docs/configuration.md](docs/configuration.md).
 
-```shell
-$ NAME [INPUT...]
-```
+## Reload Configuration and Templates
 
-- `NAME` - the name of the plugin - this is also the name of the binary, either
-  a full path or just the program name.  It will be executed in a shell with the
-  inherited `PATH` so e.g. the plugin `cat` will run the first executable `cat`
-  that is found on the `PATH`.
+While there are multiple ways to run Consul Template, the most common pattern is
+to run Consul Template as a system service. When Consul Template first starts,
+it reads any configuration files and templates from disk and loads them into
+memory. From that point forward, changes to the files on disk do not propagate
+to running process without a reload.
 
-- `INPUT` - input from the template. There will be one INPUT for every argument passed
-  to the `plugin` function. If the arguments contain whitespace, that whitespace
-  will be passed as if the argument were quoted by the shell.
+The reason for this behavior is simple and aligns with other tools like haproxy.
+A user may want to perform pre-flight validation checks on the configuration or
+templates before loading them into the process. Additionally, a user may want to
+update configuration and templates simultaneously. Having Consul Template
+automatically watch and reload those files on changes is both operationally
+dangerous and against some of the paradigms of modern infrastructure. Instead,
+Consul Template listens for the `SIGHUP` syscall to trigger a configuration
+reload. If you update configuration or templates, simply send `HUP` to the
+running Consul Template process and Consul Template will reload all the
+configurations and templates from disk.
 
-#### Important Notes
+## Templating Language
 
-- Plugins execute user-provided scripts and pass in potentially sensitive data
-  from Consul or Vault. Nothing is validated or protected by Consul Template,
-  so all necessary precautions and considerations should be made by template
-  authors
-
-- Plugin output must be returned as a string on stdout. Only stdout will be
-  parsed for output. Be sure to log all errors, debugging messages onto stderr
-  to avoid errors when Consul Template returns the value. Note that output to
-  stderr will only be output if the plugin returns a non-zero exit code.
-
-- Always `exit 0` or Consul Template will assume the plugin failed to execute
-
-- Ensure the empty input case is handled correctly (see [Multi-phase execution](#multi-phase-execution))
-
-- Data piped into the plugin is appended after any parameters given explicitly (eg `{{ "sample-data" | plugin "my-plugin" "some-parameter"}}` will call `my-plugin some-parameter sample-data`)
-
-Here is a sample plugin in a few different languages that removes any JSON keys
-that start with an underscore and returns the JSON string:
-
-```ruby
-#! /usr/bin/env ruby
-require "json"
-
-if ARGV.empty?
-  puts JSON.fast_generate({})
-  Kernel.exit(0)
-end
-
-hash = JSON.parse(ARGV.first)
-hash.reject! { |k, _| k.start_with?("_")  }
-puts JSON.fast_generate(hash)
-Kernel.exit(0)
-```
-
-```go
-func main() {
-  arg := []byte(os.Args[1])
-
-  var parsed map[string]interface{}
-  if err := json.Unmarshal(arg, &parsed); err != nil {
-    fmt.Fprintln(os.Stderr, fmt.Sprintf("err: %s", err))
-    os.Exit(1)
-  }
-
-  for k, _ := range parsed {
-    if string(k[0]) == "_" {
-      delete(parsed, k)
-    }
-  }
-
-  result, err := json.Marshal(parsed)
-  if err != nil {
-    fmt.Fprintln(os.Stderr, fmt.Sprintf("err: %s", err))
-    os.Exit(1)
-  }
-
-  fmt.Fprintln(os.Stdout, fmt.Sprintf("%s", result))
-  os.Exit(0)
-}
-```
+Templating Language documentation has been moved to
+[docs/templating-language.md](docs/templating-language.md).
 
 ## Caveats
 
@@ -352,25 +301,6 @@ so:
 
 This will still add the dependency to the list of watches, but will not
 evaluate the inner-if, avoiding the out-of-index error.
-
-## Reload Configuration and Templates
-
-While there are multiple ways to run Consul Template, the most common pattern is
-to run Consul Template as a system service. When Consul Template first starts,
-it reads any configuration files and templates from disk and loads them into
-memory. From that point forward, changes to the files on disk do not propagate
-to running process without a reload.
-
-The reason for this behavior is simple and aligns with other tools like haproxy.
-A user may want to perform pre-flight validation checks on the configuration or
-templates before loading them into the process. Additionally, a user may want to
-update configuration and templates simultaneously. Having Consul Template
-automatically watch and reload those files on changes is both operationally
-dangerous and against some of the paradigms of modern infrastructure. Instead,
-Consul Template listens for the `SIGHUP` syscall to trigger a configuration
-reload. If you update configuration or templates, simply send `HUP` to the
-running Consul Template process and Consul Template will reload all the
-configurations and templates from disk.
 
 ## FAQ
 

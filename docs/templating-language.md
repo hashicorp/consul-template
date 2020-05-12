@@ -2,11 +2,7 @@
 
 Consul Template parses files authored in the [Go Template][text-template]
 format. If you are not familiar with the syntax, please read Go's documentation
-and examples.
-
-To read
-
-In addition to the Go-provided template functions, Consul Template
+and examples. In addition to the Go-provided template functions, Consul Template
 provides the following functions:
 
 - [API Functions](#api-functions)
@@ -93,7 +89,7 @@ provides the following functions:
 API functions interact with remote API calls, communicating with external
 services like [Consul][consul] and [Vault][vault].
 
-##### `caLeaf`
+### `caLeaf`
 
 Query [Consul][consul] for the leaf certificate representing a single service.
 
@@ -119,7 +115,7 @@ The two most useful fields are `.CertPEM` and `.PrivateKeyPEM`. For a complete
 list of available fields, see consul's documentation on
 [LeafCert](https://godoc.org/github.com/hashicorp/consul/api#LeafCert).
 
-##### `caRoot`
+### `caRoot`
 
 Query [Consul][consul] for all [connect][connect] trusted certificate authority
 (CA) root certificates.
@@ -148,7 +144,7 @@ fields, see consul's documentation on
 [CARootList](https://godoc.org/github.com/hashicorp/consul/api#CARootList).
 
 
-##### `connect`
+### `connect`
 
 Query [Consul][consul] for [connect][connect]-capable services based on their
 health.
@@ -174,7 +170,7 @@ server web02 10.2.6.61:21000
 ```
 
 
-##### `datacenters`
+### `datacenters`
 
 Query [Consul][consul] for all datacenters in its catalog.
 
@@ -206,7 +202,7 @@ environments where performance is a factor.
 {{ datacenters true }}
 ```
 
-##### `file`
+### `file`
 
 Read and output the contents of a local file on disk. If the file cannot be
 read, an error will occur. When the file changes, Consul Template will pick up
@@ -231,7 +227,7 @@ file contents
 This does not process nested templates. See
 [`executeTemplate`](#executeTemplate) for a way to render nested templates.
 
-##### `key`
+### `key`
 
 Query [Consul][consul] for the value at the given key path. If the key does not
 exist, Consul Template will block rendering until the key is present. To avoid
@@ -256,7 +252,7 @@ renders
 15
 ```
 
-##### `keyExists`
+### `keyExists`
 
 Query [Consul][consul] for the value at the given key path. If the key exists,
 this will return true, false otherwise. Unlike `key`, this function will not
@@ -279,7 +275,7 @@ For example:
 {{ end }}
 ```
 
-##### `keyOrDefault`
+### `keyOrDefault`
 
 Query [Consul][consul] for the value at the given key path. If the key does not
 exist, the default value will be used instead. Unlike `key`, this function will
@@ -313,7 +309,7 @@ it means that Consul Template will never "block" the rendering of a template due
 to a missing key from a `keyOrDefault`. Even if the key exists, if Consul has
 not yet returned data for the key, the default value will be used instead.
 
-##### `ls`
+### `ls`
 
 Query [Consul][consul] for all top-level kv pairs at the given key path.
 
@@ -338,7 +334,7 @@ maxconns:15
 minconns:5
 ```
 
-##### `safeLs`
+### `safeLs`
 
 Same as [ls](#ls), but refuse to render template, if the KV prefix query return blank/empty data.
 
@@ -355,7 +351,7 @@ Using `safeLs` on empty prefixes will result in template output not being render
 
 To learn how `safeLs` was born see [CT-1131](https://github.com/hashicorp/consul-template/issues/1131) [C-3975](https://github.com/hashicorp/consul/issues/3975) and [CR-82](https://github.com/hashicorp/consul-replicate/issues/82).
 
-##### `node`
+### `node`
 
 Query [Consul][consul] for a node in the catalog.
 
@@ -397,7 +393,7 @@ renders
 To access map data such as `TaggedAddresses` or `Meta`, use
 [Go's text/template][text-template] map indexing.
 
-##### `nodes`
+### `nodes`
 
 Query [Consul][consul] for all nodes in the catalog.
 
@@ -437,7 +433,7 @@ To query a different data center and order by shortest trip time to ourselves:
 To access map data such as `TaggedAddresses` or `Meta`, use
 [Go's text/template][text-template] map indexing.
 
-##### `secret`
+### `secret`
 
 Query [Vault][vault] for the secret at the given path.
 
@@ -524,7 +520,7 @@ password = "{{ .Data.password }}"
 {{ end }}
 ```
 
-##### `secrets`
+### `secrets`
 
 Query [Vault][vault] for the list of secrets at the given path. Not all
 endpoints support listing.
@@ -563,7 +559,7 @@ Please also note that Vault does not support
 blocking queries. To understand the implications, please read the note at the
 end of the `secret` function.
 
-##### `service`
+### `service`
 
 Query [Consul][consul] for services based on their health.
 
@@ -642,7 +638,7 @@ argument alone if you want only healthy services - simply omit the second
 argument instead.
 
 
-##### `services`
+### `services`
 
 Query [Consul][consul] for all services in the catalog.
 
@@ -666,7 +662,7 @@ renders
 node01 tag1,tag2,tag3
 ```
 
-##### `tree`
+### `tree`
 
 Query [Consul][consul] for all kv pairs at the given key path.
 
@@ -694,7 +690,7 @@ nested/config/value "value"
 Unlike `ls`, `tree` returns **all** keys under the prefix, just like the Unix
 `tree` command.
 
-##### `safeTree`
+### `safeTree`
 
 Same as [tree](#tree), but refuse to render template, if the KV prefix query return blank/empty data.
 
@@ -713,13 +709,13 @@ To learn how `safeTree` was born see [CT-1131](https://github.com/hashicorp/cons
 
 ---
 
-#### Scratch
+## Scratch
 
 The scratchpad (or "scratch" for short) is available within the context of a
 template to store temporary data or computations. Scratch data is not shared
 between templates and is not cached between invocations.
 
-##### `scratch.Key`
+### `scratch.Key`
 
 Returns a boolean if data exists in the scratchpad at the named key. Even if the
 data at that key is "nil", this still returns true.
@@ -728,7 +724,7 @@ data at that key is "nil", this still returns true.
 {{ scratch.Key "foo" }}
 ```
 
-##### `scratch.Get`
+### `scratch.Get`
 
 Returns the value in the scratchpad at the named key. If the data does not
 exist, this will return "nil".
@@ -737,7 +733,7 @@ exist, this will return "nil".
 {{ scratch.Get "foo" }}
 ```
 
-##### `scratch.Set`
+### `scratch.Set`
 
 Saves the given value at the given key. If data already exists at that key, it
 is overwritten.
@@ -746,7 +742,7 @@ is overwritten.
 {{ scratch.Set "foo" "bar" }}
 ```
 
-##### `scratch.SetX`
+### `scratch.SetX`
 
 This behaves exactly the same as `Set`, but does not overwrite if the value
 already exists.
@@ -755,7 +751,7 @@ already exists.
 {{ scratch.SetX "foo" "bar" }}
 ```
 
-##### `scratch.MapSet`
+### `scratch.MapSet`
 
 Saves a value in a named key in the map. If data already exists at that key, it
 is overwritten.
@@ -764,7 +760,7 @@ is overwritten.
 {{ scratch.MapSet "vars" "foo" "bar" }}
 ```
 
-##### `scratch.MapSetX`
+### `scratch.MapSetX`
 
 This behaves exactly the same as `MapSet`, but does not overwrite if the value
 already exists.
@@ -773,7 +769,7 @@ already exists.
 {{ scratch.MapSetX "vars" "foo" "bar" }}
 ```
 
-##### `scratch.MapValues`
+### `scratch.MapValues`
 
 Returns a sorted list (by key) of all values in the named map.
 
@@ -783,12 +779,12 @@ Returns a sorted list (by key) of all values in the named map.
 
 ---
 
-#### Helper Functions
+## Helper Functions
 
 Unlike API functions, helper functions do not query remote services. These
 functions are useful for parsing data, formatting data, performing math, etc.
 
-##### `base64Decode`
+### `base64Decode`
 
 Accepts a base64-encoded string and returns the decoded result, or an error if
 the given string is not a valid base64 string.
@@ -803,7 +799,7 @@ renders
 hello
 ```
 
-##### `base64Encode`
+### `base64Encode`
 
 Accepts a string and returns a base64-encoded string.
 
@@ -817,7 +813,7 @@ renders
 aGVsbG8=
 ```
 
-##### `base64URLDecode`
+### `base64URLDecode`
 
 Accepts a base64-encoded URL-safe string and returns the decoded result, or an
 error if the given string is not a valid base64 URL-safe string.
@@ -832,7 +828,7 @@ renders
 hello
 ```
 
-##### `base64URLEncode`
+### `base64URLEncode`
 
 Accepts a string and returns a base-64 encoded URL-safe string.
 
@@ -846,7 +842,7 @@ renders
 aGVsbG8=
 ```
 
-##### `byKey`
+### `byKey`
 
 Accepts a list of pairs returned from a [`tree`](#tree) call and creates a map that groups pairs by their top-level directory.
 
@@ -890,7 +886,7 @@ value by key:
   server {{ .Node }} {{ .Address }}:{{ .Port }} weight {{ $weight }}{{ end }}
 ```
 
-##### `byTag`
+### `byTag`
 
 Takes the list of services returned by the [`service`](#service) or
 [`services`](#services) function and creates a map that groups services by tag.
@@ -901,7 +897,7 @@ Takes the list of services returned by the [`service`](#service) or
 {{ end }}{{ end }}
 ```
 
-##### `byMeta`
+### `byMeta`
 
 Takes a list of services returned by [`service`](#service) and returns a map
 that groups services by ServiceMeta values. Multiple service meta keys can be
@@ -976,7 +972,7 @@ The code above will produce a map of services grouped by meta:
 }
 ```
 
-##### `contains`
+### `contains`
 
 Determines if a needle is within an iterable element.
 
@@ -986,7 +982,7 @@ Determines if a needle is within an iterable element.
 {{ end }}
 ```
 
-##### `containsAll`
+### `containsAll`
 
 Returns `true` if all needles are within an iterable element, or `false`
 otherwise. Returns `true` if the list of needles is empty.
@@ -997,7 +993,7 @@ otherwise. Returns `true` if the list of needles is empty.
 {{ end }}
 ```
 
-##### `containsAny`
+### `containsAny`
 
 Returns `true` if any needle is within an iterable element, or `false`
 otherwise. Returns `false` if the list of needles is empty.
@@ -1008,7 +1004,7 @@ otherwise. Returns `false` if the list of needles is empty.
 {{ end }}
 ```
 
-##### `containsNone`
+### `containsNone`
 
 Returns `true` if no needles are within an iterable element, or `false`
 otherwise. Returns `true` if the list of needles is empty.
@@ -1019,7 +1015,7 @@ otherwise. Returns `true` if the list of needles is empty.
 {{ end }}
 ```
 
-##### `containsNotAll`
+### `containsNotAll`
 
 Returns `true` if some needle is not within an iterable element, or `false`
 otherwise. Returns `false` if the list of needles is empty.
@@ -1030,7 +1026,7 @@ otherwise. Returns `false` if the list of needles is empty.
 {{ end }}
 ```
 
-##### `env`
+### `env`
 
 Reads the given environment variable accessible to the current process.
 
@@ -1050,7 +1046,7 @@ Reads the given environment variable and if it does not exist or is blank use a 
 {{ or (env "CLUSTER_ID") "12345" }}
 ```
 
-##### `executeTemplate`
+### `executeTemplate`
 
 Executes and returns a defined template.
 
@@ -1070,7 +1066,7 @@ Or save it to a variable:
 {{ $var := executeTemplate "custom" }}
 ```
 
-##### `explode`
+### `explode`
 
 Takes the result from a `tree` or `ls` call and converts it into a deeply-nested
 map for parsing/traversing.
@@ -1091,7 +1087,7 @@ You will need to have a reasonable format about your data in Consul. Please see
 [Go's text/template package][text-template] for more information.
 
 
-##### `explodeMap`
+### `explodeMap`
 
 Takes the value of a map and converts it into a deeply-nested map for parsing/traversing,
 using the same logic as `explode`.
@@ -1102,7 +1098,7 @@ using the same logic as `explode`.
 {{ scratch.Get "example" | explodeMap | toYAML }}
 ```
 
-##### `indent`
+### `indent`
 
 Indents a block of text by prefixing N number of spaces per line.
 
@@ -1110,7 +1106,7 @@ Indents a block of text by prefixing N number of spaces per line.
 {{ tree "foo" | explode | toYAML | indent 4 }}
 ```
 
-##### `in`
+### `in`
 
 Determines if a needle is within an iterable element.
 
@@ -1120,7 +1116,7 @@ Determines if a needle is within an iterable element.
 {{ end }}
 ```
 
-##### `loop`
+### `loop`
 
 Accepts varying parameters and differs its behavior based on those parameters.
 
@@ -1158,7 +1154,7 @@ valid**:
 # ...{{ end }}
 ```
 
-##### `join`
+### `join`
 
 Takes the given list of strings as a pipe and joins them on the provided string:
 
@@ -1166,7 +1162,7 @@ Takes the given list of strings as a pipe and joins them on the provided string:
 {{ $items | join "," }}
 ```
 
-##### `trimSpace`
+### `trimSpace`
 
 Takes the provided input and trims all whitespace, tabs and newlines:
 
@@ -1174,7 +1170,7 @@ Takes the provided input and trims all whitespace, tabs and newlines:
 {{ file "/etc/ec2_version" | trimSpace }}
 ```
 
-##### `parseBool`
+### `parseBool`
 
 Takes the given string and parses it as a boolean:
 
@@ -1188,7 +1184,7 @@ This can be combined with a key and a conditional check, for example:
 {{ if key "feature/enabled" | parseBool }}{{ end }}
 ```
 
-##### `parseFloat`
+### `parseFloat`
 
 Takes the given string and parses it as a base-10 float64:
 
@@ -1196,7 +1192,7 @@ Takes the given string and parses it as a base-10 float64:
 {{ "1.2" | parseFloat }}
 ```
 
-##### `parseInt`
+### `parseInt`
 
 Takes the given string and parses it as a base-10 int64:
 
@@ -1211,7 +1207,7 @@ This can be combined with other helpers, for example:
 # ...{{ end }}
 ```
 
-##### `parseJSON`
+### `parseJSON`
 
 Takes the given input (usually the value from a key) and parses the result as
 JSON:
@@ -1224,7 +1220,7 @@ Note: Consul Template evaluates the template multiple times, and on the first
 evaluation the value of the key will be empty (because no data has been loaded
 yet). This means that templates must guard against empty responses.
 
-##### `parseUint`
+### `parseUint`
 
 Takes the given string and parses it as a base-10 int64:
 
@@ -1232,7 +1228,7 @@ Takes the given string and parses it as a base-10 int64:
 {{ "1" | parseUint }}
 ```
 
-##### `parseYAML`
+### `parseYAML`
 
 Takes the given input (usually the value from a key) and parses the result as
 YAML:
@@ -1243,7 +1239,7 @@ YAML:
 
 Note: The same caveats that apply to `parseJSON` apply to `parseYAML`.
 
-##### `plugin`
+### `plugin`
 
 Takes the name of a plugin and optional payload and executes a Consul Template
 plugin.
@@ -1262,7 +1258,7 @@ combined with a JSON filter for customization:
 
 Please see the [plugins](#plugins) section for more information about plugins.
 
-##### `regexMatch`
+### `regexMatch`
 
 Takes the argument as a regular expression and will return `true` if it matches
 on the given string, or `false` otherwise.
@@ -1275,7 +1271,7 @@ on the given string, or `false` otherwise.
 {{ end }}
 ```
 
-##### `regexReplaceAll`
+### `regexReplaceAll`
 
 Takes the argument as a regular expression and replaces all occurrences of the
 regex with the given string. As in go, you can use variables like $1 to refer to
@@ -1285,7 +1281,7 @@ subexpressions in the replacement string.
 {{ "foo.bar" | regexReplaceAll "foo([.a-z]+)" "$1" }}
 ```
 
-##### `replaceAll`
+### `replaceAll`
 
 Takes the argument as a string and replaces all occurrences of the given string
 with the given string.
@@ -1300,7 +1296,7 @@ This function can be chained with other functions as well:
 {{ service "web" }}{{ .Name | replaceAll ":" "_" }}{{ end }}
 ```
 
-##### `sha256Hex`
+### `sha256Hex`
 
 Takes the argument as a string and compute the sha256_hex value
 
@@ -1308,7 +1304,7 @@ Takes the argument as a string and compute the sha256_hex value
 {{ "bladibla" | sha256Hex }}
 ```
 
-##### `split`
+### `split`
 
 Splits the given string on the provided separator:
 
@@ -1322,7 +1318,7 @@ This can be combined with chained and piped with other functions:
 {{ key "foo" | toUpper | split "\n" | join "," }}
 ```
 
-##### `timestamp`
+### `timestamp`
 
 Returns the current timestamp as a string (UTC). If no arguments are given, the
 result is the current RFC3339 timestamp:
@@ -1349,7 +1345,7 @@ seconds is returned as a string.
 {{ timestamp "unix" }} // e.g. 0
 ```
 
-##### `toJSON`
+### `toJSON`
 
 Takes the result from a `tree` or `ls` call and converts it into a JSON object.
 
@@ -1365,7 +1361,7 @@ renders
 
 Note: Consul stores all KV data as strings. Thus true is "true", 1 is "1", etc.
 
-##### `toJSONPretty`
+### `toJSONPretty`
 
 Takes the result from a `tree` or `ls` call and converts it into a
 pretty-printed JSON object, indented by two spaces.
@@ -1388,7 +1384,7 @@ renders
 
 Note: Consul stores all KV data as strings. Thus true is "true", 1 is "1", etc.
 
-##### `toLower`
+### `toLower`
 
 Takes the argument as a string and converts it to lowercase.
 
@@ -1399,7 +1395,7 @@ Takes the argument as a string and converts it to lowercase.
 See [Go's `strings.ToLower`](http://golang.org/pkg/strings/#ToLower) for more
 information.
 
-##### `toTitle`
+### `toTitle`
 
 Takes the argument as a string and converts it to titlecase.
 
@@ -1410,7 +1406,7 @@ Takes the argument as a string and converts it to titlecase.
 See [Go's `strings.Title`](http://golang.org/pkg/strings/#Title) for more
 information.
 
-##### `toTOML`
+### `toTOML`
 
 Takes the result from a `tree` or `ls` call and converts it into a TOML object.
 
@@ -1430,7 +1426,7 @@ minconns = "2"
 
 Note: Consul stores all KV data as strings. Thus true is "true", 1 is "1", etc.
 
-##### `toUpper`
+### `toUpper`
 
 Takes the argument as a string and converts it to uppercase.
 
@@ -1441,7 +1437,7 @@ Takes the argument as a string and converts it to uppercase.
 See [Go's `strings.ToUpper`](http://golang.org/pkg/strings/#ToUpper) for more
 information.
 
-##### `toYAML`
+### `toYAML`
 
 Takes the result from a `tree` or `ls` call and converts it into a
 pretty-printed YAML object, indented by two spaces.
@@ -1461,7 +1457,7 @@ minconns: "2"
 
 Note: Consul stores all KV data as strings. Thus true is "true", 1 is "1", etc.
 
-##### `sockaddr`
+### `sockaddr`
 
 Takes a quote-escaped template string as an argument and passes it on to
 [hashicorp/go-sockaddr](https://github.com/hashicorp/go-sockaddr) templating engine.
@@ -1475,11 +1471,11 @@ for more information.
 
 ---
 
-#### Math Functions
+## Math Functions
 
 The following functions are available on floats and integer values.
 
-##### `add`
+### `add`
 
 Returns the sum of the two values.
 
@@ -1493,7 +1489,7 @@ This can also be used with a pipe function.
 {{ 1 | add 2 }} // 3
 ```
 
-##### `subtract`
+### `subtract`
 
 Returns the difference of the second value from the first.
 
@@ -1509,7 +1505,7 @@ This can also be used with a pipe function.
 
 Please take careful note of the order of arguments.
 
-##### `multiply`
+### `multiply`
 
 Returns the product of the two values.
 
@@ -1523,7 +1519,7 @@ This can also be used with a pipe function.
 {{ 2 | multiply 2 }} // 4
 ```
 
-##### `divide`
+### `divide`
 
 Returns the division of the second value from the first.
 
@@ -1539,7 +1535,7 @@ This can also be used with a pipe function.
 
 Please take careful note of the order or arguments.
 
-##### `modulo`
+### `modulo`
 
 Returns the modulo of the second value from the first.
 
@@ -1555,7 +1551,7 @@ This can also be used with a pipe function.
 
 Please take careful note of the order of arguments.
 
-##### `minimum`
+### `minimum`
 
 Returns the minimum of the two values.
 
@@ -1569,7 +1565,7 @@ This can also be used with a pipe function.
 {{ 5 | minimum 2 }} // 2
 ```
 
-##### `maximum`
+### `maximum`
 
 Returns the maximum of the two values.
 
