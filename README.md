@@ -623,31 +623,31 @@ template {
     min = "2s"
     max = "10s"
   }
+}
 
-  # These are example configurations for monitoring Consul Template metrics.
-  # This block is an HCL mapping to OpenTelemetry configurations for
-  # various exporters. Configuring telemetry is only supported in
-  # configuration files and not as CLI flags. Only one metric provider can
-  # be used at a given time. More details on the metrics collected can be found
-  # in the Telemetry section.
-  telemetry {
-    stdout {
-      reporting_interval = "60s"
-      pretty_print = false
-      do_not_print_time = false
-    }
+# These are example configurations for monitoring Consul Template metrics.
+# This block is an HCL mapping to OpenTelemetry configurations for
+# various exporters. Configuring telemetry is only supported in
+# configuration files and not as CLI flags. Only one metric provider can
+# be used at a given time. More details on the metrics collected can be found
+# in the Telemetry section.
+telemetry {
+  stdout {
+    reporting_interval = "60s"
+    pretty_print = false
+    do_not_print_time = false
+  }
 
-    dogstatsd {
-      // address describes the destination for exporting dogstatsd data.
-      // e.g., udp://host:port tcp://host:port unix:///socket/path
-      address = "udp://127.0.0.1:8125"
-      reporting_interval = "60s"
-    }
+  dogstatsd {
+    // address describes the destination for exporting dogstatsd data.
+    // e.g., udp://host:port tcp://host:port unix:///socket/path
+    address = "udp://127.0.0.1:8125"
+    reporting_interval = "60s"
+  }
 
-    prometheus {
-      reporting_interval = "60s"
-      port = 8888
-    }
+  prometheus {
+    reporting_interval = "60s"
+    port = 8888
   }
 }
 ```
