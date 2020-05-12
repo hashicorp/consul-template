@@ -40,12 +40,13 @@ this functionality might prove useful.
 - [Observability](docs/observability.md)
   - [Logging](docs/observability.md#logging)
   - [Telemetry](docs/observability.md#telemetry)
+- [Modes](docs/modes.md)
+  - [Once Mode](docs/modes.md#once-mode)
+  - [De-Duplication Mode](docs/modes.md#de-duplication-mode)
+  - [Exec Mode](docs/modes.md#exec-mode)
 - [Caveats](#caveats)
   - [Docker Image Use](#docker-image-use)
-  - [Dots in Service Names](#dots-in-service-names)
-  - [Once Mode](#once-mode)
-  - [Exec Mode](#exec-mode)
-  - [De-Duplication Mode](#de-duplication-mode)
+  - [Dots in Service Names](#dots-in-service-names)  
   - [Termination on Error](#termination-on-error)
   - [Commands](#commands)
     - [Environment](#environment)
@@ -236,36 +237,6 @@ delineation](https://github.com/hashicorp/consul-template#service) in the
 template. Dots already [interfere with using
 DNS](https://www.consul.io/docs/agent/services.html#service-and-tag-names-with-dns)
 for service names, so we recommend avoiding dots wherever possible.
-
-### Once Mode
-
-In Once mode, Consul Template will wait for all dependencies to be rendered. If
-a template specifies a dependency (a request) that does not exist in Consul,
-once mode will wait until Consul returns data for that dependency. Please note
-that "returned data" and "empty data" are not mutually exclusive.
-
-When you query for all healthy services named "foo" (`{{ service "foo" }}`), you
-are asking Consul - "give me all the healthy services named foo". If there are
-no services named foo, the response is the empty array. This is also the same
-response if there are no _healthy_ services named foo.
-
-Consul template processes input templates multiple times, since the first result
-could impact later dependencies:
-
-```liquid
-{{ range services }}
-{{ range service .Name }}
-{{ end }}
-{{ end }}
-```
-
-In this example, we have to process the output of `services` before we can
-lookup each `service`, since the inner loops cannot be evaluated until the outer
-loop returns a response. Consul Template waits until it gets a response from
-Consul for all dependencies before rendering a template. It does not wait until
-that response is non-empty though.
-
-**Note:** Once mode implicitly disables any wait/quiescence timers specified in configuration files or passed on the command line.
 
 ### Termination on Error
 

@@ -11,10 +11,12 @@ configuration.
 - [Configuration Options](#configuration-options)
   - [Consul Template](#consul-template)
   - [Consul](#consul)
-    - [De-Duplication Mode](#de-duplication-mode)
   - [Vault](#vault)
   - [Template](#template)
-  - [Exec mode](#exec-mode)
+  - [Consul Template Modes](#modes)
+    - [Once Mode](#once-mode)
+    - [De-Duplication Mode](#de-duplication-mode)
+    - [Exec Mode](#exec-mode)
 
 ## Command Line Flags
 
@@ -334,51 +336,6 @@ consul {
 }
 ```
 
-### De-Duplication Mode
-
-Consul Template works by parsing templates to determine what data is needed and
-then watching Consul for any changes to that data. This allows Consul Template
-to efficiently re-render templates when a change occurs. However, if there are
-many instances of Consul Template rendering a common template there is a linear
-duplication of work as each instance is querying the same data.
-
-To make this pattern more efficient Consul Template supports work de-duplication
-across instances. This can be enabled with the `-dedup` flag or via the top level
-`deduplicate` configuration block. Once enabled, Consul Template uses leader
-election on a per-template basis to have only a single node perform the queries.
-Results are shared among other instances rendering the same template by passing
-compressed data through the Consul K/V store.
-
-```hcl
-deduplicate {
-  # This enables de-duplication mode. Specifying any other options also enables
-  # de-duplication mode.
-  enabled = true
-
-  # This is the prefix to the path in Consul's KV store where de-duplication
-  # templates will be pre-rendered and stored.
-  prefix = "consul-template/dedup/"
-}
-```
-
-Please note that no Vault data will be stored in the compressed template.
-Because ACLs around Vault are typically more closely controlled than those ACLs
-around Consul's KV, Consul Template will still request the secret from Vault on
-each iteration.
-
-When running in de-duplication mode, it is important that local template
-functions resolve correctly. For example, you may have a local template function
-that relies on the `env` helper like this:
-
-```hcl
-{{ key (env "KEY") }}
-```
-
-It is crucial that the environment variable `KEY` in this example is consistent
-across all machines engaged in de-duplicating this template. If the values are
-different, Consul Template will be unable to resolve the template, and you will
-not get a successful render.
-
 ## Vault
 
 Enable Consul Template to connect with [Vault][vault] by declaring the `vault`
@@ -540,10 +497,43 @@ template {
 }
 ```
 
-## Exec Mode
+## Modes
+
+Configure Consul Template to run in various modes with the following options.
+Visit [documentation on modes](modes.md) for more context on each mode.
+
+### Once Mode
+
+Configure Consul Template to execute each template exactly once and exits with
+the flag `-once` or in the configuration file.
+
+```hcl
+once = true
+```
+
+### De-Duplication Mode
+
+This block defines the configuration for running Consul Template in
+de-duplication mode. Please see the
+[de-duplication mode documentation](modes.md#de-duplication-mode) for more
+information on how de-duplication mode operates and the caveats of this mode.
+
+```hcl
+deduplicate {
+  # This enables de-duplication mode. Specifying any other options also enables
+  # de-duplication mode.
+  enabled = true
+
+  # This is the prefix to the path in Consul's KV store where de-duplication
+  # templates will be pre-rendered and stored.
+  prefix = "consul-template/dedup/"
+}
+```
+
+### Exec Mode
 
 This block defines the configuration for running Consul Template in exec mode.
-Please see the [exec mode documentation](exec-mode.md) for more information on
+Please see the [exec mode documentation](modes.md#exec-mode) for more information on
 how exec mode operates and the caveats of this mode.
 
 ```hcl

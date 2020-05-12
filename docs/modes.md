@@ -1,4 +1,80 @@
-### Exec Mode
+# Consul Template Modes
+
+Consul Template can run in different modes that changes its runtime behavior
+and process lifecycle.
+
+- [Once Mode](#once-mode)
+- [De-Duplication Mode](#de-duplication-mode)
+- [Exec Mode](#exec-mode)
+
+## Once Mode
+
+In Once mode, Consul Template will wait for all dependencies to be rendered. If
+a template specifies a dependency (a request) that does not exist in Consul,
+once mode will wait until Consul returns data for that dependency. Please note
+that "returned data" and "empty data" are not mutually exclusive.
+
+To run in Once mode, include the `-once` flag or enable in the
+[configuration file](config.md#once-mode).
+
+When you query for all healthy services named "foo" (`{{ service "foo" }}`), you
+are asking Consul - "give me all the healthy services named foo". If there are
+no services named foo, the response is the empty array. This is also the same
+response if there are no _healthy_ services named foo.
+
+Consul template processes input templates multiple times, since the first result
+could impact later dependencies:
+
+```liquid
+{{ range services }}
+{{ range service .Name }}
+{{ end }}
+{{ end }}
+```
+
+In this example, we have to process the output of `services` before we can
+lookup each `service`, since the inner loops cannot be evaluated until the outer
+loop returns a response. Consul Template waits until it gets a response from
+Consul for all dependencies before rendering a template. It does not wait until
+that response is non-empty though.
+
+**Note:** Once mode implicitly disables any wait/quiescence timers specified in
+configuration files or passed on the command line.
+
+## De-Duplication Mode
+
+Consul Template works by parsing templates to determine what data is needed and
+then watching Consul for any changes to that data. This allows Consul Template
+to efficiently re-render templates when a change occurs. However, if there are
+many instances of Consul Template rendering a common template there is a linear
+duplication of work as each instance is querying the same data.
+
+To make this pattern more efficient Consul Template supports work de-duplication
+across instances. This can be enabled with the `-dedup` flag or via the top level
+[`deduplicate` configuration block](config.md#de-duplication-mode). Once enabled,
+Consul Template uses leader election on a per-template basis to have only a single
+node perform the queries. Results are shared among other instances rendering the
+same template by passing compressed data through the Consul K/V store.
+
+Please note that no Vault data will be stored in the compressed template.
+Because ACLs around Vault are typically more closely controlled than those ACLs
+around Consul's KV, Consul Template will still request the secret from Vault on
+each iteration.
+
+When running in de-duplication mode, it is important that local template
+functions resolve correctly. For example, you may have a local template function
+that relies on the `env` helper like this:
+
+```hcl
+{{ key (env "KEY") }}
+```
+
+It is crucial that the environment variable `KEY` in this example is consistent
+across all machines engaged in de-duplicating this template. If the values are
+different, Consul Template will be unable to resolve the template, and you will
+not get a successful render.
+
+## Exec Mode
 
 As of version 0.16.0, Consul Template has the ability to maintain an arbitrary
 child process (similar to [envconsul](https://github.com/hashicorp/envconsul)).
