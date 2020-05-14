@@ -108,6 +108,7 @@ type Runner struct {
 	// template and command runtime with. These environment variables will be
 	// available in both the command's environment as well as the template's
 	// environment.
+	// NOTE this is only used when CT is being used as a library.
 	Env map[string]string
 
 	// stopLock is the lock around checking if the runner can be stopped
