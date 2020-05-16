@@ -9,6 +9,8 @@ Consul Template, use the `-log-level` flag:
 $ consul-template -log-level info ...
 ```
 
+Or set it via the `CONSUL_TEMPLATE_LOG_LEVEL` environment variable.
+
 ```text
 <timestamp> [INFO] (cli) received redis from Watcher
 <timestamp> [INFO] (cli) invoking Runner
