@@ -2056,7 +2056,7 @@ func TestDefaultConfig(t *testing.T) {
 			false,
 		},
 		{
-			"CONSUL_TEMPLATE_LOG",
+			"CONSUL_TEMPLATE_LOG_LEVEL",
 			"DEBUG",
 			&Config{
 				LogLevel: String("DEBUG"),
