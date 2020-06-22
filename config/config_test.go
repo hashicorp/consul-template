@@ -384,16 +384,16 @@ func TestParse(t *testing.T) {
 			false,
 		},
 		{
-			"exec_env_blacklist",
+			"exec_env_denylist",
 			`exec {
 				env {
-					blacklist = ["a", "b"]
+					Denylist = ["a", "b"]
 				}
 			 }`,
 			&Config{
 				Exec: &ExecConfig{
 					Env: &EnvConfig{
-						Blacklist: []string{"a", "b"},
+						Denylist: []string{"a", "b"},
 					},
 				},
 			},
@@ -432,16 +432,16 @@ func TestParse(t *testing.T) {
 			false,
 		},
 		{
-			"exec_env_whitelist",
+			"exec_env_allowlist",
 			`exec {
 				env {
-					whitelist = ["a", "b"]
+					allowlist = ["a", "b"]
 				}
 			 }`,
 			&Config{
 				Exec: &ExecConfig{
 					Env: &EnvConfig{
-						Whitelist: []string{"a", "b"},
+						Allowlist: []string{"a", "b"},
 					},
 				},
 			},
@@ -774,7 +774,29 @@ func TestParse(t *testing.T) {
 			false,
 		},
 		{
-			"template_exec_env_blacklist",
+			"template_exec_env_denylist",
+			`template {
+				exec {
+					env {
+						denylist = ["a", "b"]
+					}
+				}
+			 }`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Exec: &ExecConfig{
+							Env: &EnvConfig{
+								Denylist: []string{"a", "b"},
+							},
+						},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_exec_env_denylist_deprecated",
 			`template {
 				exec {
 					env {
@@ -787,7 +809,7 @@ func TestParse(t *testing.T) {
 					&TemplateConfig{
 						Exec: &ExecConfig{
 							Env: &EnvConfig{
-								Blacklist: []string{"a", "b"},
+								DenylistDeprecated: []string{"a", "b"},
 							},
 						},
 					},
@@ -840,7 +862,29 @@ func TestParse(t *testing.T) {
 			false,
 		},
 		{
-			"template_exec_env_whitelist",
+			"template_exec_env_allowlist",
+			`template {
+				exec {
+					env {
+						allowlist = ["a", "b"]
+					}
+				}
+			 }`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Exec: &ExecConfig{
+							Env: &EnvConfig{
+								Allowlist: []string{"a", "b"},
+							},
+						},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_exec_env_allowlist_deprecated",
 			`template {
 				exec {
 					env {
@@ -853,7 +897,7 @@ func TestParse(t *testing.T) {
 					&TemplateConfig{
 						Exec: &ExecConfig{
 							Env: &EnvConfig{
-								Whitelist: []string{"a", "b"},
+								AllowlistDeprecated: []string{"a", "b"},
 							},
 						},
 					},
