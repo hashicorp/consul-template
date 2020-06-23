@@ -5,6 +5,8 @@ import (
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEnvConfig_Copy(t *testing.T) {
@@ -302,4 +304,67 @@ func TestEnvConfig_Finalize(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCombineLists(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name     string
+		a        []string
+		b        []string
+		expected []string
+	}{
+		{
+			"nil",
+			nil,
+			nil,
+			[]string{},
+		}, {
+			"empty",
+			[]string{},
+			[]string{},
+			[]string{},
+		}, {
+			"first empty",
+			[]string{},
+			[]string{"a", "b", "c"},
+			[]string{"a", "b", "c"},
+		}, {
+			"second empty",
+			[]string{"a", "b", "c"},
+			nil,
+			[]string{"a", "b", "c"},
+		}, {
+			"combines",
+			[]string{"a", "b", "c"},
+			[]string{"d", "e"},
+			[]string{"a", "b", "c", "d", "e"},
+		}, {
+			"combines new values without removing dups",
+			[]string{"a", "b", "c", "b"},
+			[]string{"b", "c", "d"},
+			[]string{"a", "b", "c", "b", "d"},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			combined := combineLists(tc.a, tc.b)
+			assert.Equal(t, tc.expected, combined)
+		})
+	}
+
+	t.Run("idempotent", func(t *testing.T) {
+		a := []string{"a", "b", "c"}
+		b := []string{"d", "b"}
+		expected := []string{"a", "b", "c", "d"}
+
+		combined := combineLists(a, b)
+		assert.Equal(t, expected, combined)
+		combined = combineLists(a, b)
+		assert.Equal(t, expected, combined)
+		combined = combineLists(combined, b)
+		assert.Equal(t, expected, combined)
+	})
 }
