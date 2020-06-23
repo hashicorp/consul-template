@@ -5,6 +5,8 @@ import (
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEnvConfig_Copy(t *testing.T) {
@@ -25,10 +27,12 @@ func TestEnvConfig_Copy(t *testing.T) {
 		{
 			"copy",
 			&EnvConfig{
-				Blacklist: []string{"blacklist"},
-				Custom:    []string{"custom"},
-				Pristine:  Bool(true),
-				Whitelist: []string{"whitelist"},
+				Denylist:            []string{"denylist"},
+				DenylistDeprecated:  []string{},
+				Custom:              []string{"custom"},
+				Pristine:            Bool(true),
+				Allowlist:           []string{"allowlist"},
+				AllowlistDeprecated: []string{},
 			},
 		},
 	}
@@ -89,22 +93,22 @@ func TestEnvConfig_Merge(t *testing.T) {
 			&EnvConfig{},
 		},
 		{
-			"blacklist_appends",
-			&EnvConfig{Blacklist: []string{"blacklist"}},
-			&EnvConfig{Blacklist: []string{"different"}},
-			&EnvConfig{Blacklist: []string{"blacklist", "different"}},
+			"denylist_appends",
+			&EnvConfig{Denylist: []string{"denylist"}},
+			&EnvConfig{Denylist: []string{"different"}},
+			&EnvConfig{Denylist: []string{"denylist", "different"}},
 		},
 		{
-			"blacklist_empty_one",
-			&EnvConfig{Blacklist: []string{"blacklist"}},
+			"denylist_empty_one",
+			&EnvConfig{Denylist: []string{"denylist"}},
 			&EnvConfig{},
-			&EnvConfig{Blacklist: []string{"blacklist"}},
+			&EnvConfig{Denylist: []string{"denylist"}},
 		},
 		{
-			"blacklist_empty_two",
+			"denylist_empty_two",
 			&EnvConfig{},
-			&EnvConfig{Blacklist: []string{"blacklist"}},
-			&EnvConfig{Blacklist: []string{"blacklist"}},
+			&EnvConfig{Denylist: []string{"denylist"}},
+			&EnvConfig{Denylist: []string{"denylist"}},
 		},
 		{
 			"custom_appends",
@@ -149,22 +153,22 @@ func TestEnvConfig_Merge(t *testing.T) {
 			&EnvConfig{Pristine: Bool(true)},
 		},
 		{
-			"whitelist_appends",
-			&EnvConfig{Whitelist: []string{"whitelist"}},
-			&EnvConfig{Whitelist: []string{"different"}},
-			&EnvConfig{Whitelist: []string{"whitelist", "different"}},
+			"allowlist_appends",
+			&EnvConfig{Allowlist: []string{"allowlist"}},
+			&EnvConfig{Allowlist: []string{"different"}},
+			&EnvConfig{Allowlist: []string{"allowlist", "different"}},
 		},
 		{
-			"whitelist_empty_one",
-			&EnvConfig{Whitelist: []string{"whitelist"}},
+			"allowlist_empty_one",
+			&EnvConfig{Allowlist: []string{"allowlist"}},
 			&EnvConfig{},
-			&EnvConfig{Whitelist: []string{"whitelist"}},
+			&EnvConfig{Allowlist: []string{"allowlist"}},
 		},
 		{
-			"whitelist_empty_two",
+			"allowlist_empty_two",
 			&EnvConfig{},
-			&EnvConfig{Whitelist: []string{"whitelist"}},
-			&EnvConfig{Whitelist: []string{"whitelist"}},
+			&EnvConfig{Allowlist: []string{"allowlist"}},
+			&EnvConfig{Allowlist: []string{"allowlist"}},
 		},
 	}
 
@@ -206,16 +210,30 @@ func TestExecConfig_Env(t *testing.T) {
 			append(os.Environ(), "a=b", "c=d"),
 		},
 		{
-			"whitelist",
+			"allowlist",
 			&EnvConfig{
-				Whitelist: []string{"GOPATH"},
+				Allowlist: []string{"GOPATH"},
 			},
 			[]string{"GOPATH=" + os.Getenv("GOPATH")},
 		},
 		{
-			"blacklist",
+			"allowlist_deprecated",
 			&EnvConfig{
-				Blacklist: []string{"*"},
+				AllowlistDeprecated: []string{"GOPATH"},
+			},
+			[]string{"GOPATH=" + os.Getenv("GOPATH")},
+		},
+		{
+			"denylist",
+			&EnvConfig{
+				Denylist: []string{"*"},
+			},
+			[]string{},
+		},
+		{
+			"denylist_deprecated",
+			&EnvConfig{
+				DenylistDeprecated: []string{"*"},
 			},
 			[]string{},
 		},
@@ -228,19 +246,19 @@ func TestExecConfig_Env(t *testing.T) {
 			[]string{"a=b", "c=d"},
 		},
 		{
-			"whitelist_blacklist",
+			"allowlist_denylist",
 			&EnvConfig{
-				Whitelist: []string{"GOPATH"},
-				Blacklist: []string{"GO*"},
+				Allowlist: []string{"GOPATH"},
+				Denylist:  []string{"GO*"},
 			},
 			[]string{},
 		},
 		{
-			"custom_whitelist_blacklist",
+			"custom_allowlist_denylist",
 			&EnvConfig{
 				Custom:    []string{"a=b", "c=d"},
-				Whitelist: []string{"GOPATH"},
-				Blacklist: []string{"GO*"},
+				Allowlist: []string{"GOPATH"},
+				Denylist:  []string{"GO*"},
 			},
 			[]string{"a=b", "c=d"},
 		},
@@ -268,10 +286,12 @@ func TestEnvConfig_Finalize(t *testing.T) {
 			"empty",
 			&EnvConfig{},
 			&EnvConfig{
-				Blacklist: []string{},
-				Custom:    []string{},
-				Pristine:  Bool(false),
-				Whitelist: []string{},
+				Denylist:            []string{},
+				DenylistDeprecated:  []string{},
+				Custom:              []string{},
+				Pristine:            Bool(false),
+				Allowlist:           []string{},
+				AllowlistDeprecated: []string{},
 			},
 		},
 	}
@@ -284,4 +304,67 @@ func TestEnvConfig_Finalize(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCombineLists(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name     string
+		a        []string
+		b        []string
+		expected []string
+	}{
+		{
+			"nil",
+			nil,
+			nil,
+			[]string{},
+		}, {
+			"empty",
+			[]string{},
+			[]string{},
+			[]string{},
+		}, {
+			"first empty",
+			[]string{},
+			[]string{"a", "b", "c"},
+			[]string{"a", "b", "c"},
+		}, {
+			"second empty",
+			[]string{"a", "b", "c"},
+			nil,
+			[]string{"a", "b", "c"},
+		}, {
+			"combines",
+			[]string{"a", "b", "c"},
+			[]string{"d", "e"},
+			[]string{"a", "b", "c", "d", "e"},
+		}, {
+			"combines new values without removing dups",
+			[]string{"a", "b", "c", "b"},
+			[]string{"b", "c", "d"},
+			[]string{"a", "b", "c", "b", "d"},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			combined := combineLists(tc.a, tc.b)
+			assert.Equal(t, tc.expected, combined)
+		})
+	}
+
+	t.Run("idempotent", func(t *testing.T) {
+		a := []string{"a", "b", "c"}
+		b := []string{"d", "b"}
+		expected := []string{"a", "b", "c", "d"}
+
+		combined := combineLists(a, b)
+		assert.Equal(t, expected, combined)
+		combined = combineLists(a, b)
+		assert.Equal(t, expected, combined)
+		combined = combineLists(combined, b)
+		assert.Equal(t, expected, combined)
+	})
 }

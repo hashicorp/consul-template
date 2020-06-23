@@ -943,13 +943,13 @@ func (r *Runner) init() error {
 		}
 
 		tmpl, err := template.NewTemplate(&template.NewTemplateInput{
-			Source:            config.StringVal(ctmpl.Source),
-			Contents:          config.StringVal(ctmpl.Contents),
-			ErrMissingKey:     config.BoolVal(ctmpl.ErrMissingKey),
-			LeftDelim:         leftDelim,
-			RightDelim:        rightDelim,
-			FunctionBlacklist: ctmpl.FunctionBlacklist,
-			SandboxPath:       config.StringVal(ctmpl.SandboxPath),
+			Source:           config.StringVal(ctmpl.Source),
+			Contents:         config.StringVal(ctmpl.Contents),
+			ErrMissingKey:    config.BoolVal(ctmpl.ErrMissingKey),
+			LeftDelim:        leftDelim,
+			RightDelim:       rightDelim,
+			FunctionDenylist: ctmpl.FunctionDenylist,
+			SandboxPath:      config.StringVal(ctmpl.SandboxPath),
 		})
 		if err != nil {
 			return err

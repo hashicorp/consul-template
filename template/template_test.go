@@ -1450,8 +1450,8 @@ func TestTemplate_Execute(t *testing.T) {
 		{
 			"helper_plugin_disabled",
 			&NewTemplateInput{
-				Contents:          `{{ "1" | plugin "echo" }}`,
-				FunctionBlacklist: []string{"plugin"},
+				Contents:         `{{ "1" | plugin "echo" }}`,
+				FunctionDenylist: []string{"plugin"},
 			},
 			&ExecuteInput{
 				Brain: NewBrain(),
