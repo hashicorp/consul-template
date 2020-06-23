@@ -387,7 +387,7 @@ func TestParse(t *testing.T) {
 			"exec_env_denylist",
 			`exec {
 				env {
-					Denylist = ["a", "b"]
+					denylist = ["a", "b"]
 				}
 			 }`,
 			&Config{
