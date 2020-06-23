@@ -84,7 +84,7 @@ type TemplateConfig struct {
 	// FunctionDenylist for configuration supported by v0.25.0 and older. This
 	// should not be used directly, use FunctionDenylist instead. Values from
 	// this are combined to FunctionDenylist in Finalize().
-	FunctionDenylistDeprecated []string `mapstructure:"function_blacklist"`
+	FunctionDenylistDeprecated []string `mapstructure:"function_blacklist" json:"-"`
 
 	// SandboxPath adds a prefix to any path provided to the `file` function
 	// and causes an error if a relative path tries to traverse outside that

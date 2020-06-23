@@ -21,7 +21,7 @@ type EnvConfig struct {
 	// configuration supported by v0.25.0 and older. This should not be used
 	// directly, use Denylist instead. Values from this are combined to
 	// Denylist in Finalize().
-	DenylistDeprecated []string `mapstructure:"blacklist"`
+	DenylistDeprecated []string `mapstructure:"blacklist" json:"-"`
 
 	// CustomEnv specifies custom environment variables to pass to the child
 	// process. These are provided programmatically, override any environment
@@ -41,7 +41,7 @@ type EnvConfig struct {
 	// configuration supported by v0.25.0 and older. This should not be used
 	// directly, use Allowlist instead. Values from this are combined to
 	// Allowlist in Finalize().
-	AllowlistDeprecated []string `mapstructure:"whitelist"`
+	AllowlistDeprecated []string `mapstructure:"whitelist" json:"-"`
 }
 
 // DefaultEnvConfig returns a configuration that is populated with the
