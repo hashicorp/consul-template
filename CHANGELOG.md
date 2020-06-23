@@ -1,3 +1,8 @@
+## Upcoming
+
+IMPROVEMENTS:
+* Update whitelist/blacklist config options to allowlist/denylist with backward compatibility [[GH-1388](https://github.com/hashicorp/consul-template/pull/1388)]
+
 ## v0.25.0 (Apr 27, 2020)
 
 IMPROVEMENTS:
