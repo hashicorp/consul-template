@@ -1,7 +1,7 @@
 # Consul Template
 
 [![CircleCI](https://circleci.com/gh/hashicorp/consul-template.svg?style=svg)](https://circleci.com/gh/hashicorp/consul-template)
-[![Go Documentation](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](https://godoc.org/github.com/hashicorp/consul-template)
+[![Go Documentation](http://img.shields.io/badge/go-documentation-%2300acd7)](https://godoc.org/github.com/hashicorp/consul-template)
 
 This project provides a convenient way to populate values from [Consul][consul]
 into the file system using the `consul-template` daemon.
