@@ -1792,6 +1792,19 @@ Takes the given string and parses it as a base-10 float64:
 {{ "1.2" | parseFloat }}
 ```
 
+Note: The float64 value is rendered as per [Go's text/template][text-template]
+package and has the same precision and format in output as when
+`fmt.Fprint(w, value)` is called. For example, when the input string is `1.0`,
+the rendered output is `1`. However, if you pipe it to another function, it is
+passed as a floating point, so with the built-in printf you can format it as
+you like, for example:
+
+```liquid
+{{ "1.0" | parseFloat | printf "%.1f" }}
+```
+
+This is rendered as `1.0`.
+
 ##### `parseInt`
 
 Takes the given string and parses it as a base-10 int64:
