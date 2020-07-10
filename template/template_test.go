@@ -1371,6 +1371,17 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"helper_parseFloat_format",
+			&NewTemplateInput{
+				Contents: `{{ "1.0" | parseFloat | printf "%.1f"}}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"1.0",
+			false,
+		},
+		{
 			"helper_parseInt",
 			&NewTemplateInput{
 				Contents: `{{ "-1" | parseInt }}`,
