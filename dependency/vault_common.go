@@ -128,7 +128,7 @@ func durationFromCert(certData string) int {
 		return -1
 	}
 
-	return int(cert.NotAfter.Sub(cert.NotBefore).Seconds())
+   return int(cert.NotAfter.Sub(cert.NotBefore).Seconds())
 }
 
 // leaseCheckWait accepts a secret and returns the recommended amount of
@@ -143,7 +143,11 @@ func leaseCheckWait(s *Secret) time.Duration {
 	// Handle if this is a certificate with no lease
 	if certInterface, ok := s.Data["certificate"]; ok && s.LeaseID == "" {
 		if certData, ok := certInterface.(string); ok {
-			newDuration := durationFromCert(certData)
+		   // Vault adds a 30 second pad to NotAfter to account for clockskew.
+		   // We're removing the pad here to give additional time for rendering 
+           // before cert expiration when TTL is set to a low value.
+			newDuration := durationFromCert(certData) - 30
+
 			if newDuration > 0 {
 				log.Printf("[DEBUG] Found certificate and set lease duration to %d seconds", newDuration)
 				base = newDuration
