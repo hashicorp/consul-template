@@ -26,7 +26,7 @@ func TestVaultRenewDuration(t *testing.T) {
 
 	var data = map[string]interface{}{
 		"rotation_period": json.Number("60"),
-		"ttl": json.Number("30"),
+		"ttl":             json.Number("30"),
 	}
 
 	nonRenewableRotated := Secret{LeaseDuration: 100, Data: data}
@@ -39,7 +39,7 @@ func TestVaultRenewDuration(t *testing.T) {
 
 	data = map[string]interface{}{
 		"rotation_period": json.Number("30"),
-		"ttl": json.Number("5"),
+		"ttl":             json.Number("5"),
 	}
 
 	nonRenewableRotated = Secret{LeaseDuration: 100, Data: data}
@@ -54,7 +54,7 @@ func TestVaultRenewDuration(t *testing.T) {
 	expiration := strconv.FormatInt(rawExpiration, 10)
 
 	data = map[string]interface{}{
-		"expiration": json.Number(expiration),
+		"expiration":  json.Number(expiration),
 		"certificate": "foobar",
 	}
 
