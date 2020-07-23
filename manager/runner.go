@@ -1,7 +1,6 @@
 package manager
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,7 +14,6 @@ import (
 	"github.com/hashicorp/consul-template/config"
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul-template/renderer"
-	"github.com/hashicorp/consul-template/telemetry"
 	"github.com/hashicorp/consul-template/template"
 	"github.com/hashicorp/consul-template/watch"
 	multierror "github.com/hashicorp/go-multierror"
@@ -41,10 +39,6 @@ type Runner struct {
 
 	// signals sending output to STDOUT instead of to a file.
 	dry bool
-
-	// instruments manages the various metric instruments used for monitoring
-	// the runner.
-	instruments *instruments
 
 	// outStream and errStream are the io.Writer streams where the runner will
 	// write information. These can be modified by calling SetOutStream and
@@ -181,15 +175,9 @@ func NewRunner(config *config.Config, dry bool) (*Runner, error) {
 	log.Printf("[INFO] (runner) creating new runner (dry: %v, once: %v)",
 		dry, config.Once)
 
-	instr, err := newInstruments(nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to setup telemetry instruments")
-	}
-
 	runner := &Runner{
-		config:      config,
-		dry:         dry,
-		instruments: instr,
+		config: config,
+		dry:    dry,
 	}
 
 	if err := runner.init(); err != nil {
@@ -204,9 +192,6 @@ func NewRunner(config *config.Config, dry bool) (*Runner, error) {
 // execution. This function is blocking and should be called as a goroutine.
 func (r *Runner) Start() {
 	log.Printf("[INFO] (runner) starting")
-
-	ctx := context.Background()
-	r.instruments.counterActions.Add(ctx, 1, telemetry.NewLabel("action", "start"))
 
 	// Create the pid before doing anything.
 	if err := r.storePid(); err != nil {
@@ -449,9 +434,6 @@ func (r *Runner) internalStop(immediately bool) {
 	}
 
 	log.Printf("[INFO] (runner) stopping")
-	ctx := context.Background()
-	r.instruments.counterActions.Add(ctx, 1, telemetry.NewLabel("action", "stop"))
-
 	r.stopDedup()
 	r.stopWatcher()
 	r.stopChild(immediately)
@@ -516,14 +498,9 @@ func (r *Runner) Receive(d dep.Dependency, data interface{}) {
 	//     https://github.com/hashicorp/consul-template/issues/198
 	//
 	// and by "little" bug, I mean really big bug.
-	depID := d.String()
-	if _, ok := r.dependencies[depID]; ok {
+	if _, ok := r.dependencies[d.String()]; ok {
 		log.Printf("[DEBUG] (runner) receiving dependency %s", d)
 		r.brain.Remember(d, data)
-
-		r.instruments.counterDependenciesReceived.Add(context.Background(), 1,
-			telemetry.NewLabel("id", depID),
-			telemetry.NewLabel("type", d.Type().String()))
 	}
 }
 
@@ -547,8 +524,6 @@ func (r *Runner) Signal(s os.Signal) error {
 // executed.
 func (r *Runner) Run() error {
 	log.Printf("[DEBUG] (runner) initiating run")
-	ctx := context.Background()
-	r.instruments.counterActions.Add(ctx, 1, telemetry.NewLabel("action", "run"))
 
 	var newRenderEvent, wouldRenderAny, renderedAny bool
 	runCtx := &templateRunCtx{
@@ -570,39 +545,20 @@ func (r *Runner) Run() error {
 			// Record that there is at least one new render event
 			newRenderEvent = true
 
-			var label string
-
 			// Record that at least one template would have been rendered.
 			if event.WouldRender {
 				wouldRenderAny = true
-				label = "would"
 			}
 
 			// Record that at least one template was rendered.
 			if event.DidRender {
 				renderedAny = true
-				label = "rendered"
-			}
-
-			if event.ForQuiescence {
-				label = "quiescence"
-			}
-
-			// Report the template render event
-			if label != "" {
-				r.instruments.counterTemplatesRendered.Add(ctx, 1,
-					telemetry.NewLabel("id", tmpl.ID()),
-					telemetry.NewLabel("status", label))
 			}
 		}
 	}
 
 	// Perform the diff and update the known dependencies.
 	r.diffAndUpdateDeps(runCtx.depsMap)
-
-	// Record dependency counts on runCtx instread of runner.dependencies
-	// to avoid blocking the locks
-	r.instruments.recordDependencyCounts(runCtx.depsMap)
 
 	// Execute each command in sequence, collecting any errors that occur - this
 	// ensures all commands execute at least once.
@@ -612,7 +568,6 @@ func (r *Runner) Run() error {
 		log.Printf("[INFO] (runner) executing command %q from %s", command, t.Display())
 		env := t.Exec.Env.Copy()
 		env.Custom = append(r.childEnv(), env.Custom...)
-		start := time.Now()
 		if _, err := spawnChild(&spawnChildInput{
 			Stdin:        r.inStream,
 			Stdout:       r.outStream,
@@ -628,21 +583,7 @@ func (r *Runner) Run() error {
 			s := fmt.Sprintf("failed to execute command %q from %s", command, t.Display())
 			errs = append(errs, errors.Wrap(err, s))
 		}
-
-		// Monitor execution time of template command
-		if t.Destination != nil {
-			r.instruments.measureCommandExecTime.Record(ctx, time.Since(start).Seconds(),
-				telemetry.NewLabel("destination", *t.Destination))
-		}
 	}
-
-	// Report on number of commands executed and their statuses
-	numCommands := len(runCtx.commands)
-	failedCommands := len(errs)
-	r.instruments.counterCommandExecs.Add(ctx, int64(numCommands-failedCommands),
-		telemetry.NewLabel("status", "success"))
-	r.instruments.counterCommandExecs.Add(ctx, int64(failedCommands),
-		telemetry.NewLabel("status", "error"))
 
 	// Check if we need to deliver any rendered signals
 	if wouldRenderAny || renderedAny {
@@ -697,7 +638,7 @@ type templateRunCtx struct {
 // runTemplate is used to run a particular template. It takes as input the
 // template to run and a shared run context that allows sharing of information
 // between templates. The run returns a potentially nil render event and any
-// error that occurred. The render event is nil in the case that the template has
+// error that occured. The render event is nil in the case that the template has
 // been already rendered and is a once template or if there is an error.
 func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*RenderEvent, error) {
 	log.Printf("[DEBUG] (runner) checking template %s", tmpl.ID())
@@ -968,6 +909,7 @@ func (r *Runner) init() error {
 	// Convert the map of templates (which was only used to ensure uniqueness)
 	// back into an array of templates.
 	r.templates = templates
+
 	r.renderEvents = make(map[string]*RenderEvent, numTemplates)
 	r.dependencies = make(map[string]dep.Dependency)
 
@@ -996,9 +938,6 @@ func (r *Runner) init() error {
 			}
 		}
 	}
-
-	r.instruments.measureTemplates.Record(context.Background(),
-		int64(len(r.templates)))
 
 	return nil
 }

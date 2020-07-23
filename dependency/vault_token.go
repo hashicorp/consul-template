@@ -1,12 +1,8 @@
 package dependency
 
 import (
-	"context"
-
-	"github.com/hashicorp/consul-template/telemetry"
 	"github.com/hashicorp/vault/api"
 	"github.com/pkg/errors"
-	"go.opentelemetry.io/otel/api/metric"
 )
 
 var (
@@ -19,9 +15,6 @@ type VaultTokenQuery struct {
 	stopCh      chan struct{}
 	secret      *Secret
 	vaultSecret *api.Secret
-
-	// counterRenew is a counter to monitor the renewal status of the vault token.
-	counterRenew metric.Int64Counter
 }
 
 // NewVaultTokenQuery creates a new dependency.
@@ -33,22 +26,10 @@ func NewVaultTokenQuery(token string) (*VaultTokenQuery, error) {
 			LeaseDuration: 1,
 		},
 	}
-
-	meter := telemetry.GlobalMeter()
-	counter, err := meter.NewInt64Counter("consul-template.vault.token",
-		metric.WithDescription("A counter of vault token renewal statuses"+
-			"with label status=(configured|renewed|expired|stopped)"))
-	if err != nil {
-		return nil, err
-	}
-
-	counter.Add(context.Background(), 1, telemetry.NewLabel("status", "configured"))
-
 	return &VaultTokenQuery{
-		stopCh:       make(chan struct{}, 1),
-		vaultSecret:  vaultSecret,
-		secret:       transformSecret(vaultSecret),
-		counterRenew: counter,
+		stopCh:      make(chan struct{}, 1),
+		vaultSecret: vaultSecret,
+		secret:      transformSecret(vaultSecret),
 	}, nil
 }
 
@@ -97,11 +78,4 @@ func (d *VaultTokenQuery) String() string {
 // Type returns the type of this dependency.
 func (d *VaultTokenQuery) Type() Type {
 	return TypeVault
-}
-
-// recordCounter increments a counter for the vault dependency with a
-// set of key value label
-func (d *VaultTokenQuery) recordCounter(key, value string) {
-	ctx := context.Background()
-	d.counterRenew.Add(ctx, 1, telemetry.NewLabel(key, value))
 }
