@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"testing"
 )
@@ -196,5 +197,121 @@ func TestAtomicWrite(t *testing.T) {
 			t.Fatal(err)
 		}
 		contains(outFile.Name(), "second")
+	})
+}
+
+func TestRender(t *testing.T) {
+	t.Run("file-exists-same-content", func(t *testing.T) {
+		outDir, err := ioutil.TempDir("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(outDir)
+		outFile, err := ioutil.TempFile(outDir, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		contents := []byte("first")
+		if _, err := outFile.Write(contents); err != nil {
+			t.Fatal(err)
+		}
+		path := outFile.Name()
+		if err = outFile.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		rr, err := Render(&RenderInput{
+			Path:     path,
+			Contents: contents,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		switch {
+		case rr.WouldRender && !rr.DidRender:
+		default:
+			t.Fatalf("Bad render results; would: %v, did: %v",
+				rr.WouldRender, rr.DidRender)
+		}
+	})
+	t.Run("file-exists-diff-content", func(t *testing.T) {
+		outDir, err := ioutil.TempDir("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(outDir)
+		outFile, err := ioutil.TempFile(outDir, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		contents := []byte("first")
+		if _, err := outFile.Write(contents); err != nil {
+			t.Fatal(err)
+		}
+		path := outFile.Name()
+		if err = outFile.Close(); err != nil {
+			t.Fatal(err)
+		}
+
+		diff_contents := []byte("not-first")
+		rr, err := Render(&RenderInput{
+			Path:     path,
+			Contents: diff_contents,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		switch {
+		case rr.WouldRender && rr.DidRender:
+		default:
+			t.Fatalf("Bad render results; would: %v, did: %v",
+				rr.WouldRender, rr.DidRender)
+		}
+	})
+	t.Run("file-no-exists", func(t *testing.T) {
+		outDir, err := ioutil.TempDir("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(outDir)
+		path := path.Join(outDir, "no-exists")
+		contents := []byte("first")
+
+		rr, err := Render(&RenderInput{
+			Path:     path,
+			Contents: contents,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		switch {
+		case rr.WouldRender && rr.DidRender:
+		default:
+			t.Fatalf("Bad render results; would: %v, did: %v",
+				rr.WouldRender, rr.DidRender)
+		}
+	})
+	t.Run("empty-file-no-exists", func(t *testing.T) {
+		outDir, err := ioutil.TempDir("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(outDir)
+		path := path.Join(outDir, "no-exists")
+		contents := []byte{}
+
+		rr, err := Render(&RenderInput{
+			Path:     path,
+			Contents: contents,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		switch {
+		case rr.WouldRender && rr.DidRender:
+		default:
+			t.Fatalf("Bad render results; would: %v, did: %v",
+				rr.WouldRender, rr.DidRender)
+		}
 	})
 }
