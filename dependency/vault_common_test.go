@@ -2,9 +2,9 @@ package dependency
 
 import (
 	"encoding/json"
+	"strconv"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
+	"time"
 )
 
 func init() {
@@ -26,7 +26,7 @@ func TestVaultRenewDuration(t *testing.T) {
 
 	var data = map[string]interface{}{
 		"rotation_period": json.Number("60"),
-		"ttl": json.Number("30"),
+		"ttl":             json.Number("30"),
 	}
 
 	nonRenewableRotated := Secret{LeaseDuration: 100, Data: data}
@@ -39,7 +39,7 @@ func TestVaultRenewDuration(t *testing.T) {
 
 	data = map[string]interface{}{
 		"rotation_period": json.Number("30"),
-		"ttl": json.Number("5"),
+		"ttl":             json.Number("5"),
 	}
 
 	nonRenewableRotated = Secret{LeaseDuration: 100, Data: data}
@@ -49,36 +49,18 @@ func TestVaultRenewDuration(t *testing.T) {
 	if nonRenewableRotatedDur != 6 {
 		t.Fatalf("renewable duration is not 6: %f", nonRenewableRotatedDur)
 	}
-}
 
-const testGoodCert = `-----BEGIN CERTIFICATE-----
-MIICAjCCAWugAwIBAgIJALDrJbXZKXXnMA0GCSqGSIb3DQEBCwUAMBoxGDAWBgNV
-BAMMD2NvbnN1bC10ZW1wbGF0ZTAeFw0xODA1MjUxNTAzNDdaFw0xODA2MDQxNTAz
-NDdaMBoxGDAWBgNVBAMMD2NvbnN1bC10ZW1wbGF0ZTCBnzANBgkqhkiG9w0BAQEF
-AAOBjQAwgYkCgYEAuT1yS2FvX2bpNvEkrapt4wC68NIfTU9Xx55DC4/Pq1ZkuI8b
-tC64x1oiJdM7ABEmT58rofTXoEpeHxcLTpXtJcrfLdgHUkPxNdrBgLWJi0BGI3m6
-zLF9KLTwEpFfBBTLgM6HIvTqqBD4itFtI0BDS/mqQKqa33Ai6hX0zPAH6AECAwEA
-AaNQME4wHQYDVR0OBBYEFLldqcFQ+RF40xBNgSjdNGBN78yHMB8GA1UdIwQYMBaA
-FLldqcFQ+RF40xBNgSjdNGBN78yHMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEL
-BQADgYEAUXeDp5pyGhH3RCxdJgjbQ67D5nqTVbTJnetEw1UdMEDQGrgCIUrbsJWm
-G4SbKUjKP+4wVUJLZpmv9PwJcN0ZxntNkJBDzTk+KULu4+8cCj6A27bBhmzeOu1y
-zZlyse1m1NECY3ryPtkst4U/0wCiKcI4ZW58RrhXgKucB3Y0C0w=
------END CERTIFICATE-----`
+	rawExpiration := time.Now().Unix() + 100
+	expiration := strconv.FormatInt(rawExpiration, 10)
 
-const testBadCert = `-----BEGIN CERTIFICATE-----
-THIS IS NOT A VALID CERT
------END CERTIFICATE-----`
+	data = map[string]interface{}{
+		"expiration":  json.Number(expiration),
+		"certificate": "foobar",
+	}
 
-func TestDurationFromCert(t *testing.T) {
-	t.Parallel()
-
-	dur := durationFromCert(testGoodCert)
-
-	// 10 days in seconds
-	assert.Equal(t, 864000, dur)
-
-	dur = durationFromCert(testBadCert)
-
-	// Negative duration means an invalid cert
-	assert.Equal(t, -1, dur)
+	nonRenewableCert := Secret{LeaseDuration: 100, Data: data}
+	nonRenewableCertDur := leaseCheckWait(&nonRenewableCert).Seconds()
+	if nonRenewableCertDur < 85 || nonRenewableCertDur > 95 {
+		t.Fatalf("non renewable certificate duration is not within 85%% to 95%%: %f", nonRenewableCertDur)
+	}
 }
