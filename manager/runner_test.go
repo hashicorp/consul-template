@@ -10,59 +10,13 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul-template/config"
-	dep "github.com/hashicorp/consul-template/dependency"
-	"github.com/hashicorp/consul-template/template"
+	"github.com/hashicorp/hcat"
 )
-
-func TestRunner_Receive(t *testing.T) {
-	t.Parallel()
-
-	c := config.TestConfig(&config.Config{Once: true})
-	r, err := NewRunner(c, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Run("adds_to_brain", func(t *testing.T) {
-		t.Parallel()
-
-		d, err := dep.NewKVGetQuery("foo")
-		if err != nil {
-			t.Fatal(err)
-		}
-		data := "bar"
-		r.dependenciesLock.Lock()
-		r.dependencies[d.String()] = d
-		r.dependenciesLock.Unlock()
-		r.Receive(d, data)
-
-		val, ok := r.brain.Recall(d)
-		if !ok {
-			t.Fatalf("expected brain to have data")
-		}
-		if data != val {
-			t.Errorf("\nexp: %#v\nact: %#v", data, val)
-		}
-	})
-
-	t.Run("skips_brain_if_not_watching", func(t *testing.T) {
-		t.Parallel()
-
-		d, err := dep.NewKVGetQuery("zip")
-		if err != nil {
-			t.Fatal(err)
-		}
-		r.Receive(d, "")
-
-		if _, ok := r.brain.Recall(d); ok {
-			t.Fatalf("expected brain to not have data")
-		}
-	})
-}
 
 func TestRunner_Run(t *testing.T) {
 	cases := []struct {
 		name   string
+		dry    bool
 		before func(*testing.T, *Runner)
 		c      *config.Config
 		after  func(*testing.T, *Runner, string)
@@ -70,6 +24,7 @@ func TestRunner_Run(t *testing.T) {
 	}{
 		{
 			"missing_deps",
+			true,
 			nil,
 			&config.Config{
 				Templates: &config.TemplateConfigs{
@@ -91,8 +46,12 @@ func TestRunner_Run(t *testing.T) {
 				}
 
 				for _, e := range events {
-					if l := e.MissingDeps.Len(); l != 1 {
-						t.Errorf("\nexp: %#v\nact: %#v", 1, l)
+					var nilTime time.Time
+					if e.UpdatedAt != nilTime {
+						t.Error("Should not have updated")
+					}
+					if e.WouldRender || e.DidRender {
+						t.Error("Unexpected Render")
 					}
 				}
 
@@ -105,6 +64,7 @@ func TestRunner_Run(t *testing.T) {
 		},
 		{
 			"dry",
+			true,
 			nil,
 			&config.Config{
 				Templates: &config.TemplateConfigs{
@@ -127,6 +87,7 @@ func TestRunner_Run(t *testing.T) {
 		},
 		{
 			"accumulates_deps",
+			true,
 			nil,
 			&config.Config{
 				Templates: &config.TemplateConfigs{
@@ -147,21 +108,17 @@ func TestRunner_Run(t *testing.T) {
 					t.Errorf("\nexp: %#v\nact: %#v", 1, l)
 				}
 
-				for _, e := range events {
-					if l := e.MissingDeps.Len(); l != 2 {
-						t.Errorf("\nexp: %#v\nact: %#v", 2, l)
-					}
-				}
-
 				exp := 2
-				if len(r.dependencies) != exp {
-					t.Errorf("\nexp: %#v\nact: %#v\ndeps: %#v", exp, len(r.dependencies), r.dependencies)
+				if r.watcher.Size() != exp {
+					t.Errorf("\nexp: %#v\nact: %#v\n", exp,
+						r.watcher.Size())
 				}
 			},
 			false,
 		},
 		{
 			"no_duplicate_deps",
+			true,
 			nil,
 			&config.Config{
 				Templates: &config.TemplateConfigs{
@@ -182,143 +139,18 @@ func TestRunner_Run(t *testing.T) {
 					t.Errorf("\nexp: %#v\nact: %#v", 1, l)
 				}
 
-				for _, e := range events {
-					if l := e.MissingDeps.Len(); l != 1 {
-						t.Errorf("\nexp: %#v\nact: %#v", 1, l)
-					}
-				}
-
 				exp := 1
-				if len(r.dependencies) != exp {
-					t.Errorf("\nexp: %#v\nact: %#v\ndeps: %#v", exp, len(r.dependencies), r.dependencies)
-				}
-			},
-			false,
-		},
-		{
-			"multipass",
-			nil,
-			&config.Config{
-				Templates: &config.TemplateConfigs{
-					&config.TemplateConfig{
-						Contents: config.String(`{{ key (key "foo") }}`),
-					},
-				},
-			},
-			func(t *testing.T, r *Runner, out string) {
-				select {
-				case <-r.RenderEventCh():
-				case <-time.After(time.Second):
-					t.Errorf("timeout")
-				}
-
-				exp := 1
-				if len(r.dependencies) != exp {
-					t.Errorf("\nexp: %#v\nact: %#v\ndeps: %#v", exp, len(r.dependencies), r.dependencies)
-				}
-
-				events := r.RenderEvents()
-				if l := len(events); l != 1 {
-					t.Errorf("\nexp: %#v\nact: %#v", 1, l)
-				}
-
-				for _, e := range events {
-					if l := e.MissingDeps.Len(); l != 1 {
-						t.Errorf("\nexp: %#v\nact: %#v", 1, l)
-					}
-				}
-
-				// Drain the channel
-			OUTER:
-				for {
-					select {
-					case <-r.RenderEventCh():
-					default:
-						break OUTER
-					}
-				}
-
-				d, err := dep.NewKVGetQuery("foo")
-				if err != nil {
-					t.Fatal(err)
-				}
-				d.EnableBlocking()
-				r.Receive(d, "bar")
-
-				if err := r.Run(); err != nil {
-					t.Fatal(err)
-				}
-
-				select {
-				case <-r.RenderEventCh():
-				case <-time.After(time.Second):
-					t.Errorf("timeout")
-				}
-
-				events = r.RenderEvents()
-				if l := len(events); l != 1 {
-					t.Errorf("\nexp: %#v\nact: %#v", 1, l)
-				}
-
-				for _, e := range events {
-					if l := e.MissingDeps.Len(); l != 1 {
-						t.Errorf("\nexp: %#v\nact: %#v", 1, l)
-					}
-				}
-
-				exp = 2
-				if len(r.dependencies) != exp {
-					t.Errorf("\nexp: %#v\nact: %#v\ndeps: %#v", exp, len(r.dependencies), r.dependencies)
-				}
-			},
-			false,
-		},
-		{
-			"remove_unused",
-			func(t *testing.T, r *Runner) {
-				d, err := dep.NewKVGetQuery("foo")
-				if err != nil {
-					t.Fatal(err)
-				}
-				r.Receive(d, "bar")
-			},
-			&config.Config{
-				Templates: &config.TemplateConfigs{
-					&config.TemplateConfig{
-						Contents: config.String("hello"),
-					},
-				},
-			},
-			func(t *testing.T, r *Runner, out string) {
-				select {
-				case <-r.RenderEventCh():
-				case <-time.After(time.Second):
-					t.Errorf("timeout")
-				}
-
-				events := r.RenderEvents()
-				if l := len(events); l != 1 {
-					t.Errorf("\nexp: %#v\nact: %#v", 1, l)
-				}
-
-				for _, e := range events {
-					if l := e.MissingDeps.Len(); l != 0 {
-						t.Errorf("\nexp: %#v\nact: %#v", 0, l)
-					}
-				}
-
-				exp := 0
-				if len(r.dependencies) != exp {
-					t.Errorf("\nexp: %#v\nact: %#v\ndeps: %#v", exp, len(r.dependencies), r.dependencies)
+				if r.watcher.Size() != exp {
+					t.Errorf("\nexp: %#v\nact: %#v\n",
+						exp, r.watcher.Size())
 				}
 			},
 			false,
 		},
 		{
 			"runs_commands",
-			func(t *testing.T, r *Runner) {
-				r.dry = false
-			},
+			false,
+			nil,
 			&config.Config{
 				Templates: &config.TemplateConfigs{
 					&config.TemplateConfig{
@@ -357,8 +189,8 @@ func TestRunner_Run(t *testing.T) {
 		},
 		{
 			"no_command_if_same_template",
+			false,
 			func(t *testing.T, r *Runner) {
-				r.dry = false
 				if err := ioutil.WriteFile("/tmp/ct-no_command_if_same_template", []byte("hello"), 0644); err != nil {
 					t.Fatal(err)
 				}
@@ -383,9 +215,8 @@ func TestRunner_Run(t *testing.T) {
 		},
 		{
 			"no_duplicate_commands",
-			func(t *testing.T, r *Runner) {
-				r.dry = false
-			},
+			false,
+			nil,
 			&config.Config{
 				Templates: &config.TemplateConfigs{
 					&config.TemplateConfig{
@@ -414,8 +245,8 @@ func TestRunner_Run(t *testing.T) {
 		},
 		{
 			"env",
+			false,
 			func(t *testing.T, r *Runner) {
-				r.dry = false
 				r.config.Consul.Address = config.String("1.2.3.4")
 			},
 			&config.Config{
@@ -449,7 +280,7 @@ func TestRunner_Run(t *testing.T) {
 			c.Once = true
 			c.Finalize()
 
-			r, err := NewRunner(c, true)
+			r, err := NewRunner(c, tc.dry)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -818,6 +649,7 @@ func TestRunner_Start(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		r.SetOutStream(ioutil.Discard) // hide exec'd cat cmd output
 
 		go r.Start()
 		defer r.Stop()
@@ -957,6 +789,7 @@ func TestRunner_Start(t *testing.T) {
 
 		select {
 		case err := <-r.ErrCh:
+			fmt.Println("err:", err)
 			t.Fatal(err)
 		case <-r.TemplateRenderedCh():
 			act := ""
@@ -988,12 +821,12 @@ func TestRunner_Start(t *testing.T) {
 func TestRunner_quiescence(t *testing.T) {
 	t.Parallel()
 
-	tpl := &template.Template{}
+	tpl := &hcat.Template{}
 
 	t.Run("min", func(t *testing.T) {
 		t.Parallel()
 
-		ch := make(chan *template.Template, 1)
+		ch := make(chan *hcat.Template, 1)
 		q := newQuiescence(ch,
 			50*time.Millisecond, 250*time.Millisecond, tpl)
 
@@ -1024,7 +857,7 @@ func TestRunner_quiescence(t *testing.T) {
 	t.Run("snooze", func(t *testing.T) {
 		t.Parallel()
 
-		ch := make(chan *template.Template, 1)
+		ch := make(chan *hcat.Template, 1)
 		q := newQuiescence(ch,
 			50*time.Millisecond, 250*time.Millisecond, tpl)
 
@@ -1052,7 +885,7 @@ func TestRunner_quiescence(t *testing.T) {
 	t.Run("max", func(t *testing.T) {
 		t.Parallel()
 
-		ch := make(chan *template.Template, 1)
+		ch := make(chan *hcat.Template, 1)
 		q := newQuiescence(ch,
 			50*time.Millisecond, 250*time.Millisecond, tpl)
 

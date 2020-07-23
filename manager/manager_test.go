@@ -7,15 +7,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/consul-template/config"
-	dep "github.com/hashicorp/consul-template/dependency"
-	"github.com/hashicorp/consul-template/template"
 	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/hcat"
 )
 
 var testConsul *testutil.TestServer
-var testClients *dep.ClientSet
+var testClients *hcat.ClientSet
 
 func TestMain(m *testing.M) {
 	log.SetOutput(ioutil.Discard)
@@ -31,13 +29,10 @@ func TestMain(m *testing.M) {
 	}
 	testConsul = consul
 
-	clients := dep.NewClientSet()
-	if err := clients.CreateConsulClient(&dep.CreateConsulClientInput{
+	clients := hcat.NewClientSet()
+	clients.AddConsul(hcat.ConsulInput{
 		Address: testConsul.HTTPAddr,
-	}); err != nil {
-		testConsul.Stop()
-		log.Fatal(err)
-	}
+	})
 	testClients = clients
 
 	exitCh := make(chan int, 1)
@@ -62,12 +57,12 @@ func TestMain(m *testing.M) {
 	os.Exit(exit)
 }
 
-func testDedupManager(t *testing.T, tmpls []*template.Template) *DedupManager {
-	brain := template.NewBrain()
-	dedupConfig := config.TestConfig(nil).Dedup
-	dedup, err := NewDedupManager(dedupConfig, testClients, brain, tmpls)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return dedup
-}
+//func testDedupManager(t *testing.T, tmpls []*template.Template) *DedupManager {
+//	brain := template.NewBrain()
+//	dedupConfig := config.TestConfig(nil).Dedup
+//	dedup, err := NewDedupManager(dedupConfig, testClients, brain, tmpls)
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//	return dedup
+//}

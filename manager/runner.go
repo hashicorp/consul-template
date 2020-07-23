@@ -4,19 +4,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
 	"sync"
+	"text/template"
 	"time"
 
 	"github.com/hashicorp/consul-template/child"
 	"github.com/hashicorp/consul-template/config"
-	dep "github.com/hashicorp/consul-template/dependency"
-	"github.com/hashicorp/consul-template/renderer"
-	"github.com/hashicorp/consul-template/template"
-	"github.com/hashicorp/consul-template/watch"
 	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/hcat"
 	shellwords "github.com/mattn/go-shellwords"
 	"github.com/pkg/errors"
 )
@@ -53,7 +52,7 @@ type Runner struct {
 	ctemplatesMap map[string]config.TemplateConfigs
 
 	// templates is the list of calculated templates.
-	templates []*template.Template
+	templates []*hcat.Template
 
 	// renderEvents is a mapping of a template ID to the render event.
 	renderEvents map[string]*RenderEvent
@@ -71,16 +70,13 @@ type Runner struct {
 	renderEventCh chan struct{}
 
 	// dependencies is the list of dependencies this runner is watching.
-	dependencies map[string]dep.Dependency
+	//dependencies map[string]dep.Dependency
 
 	// dependenciesLock is a lock around touching the dependencies map.
 	dependenciesLock sync.Mutex
 
 	// watcher is the watcher this runner is using.
-	watcher *watch.Watcher
-
-	// brain is the internal storage database of returned dependency data.
-	brain *template.Brain
+	watcher *hcat.Watcher
 
 	// child is the child process under management. This may be nil if not running
 	// in exec mode.
@@ -93,10 +89,10 @@ type Runner struct {
 	// quiescenceCh is the channel where templates report returns from quiescence
 	// fires.
 	quiescenceMap map[string]*quiescence
-	quiescenceCh  chan *template.Template
+	quiescenceCh  chan *hcat.Template
 
 	// dedup is the deduplication manager if enabled
-	dedup *DedupManager
+	//dedup *DedupManager
 
 	// Env represents a custom set of environment variables to populate the
 	// template and command runtime with. These environment variables will be
@@ -119,10 +115,10 @@ type RenderEvent struct {
 	// are contained in the watcher. This is different from unwatched dependencies,
 	// which includes dependencies the watcher has not yet started querying for
 	// data.
-	MissingDeps *dep.Set
+	//MissingDeps *hcat.DepSet
 
 	// Template is the template attempting to be rendered.
-	Template *template.Template
+	Template *hcat.Template
 
 	// Contents is the raw, rendered contents from the template.
 	Contents []byte
@@ -133,7 +129,7 @@ type RenderEvent struct {
 
 	// Unwatched is the list of dependencies that are not present in the watcher.
 	// This value may change over time due to the n-pass evaluation.
-	UnwatchedDeps *dep.Set
+	//UnwatchedDeps *hcat.DepSet
 
 	// UpdatedAt is the last time this render event was updated.
 	UpdatedAt time.Time
@@ -142,7 +138,7 @@ type RenderEvent struct {
 	// the n-pass evaluation, this number can change over time. The dependencies
 	// in this list may or may not have data. This just contains the list of all
 	// dependencies parsed out of the template with the current data.
-	UsedDeps *dep.Set
+	//UsedDeps *hcat.DepSet
 
 	// WouldRender determines if the template would have been rendered. A template
 	// would have been rendered if all the dependencies are satisfied, but may
@@ -199,15 +195,15 @@ func (r *Runner) Start() {
 		return
 	}
 
-	// Start the de-duplication manager
-	var dedupCh <-chan struct{}
-	if r.dedup != nil {
-		if err := r.dedup.Start(); err != nil {
-			r.ErrCh <- err
-			return
-		}
-		dedupCh = r.dedup.UpdateCh()
-	}
+	//	// Start the de-duplication manager
+	//	var dedupCh <-chan struct{}
+	//	if r.dedup != nil {
+	//		if err := r.dedup.Start(); err != nil {
+	//			r.ErrCh <- err
+	//			return
+	//		}
+	//		dedupCh = r.dedup.UpdateCh()
+	//	}
 
 	// Setup the child process exit channel
 	var childExitCh <-chan int
@@ -309,7 +305,7 @@ func (r *Runner) Start() {
 				log.Printf("[INFO] (runner) once mode and all templates rendered")
 
 				if r.child != nil {
-					r.stopDedup()
+					//r.stopDedup()
 					r.stopWatcher()
 
 					log.Printf("[INFO] (runner) waiting for child process to exit")
@@ -327,42 +323,22 @@ func (r *Runner) Start() {
 			}
 		}
 
-	OUTER:
+		//OUTER:
 		select {
-		case view := <-r.watcher.DataCh():
-			// Receive this update
-			r.Receive(view.Dependency(), view.Data())
-
-			// Drain all dependency data. Given a large number of dependencies, it is
-			// feasible that we have data for more than one of them. Instead of
-			// wasting CPU cycles rendering templates when we have more dependencies
-			// waiting to be added to the brain, we drain the entire buffered channel
-			// on the watcher and then reports when it is done receiving new data
-			// which the parent select listens for.
-			//
-			// Please see https://github.com/hashicorp/consul-template/issues/168 for
-			// more information about this optimization and the entire backstory.
-			for {
-				select {
-				case view := <-r.watcher.DataCh():
-					r.Receive(view.Dependency(), view.Data())
-				default:
-					break OUTER
-				}
+		case err := <-r.watcher.WaitCh(0):
+			// Push the error back up the stack
+			if err != nil {
+				log.Printf("[ERR] (runner) watcher reported error: %s", err)
+				r.ErrCh <- err
+				return
 			}
 
-		case <-dedupCh:
-			// We may get triggered by the de-duplication manager for either a change
-			// in leadership (acquired or lost lock), or an update of data for a template
-			// that we are watching.
-			log.Printf("[INFO] (runner) watcher triggered by de-duplication manager")
-			break OUTER
-
-		case err := <-r.watcher.ErrCh():
-			// Push the error back up the stack
-			log.Printf("[ERR] (runner) watcher reported error: %s", err)
-			r.ErrCh <- err
-			return
+			//		case <-dedupCh:
+			//			// We may get triggered by the de-duplication manager for either a change
+			//			// in leadership (acquired or lost lock), or an update of data for a template
+			//			// that we are watching.
+			//			log.Printf("[INFO] (runner) watcher triggered by de-duplication manager")
+			//			break OUTER
 
 		case tmpl := <-r.quiescenceCh:
 			// Remove the quiescence for this template from the map. This will force
@@ -434,7 +410,7 @@ func (r *Runner) internalStop(immediately bool) {
 	}
 
 	log.Printf("[INFO] (runner) stopping")
-	r.stopDedup()
+	//r.stopDedup()
 	r.stopWatcher()
 	r.stopChild(immediately)
 
@@ -448,12 +424,12 @@ func (r *Runner) internalStop(immediately bool) {
 	close(r.DoneCh)
 }
 
-func (r *Runner) stopDedup() {
-	if r.dedup != nil {
-		log.Printf("[DEBUG] (runner) stopping de-duplication manager")
-		r.dedup.Stop()
-	}
-}
+//func (r *Runner) stopDedup() {
+//	if r.dedup != nil {
+//		log.Printf("[DEBUG] (runner) stopping de-duplication manager")
+//		r.dedup.Stop()
+//	}
+//}
 
 func (r *Runner) stopWatcher() {
 	if r.watcher != nil {
@@ -474,33 +450,6 @@ func (r *Runner) stopChild(immediately bool) {
 			log.Printf("[DEBUG] (runner) stopping child process")
 			r.child.Stop()
 		}
-	}
-}
-
-// Receive accepts a Dependency and data for that dep. This data is
-// cached on the Runner. This data is then used to determine if a Template
-// is "renderable" (i.e. all its Dependencies have been downloaded at least
-// once).
-func (r *Runner) Receive(d dep.Dependency, data interface{}) {
-	r.dependenciesLock.Lock()
-	defer r.dependenciesLock.Unlock()
-
-	// Just because we received data, it does not mean that we are actually
-	// watching for that data. How is that possible you may ask? Well, this
-	// Runner's data channel is pooled, meaning it accepts multiple data views
-	// before actually blocking. Whilest this runner is performing a Run() and
-	// executing diffs, it may be possible that more data was pushed onto the
-	// data channel pool for a dependency that we no longer care about.
-	//
-	// Accepting this dependency would introduce stale data into the brain, and
-	// that is simply unacceptable. In fact, it is a fun little bug:
-	//
-	//     https://github.com/hashicorp/consul-template/issues/198
-	//
-	// and by "little" bug, I mean really big bug.
-	if _, ok := r.dependencies[d.String()]; ok {
-		log.Printf("[DEBUG] (runner) receiving dependency %s", d)
-		r.brain.Remember(d, data)
 	}
 }
 
@@ -526,9 +475,7 @@ func (r *Runner) Run() error {
 	log.Printf("[DEBUG] (runner) initiating run")
 
 	var newRenderEvent, wouldRenderAny, renderedAny bool
-	runCtx := &templateRunCtx{
-		depsMap: make(map[string]dep.Dependency),
-	}
+	runCtx := &templateRunCtx{}
 
 	for _, tmpl := range r.templates {
 		event, err := r.runTemplate(tmpl, runCtx)
@@ -556,9 +503,6 @@ func (r *Runner) Run() error {
 			}
 		}
 	}
-
-	// Perform the diff and update the known dependencies.
-	r.diffAndUpdateDeps(runCtx.depsMap)
 
 	// Execute each command in sequence, collecting any errors that occur - this
 	// ensures all commands execute at least once.
@@ -630,9 +574,6 @@ type templateRunCtx struct {
 	// have run. When adding to the commands, care should be taken not to
 	// duplicate any existing command from a previous template.
 	commands []*config.TemplateConfig
-
-	// depsMap is the set of dependencies shared across all templates.
-	depsMap map[string]dep.Dependency
 }
 
 // runTemplate is used to run a particular template. It takes as input the
@@ -640,8 +581,21 @@ type templateRunCtx struct {
 // between templates. The run returns a potentially nil render event and any
 // error that occured. The render event is nil in the case that the template has
 // been already rendered and is a once template or if there is an error.
-func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*RenderEvent, error) {
+func (r *Runner) runTemplate(tmpl *hcat.Template, runCtx *templateRunCtx) (*RenderEvent, error) {
 	log.Printf("[DEBUG] (runner) checking template %s", tmpl.ID())
+
+	// If we are in once mode and this template was already rendered, move
+	// onto the next one. We do not want to re-render the template if we are
+	// in once mode, and we certainly do not want to re-run any commands.
+	if r.config.Once {
+		r.renderEventsLock.RLock()
+		event, ok := r.renderEvents[tmpl.ID()]
+		r.renderEventsLock.RUnlock()
+		if ok && (event.WouldRender || event.DidRender) {
+			log.Printf("[DEBUG] (runner) once mode and already rendered")
+			return nil, nil
+		}
+	}
 
 	// Grab the last event
 	r.renderEventsLock.RLock()
@@ -657,104 +611,104 @@ func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*
 	if lastEvent != nil {
 		event.LastWouldRender = lastEvent.LastWouldRender
 		event.LastDidRender = lastEvent.LastDidRender
+		// preserve if previous version already rendered
+		event.WouldRender = lastEvent.WouldRender
 	}
 
-	// Check if we are currently the leader instance
-	isLeader := true
-	if r.dedup != nil {
-		isLeader = r.dedup.IsLeader(tmpl)
-	}
+	//	// Check if we are currently the leader instance
+	//	isLeader := true
+	//	if r.dedup != nil {
+	//		isLeader = r.dedup.IsLeader(tmpl)
+	//	}
 
-	// If we are in once mode and this template was already rendered, move
-	// onto the next one. We do not want to re-render the template if we are
-	// in once mode, and we certainly do not want to re-run any commands.
-	if r.config.Once {
-		r.renderEventsLock.RLock()
-		event, ok := r.renderEvents[tmpl.ID()]
-		r.renderEventsLock.RUnlock()
-		if ok && (event.WouldRender || event.DidRender) {
-			log.Printf("[DEBUG] (runner) once mode and already rendered")
-			return nil, nil
+	resolver := hcat.NewResolver()
+	resolveEvent, err := resolver.Run(tmpl, r.watcher)
+	if err != nil {
+		return nil, err
+	}
+	if !resolveEvent.Complete {
+		if lastEvent != nil {
 		}
+		return event, nil
 	}
 
 	// Attempt to render the template, returning any missing dependencies and
 	// the rendered contents. If there are any missing dependencies, the
-	// contents cannot be rendered or trusted!
-	result, err := tmpl.Execute(&template.ExecuteInput{
-		Brain: r.brain,
-		Env:   r.childEnv(),
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, tmpl.Source())
-	}
+	//	// contents cannot be rendered or trusted!
+	//	result, err := tmpl.Execute(&template.ExecuteInput{
+	//		Brain: r.brain,
+	//		Env:   r.childEnv(),
+	//	})
+	//	if err != nil {
+	//		return nil, errors.Wrap(err, tmpl.Source())
+	//	}
 
 	// Grab the list of used and missing dependencies.
-	missing, used := result.Missing, result.Used
+	//missing, used := result.Missing, result.Used
 
-	if l := missing.Len(); l > 0 {
-		log.Printf("[DEBUG] (runner) missing data for %d dependencies", l)
-		for _, missingDependency := range missing.List() {
-			log.Printf("[DEBUG] (runner) missing dependency: %s", missingDependency)
-		}
-	}
+	//	if l := missing.Len(); l > 0 {
+	//		log.Printf("[DEBUG] (runner) missing data for %d dependencies", l)
+	//		for _, missingDependency := range missing.List() {
+	//			log.Printf("[DEBUG] (runner) missing dependency: %s", missingDependency)
+	//		}
+	//	}
 
 	// Add the dependency to the list of dependencies for this runner.
-	for _, d := range used.List() {
-		// If we've taken over leadership for a template, we may have data
-		// that is cached, but not have the watcher. We must treat this as
-		// missing so that we create the watcher and re-run the template.
-		if isLeader && !r.watcher.Watching(d) {
-			log.Printf("[DEBUG] (runner) add used dependency %s to missing since isLeader but do not have a watcher", d)
-			missing.Add(d)
-		}
-		if _, ok := runCtx.depsMap[d.String()]; !ok {
-			runCtx.depsMap[d.String()] = d
-		}
-	}
+	//	for _, d := range used.List() {
+	//		// If we've taken over leadership for a template, we may have data
+	//		// that is cached, but not have the watcher. We must treat this as
+	//		// missing so that we create the watcher and re-run the template.
+	//		if isLeader && !r.watcher.Watching(d.String()) {
+	//			log.Printf("[DEBUG] (runner) add used dependency %s to missing since isLeader but do not have a watcher", d)
+	//			missing.Add(d)
+	//		}
+	//		if _, ok := runCtx.depsMap[d.String()]; !ok {
+	//			runCtx.depsMap[d.String()] = d
+	//		}
+	//	}
 
 	// Diff any missing dependencies the template reported with dependencies
 	// the watcher is watching.
-	unwatched := new(dep.Set)
-	for _, d := range missing.List() {
-		if !r.watcher.Watching(d) {
-			unwatched.Add(d)
-		}
-	}
+	//	unwatched := new(dep.Set)
+	//	for _, d := range missing.List() {
+	//		if !r.watcher.Watching(d.String()) {
+	//			unwatched.Add(d)
+	//		}
+	//	}
 
 	// Update the event with the new dependency information
-	event.MissingDeps = missing
-	event.UnwatchedDeps = unwatched
-	event.UsedDeps = used
+	//	event.MissingDeps = missing
+	//	event.UnwatchedDeps = unwatched
+	//	event.UsedDeps = used
 	event.UpdatedAt = time.Now().UTC()
 
-	// If there are unwatched dependencies, start the watcher and exit since we
-	// won't have data.
-	if l := unwatched.Len(); l > 0 {
-		log.Printf("[DEBUG] (runner) was not watching %d dependencies", l)
-		for _, d := range unwatched.List() {
-			// If we are deduplicating, we must still handle non-sharable
-			// dependencies, since those will be ignored.
-			if isLeader || !d.CanShare() {
-				r.watcher.Add(d)
-			}
-		}
-		return event, nil
-	}
+	//	// If there are unwatched dependencies, start the watcher and exit since we
+	//	// won't have data.
+	//	if l := unwatched.Len(); l > 0 {
+	//		log.Printf("[DEBUG] (runner) was not watching %d dependencies", l)
+	//		for _, d := range unwatched.List() {
+	//			// If we are deduplicating, we must still handle non-sharable
+	//			// dependencies, since those will be ignored.
+	//			if isLeader || !d.CanShare() {
+	//				r.watcher.Add(d)
+	//			}
+	//		}
+	//		return event, nil
+	//	}
 
-	// If the template is missing data for some dependencies then we are not
-	// ready to render and need to move on to the next one.
-	if l := missing.Len(); l > 0 {
-		log.Printf("[DEBUG] (runner) missing data for %d dependencies", l)
-		return event, nil
-	}
+	//	// If the template is missing data for some dependencies then we are not
+	//	// ready to render and need to move on to the next one.
+	//	if l := missing.Len(); l > 0 {
+	//		log.Printf("[DEBUG] (runner) missing data for %d dependencies", l)
+	//		return event, nil
+	//	}
 
-	// Trigger an update of the de-duplication manager
-	if r.dedup != nil && isLeader {
-		if err := r.dedup.UpdateDeps(tmpl, used.List()); err != nil {
-			log.Printf("[ERR] (runner) failed to update dependency data for de-duplication: %v", err)
-		}
-	}
+	//	// Trigger an update of the de-duplication manager
+	//	if r.dedup != nil && isLeader {
+	//		if err := r.dedup.UpdateDeps(tmpl, used.List()); err != nil {
+	//			log.Printf("[ERR] (runner) failed to update dependency data for de-duplication: %v", err)
+	//		}
+	//	}
 
 	// If quiescence is activated, start/update the timers and loop back around.
 	// We do not want to render the templates yet.
@@ -771,15 +725,16 @@ func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*
 		log.Printf("[DEBUG] (runner) rendering %s", templateConfig.Display())
 
 		// Render the template, taking dry mode into account
-		result, err := renderer.Render(&renderer.RenderInput{
-			Backup:         config.BoolVal(templateConfig.Backup),
-			Contents:       result.Output,
-			CreateDestDirs: config.BoolVal(templateConfig.CreateDestDirs),
-			Dry:            r.dry,
-			DryStream:      r.outStream,
-			Path:           config.StringVal(templateConfig.Destination),
-			Perms:          config.FileModeVal(templateConfig.Perms),
-		})
+		result, err := tmpl.Render(resolveEvent.Contents)
+		//		result, err := renderer.Render(&renderer.RenderInput{
+		//			Backup:         config.BoolVal(templateConfig.Backup),
+		//			Contents:       resolveEvent.Contents,
+		//			CreateDestDirs: config.BoolVal(templateConfig.CreateDestDirs),
+		//			Dry:            r.dry,
+		//			DryStream:      r.outStream,
+		//			Path:           config.StringVal(templateConfig.Destination),
+		//			Perms:          config.FileModeVal(templateConfig.Perms),
+		//		})
 		if err != nil {
 			return nil, errors.Wrap(err, "error rendering "+templateConfig.Display())
 		}
@@ -807,7 +762,7 @@ func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*
 			event.LastDidRender = renderTime
 
 			// Update the contents
-			event.Contents = result.Contents
+			event.Contents = resolveEvent.Contents
 
 			if !r.dry {
 				// If the template was rendered (changed) and we are not in dry-run mode,
@@ -853,27 +808,27 @@ func (r *Runner) init() error {
 	log.Printf("[DEBUG] (runner) final config: %s", result)
 
 	// Create the clientset
-	clients, err := newClientSet(r.config)
+	clients := newClientSet(r.config)
 	if err != nil {
 		return fmt.Errorf("runner: %s", err)
 	}
 
 	// Create the watcher
-	watcher, err := newWatcher(r.config, clients, r.config.Once)
+	watcher := newWatcher(r.config, clients)
 	if err != nil {
 		return fmt.Errorf("runner: %s", err)
 	}
 	r.watcher = watcher
 
 	numTemplates := len(*r.config.Templates)
-	templates := make([]*template.Template, 0, numTemplates)
+	templates := make([]*hcat.Template, 0, numTemplates)
 	ctemplatesMap := make(map[string]config.TemplateConfigs)
-
 	// Iterate over each TemplateConfig, creating a new Template resource for each
 	// entry. Templates are parsed and saved, and a map of templates to their
 	// config templates is kept so templates can lookup their commands and output
 	// destinations.
 	for _, ctmpl := range *r.config.Templates {
+
 		leftDelim := config.StringVal(ctmpl.LeftDelim)
 		if leftDelim == "" {
 			leftDelim = config.StringVal(r.config.DefaultDelims.Left)
@@ -883,92 +838,101 @@ func (r *Runner) init() error {
 			rightDelim = config.StringVal(r.config.DefaultDelims.Right)
 		}
 
-		tmpl, err := template.NewTemplate(&template.NewTemplateInput{
-			Source:           config.StringVal(ctmpl.Source),
-			Contents:         config.StringVal(ctmpl.Contents),
-			ErrMissingKey:    config.BoolVal(ctmpl.ErrMissingKey),
-			LeftDelim:        leftDelim,
-			RightDelim:       rightDelim,
-			FunctionDenylist: ctmpl.FunctionDenylist,
-			SandboxPath:      config.StringVal(ctmpl.SandboxPath),
-		})
-		if err != nil {
-			return err
+		contents := config.StringVal(ctmpl.Contents)
+		source := config.StringVal(ctmpl.Source)
+		if source != "" {
+			bytes, err := ioutil.ReadFile(source)
+			if err != nil {
+				return errors.Wrap(err, "failed to read template")
+			}
+			contents = string(bytes)
 		}
 
+		//FunctionDenylist: ctmpl.FunctionDenylist,
+		denylist := make(template.FuncMap, len(ctmpl.FunctionDenylist))
+		for _, denied := range ctmpl.FunctionDenylist {
+			denylist[denied] = hcat.DenyFunc
+		}
+
+		backup := func(string) {}
+		if config.BoolVal(ctmpl.Backup) {
+			backup = hcat.Backup
+		}
+
+		var renderer hcat.Renderer
+		switch {
+		case r.dry:
+			renderer = dryRenderer{
+				path:   config.StringVal(ctmpl.Destination),
+				getOut: r.GetOutStream,
+			}
+		default:
+			renderer = hcat.NewFileRenderer(hcat.FileRendererInput{
+				CreateDestDirs: config.BoolVal(ctmpl.CreateDestDirs),
+				Path:           config.StringVal(ctmpl.Destination),
+				Perms:          config.FileModeVal(ctmpl.Perms),
+				Backup:         backup,
+			})
+		}
+
+		tmpl := hcat.NewTemplate(&hcat.TemplateInput{
+			Contents:      contents,
+			ErrMissingKey: config.BoolVal(ctmpl.ErrMissingKey),
+			LeftDelim:     leftDelim,
+			RightDelim:    rightDelim,
+			FuncMapMerge:  denylist,
+			SandboxPath:   config.StringVal(ctmpl.SandboxPath),
+			Renderer:      renderer,
+		})
 		if _, ok := ctemplatesMap[tmpl.ID()]; !ok {
 			templates = append(templates, tmpl)
-		}
-
-		if _, ok := ctemplatesMap[tmpl.ID()]; !ok {
 			ctemplatesMap[tmpl.ID()] = make([]*config.TemplateConfig, 0, 1)
 		}
 		ctemplatesMap[tmpl.ID()] = append(ctemplatesMap[tmpl.ID()], ctmpl)
 	}
-
-	// Convert the map of templates (which was only used to ensure uniqueness)
-	// back into an array of templates.
 	r.templates = templates
-
-	r.renderEvents = make(map[string]*RenderEvent, numTemplates)
-	r.dependencies = make(map[string]dep.Dependency)
-
-	r.renderedCh = make(chan struct{}, 1)
-	r.renderEventCh = make(chan struct{}, 1)
-
 	r.ctemplatesMap = ctemplatesMap
+
 	r.inStream = os.Stdin
 	r.outStream = os.Stdout
 	r.errStream = os.Stderr
-	r.brain = template.NewBrain()
+
+	r.renderEvents = make(map[string]*RenderEvent, numTemplates)
+	r.renderedCh = make(chan struct{}, 1)
+	r.renderEventCh = make(chan struct{}, 1)
 
 	r.ErrCh = make(chan error)
 	r.DoneCh = make(chan struct{})
 
 	r.quiescenceMap = make(map[string]*quiescence)
-	r.quiescenceCh = make(chan *template.Template)
+	r.quiescenceCh = make(chan *hcat.Template)
 
-	if *r.config.Dedup.Enabled {
-		if r.config.Once {
-			log.Printf("[INFO] (runner) disabling de-duplication in once mode")
-		} else {
-			r.dedup, err = NewDedupManager(r.config.Dedup, clients, r.brain, r.templates)
-			if err != nil {
-				return err
-			}
-		}
-	}
+	//	if *r.config.Dedup.Enabled {
+	//		if r.config.Once {
+	//			log.Printf("[INFO] (runner) disabling de-duplication in once mode")
+	//		} else {
+	//			r.dedup, err = NewDedupManager(r.config.Dedup, clients, r.brain, r.templates)
+	//			if err != nil {
+	//				return err
+	//			}
+	//		}
+	//	}
 
 	return nil
 }
 
-// diffAndUpdateDeps iterates through the current map of dependencies on this
-// runner and stops the watcher for any deps that are no longer required.
-//
-// At the end of this function, the given depsMap is converted to a slice and
-// stored on the runner.
-func (r *Runner) diffAndUpdateDeps(depsMap map[string]dep.Dependency) {
-	r.dependenciesLock.Lock()
-	defer r.dependenciesLock.Unlock()
+type dryRenderer struct {
+	path   string
+	getOut func() io.Writer
+}
 
-	// Diff and up the list of dependencies, stopping any unneeded watchers.
-	log.Printf("[DEBUG] (runner) diffing and updating dependencies")
-
-	for key, d := range r.dependencies {
-		if _, ok := depsMap[key]; !ok {
-			log.Printf("[DEBUG] (runner) %s is no longer needed", d)
-			r.watcher.Remove(d)
-			r.brain.Forget(d)
-		} else {
-			log.Printf("[DEBUG] (runner) %s is still needed", d)
-		}
-	}
-
-	r.dependencies = depsMap
+func (d dryRenderer) Render(contents []byte) (hcat.RenderResult, error) {
+	fmt.Fprintf(d.getOut(), "> %s\n%s", d.path, contents)
+	return hcat.RenderResult{DidRender: true, WouldRender: true}, nil
 }
 
 // TemplateConfigFor returns the TemplateConfig for the given Template
-func (r *Runner) templateConfigsFor(tmpl *template.Template) []*config.TemplateConfig {
+func (r *Runner) templateConfigsFor(tmpl *hcat.Template) []*config.TemplateConfig {
 	return r.ctemplatesMap[tmpl.ID()]
 }
 
@@ -1127,6 +1091,11 @@ func (r *Runner) SetOutStream(out io.Writer) {
 	r.outStream = out
 }
 
+// GetOutStream gets current value of output stream. Default is stdout.
+func (r *Runner) GetOutStream() io.Writer {
+	return r.outStream
+}
+
 // SetErrStream modifies runner error stream. Defaults to stderr.
 func (r *Runner) SetErrStream(err io.Writer) {
 	r.errStream = err
@@ -1183,16 +1152,16 @@ func spawnChild(i *spawnChildInput) (*child.Child, error) {
 // quiescence is an internal representation of a single template's quiescence
 // state.
 type quiescence struct {
-	template *template.Template
+	template *hcat.Template
 	min      time.Duration
 	max      time.Duration
-	ch       chan *template.Template
+	ch       chan *hcat.Template
 	timer    *time.Timer
 	deadline time.Time
 }
 
 // newQuiescence creates a new quiescence timer for the given template.
-func newQuiescence(ch chan *template.Template, min, max time.Duration, t *template.Template) *quiescence {
+func newQuiescence(ch chan *hcat.Template, min, max time.Duration, t *hcat.Template) *quiescence {
 	return &quiescence{
 		template: t,
 		min:      min,
@@ -1245,80 +1214,71 @@ func findCommand(c *config.TemplateConfig, templates []*config.TemplateConfig) *
 }
 
 // newClientSet creates a new client set from the given config.
-func newClientSet(c *config.Config) (*dep.ClientSet, error) {
-	clients := dep.NewClientSet()
+func newClientSet(c *config.Config) *hcat.ClientSet {
+	clients := hcat.NewClientSet()
+	clients.AddConsul(hcat.ConsulInput{
+		Address:      config.StringVal(c.Consul.Address),
+		Namespace:    config.StringVal(c.Consul.Namespace),
+		Token:        config.StringVal(c.Consul.Token),
+		AuthEnabled:  config.BoolVal(c.Consul.Auth.Enabled),
+		AuthUsername: config.StringVal(c.Consul.Auth.Username),
+		AuthPassword: config.StringVal(c.Consul.Auth.Password),
+		Transport: hcat.TransportInput{
+			SSLEnabled:          config.BoolVal(c.Consul.SSL.Enabled),
+			SSLVerify:           config.BoolVal(c.Consul.SSL.Verify),
+			SSLCert:             config.StringVal(c.Consul.SSL.Cert),
+			SSLKey:              config.StringVal(c.Consul.SSL.Key),
+			SSLCACert:           config.StringVal(c.Consul.SSL.CaCert),
+			SSLCAPath:           config.StringVal(c.Consul.SSL.CaPath),
+			ServerName:          config.StringVal(c.Consul.SSL.ServerName),
+			DialKeepAlive:       config.TimeDurationVal(c.Consul.Transport.DialKeepAlive),
+			DialTimeout:         config.TimeDurationVal(c.Consul.Transport.DialTimeout),
+			DisableKeepAlives:   config.BoolVal(c.Consul.Transport.DisableKeepAlives),
+			IdleConnTimeout:     config.TimeDurationVal(c.Consul.Transport.IdleConnTimeout),
+			MaxIdleConns:        config.IntVal(c.Consul.Transport.MaxIdleConns),
+			MaxIdleConnsPerHost: config.IntVal(c.Consul.Transport.MaxIdleConnsPerHost),
+			TLSHandshakeTimeout: config.TimeDurationVal(c.Consul.Transport.TLSHandshakeTimeout),
+		},
+	})
 
-	if err := clients.CreateConsulClient(&dep.CreateConsulClientInput{
-		Address:                      config.StringVal(c.Consul.Address),
-		Namespace:                    config.StringVal(c.Consul.Namespace),
-		Token:                        config.StringVal(c.Consul.Token),
-		AuthEnabled:                  config.BoolVal(c.Consul.Auth.Enabled),
-		AuthUsername:                 config.StringVal(c.Consul.Auth.Username),
-		AuthPassword:                 config.StringVal(c.Consul.Auth.Password),
-		SSLEnabled:                   config.BoolVal(c.Consul.SSL.Enabled),
-		SSLVerify:                    config.BoolVal(c.Consul.SSL.Verify),
-		SSLCert:                      config.StringVal(c.Consul.SSL.Cert),
-		SSLKey:                       config.StringVal(c.Consul.SSL.Key),
-		SSLCACert:                    config.StringVal(c.Consul.SSL.CaCert),
-		SSLCAPath:                    config.StringVal(c.Consul.SSL.CaPath),
-		ServerName:                   config.StringVal(c.Consul.SSL.ServerName),
-		TransportDialKeepAlive:       config.TimeDurationVal(c.Consul.Transport.DialKeepAlive),
-		TransportDialTimeout:         config.TimeDurationVal(c.Consul.Transport.DialTimeout),
-		TransportDisableKeepAlives:   config.BoolVal(c.Consul.Transport.DisableKeepAlives),
-		TransportIdleConnTimeout:     config.TimeDurationVal(c.Consul.Transport.IdleConnTimeout),
-		TransportMaxIdleConns:        config.IntVal(c.Consul.Transport.MaxIdleConns),
-		TransportMaxIdleConnsPerHost: config.IntVal(c.Consul.Transport.MaxIdleConnsPerHost),
-		TransportTLSHandshakeTimeout: config.TimeDurationVal(c.Consul.Transport.TLSHandshakeTimeout),
-	}); err != nil {
-		return nil, fmt.Errorf("runner: %s", err)
-	}
+	clients.AddVault(hcat.VaultInput{
+		Address:     config.StringVal(c.Vault.Address),
+		Namespace:   config.StringVal(c.Vault.Namespace),
+		Token:       config.StringVal(c.Vault.Token),
+		UnwrapToken: config.BoolVal(c.Vault.UnwrapToken),
+		Transport: hcat.TransportInput{
+			SSLEnabled:          config.BoolVal(c.Vault.SSL.Enabled),
+			SSLVerify:           config.BoolVal(c.Vault.SSL.Verify),
+			SSLCert:             config.StringVal(c.Vault.SSL.Cert),
+			SSLKey:              config.StringVal(c.Vault.SSL.Key),
+			SSLCACert:           config.StringVal(c.Vault.SSL.CaCert),
+			SSLCAPath:           config.StringVal(c.Vault.SSL.CaPath),
+			ServerName:          config.StringVal(c.Vault.SSL.ServerName),
+			DialKeepAlive:       config.TimeDurationVal(c.Vault.Transport.DialKeepAlive),
+			DialTimeout:         config.TimeDurationVal(c.Vault.Transport.DialTimeout),
+			DisableKeepAlives:   config.BoolVal(c.Vault.Transport.DisableKeepAlives),
+			IdleConnTimeout:     config.TimeDurationVal(c.Vault.Transport.IdleConnTimeout),
+			MaxIdleConns:        config.IntVal(c.Vault.Transport.MaxIdleConns),
+			MaxIdleConnsPerHost: config.IntVal(c.Vault.Transport.MaxIdleConnsPerHost),
+			TLSHandshakeTimeout: config.TimeDurationVal(c.Vault.Transport.TLSHandshakeTimeout),
+		},
+	})
 
-	if err := clients.CreateVaultClient(&dep.CreateVaultClientInput{
-		Address:                      config.StringVal(c.Vault.Address),
-		Namespace:                    config.StringVal(c.Vault.Namespace),
-		Token:                        config.StringVal(c.Vault.Token),
-		UnwrapToken:                  config.BoolVal(c.Vault.UnwrapToken),
-		SSLEnabled:                   config.BoolVal(c.Vault.SSL.Enabled),
-		SSLVerify:                    config.BoolVal(c.Vault.SSL.Verify),
-		SSLCert:                      config.StringVal(c.Vault.SSL.Cert),
-		SSLKey:                       config.StringVal(c.Vault.SSL.Key),
-		SSLCACert:                    config.StringVal(c.Vault.SSL.CaCert),
-		SSLCAPath:                    config.StringVal(c.Vault.SSL.CaPath),
-		ServerName:                   config.StringVal(c.Vault.SSL.ServerName),
-		TransportDialKeepAlive:       config.TimeDurationVal(c.Vault.Transport.DialKeepAlive),
-		TransportDialTimeout:         config.TimeDurationVal(c.Vault.Transport.DialTimeout),
-		TransportDisableKeepAlives:   config.BoolVal(c.Vault.Transport.DisableKeepAlives),
-		TransportIdleConnTimeout:     config.TimeDurationVal(c.Vault.Transport.IdleConnTimeout),
-		TransportMaxIdleConns:        config.IntVal(c.Vault.Transport.MaxIdleConns),
-		TransportMaxIdleConnsPerHost: config.IntVal(c.Vault.Transport.MaxIdleConnsPerHost),
-		TransportTLSHandshakeTimeout: config.TimeDurationVal(c.Vault.Transport.TLSHandshakeTimeout),
-	}); err != nil {
-		return nil, fmt.Errorf("runner: %s", err)
-	}
-
-	return clients, nil
+	return clients
 }
 
 // newWatcher creates a new watcher.
-func newWatcher(c *config.Config, clients *dep.ClientSet, once bool) (*watch.Watcher, error) {
+func newWatcher(c *config.Config, clients *hcat.ClientSet) *hcat.Watcher {
 	log.Printf("[INFO] (runner) creating watcher")
 
-	w, err := watch.NewWatcher(&watch.NewWatcherInput{
-		Clients:             clients,
-		MaxStale:            config.TimeDurationVal(c.MaxStale),
-		Once:                c.Once,
-		BlockQueryWaitTime:  config.TimeDurationVal(c.BlockQueryWaitTime),
-		RenewVault:          clients.Vault().Token() != "" && config.BoolVal(c.Vault.RenewToken),
-		VaultAgentTokenFile: config.StringVal(c.Vault.VaultAgentTokenFile),
-		RetryFuncConsul:     watch.RetryFunc(c.Consul.Retry.RetryFunc()),
-		// TODO: Add a sane default retry - right now this only affects "local"
-		// dependencies like reading a file from disk.
-		RetryFuncDefault: nil,
-		RetryFuncVault:   watch.RetryFunc(c.Vault.Retry.RetryFunc()),
-		VaultToken:       clients.Vault().Token(),
+	return hcat.NewWatcher(&hcat.WatcherInput{
+		Clients: clients,
+		Cache:   hcat.NewStore(),
+
+		VaultRetryFunc: hcat.RetryFunc(c.Vault.Retry.RetryFunc()),
+
+		ConsulMaxStale:  config.TimeDurationVal(c.MaxStale),
+		ConsulBlockWait: config.TimeDurationVal(c.BlockQueryWaitTime),
+		ConsulRetryFunc: hcat.RetryFunc(c.Consul.Retry.RetryFunc()),
 	})
-	if err != nil {
-		return nil, errors.Wrap(err, "runner")
-	}
-	return w, nil
 }
