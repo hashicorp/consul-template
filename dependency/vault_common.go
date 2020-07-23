@@ -7,10 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
-
 	"github.com/hashicorp/vault/api"
 )
 
@@ -115,22 +112,6 @@ func renewSecret(clients *ClientSet, d renewer) error {
 	}
 }
 
-// durationFrom cert gets the duration of validity from cert data and
-// returns that value as an integer number of seconds
-func durationFromCert(certData string) int {
-	block, _ := pem.Decode([]byte(certData))
-	if block == nil {
-		return -1
-	}
-	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		log.Printf("[WARN] Unable to parse certificate data: %s", err)
-		return -1
-	}
-
-	return int(cert.NotAfter.Sub(cert.NotBefore).Seconds())
-}
-
 // leaseCheckWait accepts a secret and returns the recommended amount of
 // time to sleep.
 func leaseCheckWait(s *Secret) time.Duration {
@@ -141,16 +122,11 @@ func leaseCheckWait(s *Secret) time.Duration {
 	}
 
 	// Handle if this is a certificate with no lease
-	if certInterface, ok := s.Data["certificate"]; ok && s.LeaseID == "" {
-		if certData, ok := certInterface.(string); ok {
-			// Vault adds a 30 second pad to NotAfter to account for clockskew.
-			// We're removing the pad here to give additional time for rendering
-			// before cert expiration when TTL is set to a low value.
-			newDuration := durationFromCert(certData) - 30
-
-			if newDuration > 0 {
-				log.Printf("[DEBUG] Found certificate and set lease duration to %d seconds", newDuration)
-				base = newDuration
+	if _, ok := s.Data["certificate"]; ok && s.LeaseID == "" {
+		if expInterface, ok := s.Data["expiration"]; ok {
+			if expData, err := expInterface.(json.Number).Int64(); err == nil {
+				base = int(expData - time.Now().Unix())
+				log.Printf("[DEBUG] Found certificate and set lease duration to %d seconds", base)
 			}
 		}
 	}
