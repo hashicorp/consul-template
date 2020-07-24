@@ -664,3 +664,70 @@ func TestVaultReadQuery_String(t *testing.T) {
 		})
 	}
 }
+
+func TestShimKVv2Path(t *testing.T) {
+	cases := []struct {
+		name      string
+		path      string
+		mountPath string
+		expected  string
+	}{
+		{
+			"full path",
+			"secret/data/foo/bar",
+			"secret/",
+			"secret/data/foo/bar",
+		}, {
+			"data prefix added",
+			"secret/foo/bar",
+			"secret/",
+			"secret/data/foo/bar",
+		}, {
+			"full path with data* in subpath",
+			"secret/data/datafoo/bar",
+			"secret/",
+			"secret/data/datafoo/bar",
+		}, {
+			"prefix added with data* in subpath",
+			"secret/datafoo/bar",
+			"secret/",
+			"secret/data/datafoo/bar",
+		}, {
+			"prefix added with *data in subpath",
+			"secret/foodata/foo/bar",
+			"secret/",
+			"secret/data/foodata/foo/bar",
+		}, {
+			"prefix not added to metadata",
+			"secret/metadata/foo/bar",
+			"secret/",
+			"secret/metadata/foo/bar",
+		}, {
+			"prefix added with metadata* in subpath",
+			"secret/metadatafoo/foo/bar",
+			"secret/",
+			"secret/data/metadatafoo/foo/bar",
+		}, {
+			"prefix added with *metadata in subpath",
+			"secret/foometadata/foo/bar",
+			"secret/",
+			"secret/data/foometadata/foo/bar",
+		}, {
+			"prefix added to mount path",
+			"secret/",
+			"secret/",
+			"secret/data",
+		}, {
+			"prefix added to mount path not exact match",
+			"secret",
+			"secret/",
+			"secret/data",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := shimKVv2Path(tc.path, tc.mountPath)
+			assert.Equal(t, tc.expected, actual)
+		})
+	}
+}
