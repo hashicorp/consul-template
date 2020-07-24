@@ -336,12 +336,15 @@ func addPrefixToVKVPath(p, mountPath, apiPrefix string) string {
 		return path.Join(mountPath, apiPrefix)
 	default:
 		p = strings.TrimPrefix(p, mountPath)
-		// Don't add /data/ to the path if it's been added manually.
+
+		// Add trailing slash if doesn't already exist to prefix
 		apiPathPrefix := apiPrefix
 		if !strings.HasSuffix(apiPrefix, "/") {
 			apiPathPrefix += "/"
 		}
-		if strings.HasPrefix(p, apiPathPrefix) {
+
+		// Only add prefix to the path if neither /<prefix>/ or /metadata/ are present.
+		if strings.HasPrefix(p, apiPathPrefix) || strings.HasPrefix(p, "metadata/") {
 			return path.Join(mountPath, p)
 		}
 		return path.Join(mountPath, apiPrefix, p)

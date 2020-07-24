@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/vault/api"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewVaultReadQuery(t *testing.T) {
@@ -397,6 +398,18 @@ func TestVaultReadQuery_Fetch_KVv2(t *testing.T) {
 			assert.Equal(t, tc.exp, act)
 		})
 	}
+
+	t.Run("read_metadata", func(t *testing.T) {
+		d, err := NewVaultReadQuery(secretsPath + "/metadata/foo/bar")
+		require.NoError(t, err)
+
+		act, _, err := d.Fetch(clients, nil)
+		require.NoError(t, err)
+		require.NotNil(t, act)
+
+		versions := act.(*Secret).Data["versions"]
+		assert.Len(t, versions, 2)
+	})
 
 	t.Run("read_deleted", func(t *testing.T) {
 		// only needed for KVv2 as KVv1 doesn't have metadata
