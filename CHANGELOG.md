@@ -1,6 +1,4 @@
 ## Upcoming
-FEATURES:
-* Add metrics reporting for stdout, prometheus, and dogstatsd [[GH-1378](https://github.com/hashicorp/consul-template/pull/1378)]
 
 IMPROVEMENTS:
 * Update whitelist/blacklist config options to allowlist/denylist with backward compatibility [[GH-1388](https://github.com/hashicorp/consul-template/pull/1388)]
