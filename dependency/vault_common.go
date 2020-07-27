@@ -3,8 +3,6 @@ package dependency
 import (
 	"log"
 	"math/rand"
-	"path"
-	"strings"
 	"time"
 
 	"encoding/json"
@@ -328,22 +326,4 @@ func isKVv2(client *api.Client, path string) (string, bool, error) {
 	}
 
 	return mountPath, false, nil
-}
-
-func addPrefixToVKVPath(p, mountPath, apiPrefix string) string {
-	switch {
-	case p == mountPath, p == strings.TrimSuffix(mountPath, "/"):
-		return path.Join(mountPath, apiPrefix)
-	default:
-		p = strings.TrimPrefix(p, mountPath)
-		// Don't add /data/ to the path if it's been added manually.
-		apiPathPrefix := apiPrefix
-		if !strings.HasSuffix(apiPrefix, "/") {
-			apiPathPrefix += "/"
-		}
-		if strings.HasPrefix(p, apiPathPrefix) {
-			return path.Join(mountPath, p)
-		}
-		return path.Join(mountPath, apiPrefix, p)
-	}
 }
