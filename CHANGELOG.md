@@ -1,7 +1,14 @@
 ## Upcoming
 
+## v0.25.1 (Jul 27, 2020)
+
 IMPROVEMENTS:
 * Update whitelist/blacklist config options to allowlist/denylist with backward compatibility [[GH-1388](https://github.com/hashicorp/consul-template/pull/1388)]
+
+BUG FIXES:
+* Fix issue rendering empty file to disk [[GH-1393](https://github.com/hashicorp/consul-template/issues/1393)][[GH-1397](https://github.com/hashicorp/consul-template/pull/1397)]
+* Fix issue with Vault PKI cert expiration [[GH-1394](https://github.com/hashicorp/consul-template/pull/1394)]
+* Fix issue reading Vault KVv2 secrets metadata [[GH-1396](https://github.com/hashicorp/consul-template/issues/1396)][[GH-1399](https://github.com/hashicorp/consul-template/pull/1399)]
 
 ## v0.25.0 (Apr 27, 2020)
 
