@@ -188,6 +188,7 @@ test-race:
 _cleanup:
 	@rm -rf "${CURRENT_DIR}/pkg/"
 	@rm -rf "${CURRENT_DIR}/bin/"
+	@rm -f "consul-template"
 .PHONY: _cleanup
 
 clean: _cleanup
