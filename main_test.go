@@ -7,15 +7,16 @@ import (
 	"os"
 	"testing"
 
-	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/hcat"
 )
 
 var testConsul *testutil.TestServer
-var testClients *dep.ClientSet
+var testClients *hcat.ClientSet
 
 func TestMain(m *testing.M) {
+	println(1)
 	log.SetOutput(ioutil.Discard)
 	tb := &test.TestingTB{}
 	consul, err := testutil.NewTestServerConfigT(tb,
@@ -28,14 +29,12 @@ func TestMain(m *testing.M) {
 		log.Fatal(fmt.Errorf("failed to start consul server: %v", err))
 	}
 	testConsul = consul
+	println(2)
 
-	clients := dep.NewClientSet()
-	if err := clients.CreateConsulClient(&dep.CreateConsulClientInput{
+	clients := hcat.NewClientSet()
+	clients.AddConsul(hcat.ConsulInput{
 		Address: testConsul.HTTPAddr,
-	}); err != nil {
-		testConsul.Stop()
-		log.Fatal(err)
-	}
+	})
 	testClients = clients
 
 	exitCh := make(chan int, 1)
