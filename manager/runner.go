@@ -1271,7 +1271,7 @@ func newClientSet(c *config.Config) *hcat.ClientSet {
 func newWatcher(c *config.Config, clients *hcat.ClientSet) *hcat.Watcher {
 	log.Printf("[INFO] (runner) creating watcher")
 
-	return hcat.NewWatcher(&hcat.WatcherInput{
+	return hcat.NewWatcher(hcat.WatcherInput{
 		Clients: clients,
 		Cache:   hcat.NewStore(),
 
