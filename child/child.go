@@ -51,6 +51,8 @@ type Child struct {
 	killSignal  os.Signal
 	killTimeout time.Duration
 
+	setPgid bool
+
 	splay time.Duration
 
 	// cmd is the actual child process under management.
@@ -102,6 +104,10 @@ type NewInput struct {
 	// terminate before force-killing.
 	KillTimeout time.Duration
 
+	// SetPgid should be set to true if the child processes are to be started under
+	// their own pgid
+	SetPgid bool
+
 	// Splay is the maximum random amount of time to wait before sending signals.
 	// This option helps reduce the thundering herd problem by effectively
 	// sleeping for a random amount of time before sending the signal. This
@@ -133,6 +139,7 @@ func New(i *NewInput) (*Child, error) {
 		reloadSignal: i.ReloadSignal,
 		killSignal:   i.KillSignal,
 		killTimeout:  i.KillTimeout,
+		setPgid:      i.SetPgid,
 		splay:        i.Splay,
 		stopCh:       make(chan struct{}, 1),
 	}
@@ -264,6 +271,9 @@ func (c *Child) start() error {
 	cmd.Stdout = c.stdout
 	cmd.Stderr = c.stderr
 	cmd.Env = c.env
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: c.setPgid,
+	}
 	if err := cmd.Start(); err != nil {
 		return err
 	}
