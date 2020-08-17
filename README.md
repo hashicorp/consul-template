@@ -2157,13 +2157,13 @@ This can also be used with a pipe function.
 Returns the maximum of the two values.
 
 ```liquid
-{{ maximum 2 5 }} // 2
+{{ maximum 2 5 }} // 5
 ```
 
 This can also be used with a pipe function.
 
 ```liquid
-{{ 5 | maximum 2 }} // 2
+{{ 5 | maximum 2 }} // 5
 ```
 
 ## Plugins
