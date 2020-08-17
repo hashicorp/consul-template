@@ -301,6 +301,9 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"modulo":   modulo,
 		"minimum":  minimum,
 		"maximum":  maximum,
+		// Debug functions
+		"spew_dump":   spewDump,
+		"spew_printf": spewPrintf,
 	}
 
 	for _, bf := range i.functionDenylist {
