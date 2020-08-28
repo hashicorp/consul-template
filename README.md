@@ -1667,8 +1667,8 @@ Takes the value of a map and converts it into a deeply-nested map for parsing/tr
 using the same logic as `explode`.
 
 ```liquid
-{{ scratch.MapSet "example", "foo/bar", "a" }}
-{{ scratch.MapSet "example", "foo/baz", "b" }}
+{{ scratch.MapSet "example" "foo/bar" "a" }}
+{{ scratch.MapSet "example" "foo/baz" "b" }}
 {{ scratch.Get "example" | explodeMap | toYAML }}
 ```
 
