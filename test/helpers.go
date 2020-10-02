@@ -4,8 +4,11 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func CreateTempfile(b []byte, t *testing.T) *os.File {
@@ -68,5 +71,34 @@ func WaitForContents(t *testing.T, d time.Duration, p, c string) {
 		close(stopCh)
 		t.Errorf("contents not present after %s, expected: %q, actual: %q",
 			d, c, last)
+	}
+}
+
+// Meets consul/sdk/testutil/TestingTB interface
+var _ testutil.TestingTB = (*TestingTB)(nil)
+
+type TestingTB struct {
+	cleanup func()
+	sync.Mutex
+}
+
+func (t *TestingTB) DoCleanup() {
+	t.Lock()
+	defer t.Unlock()
+	t.cleanup()
+}
+
+func (*TestingTB) Failed() bool                { return false }
+func (*TestingTB) Logf(string, ...interface{}) {}
+func (*TestingTB) Name() string                { return "TestingTB" }
+func (t *TestingTB) Cleanup(f func()) {
+	t.Lock()
+	defer t.Unlock()
+	prev := t.cleanup
+	t.cleanup = func() {
+		f()
+		if prev != nil {
+			prev()
+		}
 	}
 }
