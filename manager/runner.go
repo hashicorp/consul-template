@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -325,7 +326,7 @@ func (r *Runner) Start() {
 
 		//OUTER:
 		select {
-		case err := <-r.watcher.WaitCh(0):
+		case err := <-r.watcher.WaitCh(context.Background()):
 			// Push the error back up the stack
 			if err != nil {
 				log.Printf("[ERR] (runner) watcher reported error: %s", err)
@@ -875,7 +876,7 @@ func (r *Runner) init() error {
 			})
 		}
 
-		tmpl := hcat.NewTemplate(&hcat.TemplateInput{
+		tmpl := hcat.NewTemplate(hcat.TemplateInput{
 			Contents:      contents,
 			ErrMissingKey: config.BoolVal(ctmpl.ErrMissingKey),
 			LeftDelim:     leftDelim,
