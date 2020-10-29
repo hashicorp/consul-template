@@ -433,6 +433,11 @@ func (cli *CLI) ParseFlags(args []string) (
 		return nil
 	}), "template", "")
 
+	flags.Var((funcBoolVar)(func(b bool) error {
+		c.TemplateErrFatal = config.Bool(b)
+		return nil
+	}), "template-error-fatal", "")
+
 	flags.Var((funcVar)(func(s string) error {
 		c.Vault.Address = config.String(s)
 		return nil
@@ -581,6 +586,11 @@ func loadConfigs(paths []string, o *config.Config) (*config.Config, error) {
 	}
 
 	finalC = finalC.Merge(o)
+	if o.TemplateErrFatal != nil {
+		for _, tmpl := range *finalC.Templates {
+			tmpl.ErrFatal = o.TemplateErrFatal
+		}
+	}
 	finalC.Finalize()
 	return finalC, nil
 }
@@ -746,7 +756,11 @@ Options:
       attribute is supplied, the -syslog flag must also be supplied
 
   -template=<template>
-       Adds a new template to watch on disk in the format 'in:out(:command)'
+      Adds a new template to watch on disk in the format 'in:out(:command)'
+
+  -template-error-fatal=<bool>
+      Control whether template errors cause consul-template to immediately exit.
+      This overrides the per-template setting.
 
   -vault-addr=<address>
       Sets the address of the Vault server

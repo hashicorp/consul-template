@@ -374,6 +374,11 @@ log_level = "warn"
 # to the process.
 pid_file = "/path/to/pid"
 
+# This controls whether an error within a template will cause consul-template
+# to immediately exit. This value can be overridden within each template
+# configuration.
+template_error_fatal = true
+
 # This is the quiescence timers; it defines the minimum and maximum amount of
 # time to wait for the cluster to reach a consistent state before rendering a
 # template. This is useful to enable in systems that have a lot of flapping,
@@ -584,6 +589,10 @@ template {
   # that does not exist. It is highly recommended you set this to "true" when
   # retrieving secrets from Vault.
   error_on_missing_key = false
+
+  # This controls whether an error within the template will cause
+  # consul-template to immediately exit.
+  error_fatal = true
 
   # This is the permission to render the file. If this option is left
   # unspecified, Consul Template will attempt to match the permissions of the

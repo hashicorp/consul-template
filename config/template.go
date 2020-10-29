@@ -55,6 +55,10 @@ type TemplateConfig struct {
 	// to index a struct or map key that does not exist.
 	ErrMissingKey *bool `mapstructure:"error_on_missing_key"`
 
+	// ErrFatal determines whether template errors should cause the process to
+	// exit, or just log and continue.
+	ErrFatal *bool `mapstructure:"error_fatal"`
+
 	// Exec is the configuration for the command to run when the template renders
 	// successfully.
 	Exec *ExecConfig `mapstructure:"exec"`
@@ -122,6 +126,8 @@ func (c *TemplateConfig) Copy() *TemplateConfig {
 	o.Destination = c.Destination
 
 	o.ErrMissingKey = c.ErrMissingKey
+
+	o.ErrFatal = c.ErrFatal
 
 	if c.Exec != nil {
 		o.Exec = c.Exec.Copy()
@@ -197,6 +203,10 @@ func (c *TemplateConfig) Merge(o *TemplateConfig) *TemplateConfig {
 		r.ErrMissingKey = o.ErrMissingKey
 	}
 
+	if o.ErrFatal != nil {
+		r.ErrFatal = o.ErrFatal
+	}
+
 	if o.Exec != nil {
 		r.Exec = r.Exec.Merge(o.Exec)
 	}
@@ -267,6 +277,10 @@ func (c *TemplateConfig) Finalize() {
 		c.ErrMissingKey = Bool(false)
 	}
 
+	if c.ErrFatal == nil {
+		c.ErrFatal = Bool(true)
+	}
+
 	if c.Exec == nil {
 		c.Exec = DefaultExecConfig()
 	}
@@ -327,6 +341,7 @@ func (c *TemplateConfig) GoString() string {
 		"CreateDestDirs:%s, "+
 		"Destination:%s, "+
 		"ErrMissingKey:%s, "+
+		"ErrFatal:%s, "+
 		"Exec:%#v, "+
 		"Perms:%s, "+
 		"Source:%s, "+
@@ -343,6 +358,7 @@ func (c *TemplateConfig) GoString() string {
 		BoolGoString(c.CreateDestDirs),
 		StringGoString(c.Destination),
 		BoolGoString(c.ErrMissingKey),
+		BoolGoString(c.ErrFatal),
 		c.Exec,
 		FileModeGoString(c.Perms),
 		StringGoString(c.Source),

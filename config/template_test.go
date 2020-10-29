@@ -427,6 +427,7 @@ func TestTemplateConfig_Finalize(t *testing.T) {
 				CreateDestDirs: Bool(true),
 				Destination:    String(""),
 				ErrMissingKey:  Bool(false),
+				ErrFatal:       Bool(true),
 				Exec: &ExecConfig{
 					Command: String(""),
 					Enabled: Bool(false),

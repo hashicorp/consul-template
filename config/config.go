@@ -81,6 +81,10 @@ type Config struct {
 	// Templates is the list of templates.
 	Templates *TemplateConfigs `mapstructure:"template"`
 
+	// TemplateErrFatal determines whether template errors should cause the
+	// process to exit, or just log and continue.
+	TemplateErrFatal *bool `mapstructure:"template_error_fatal"`
+
 	// Vault is the configuration for connecting to a vault server.
 	Vault *VaultConfig `mapstructure:"vault"`
 
@@ -137,6 +141,10 @@ func (c *Config) Copy() *Config {
 
 	if c.Templates != nil {
 		o.Templates = c.Templates.Copy()
+	}
+
+	if c.TemplateErrFatal != nil {
+		o.TemplateErrFatal = c.TemplateErrFatal
 	}
 
 	if c.Vault != nil {
@@ -212,6 +220,10 @@ func (c *Config) Merge(o *Config) *Config {
 
 	if o.Templates != nil {
 		r.Templates = r.Templates.Merge(o.Templates)
+	}
+
+	if o.TemplateErrFatal != nil {
+		r.TemplateErrFatal = o.TemplateErrFatal
 	}
 
 	if o.Vault != nil {
@@ -414,6 +426,7 @@ func (c *Config) GoString() string {
 		"ReloadSignal:%s, "+
 		"Syslog:%#v, "+
 		"Templates:%#v, "+
+		"TemplateErrFatal:%#v"+
 		"Vault:%#v, "+
 		"Wait:%#v,"+
 		"Once:%#v"+
@@ -430,6 +443,7 @@ func (c *Config) GoString() string {
 		SignalGoString(c.ReloadSignal),
 		c.Syslog,
 		c.Templates,
+		c.TemplateErrFatal,
 		c.Vault,
 		c.Wait,
 		c.Once,
@@ -531,6 +545,11 @@ func (c *Config) Finalize() {
 
 	if c.Templates == nil {
 		c.Templates = DefaultTemplateConfigs()
+	}
+	for _, tmpl := range *c.Templates {
+		if tmpl.ErrFatal == nil {
+			tmpl.ErrFatal = c.TemplateErrFatal
+		}
 	}
 	c.Templates.Finalize()
 
