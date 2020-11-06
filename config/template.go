@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 )
 
@@ -101,6 +102,12 @@ type TemplateConfig struct {
 	LeftDelim  *string `mapstructure:"left_delimiter"`
 	RightDelim *string `mapstructure:"right_delimiter"`
 
+	// FuncMap is a map of external functions that this template is
+	// permitted to run. Allows users to add functions to the library
+	// and selectively opaque existing ones. Omitted from json output
+	// to prevent errors when the configuration is marshalled for printing.
+	FuncMap template.FuncMap `json:"-"`
+
 	// FunctionDenylist is a list of functions that this template is not
 	// permitted to run.
 	FunctionDenylist []string `mapstructure:"function_denylist"`
@@ -121,8 +128,9 @@ type TemplateConfig struct {
 // default values.
 func DefaultTemplateConfig() *TemplateConfig {
 	return &TemplateConfig{
-		Exec: DefaultExecConfig(),
-		Wait: DefaultWaitConfig(),
+		Exec:    DefaultExecConfig(),
+		Wait:    DefaultWaitConfig(),
+		FuncMap: template.FuncMap{},
 	}
 }
 
@@ -170,6 +178,10 @@ func (c *TemplateConfig) Copy() *TemplateConfig {
 
 	o.LeftDelim = c.LeftDelim
 	o.RightDelim = c.RightDelim
+
+	for key, fun := range c.FuncMap {
+		o.FuncMap[key] = fun
+	}
 
 	for _, fun := range c.FunctionDenylist {
 		o.FunctionDenylist = append(o.FunctionDenylist, fun)
@@ -271,6 +283,10 @@ func (c *TemplateConfig) Merge(o *TemplateConfig) *TemplateConfig {
 
 	if o.RightDelim != nil {
 		r.RightDelim = o.RightDelim
+	}
+
+	for key, fun := range o.FuncMap {
+		r.FuncMap[key] = fun
 	}
 
 	for _, fun := range o.FunctionDenylist {
@@ -375,6 +391,10 @@ func (c *TemplateConfig) Finalize() {
 
 	if c.SandboxPath == nil {
 		c.SandboxPath = String("")
+	}
+
+	if c.FuncMap == nil {
+		c.FuncMap = template.FuncMap{}
 	}
 
 	if c.FunctionDenylist == nil && c.FunctionDenylistDeprecated == nil {

@@ -2263,6 +2263,22 @@ func TestTemplate_Execute(t *testing.T) {
 			"list list/foo list/foo/zip list list/alpha list/beta/zip ",
 			false,
 		},
+		{
+			"external_func",
+			&NewTemplateInput{
+				Contents: `{{ toUpTest "abCba" }}`,
+				FuncMap: map[string]interface{}{
+					"toUpTest": func(inString string) string {
+						return strings.ToUpper(inString)
+					},
+				},
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"ABCBA",
+			false,
+		},
 	}
 
 	//	struct {
