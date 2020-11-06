@@ -46,6 +46,11 @@ type Template struct {
 	// is indexed with a key that does not exist.
 	errMissingKey bool
 
+	// FuncMap is a map of external functions that this template is
+	// permitted to run. Allows users to add functions to the library
+	// and selectively opaque existing ones.
+	funcMap template.FuncMap
+
 	// functionDenylist are functions not permitted to be executed
 	// when we render this template
 	functionDenylist []string
@@ -71,6 +76,11 @@ type NewTemplateInput struct {
 	// LeftDelim and RightDelim are the template delimiters.
 	LeftDelim  string
 	RightDelim string
+
+	// FuncMap is a map of external functions that this template is
+	// permitted to run. Allows users to add functions to the library
+	// and selectively opaque existing ones.
+	FuncMap template.FuncMap
 
 	// FunctionDenylist are functions not permitted to be executed
 	// when we render this template
@@ -104,6 +114,7 @@ func NewTemplate(i *NewTemplateInput) (*Template, error) {
 	t.leftDelim = i.LeftDelim
 	t.rightDelim = i.RightDelim
 	t.errMissingKey = i.ErrMissingKey
+	t.funcMap = i.FuncMap
 	t.functionDenylist = i.FunctionDenylist
 	t.sandboxPath = i.SandboxPath
 
@@ -183,6 +194,8 @@ func (t *Template) Execute(i *ExecuteInput) (*ExecuteResult, error) {
 		functionDenylist: t.functionDenylist,
 		sandboxPath:      t.sandboxPath,
 	}))
+
+	tmpl.Funcs(t.funcMap)
 
 	if t.errMissingKey {
 		tmpl.Option("missingkey=error")

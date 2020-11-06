@@ -889,6 +889,7 @@ func (r *Runner) init() error {
 			ErrMissingKey:    config.BoolVal(ctmpl.ErrMissingKey),
 			LeftDelim:        leftDelim,
 			RightDelim:       rightDelim,
+			FuncMap:          ctmpl.FuncMap,
 			FunctionDenylist: ctmpl.FunctionDenylist,
 			SandboxPath:      config.StringVal(ctmpl.SandboxPath),
 		})

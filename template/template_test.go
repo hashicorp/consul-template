@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -1770,6 +1771,22 @@ func TestTemplate_Execute(t *testing.T) {
 				}(),
 			},
 			"1.2.3.45.6.7.8",
+			false,
+		},
+		{
+			"external_func",
+			&NewTemplateInput{
+				Contents: `{{ toUpTest "abCba" }}`,
+				FuncMap: map[string]interface{}{
+					"toUpTest": func(inString string) string {
+						return strings.ToUpper(inString)
+					},
+				},
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"ABCBA",
 			false,
 		},
 	}

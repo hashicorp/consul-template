@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"text/template"
 	"time"
 )
 
@@ -453,6 +454,7 @@ func TestTemplateConfig_Finalize(t *testing.T) {
 				},
 				LeftDelim:                  String(""),
 				RightDelim:                 String(""),
+				FuncMap:                    template.FuncMap{},
 				FunctionDenylist:           []string{},
 				FunctionDenylistDeprecated: []string{},
 				SandboxPath:                String(""),
