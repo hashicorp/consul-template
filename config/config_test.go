@@ -1648,7 +1648,7 @@ func TestFinalize(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-			tc.test.Finalize()
+			tc.test.Finalize(false)
 			switch tc.isEqual {
 			case nil:
 				if !reflect.DeepEqual(tc.expt.Wait, tc.test.Wait) {
@@ -2130,14 +2130,14 @@ func TestDefaultConfig(t *testing.T) {
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.env), func(t *testing.T) {
 			r := DefaultConfig().Merge(tc.e)
-			r.Finalize()
+			r.Finalize(false)
 
 			if err := os.Setenv(tc.env, tc.val); err != nil {
 				t.Fatal(err)
 			}
 			defer os.Unsetenv(tc.env)
 			c := DefaultConfig()
-			c.Finalize()
+			c.Finalize(false)
 
 			if !reflect.DeepEqual(r, c) {
 				t.Errorf("Config diff: %s", r.Diff(c))

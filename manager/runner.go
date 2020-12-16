@@ -843,7 +843,7 @@ func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*
 func (r *Runner) init() error {
 	// Ensure default configuration values
 	r.config = config.DefaultConfig().Merge(r.config)
-	r.config.Finalize()
+	r.config.Finalize(false)
 
 	// Print the final config for debugging
 	result, err := json.Marshal(r.config)

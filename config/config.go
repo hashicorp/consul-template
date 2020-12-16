@@ -318,7 +318,7 @@ func Must(s string) *Config {
 // configuration taking precedence.
 func TestConfig(c *Config) *Config {
 	d := DefaultConfig().Merge(c)
-	d.Finalize()
+	d.Finalize(false)
 	return d
 }
 
@@ -478,7 +478,8 @@ func DefaultConfig() *Config {
 // intelligently tries to activate stanzas that should be "enabled" because
 // data was given, but the user did not explicitly add "Enabled: true" to the
 // configuration.
-func (c *Config) Finalize() {
+// The default for errorOnMissingKey is passed from upstream configuration.
+func (c *Config) Finalize(errorOnMissingKey bool) {
 	if c == nil {
 		return
 	}
@@ -532,7 +533,7 @@ func (c *Config) Finalize() {
 	if c.Templates == nil {
 		c.Templates = DefaultTemplateConfigs()
 	}
-	c.Templates.Finalize()
+	c.Templates.Finalize(errorOnMissingKey)
 
 	if c.Vault == nil {
 		c.Vault = DefaultVaultConfig()
