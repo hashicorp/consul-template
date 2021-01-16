@@ -1799,6 +1799,18 @@ func TestConfig_Merge(t *testing.T) {
 			},
 		},
 		{
+			"block_query_wait_nil",
+			&Config{
+				BlockQueryWaitTime: TimeDuration(1 * time.Second),
+			},
+			&Config{
+				BlockQueryWaitTime: nil,
+			},
+			&Config{
+				BlockQueryWaitTime: TimeDuration(1 * time.Second),
+			},
+		},
+		{
 			"pid_file",
 			&Config{
 				PidFile: String("pid_file"),
