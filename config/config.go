@@ -222,9 +222,11 @@ func (c *Config) Merge(o *Config) *Config {
 		r.Wait = r.Wait.Merge(o.Wait)
 	}
 
-	r.Once = o.Once
+	if o.BlockQueryWaitTime != nil {
+		r.BlockQueryWaitTime = o.BlockQueryWaitTime
+	}
 
-	r.BlockQueryWaitTime = o.BlockQueryWaitTime
+	r.Once = o.Once
 
 	return r
 }
