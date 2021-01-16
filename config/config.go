@@ -417,8 +417,8 @@ func (c *Config) GoString() string {
 		"Syslog:%#v, "+
 		"Templates:%#v, "+
 		"Vault:%#v, "+
-		"Wait:%#v,"+
-		"Once:%#v"+
+		"Wait:%#v, "+
+		"Once:%#v, "+
 		"BlockQueryWaitTime:%#v"+
 		"}",
 		c.Consul,
@@ -452,8 +452,14 @@ func (expected *Config) Diff(actual *Config) string {
 		fo := va.Field(i)
 		if !reflect.DeepEqual(fc.Interface(), fo.Interface()) {
 			fmt.Fprintf(&b, "%s:\n", ct.Field(i).Name)
-			fmt.Fprintf(&b, "\texp: %#v\n", fc.Interface())
-			fmt.Fprintf(&b, "\tact: %#v\n", fo.Interface())
+			fi := fc.Interface()
+			if _, ok := fi.(fmt.GoStringer); ok {
+				fmt.Fprintf(&b, "\texp: %#v\n", fc.Interface())
+				fmt.Fprintf(&b, "\tact: %#v\n", fo.Interface())
+			} else {
+				fmt.Fprintf(&b, "\texp: %+v\n", fc.Interface())
+				fmt.Fprintf(&b, "\tact: %+v\n", fo.Interface())
+			}
 		}
 	}
 
