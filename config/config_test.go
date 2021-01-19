@@ -549,9 +549,9 @@ func TestParse(t *testing.T) {
 		},
 		{
 			"block_query_wait",
-			`block_query_wait = "60s"`,
+			`block_query_wait = "61s"`,
 			&Config{
-				BlockQueryWaitTime: TimeDuration(60 * time.Second),
+				BlockQueryWaitTime: TimeDuration(61 * time.Second),
 			},
 			false,
 		},
@@ -1792,10 +1792,22 @@ func TestConfig_Merge(t *testing.T) {
 				BlockQueryWaitTime: TimeDuration(1 * time.Second),
 			},
 			&Config{
-				BlockQueryWaitTime: TimeDuration(60 * time.Second),
+				BlockQueryWaitTime: TimeDuration(61 * time.Second),
 			},
 			&Config{
-				BlockQueryWaitTime: TimeDuration(60 * time.Second),
+				BlockQueryWaitTime: TimeDuration(61 * time.Second),
+			},
+		},
+		{
+			"block_query_wait_nil",
+			&Config{
+				BlockQueryWaitTime: TimeDuration(1 * time.Second),
+			},
+			&Config{
+				BlockQueryWaitTime: nil,
+			},
+			&Config{
+				BlockQueryWaitTime: TimeDuration(1 * time.Second),
 			},
 		},
 		{
