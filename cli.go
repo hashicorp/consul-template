@@ -543,6 +543,12 @@ func (cli *CLI) ParseFlags(args []string) (
 		return nil
 	}), "vault-unwrap-token", "")
 
+	flags.Var((funcDurationVar)(func(d time.Duration) error {
+		c.Vault.DefaultLeaseDuration = config.TimeDuration(d)
+		return nil
+	}), "vault-default-lease-duration", "")
+
+
 	flags.Var((funcVar)(func(s string) error {
 		w, err := config.ParseWaitConfig(s)
 		if err != nil {
@@ -819,6 +825,10 @@ Options:
   -vault-unwrap-token
       Unwrap the provided Vault API token (see Vault documentation for more
       information on this feature)
+
+  -vault-default-lease-duration=<duration>
+	  configures the default lease duration when not explicitly
+	  set by vault
 
   -wait=<duration>
       Sets the 'min(:max)' amount of time to wait before writing a template (and

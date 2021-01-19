@@ -12,7 +12,7 @@ import (
 
 var (
 	// VaultDefaultLeaseDuration is the default lease duration in seconds.
-	VaultDefaultLeaseDuration = 5 * time.Minute
+	VaultDefaultLeaseDuration time.Duration
 )
 
 // Secret is the structure returned for every secret within Vault.
