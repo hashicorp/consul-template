@@ -418,6 +418,12 @@ vault {
   # before being used. Please see Vault's cubbyhole response wrapping
   # documentation for more information.
   unwrap_token = true
+  
+  # The default lease duration Consul Template will use on a Vault secret that 
+  # does not have a lease duration. This is used to calculate the sleep duration
+  # for rechecking a Vault secret value. This field is optional and will default to
+  # 5 minutes.
+  # default_lease_duration = "60s"
 
   # This option tells Consul Template to automatically renew the Vault token
   # given. If you are unfamiliar with Vault's architecture, Vault requires
