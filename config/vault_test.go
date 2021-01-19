@@ -37,6 +37,7 @@ func TestVaultConfig_Copy(t *testing.T) {
 				},
 				UnwrapToken:         Bool(true),
 				VaultAgentTokenFile: String("/tmp/vault/agent/token"),
+				DefaultLeaseDuration: TimeDuration(5 * time.Minute),
 			},
 		},
 	}
@@ -300,6 +301,30 @@ func TestVaultConfig_Merge(t *testing.T) {
 			&VaultConfig{Transport: &TransportConfig{DialKeepAlive: TimeDuration(10 * time.Second)}},
 			&VaultConfig{Transport: &TransportConfig{DialKeepAlive: TimeDuration(10 * time.Second)}},
 		},
+		{
+			"default_lease_duration_overrides",
+			&VaultConfig{DefaultLeaseDuration: TimeDuration(5 * time.Minute)},
+			&VaultConfig{DefaultLeaseDuration: TimeDuration(2 * time.Minute)},
+			&VaultConfig{DefaultLeaseDuration: TimeDuration(2 * time.Minute)},
+		},
+		{
+			"default_lease_duration_empty_one",
+			&VaultConfig{DefaultLeaseDuration: TimeDuration(5 * time.Minute)},
+			&VaultConfig{},
+			&VaultConfig{DefaultLeaseDuration: TimeDuration(5 * time.Minute)},
+		},
+		{
+			"default_lease_duration_empty_two",
+			&VaultConfig{},
+			&VaultConfig{DefaultLeaseDuration: TimeDuration(5 * time.Minute)},
+			&VaultConfig{DefaultLeaseDuration: TimeDuration(5 * time.Minute)},
+		},
+		{
+			"default_lease_duration_same",
+			&VaultConfig{DefaultLeaseDuration: TimeDuration(5 * time.Minute)},
+			&VaultConfig{DefaultLeaseDuration: TimeDuration(5 * time.Minute)},
+			&VaultConfig{DefaultLeaseDuration: TimeDuration(5 * time.Minute)},
+		},
 	}
 
 	for i, tc := range cases {
@@ -354,6 +379,7 @@ func TestVaultConfig_Finalize(t *testing.T) {
 					TLSHandshakeTimeout: TimeDuration(DefaultTLSHandshakeTimeout),
 				},
 				UnwrapToken: Bool(DefaultVaultUnwrapToken),
+				DefaultLeaseDuration: TimeDuration(DefaultVaultLeaseDuration),
 			},
 		},
 		{
@@ -392,6 +418,7 @@ func TestVaultConfig_Finalize(t *testing.T) {
 					TLSHandshakeTimeout: TimeDuration(DefaultTLSHandshakeTimeout),
 				},
 				UnwrapToken: Bool(DefaultVaultUnwrapToken),
+				DefaultLeaseDuration: TimeDuration(DefaultVaultLeaseDuration),
 			},
 		},
 		{
@@ -430,6 +457,47 @@ func TestVaultConfig_Finalize(t *testing.T) {
 					TLSHandshakeTimeout: TimeDuration(DefaultTLSHandshakeTimeout),
 				},
 				UnwrapToken: Bool(DefaultVaultUnwrapToken),
+				DefaultLeaseDuration: TimeDuration(DefaultVaultLeaseDuration),
+			},
+		},
+		{
+			"with_default_lease_duration",
+			&VaultConfig{
+				Address: String("address"),
+				DefaultLeaseDuration: TimeDuration(1 * time.Minute),
+			},
+			&VaultConfig{
+				Address:    String("address"),
+				Enabled:    Bool(true),
+				Namespace:  String(""),
+				RenewToken: Bool(false),
+				Retry: &RetryConfig{
+					Backoff:    TimeDuration(DefaultRetryBackoff),
+					MaxBackoff: TimeDuration(DefaultRetryMaxBackoff),
+					Enabled:    Bool(true),
+					Attempts:   Int(DefaultRetryAttempts),
+				},
+				SSL: &SSLConfig{
+					CaCert:     String(""),
+					CaPath:     String(""),
+					Cert:       String(""),
+					Enabled:    Bool(true),
+					Key:        String(""),
+					ServerName: String(""),
+					Verify:     Bool(true),
+				},
+				Token: String(""),
+				Transport: &TransportConfig{
+					DialKeepAlive:       TimeDuration(DefaultDialKeepAlive),
+					DialTimeout:         TimeDuration(DefaultDialTimeout),
+					DisableKeepAlives:   Bool(false),
+					IdleConnTimeout:     TimeDuration(DefaultIdleConnTimeout),
+					MaxIdleConns:        Int(DefaultMaxIdleConns),
+					MaxIdleConnsPerHost: Int(DefaultMaxIdleConnsPerHost),
+					TLSHandshakeTimeout: TimeDuration(DefaultTLSHandshakeTimeout),
+				},
+				UnwrapToken: Bool(DefaultVaultUnwrapToken),
+				DefaultLeaseDuration: TimeDuration(1 * time.Minute),
 			},
 		},
 	}

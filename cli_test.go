@@ -667,6 +667,16 @@ func TestCLI_ParseFlags(t *testing.T) {
 			false,
 		},
 		{
+			"vault-default-lease-duration",
+			[]string{"-vault-default-lease-duration", "60s"},
+			&config.Config{
+				Vault: &config.VaultConfig{
+					DefaultLeaseDuration: config.TimeDuration(60 * time.Second),
+				},
+			},
+			false,
+		},
+		{
 			"wait_min",
 			[]string{"-wait", "10s"},
 			&config.Config{

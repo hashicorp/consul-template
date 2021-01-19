@@ -1454,6 +1454,18 @@ func TestParse(t *testing.T) {
 			false,
 		},
 		{
+			"vault_default_lease_duration",
+			`vault {
+				default_lease_duration = "60s"
+			}`,
+			&Config{
+				Vault: &VaultConfig{
+					DefaultLeaseDuration: TimeDuration(60 * time.Second),
+				},
+			},
+			false,
+		},
+		{
 			"wait",
 			`wait {
 				min = "10s"
