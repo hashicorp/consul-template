@@ -37,7 +37,6 @@ this functionality might prove useful.
   - [Math Functions](docs/templating-language.md#math-functions)
 - [Observability](docs/observability.md)
   - [Logging](docs/observability.md#logging)
-  - [Telemetry](docs/observability.md#telemetry)
 - [Modes](docs/modes.md)
   - [Once Mode](docs/modes.md#once-mode)
   - [De-Duplication Mode](docs/modes.md#de-duplication-mode)
