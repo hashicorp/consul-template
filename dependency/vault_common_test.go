@@ -63,4 +63,18 @@ func TestVaultRenewDuration(t *testing.T) {
 	if nonRenewableCertDur < 85 || nonRenewableCertDur > 95 {
 		t.Fatalf("non renewable certificate duration is not within 85%% to 95%%: %f", nonRenewableCertDur)
 	}
+
+	// Secret ID TTL handling
+	data = map[string]interface{}{
+		"secret_id":     "abc",
+		"secret_id_ttl": json.Number("60"),
+	}
+
+	nonRenewableSecretID := Secret{LeaseDuration: 100, Data: data}
+	nonRenewableSecretIDDur := leaseCheckWait(&nonRenewableSecretID).Seconds()
+
+	if nonRenewableSecretIDDur < 51 || nonRenewableSecretIDDur > 57 {
+		t.Fatalf("renewable duration is not within 85%% to 95%% of lease duration: %f", nonRenewableSecretIDDur)
+	}
+
 }
