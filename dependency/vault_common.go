@@ -121,7 +121,7 @@ func leaseCheckWait(s *Secret) time.Duration {
 		}
 	}
 
-	// Handle if this is a secret_id with no lease
+	// Handle if this is an AppRole secret_id with no lease
 	if _, ok := s.Data["secret_id"]; ok && s.LeaseID == "" {
 		if expInterface, ok := s.Data["secret_id_ttl"]; ok {
 			if ttlData, err := expInterface.(json.Number).Int64(); err == nil {
