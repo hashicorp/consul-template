@@ -63,4 +63,53 @@ func TestVaultRenewDuration(t *testing.T) {
 	if nonRenewableCertDur < 85 || nonRenewableCertDur > 95 {
 		t.Fatalf("non renewable certificate duration is not within 85%% to 95%%: %f", nonRenewableCertDur)
 	}
+
+	t.Run("secret ID handling", func(t *testing.T) {
+		t.Run("normal case", func(t *testing.T) {
+			// Secret ID TTL handling
+			data := map[string]interface{}{
+				"secret_id":     "abc",
+				"secret_id_ttl": json.Number("60"),
+			}
+
+			nonRenewableSecretID := Secret{LeaseDuration: 100, Data: data}
+			nonRenewableSecretIDDur := leaseCheckWait(&nonRenewableSecretID).Seconds()
+
+			if nonRenewableSecretIDDur < 0.85*(60+1) || nonRenewableSecretIDDur > 0.95*(60+1) {
+				t.Fatalf("renewable duration is not within 85%% to 95%% of lease duration: %f", nonRenewableSecretIDDur)
+			}
+		})
+
+		t.Run("0 ttl", func(t *testing.T) {
+			const leaseDuration = 1000
+
+			data := map[string]interface{}{
+				"secret_id":     "abc",
+				"secret_id_ttl": json.Number("0"),
+			}
+
+			nonRenewableSecretID := Secret{LeaseDuration: leaseDuration, Data: data}
+			nonRenewableSecretIDDur := leaseCheckWait(&nonRenewableSecretID).Seconds()
+
+			if nonRenewableSecretIDDur < 0.85*(leaseDuration+1) || nonRenewableSecretIDDur > 0.95*(leaseDuration+1) {
+				t.Fatalf("renewable duration is not within 85%% to 95%% of lease duration: %f", nonRenewableSecretIDDur)
+			}
+		})
+
+		t.Run("ttl missing", func(t *testing.T) {
+			const leaseDuration = 1000
+
+			data := map[string]interface{}{
+				"secret_id": "abc",
+			}
+
+			nonRenewableSecretID := Secret{LeaseDuration: leaseDuration, Data: data}
+			nonRenewableSecretIDDur := leaseCheckWait(&nonRenewableSecretID).Seconds()
+
+			if nonRenewableSecretIDDur < 0.85*(leaseDuration+1) || nonRenewableSecretIDDur > 0.95*(leaseDuration+1) {
+				t.Fatalf("renewable duration is not within 85%% to 95%% of lease duration: %f", nonRenewableSecretIDDur)
+			}
+		})
+
+	})
 }
