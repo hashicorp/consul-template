@@ -98,7 +98,7 @@ func (cli *CLI) Run(args []string) int {
 	// print their version on stderr anyway.
 	if isVersion {
 		log.Printf("[DEBUG] (cli) version flag was given, exiting now")
-		fmt.Fprintf(cli.errStream, "%s\n", version.HumanVersion)
+		fmt.Fprintf(cli.outStream, "%s\n", version.HumanVersion)
 		return ExitCodeOK
 	}
 
