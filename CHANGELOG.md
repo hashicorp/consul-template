@@ -1,5 +1,12 @@
 ## Upcoming
 
+## v0.25.2 (Feb ??, 2021)
+
+BREAKING CHANGES:
+
+* version output from -v/-version should go to STDOUT (not STDERR)[[GH-1452](https://github.com/hashicorp/consul-template/issues/1452)]
+
+
 ## v0.25.1 (Jul 27, 2020)
 
 IMPROVEMENTS:
