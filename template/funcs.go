@@ -2,6 +2,7 @@ package template
 
 import (
 	"bytes"
+	"crypto/md5"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -1541,4 +1542,9 @@ func sha256Hex(item string) (string, error) {
 	h.Write([]byte(item))
 	output := hex.EncodeToString(h.Sum(nil))
 	return output, nil
+}
+
+// md5sum returns the md5 hash of a string
+func md5sum(item string) (string, error) {
+	return fmt.Sprintf("%x", md5.Sum([]byte(item))), nil
 }

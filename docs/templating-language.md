@@ -65,6 +65,7 @@ provides the following functions:
   - [regexReplaceAll](#regexreplaceall)
   - [replaceAll](#replaceall)
   - [sha256Hex](#sha256hex)
+  - [md5sum](#md5sum)
   - [split](#split)
   - [timestamp](#timestamp)
   - [toJSON](#tojson)
@@ -1302,6 +1303,14 @@ Takes the argument as a string and compute the sha256_hex value
 
 ```liquid
 {{ "bladibla" | sha256Hex }}
+```
+
+### `md5sum`
+
+Takes a string input as an argument, and returns the hex-encoded md5 hash of the input.
+
+```liquid
+{{ "myString" | md5 }}
 ```
 
 ### `split`

@@ -234,3 +234,36 @@ func Test_sha256Hex(t *testing.T) {
 		})
 	}
 }
+
+func Test_md5sum(t *testing.T) {
+	type args struct {
+		item string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			name: "Should return the proper string",
+			args: args{
+				item: "bladibla",
+			},
+			want:    "c6886abd136f7daece35aebb01f1b713",
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := md5sum(tt.args.item)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("md5sum() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("md5sum() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

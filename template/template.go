@@ -279,6 +279,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"regexMatch":      regexMatch,
 		"replaceAll":      replaceAll,
 		"sha256Hex":       sha256Hex,
+		"md5sum":          md5sum,
 		"timestamp":       timestamp,
 		"toLower":         toLower,
 		"toJSON":          toJSON,
