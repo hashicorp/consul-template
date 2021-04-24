@@ -1548,6 +1548,44 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"helper_toUnescapedJSON",
+			&NewTemplateInput{
+				Contents: `{{ "a?b&c,x?y&z" | split "," | toUnescapedJSON }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"[\"a?b&c\",\"x?y&z\"]",
+			false,
+		},
+		{
+			"helper_toUnescapedJSONPretty",
+			&NewTemplateInput{
+				Contents: `{{ tree "key" | explode | toUnescapedJSONPretty }}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewKVListQuery("key")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, []*dep.KeyPair{
+						&dep.KeyPair{Key: "a", Value: "b&c"},
+						&dep.KeyPair{Key: "x", Value: "y&z"},
+						&dep.KeyPair{Key: "k", Value: "<>&&"},
+					})
+					return b
+				}(),
+			},
+			`{
+  "a": "b&c",
+  "k": "<>&&",
+  "x": "y&z"
+}`,
+			false,
+		},
+		{
 			"helper_toLower",
 			&NewTemplateInput{
 				Contents: `{{ "HI" | toLower }}`,
