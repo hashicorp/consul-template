@@ -70,6 +70,8 @@ provides the following functions:
   - [timestamp](#timestamp)
   - [toJSON](#tojson)
   - [toJSONPretty](#tojsonpretty)
+  - [toUnescapedJSON](#tounescapedjson)
+  - [toUnescapedJSONPretty](#tounescapedjsonpretty)
   - [toLower](#tolower)
   - [toTitle](#totitle)
   - [toTOML](#totoml)
@@ -1392,6 +1394,42 @@ renders
 ```
 
 Note: Consul stores all KV data as strings. Thus true is "true", 1 is "1", etc.
+
+##### `toUnescapedJSON`
+
+Takes the result from a `tree` or `ls` call and converts it into a JSON object without HTML escaping. This function comes in handy when working with db connection strings or URIs containing query parameters.
+
+```liquid
+{{ tree "config" | explode | toUnescapedJSON }}
+```
+
+renders
+
+```javascript
+{"admin":{"port":"1234"},"maxconns":"5","minconns":"2", "queryparams": "a?b=c&d=e"}
+```
+
+##### `toUnescapedJSONPretty`
+
+Takes the result from a `tree` or `ls` call and converts it into a
+pretty-printed JSON object without HTML escaping, indented by two spaces.
+
+```liquid
+{{ tree "config" | explode | toUnescapedJSONPretty }}
+```
+
+renders
+
+```javascript
+{
+  "admin": {
+    "port": "1234"
+  },
+  "maxconns": "5",
+  "minconns": "2",
+  "queryparams": "a?b=c&d=e"
+}
+```
 
 ### `toLower`
 
