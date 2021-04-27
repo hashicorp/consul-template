@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/consul-template/config"
 	"github.com/hashicorp/consul-template/logging"
 	"github.com/hashicorp/consul-template/manager"
+	"github.com/hashicorp/consul-template/service_os"
 	"github.com/hashicorp/consul-template/signals"
 	"github.com/hashicorp/consul-template/version"
 )
@@ -124,6 +125,10 @@ func (cli *CLI) Run(args []string) int {
 			return logError(err, code)
 		case <-runner.DoneCh:
 			return ExitCodeOK
+		case <-service_os.Shutdown_Channel():
+			fmt.Fprintf(cli.errStream, "Cleaning up...\n")
+			runner.StopImmediately()
+			return ExitCodeInterrupt
 		case s := <-cli.signalCh:
 			log.Printf("[DEBUG] (cli) receiving signal %q", s)
 
