@@ -1,15 +1,11 @@
 package dependency
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"math/rand"
-	"path"
-	"strings"
 	"time"
-
-	"crypto/x509"
-	"encoding/json"
-	"encoding/pem"
 
 	"github.com/hashicorp/vault/api"
 )
@@ -73,9 +69,6 @@ type renewer interface {
 	Dependency
 	stopChan() chan struct{}
 	secrets() (*Secret, *api.Secret)
-
-	// recordCounter is an abstraction from metrics reporting for a renewer
-	recordCounter(string, string)
 }
 
 func renewSecret(clients *ClientSet, d renewer) error {
@@ -96,39 +89,17 @@ func renewSecret(clients *ClientSet, d renewer) error {
 		case err := <-renewer.DoneCh():
 			if err != nil {
 				log.Printf("[WARN] %s: failed to renew: %s", d, err)
-				d.recordCounter("status", "stopped")
-			} else {
-				d.recordCounter("status", "expired")
 			}
-
 			log.Printf("[WARN] %s: renewer done (maybe the lease expired)", d)
 			return nil
 		case renewal := <-renewer.RenewCh():
 			log.Printf("[TRACE] %s: successfully renewed", d)
 			printVaultWarnings(d, renewal.Secret.Warnings)
 			updateSecret(secret, renewal.Secret)
-			d.recordCounter("status", "renewed")
 		case <-d.stopChan():
-			d.recordCounter("status", "stopped")
 			return ErrStopped
 		}
 	}
-}
-
-// durationFrom cert gets the duration of validity from cert data and
-// returns that value as an integer number of seconds
-func durationFromCert(certData string) int {
-	block, _ := pem.Decode([]byte(certData))
-	if block == nil {
-		return -1
-	}
-	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		log.Printf("[WARN] Unable to parse certificate data: %s", err)
-		return -1
-	}
-
-	return int(cert.NotAfter.Sub(cert.NotBefore).Seconds())
 }
 
 // leaseCheckWait accepts a secret and returns the recommended amount of
@@ -141,12 +112,21 @@ func leaseCheckWait(s *Secret) time.Duration {
 	}
 
 	// Handle if this is a certificate with no lease
-	if certInterface, ok := s.Data["certificate"]; ok && s.LeaseID == "" {
-		if certData, ok := certInterface.(string); ok {
-			newDuration := durationFromCert(certData)
-			if newDuration > 0 {
-				log.Printf("[DEBUG] Found certificate and set lease duration to %d seconds", newDuration)
-				base = newDuration
+	if _, ok := s.Data["certificate"]; ok && s.LeaseID == "" {
+		if expInterface, ok := s.Data["expiration"]; ok {
+			if expData, err := expInterface.(json.Number).Int64(); err == nil {
+				base = int(expData - time.Now().Unix())
+				log.Printf("[DEBUG] Found certificate and set lease duration to %d seconds", base)
+			}
+		}
+	}
+
+	// Handle if this is an AppRole secret_id with no lease
+	if _, ok := s.Data["secret_id"]; ok && s.LeaseID == "" {
+		if expInterface, ok := s.Data["secret_id_ttl"]; ok {
+			if ttlData, err := expInterface.(json.Number).Int64(); err == nil && ttlData > 0 {
+				base = int(ttlData) + 1
+				log.Printf("[DEBUG] Found approle secret_id and non-zero secret_id_ttl, setting lease duration to %d seconds", base)
 			}
 		}
 	}
@@ -332,6 +312,9 @@ func isKVv2(client *api.Client, path string) (string, bool, error) {
 	if err != nil {
 		return "", false, err
 	}
+	if secret == nil {
+		return "", false, fmt.Errorf("secret at path %s does not exist", path)
+	}
 	var mountPath string
 	if mountPathRaw, ok := secret.Data["path"]; ok {
 		mountPath = mountPathRaw.(string)
@@ -357,22 +340,4 @@ func isKVv2(client *api.Client, path string) (string, bool, error) {
 	}
 
 	return mountPath, false, nil
-}
-
-func addPrefixToVKVPath(p, mountPath, apiPrefix string) string {
-	switch {
-	case p == mountPath, p == strings.TrimSuffix(mountPath, "/"):
-		return path.Join(mountPath, apiPrefix)
-	default:
-		p = strings.TrimPrefix(p, mountPath)
-		// Don't add /data/ to the path if it's been added manually.
-		apiPathPrefix := apiPrefix
-		if !strings.HasSuffix(apiPrefix, "/") {
-			apiPathPrefix += "/"
-		}
-		if strings.HasPrefix(p, apiPathPrefix) {
-			return path.Join(mountPath, p)
-		}
-		return path.Join(mountPath, apiPrefix, p)
-	}
 }

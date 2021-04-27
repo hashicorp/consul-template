@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/consul-template/manager"
 	"github.com/hashicorp/consul-template/service_os"
 	"github.com/hashicorp/consul-template/signals"
-	"github.com/hashicorp/consul-template/telemetry"
 	"github.com/hashicorp/consul-template/version"
 )
 
@@ -100,16 +99,9 @@ func (cli *CLI) Run(args []string) int {
 	// print their version on stderr anyway.
 	if isVersion {
 		log.Printf("[DEBUG] (cli) version flag was given, exiting now")
-		fmt.Fprintf(cli.errStream, "%s\n", version.HumanVersion)
+		fmt.Fprintf(cli.outStream, "%s\n", version.HumanVersion)
 		return ExitCodeOK
 	}
-
-	// Initialize telemetry
-	tel, err := telemetry.Init(config.Telemetry)
-	if err != nil {
-		return logError(err, ExitCodeConfigError)
-	}
-	defer tel.Stop()
 
 	// Initial runner
 	runner, err := manager.NewRunner(config, dry)
