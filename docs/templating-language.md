@@ -164,8 +164,7 @@ Syntax is exactly the same as for the [service](#service) function below.
 server {{ .Name }} {{ .Address }}:{{ .Port }}{{ end }}
 ```
 
-renders the IP addresses of all _
-y_ nodes with a logical
+renders the IP addresses of all _healthy_ nodes with a logical
 [connect][connect]-capable service named "web":
 
 ```text
