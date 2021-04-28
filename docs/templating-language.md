@@ -164,7 +164,8 @@ Syntax is exactly the same as for the [service](#service) function below.
 server {{ .Name }} {{ .Address }}:{{ .Port }}{{ end }}
 ```
 
-renders the IP addresses of all _healthy_ nodes with a logical
+renders the IP addresses of all _
+y_ nodes with a logical
 [connect][connect]-capable service named "web":
 
 ```text
@@ -580,10 +581,15 @@ order. If provided a node name, results are ordered by shortest round-trip time
 to the provided node. If provided `_agent`, results are ordered by shortest
 round-trip time to the local agent.
 
-The `<FILTER>` attribute is optional; if omitted, only health services are
+The `<FILTER>` attribute is optional; if omitted, only healthy services are
 returned. Providing a filter allows for client-side filtering of services.
 
 For example:
+
+```liquid
+{{ range service tag1.web@east-aws }}
+server {{ .Name }} {{ .Address }}:{{ .Port }}{{ end }}
+```
 
 The example above is querying Consul for healthy "web" services, in the "east-aws" data center. The tag and data center attributes are optional. To query all nodes of the "web" service (regardless of tag) for the current data center:
 
