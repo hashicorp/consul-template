@@ -1,3 +1,27 @@
+## v0.25.2 (Feb 19, 2021)
+
+BREAKING CHANGES:
+* version output from -v/-version should go to STDOUT (not STDERR)[[GH-1452](https://github.com/hashicorp/consul-template/issues/1452), [GH-1455](https://github.com/hashicorp/consul-template/pull/1455)]
+* log date output format consistency fix [[GH-1412](https://github.com/hashicorp/consul-template/pull/1412)]
+
+BUG FIXES:
+* fix extra logging/broken log levels [[GH-1438](https://github.com/hashicorp/consul-template/issues/1438), [GH-1426](https://github.com/hashicorp/consul-template/issues/1426), [GH-1454](https://github.com/hashicorp/consul-template/pull/1454), []()]
+* fix issue with vault secret panic/missing nil check [[GH-1450](https://github.com/hashicorp/consul-template/issues/1450), [GH-1447](https://github.com/hashicorp/consul-template/pull/1447)]
+* Override block_query_wait doesn't work [[GH-1441](https://github.com/hashicorp/consul-template/issues/1441), [GH-1443](https://github.com/hashicorp/consul-template/pull/1443)]
+
+IMPROVEMENTS:
+* vault secret ttl handling [[Gh-1451](https://github.com/hashicorp/consul-template/pull/1451)]
+
+## v0.25.1 (Jul 27, 2020)
+
+IMPROVEMENTS:
+* Update whitelist/blacklist config options to allowlist/denylist with backward compatibility [[GH-1388](https://github.com/hashicorp/consul-template/pull/1388)]
+
+BUG FIXES:
+* Fix issue rendering empty file to disk [[GH-1393](https://github.com/hashicorp/consul-template/issues/1393)][[GH-1397](https://github.com/hashicorp/consul-template/pull/1397)]
+* Fix issue with Vault PKI cert expiration [[GH-1394](https://github.com/hashicorp/consul-template/pull/1394)]
+* Fix issue reading Vault KVv2 secrets metadata [[GH-1396](https://github.com/hashicorp/consul-template/issues/1396)][[GH-1399](https://github.com/hashicorp/consul-template/pull/1399)]
+
 ## v0.25.0 (Apr 27, 2020)
 
 IMPROVEMENTS:

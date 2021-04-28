@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	vapi "github.com/hashicorp/vault/api"
@@ -25,7 +26,8 @@ var testClients *ClientSet
 func TestMain(m *testing.M) {
 	log.SetOutput(ioutil.Discard)
 	runTestVault()
-	runTestConsul()
+	tb := &test.TestingTB{}
+	runTestConsul(tb)
 	clients := NewClientSet()
 	if err := clients.CreateConsulClient(&CreateConsulClientInput{
 		Address: testConsul.HTTPAddr,
@@ -53,6 +55,24 @@ func TestMain(m *testing.M) {
 		},
 	}
 	if err := consul_agent.ServiceRegister(serviceMetaService); err != nil {
+		Fatalf("%v", err)
+	}
+	// service with serviceTaggedAddresses
+	serviceTaggedAddressesService := &api.AgentServiceRegistration{
+		ID:   "service-taggedAddresses",
+		Name: "service-taggedAddresses",
+		TaggedAddresses: map[string]api.ServiceAddress{
+			"lan": {
+				Address: "192.0.2.1",
+				Port:    80,
+			},
+			"wan": {
+				Address: "192.0.2.2",
+				Port:    443,
+			},
+		},
+	}
+	if err := consul_agent.ServiceRegister(serviceTaggedAddressesService); err != nil {
 		Fatalf("%v", err)
 	}
 	// connect enabled service
@@ -98,13 +118,14 @@ func TestMain(m *testing.M) {
 
 	exit := <-exitCh
 
+	tb.DoCleanup()
 	testConsul.Stop()
 	testVault.Stop()
 	os.Exit(exit)
 }
 
-func runTestConsul() {
-	consul, err := testutil.NewTestServerConfig(
+func runTestConsul(tb testutil.TestingTB) {
+	consul, err := testutil.NewTestServerConfigT(tb,
 		func(c *testutil.TestServerConfig) {
 			c.LogLevel = "warn"
 			c.Stdout = ioutil.Discard

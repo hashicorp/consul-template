@@ -316,6 +316,43 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 				},
 			},
 		},
+		{
+			"service-taggedAddresses",
+			"service-taggedAddresses",
+			[]*HealthService{
+				&HealthService{
+					Node:        testConsul.Config.NodeName,
+					NodeAddress: testConsul.Config.Bind,
+					NodeTaggedAddresses: map[string]string{
+						"lan": "127.0.0.1",
+						"wan": "127.0.0.1",
+					},
+					NodeMeta: map[string]string{
+						"consul-network-segment": "",
+					},
+					ServiceMeta: map[string]string{},
+					Address:     testConsul.Config.Bind,
+					ServiceTaggedAddresses: map[string]api.ServiceAddress{
+						"lan": {
+							Address: "192.0.2.1",
+							Port:    80,
+						},
+						"wan": {
+							Address: "192.0.2.2",
+							Port:    443,
+						},
+					},
+					ID:     "service-taggedAddresses",
+					Name:   "service-taggedAddresses",
+					Tags:   []string{},
+					Status: "passing",
+					Weights: api.AgentWeights{
+						Passing: 1,
+						Warning: 1,
+					},
+				},
+			},
+		},
 	}
 
 	for i, tc := range cases {
