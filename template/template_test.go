@@ -1811,9 +1811,9 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
-			"spew_dump_simple_output",
+			"spew_sdump_simple_output",
 			&NewTemplateInput{
-				Contents: `{{ timestamp "2006-01-02" | spew_dump }}`,
+				Contents: `{{ timestamp "2006-01-02" | spew_sdump }}`,
 			},
 			&ExecuteInput{
 				Brain: NewBrain(),
@@ -1822,9 +1822,9 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
-			"spew_dump_helper_split",
+			"spew_sdump_helper_split",
 			&NewTemplateInput{
-				Contents: `{{ "a,b,c" | split "," | spew_dump}}`,
+				Contents: `{{ "a,b,c" | split "," | spew_sdump}}`,
 			},
 			&ExecuteInput{
 				Brain: NewBrain(),
