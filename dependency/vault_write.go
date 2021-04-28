@@ -175,5 +175,3 @@ func (d *VaultWriteQuery) writeSecret(clients *ClientSet, opts *QueryOptions) (*
 
 	return vaultSecret, nil
 }
-
-func (d *VaultWriteQuery) recordCounter(key, value string) {}

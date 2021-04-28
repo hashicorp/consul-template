@@ -14,8 +14,8 @@ import (
 	"github.com/hashicorp/consul-template/config"
 	"github.com/hashicorp/consul-template/logging"
 	"github.com/hashicorp/consul-template/manager"
+	"github.com/hashicorp/consul-template/service_os"
 	"github.com/hashicorp/consul-template/signals"
-	"github.com/hashicorp/consul-template/telemetry"
 	"github.com/hashicorp/consul-template/version"
 )
 
@@ -99,16 +99,9 @@ func (cli *CLI) Run(args []string) int {
 	// print their version on stderr anyway.
 	if isVersion {
 		log.Printf("[DEBUG] (cli) version flag was given, exiting now")
-		fmt.Fprintf(cli.errStream, "%s\n", version.HumanVersion)
+		fmt.Fprintf(cli.outStream, "%s\n", version.HumanVersion)
 		return ExitCodeOK
 	}
-
-	// Initialize telemetry
-	tel, err := telemetry.Init(config.Telemetry)
-	if err != nil {
-		return logError(err, ExitCodeConfigError)
-	}
-	defer tel.Stop()
 
 	// Initial runner
 	runner, err := manager.NewRunner(config, dry)
@@ -132,6 +125,10 @@ func (cli *CLI) Run(args []string) int {
 			return logError(err, code)
 		case <-runner.DoneCh:
 			return ExitCodeOK
+		case <-service_os.Shutdown_Channel():
+			fmt.Fprintf(cli.errStream, "Cleaning up...\n")
+			runner.StopImmediately()
+			return ExitCodeInterrupt
 		case s := <-cli.signalCh:
 			log.Printf("[DEBUG] (cli) receiving signal %q", s)
 

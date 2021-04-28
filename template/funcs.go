@@ -2,6 +2,7 @@ package template
 
 import (
 	"bytes"
+	"crypto/md5"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -1121,6 +1122,30 @@ func toJSONPretty(m map[string]interface{}) (string, error) {
 	return string(bytes.TrimSpace(result)), err
 }
 
+// toUnescapedJSON converts the given structure into a deeply nested JSON string without HTML escaping.
+func toUnescapedJSON(i interface{}) (string, error) {
+	buf := &bytes.Buffer{}
+	encoder := json.NewEncoder(buf)
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(i); err != nil {
+		return "", errors.Wrap(err, "toUnescapedJSON")
+	}
+	return strings.TrimRight(buf.String(), "\r\n"), nil
+}
+
+// toUnescapedJSONPretty converts the given structure into a deeply nested pretty JSON
+// string without HTML escaping.
+func toUnescapedJSONPretty(m map[string]interface{}) (string, error) {
+	buf := &bytes.Buffer{}
+	encoder := json.NewEncoder(buf)
+	encoder.SetEscapeHTML(false)
+	encoder.SetIndent("", "  ")
+	if err := encoder.Encode(m); err != nil {
+		return "", errors.Wrap(err, "toUnescapedJSONPretty")
+	}
+	return strings.TrimRight(buf.String(), "\r\n"), nil
+}
+
 // toTitle converts the given string (usually by a pipe) to titlecase.
 func toTitle(s string) (string, error) {
 	return strings.Title(s), nil
@@ -1501,8 +1526,8 @@ func maximum(b, a interface{}) (interface{}, error) {
 	}
 }
 
-// blacklisted always returns an error, to be used in place of blacklisted template functions
-func blacklisted(...string) (string, error) {
+// denied always returns an error, to be used in place of denied template functions
+func denied(...string) (string, error) {
 	return "", errors.New("function is disabled")
 }
 
@@ -1541,4 +1566,9 @@ func sha256Hex(item string) (string, error) {
 	h.Write([]byte(item))
 	output := hex.EncodeToString(h.Sum(nil))
 	return output, nil
+}
+
+// md5sum returns the md5 hash of a string
+func md5sum(item string) (string, error) {
+	return fmt.Sprintf("%x", md5.Sum([]byte(item))), nil
 }

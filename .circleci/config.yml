@@ -3,16 +3,16 @@ jobs:
   build:
     environment:
       GO111MODULE: "on"
-      CONSUL_VERSION: 1.6.4
-      VAULT_VERSION: 1.3.2
+      CONSUL_VERSION: 1.8.0
+      VAULT_VERSION: 1.4.2
     docker:
-      - image: circleci/golang:latest
+      - image: docker.mirror.hashicorp.services/circleci/golang:latest
     working_directory: /go/src/github.com/hashicorp/consul-template
     steps:
       - checkout
       - restore_cache:
           keys:
-          - ct-modcache-v1-{{ checksum "go.mod" }}
+            - ct-modcache-v1-{{ checksum "go.mod" }}
       - run: |
           curl -sLo consul.zip https://releases.hashicorp.com/consul/${CONSUL_VERSION}/consul_${CONSUL_VERSION}_linux_amd64.zip
           unzip consul.zip
@@ -26,5 +26,4 @@ jobs:
       - save_cache:
           key: ct-modcache-v1-{{ checksum "go.mod" }}
           paths:
-          - /go/pkg/mod
-
+            - /go/pkg/mod
