@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	spewLib "github.com/davecgh/go-spew/spew"
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul/api"
 	socktmpl "github.com/hashicorp/go-sockaddr/template"
@@ -1571,4 +1572,22 @@ func sha256Hex(item string) (string, error) {
 // md5sum returns the md5 hash of a string
 func md5sum(item string) (string, error) {
 	return fmt.Sprintf("%x", md5.Sum([]byte(item))), nil
+}
+
+func spewSdump(args ...interface{}) (string, error) {
+	return spewLib.Sdump(args...), nil
+}
+
+func spewSprintf(format string, args ...interface{}) (string, error) {
+	return spewLib.Sprintf(format, args...), nil
+}
+
+func spewDump(args ...interface{}) (string, error) {
+	spewLib.Dump(args...)
+	return "", nil
+}
+
+func spewPrintf(format string, args ...interface{}) (string, error) {
+	spewLib.Printf(format, args...)
+	return "", nil
 }

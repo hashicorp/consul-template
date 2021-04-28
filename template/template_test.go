@@ -1810,6 +1810,28 @@ func TestTemplate_Execute(t *testing.T) {
 			"1.2.3.45.6.7.8",
 			false,
 		},
+		{
+			"spew_sdump_simple_output",
+			&NewTemplateInput{
+				Contents: `{{ timestamp "2006-01-02" | spew_sdump }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"(string) (len=10) \"1970-01-01\"\n",
+			false,
+		},
+		{
+			"spew_sdump_helper_split",
+			&NewTemplateInput{
+				Contents: `{{ "a,b,c" | split "," | spew_sdump}}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"([]string) (len=3 cap=3) {\n (string) (len=1) \"a\",\n (string) (len=1) \"b\",\n (string) (len=1) \"c\"\n}\n",
+			false,
+		},
 	}
 
 	//	struct {

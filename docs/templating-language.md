@@ -86,6 +86,11 @@ provides the following functions:
   - [modulo](#modulo)
   - [minimum](#minimum)
   - [maximum](#maximum)
+- [Debugging Functions](#debugging)
+  - [spew_dump](#spew_dump)
+  - [spew_sdump](#spew_sdump)
+  - [spew_printf](#spew_printf)
+  - [spew_sprintf](#spew_sdump)
 
 ## API Functions
 
@@ -96,12 +101,12 @@ services like [Consul][consul] and [Vault][vault].
 
 Query [Consul][consul] for the leaf certificate representing a single service.
 
-```liquid
+```golang
 {{ caLeaf "<NAME>" }}
 ```
 
 For example:
-```liquid
+```golang
 {{ with caLeaf "proxy" }}{{ .CertPEM }}{{ end }}
 ```
 
@@ -123,12 +128,12 @@ list of available fields, see consul's documentation on
 Query [Consul][consul] for all [connect][connect] trusted certificate authority
 (CA) root certificates.
 
-```liquid
+```golang
 {{ caRoots }}
 ```
 
 For example:
-```liquid
+```golang
 {{ range caRoots }}{{ .RootCertPEM }}{{ end }}
 ```
 
@@ -152,14 +157,14 @@ fields, see consul's documentation on
 Query [Consul][consul] for [connect][connect]-capable services based on their
 health.
 
-```liquid
+```golang
 {{ connect "<TAG>.<NAME>@<DATACENTER>~<NEAR>|<FILTER>" }}
 ```
 
 Syntax is exactly the same as for the [service](#service) function below.
 
 
-```liquid
+```golang
 {{ range connect "web" }}
 server {{ .Name }} {{ .Address }}:{{ .Port }}{{ end }}
 ```
@@ -177,13 +182,13 @@ server web02 10.2.6.61:21000
 
 Query [Consul][consul] for all datacenters in its catalog.
 
-```liquid
+```golang
 {{ datacenters }}
 ```
 
 For example:
 
-```liquid
+```golang
 {{ range datacenters }}
 {{ . }}{{ end }}
 ```
@@ -200,7 +205,7 @@ datacenters which are inaccessible or do not have a current leader. Enabling
 this option requires an O(N+1) operation and therefore is not recommended in
 environments where performance is a factor.
 
-```liquid
+```golang
 // Ignores datacenters which are inaccessible
 {{ datacenters true }}
 ```
@@ -211,13 +216,13 @@ Read and output the contents of a local file on disk. If the file cannot be
 read, an error will occur. When the file changes, Consul Template will pick up
 the change and re-render the template.
 
-```liquid
+```golang
 {{ file "<PATH>" }}
 ```
 
 For example:
 
-```liquid
+```golang
 {{ file "/path/to/my/file" }}
 ```
 
@@ -236,7 +241,7 @@ Query [Consul][consul] for the value at the given key path. If the key does not
 exist, Consul Template will block rendering until the key is present. To avoid
 blocking, use `keyOrDefault` or `keyExists`.
 
-```liquid
+```golang
 {{ key "<PATH>@<DATACENTER>" }}
 ```
 
@@ -245,7 +250,7 @@ used.
 
 For example:
 
-```liquid
+```golang
 {{ key "service/redis/maxconns" }}
 ```
 
@@ -261,7 +266,7 @@ Query [Consul][consul] for the value at the given key path. If the key exists,
 this will return true, false otherwise. Unlike `key`, this function will not
 block if the key does not exist. This is useful for controlling flow.
 
-```liquid
+```golang
 {{ keyExists "<PATH>@<DATACENTER>" }}
 ```
 
@@ -270,7 +275,7 @@ used.
 
 For example:
 
-```liquid
+```golang
 {{ if keyExists "app/beta_active" }}
   # ...
 {{ else }}
@@ -284,7 +289,7 @@ Query [Consul][consul] for the value at the given key path. If the key does not
 exist, the default value will be used instead. Unlike `key`, this function will
 not block if the key does not exist.
 
-```liquid
+```golang
 {{ keyOrDefault "<PATH>@<DATACENTER>" "<DEFAULT>" }}
 ```
 
@@ -293,7 +298,7 @@ used.
 
 For example:
 
-```liquid
+```golang
 {{ keyOrDefault "service/redis/maxconns" "5" }}
 ```
 
@@ -316,7 +321,7 @@ not yet returned data for the key, the default value will be used instead.
 
 Query [Consul][consul] for all top-level kv pairs at the given key path.
 
-```liquid
+```golang
 {{ ls "<PATH>@<DATACENTER>" }}
 ```
 
@@ -325,7 +330,7 @@ used.
 
 For example:
 
-```liquid
+```golang
 {{ range ls "service/redis" }}
 {{ .Key }}:{{ .Value }}{{ end }}
 ```
@@ -358,7 +363,7 @@ To learn how `safeLs` was born see [CT-1131](https://github.com/hashicorp/consul
 
 Query [Consul][consul] for a node in the catalog.
 
-```liquid
+```golang
 {{node "<NAME>@<DATACENTER>"}}
 ```
 
@@ -369,7 +374,7 @@ used.
 
 For example:
 
-```liquid
+```golang
 {{ with node }}
 {{ .Node.Address }}{{ end }}
 ```
@@ -382,7 +387,7 @@ renders
 
 To query a different node:
 
-```liquid
+```golang
 {{ with node "node1@dc2" }}
 {{ .Node.Address }}{{ end }}
 ```
@@ -400,7 +405,7 @@ To access map data such as `TaggedAddresses` or `Meta`, use
 
 Query [Consul][consul] for all nodes in the catalog.
 
-```liquid
+```golang
 {{ nodes "@<DATACENTER>~<NEAR>" }}
 ```
 
@@ -414,7 +419,7 @@ round-trip time to the local agent.
 
 For example:
 
-```liquid
+```golang
 {{ range nodes }}
 {{ .Address }}{{ end }}
 ```
@@ -428,7 +433,7 @@ renders
 
 To query a different data center and order by shortest trip time to ourselves:
 
-```liquid
+```golang
 {{ range nodes "@dc2~_agent" }}
 {{ .Address }}{{ end }}
 ```
@@ -440,7 +445,7 @@ To access map data such as `TaggedAddresses` or `Meta`, use
 
 Query [Vault][vault] for the secret at the given path.
 
-```liquid
+```golang
 {{ secret "<PATH>" "<DATA>" }}
 ```
 
@@ -450,7 +455,7 @@ PUT/POST) request.
 
 For example:
 
-```liquid
+```golang
 {{ with secret "secret/passwords" }}
 {{ .Data.wifi }}{{ end }}
 ```
@@ -463,7 +468,7 @@ FORWARDSoneword
 
 To access a versioned secret value (for the K/V version 2 backend):
 
-```liquid
+```golang
 {{ with secret "secret/passwords?version=1" }}
 {{ .Data.data.wifi }}{{ end }}
 ```
@@ -481,7 +486,7 @@ so these are the only affected versions.
 
 An example using write to generate PKI certificates:
 
-```liquid
+```golang
 {{ with secret "pki/issue/my-domain-dot-com" "common_name=foo.example.com" }}
 {{ .Data.certificate }}{{ end }}
 ```
@@ -515,7 +520,7 @@ template {
 
 You can also guard against empty values using `if` or `with` blocks.
 
-```liquid
+```golang
 {{ with secret "secret/foo"}}
 {{ if .Data.password }}
 password = "{{ .Data.password }}"
@@ -528,13 +533,13 @@ password = "{{ .Data.password }}"
 Query [Vault][vault] for the list of secrets at the given path. Not all
 endpoints support listing.
 
-```liquid
+```golang
 {{ secrets "<PATH>" }}
 ```
 
 For example:
 
-```liquid
+```golang
 {{ range secrets "secret/" }}
 {{ . }}{{ end }}
 ```
@@ -549,7 +554,7 @@ zip
 
 To iterate and list over every secret in the generic secret backend in Vault:
 
-```liquid
+```golang
 {{ range secrets "secret/" }}
 {{ with secret (printf "secret/%s" .) }}{{ range $k, $v := .Data }}
 {{ $k }}: {{ $v }}
@@ -566,7 +571,7 @@ end of the `secret` function.
 
 Query [Consul][consul] for services based on their health.
 
-```liquid
+```golang
 {{ service "<TAG>.<NAME>@<DATACENTER>~<NEAR>|<FILTER>" }}
 ```
 
@@ -592,7 +597,7 @@ server {{ .Name }} {{ .Address }}:{{ .Port }}{{ end }}
 
 The example above is querying Consul for healthy "web" services, in the "east-aws" data center. The tag and data center attributes are optional. To query all nodes of the "web" service (regardless of tag) for the current data center:
 
-```liquid
+```golang
 {{ range service "web" }}
 server {{ .Name }} {{ .Address }}:{{ .Port }}{{ end }}
 ```
@@ -611,7 +616,7 @@ To access map data such as `NodeTaggedAddresses` or `NodeMeta`, use
 By default only healthy services are returned. To list all services, pass the
 "any" filter:
 
-```liquid
+```golang
 {{ service "web|any" }}
 ```
 
@@ -621,7 +626,7 @@ status.
 To filter services by a specific set of healths, specify a comma-separated list
 of health statuses:
 
-```liquid
+```golang
 {{ service "web|passing,warning" }}
 ```
 
@@ -634,7 +639,7 @@ not recognize service names containing dots.
 
 **Note:** There is an architectural difference between the following:
 
-```liquid
+```golang
 {{ service "web" }}
 {{ service "web|passing" }}
 ```
@@ -650,7 +655,7 @@ argument instead.
 
 Query [Consul][consul] for all services in the catalog.
 
-```liquid
+```golang
 {{ services "@<DATACENTER>" }}
 ```
 
@@ -659,7 +664,7 @@ used.
 
 For example:
 
-```liquid
+```golang
 {{ range services }}
 {{ .Name }}: {{ .Tags | join "," }}{{ end }}
 ```
@@ -674,7 +679,7 @@ node01 tag1,tag2,tag3
 
 Query [Consul][consul] for all kv pairs at the given key path.
 
-```liquid
+```golang
 {{ tree "<PATH>@<DATACENTER>" }}
 ```
 
@@ -683,7 +688,7 @@ used.
 
 For example:
 
-```liquid
+```golang
 {{ range tree "service/redis" }}
 {{ .Key }}:{{ .Value }}{{ end }}
 ```
@@ -728,7 +733,7 @@ between templates and is not cached between invocations.
 Returns a boolean if data exists in the scratchpad at the named key. Even if the
 data at that key is "nil", this still returns true.
 
-```liquid
+```golang
 {{ scratch.Key "foo" }}
 ```
 
@@ -737,7 +742,7 @@ data at that key is "nil", this still returns true.
 Returns the value in the scratchpad at the named key. If the data does not
 exist, this will return "nil".
 
-```liquid
+```golang
 {{ scratch.Get "foo" }}
 ```
 
@@ -746,7 +751,7 @@ exist, this will return "nil".
 Saves the given value at the given key. If data already exists at that key, it
 is overwritten.
 
-```liquid
+```golang
 {{ scratch.Set "foo" "bar" }}
 ```
 
@@ -755,7 +760,7 @@ is overwritten.
 This behaves exactly the same as `Set`, but does not overwrite if the value
 already exists.
 
-```liquid
+```golang
 {{ scratch.SetX "foo" "bar" }}
 ```
 
@@ -764,7 +769,7 @@ already exists.
 Saves a value in a named key in the map. If data already exists at that key, it
 is overwritten.
 
-```liquid
+```golang
 {{ scratch.MapSet "vars" "foo" "bar" }}
 ```
 
@@ -773,7 +778,7 @@ is overwritten.
 This behaves exactly the same as `MapSet`, but does not overwrite if the value
 already exists.
 
-```liquid
+```golang
 {{ scratch.MapSetX "vars" "foo" "bar" }}
 ```
 
@@ -781,7 +786,7 @@ already exists.
 
 Returns a sorted list (by key) of all values in the named map.
 
-```liquid
+```golang
 {{ scratch.MapValues "vars" }}
 ```
 
@@ -797,7 +802,7 @@ functions are useful for parsing data, formatting data, performing math, etc.
 Accepts a base64-encoded string and returns the decoded result, or an error if
 the given string is not a valid base64 string.
 
-```liquid
+```golang
 {{ base64Decode "aGVsbG8=" }}
 ```
 
@@ -811,7 +816,7 @@ hello
 
 Accepts a string and returns a base64-encoded string.
 
-```liquid
+```golang
 {{ base64Encode "hello" }}
 ```
 
@@ -826,7 +831,7 @@ aGVsbG8=
 Accepts a base64-encoded URL-safe string and returns the decoded result, or an
 error if the given string is not a valid base64 URL-safe string.
 
-```liquid
+```golang
 {{ base64URLDecode "aGVsbG8=" }}
 ```
 
@@ -840,7 +845,7 @@ hello
 
 Accepts a string and returns a base-64 encoded URL-safe string.
 
-```liquid
+```golang
 {{ base64Encode "hello" }}
 ```
 
@@ -866,7 +871,7 @@ services/elasticsearch/check_indexes
 
 with the following template
 
-```liquid
+```golang
 {{ range $key, $pairs := tree "groups" | byKey }}{{ $key }}:
 {{ range $pair := $pairs }}  {{ .Key }}={{ .Value }}
 {{ end }}{{ end }}
@@ -887,7 +892,7 @@ prefix after stripping are removed from the list.
 The resulting pairs are keyed as a map, so it is possible to look up a single
 value by key:
 
-```liquid
+```golang
 {{ $weights := tree "weights" }}
 {{ range service "release.web" }}
   {{ $weight := or (index $weights .Node) 100 }}
@@ -899,7 +904,7 @@ value by key:
 Takes the list of services returned by the [`service`](#service) or
 [`services`](#services) function and creates a map that groups services by tag.
 
-```liquid
+```golang
 {{ range $tag, $services := service "web" | byTag }}{{ $tag }}
 {{ range $services }} server {{ .Name }} {{ .Address }}:{{ .Port }}
 {{ end }}{{ end }}
@@ -951,7 +956,7 @@ If we have the following services registered in Consul:
 }
 ```
 
-```liquid
+```golang
 {{ service "redis|any" | byMeta "environment,shard_number|int" | toJSON }}
 ```
 
@@ -984,7 +989,7 @@ The code above will produce a map of services grouped by meta:
 
 Determines if a needle is within an iterable element.
 
-```liquid
+```golang
 {{ if .Tags | contains "production" }}
 # ...
 {{ end }}
@@ -995,7 +1000,7 @@ Determines if a needle is within an iterable element.
 Returns `true` if all needles are within an iterable element, or `false`
 otherwise. Returns `true` if the list of needles is empty.
 
-```liquid
+```golang
 {{ if containsAll $requiredTags .Tags }}
 # ...
 {{ end }}
@@ -1006,7 +1011,7 @@ otherwise. Returns `true` if the list of needles is empty.
 Returns `true` if any needle is within an iterable element, or `false`
 otherwise. Returns `false` if the list of needles is empty.
 
-```liquid
+```golang
 {{ if containsAny $acceptableTags .Tags }}
 # ...
 {{ end }}
@@ -1017,7 +1022,7 @@ otherwise. Returns `false` if the list of needles is empty.
 Returns `true` if no needles are within an iterable element, or `false`
 otherwise. Returns `true` if the list of needles is empty.
 
-```liquid
+```golang
 {{ if containsNone $forbiddenTags .Tags }}
 # ...
 {{ end }}
@@ -1028,7 +1033,7 @@ otherwise. Returns `true` if the list of needles is empty.
 Returns `true` if some needle is not within an iterable element, or `false`
 otherwise. Returns `false` if the list of needles is empty.
 
-```liquid
+```golang
 {{ if containsNotAll $excludingTags .Tags }}
 # ...
 {{ end }}
@@ -1038,19 +1043,19 @@ otherwise. Returns `false` if the list of needles is empty.
 
 Reads the given environment variable accessible to the current process.
 
-```liquid
+```golang
 {{ env "CLUSTER_ID" }}
 ```
 
 This function can be chained to manipulate the output:
 
-```liquid
+```golang
 {{ env "CLUSTER_ID" | toLower }}
 ```
 
 Reads the given environment variable and if it does not exist or is blank use a default value, ex `12345`.
 
-```liquid
+```golang
 {{ or (env "CLUSTER_ID") "12345" }}
 ```
 
@@ -1058,7 +1063,7 @@ Reads the given environment variable and if it does not exist or is blank use a 
 
 Executes and returns a defined template.
 
-```liquid
+```golang
 {{ define "custom" }}my custom template{{ end }}
 
 This is my other template:
@@ -1079,14 +1084,14 @@ Or save it to a variable:
 Takes the result from a `tree` or `ls` call and converts it into a deeply-nested
 map for parsing/traversing.
 
-```liquid
+```golang
 {{ tree "config" | explode }}
 ```
 
 Note: You will lose any metadata about the key-pair after it has been exploded.
 You can also access deeply nested values:
 
-```liquid
+```golang
 {{ with tree "config" | explode }}
 {{ .a.b.c }}{{ end }}
 ```
@@ -1100,7 +1105,7 @@ You will need to have a reasonable format about your data in Consul. Please see
 Takes the value of a map and converts it into a deeply-nested map for parsing/traversing,
 using the same logic as `explode`.
 
-```liquid
+```golang
 {{ scratch.MapSet "example", "foo/bar", "a" }}
 {{ scratch.MapSet "example", "foo/baz", "b" }}
 {{ scratch.Get "example" | explodeMap | toYAML }}
@@ -1110,7 +1115,7 @@ using the same logic as `explode`.
 
 Indents a block of text by prefixing N number of spaces per line.
 
-```liquid
+```golang
 {{ tree "foo" | explode | toYAML | indent 4 }}
 ```
 
@@ -1118,7 +1123,7 @@ Indents a block of text by prefixing N number of spaces per line.
 
 Determines if a needle is within an iterable element.
 
-```liquid
+```golang
 {{ if in .Tags "production" }}
 # ...
 {{ end }}
@@ -1131,7 +1136,7 @@ Accepts varying parameters and differs its behavior based on those parameters.
 If `loop` is given one integer, it will return a goroutine that begins at zero
 and loops up to but not including the given integer:
 
-```liquid
+```golang
 {{ range loop 5 }}
 # Comment{{end}}
 ```
@@ -1139,7 +1144,7 @@ and loops up to but not including the given integer:
 If given two integers, this function will return a goroutine that begins at
 the first integer and loops up to but not including the second integer:
 
-```liquid
+```golang
 {{ range $i := loop 5 8 }}
 stanza-{{ $i }}{{ end }}
 ```
@@ -1156,7 +1161,7 @@ Note: It is not possible to get the index and the element since the function
 returns a goroutine, not a slice. In other words, the following is **not
 valid**:
 
-```liquid
+```golang
 # Will NOT work!
 {{ range $i, $e := loop 5 8 }}
 # ...{{ end }}
@@ -1166,7 +1171,7 @@ valid**:
 
 Takes the given list of strings as a pipe and joins them on the provided string:
 
-```liquid
+```golang
 {{ $items | join "," }}
 ```
 
@@ -1174,7 +1179,7 @@ Takes the given list of strings as a pipe and joins them on the provided string:
 
 Takes the provided input and trims all whitespace, tabs and newlines:
 
-```liquid
+```golang
 {{ file "/etc/ec2_version" | trimSpace }}
 ```
 
@@ -1182,13 +1187,13 @@ Takes the provided input and trims all whitespace, tabs and newlines:
 
 Takes the given string and parses it as a boolean:
 
-```liquid
+```golang
 {{ "true" | parseBool }}
 ```
 
 This can be combined with a key and a conditional check, for example:
 
-```liquid
+```golang
 {{ if key "feature/enabled" | parseBool }}{{ end }}
 ```
 
@@ -1196,7 +1201,7 @@ This can be combined with a key and a conditional check, for example:
 
 Takes the given string and parses it as a base-10 float64:
 
-```liquid
+```golang
 {{ "1.2" | parseFloat }}
 ```
 
@@ -1204,13 +1209,13 @@ Takes the given string and parses it as a base-10 float64:
 
 Takes the given string and parses it as a base-10 int64:
 
-```liquid
+```golang
 {{ "1" | parseInt }}
 ```
 
 This can be combined with other helpers, for example:
 
-```liquid
+```golang
 {{ range $i := loop key "config/pool_size" | parseInt }}
 # ...{{ end }}
 ```
@@ -1220,7 +1225,7 @@ This can be combined with other helpers, for example:
 Takes the given input (usually the value from a key) and parses the result as
 JSON:
 
-```liquid
+```golang
 {{ with $d := key "user/info" | parseJSON }}{{ $d.name }}{{ end }}
 ```
 
@@ -1232,7 +1237,7 @@ yet). This means that templates must guard against empty responses.
 
 Takes the given string and parses it as a base-10 int64:
 
-```liquid
+```golang
 {{ "1" | parseUint }}
 ```
 
@@ -1241,7 +1246,7 @@ Takes the given string and parses it as a base-10 int64:
 Takes the given input (usually the value from a key) and parses the result as
 YAML:
 
-```liquid
+```golang
 {{ with $d := key "user/info" | parseYAML }}{{ $d.name }}{{ end }}
 ```
 
@@ -1252,7 +1257,7 @@ Note: The same caveats that apply to `parseJSON` apply to `parseYAML`.
 Takes the name of a plugin and optional payload and executes a Consul Template
 plugin.
 
-```liquid
+```golang
 {{ plugin "my-plugin" }}
 ```
 
@@ -1260,7 +1265,7 @@ The plugin can take an arbitrary number of string arguments, and can be the
 target of a pipeline that produces strings as well. This is most commonly
 combined with a JSON filter for customization:
 
-```liquid
+```golang
 {{ tree "foo" | explode | toJSON | plugin "my-plugin" }}
 ```
 
@@ -1271,7 +1276,7 @@ Please see the [plugins](#plugins) section for more information about plugins.
 Takes the argument as a regular expression and will return `true` if it matches
 on the given string, or `false` otherwise.
 
-```liquid
+```golang
 {{ if "foo.bar" | regexMatch "foo([.a-z]+)" }}
 # ...
 {{ else }}
@@ -1285,7 +1290,7 @@ Takes the argument as a regular expression and replaces all occurrences of the
 regex with the given string. As in go, you can use variables like $1 to refer to
 subexpressions in the replacement string.
 
-```liquid
+```golang
 {{ "foo.bar" | regexReplaceAll "foo([.a-z]+)" "$1" }}
 ```
 
@@ -1294,13 +1299,13 @@ subexpressions in the replacement string.
 Takes the argument as a string and replaces all occurrences of the given string
 with the given string.
 
-```liquid
+```golang
 {{ "foo.bar" | replaceAll "." "_" }}
 ```
 
 This function can be chained with other functions as well:
 
-```liquid
+```golang
 {{ service "web" }}{{ .Name | replaceAll ":" "_" }}{{ end }}
 ```
 
@@ -1308,7 +1313,7 @@ This function can be chained with other functions as well:
 
 Takes the argument as a string and compute the sha256_hex value
 
-```liquid
+```golang
 {{ "bladibla" | sha256Hex }}
 ```
 
@@ -1316,7 +1321,7 @@ Takes the argument as a string and compute the sha256_hex value
 
 Takes a string input as an argument, and returns the hex-encoded md5 hash of the input.
 
-```liquid
+```golang
 {{ "myString" | md5 }}
 ```
 
@@ -1324,13 +1329,13 @@ Takes a string input as an argument, and returns the hex-encoded md5 hash of the
 
 Splits the given string on the provided separator:
 
-```liquid
+```golang
 {{ "foo\nbar\n" | split "\n" }}
 ```
 
 This can be combined with chained and piped with other functions:
 
-```liquid
+```golang
 {{ key "foo" | toUpper | split "\n" | join "," }}
 ```
 
@@ -1339,7 +1344,7 @@ This can be combined with chained and piped with other functions:
 Returns the current timestamp as a string (UTC). If no arguments are given, the
 result is the current RFC3339 timestamp:
 
-```liquid
+```golang
 {{ timestamp }} // e.g. 1970-01-01T00:00:00Z
 ```
 
@@ -1347,7 +1352,7 @@ If the optional parameter is given, it is used to format the timestamp. The
 magic reference date **Mon Jan 2 15:04:05 -0700 MST 2006** can be used to format
 the date as required:
 
-```liquid
+```golang
 {{ timestamp "2006-01-02" }} // e.g. 1970-01-01
 ```
 
@@ -1357,7 +1362,7 @@ information.
 As a special case, if the optional parameter is `"unix"`, the unix timestamp in
 seconds is returned as a string.
 
-```liquid
+```golang
 {{ timestamp "unix" }} // e.g. 0
 ```
 
@@ -1365,13 +1370,13 @@ seconds is returned as a string.
 
 Takes the result from a `tree` or `ls` call and converts it into a JSON object.
 
-```liquid
+```golang
 {{ tree "config" | explode | toJSON }}
 ```
 
 renders
 
-```javascript
+```json
 {"admin":{"port":"1234"},"maxconns":"5","minconns":"2"}
 ```
 
@@ -1382,13 +1387,13 @@ Note: Consul stores all KV data as strings. Thus true is "true", 1 is "1", etc.
 Takes the result from a `tree` or `ls` call and converts it into a
 pretty-printed JSON object, indented by two spaces.
 
-```liquid
+```golang
 {{ tree "config" | explode | toJSONPretty }}
 ```
 
 renders
 
-```javascript
+```json
 {
   "admin": {
     "port": "1234"
@@ -1404,13 +1409,13 @@ Note: Consul stores all KV data as strings. Thus true is "true", 1 is "1", etc.
 
 Takes the result from a `tree` or `ls` call and converts it into a JSON object without HTML escaping. This function comes in handy when working with db connection strings or URIs containing query parameters.
 
-```liquid
+```golang
 {{ tree "config" | explode | toUnescapedJSON }}
 ```
 
 renders
 
-```javascript
+```json
 {"admin":{"port":"1234"},"maxconns":"5","minconns":"2", "queryparams": "a?b=c&d=e"}
 ```
 
@@ -1419,13 +1424,13 @@ renders
 Takes the result from a `tree` or `ls` call and converts it into a
 pretty-printed JSON object without HTML escaping, indented by two spaces.
 
-```liquid
+```golang
 {{ tree "config" | explode | toUnescapedJSONPretty }}
 ```
 
 renders
 
-```javascript
+```json
 {
   "admin": {
     "port": "1234"
@@ -1440,7 +1445,7 @@ renders
 
 Takes the argument as a string and converts it to lowercase.
 
-```liquid
+```golang
 {{ key "user/name" | toLower }}
 ```
 
@@ -1451,7 +1456,7 @@ information.
 
 Takes the argument as a string and converts it to titlecase.
 
-```liquid
+```golang
 {{ key "user/name" | toTitle }}
 ```
 
@@ -1462,7 +1467,7 @@ information.
 
 Takes the result from a `tree` or `ls` call and converts it into a TOML object.
 
-```liquid
+```golang
 {{ tree "config" | explode | toTOML }}
 ```
 
@@ -1482,7 +1487,7 @@ Note: Consul stores all KV data as strings. Thus true is "true", 1 is "1", etc.
 
 Takes the argument as a string and converts it to uppercase.
 
-```liquid
+```golang
 {{ key "user/name" | toUpper }}
 ```
 
@@ -1494,7 +1499,7 @@ information.
 Takes the result from a `tree` or `ls` call and converts it into a
 pretty-printed YAML object, indented by two spaces.
 
-```liquid
+```golang
 {{ tree "config" | explode | toYAML }}
 ```
 
@@ -1514,7 +1519,7 @@ Note: Consul stores all KV data as strings. Thus true is "true", 1 is "1", etc.
 Takes a quote-escaped template string as an argument and passes it on to
 [hashicorp/go-sockaddr](https://github.com/hashicorp/go-sockaddr) templating engine.
 
-```liquid
+```golang
 {{ sockaddr "GetPrivateIP" }}
 ```
 
@@ -1531,13 +1536,13 @@ The following functions are available on floats and integer values.
 
 Returns the sum of the two values.
 
-```liquid
+```golang
 {{ add 1 2 }} // 3
 ```
 
 This can also be used with a pipe function.
 
-```liquid
+```golang
 {{ 1 | add 2 }} // 3
 ```
 
@@ -1545,13 +1550,13 @@ This can also be used with a pipe function.
 
 Returns the difference of the second value from the first.
 
-```liquid
+```golang
 {{ subtract 2 5 }} // 3
 ```
 
 This can also be used with a pipe function.
 
-```liquid
+```golang
 {{ 5 | subtract 2 }} // 3
 ```
 
@@ -1561,13 +1566,13 @@ Please take careful note of the order of arguments.
 
 Returns the product of the two values.
 
-```liquid
+```golang
 {{ multiply 2 2 }} // 4
 ```
 
 This can also be used with a pipe function.
 
-```liquid
+```golang
 {{ 2 | multiply 2 }} // 4
 ```
 
@@ -1575,13 +1580,13 @@ This can also be used with a pipe function.
 
 Returns the division of the second value from the first.
 
-```liquid
+```golang
 {{ divide 2 10 }} // 5
 ```
 
 This can also be used with a pipe function.
 
-```liquid
+```golang
 {{ 10 | divide 2 }} // 5
 ```
 
@@ -1591,13 +1596,13 @@ Please take careful note of the order or arguments.
 
 Returns the modulo of the second value from the first.
 
-```liquid
+```golang
 {{ modulo 2 5 }} // 1
 ```
 
 This can also be used with a pipe function.
 
-```liquid
+```golang
 {{ 5 | modulo 2 }} // 1
 ```
 
@@ -1607,13 +1612,13 @@ Please take careful note of the order of arguments.
 
 Returns the minimum of the two values.
 
-```liquid
+```golang
 {{ minimum 2 5 }} // 2
 ```
 
 This can also be used with a pipe function.
 
-```liquid
+```golang
 {{ 5 | minimum 2 }} // 2
 ```
 
@@ -1621,12 +1626,156 @@ This can also be used with a pipe function.
 
 Returns the maximum of the two values.
 
-```liquid
+```golang
 {{ maximum 2 5 }} // 2
 ```
 
 This can also be used with a pipe function.
 
-```liquid
+```golang
 {{ 5 | maximum 2 }} // 2
 ```
+
+## Debugging Functions
+
+Debugging functions help template developers understand the current context of a template block. These
+are provided by the spew library. See the **github.com/davecgh/go-spew/spew** documentation for more information.
+
+### `spew_dump`
+
+Outputs the value with full newlines, indentation, type, and pointer
+information to stdout (instead of rendered in the template) by calling `spew.Dump` on it. Returns an empty string
+or an error.
+
+```golang
+{{- $JSON := `{ "foo": { "bar":true, "baz":"string", "theAnswer":42} }` -}}
+{{- $OBJ := parseJSON $JSON -}}
+{{- spew_dump $OBJ -}}
+```
+
+renders
+
+```golang
+> 
+(map[string]interface {}) (len=1) {
+ (string) (len=3) "foo": (map[string]interface {}) (len=3) {
+  (string) (len=3) "bar": (bool) true,
+  (string) (len=3) "baz": (string) (len=6) "string",
+  (string) (len=9) "theAnswer": (float64) 42
+ }
+}
+```
+
+### `spew_sdump`
+
+Creates a string containing the values with full newlines, indentation, type, and pointer information by calling `spew.Sdump` on them. Returns an error or the string. The return value can be captured as a variable, used as input to a pipeline, or written to the template in place.
+
+```golang
+{{- $JSON := `{ "foo": { "bar":true, "baz":"string", "theAnswer":42} }` -}}
+{{- $OBJ := parseJSON $JSON -}}
+{{- spew_dump $OBJ -}}
+```
+
+renders
+
+```golang
+> 
+(map[string]interface {}) (len=1) {
+ (string) (len=3) "foo": (map[string]interface {}) (len=3) {
+  (string) (len=3) "bar": (bool) true,
+  (string) (len=3) "baz": (string) (len=6) "string",
+  (string) (len=9) "theAnswer": (float64) 42
+ }
+}
+```
+
+### `spew_printf`
+
+Formats output according to the provided format string and then writes the generated information to stdout. You can use format strings to produce a compacted inline printing style,by your choice of `%v` (most compact), `%+v` (adds pointer addresses), `%#v` (adds types), or `%#+v` (adds types and pointer addresses):
+
+```golang
+spew_printf("myVar1: %v -- myVar2: %+v", myVar1, myVar2)
+spew_printf("myVar3: %#v -- myVar4: %#+v", myVar3, myVar4)
+```
+
+**Example**
+
+Given this template fragment,
+
+```golang
+{{- $JSON := `{ "foo": { "bar":true, "baz":"string", "theAnswer":42} }` -}}
+{{- $OBJ := parseJSON $JSON -}}
+```
+
+#### using `%v` 
+
+```golang
+{{- spew_printf "%v\n" $OBJ }}
+```
+
+outputs 
+
+```golang
+map[foo:map[bar:true baz:string theAnswer:42]]
+```
+
+#### using `%+v` 
+
+
+```golang
+{{ spew_printf "%+v\n" $OBJ }}
+```
+
+outputs
+
+```
+map[foo:map[bar:true baz:string theAnswer:42]]
+```
+
+#### using `%+v`
+
+```golang
+{{ spew_printf "%v\n" $OBJ }}
+```
+
+outputs 
+
+```json
+map[foo:map[bar:true baz:string theAnswer:42]]
+```
+
+#### using `%#v`
+
+```golang
+{{ spew_printf "%#v\n" $OBJ }}
+```
+
+outputs
+
+```
+(map[string]interface {})map[foo:(map[string]interface {})map[bar:(bool)true baz:(string)string theAnswer:(float64)42]]
+```
+#### using `%+#v` 
+
+```
+#### using `%#v` 
+
+```golang
+{{ spew_printf "%#+v\n" $OBJ }}
+```
+
+outputs
+
+```
+(map[string]interface {})map[foo:(map[string]interface {})map[theAnswer:(float64)42 bar:(bool)true baz:(string)string]]
+```
+
+
+### `spew_sprintf`
+
+If you would prefer to use format strings with a compacted inline printing style, use the convenience wrappers Printf, Sprintf, etc with `%v` (most compact), `%+v` (adds pointer addresses), `%#v` (adds types), or `%#+v` (adds types and pointer addresses):
+
+`spew_Sprintf is a returns a string based on the provideded arguments and appropriate variabes.
+
+[spew-godoc]: https://pkg.go.dev/github.com/davecgh/go-spew/spew
+[spew-repo]: https://github.com/davecgh/go-spew
