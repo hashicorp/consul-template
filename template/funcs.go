@@ -1574,10 +1574,20 @@ func md5sum(item string) (string, error) {
 	return fmt.Sprintf("%x", md5.Sum([]byte(item))), nil
 }
 
-func spewDump(a interface{}) (string, error) {
-	return spewLib.Sdump(a), nil
+func spewSdump(args ...interface{}) (string, error) {
+	return spewLib.Sdump(args...), nil
+}
+
+func spewSprintf(format string, args ...interface{}) (string, error) {
+	return spewLib.Sprintf(format, args...), nil
+}
+
+func spewDump(args ...interface{}) (string, error) {
+	spewLib.Dump(args...)
+	return "", nil
 }
 
 func spewPrintf(format string, args ...interface{}) (string, error) {
-	return spewLib.Sprintf(format, args), nil
+	spewLib.Printf(format, args...)
+	return "", nil
 }

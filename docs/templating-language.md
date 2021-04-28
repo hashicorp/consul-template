@@ -86,6 +86,7 @@ provides the following functions:
   - [modulo](#modulo)
   - [minimum](#minimum)
   - [maximum](#maximum)
+- [Debugging Functions](#debugging)
 
 ## API Functions
 
@@ -1625,3 +1626,92 @@ This can also be used with a pipe function.
 ```liquid
 {{ 5 | maximum 2 }} // 2
 ```
+
+## Debugging Functions
+
+Debugging functions help template developers understand the current context of a template block. These
+are provided by the **github.com/davecgh/go-spew/spew** library.
+
+### `spew_dump`
+
+Outputs the value with full newlines, indentation, type, and pointer
+information to stdout (instead of rendered in the template) by calling spew.Dump on it. Returns an empty string
+or an error.
+
+```
+{{- $JSON := `{ "foo": { "bar":true, "baz":"string", "theAnswer":42} }` -}}
+{{- $OBJ := parseJSON $JSON -}}
+{{- spew_dump $OBJ -}}
+```
+
+renders
+
+```
+> 
+(map[string]interface {}) (len=1) {
+ (string) (len=3) "foo": (map[string]interface {}) (len=3) {
+  (string) (len=3) "bar": (bool) true,
+  (string) (len=3) "baz": (string) (len=6) "string",
+  (string) (len=9) "theAnswer": (float64) 42
+ }
+}
+```
+
+### `spew_sdump`
+
+Creates a string containing the values with full newlines, indentation, type, and pointer information by calling spew.Sdump on them. Returns an error or the string. The return value can be captured as a variable, used as input to a pipeline, or written to the template in place.
+
+```
+{{- $JSON := `{ "foo": { "bar":true, "baz":"string", "theAnswer":42} }` -}}
+{{- $OBJ := parseJSON $JSON -}}
+{{- spew_dump $OBJ -}}
+```
+
+renders
+
+```
+> 
+(map[string]interface {}) (len=1) {
+ (string) (len=3) "foo": (map[string]interface {}) (len=3) {
+  (string) (len=3) "bar": (bool) true,
+  (string) (len=3) "baz": (string) (len=6) "string",
+  (string) (len=9) "theAnswer": (float64) 42
+ }
+}
+```
+
+### `spew_printf`
+
+Alternatively, if you would prefer to use format strings with a compacted inline printing style, use the convenience wrappers Printf, Sprintf, etc with `%v` (most compact), `%+v` (adds pointer addresses), `%#v` (adds types), or `%#+v` (adds types and pointer addresses):
+
+```
+spew_printf("myVar1: %v -- myVar2: %+v", myVar1, myVar2)
+spew_printf("myVar3: %#v -- myVar4: %#+v", myVar3, myVar4)
+```
+
+`spew_sprintf` outputs the debugging vaulues to dteand returns either and error or an empty string.
+
+
+Given this template, 
+```
+{{- $JSON := `{ "foo": { "bar":true, "baz":"string", "theAnswer":42} }` -}}
+{{- $OBJ := parseJSON $JSON -}}
+{{- spew_dump $OBJ -}}
+```
+
+renders
+
+```
+> 
+(map[string]interface {}) (len=1) {
+ (string) (len=3) "foo": (map[string]interface {}) (len=3) {
+  (string) (len=3) "bar": (bool) true,
+  (string) (len=3) "baz": (string) (len=6) "string",
+  (string) (len=9) "theAnswer": (float64) 42
+ }
+}
+```
+
+
+[spew-godoc]: https://pkg.go.dev/github.com/davecgh/go-spew/spew
+[spew-repo]: https://github.com/davecgh/go-spew
