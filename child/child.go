@@ -112,7 +112,7 @@ type NewInput struct {
 
 	// This sets the pgid of the process group of the child.
 	// If not provided, the default value of 0 will result in the pgid to be equal to
-	// the pid of the child process. This value is effective if SetPgid is true
+	// the pid of the child process. This value is effective only if SetPgid is true
 	Pgid int
 
 	// Setsid should be set to true to create a new session for the child proccess
