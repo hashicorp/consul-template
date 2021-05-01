@@ -12,6 +12,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"golang.org/x/sys/unix"
 )
 
 func init() {
@@ -179,6 +181,17 @@ func (c *Child) Pgid() int {
 		log.Fatalln(err)
 	}
 	return pgid
+}
+
+// Sid returns the session ID of the child process
+func (c *Child) Sid() int {
+	c.RLock()
+	defer c.RUnlock()
+	sid, err := unix.Getsid(c.cmd.Process.Pid)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return sid
 }
 
 // Command returns the human-formatted command with arguments.
