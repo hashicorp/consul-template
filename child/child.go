@@ -173,22 +173,12 @@ func (c *Child) Pid() int {
 func (c *Child) Pgid() int {
 	c.RLock()
 	defer c.RUnlock()
+
 	pgid, err := syscall.Getpgid(c.cmd.Process.Pid)
 	if err != nil {
 		log.Fatalln(err)
 	}
 	return pgid
-}
-
-// Sid returns the session ID of the child process
-func (c *Child) Sid() int {
-	c.RLock()
-	defer c.RUnlock()
-	sid, err := syscall.Getsid(c.cmd.Process.Pid)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	return sid
 }
 
 // Command returns the human-formatted command with arguments.
