@@ -52,7 +52,6 @@ type Child struct {
 	killTimeout time.Duration
 
 	setPgid bool
-	pgid    int
 	setSid  bool
 
 	splay time.Duration
@@ -107,13 +106,8 @@ type NewInput struct {
 	KillTimeout time.Duration
 
 	// SetPgid should be set to true if the child process is to be started under
-	// its own pgid
+	// its own pgid equal to the pid of the child process
 	SetPgid bool
-
-	// This sets the pgid of the process group of the child.
-	// If not provided, the default value of 0 will result in the pgid to be equal to
-	// the pid of the child process. This value is effective only if SetPgid is true
-	Pgid int
 
 	// Setsid should be set to true to create a new session for the child proccess
 	Setsid bool
@@ -150,7 +144,6 @@ func New(i *NewInput) (*Child, error) {
 		killSignal:   i.KillSignal,
 		killTimeout:  i.KillTimeout,
 		setPgid:      i.SetPgid,
-		pgid:         i.Pgid,
 		setSid:       i.Setsid,
 		splay:        i.Splay,
 		stopCh:       make(chan struct{}, 1),
@@ -174,6 +167,26 @@ func (c *Child) Pid() int {
 	c.RLock()
 	defer c.RUnlock()
 	return c.pid()
+}
+
+func (c *Child) Pgid() int {
+	c.RLock()
+	defer c.RUnlock()
+	pgid, err := syscall.Getpgid(c.cmd.Process.Pid)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return pgid
+}
+
+func (c *Child) Sid() int {
+	c.RLock()
+	defer c.RUnlock()
+	sid, err := syscall.Getsid(c.cmd.Process.Pid)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return sid
 }
 
 // Command returns the human-formatted command with arguments.
@@ -285,7 +298,6 @@ func (c *Child) start() error {
 	cmd.Env = c.env
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: c.setPgid,
-		Pgid:    c.pgid,
 		Setsid:  c.setSid,
 	}
 	if err := cmd.Start(); err != nil {

@@ -168,6 +168,40 @@ func TestPid(t *testing.T) {
 	}
 }
 
+func TestPgid(t *testing.T) {
+	t.Parallel()
+
+	c := testChild(t)
+	c.setPgid = true
+	if err := c.Start(); err != nil {
+		t.Fatal(err)
+	}
+	defer c.Stop()
+
+	pgid := c.Pgid()
+	pid := c.Pid()
+	if pgid != pid {
+		t.Error("expected pid to be equal to pgid")
+	}
+}
+
+func TestSid(t *testing.T) {
+	t.Parallel()
+
+	c := testChild(t)
+	c.setSid = true
+	if err := c.Start(); err != nil {
+		t.Fatal(err)
+	}
+	defer c.Stop()
+
+	pid := c.Pid()
+	sid := c.Sid()
+	if sid != pid {
+		t.Error("expected sid to be equal to pid")
+	}
+}
+
 func TestStart(t *testing.T) {
 	t.Parallel()
 
