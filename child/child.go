@@ -169,6 +169,7 @@ func (c *Child) Pid() int {
 	return c.pid()
 }
 
+// Pgid returns the process group ID of the child process
 func (c *Child) Pgid() int {
 	c.RLock()
 	defer c.RUnlock()
@@ -179,6 +180,7 @@ func (c *Child) Pgid() int {
 	return pgid
 }
 
+// Sid returns the session ID of the child process
 func (c *Child) Sid() int {
 	c.RLock()
 	defer c.RUnlock()
