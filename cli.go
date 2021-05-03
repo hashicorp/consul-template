@@ -326,6 +326,11 @@ func (cli *CLI) ParseFlags(args []string) (
 	}), "dedup", "")
 
 	flags.Var((funcVar)(func(s string) error {
+		c.Dedup.Prefix = config.String(s)
+		return nil
+	}), "dedup-prefix", "")
+
+	flags.Var((funcVar)(func(s string) error {
 		c.DefaultDelims.Left = config.String(s)
 		return nil
 	}), "default-left-delimiter", "")
@@ -687,6 +692,10 @@ Options:
   -dedup
       Enable de-duplication mode - reduces load on Consul when many instances of
       Consul Template are rendering a common template
+
+  -dedup-prefix=<string>
+      Set the prefix to the path in Consul's KV store where de-duplication
+      templates will be pre-rendered and stored
 
   -default-left-delimiter
       The default left delimiter for templating

@@ -290,6 +290,16 @@ func TestCLI_ParseFlags(t *testing.T) {
 			false,
 		},
 		{
+			"dedup-prefix",
+			[]string{"-dedup-prefix", "test/prefix"},
+			&config.Config{
+				Dedup: &config.DedupConfig{
+					Prefix: config.String("test/prefix"),
+				},
+			},
+			false,
+		},
+		{
 			"exec",
 			[]string{"-exec", "command"},
 			&config.Config{
