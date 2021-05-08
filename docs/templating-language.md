@@ -560,7 +560,9 @@ To iterate and list over every secret in the generic secret backend in Vault:
 {{ with secret (printf "secret/%s" .) }}{{ range $k, $v := .Data }}
 {{ $k }}: {{ $v }}
 {{ end }}{{ end }}{{ end }}
-```
+``` 
+
+`.Data` should be replaced with `.Data.data` for KV-V2 secrets engines.
 
 You should probably never do this.
 
