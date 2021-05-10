@@ -289,18 +289,18 @@ func TestTemplate_Execute(t *testing.T) {
 		{
 			"func_envOrDefault",
 			&NewTemplateInput{
-				Contents: `{{ envOrDefault "SET_VAR" "100" }} {{ envOrDefault "UNSET_VAR" "200" }} {{ envOrDefault "EMPTY_VAR" "300" }}`,
+				Contents: `{{ envOrDefault "SET_VAR" "100" }} {{ envOrDefault "EMPTY_VAR" "200" }} {{ envOrDefault "UNSET_VAR" "300" }}`,
 			},
 			&ExecuteInput{
 				Env: func() []string {
-					return []string{ "SET_VAR=400", "EMPTY_VAR=" }
+					return []string{"SET_VAR=400", "EMPTY_VAR="}
 				}(),
 				Brain: func() *Brain {
 					b := NewBrain()
 					return b
 				}(),
 			},
-			"400 200 300",
+			"400  300",
 			false,
 		},
 		{
