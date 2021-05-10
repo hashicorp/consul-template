@@ -1049,7 +1049,7 @@ Reads the given environment variable and if it does not exist or is blank use a 
 
 ### `envOrDefault`
 
-Reads the given environment variable accessible to the current process. If the environment variable has a non-zero length value, that value will be used. Otherwise, the default value will be used instead.
+Reads the given environment variable accessible to the current process. If the environment variable is found, the value of that variable will be used. This includes empty values. Otherwise, the default will be used instead.
 
 ```liquid
 {{ envOrDefault "CLUSTER_NAME" "Default_Cluster" }}
