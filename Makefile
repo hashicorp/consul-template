@@ -27,7 +27,7 @@ GOARCH ?= $(shell go env GOARCH)
 
 # Default os-arch combination to build
 XC_OS ?= darwin freebsd linux netbsd openbsd solaris windows
-XC_ARCH ?= 386 amd64 arm arm64
+XC_ARCH ?= 386 amd64 arm5 arm6 arm7 arm64
 # XC_EXCLUDE "arm64" entries excludes both arm and arm64
 XC_EXCLUDE ?= darwin/arm64 freebsd/arm64 netbsd/arm64 openbsd/arm64 solaris/arm64 windows/arm64 solaris/386
 
@@ -54,16 +54,26 @@ define make-xc-target
   else
 		@printf "%s%20s %s\n" "-->" "${1}/${2}:" "${PROJECT}"
 		case "$2" in \
-			arm) export CGO_ENABLED="1" ; \
+			arm5) export CGO_ENABLED="1" ; \
+				  export GOARM=5 \
+				  export XC_GOARCH="arm" \
+				  export CC="arm-linux-gnueabi-gcc" ;; \
+			arm6) export CGO_ENABLED="1" ; \
 				  export GOARM=6 \
+				  export XC_GOARCH="arm" \
+				  export CC="arm-linux-gnueabihf-gcc" ;; \
+			arm7) export CGO_ENABLED="1" ; \
+				  export GOARM=7 \
+				  export XC_GOARCH="arm" \
 				  export CC="arm-linux-gnueabihf-gcc" ;; \
 			arm64) export CGO_ENABLED="1" ; \
+				  export XC_GOARCH="${2}" \
 				  export CC="aarch64-linux-gnu-gcc" ;; \
 			*) export CGO_ENABLED="0" ;; \
 		esac ; \
 		env \
 			GOOS="${1}" \
-			GOARCH="${2}" \
+			GOARCH="${XC_GOARCH}" \
 			go build \
 				-a \
 				-o="pkg/${1}_${2}/${NAME}${3}" \
