@@ -239,7 +239,7 @@ This does not process nested templates. See
 
 Query [Consul][consul] for the value at the given key path. If the key does not
 exist, Consul Template will block rendering until the key is present. To avoid
-blocking, use `keyOrDefault` or `keyExists`.
+blocking, use [`keyOrDefault`](#keyordefault) or [`keyExists`](#keyexists).
 
 ```golang
 {{ key "<PATH>@<DATACENTER>" }}
@@ -263,7 +263,7 @@ renders
 ### `keyExists`
 
 Query [Consul][consul] for the value at the given key path. If the key exists,
-this will return true, false otherwise. Unlike `key`, this function will not
+this will return true, false otherwise. Unlike [`key`](#key), this function will not
 block if the key does not exist. This is useful for controlling flow.
 
 ```golang
@@ -286,7 +286,7 @@ For example:
 ### `keyOrDefault`
 
 Query [Consul][consul] for the value at the given key path. If the key does not
-exist, the default value will be used instead. Unlike `key`, this function will
+exist, the default value will be used instead. Unlike [`key`](#key), this function will
 not block if the key does not exist.
 
 ```golang
@@ -314,8 +314,9 @@ Template will have no data from Consul and thus will _always_ fall back to the
 default value. Subsequent reads from Consul will pull in the real value from
 Consul (if the key exists) on the next template pass. This is important because
 it means that Consul Template will never "block" the rendering of a template due
-to a missing key from a `keyOrDefault`. Even if the key exists, if Consul has
-not yet returned data for the key, the default value will be used instead.
+to a missing key from a [`keyOrDefault`](#keyordefault). Even if the key exists,
+if Consul has not yet returned data for the key, the default value will be used
+instead.
 
 ### `ls`
 
@@ -344,7 +345,7 @@ minconns:5
 
 ### `safeLs`
 
-Same as [ls](#ls), but refuse to render template, if the KV prefix query return blank/empty data.
+Same as [`ls`](#ls), but refuse to render template, if the KV prefix query return blank/empty data.
 
 This is especially useful, for rendering mission critical files, that are being populated by consul-template.
 
@@ -355,9 +356,9 @@ For example:
 /etc/sysconfig/iptables
 ```
 
-Using `safeLs` on empty prefixes will result in template output not being rendered at all.
+Using [`safeLs`](#safels) on empty prefixes will result in template output not being rendered at all.
 
-To learn how `safeLs` was born see [CT-1131](https://github.com/hashicorp/consul-template/issues/1131) [C-3975](https://github.com/hashicorp/consul/issues/3975) and [CR-82](https://github.com/hashicorp/consul-replicate/issues/82).
+To learn how [`safeLs`](#safels) was born see [CT-1131](https://github.com/hashicorp/consul-template/issues/1131) [C-3975](https://github.com/hashicorp/consul/issues/3975) and [CR-82](https://github.com/hashicorp/consul-replicate/issues/82).
 
 ### `node`
 
@@ -700,12 +701,12 @@ maxconns 12
 nested/config/value "value"
 ```
 
-Unlike `ls`, `tree` returns **all** keys under the prefix, just like the Unix
-`tree` command.
+Unlike [`ls`](#ls), [`tree`](#tree) returns **all** keys under the prefix, just like the Unix
+[`tree`](#tree) command.
 
 ### `safeTree`
 
-Same as [tree](#tree), but refuse to render template, if the KV prefix query return blank/empty data.
+Same as [`tree`](#tree), but refuse to render template, if the KV prefix query return blank/empty data.
 
 This is especially useful, for rendering mission critical files, that are being populated by consul-template.
 
@@ -716,9 +717,9 @@ For example:
 /etc/sysconfig/iptables
 ```
 
-Using `safeTree` on empty prefixes will result in template output not being rendered at all.
+Using [`safeTree`](#safetree) on empty prefixes will result in template output not being rendered at all.
 
-To learn how `safeTree` was born see [CT-1131](https://github.com/hashicorp/consul-template/issues/1131) [C-3975](https://github.com/hashicorp/consul/issues/3975) and [CR-82](https://github.com/hashicorp/consul-replicate/issues/82).
+To learn how [`safeTree`](#safetree) was born see [CT-1131](https://github.com/hashicorp/consul-template/issues/1131) [C-3975](https://github.com/hashicorp/consul/issues/3975) and [CR-82](https://github.com/hashicorp/consul-replicate/issues/82).
 
 ---
 
@@ -731,7 +732,7 @@ between templates and is not cached between invocations.
 ### `scratch.Key`
 
 Returns a boolean if data exists in the scratchpad at the named key. Even if the
-data at that key is "nil", this still returns true.
+data at that key is `nil`, this still returns true.
 
 ```golang
 {{ scratch.Key "foo" }}
@@ -740,7 +741,7 @@ data at that key is "nil", this still returns true.
 ### `scratch.Get`
 
 Returns the value in the scratchpad at the named key. If the data does not
-exist, this will return "nil".
+exist, this will return `nil`.
 
 ```golang
 {{ scratch.Get "foo" }}
@@ -757,7 +758,7 @@ is overwritten.
 
 ### `scratch.SetX`
 
-This behaves exactly the same as `Set`, but does not overwrite if the value
+This behaves exactly the same as [`Set`](#scratchset), but does not overwrite if the value
 already exists.
 
 ```golang
@@ -775,7 +776,7 @@ is overwritten.
 
 ### `scratch.MapSetX`
 
-This behaves exactly the same as `MapSet`, but does not overwrite if the value
+This behaves exactly the same as [`MapSet`](#scratchmapset), but does not overwrite if the value
 already exists.
 
 ```golang
@@ -948,7 +949,7 @@ If we have the following services registered in Consul:
        "Name": "redis",
        "ServiceMeta": {
          "environment": "prod",
-         "shard_number": "2",
+         "shard_number": "2"
        },
        ...
      }
@@ -1081,7 +1082,7 @@ Or save it to a variable:
 
 ### `explode`
 
-Takes the result from a `tree` or `ls` call and converts it into a deeply-nested
+Takes the result from a [`tree`](#tree) or [`ls`](#ls) call and converts it into a deeply-nested
 map for parsing/traversing.
 
 ```golang
@@ -1103,7 +1104,7 @@ You will need to have a reasonable format about your data in Consul. Please see
 ### `explodeMap`
 
 Takes the value of a map and converts it into a deeply-nested map for parsing/traversing,
-using the same logic as `explode`.
+using the same logic as [`explode`](#explode).
 
 ```golang
 {{ scratch.MapSet "example", "foo/bar", "a" }}
@@ -1133,7 +1134,7 @@ Determines if a needle is within an iterable element.
 
 Accepts varying parameters and differs its behavior based on those parameters.
 
-If `loop` is given one integer, it will return a goroutine that begins at zero
+If [`loop`](#loop) is given one integer, it will return a goroutine that begins at zero
 and loops up to but not including the given integer:
 
 ```golang
@@ -1250,7 +1251,7 @@ YAML:
 {{ with $d := key "user/info" | parseYAML }}{{ $d.name }}{{ end }}
 ```
 
-Note: The same caveats that apply to `parseJSON` apply to `parseYAML`.
+Note: The same caveats that apply to [`parseJSON`](#parsejson) apply to [`parseYAML`](#parseyaml).
 
 ### `plugin`
 
@@ -1368,7 +1369,7 @@ seconds is returned as a string.
 
 ### `toJSON`
 
-Takes the result from a `tree` or `ls` call and converts it into a JSON object.
+Takes the result from a [`tree`](#tree) or [`ls`](#ls) call and converts it into a JSON object.
 
 ```golang
 {{ tree "config" | explode | toJSON }}
@@ -1384,7 +1385,7 @@ Note: Consul stores all KV data as strings. Thus true is "true", 1 is "1", etc.
 
 ### `toJSONPretty`
 
-Takes the result from a `tree` or `ls` call and converts it into a
+Takes the result from a [`tree`](#tree) or [`ls`](#ls) call and converts it into a
 pretty-printed JSON object, indented by two spaces.
 
 ```golang
@@ -1399,7 +1400,7 @@ renders
     "port": "1234"
   },
   "maxconns": "5",
-  "minconns": "2",
+  "minconns": "2"
 }
 ```
 
@@ -1407,7 +1408,7 @@ Note: Consul stores all KV data as strings. Thus true is "true", 1 is "1", etc.
 
 ##### `toUnescapedJSON`
 
-Takes the result from a `tree` or `ls` call and converts it into a JSON object without HTML escaping. This function comes in handy when working with db connection strings or URIs containing query parameters.
+Takes the result from a [`tree`](#tree) or [`ls`](#ls) call and converts it into a JSON object without HTML escaping. This function comes in handy when working with db connection strings or URIs containing query parameters.
 
 ```golang
 {{ tree "config" | explode | toUnescapedJSON }}
@@ -1421,7 +1422,7 @@ renders
 
 ##### `toUnescapedJSONPretty`
 
-Takes the result from a `tree` or `ls` call and converts it into a
+Takes the result from a [`tree`](#tree) or [`ls`](#ls) call and converts it into a
 pretty-printed JSON object without HTML escaping, indented by two spaces.
 
 ```golang
@@ -1465,7 +1466,7 @@ information.
 
 ### `toTOML`
 
-Takes the result from a `tree` or `ls` call and converts it into a TOML object.
+Takes the result from a [`tree`](#tree) or [`ls`](#ls) call and converts it into a TOML object.
 
 ```golang
 {{ tree "config" | explode | toTOML }}
@@ -1481,7 +1482,7 @@ minconns = "2"
   port = "1134"
 ```
 
-Note: Consul stores all KV data as strings. Thus true is "true", 1 is "1", etc.
+Note: Consul stores all KV data as strings. Thus true is `"true"`, 1 is `"1"`, etc.
 
 ### `toUpper`
 
@@ -1496,7 +1497,7 @@ information.
 
 ### `toYAML`
 
-Takes the result from a `tree` or `ls` call and converts it into a
+Takes the result from a [`tree`](#tree) or [`ls`](#ls) call and converts it into a
 pretty-printed YAML object, indented by two spaces.
 
 ```golang
@@ -1512,7 +1513,7 @@ maxconns: "5"
 minconns: "2"
 ```
 
-Note: Consul stores all KV data as strings. Thus true is "true", 1 is "1", etc.
+Note: Consul stores all KV data as strings. Thus true is `"true"`, 1 is `"1"`, etc.
 
 ### `sockaddr`
 
@@ -1639,12 +1640,13 @@ This can also be used with a pipe function.
 ## Debugging Functions
 
 Debugging functions help template developers understand the current context of a template block. These
-are provided by the spew library. See the **github.com/davecgh/go-spew/spew** documentation for more information.
+are provided by the [spew](https://github.com/davecgh/go-spew) library.
+See the [`spew` GoDoc documentation](https://pkg.go.dev/github.com/davecgh/go-spew/spew) for more information.
 
 ### `spew_dump`
 
 Outputs the value with full newlines, indentation, type, and pointer
-information to stdout (instead of rendered in the template) by calling `spew.Dump` on it. Returns an empty string
+information to stdout (instead of rendered in the template) by calling [`spew.Dump`](https://pkg.go.dev/github.com/davecgh/go-spew/spew#Dump) on it. Returns an empty string
 or an error.
 
 ```golang
@@ -1668,7 +1670,7 @@ renders
 
 ### `spew_sdump`
 
-Creates a string containing the values with full newlines, indentation, type, and pointer information by calling `spew.Sdump` on them. Returns an error or the string. The return value can be captured as a variable, used as input to a pipeline, or written to the template in place.
+Creates a string containing the values with full newlines, indentation, type, and pointer information by calling [`spew.Sdump`](https://pkg.go.dev/github.com/davecgh/go-spew/spew#Sdump) on them. Returns an error or the string. The return value can be captured as a variable, used as input to a pipeline, or written to the template in place.
 
 ```golang
 {{- $JSON := `{ "foo": { "bar":true, "baz":"string", "theAnswer":42} }` -}}
@@ -1691,14 +1693,19 @@ renders
 
 ### `spew_printf`
 
-Formats output according to the provided format string and then writes the generated information to stdout. You can use format strings to produce a compacted inline printing style,by your choice of `%v` (most compact), `%+v` (adds pointer addresses), `%#v` (adds types), or `%#+v` (adds types and pointer addresses):
+Formats output according to the provided format string and then writes the generated information to stdout. You can use format strings to produce a compacted inline printing style by your choice:
+
+* `%v`: most compact
+* `%+v`: adds pointer addresses
+* `%#v`: adds types
+* `%#+v`: adds types and pointer addresses
 
 ```golang
 spew_printf("myVar1: %v -- myVar2: %+v", myVar1, myVar2)
 spew_printf("myVar3: %#v -- myVar4: %#+v", myVar3, myVar4)
 ```
 
-**Example**
+**Examples**
 
 Given this template fragment,
 
@@ -1738,9 +1745,9 @@ map[foo:map[bar:true baz:string theAnswer:42]]
 {{ spew_printf "%v\n" $OBJ }}
 ```
 
-outputs 
+outputs
 
-```json
+```
 map[foo:map[bar:true baz:string theAnswer:42]]
 ```
 
@@ -1755,10 +1762,10 @@ outputs
 ```
 (map[string]interface {})map[foo:(map[string]interface {})map[bar:(bool)true baz:(string)string theAnswer:(float64)42]]
 ```
-#### using `%+#v` 
 
-```
-#### using `%#v` 
+#### using `%+#v`
+
+#### using `%#v`
 
 ```golang
 {{ spew_printf "%#+v\n" $OBJ }}
@@ -1770,12 +1777,17 @@ outputs
 (map[string]interface {})map[foo:(map[string]interface {})map[theAnswer:(float64)42 bar:(bool)true baz:(string)string]]
 ```
 
-
 ### `spew_sprintf`
 
-If you would prefer to use format strings with a compacted inline printing style, use the convenience wrappers Printf, Sprintf, etc with `%v` (most compact), `%+v` (adds pointer addresses), `%#v` (adds types), or `%#+v` (adds types and pointer addresses):
+If you would prefer to use format strings with a compacted inline printing style, use the convenience wrappers for [`spew.Printf`](https://pkg.go.dev/github.com/davecgh/go-spew/spew#Printf), [`spew.Sprintf`](https://pkg.go.dev/github.com/davecgh/go-spew/spew#Sprintf), etc with:
 
-`spew_Sprintf is a returns a string based on the provideded arguments and appropriate variabes.
+* `%v`: most compact
+* `%+v`: adds pointer addresses
+* `%#v`: adds types
+* `%#+v`: adds types and pointer addresses
 
-[spew-godoc]: https://pkg.go.dev/github.com/davecgh/go-spew/spew
-[spew-repo]: https://github.com/davecgh/go-spew
+
+[connect]: https://www.consul.io/docs/connect/ "Connect"
+[consul]: https://www.consul.io "Consul by HashiCorp"
+[text-template]: https://golang.org/pkg/text/template/ "Go's text/template package"
+[vault]: https://www.vaultproject.io "Vault by HashiCorp"
