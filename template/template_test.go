@@ -1565,6 +1565,44 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"helper_toUnescapedJSON",
+			&NewTemplateInput{
+				Contents: `{{ "a?b&c,x?y&z" | split "," | toUnescapedJSON }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"[\"a?b&c\",\"x?y&z\"]",
+			false,
+		},
+		{
+			"helper_toUnescapedJSONPretty",
+			&NewTemplateInput{
+				Contents: `{{ tree "key" | explode | toUnescapedJSONPretty }}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewKVListQuery("key")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, []*dep.KeyPair{
+						&dep.KeyPair{Key: "a", Value: "b&c"},
+						&dep.KeyPair{Key: "x", Value: "y&z"},
+						&dep.KeyPair{Key: "k", Value: "<>&&"},
+					})
+					return b
+				}(),
+			},
+			`{
+  "a": "b&c",
+  "k": "<>&&",
+  "x": "y&z"
+}`,
+			false,
+		},
+		{
 			"helper_toLower",
 			&NewTemplateInput{
 				Contents: `{{ "HI" | toLower }}`,
@@ -1787,6 +1825,28 @@ func TestTemplate_Execute(t *testing.T) {
 				}(),
 			},
 			"1.2.3.45.6.7.8",
+			false,
+		},
+		{
+			"spew_sdump_simple_output",
+			&NewTemplateInput{
+				Contents: `{{ timestamp "2006-01-02" | spew_sdump }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"(string) (len=10) \"1970-01-01\"\n",
+			false,
+		},
+		{
+			"spew_sdump_helper_split",
+			&NewTemplateInput{
+				Contents: `{{ "a,b,c" | split "," | spew_sdump}}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"([]string) (len=3 cap=3) {\n (string) (len=1) \"a\",\n (string) (len=1) \"b\",\n (string) (len=1) \"c\"\n}\n",
 			false,
 		},
 	}

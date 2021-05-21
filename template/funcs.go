@@ -2,6 +2,7 @@ package template
 
 import (
 	"bytes"
+	"crypto/md5"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -20,6 +21,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	spewLib "github.com/davecgh/go-spew/spew"
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul/api"
 	socktmpl "github.com/hashicorp/go-sockaddr/template"
@@ -1143,6 +1145,30 @@ func toJSONPretty(m map[string]interface{}) (string, error) {
 	return string(bytes.TrimSpace(result)), err
 }
 
+// toUnescapedJSON converts the given structure into a deeply nested JSON string without HTML escaping.
+func toUnescapedJSON(i interface{}) (string, error) {
+	buf := &bytes.Buffer{}
+	encoder := json.NewEncoder(buf)
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(i); err != nil {
+		return "", errors.Wrap(err, "toUnescapedJSON")
+	}
+	return strings.TrimRight(buf.String(), "\r\n"), nil
+}
+
+// toUnescapedJSONPretty converts the given structure into a deeply nested pretty JSON
+// string without HTML escaping.
+func toUnescapedJSONPretty(m map[string]interface{}) (string, error) {
+	buf := &bytes.Buffer{}
+	encoder := json.NewEncoder(buf)
+	encoder.SetEscapeHTML(false)
+	encoder.SetIndent("", "  ")
+	if err := encoder.Encode(m); err != nil {
+		return "", errors.Wrap(err, "toUnescapedJSONPretty")
+	}
+	return strings.TrimRight(buf.String(), "\r\n"), nil
+}
+
 // toTitle converts the given string (usually by a pipe) to titlecase.
 func toTitle(s string) (string, error) {
 	return strings.Title(s), nil
@@ -1563,4 +1589,27 @@ func sha256Hex(item string) (string, error) {
 	h.Write([]byte(item))
 	output := hex.EncodeToString(h.Sum(nil))
 	return output, nil
+}
+
+// md5sum returns the md5 hash of a string
+func md5sum(item string) (string, error) {
+	return fmt.Sprintf("%x", md5.Sum([]byte(item))), nil
+}
+
+func spewSdump(args ...interface{}) (string, error) {
+	return spewLib.Sdump(args...), nil
+}
+
+func spewSprintf(format string, args ...interface{}) (string, error) {
+	return spewLib.Sprintf(format, args...), nil
+}
+
+func spewDump(args ...interface{}) (string, error) {
+	spewLib.Dump(args...)
+	return "", nil
+}
+
+func spewPrintf(format string, args ...interface{}) (string, error) {
+	spewLib.Printf(format, args...)
+	return "", nil
 }

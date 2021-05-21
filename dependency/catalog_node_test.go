@@ -125,6 +125,12 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 							"meta1": "value1",
 						},
 					},
+					&CatalogNodeService{
+						ID:      "service-taggedAddresses",
+						Service: "service-taggedAddresses",
+						Tags:    ServiceTags([]string{}),
+						Meta:    map[string]string{},
+					},
 				},
 			},
 		},

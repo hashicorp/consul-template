@@ -27,29 +27,29 @@ this functionality might prove useful.
 - [Quick Example](#quick-example)
 - [Learn Guides](#learn-guides)
 - [Configuration](docs/configuration.md)
-  - [Command Line Flags](docs/configuration.md#command-line-flags)
-  - [Configuration File](docs/configuration.md#configuration-file)
+- [Command Line Flags](docs/configuration.md#command-line-flags)
+- [Configuration File](docs/configuration.md#configuration-file)
 - [Reload Configuration and Templates](#reload-configuration-and-templates)
 - [Templating Language](docs/templating-language.md)
-  - [API Functions](docs/templating-language.md#api-functions)
-  - [Scratch](docs/templating-language.md#scratch)
-  - [Helper Functions](docs/templating-language.md#helper-functions)
-  - [Math Functions](docs/templating-language.md#math-functions)
+- [API Functions](docs/templating-language.md#api-functions)
+- [Scratch](docs/templating-language.md#scratch)
+- [Helper Functions](docs/templating-language.md#helper-functions)
+- [Math Functions](docs/templating-language.md#math-functions)
 - [Observability](docs/observability.md)
-  - [Logging](docs/observability.md#logging)
+- [Logging](docs/observability.md#logging)
 - [Modes](docs/modes.md)
-  - [Once Mode](docs/modes.md#once-mode)
-  - [De-Duplication Mode](docs/modes.md#de-duplication-mode)
-  - [Exec Mode](docs/modes.md#exec-mode)
+- [Once Mode](docs/modes.md#once-mode)
+- [De-Duplication Mode](docs/modes.md#de-duplication-mode)
+- [Exec Mode](docs/modes.md#exec-mode)
 - [Plugins](docs/plugins.md)
 - [Caveats](#caveats)
-  - [Docker Image Use](#docker-image-use)
-  - [Dots in Service Names](#dots-in-service-names)  
-  - [Termination on Error](#termination-on-error)
-  - [Commands](#commands)
-    - [Environment](#environment)
-    - [Multiple Commands](#multiple-commands)
-  - [Multi-phase Execution](#multi-phase-execution)
+- [Docker Image Use](#docker-image-use)
+- [Dots in Service Names](#dots-in-service-names)  
+- [Termination on Error](#termination-on-error)
+- [Commands](#commands)
+  - [Environment](#environment)
+  - [Multiple Commands](#multiple-commands)
+- [Multi-phase Execution](#multi-phase-execution)
 - [Running and Process Lifecycle](#running-and-process-lifecycle)
 - [Debugging](#debugging)
 - [FAQ](#faq)
@@ -88,34 +88,34 @@ This short example assumes Consul is installed locally.
 
 1. Start a Consul cluster in dev mode:
 
-    ```shell
-    $ consul agent -dev
-    ```
+  ```shell
+  $ consul agent -dev
+  ```
 
 1. Author a template `in.tpl` to query the kv store:
 
-    ```liquid
-    {{ key "foo" }}
-    ```
+  ```liquid
+  {{ key "foo" }}
+  ```
 
 1. Start Consul Template:
 
-    ```shell
-    $ consul-template -template "in.tpl:out.txt" -once
-    ```
+  ```shell
+  $ consul-template -template "in.tpl:out.txt" -once
+  ```
 
 1. Write data to the key in Consul:
 
-    ```shell
-    $ consul kv put foo bar
-    ```
+  ```shell
+  $ consul kv put foo bar
+  ```
 
 1. Observe Consul Template has written the file `out.txt`:
 
-    ```shell
-    $ cat out.txt
-    bar
-    ```
+  ```shell
+  $ cat out.txt
+  bar
+  ```
 
 For more examples and use cases, please see the [examples folder][examples] in
 this repository.
@@ -306,10 +306,10 @@ evaluate the inner-if, avoiding the out-of-index error.
 ## FAQ
 
 **Q: How is this different than confd?**<br>
-A: The answer is simple: Service Discovery as a first class citizen. You are also encouraged to read [this Pull Request](https://github.com/kelseyhightower/confd/pull/102) on the project for more background information. We think confd is a great project, but Consul Template fills a missing gap. Additionally, Consul Template has first class integration with [Vault](https://vaultproject.io), making it easy to incorporate secret material like database credentials or API tokens into configuration files.
+A: The answer is simple: Service Discovery as a first class citizen. You are also encouraged to read [this Pull Request](https://github.com/kelseyhightower/confd/pull/102) on the project for more background information. We think confd is a great project, but Consul Template fills a missing gap. Additionally, Consul Template has first class integration with [Vault][vault], making it easy to incorporate secret material like database credentials or API tokens into configuration files.
 
 **Q: How is this different than Puppet/Chef/Ansible/Salt?**<br>
-A: Configuration management tools are designed to be used in unison with Consul Template. Instead of rendering a stale configuration file, use your configuration management software to render a dynamic template that will be populated by [Consul][].
+A: Configuration management tools are designed to be used in unison with Consul Template. Instead of rendering a stale configuration file, use your configuration management software to render a dynamic template that will be populated by [Consul][consul].
 
 
 ## Contributing
@@ -354,6 +354,5 @@ go test ./... -run SomeTestFunction_name
 [connect]: https://www.consul.io/docs/connect/ "Connect"
 [examples]: (https://github.com/hashicorp/consul-template/tree/master/examples) "Consul Template Examples"
 [releases]: https://releases.hashicorp.com/consul-template "Consul Template Releases"
-[text-template]: https://golang.org/pkg/text/template/ "Go's text/template package"
 [vault]: https://www.vaultproject.io "Vault by HashiCorp"
 [go]: https://golang.org "Go programming language"
