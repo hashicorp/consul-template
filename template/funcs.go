@@ -82,6 +82,28 @@ func envFunc(env []string) func(string) (string, error) {
 	}
 }
 
+// envWithDefaultFunc returns a function which checks the value of an environment variable.
+// Invokers can specify their own environment, which takes precedences over any
+// real environment variables.
+// If an environment variable is found, the value of that variable will be used. This includes empty values.
+// Otherwise, the default will be used instead.
+func envWithDefaultFunc(env []string) func(string, string) (string, error) {
+	return func(s string, def string) (string, error) {
+		for _, e := range env {
+			split := strings.SplitN(e, "=", 2)
+			k, v := split[0], split[1]
+			if k == s {
+				return v, nil
+			}
+		}
+		val, isPresent := os.LookupEnv(s)
+		if isPresent {
+			return val, nil
+		}
+		return def, nil
+	}
+}
+
 // executeTemplateFunc executes the given template in the context of the
 // parent. If an argument is specified, it will be used as the context instead.
 // This can be used for nested template definitions.
