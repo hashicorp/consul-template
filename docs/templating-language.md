@@ -1067,14 +1067,20 @@ Reads the given environment variable and if it does not exist or is blank use a 
 
 Reads the given environment variable accessible to the current process. If the environment variable is found, the value of that variable will be used. This includes empty values. Otherwise, the default will be used instead.
 
-```liquid
+```golang
 {{ envOrDefault "CLUSTER_NAME" "Default_Cluster" }}
 ```
 
 This function can be chained to manipulate the output:
 
-```liquid
+```golang
 {{ envOrDefault "CLUSTER_NAME" "Default_Cluster"  | toLower }}
+```
+
+If you need the semantics of using the default when the environment has the value but it's empty, you can use normal `env` with `or`. This leverages the fact that go templates interpret the empty string ("") as false.
+
+```golang
+{{ or (env "TIMEOUT_CONNECT") "5s" }}
 ```
 
 ### `executeTemplate`
