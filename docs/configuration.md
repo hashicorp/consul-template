@@ -157,13 +157,12 @@ kill_signal = "SIGINT"
 max_stale = "10m"
 
 # This is amount of time in seconds to do a blocking query for.
-# Many endpoints in Consul support a feature known as "blocking queries". 
+# Many endpoints in Consul support a feature known as "blocking queries".
 # A blocking query is used to wait for a potential change using long polling.
 block_query_wait = "60s"
 
-# This is the log level. If you find a bug in Consul Template, please enable
-# debug logs so we can help identify the issue. This is also available as a
-# command line flag.
+# This is the log level. This is also available as a command line flag.
+# Valid options include (in order of verbosity): trace, debug, info, warn, err
 log_level = "warn"
 
 # This is the quiescence timers; it defines the minimum and maximum amount of
