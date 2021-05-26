@@ -12,7 +12,7 @@ configuration.
   - [Consul Template](#consul-template)
   - [Consul](#consul)
   - [Vault](#vault)
-  - [Template](#template)
+  - [Templates](#templates)
   - [Consul Template Modes](#modes)
     - [Once Mode](#once-mode)
     - [De-Duplication Mode](#de-duplication-mode)
