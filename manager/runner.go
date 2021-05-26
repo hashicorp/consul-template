@@ -852,6 +852,9 @@ func (r *Runner) init() error {
 	}
 	log.Printf("[DEBUG] (runner) final config: %s", result)
 
+	//Set VaultDefaultLeaseDuration
+	dep.VaultDefaultLeaseDuration = config.TimeDurationVal(r.config.Vault.DefaultLeaseDuration)
+
 	// Create the clientset
 	clients, err := newClientSet(r.config)
 	if err != nil {
