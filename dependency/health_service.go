@@ -237,6 +237,9 @@ func (d *HealthServiceQuery) String() string {
 	if len(d.filters) > 0 {
 		name = name + "|" + strings.Join(d.filters, ",")
 	}
+	if d.connect {
+		return fmt.Sprintf("health.connect(%s)", name)
+	}
 	return fmt.Sprintf("health.service(%s)", name)
 }
 

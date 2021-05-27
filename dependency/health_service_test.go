@@ -463,3 +463,37 @@ func TestHealthServiceQuery_String(t *testing.T) {
 		})
 	}
 }
+
+func TestHealthServiceQueryConnect_String(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		fact func(string) (*HealthServiceQuery, error)
+		in   string
+		exp  string
+	}{
+		{
+			"name",
+			NewHealthServiceQuery,
+			"name",
+			"health.service(name|passing)",
+		},
+		{
+			"name",
+			NewHealthConnectQuery,
+			"name",
+			"health.connect(name|passing)",
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			d, err := tc.fact(tc.in)
+			if err != nil {
+				t.Fatal(err)
+			}
+			assert.Equal(t, tc.exp, d.String())
+		})
+	}
+}
