@@ -548,7 +548,6 @@ func (cli *CLI) ParseFlags(args []string) (
 		return nil
 	}), "vault-default-lease-duration", "")
 
-
 	flags.Var((funcVar)(func(s string) error {
 		w, err := config.ParseWaitConfig(s)
 		if err != nil {
