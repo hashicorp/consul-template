@@ -445,6 +445,8 @@ To access map data such as `TaggedAddresses` or `Meta`, use
 
 ### `secret`
 
+#### Simple Read
+
 Query [Vault][vault] for the secret at the given path.
 
 ```golang
@@ -468,6 +470,8 @@ renders
 FORWARDSoneword
 ```
 
+#### Versioned Read
+
 To access a versioned secret value (for the K/V version 2 backend):
 
 ```golang
@@ -486,11 +490,21 @@ necessary for Vault versions after 0.10.1, as consul-template will detect the KV
 backend version being used. The version 2 KV backend did not exist prior to 0.10.0,
 so these are the only affected versions.
 
+#### Write (and Read back)
+
 An example using write to generate PKI certificates:
 
 ```golang
 {{ with secret "pki/issue/my-domain-dot-com" "common_name=foo.example.com" }}
 {{ .Data.certificate }}{{ end }}
+```
+
+An example of adding (writing) a derived Vault token while reading it back out
+for use in a configuration file.
+
+```golang
+{{with secret "/auth/token/create" "policies=policy_1" "no_default_policy=true"}}
+{{.Auth.ClientToken}}{{ end }}
 ```
 
 The parameters must be `key=value` pairs, and each pair must be its own argument
