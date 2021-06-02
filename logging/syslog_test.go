@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"io/ioutil"
 	"os"
 	"runtime"
 	"testing"
@@ -26,8 +27,10 @@ func TestSyslogFilter(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	filt := NewLogFilter()
-	filt.MinLevel = logutils.LogLevel("INFO")
+	filt, err := newLogFilter(ioutil.Discard, logutils.LogLevel("INFO"))
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	s := &SyslogWrapper{l, filt}
 	n, err := s.Write([]byte("[INFO] test"))
