@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -1074,4 +1075,50 @@ func TestRunner_quiescence(t *testing.T) {
 			t.Fatalf("q should have fired")
 		}
 	})
+}
+
+func TestRunner_parseCommand(t *testing.T) {
+	type testCase struct {
+		name, input string
+		expect      []string
+	}
+	runTest := func(tc testCase) {
+		out, err := parseCommand(tc.input)
+		mismatchErr := "bad command parse\ngot: '%#v'\nwanted: '%#v'"
+		switch {
+		case err != nil:
+			t.Fatal("unexpected error:", err)
+		case len(out) != len(tc.expect):
+			t.Fatalf(mismatchErr, out, tc.expect)
+		case !reflect.DeepEqual(out, tc.expect):
+			t.Fatalf(mismatchErr, out, tc.expect)
+		}
+	}
+	for i, tc := range []testCase{
+		{
+			name:   "null",
+			input:  "",
+			expect: []string{},
+		},
+		{
+			name:   "simple",
+			input:  "echo hi",
+			expect: []string{"echo", "hi"},
+		},
+		{
+			name:   "subshell-single-quoting", // GH-1456 & GH-1463
+			input:  "sh -c 'echo hi'",
+			expect: []string{"sh", "-c", "echo hi"},
+		},
+		{
+			name:   "subshell-double-quoting",
+			input:  `sh -c "echo hi"`,
+			expect: []string{"sh", "-c", "echo hi"},
+		},
+	} {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name),
+			func(t *testing.T) {
+				runTest(tc)
+			})
+	}
 }
