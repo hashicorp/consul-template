@@ -212,16 +212,16 @@ func TestExecConfig_Env(t *testing.T) {
 		{
 			"allowlist",
 			&EnvConfig{
-				Allowlist: []string{"GOPATH"},
+				Allowlist: []string{"PATH"},
 			},
-			[]string{"GOPATH=" + os.Getenv("GOPATH")},
+			[]string{"PATH=" + os.Getenv("PATH")},
 		},
 		{
 			"allowlist_deprecated",
 			&EnvConfig{
-				AllowlistDeprecated: []string{"GOPATH"},
+				AllowlistDeprecated: []string{"PATH"},
 			},
-			[]string{"GOPATH=" + os.Getenv("GOPATH")},
+			[]string{"PATH=" + os.Getenv("PATH")},
 		},
 		{
 			"denylist",
@@ -248,8 +248,8 @@ func TestExecConfig_Env(t *testing.T) {
 		{
 			"allowlist_denylist",
 			&EnvConfig{
-				Allowlist: []string{"GOPATH"},
-				Denylist:  []string{"GO*"},
+				Allowlist: []string{"PATH"},
+				Denylist:  []string{"PA*"},
 			},
 			[]string{},
 		},
@@ -257,8 +257,8 @@ func TestExecConfig_Env(t *testing.T) {
 			"custom_allowlist_denylist",
 			&EnvConfig{
 				Custom:    []string{"a=b", "c=d"},
-				Allowlist: []string{"GOPATH"},
-				Denylist:  []string{"GO*"},
+				Allowlist: []string{"PATH"},
+				Denylist:  []string{"PA*"},
 			},
 			[]string{"a=b", "c=d"},
 		},
