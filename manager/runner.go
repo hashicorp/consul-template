@@ -1152,14 +1152,10 @@ type spawnChildInput struct {
 // spawnChild spawns a child process with the given inputs and returns the
 // resulting child.
 func spawnChild(i *spawnChildInput) (*child.Child, error) {
-	p := shellwords.NewParser()
-	p.ParseEnv = true
-	p.ParseBacktick = true
-	args, err := p.Parse(i.Command)
+	args, err := parseCommand(i.Command)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed parsing command")
 	}
-
 	child, err := child.New(&child.NewInput{
 		Stdin:        i.Stdin,
 		Stdout:       i.Stdout,
@@ -1181,6 +1177,14 @@ func spawnChild(i *spawnChildInput) (*child.Child, error) {
 		return nil, errors.Wrap(err, "child")
 	}
 	return child, nil
+}
+
+// parseCommand parses the shell command line into usable format
+func parseCommand(command string) ([]string, error) {
+	p := shellwords.NewParser()
+	p.ParseEnv = true
+	p.ParseBacktick = true
+	return p.Parse(command)
 }
 
 // quiescence is an internal representation of a single template's quiescence
