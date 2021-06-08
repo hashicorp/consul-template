@@ -209,7 +209,8 @@ func TestVaultWriteQuery_Fetch(t *testing.T) {
 			},
 			&Secret{
 				Data: map[string]interface{}{
-					"ciphertext": "",
+					"ciphertext":  "",
+					"key_version": "",
 				},
 			},
 			false,
@@ -242,6 +243,7 @@ func TestVaultWriteQuery_Fetch(t *testing.T) {
 				act.(*Secret).Renewable = false
 				if act.(*Secret).Data["ciphertext"] != "" {
 					act.(*Secret).Data["ciphertext"] = ""
+					act.(*Secret).Data["key_version"] = ""
 				}
 			}
 
