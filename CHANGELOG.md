@@ -1,3 +1,23 @@
+## v0.26.0 (Jun 10, 2021)
+
+IMPROVEMENTS:
+* Arm CPUs no longer need special builds [[GH-1471](https://github.com/hashicorp/consul-template/pull/1471), [GH-1404](https://github.com/hashicorp/consul-template/issues/1404)]
+* add 'md5sum' template function [[GH-1464](https://github.com/hashicorp/consul-template/pull/1464)]
+* add 'envOrDefault' template function [[GH-1461](https://github.com/hashicorp/consul-template/pull/1461), [GH-829](https://github.com/hashicorp/consul-template/issues/829)]
+* configurable Vault default lease duration [[GH-1446](https://github.com/hashicorp/consul-template/pull/1446), [GH-1445](https://github.com/hashicorp/consul-template/issues/1445)]
+* unescaped JSON template filter functions [[GH-1432](https://github.com/hashicorp/consul-template/pull/1432), [GH-1430](https://github.com/hashicorp/consul-template/issues/1430)]
+* go spew debugging template functions [[GH-1406](https://github.com/hashicorp/consul-template/pull/1406)]
+* add service tagged addresses to health service data [[GH-1400](https://github.com/hashicorp/consul-template/pull/1400), [GH-1398](https://github.com/hashicorp/consul-template/issues/1398)]
+* allow running via Windows Service Control [[GH-1382](https://github.com/hashicorp/consul-template/pull/1382)]
+
+BUG FIXES:
+* fix command shell quoting issue [[GH-1477](https://github.com/hashicorp/consul-template/pull/1477), [GH-1456](https://github.com/hashicorp/consul-template/issues/1456), [GH-1463](https://github.com/hashicorp/consul-template/issues/1463)]
+* rework logging, add tests and fix missing timestamp issue [[GH-1476](https://github.com/hashicorp/consul-template/pull/1476), [GH-1475](https://github.com/hashicorp/consul-template/issues/1475)]
+* fix issue with connect/health services using same cache entry [[GH-1474](https://github.com/hashicorp/consul-template/pull/1474), [GH-1458](https://github.com/hashicorp/consul-template/issues/1458)]
+* fix issue with ownership when perms option is set [[GH-1473](https://github.com/hashicorp/consul-template/pull/1473), [GH-1379](https://github.com/hashicorp/consul-template/issues/1379)]
+* fixes issue with 'secrets' and Vault kv-v2 [[GH-1468](https://github.com/hashicorp/consul-template/pull/1468), [GH-1274](https://github.com/hashicorp/consul-template/issues/1274), [GH-1275](https://github.com/hashicorp/consul-template/issues/1275),  [GH-1462](https://github.com/hashicorp/consul-template/issues/1462)]
+
+
 ## v0.25.2 (Feb 19, 2021)
 
 BREAKING CHANGES:
