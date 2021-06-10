@@ -254,3 +254,8 @@ _sign:
 toc:
 	@./scripts/readme-toc.sh
 .PHONY: toc
+
+# noop command to get build pipeline working
+dev-tree:
+	@true
+.PHONY: dev-tree
