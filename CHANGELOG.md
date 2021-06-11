@@ -1,5 +1,8 @@
 ## v0.26.0 (Jun 10, 2021)
 
+BREAKING CHANGES:
+* Docker: We have moved to a new Docker image build pipeline that is creating a simplified image containing only the executable, meant primarily to be used as a base image. If you would like the previous, more complex image back please file an issue. Thanks.
+
 IMPROVEMENTS:
 * Arm CPUs no longer need special builds [[GH-1471](https://github.com/hashicorp/consul-template/pull/1471), [GH-1404](https://github.com/hashicorp/consul-template/issues/1404)]
 * add 'md5sum' template function [[GH-1464](https://github.com/hashicorp/consul-template/pull/1464)]
