@@ -351,6 +351,24 @@ func secretFunc(b *Brain, used, missing *dep.Set) func(...string) (*dep.Secret, 
 
 			k, v := strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
 			data[k] = v
+
+			// vault has a notation to prefix file paths pointing to files
+			// containing attribute data with an @. Parse this, load the file
+			// contents and use as the value. Most useful for PKI `sign`
+			// method to provide csr as a file
+			if v[0] == '@' {
+				// should we be using sandbox here???
+				var extfile_path string
+				extfile_path = v[1:]
+				extfile, err := ioutil.ReadFile(extfile_path)
+
+				if err != nil {
+					fmt.Println("Error reading external file", err)
+					return nil, err
+				}
+
+				data[k] = string(extfile)
+			}
 		}
 
 		var d dep.Dependency
