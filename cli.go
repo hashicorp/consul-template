@@ -166,6 +166,8 @@ func (cli *CLI) Run(args []string) int {
 				//
 				// Also, the reason we do a lookup instead of a direct syscall.SIGCHLD
 				// is because that isn't defined on Windows.
+			case signals.RuntimeSig:
+				// ignore these as the runtime uses them with the scheduler
 			default:
 				// Propagate the signal to the child process
 				runner.Signal(s)
