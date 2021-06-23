@@ -176,12 +176,15 @@ func TestFileQuery_Fetch(t *testing.T) {
 		if err := ioutil.WriteFile(f.Name(), []byte("goodbye"), 0644); err != nil {
 			t.Fatal(err)
 		}
+		if err := f.Sync(); err != nil {
+			t.Fatal(err)
+		}
 
 		select {
 		case err := <-errCh:
 			t.Fatal(err)
 		case data := <-dataCh:
-			assert.Equal(t, data, "goodbye")
+			assert.Equal(t, "goodbye", data)
 		}
 	})
 }
