@@ -628,8 +628,17 @@ server web01 10.5.2.45:2492
 server web02 10.2.6.61:2904
 ```
 
-To access map data such as `NodeTaggedAddresses` or `NodeMeta`, use
-[Go's text/template][text-template] map indexing.
+To access map data such as `NodeTaggedAddresses`, `ServiceTaggedAddresses` or
+`NodeMeta`, use [Go's text/template][text-template] map indexing.
+
+```golang
+{{ range service "web" }}
+  {{ with .ServiceTaggedAddresses.wan }}
+http://{{ .Address }}:{{ .Port }}
+  {{ end }}
+{{ end }}
+
+```
 
 By default only healthy services are returned. To list all services, pass the
 "any" filter:
