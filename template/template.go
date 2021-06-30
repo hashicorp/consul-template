@@ -234,7 +234,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"safeLs":       safeLsFunc(i.brain, i.used, i.missing),
 		"node":         nodeFunc(i.brain, i.used, i.missing),
 		"nodes":        nodesFunc(i.brain, i.used, i.missing),
-		"secret":       secretFunc(i.brain, i.used, i.missing),
+		"secret":       secretFunc(i.brain, i.used, i.missing, i.sandboxPath),
 		"secrets":      secretsFunc(i.brain, i.used, i.missing),
 		"service":      serviceFunc(i.brain, i.used, i.missing),
 		"connect":      connectFunc(i.brain, i.used, i.missing),
@@ -294,7 +294,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"split":                 split,
 		"byMeta":                byMeta,
 		"sockaddr":              sockaddr,
-    
+
 		// Math functions
 		"add":      add,
 		"subtract": subtract,

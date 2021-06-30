@@ -332,7 +332,7 @@ func nodesFunc(b *Brain, used, missing *dep.Set) func(...string) ([]*dep.Node, e
 }
 
 // secretFunc returns or accumulates secret dependencies from Vault.
-func secretFunc(b *Brain, used, missing *dep.Set) func(...string) (*dep.Secret, error) {
+func secretFunc(b *Brain, used, missing *dep.Set, sandboxPath string) func(...string) (*dep.Secret, error) {
 	return func(s ...string) (*dep.Secret, error) {
 		var result *dep.Secret
 
@@ -357,9 +357,14 @@ func secretFunc(b *Brain, used, missing *dep.Set) func(...string) (*dep.Secret, 
 			// contents and use as the value. Most useful for PKI `sign`
 			// method to provide csr as a file
 			if v[0] == '@' {
-				// should we be using sandbox here???
 				var extfile_path string
 				extfile_path = v[1:]
+
+				sandbox_err := pathInSandbox(sandboxPath, extfile_path)
+				if sandbox_err != nil {
+					return result, sandbox_err
+				}
+
 				extfile, err := ioutil.ReadFile(extfile_path)
 
 				if err != nil {
