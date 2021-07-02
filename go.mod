@@ -5,6 +5,10 @@ go 1.16
 require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/armon/go-metrics v0.3.4 // indirect
+	github.com/aws/aws-sdk-go v1.38.71
+	github.com/aws/aws-sdk-go-v2/config v1.4.1
+	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.4.0
+	github.com/aws/aws-sdk-go-v2/service/ssm v1.7.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/frankban/quicktest v1.4.0 // indirect
 	github.com/golang/snappy v0.0.2 // indirect
@@ -35,9 +39,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.4.0
 	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0 // indirect
-	golang.org/x/net v0.0.0-20201002202402-0a1ea396d57c // indirect
 	golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f
-	golang.org/x/text v0.3.3 // indirect
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 	gopkg.in/yaml.v2 v2.3.0

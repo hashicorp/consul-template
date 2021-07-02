@@ -20,7 +20,7 @@ var (
 type SyslogConfig struct {
 	Enabled  *bool   `mapstructure:"enabled"`
 	Facility *string `mapstructure:"facility"`
-	Name	 *string `mapstructure:"name"`
+	Name     *string `mapstructure:"name"`
 }
 
 // DefaultSyslogConfig returns a configuration that is populated with the

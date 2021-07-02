@@ -87,7 +87,11 @@ func (d *VaultReadQuery) Fetch(clients *ClientSet, opts *QueryOptions,
 		d.sleepCh <- dur
 	}
 
-	return respWithMetadata(d.secret)
+	return respWithMetadata(
+		&SecretsContainer{
+			Data: d.secret.Data,
+		},
+	)
 }
 
 func (d *VaultReadQuery) fetchSecret(clients *ClientSet, opts *QueryOptions,

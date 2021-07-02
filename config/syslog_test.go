@@ -26,7 +26,7 @@ func TestSyslogConfig_Copy(t *testing.T) {
 			&SyslogConfig{
 				Enabled:  Bool(true),
 				Facility: String("facility"),
-				Name:	  String("name"),
+				Name:     String("name"),
 			},
 		},
 	}
@@ -172,7 +172,7 @@ func TestSyslogConfig_Finalize(t *testing.T) {
 			&SyslogConfig{
 				Enabled:  Bool(false),
 				Facility: String(DefaultSyslogFacility),
-				Name:	  String(DefaultSyslogName),
+				Name:     String(DefaultSyslogName),
 			},
 		},
 		{
@@ -183,7 +183,7 @@ func TestSyslogConfig_Finalize(t *testing.T) {
 			&SyslogConfig{
 				Enabled:  Bool(true),
 				Facility: String("facility"),
-				Name:	  String(DefaultSyslogName),
+				Name:     String(DefaultSyslogName),
 			},
 		},
 		{

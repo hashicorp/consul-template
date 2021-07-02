@@ -1,8 +1,12 @@
 package dependency
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"log"
 	"net"
 	"net/http"
@@ -21,6 +25,7 @@ type ClientSet struct {
 
 	vault  *vaultClient
 	consul *consulClient
+	aws    *awsClient
 }
 
 // consulClient is a wrapper around a real Consul API client.
@@ -33,6 +38,11 @@ type consulClient struct {
 type vaultClient struct {
 	client     *vaultapi.Client
 	httpClient *http.Client
+}
+
+type awsClient struct {
+	ssm            *ssm.Client
+	secretsManager *secretsmanager.Client
 }
 
 // CreateConsulClientInput is used as input to the CreateConsulClient function.
@@ -314,6 +324,23 @@ func (c *ClientSet) CreateVaultClient(i *CreateVaultClientInput) error {
 	return nil
 }
 
+func (c *ClientSet) CreateAWSClient(ctx context.Context) error {
+	cfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return fmt.Errorf("client set: failed to load default AWS config")
+	}
+
+	c.Lock()
+	defer c.Unlock()
+
+	c.aws = &awsClient{
+		ssm:            ssm.NewFromConfig(cfg),
+		secretsManager: secretsmanager.NewFromConfig(cfg),
+	}
+
+	return nil
+}
+
 // Consul returns the Consul client for this set.
 func (c *ClientSet) Consul() *consulapi.Client {
 	c.RLock()
@@ -326,6 +353,18 @@ func (c *ClientSet) Vault() *vaultapi.Client {
 	c.RLock()
 	defer c.RUnlock()
 	return c.vault.client
+}
+
+func (c *ClientSet) SSM() *ssm.Client {
+	c.RLock()
+	defer c.RUnlock()
+	return c.aws.ssm
+}
+
+func (c *ClientSet) SecretsManager() *secretsmanager.Client {
+	c.RLock()
+	defer c.RUnlock()
+	return c.aws.secretsManager
 }
 
 // Stop closes all idle connections for any attached clients.

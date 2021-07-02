@@ -26,6 +26,8 @@ type Type int
 const (
 	TypeConsul Type = iota
 	TypeVault
+	TypeAWSssmParameterStore
+	TypeAWSsecretsManager
 	TypeLocal
 )
 

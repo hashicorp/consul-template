@@ -294,7 +294,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"split":                 split,
 		"byMeta":                byMeta,
 		"sockaddr":              sockaddr,
-    
+
 		// Math functions
 		"add":      add,
 		"subtract": subtract,

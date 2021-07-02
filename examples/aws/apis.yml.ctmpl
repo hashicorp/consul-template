@@ -1,0 +1,9 @@
+---
+timeout: 30
+open_timeout: 5
+services:
+  users:
+    url: {{ key "service/users/protocol" }}://{{ key "service/users/elb_address" }}{{ $port := key "service/users/port" }}{{ if $port }}:{{ $port }}{{ end }}/v0.1
+sumup:
+  adapter: postgresql
+  database: {{ with secret "secret/risk-management/database/sumup/name" }}{{ .Data.value }}{{ end }}

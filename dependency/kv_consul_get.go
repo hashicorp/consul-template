@@ -96,9 +96,9 @@ func (d *KVGetQuery) String() string {
 	}
 
 	if d.block {
-		return fmt.Sprintf("kv.block(%s)", key)
+		return fmt.Sprintf("kv_consul.block(%s)", key)
 	}
-	return fmt.Sprintf("kv.get(%s)", key)
+	return fmt.Sprintf("kv_consul.get(%s)", key)
 }
 
 // Stop halts the dependency's fetch function.

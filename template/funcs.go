@@ -33,6 +33,11 @@ import (
 // primarily for the tests to override times.
 var now = func() time.Time { return time.Now().UTC() }
 
+const (
+	KeyStrategyAwsSsmParameterStore = "aws_ssm_parameter_store"
+	SecretStrategyAwsSecretsManager = "aws_secrets_manager"
+)
+
 // datacentersFunc returns or accumulates datacenter dependencies.
 func datacentersFunc(b *Brain, used, missing *dep.Set) func(ignore ...bool) ([]string, error) {
 	return func(i ...bool) ([]string, error) {
@@ -157,6 +162,28 @@ func fileFunc(b *Brain, used, missing *dep.Set, sandboxPath string) func(string)
 	}
 }
 
+func getKVQueryForKeyStrategy(s string) (dep.Dependency, error) {
+	keyStrategy := os.Getenv("CONSUL_TEMPLATE_KEY_STRATEGY")
+
+	if keyStrategy == KeyStrategyAwsSsmParameterStore {
+		q, err := dep.NewSSMParameterStoreQuery(s)
+		if err != nil {
+			return q, err
+		}
+		q.EnableBlocking()
+
+		return q, nil
+	}
+
+	q, err := dep.NewKVGetQuery(s)
+	if err != nil {
+		return nil, err
+	}
+	q.EnableBlocking()
+
+	return q, nil
+}
+
 // keyFunc returns or accumulates key dependencies.
 func keyFunc(b *Brain, used, missing *dep.Set) func(string) (string, error) {
 	return func(s string) (string, error) {
@@ -164,11 +191,10 @@ func keyFunc(b *Brain, used, missing *dep.Set) func(string) (string, error) {
 			return "", nil
 		}
 
-		d, err := dep.NewKVGetQuery(s)
+		d, err := getKVQueryForKeyStrategy(s)
 		if err != nil {
 			return "", err
 		}
-		d.EnableBlocking()
 
 		used.Add(d)
 
@@ -192,7 +218,7 @@ func keyExistsFunc(b *Brain, used, missing *dep.Set) func(string) (bool, error) 
 			return false, nil
 		}
 
-		d, err := dep.NewKVGetQuery(s)
+		d, err := getKVQueryForKeyStrategy(s)
 		if err != nil {
 			return false, err
 		}
@@ -217,7 +243,7 @@ func keyWithDefaultFunc(b *Brain, used, missing *dep.Set) func(string, string) (
 			return def, nil
 		}
 
-		d, err := dep.NewKVGetQuery(s)
+		d, err := getKVQueryForKeyStrategy(s)
 		if err != nil {
 			return "", err
 		}
@@ -331,10 +357,43 @@ func nodesFunc(b *Brain, used, missing *dep.Set) func(...string) ([]*dep.Node, e
 	}
 }
 
-// secretFunc returns or accumulates secret dependencies from Vault.
-func secretFunc(b *Brain, used, missing *dep.Set) func(...string) (*dep.Secret, error) {
-	return func(s ...string) (*dep.Secret, error) {
-		var result *dep.Secret
+func getSecretReadQueryForSecretStrategy(path string) (dep.Dependency, error) {
+	secretStrategy := os.Getenv("CONSUL_TEMPLATE_SECRET_STRATEGY")
+
+	if secretStrategy == SecretStrategyAwsSecretsManager {
+		d, err := dep.NewAWSsecretsManagerQuery(path)
+		if err != nil {
+			return nil, err
+		}
+
+		return d, nil
+	}
+
+	d, err := dep.NewVaultReadQuery(path)
+	if err != nil {
+		return nil, err
+	}
+
+	return d, nil
+}
+
+func getSecretWriteQueryForSecretStrategy(path string, data map[string]interface{}) (d dep.Dependency, err error) {
+	secretStrategy := os.Getenv("CONSUL_TEMPLATE_SECRET_STRATEGY")
+
+	if secretStrategy == SecretStrategyAwsSecretsManager {
+		err = fmt.Errorf("not supported secretsmanager write query with path: %s, data: %v#", path, data)
+		return
+	} else {
+		d, err = dep.NewVaultWriteQuery(path, data)
+	}
+
+	return
+}
+
+// secretFunc returns or accumulates secret dependencies from AWS SecretsManager or HashiCorp Vault.
+func secretFunc(b *Brain, used, missing *dep.Set) func(...string) (*dep.SecretsContainer, error) {
+	return func(s ...string) (*dep.SecretsContainer, error) {
+		var result *dep.SecretsContainer
 
 		if len(s) == 0 {
 			return result, nil
@@ -357,9 +416,9 @@ func secretFunc(b *Brain, used, missing *dep.Set) func(...string) (*dep.Secret, 
 		var err error
 
 		if len(rest) == 0 {
-			d, err = dep.NewVaultReadQuery(path)
+			d, err = getSecretReadQueryForSecretStrategy(path)
 		} else {
-			d, err = dep.NewVaultWriteQuery(path, data)
+			d, err = getSecretWriteQueryForSecretStrategy(path, data)
 		}
 
 		if err != nil {
@@ -369,7 +428,7 @@ func secretFunc(b *Brain, used, missing *dep.Set) func(...string) (*dep.Secret, 
 		used.Add(d)
 
 		if value, ok := b.Recall(d); ok {
-			result = value.(*dep.Secret)
+			result = value.(*dep.SecretsContainer)
 			return result, nil
 		}
 

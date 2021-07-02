@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -1299,6 +1300,12 @@ func newClientSet(c *config.Config) (*dep.ClientSet, error) {
 		TransportMaxIdleConnsPerHost: config.IntVal(c.Vault.Transport.MaxIdleConnsPerHost),
 		TransportTLSHandshakeTimeout: config.TimeDurationVal(c.Vault.Transport.TLSHandshakeTimeout),
 	}); err != nil {
+
+		return nil, fmt.Errorf("runner: %s", err)
+	}
+
+	err := clients.CreateAWSClient(context.TODO())
+	if err != nil {
 		return nil, fmt.Errorf("runner: %s", err)
 	}
 

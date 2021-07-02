@@ -1,7 +1,9 @@
 package watch
 
 import (
+	"github.com/hashicorp/consul-template/template"
 	"log"
+	"os"
 	"sync"
 	"time"
 
@@ -90,24 +92,28 @@ func NewWatcher(i *NewWatcherInput) (*Watcher, error) {
 		retryFuncVault:     i.RetryFuncVault,
 	}
 
-	// Start a watcher for the Vault renew if that config was specified
-	if i.RenewVault {
-		vt, err := dep.NewVaultTokenQuery(i.VaultToken)
-		if err != nil {
-			return nil, errors.Wrap(err, "watcher")
-		}
-		if _, err := w.Add(vt); err != nil {
-			return nil, errors.Wrap(err, "watcher")
-		}
-	}
+	secretStrategy := os.Getenv("CONSUL_TEMPLATE_SECRET_STRATEGY")
 
-	if len(i.VaultAgentTokenFile) > 0 {
-		vag, err := dep.NewVaultAgentTokenQuery(i.VaultAgentTokenFile)
-		if err != nil {
-			return nil, errors.Wrap(err, "watcher")
+	if secretStrategy != template.SecretStrategyAwsSecretsManager {
+		// Start a watcher for the Vault renew if that config was specified
+		if i.RenewVault {
+			vt, err := dep.NewVaultTokenQuery(i.VaultToken)
+			if err != nil {
+				return nil, errors.Wrap(err, "watcher")
+			}
+			if _, err := w.Add(vt); err != nil {
+				return nil, errors.Wrap(err, "watcher")
+			}
 		}
-		if _, err := w.Add(vag); err != nil {
-			return nil, errors.Wrap(err, "watcher")
+
+		if len(i.VaultAgentTokenFile) > 0 {
+			vag, err := dep.NewVaultAgentTokenQuery(i.VaultAgentTokenFile)
+			if err != nil {
+				return nil, errors.Wrap(err, "watcher")
+			}
+			if _, err := w.Add(vag); err != nil {
+				return nil, errors.Wrap(err, "watcher")
+			}
 		}
 	}
 
