@@ -103,6 +103,10 @@ func Render(i *RenderInput) (*RenderResult, error) {
 //
 // If no errors occur, the Tempfile is "renamed" (moved) to the destination
 // path.
+//
+// Please note that this is only atomic on POSIX systems. It is not atomic on
+// Windows and it is impossible to rename atomically on Windows. For more on
+// this see: https://github.com/golang/go/issues/22397#issuecomment-498856679
 func AtomicWrite(path string, createDestDirs bool, contents []byte, perms os.FileMode, backup bool) error {
 	if path == "" {
 		return ErrMissingDest
