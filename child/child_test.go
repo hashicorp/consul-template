@@ -455,3 +455,49 @@ func TestStop_childAlreadyDead(t *testing.T) {
 		t.Error("expected not to wait for splay")
 	}
 }
+
+func TestSetpgid(t *testing.T) {
+	t.Run("true", func(t *testing.T) {
+		c := testChild(t)
+		c.command = "sh"
+		c.args = []string{"-c", "while true; do sleep 0.2; done"}
+		// default, but to be explicit for the test
+		c.setpgid = true
+
+		if err := c.Start(); err != nil {
+			t.Fatal(err)
+		}
+		defer c.Stop()
+
+		// when setpgid is true, the pid and gpid should be the same
+		gpid, err := syscall.Getpgid(c.Pid())
+		if err != nil {
+			t.Fatal("Getpgid error:", err)
+		}
+
+		if c.Pid() != gpid {
+			t.Fatal("pid and gpid should match")
+		}
+	})
+	t.Run("false", func(t *testing.T) {
+		c := testChild(t)
+		c.command = "sh"
+		c.args = []string{"-c", "while true; do sleep 0.2; done"}
+		c.setpgid = false
+
+		if err := c.Start(); err != nil {
+			t.Fatal(err)
+		}
+		defer c.Stop()
+
+		// when setpgid is true, the pid and gpid should be the same
+		gpid, err := syscall.Getpgid(c.Pid())
+		if err != nil {
+			t.Fatal("Getpgid error:", err)
+		}
+
+		if c.Pid() == gpid {
+			t.Fatal("pid and gpid should NOT match")
+		}
+	})
+}
