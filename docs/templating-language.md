@@ -79,6 +79,7 @@ provides the following functions:
   - [toUpper](#toupper)
   - [toYAML](#toyaml)
   - [sockaddr](#sockaddr)
+  - [writeToFile](#writeToFile)
 - [Math Functions](#math-functions)
   - [add](#add)
   - [subtract](#subtract)
@@ -575,7 +576,7 @@ To iterate and list over every secret in the generic secret backend in Vault:
 {{ with secret (printf "secret/%s" .) }}{{ range $k, $v := .Data }}
 {{ $k }}: {{ $v }}
 {{ end }}{{ end }}{{ end }}
-``` 
+```
 
 `.Data` should be replaced with `.Data.data` for KV-V2 secrets engines.
 
@@ -1573,6 +1574,19 @@ Takes a quote-escaped template string as an argument and passes it on to
 See [hashicorp/go-sockaddr documentation](https://godoc.org/github.com/hashicorp/go-sockaddr)
 for more information.
 
+### `writeToFile`
+
+Writes the content to a file with username, group name, permissions. There are optional flags to
+select appending mode or add a newline.
+
+For example:
+
+```golang
+{{ key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644" }}
+{{ key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644" "append" }}
+{{ key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644" "append,newline" }}
+```
+
 ---
 
 ## Math Functions
@@ -1704,7 +1718,7 @@ or an error.
 renders
 
 ```golang
-> 
+>
 (map[string]interface {}) (len=1) {
  (string) (len=3) "foo": (map[string]interface {}) (len=3) {
   (string) (len=3) "bar": (bool) true,
@@ -1727,7 +1741,7 @@ Creates a string containing the values with full newlines, indentation, type, an
 renders
 
 ```golang
-> 
+>
 (map[string]interface {}) (len=1) {
  (string) (len=3) "foo": (map[string]interface {}) (len=3) {
   (string) (len=3) "bar": (bool) true,
@@ -1760,19 +1774,19 @@ Given this template fragment,
 {{- $OBJ := parseJSON $JSON -}}
 ```
 
-#### using `%v` 
+#### using `%v`
 
 ```golang
 {{- spew_printf "%v\n" $OBJ }}
 ```
 
-outputs 
+outputs
 
 ```golang
 map[foo:map[bar:true baz:string theAnswer:42]]
 ```
 
-#### using `%+v` 
+#### using `%+v`
 
 
 ```golang
