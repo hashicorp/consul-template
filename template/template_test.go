@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/user"
 	"reflect"
+	"strconv"
 	"testing"
 	"time"
 
@@ -1872,6 +1874,129 @@ func TestTemplate_Execute(t *testing.T) {
 			}
 			if a != nil && !bytes.Equal([]byte(tc.e), a.Output) {
 				t.Errorf("\nexp: %#v\nact: %#v", tc.e, string(a.Output))
+			}
+		})
+	}
+}
+
+func Test_writeToFile(t *testing.T) {
+	cases := []struct {
+		name        string
+		content     string
+		permissions string
+		flags       string
+		expectation string
+		wantErr     bool
+	}{
+		{
+			"writeToFile_without_flags",
+			"after",
+			"0644",
+			"",
+			"after",
+			false,
+		},
+		{
+			"writeToFile_with_different_file_permissions",
+			"after",
+			"0666",
+			"",
+			"after",
+			false,
+		},
+		{
+			"writeToFile_with_append",
+			"after",
+			"0644",
+			`"append"`,
+			"beforeafter",
+			false,
+		},
+		{
+			"writeToFile_with_newline",
+			"after",
+			"0644",
+			`"newline"`,
+			"after\n",
+			false,
+		},
+		{
+			"writeToFile_with_append_and_newline",
+			"after",
+			"0644",
+			`"append,newline"`,
+			"beforeafter\n",
+			false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			outDir, err := ioutil.TempDir("", "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer os.RemoveAll(outDir)
+			outputFile, err := ioutil.TempFile(outDir, "")
+			if err != nil {
+				t.Fatal(err)
+			}
+			outputFile.WriteString("before")
+
+			// Use current user and its primary group for input
+			currentUser, err := user.Current()
+			if err != nil {
+				t.Fatal(err)
+			}
+			currentUsername := currentUser.Username
+			currentGroup, err := user.LookupGroupId(currentUser.Gid)
+			if err != nil {
+				t.Fatal(err)
+			}
+			currentGroupName := currentGroup.Name
+
+			templateContent := fmt.Sprintf(
+				"{{ \"%s\" | writeToFile \"%s\" \"%s\" \"%s\" \"%s\"  %s}}",
+				tc.content, outputFile.Name(), currentUsername, currentGroupName, tc.permissions, tc.flags)
+			ti := &NewTemplateInput{
+				Contents: templateContent,
+			}
+			tpl, err := NewTemplate(ti)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			a, err := tpl.Execute(nil)
+			if (err != nil) != tc.wantErr {
+				t.Errorf("writeToFile() error = %v, wantErr %v", err, tc.wantErr)
+				return
+			}
+
+			// Compare generated file content with the expectation.
+			// The function should generate an empty string to the output.
+			_generatedFileContent, err := ioutil.ReadFile(outputFile.Name())
+			generatedFileContent := string(_generatedFileContent)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if a != nil && !bytes.Equal([]byte(""), a.Output) {
+				t.Errorf("writeToFile() template = %v, want empty string", a.Output)
+			}
+			if generatedFileContent != tc.expectation {
+				t.Errorf("writeToFile() got = %v, want %v", generatedFileContent, tc.expectation)
+			}
+			// Assert output file permissions
+			sts, err := outputFile.Stat()
+			if err != nil {
+				t.Fatal(err)
+			}
+			p_u, err := strconv.ParseUint(tc.permissions, 8, 32)
+			if err != nil {
+				t.Fatal(err)
+			}
+			perm := os.FileMode(p_u)
+			if sts.Mode() != perm {
+				t.Errorf("writeToFile() wrong permissions got = %v, want %v", perm, tc.permissions)
 			}
 		})
 	}

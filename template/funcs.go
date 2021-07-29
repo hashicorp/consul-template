@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -1594,6 +1595,77 @@ func sha256Hex(item string) (string, error) {
 // md5sum returns the md5 hash of a string
 func md5sum(item string) (string, error) {
 	return fmt.Sprintf("%x", md5.Sum([]byte(item))), nil
+}
+
+// writeToFile writes the content to a file with username, group name, permissions and optional
+// flags to select appending mode or add a newline.
+//
+// For example:
+//   key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644"
+//   key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644" "append"
+//   key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644" "append,newline"
+//
+func writeToFile(path, username, groupName, permissions string, args ...string) (string, error) {
+	// Parse arguments
+	flags := ""
+	if len(args) == 2 {
+		flags = args[0]
+	}
+	content := args[len(args)-1]
+
+	p_u, err := strconv.ParseUint(permissions, 8, 32)
+	if err != nil {
+		return "", err
+	}
+	perm := os.FileMode(p_u)
+
+	// Write to file
+	var f *os.File
+	shouldAppend := strings.Contains(flags, "append")
+	if shouldAppend {
+		f, err = os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, perm)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		f, err = os.Create(path)
+		if err != nil {
+			return "", err
+		}
+	}
+	defer f.Close()
+
+	writingContent := []byte(content)
+	shouldAddNewLine := strings.Contains(flags, "newline")
+	if shouldAddNewLine {
+		writingContent = append(writingContent, []byte("\n")...)
+	}
+	if _, err = f.Write(writingContent); err != nil {
+		return "", err
+	}
+
+	// Change ownership and permissions
+	u, err := user.Lookup(username)
+	if err != nil {
+		return "", err
+	}
+	g, err := user.LookupGroup(groupName)
+	if err != nil {
+		return "", err
+	}
+	uid, _ := strconv.Atoi(u.Uid)
+	gid, _ := strconv.Atoi(g.Gid)
+	err = os.Chown(path, uid, gid)
+	if err != nil {
+		return "", err
+	}
+
+	err = os.Chmod(path, perm)
+	if err != nil {
+		return "", err
+	}
+
+	return "", nil
 }
 
 func spewSdump(args ...interface{}) (string, error) {
