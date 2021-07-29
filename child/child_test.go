@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/go-gatedio"
 )
 
-const fileWaitSleepDelay = 500 * time.Millisecond
+const fileWaitSleepDelay = 50 * time.Millisecond
 
 func testChild(t *testing.T) *Child {
 	c, err := New(&NewInput{
@@ -207,11 +207,11 @@ func TestSignal(t *testing.T) {
 	t.Parallel()
 
 	c := testChild(t)
-	c.command = "bash"
-	c.args = []string{"-c", "trap 'echo one; exit' SIGUSR1; while true; do sleep 0.2; done"}
+	c.command = "sh"
+	c.args = []string{"-c", "trap 'echo one; exit' USR1; while true; do sleep 0.2; done"}
 
 	out := gatedio.NewByteBuffer()
-	c.stdout, c.stderr = out, out
+	c.stdout = out
 
 	if err := c.Start(); err != nil {
 		t.Fatal(err)
@@ -248,12 +248,12 @@ func TestReload_signal(t *testing.T) {
 	t.Parallel()
 
 	c := testChild(t)
-	c.command = "bash"
-	c.args = []string{"-c", "trap 'echo one; exit' SIGUSR1; while true; do sleep 0.2; done"}
+	c.command = "sh"
+	c.args = []string{"-c", "trap 'echo one; exit' USR1; while true; do sleep 0.2; done"}
 	c.reloadSignal = syscall.SIGUSR1
 
 	out := gatedio.NewByteBuffer()
-	c.stdout, c.stderr = out, out
+	c.stdout = out
 
 	if err := c.Start(); err != nil {
 		t.Fatal(err)
@@ -280,13 +280,10 @@ func TestReload_noSignal(t *testing.T) {
 	t.Parallel()
 
 	c := testChild(t)
-	c.command = "bash"
+	c.command = "sh"
 	c.args = []string{"-c", "while true; do sleep 0.2; done"}
 	c.killTimeout = 10 * time.Millisecond
 	c.reloadSignal = nil
-
-	out := gatedio.NewByteBuffer()
-	c.stdout, c.stderr = out, out
 
 	if err := c.Start(); err != nil {
 		t.Fatal(err)
@@ -309,9 +306,6 @@ func TestReload_noSignal(t *testing.T) {
 	// Get the new pid
 	npid := c.cmd.Process.Pid
 
-	// Stop the child now
-	c.Stop()
-
 	if opid == npid {
 		t.Error("expected new process to restart")
 	}
@@ -331,12 +325,12 @@ func TestKill_signal(t *testing.T) {
 	t.Parallel()
 
 	c := testChild(t)
-	c.command = "bash"
-	c.args = []string{"-c", "trap 'echo one; exit' SIGUSR1; while true; do sleep 0.2; done"}
+	c.command = "sh"
+	c.args = []string{"-c", "trap 'echo one; exit' USR1; while true; do sleep 0.2; done"}
 	c.killSignal = syscall.SIGUSR1
 
 	out := gatedio.NewByteBuffer()
-	c.stdout, c.stderr = out, out
+	c.stdout = out
 
 	if err := c.Start(); err != nil {
 		t.Fatal(err)
@@ -361,13 +355,10 @@ func TestKill_noSignal(t *testing.T) {
 	t.Parallel()
 
 	c := testChild(t)
-	c.command = "bash"
+	c.command = "sh"
 	c.args = []string{"-c", "while true; do sleep 0.2; done"}
 	c.killTimeout = 20 * time.Millisecond
 	c.killSignal = nil
-
-	out := gatedio.NewByteBuffer()
-	c.stdout, c.stderr = out, out
 
 	if err := c.Start(); err != nil {
 		t.Fatal(err)
@@ -398,14 +389,14 @@ func TestKill_noProcess(t *testing.T) {
 func TestStop_noWaitForSplay(t *testing.T) {
 	t.Parallel()
 	c := testChild(t)
-	c.command = "bash"
-	c.args = []string{"-c", "trap 'echo one; exit' SIGUSR1; while true; do sleep 0.2; done"}
+	c.command = "sh"
+	c.args = []string{"-c", "trap 'echo one; exit' USR1; while true; do sleep 0.2; done"}
 	c.splay = 100 * time.Second
 	c.reloadSignal = nil
 	c.killSignal = syscall.SIGUSR1
 
 	out := gatedio.NewByteBuffer()
-	c.stdout, c.stderr = out, out
+	c.stdout = out
 
 	if err := c.Start(); err != nil {
 		t.Fatal(err)
@@ -423,7 +414,7 @@ func TestStop_noWaitForSplay(t *testing.T) {
 		t.Errorf("expected %q to be %q", out.String(), expected)
 	}
 
-	if killEndTime.Sub(killStartTime) > 500*time.Millisecond {
+	if killEndTime.Sub(killStartTime) > fileWaitSleepDelay {
 		t.Error("expected not to wait for splay")
 	}
 }
@@ -431,14 +422,11 @@ func TestStop_noWaitForSplay(t *testing.T) {
 func TestStop_childAlreadyDead(t *testing.T) {
 	t.Parallel()
 	c := testChild(t)
-	c.command = "bash"
+	c.command = "sh"
 	c.args = []string{"-c", "exit 1"}
 	c.splay = 100 * time.Second
 	c.reloadSignal = nil
 	c.killSignal = syscall.SIGTERM
-
-	out := gatedio.NewByteBuffer()
-	c.stdout, c.stderr = out, out
 
 	if err := c.Start(); err != nil {
 		t.Fatal(err)
@@ -451,7 +439,53 @@ func TestStop_childAlreadyDead(t *testing.T) {
 	c.Stop()
 	killEndTime := time.Now()
 
-	if killEndTime.Sub(killStartTime) > 500*time.Millisecond {
+	if killEndTime.Sub(killStartTime) > fileWaitSleepDelay {
 		t.Error("expected not to wait for splay")
 	}
+}
+
+func TestSetpgid(t *testing.T) {
+	t.Run("true", func(t *testing.T) {
+		c := testChild(t)
+		c.command = "sh"
+		c.args = []string{"-c", "while true; do sleep 0.2; done"}
+		// default, but to be explicit for the test
+		c.setpgid = true
+
+		if err := c.Start(); err != nil {
+			t.Fatal(err)
+		}
+		defer c.Stop()
+
+		// when setpgid is true, the pid and gpid should be the same
+		gpid, err := syscall.Getpgid(c.Pid())
+		if err != nil {
+			t.Fatal("Getpgid error:", err)
+		}
+
+		if c.Pid() != gpid {
+			t.Fatal("pid and gpid should match")
+		}
+	})
+	t.Run("false", func(t *testing.T) {
+		c := testChild(t)
+		c.command = "sh"
+		c.args = []string{"-c", "while true; do sleep 0.2; done"}
+		c.setpgid = false
+
+		if err := c.Start(); err != nil {
+			t.Fatal(err)
+		}
+		defer c.Stop()
+
+		// when setpgid is true, the pid and gpid should be the same
+		gpid, err := syscall.Getpgid(c.Pid())
+		if err != nil {
+			t.Fatal("Getpgid error:", err)
+		}
+
+		if c.Pid() == gpid {
+			t.Fatal("pid and gpid should NOT match")
+		}
+	})
 }
