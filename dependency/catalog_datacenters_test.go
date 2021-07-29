@@ -13,7 +13,6 @@ func init() {
 }
 
 func TestNewCatalogDatacentersQuery(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -44,7 +43,6 @@ func TestNewCatalogDatacentersQuery(t *testing.T) {
 }
 
 func TestCatalogDatacentersQuery_Fetch(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -143,7 +141,6 @@ func TestCatalogDatacentersQuery_Fetch(t *testing.T) {
 }
 
 func TestCatalogDatacentersQuery_String(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string

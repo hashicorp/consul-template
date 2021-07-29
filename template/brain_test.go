@@ -8,7 +8,6 @@ import (
 )
 
 func TestNewBrain(t *testing.T) {
-	t.Parallel()
 	b := NewBrain()
 
 	if b.data == nil {
@@ -21,7 +20,6 @@ func TestNewBrain(t *testing.T) {
 }
 
 func TestRecall(t *testing.T) {
-	t.Parallel()
 	b := NewBrain()
 
 	d, err := dep.NewCatalogNodesQuery("")
@@ -50,7 +48,6 @@ func TestRecall(t *testing.T) {
 }
 
 func TestForceSet(t *testing.T) {
-	t.Parallel()
 	b := NewBrain()
 
 	d, err := dep.NewCatalogNodesQuery("")
@@ -79,7 +76,6 @@ func TestForceSet(t *testing.T) {
 }
 
 func TestForget(t *testing.T) {
-	t.Parallel()
 	b := NewBrain()
 
 	d, err := dep.NewCatalogNodesQuery("")

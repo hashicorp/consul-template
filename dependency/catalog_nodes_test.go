@@ -8,7 +8,6 @@ import (
 )
 
 func TestNewCatalogNodesQuery(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -72,7 +71,6 @@ func TestNewCatalogNodesQuery(t *testing.T) {
 }
 
 func TestCatalogNodesQuery_Fetch(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -124,7 +122,6 @@ func TestCatalogNodesQuery_Fetch(t *testing.T) {
 }
 
 func TestCatalogNodesQuery_String(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string

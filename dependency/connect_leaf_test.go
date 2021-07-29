@@ -12,7 +12,6 @@ import (
 )
 
 func TestNewConnectLeafQuery(t *testing.T) {
-	t.Parallel()
 
 	act := NewConnectLeafQuery("foo")
 	act.stopCh = nil
@@ -21,7 +20,6 @@ func TestNewConnectLeafQuery(t *testing.T) {
 }
 
 func TestConnectLeafQuery_Fetch(t *testing.T) {
-	t.Parallel()
 
 	t.Run("empty-service", func(t *testing.T) {
 		d := NewConnectLeafQuery("")
@@ -74,7 +72,6 @@ func TestConnectLeafQuery_Fetch(t *testing.T) {
 }
 
 func TestConnectLeafQuery_String(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name    string

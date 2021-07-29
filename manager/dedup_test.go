@@ -9,7 +9,6 @@ import (
 )
 
 func TestDedup_StartStop(t *testing.T) {
-	t.Parallel()
 
 	dedup := testDedupManager(t, nil)
 
@@ -23,7 +22,6 @@ func TestDedup_StartStop(t *testing.T) {
 }
 
 func TestDedup_IsLeader(t *testing.T) {
-	t.Parallel()
 
 	// Create a template
 	tmpl, err := template.NewTemplate(&template.NewTemplateInput{
@@ -53,7 +51,6 @@ func TestDedup_IsLeader(t *testing.T) {
 }
 
 func TestDedup_UpdateDeps(t *testing.T) {
-	t.Parallel()
 
 	// Create a template
 	tmpl, err := template.NewTemplate(&template.NewTemplateInput{
@@ -93,7 +90,6 @@ func TestDedup_UpdateDeps(t *testing.T) {
 }
 
 func TestDedup_FollowerUpdate(t *testing.T) {
-	t.Parallel()
 
 	// hangs on this sometimes, so make as short as possible
 	lockWaitTime = 100 * time.Millisecond

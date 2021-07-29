@@ -9,7 +9,6 @@ import (
 )
 
 func TestNewVaultListQuery(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -66,7 +65,6 @@ func TestNewVaultListQuery(t *testing.T) {
 }
 
 func TestVaultListQuery_Fetch(t *testing.T) {
-	t.Parallel()
 
 	clients, vault := testVaultServer(t, "listfetch", "1")
 	secretsPath := vault.secretsPath
@@ -209,7 +207,6 @@ func TestVaultListQuery_Fetch(t *testing.T) {
 }
 
 func TestVaultListQuery_String(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string

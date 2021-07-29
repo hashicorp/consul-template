@@ -36,7 +36,6 @@ func testFile(t *testing.T, contents string) (path string, remove func()) {
 }
 
 func TestParse(t *testing.T) {
-	t.Parallel()
 
 	testFilePath, remove := testFile(t, "")
 	defer remove()
@@ -1571,7 +1570,6 @@ func TestParse(t *testing.T) {
 }
 
 func TestFinalize(t *testing.T) {
-	t.Parallel()
 
 	testFileContents := "testing123"
 	testFilePath, remove := testFile(t, testFileContents)
@@ -1676,7 +1674,6 @@ func TestFinalize(t *testing.T) {
 }
 
 func TestConfig_Merge(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -1943,7 +1940,6 @@ func TestConfig_Merge(t *testing.T) {
 }
 
 func TestFromPath(t *testing.T) {
-	t.Parallel()
 
 	f, err := ioutil.TempFile("", "")
 	if err != nil {

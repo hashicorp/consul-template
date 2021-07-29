@@ -8,7 +8,6 @@ import (
 )
 
 func TestTemplateConfig_Copy(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -52,7 +51,6 @@ func TestTemplateConfig_Copy(t *testing.T) {
 }
 
 func TestTemplateConfig_Merge(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -409,7 +407,6 @@ func TestTemplateConfig_Merge(t *testing.T) {
 }
 
 func TestTemplateConfig_Finalize(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -471,7 +468,6 @@ func TestTemplateConfig_Finalize(t *testing.T) {
 }
 
 func TestTemplateConfig_Display(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -518,7 +514,6 @@ func TestTemplateConfig_Display(t *testing.T) {
 }
 
 func TestParseTemplateConfig(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string

@@ -8,7 +8,6 @@ import (
 )
 
 func TestConsulConfig_Copy(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -49,7 +48,6 @@ func TestConsulConfig_Copy(t *testing.T) {
 }
 
 func TestConsulConfig_Merge(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -262,7 +260,6 @@ func TestConsulConfig_Merge(t *testing.T) {
 }
 
 func TestConsulConfig_Finalize(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string

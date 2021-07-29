@@ -8,7 +8,6 @@ import (
 )
 
 func TestDedupConfig_Copy(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -44,7 +43,6 @@ func TestDedupConfig_Copy(t *testing.T) {
 }
 
 func TestDedupConfig_Merge(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -185,7 +183,6 @@ func TestDedupConfig_Merge(t *testing.T) {
 }
 
 func TestDedupConfig_Finalize(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string

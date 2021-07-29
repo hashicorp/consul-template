@@ -9,7 +9,6 @@ import (
 )
 
 func TestNewHealthServiceQuery(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -162,7 +161,6 @@ func TestNewHealthServiceQuery(t *testing.T) {
 }
 
 func TestHealthConnectServiceQuery_Fetch(t *testing.T) {
-	t.Parallel()
 	cases := []struct {
 		name string
 		in   string
@@ -219,7 +217,6 @@ func TestHealthConnectServiceQuery_Fetch(t *testing.T) {
 }
 
 func TestHealthServiceQuery_Fetch(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -384,7 +381,6 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 }
 
 func TestHealthServiceQuery_String(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -465,7 +461,6 @@ func TestHealthServiceQuery_String(t *testing.T) {
 }
 
 func TestHealthServiceQueryConnect_String(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string

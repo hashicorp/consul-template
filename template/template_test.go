@@ -16,7 +16,6 @@ import (
 )
 
 func TestNewTemplate(t *testing.T) {
-	t.Parallel()
 	f, err := ioutil.TempFile("", "")
 	if err != nil {
 		t.Fatal(err)
@@ -126,7 +125,6 @@ func TestNewTemplate(t *testing.T) {
 }
 
 func TestTemplate_Execute(t *testing.T) {
-	t.Parallel()
 	now = func() time.Time { return time.Unix(0, 0).UTC() }
 
 	f, err := ioutil.TempFile("", "")

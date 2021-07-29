@@ -7,7 +7,6 @@ import (
 )
 
 func TestScratch_Key(t *testing.T) {
-	t.Parallel()
 	cases := []struct {
 		name string
 		s    *Scratch
@@ -43,7 +42,6 @@ func TestScratch_Key(t *testing.T) {
 }
 
 func TestScratch_Get(t *testing.T) {
-	t.Parallel()
 	cases := []struct {
 		name string
 		s    *Scratch
@@ -79,7 +77,6 @@ func TestScratch_Get(t *testing.T) {
 }
 
 func TestScratch_Set(t *testing.T) {
-	t.Parallel()
 	cases := []struct {
 		name string
 		f    func(*Scratch)
@@ -123,7 +120,6 @@ func TestScratch_Set(t *testing.T) {
 }
 
 func TestScratch_SetX(t *testing.T) {
-	t.Parallel()
 	cases := []struct {
 		name string
 		f    func(*Scratch)
@@ -167,7 +163,6 @@ func TestScratch_SetX(t *testing.T) {
 }
 
 func TestScratch_MapSet(t *testing.T) {
-	t.Parallel()
 	cases := []struct {
 		name string
 		f    func(*Scratch)
@@ -219,7 +214,6 @@ func TestScratch_MapSet(t *testing.T) {
 }
 
 func TestScratch_MapSetX(t *testing.T) {
-	t.Parallel()
 	cases := []struct {
 		name string
 		f    func(*Scratch)
@@ -271,7 +265,6 @@ func TestScratch_MapSetX(t *testing.T) {
 }
 
 func TestScratch_MapValues(t *testing.T) {
-	t.Parallel()
 	cases := []struct {
 		name string
 		s    *Scratch

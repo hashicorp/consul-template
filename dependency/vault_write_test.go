@@ -11,7 +11,6 @@ import (
 )
 
 func TestNewVaultWriteQuery(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -73,7 +72,6 @@ func TestNewVaultWriteQuery(t *testing.T) {
 }
 
 func TestVaultWriteSecretKV_Fetch(t *testing.T) {
-	t.Parallel()
 
 	// previously triggered a nil-pointer-deref panic in wq.Fetch() with KVv1
 	// due to writeSecret() returning nil for vaultSecret
@@ -176,7 +174,6 @@ func TestVaultWriteSecretKV_Fetch(t *testing.T) {
 }
 
 func TestVaultWriteQuery_Fetch(t *testing.T) {
-	t.Parallel()
 
 	clients := testClients
 
@@ -365,7 +362,6 @@ func TestVaultWriteQuery_Fetch(t *testing.T) {
 }
 
 func TestVaultWriteQuery_String(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string

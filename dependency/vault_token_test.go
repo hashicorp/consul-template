@@ -9,7 +9,6 @@ import (
 )
 
 func TestNewVaultTokenQuery(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -55,7 +54,6 @@ func TestNewVaultTokenQuery(t *testing.T) {
 }
 
 func TestVaultTokenQuery_String(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string

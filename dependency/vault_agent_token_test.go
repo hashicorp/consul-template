@@ -52,7 +52,6 @@ func TestVaultAgentTokenQuery_Fetch(t *testing.T) {
 }
 
 func TestVaultAgentTokenQuery_Fetch_missingFile(t *testing.T) {
-	t.Parallel()
 
 	// Use a non-existant token file path.
 	d, err := NewVaultAgentTokenQuery("/tmp/invalid-file")

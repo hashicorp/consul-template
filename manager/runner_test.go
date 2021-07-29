@@ -16,7 +16,6 @@ import (
 )
 
 func TestRunner_Receive(t *testing.T) {
-	t.Parallel()
 
 	c := config.TestConfig(&config.Config{Once: true})
 	r, err := NewRunner(c, true)
@@ -25,7 +24,6 @@ func TestRunner_Receive(t *testing.T) {
 	}
 
 	t.Run("adds_to_brain", func(t *testing.T) {
-		t.Parallel()
 
 		d, err := dep.NewKVGetQuery("foo")
 		if err != nil {
@@ -47,7 +45,6 @@ func TestRunner_Receive(t *testing.T) {
 	})
 
 	t.Run("skips_brain_if_not_watching", func(t *testing.T) {
-		t.Parallel()
 
 		d, err := dep.NewKVGetQuery("zip")
 		if err != nil {
@@ -442,7 +439,6 @@ func TestRunner_Run(t *testing.T) {
 	for i, tc := range cases {
 		tc := tc
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-			t.Parallel()
 
 			var out bytes.Buffer
 
@@ -473,10 +469,8 @@ func TestRunner_Run(t *testing.T) {
 }
 
 func TestRunner_Start(t *testing.T) {
-	t.Parallel()
 
 	t.Run("store_pid", func(t *testing.T) {
-		t.Parallel()
 
 		pid, err := ioutil.TempFile("", "")
 		if err != nil {
@@ -526,7 +520,6 @@ func TestRunner_Start(t *testing.T) {
 	})
 
 	t.Run("run_no_deps", func(t *testing.T) {
-		t.Parallel()
 
 		out, err := ioutil.TempFile("", "")
 		if err != nil {
@@ -570,7 +563,6 @@ func TestRunner_Start(t *testing.T) {
 	})
 
 	t.Run("single_dependency", func(t *testing.T) {
-		t.Parallel()
 
 		testConsul.SetKVString(t, "single-dep-foo", "bar")
 
@@ -619,7 +611,6 @@ func TestRunner_Start(t *testing.T) {
 	})
 
 	t.Run("multipass", func(t *testing.T) {
-		t.Parallel()
 
 		testConsul.SetKVString(t, "multipass-foo", "multipass-bar")
 		testConsul.SetKVString(t, "multipass-bar", "zip")
@@ -669,7 +660,6 @@ func TestRunner_Start(t *testing.T) {
 	})
 
 	t.Run("exec", func(t *testing.T) {
-		t.Parallel()
 
 		out, err := ioutil.TempFile("", "")
 		if err != nil {
@@ -725,7 +715,6 @@ func TestRunner_Start(t *testing.T) {
 	})
 
 	t.Run("exec_once", func(t *testing.T) {
-		t.Parallel()
 
 		out, err := ioutil.TempFile("", "")
 		if err != nil {
@@ -783,7 +772,6 @@ func TestRunner_Start(t *testing.T) {
 
 	// Exec would run before template rendering if Wait was defined.
 	t.Run("exec-wait", func(t *testing.T) {
-		t.Parallel()
 
 		testConsul.SetKVString(t, "exec-wait-foo", "foo")
 
@@ -853,7 +841,6 @@ func TestRunner_Start(t *testing.T) {
 	// a wait parameter call an exec function
 	// https://github.com/hashicorp/consul-template/issues/1043
 	t.Run("multi-template-exec", func(t *testing.T) {
-		t.Parallel()
 
 		testConsul.SetKVString(t, "multi-exec-wait-foo", "bar")
 		testConsul.SetKVString(t, "multi-exec-wait-bar", "bat")
@@ -928,7 +915,6 @@ func TestRunner_Start(t *testing.T) {
 	})
 
 	t.Run("render_in_memory", func(t *testing.T) {
-		t.Parallel()
 
 		testConsul.SetKVString(t, "render-in-memory", "foo")
 
@@ -987,12 +973,10 @@ func TestRunner_Start(t *testing.T) {
 }
 
 func TestRunner_quiescence(t *testing.T) {
-	t.Parallel()
 
 	tpl := &template.Template{}
 
 	t.Run("min", func(t *testing.T) {
-		t.Parallel()
 
 		ch := make(chan *template.Template, 1)
 		q := newQuiescence(ch,
@@ -1023,7 +1007,6 @@ func TestRunner_quiescence(t *testing.T) {
 
 	// Single snooze case.
 	t.Run("snooze", func(t *testing.T) {
-		t.Parallel()
 
 		ch := make(chan *template.Template, 1)
 		q := newQuiescence(ch,
@@ -1051,7 +1034,6 @@ func TestRunner_quiescence(t *testing.T) {
 
 	// Max time case.
 	t.Run("max", func(t *testing.T) {
-		t.Parallel()
 
 		ch := make(chan *template.Template, 1)
 		q := newQuiescence(ch,

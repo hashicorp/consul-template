@@ -10,7 +10,6 @@ import (
 )
 
 func TestEnvConfig_Copy(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -48,7 +47,6 @@ func TestEnvConfig_Copy(t *testing.T) {
 }
 
 func TestEnvConfig_Merge(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -183,7 +181,6 @@ func TestEnvConfig_Merge(t *testing.T) {
 }
 
 func TestExecConfig_Env(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -275,7 +272,6 @@ func TestExecConfig_Env(t *testing.T) {
 }
 
 func TestEnvConfig_Finalize(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -307,7 +303,6 @@ func TestEnvConfig_Finalize(t *testing.T) {
 }
 
 func TestCombineLists(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name     string

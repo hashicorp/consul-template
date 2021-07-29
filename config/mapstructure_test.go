@@ -11,7 +11,6 @@ import (
 )
 
 func TestStringToFileModeFunc(t *testing.T) {
-	t.Parallel()
 
 	f := StringToFileModeFunc()
 	strType := reflect.TypeOf("")
@@ -55,7 +54,6 @@ func TestStringToFileModeFunc(t *testing.T) {
 }
 
 func TestStringToWaitDurationHookFunc(t *testing.T) {
-	t.Parallel()
 
 	f := StringToWaitDurationHookFunc()
 	strType := reflect.TypeOf("")
@@ -125,7 +123,6 @@ func TestStringToWaitDurationHookFunc(t *testing.T) {
 }
 
 func TestConsulStringToStructFunc(t *testing.T) {
-	t.Parallel()
 
 	f := ConsulStringToStructFunc()
 	strType := reflect.TypeOf("")

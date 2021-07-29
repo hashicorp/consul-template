@@ -8,7 +8,6 @@ import (
 )
 
 func TestConnectCAQuery_Fetch(t *testing.T) {
-	t.Parallel()
 
 	d := NewConnectCAQuery()
 	raw, _, err := d.Fetch(testClients, nil)

@@ -11,7 +11,6 @@ import (
 )
 
 func TestBool(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -38,7 +37,6 @@ func TestBool(t *testing.T) {
 }
 
 func TestBoolVal(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -68,7 +66,6 @@ func TestBoolVal(t *testing.T) {
 }
 
 func TestBoolGoString(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -98,7 +95,6 @@ func TestBoolGoString(t *testing.T) {
 }
 
 func TestBoolPresent(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -128,7 +124,6 @@ func TestBoolPresent(t *testing.T) {
 }
 
 func TestFileMode(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -155,7 +150,6 @@ func TestFileMode(t *testing.T) {
 }
 
 func TestFileModeVal(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -185,7 +179,6 @@ func TestFileModeVal(t *testing.T) {
 }
 
 func TestFileModeGoString(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -215,7 +208,6 @@ func TestFileModeGoString(t *testing.T) {
 }
 
 func TestFileModePresent(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -250,7 +242,6 @@ func TestFileModePresent(t *testing.T) {
 }
 
 func TestInt(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -277,7 +268,6 @@ func TestInt(t *testing.T) {
 }
 
 func TestIntVal(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -307,7 +297,6 @@ func TestIntVal(t *testing.T) {
 }
 
 func TestIntGoString(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -337,7 +326,6 @@ func TestIntGoString(t *testing.T) {
 }
 
 func TestIntPresent(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -372,7 +360,6 @@ func TestIntPresent(t *testing.T) {
 }
 
 func TestSignal(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -395,7 +382,6 @@ func TestSignal(t *testing.T) {
 }
 
 func TestSignalVal(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -425,7 +411,6 @@ func TestSignalVal(t *testing.T) {
 }
 
 func TestSignalGoString(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -455,7 +440,6 @@ func TestSignalGoString(t *testing.T) {
 }
 
 func TestSignalPresent(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -490,7 +474,6 @@ func TestSignalPresent(t *testing.T) {
 }
 
 func TestString(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -513,7 +496,6 @@ func TestString(t *testing.T) {
 }
 
 func TestStringVal(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -543,7 +525,6 @@ func TestStringVal(t *testing.T) {
 }
 
 func TestStringGoString(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -573,7 +554,6 @@ func TestStringGoString(t *testing.T) {
 }
 
 func TestStringPresent(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -608,7 +588,6 @@ func TestStringPresent(t *testing.T) {
 }
 
 func TestTimeDuration(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -631,7 +610,6 @@ func TestTimeDuration(t *testing.T) {
 }
 
 func TestTimeDurationVal(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -661,7 +639,6 @@ func TestTimeDurationVal(t *testing.T) {
 }
 
 func TestTimeDurationGoString(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string

@@ -9,7 +9,6 @@ import (
 )
 
 func TestNewKVGetQuery(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -130,7 +129,6 @@ func TestNewKVGetQuery(t *testing.T) {
 }
 
 func TestKVGetQuery_Fetch(t *testing.T) {
-	t.Parallel()
 
 	testConsul.SetKVString(t, "test-kv-get/key", "value")
 	testConsul.SetKVString(t, "test-kv-get/key_empty", "")
@@ -247,7 +245,6 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 }
 
 func TestKVGetQuery_String(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string

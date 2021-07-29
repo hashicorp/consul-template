@@ -15,7 +15,6 @@ import (
 )
 
 func TestNewVaultReadQuery(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -87,7 +86,6 @@ func TestNewVaultReadQuery(t *testing.T) {
 }
 
 func TestVaultReadQuery_Fetch_KVv1(t *testing.T) {
-	t.Parallel()
 
 	clients, vault := testVaultServer(t, "read_fetch_v1", "1")
 	secretsPath := vault.secretsPath
@@ -264,7 +262,6 @@ func TestVaultReadQuery_Fetch_KVv1(t *testing.T) {
 }
 
 func TestVaultReadQuery_Fetch_KVv2(t *testing.T) {
-	t.Parallel()
 
 	clients, vault := testVaultServer(t, "read_fetch_v2", "2")
 	secretsPath := vault.secretsPath
@@ -521,7 +518,6 @@ func TestVaultReadQuery_Fetch_KVv2(t *testing.T) {
 // TestVaultReadQuery_Fetch_PKI_Anonymous asserts that vault.read can fetch a
 // pki ca public cert even even when running unauthenticated client.
 func TestVaultReadQuery_Fetch_PKI_Anonymous(t *testing.T) {
-	t.Parallel()
 	clients := testClients
 
 	err := clients.Vault().Sys().Mount("pki", &api.MountInput{
@@ -580,7 +576,6 @@ func TestVaultReadQuery_Fetch_PKI_Anonymous(t *testing.T) {
 // TestVaultReadQuery_Fetch_NonSecrets asserts that vault.read can fetch a
 // non-secret
 func TestVaultReadQuery_Fetch_NonSecrets(t *testing.T) {
-	t.Parallel()
 
 	var err error
 
@@ -640,7 +635,6 @@ func TestVaultReadQuery_Fetch_NonSecrets(t *testing.T) {
 }
 
 func TestVaultReadQuery_String(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string

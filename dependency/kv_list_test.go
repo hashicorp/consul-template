@@ -9,7 +9,6 @@ import (
 )
 
 func TestNewKVListQuery(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -145,7 +144,6 @@ func TestNewKVListQuery(t *testing.T) {
 }
 
 func TestKVListQuery_Fetch(t *testing.T) {
-	t.Parallel()
 
 	testConsul.SetKVString(t, "test-kv-list/prefix/foo", "bar")
 	testConsul.SetKVString(t, "test-kv-list/prefix/zip", "zap")
@@ -315,7 +313,6 @@ func TestKVListQuery_Fetch(t *testing.T) {
 }
 
 func TestKVListQuery_String(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string

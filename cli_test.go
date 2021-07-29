@@ -16,7 +16,6 @@ import (
 )
 
 func TestCLI_ParseFlags(t *testing.T) {
-	t.Parallel()
 
 	f, err := ioutil.TempFile("", "")
 	if err != nil {
@@ -736,7 +735,6 @@ func TestCLI_ParseFlags(t *testing.T) {
 }
 
 func TestCLI_Run(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -787,7 +785,6 @@ func TestCLI_Run(t *testing.T) {
 	}
 
 	t.Run("once", func(t *testing.T) {
-		t.Parallel()
 
 		f, err := ioutil.TempFile("", "")
 		if err != nil {
@@ -839,7 +836,6 @@ func TestCLI_Run(t *testing.T) {
 	})
 
 	t.Run("reload", func(t *testing.T) {
-		t.Parallel()
 
 		f, err := ioutil.TempFile("", "")
 		if err != nil {

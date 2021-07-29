@@ -31,7 +31,6 @@ func testChild(t *testing.T) *Child {
 }
 
 func TestNew(t *testing.T) {
-	t.Parallel()
 
 	stdin := gatedio.NewByteBuffer()
 	stdout := gatedio.NewByteBuffer()
@@ -106,7 +105,6 @@ func TestNew(t *testing.T) {
 }
 
 func TestNew_errMissingCommand(t *testing.T) {
-	t.Parallel()
 
 	_, err := New(nil)
 	if err == nil {
@@ -119,7 +117,6 @@ func TestNew_errMissingCommand(t *testing.T) {
 }
 
 func TestExitCh_noProcess(t *testing.T) {
-	t.Parallel()
 
 	c := testChild(t)
 	ch := c.ExitCh()
@@ -129,7 +126,6 @@ func TestExitCh_noProcess(t *testing.T) {
 }
 
 func TestExitCh(t *testing.T) {
-	t.Parallel()
 
 	c := testChild(t)
 	if err := c.Start(); err != nil {
@@ -144,7 +140,6 @@ func TestExitCh(t *testing.T) {
 }
 
 func TestPid_noProcess(t *testing.T) {
-	t.Parallel()
 
 	c := testChild(t)
 	pid := c.Pid()
@@ -154,7 +149,6 @@ func TestPid_noProcess(t *testing.T) {
 }
 
 func TestPid(t *testing.T) {
-	t.Parallel()
 
 	c := testChild(t)
 	if err := c.Start(); err != nil {
@@ -169,7 +163,6 @@ func TestPid(t *testing.T) {
 }
 
 func TestStart(t *testing.T) {
-	t.Parallel()
 
 	c := testChild(t)
 
@@ -204,7 +197,6 @@ func TestStart(t *testing.T) {
 }
 
 func TestSignal(t *testing.T) {
-	t.Parallel()
 
 	c := testChild(t)
 	c.command = "sh"
@@ -235,7 +227,6 @@ func TestSignal(t *testing.T) {
 }
 
 func TestSignal_noProcess(t *testing.T) {
-	t.Parallel()
 
 	c := testChild(t)
 	if err := c.Signal(syscall.SIGUSR1); err != nil {
@@ -245,7 +236,6 @@ func TestSignal_noProcess(t *testing.T) {
 }
 
 func TestReload_signal(t *testing.T) {
-	t.Parallel()
 
 	c := testChild(t)
 	c.command = "sh"
@@ -277,7 +267,6 @@ func TestReload_signal(t *testing.T) {
 }
 
 func TestReload_noSignal(t *testing.T) {
-	t.Parallel()
 
 	c := testChild(t)
 	c.command = "sh"
@@ -312,7 +301,6 @@ func TestReload_noSignal(t *testing.T) {
 }
 
 func TestReload_noProcess(t *testing.T) {
-	t.Parallel()
 
 	c := testChild(t)
 	c.reloadSignal = syscall.SIGUSR1
@@ -322,7 +310,6 @@ func TestReload_noProcess(t *testing.T) {
 }
 
 func TestKill_signal(t *testing.T) {
-	t.Parallel()
 
 	c := testChild(t)
 	c.command = "sh"
@@ -352,7 +339,6 @@ func TestKill_signal(t *testing.T) {
 }
 
 func TestKill_noSignal(t *testing.T) {
-	t.Parallel()
 
 	c := testChild(t)
 	c.command = "sh"
@@ -379,7 +365,6 @@ func TestKill_noSignal(t *testing.T) {
 }
 
 func TestKill_noProcess(t *testing.T) {
-	t.Parallel()
 
 	c := testChild(t)
 	c.killSignal = syscall.SIGUSR1
@@ -387,7 +372,6 @@ func TestKill_noProcess(t *testing.T) {
 }
 
 func TestStop_noWaitForSplay(t *testing.T) {
-	t.Parallel()
 	c := testChild(t)
 	c.command = "sh"
 	c.args = []string{"-c", "trap 'echo one; exit' USR1; while true; do sleep 0.2; done"}
@@ -420,7 +404,6 @@ func TestStop_noWaitForSplay(t *testing.T) {
 }
 
 func TestStop_childAlreadyDead(t *testing.T) {
-	t.Parallel()
 	c := testChild(t)
 	c.command = "sh"
 	c.args = []string{"-c", "exit 1"}

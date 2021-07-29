@@ -7,7 +7,6 @@ import (
 )
 
 func TestParse(t *testing.T) {
-	t.Parallel()
 
 	s, err := Parse("SIGHUP")
 	if err != nil {
@@ -19,7 +18,6 @@ func TestParse(t *testing.T) {
 }
 
 func TestParse_case(t *testing.T) {
-	t.Parallel()
 
 	s, err := Parse("sighup")
 	if err != nil {
@@ -31,7 +29,6 @@ func TestParse_case(t *testing.T) {
 }
 
 func TestParse_invalid(t *testing.T) {
-	t.Parallel()
 
 	_, err := Parse("neverasignalnope")
 	if err == nil {

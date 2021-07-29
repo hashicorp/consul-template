@@ -15,7 +15,6 @@ func init() {
 }
 
 func TestNewFileQuery(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -56,7 +55,6 @@ func TestNewFileQuery(t *testing.T) {
 }
 
 func TestFileQuery_Fetch(t *testing.T) {
-	t.Parallel()
 
 	f, err := ioutil.TempFile("", "")
 	if err != nil {
@@ -190,7 +188,6 @@ func TestFileQuery_Fetch(t *testing.T) {
 }
 
 func TestFileQuery_String(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string

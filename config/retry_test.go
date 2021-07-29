@@ -8,7 +8,6 @@ import (
 )
 
 func TestRetryFunc(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -158,7 +157,6 @@ func TestRetryFunc(t *testing.T) {
 }
 
 func TestRetryConfig_Copy(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -202,7 +200,6 @@ func TestRetryConfig_Copy(t *testing.T) {
 }
 
 func TestRetryConfig_Merge(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
@@ -346,7 +343,6 @@ func TestRetryConfig_Merge(t *testing.T) {
 }
 
 func TestRetryConfig_Finalize(t *testing.T) {
-	t.Parallel()
 
 	cases := []struct {
 		name string
