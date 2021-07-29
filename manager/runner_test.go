@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul-template/child"
 	"github.com/hashicorp/consul-template/config"
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul-template/template"
@@ -669,7 +670,8 @@ func TestRunner_Start(t *testing.T) {
 
 		c := config.DefaultConfig().Merge(&config.Config{
 			Exec: &config.ExecConfig{
-				Command: config.String(`sleep 30`),
+				Command:     config.String(`sleep 30`),
+				KillTimeout: config.TimeDuration(time.Duration(10 * time.Second)),
 			},
 			Templates: &config.TemplateConfigs{
 				&config.TemplateConfig{
@@ -1059,48 +1061,151 @@ func TestRunner_quiescence(t *testing.T) {
 	})
 }
 
-func TestRunner_parseCommand(t *testing.T) {
+func TestRunner_command(t *testing.T) {
 	type testCase struct {
-		name, input string
-		expect      []string
+		name, input, out string
+		parsed           []string
 	}
-	runTest := func(tc testCase) {
-		out, err := parseCommand(tc.input)
-		mismatchErr := "bad command parse\ngot: '%#v'\nwanted: '%#v'"
+	os.Setenv("FOO", "bar")
+
+	parseTest := func(tc testCase) {
+		out, err := prepCommand(tc.input)
+		mismatchErr := "bad command parse\n   got: '%#v'\nwanted: '%#v'"
 		switch {
 		case err != nil:
-			t.Fatal("unexpected error:", err)
-		case len(out) != len(tc.expect):
-			t.Fatalf(mismatchErr, out, tc.expect)
-		case !reflect.DeepEqual(out, tc.expect):
-			t.Fatalf(mismatchErr, out, tc.expect)
+			t.Error("unexpected error:", err)
+		case len(out) != len(tc.parsed):
+			t.Errorf(mismatchErr, out, tc.parsed)
+		case !reflect.DeepEqual(out, tc.parsed):
+			t.Errorf(mismatchErr, out, tc.parsed)
+		}
+	}
+	runTest := func(tc testCase) {
+		stdout := new(bytes.Buffer)
+		stderr := new(bytes.Buffer)
+		args, _ := prepCommand(tc.input)
+		child, err := child.New(&child.NewInput{
+			Stdin:   os.Stdin,
+			Stdout:  stdout,
+			Stderr:  stderr,
+			Command: args[0],
+			Args:    args[1:],
+		})
+		if err != nil {
+			t.Fatal("error creating child process:", err)
+		}
+		child.Start()
+		defer child.Stop()
+		if err != nil {
+			t.Fatal("error starting child process:", err)
+		}
+		<-child.ExitCh()
+		switch {
+		case stderr.Len() > 0:
+			t.Errorf("unexpected error output: %s", stderr.String())
+		case tc.out != stdout.String():
+			t.Errorf("wrong command output\n   got: '%#v'\nwanted: '%#v'",
+				stdout.String(), tc.out)
 		}
 	}
 	for i, tc := range []testCase{
 		{
 			name:   "null",
 			input:  "",
-			expect: []string{},
+			parsed: []string{},
+			out:    "",
+		},
+		{
+			name:   "single",
+			input:  "echo",
+			parsed: []string{"sh", "-c", "echo"},
+			out:    "\n",
 		},
 		{
 			name:   "simple",
-			input:  "echo hi",
-			expect: []string{"echo", "hi"},
+			input:  "printf hi",
+			parsed: []string{"sh", "-c", "printf hi"},
+			out:    "hi",
+		},
+		{
+			name:   "subshell-bash", // GH-1456 & GH-1463
+			input:  "bash -c 'printf hi'",
+			parsed: []string{"sh", "-c", "bash -c 'printf hi'"},
+			out:    "hi",
 		},
 		{
 			name:   "subshell-single-quoting", // GH-1456 & GH-1463
-			input:  "sh -c 'echo hi'",
-			expect: []string{"sh", "-c", "echo hi"},
+			input:  "sh -c 'printf hi'",
+			parsed: []string{"sh", "-c", "sh -c 'printf hi'"},
+			out:    "hi",
 		},
 		{
 			name:   "subshell-double-quoting",
-			input:  `sh -c "echo hi"`,
-			expect: []string{"sh", "-c", "echo hi"},
+			input:  `sh -c "echo -n hi"`,
+			parsed: []string{"sh", "-c", `sh -c "echo -n hi"`},
+			out:    "hi",
+		},
+		{
+			name:   "subshell-call",
+			input:  `echo -n $(echo -n foo)`,
+			parsed: []string{"sh", "-c", "echo -n $(echo -n foo)"},
+			out:    "foo",
+		},
+		{
+			name:   "pipe",
+			input:  `seq 1 5 | grep 3`,
+			parsed: []string{"sh", "-c", "seq 1 5 | grep 3"},
+			out:    "3\n",
+		},
+		{
+			name:   "conditional",
+			input:  `sh -c 'if true; then printf foo; fi'`,
+			parsed: []string{"sh", "-c", "sh -c 'if true; then printf foo; fi'"},
+			out:    "foo",
+		},
+		{
+			name:   "command-substition",
+			input:  `sh -c 'echo -n $(which /bin/sh)'`,
+			parsed: []string{"sh", "-c", "sh -c 'echo -n $(which /bin/sh)'"},
+			out:    "/bin/sh",
+		},
+		{
+			name:   "curly-brackets",
+			input:  "sh -c '{ if [ -f /bin/sh ]; then echo -n foo; else echo -n bar; fi }'",
+			parsed: []string{"sh", "-c", "sh -c '{ if [ -f /bin/sh ]; then echo -n foo; else echo -n bar; fi }'"},
+			out:    "foo",
+		},
+		{
+			name:   "and",
+			input:  "true && true && echo -n and",
+			parsed: []string{"sh", "-c", "true && true && echo -n and"},
+			out:    "and",
+		},
+		{
+			name:   "or",
+			input:  "false || false || echo -n or",
+			parsed: []string{"sh", "-c", "false || false || echo -n or"},
+			out:    "or",
+		},
+		{
+			name:   "backgrounded",
+			input:  "(sleep .1; echo -n hi) &",
+			parsed: []string{"sh", "-c", "(sleep .1; echo -n hi) &"},
+			out:    "hi",
+		},
+		{
+			name:   "env",
+			input:  "echo -n ${FOO}",
+			parsed: []string{"sh", "-c", "echo -n ${FOO}"},
+			out:    "bar",
 		},
 	} {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name),
 			func(t *testing.T) {
-				runTest(tc)
+				parseTest(tc)
+				if len(tc.input) > 0 {
+					runTest(tc)
+				}
 			})
 	}
 }
