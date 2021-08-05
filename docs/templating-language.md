@@ -54,6 +54,8 @@ provides the following functions:
   - [in](#in)
   - [loop](#loop)
   - [join](#join)
+  - [mergeMap](#mergemap)
+  - [mergeMapWithOverride](#mergemapwithoverride)
   - [trimSpace](#trimspace)
   - [parseBool](#parsebool)
   - [parseFloat](#parsefloat)
@@ -1221,6 +1223,29 @@ Takes the given list of strings as a pipe and joins them on the provided string:
 
 ```golang
 {{ $items | join "," }}
+```
+
+### `mergeMap`
+
+Takes the result from [`explode`](#explode) and an exploded argument then merges it both maps. The argument's source is will not be overridden by piped map
+
+```golang
+{{ $base := tree "base" | explode }}
+{{ $overrides := tree "overrides" | explode | mergeMap $base}}
+{{ with $overrides }}
+{{ .a.b.c }}{{ end }}
+```
+
+### `mergeMapWithOverride`
+
+Takes the result from a [`tree`](#tree) or [`ls`](#ls) call and converts it into a deeply-nested
+map for parsing/traversing.
+
+```golang
+{{ $base := tree "base" | explode }}
+{{ $overrides := tree "overrides" | explode | mergeMap $base}}
+{{ with $overrides }}
+{{ .a.b.c }}{{ end }}
 ```
 
 ### `trimSpace`
