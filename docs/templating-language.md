@@ -1227,7 +1227,7 @@ Takes the given list of strings as a pipe and joins them on the provided string:
 
 ### `mergeMap`
 
-Takes the result from [`explode`](#explode) and an exploded argument then merges it both maps. The argument's source is will not be overridden by piped map.
+Takes the result from [`explode`](#explode) and an exploded argument then merges it both maps. The argument's source will not be overridden by piped map.
 
 ```golang
 {{ $base := tree "base" | explode }}
