@@ -1242,7 +1242,7 @@ Takes the result from [`explode`](#explode) and an exploded argument then merges
 
 ```golang
 {{ $base := tree "base" | explode }}
-{{ $overrides := tree "overrides" | explode | mergeMap $base}}
+{{ $overrides := tree "overrides" | explode | mergeMapWithOverride $base}}
 {{ with $overrides }}
 {{ .a.b.c }}{{ end }}
 ```
