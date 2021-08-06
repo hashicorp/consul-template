@@ -1238,7 +1238,7 @@ Takes the result from [`explode`](#explode) and an exploded argument then merges
 
 ### `mergeMapWithOverride`
 
-Takes the result from [`explode`](#explode) and an exploded argument then merges it both maps. The argument's source is will be overridden by piped map.
+Takes the result from [`explode`](#explode) and an exploded argument then merges it both maps. The argument's source will be overridden by piped map.
 
 ```golang
 {{ $base := tree "base" | explode }}
