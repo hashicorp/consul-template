@@ -435,7 +435,7 @@ func TestSetpgid(t *testing.T) {
 		c.command = "sh"
 		c.args = []string{"-c", "while true; do sleep 0.2; done"}
 		// default, but to be explicit for the test
-		c.setpgid = true
+		c.setsid = true
 
 		if err := c.Start(); err != nil {
 			t.Fatal(err)
@@ -456,7 +456,7 @@ func TestSetpgid(t *testing.T) {
 		c := testChild(t)
 		c.command = "sh"
 		c.args = []string{"-c", "while true; do sleep 0.2; done"}
-		c.setpgid = false
+		c.setsid = false
 
 		if err := c.Start(); err != nil {
 			t.Fatal(err)
@@ -489,14 +489,13 @@ func TestSetsid(t *testing.T) {
 		}
 		defer c.Stop()
 
-		var sid int
+		var sid int = -1
 
 		os := runtime.GOOS
 
 		switch os {
 		//  Using x/sys/unix for Unix systems
-		case "darwin":
-		case "linux":
+		case "linux", "darwin":
 			sid, err = unix.Getsid(c.Pid())
 			if err != nil {
 				t.Fatal("Getsid error:", err)

@@ -66,9 +66,6 @@ type Child struct {
 	stopCh   chan struct{}
 	stopped  bool
 
-	// whether to set process group id or not (default on)
-	setpgid bool
-
 	// whether to set process session id or not (default on)
 	setsid bool
 }
@@ -141,7 +138,6 @@ func New(i *NewInput) (*Child, error) {
 		killTimeout:  i.KillTimeout,
 		splay:        i.Splay,
 		stopCh:       make(chan struct{}, 1),
-		setpgid:      true,
 		setsid:       true,
 	}
 
@@ -273,8 +269,7 @@ func (c *Child) start() error {
 	cmd.Stderr = c.stderr
 	cmd.Env = c.env
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: c.setpgid,
-		Setsid:  c.setsid,
+		Setsid: c.setsid,
 	}
 	if err := cmd.Start(); err != nil {
 		return err
@@ -371,7 +366,7 @@ func (c *Child) signal(s os.Signal) error {
 		return fmt.Errorf("bad signal: %s", s)
 	}
 	pid := c.cmd.Process.Pid
-	if c.setpgid {
+	if c.setsid {
 		// kill takes negative pid to indicate that you want to use gpid
 		pid = -(pid)
 	}
