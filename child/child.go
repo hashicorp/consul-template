@@ -68,6 +68,9 @@ type Child struct {
 
 	// whether to set process group id or not (default on)
 	setpgid bool
+
+	// whether to set process session id or not (default on)
+	setsid bool
 }
 
 // NewInput is input to the NewChild function.
@@ -139,6 +142,7 @@ func New(i *NewInput) (*Child, error) {
 		splay:        i.Splay,
 		stopCh:       make(chan struct{}, 1),
 		setpgid:      true,
+		setsid:       true,
 	}
 
 	return child, nil
@@ -268,7 +272,10 @@ func (c *Child) start() error {
 	cmd.Stdout = c.stdout
 	cmd.Stderr = c.stderr
 	cmd.Env = c.env
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: c.setpgid}
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: c.setpgid,
+		Setsid:  c.setsid,
+	}
 	if err := cmd.Start(); err != nil {
 		return err
 	}

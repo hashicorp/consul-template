@@ -4,11 +4,13 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
+	"runtime"
 	"syscall"
 	"testing"
 	"time"
 
 	"github.com/hashicorp/go-gatedio"
+	"golang.org/x/sys/unix"
 )
 
 const fileWaitSleepDelay = 50 * time.Millisecond
@@ -461,7 +463,7 @@ func TestSetpgid(t *testing.T) {
 		}
 		defer c.Stop()
 
-		// when setpgid is true, the pid and gpid should be the same
+		// when setpgid is false, the pid and gpid should not be the same
 		gpid, err := syscall.Getpgid(c.Pid())
 		if err != nil {
 			t.Fatal("Getpgid error:", err)
@@ -469,6 +471,79 @@ func TestSetpgid(t *testing.T) {
 
 		if c.Pid() == gpid {
 			t.Fatal("pid and gpid should NOT match")
+		}
+	})
+}
+
+func TestSetsid(t *testing.T) {
+	t.Run("true", func(t *testing.T) {
+		c := testChild(t)
+		c.command = "sh"
+		c.args = []string{"-c", "while true; do sleep 0.2; done"}
+		c.setsid = true
+
+		var err error
+
+		if err = c.Start(); err != nil {
+			t.Fatal(err)
+		}
+		defer c.Stop()
+
+		var sid int
+
+		os := runtime.GOOS
+
+		switch os {
+		//  Using x/sys/unix for Unix systems
+		case "darwin":
+		case "linux":
+			sid, err = unix.Getsid(c.Pid())
+			if err != nil {
+				t.Fatal("Getsid error:", err)
+			}
+		// Stub for windows which isn't supported
+		case "windows":
+			sid = c.Pid()
+		}
+
+		// when setsid is true, the pid and sid should match
+		if c.Pid() != sid {
+			t.Fatal("pid and sid should match when setsid is true")
+		}
+	})
+	t.Run("false", func(t *testing.T) {
+		c := testChild(t)
+		c.command = "sh"
+		c.args = []string{"-c", "while true; do sleep 0.2; done"}
+		c.setsid = false
+
+		var err error
+
+		if err = c.Start(); err != nil {
+			t.Fatal(err)
+		}
+		defer c.Stop()
+
+		var sid int
+
+		os := runtime.GOOS
+
+		switch os {
+		//  Using x/sys/unix for Unix systems
+		case "darwin":
+		case "linux":
+			sid, err = unix.Getsid(c.Pid())
+			if err != nil {
+				t.Fatal("Getsid error:", err)
+			}
+		// Stub for windows which isn't supported
+		case "windows":
+			sid = -1
+		}
+
+		// when setsid is false, the pid and sid should not match
+		if c.Pid() == sid {
+			t.Fatal("pid and sid should not match when setsid is false")
 		}
 	})
 }
