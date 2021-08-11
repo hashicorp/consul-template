@@ -1628,6 +1628,14 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 			return "", err
 		}
 	} else {
+                dirPath := filepath.Dir(path)
+                if _, err := os.Stat(dirPath); err != nil {
+                        err := os.MkdirAll(dirPath, os.ModePerm)
+                        if err != nil {
+                                return "", err
+                        }
+                }
+
 		f, err = os.Create(path)
 		if err != nil {
 			return "", err
