@@ -136,12 +136,22 @@ func TestFileQuery_Fetch(t *testing.T) {
 		}
 	})
 
+	syncWriteFile := func(name string, data []byte, perm os.FileMode) error {
+		f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC|os.O_SYNC, perm)
+		if err == nil {
+			_, err = f.Write(data)
+			if err1 := f.Close(); err1 != nil && err == nil {
+				err = err1
+			}
+		}
+		return err
+	}
 	t.Run("fires_changes", func(t *testing.T) {
 		f, err := ioutil.TempFile("", "")
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := ioutil.WriteFile(f.Name(), []byte("hello"), 0644); err != nil {
+		if err := syncWriteFile(f.Name(), []byte("hello"), 0644); err != nil {
 			t.Fatal(err)
 		}
 		defer os.Remove(f.Name())
@@ -171,10 +181,7 @@ func TestFileQuery_Fetch(t *testing.T) {
 		case <-dataCh:
 		}
 
-		if err := ioutil.WriteFile(f.Name(), []byte("goodbye"), 0644); err != nil {
-			t.Fatal(err)
-		}
-		if err := f.Sync(); err != nil {
+		if err := syncWriteFile(f.Name(), []byte("goodbye"), 0644); err != nil {
 			t.Fatal(err)
 		}
 
