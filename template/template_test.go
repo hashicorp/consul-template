@@ -1192,6 +1192,52 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"helper_mergeMap",
+			&NewTemplateInput{
+				Contents: `{{ $base := "{\"voo\":{\"bar\":\"v\"}}" | parseJSON}}{{ $role := tree "list" | explode | mergeMap $base}}{{ range $k, $v := $role }}{{ $k }}{{ $v }}{{ end }}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewKVListQuery("list")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, []*dep.KeyPair{
+						&dep.KeyPair{Key: "", Value: ""},
+						&dep.KeyPair{Key: "foo/bar", Value: "a"},
+						&dep.KeyPair{Key: "zip/zap", Value: "b"},
+					})
+					return b
+				}(),
+			},
+			"foomap[bar:a]voomap[bar:v]zipmap[zap:b]",
+			false,
+		},
+		{
+			"helper_mergeMapWithOverride",
+			&NewTemplateInput{
+				Contents: `{{ $base := "{\"zip\":{\"zap\":\"t\"},\"voo\":{\"bar\":\"v\"}}" | parseJSON}}{{ $role := tree "list" | explode | mergeMapWithOverride $base}}{{ range $k, $v := $role }}{{ $k }}{{ $v }}{{ end }}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewKVListQuery("list")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, []*dep.KeyPair{
+						&dep.KeyPair{Key: "", Value: ""},
+						&dep.KeyPair{Key: "foo/bar", Value: "a"},
+						&dep.KeyPair{Key: "zip/zap", Value: "b"},
+					})
+					return b
+				}(),
+			},
+			"foomap[bar:a]voomap[bar:v]zipmap[zap:b]",
+			false,
+		},
+		{
 			"helper_explode",
 			&NewTemplateInput{
 				Contents: `{{ range $k, $v := tree "list" | explode }}{{ $k }}{{ $v }}{{ end }}`,
