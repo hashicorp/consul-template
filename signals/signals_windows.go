@@ -8,7 +8,7 @@ import (
 )
 
 // RuntimeSig is set to nil on windows as it doesn't support the signal (SIGURG)
-const RuntimeSig = nil
+var RuntimeSig = os.Signal(nil)
 
 var SignalLookup = map[string]os.Signal{
 	"SIGABRT": syscall.SIGABRT,

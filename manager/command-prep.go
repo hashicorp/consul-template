@@ -1,3 +1,5 @@
+// +build !windows
+
 package manager
 
 func prepCommand(command string) ([]string, error) {
