@@ -435,14 +435,15 @@ func TestSetpgid(t *testing.T) {
 		c.command = "sh"
 		c.args = []string{"-c", "while true; do sleep 0.2; done"}
 		// default, but to be explicit for the test
-		c.setsid = true
+		c.setsid = false
+		c.setpgid = true
 
 		if err := c.Start(); err != nil {
 			t.Fatal(err)
 		}
 		defer c.Stop()
 
-		// when setpgid is true, the pid and gpid should be the same
+		// when setsid is false, the pid and gpid should be the same
 		gpid, err := syscall.Getpgid(c.Pid())
 		if err != nil {
 			t.Fatal("Getpgid error:", err)
@@ -457,6 +458,7 @@ func TestSetpgid(t *testing.T) {
 		c.command = "sh"
 		c.args = []string{"-c", "while true; do sleep 0.2; done"}
 		c.setsid = false
+		c.setpgid = false
 
 		if err := c.Start(); err != nil {
 			t.Fatal(err)

@@ -66,7 +66,10 @@ type Child struct {
 	stopCh   chan struct{}
 	stopped  bool
 
-	// whether to set process session id or not (default on)
+	// whether to set process group id or not (default on)
+	setpgid bool
+
+	// whether to set process session id or not (default off)
 	setsid bool
 }
 
@@ -111,6 +114,12 @@ type NewInput struct {
 	// prevents multiple processes from all signaling at the same time. This value
 	// may be zero (which disables the splay entirely).
 	Splay time.Duration
+
+	// Setsid flag, if set to true will create the child processes with their own
+	// session ID and Process group ID. The default value of false will cause the
+	// child processes to have their own PGID but they will have the same SID as
+	// that of their parent
+	Setsid bool
 }
 
 // New creates a new child process for management with high-level APIs for
@@ -138,7 +147,8 @@ func New(i *NewInput) (*Child, error) {
 		killTimeout:  i.KillTimeout,
 		splay:        i.Splay,
 		stopCh:       make(chan struct{}, 1),
-		setsid:       true,
+		setpgid:      !i.Setsid,
+		setsid:       i.Setsid,
 	}
 
 	return child, nil
@@ -269,7 +279,8 @@ func (c *Child) start() error {
 	cmd.Stderr = c.stderr
 	cmd.Env = c.env
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setsid: c.setsid,
+		Setsid:  c.setsid,
+		Setpgid: c.setpgid,
 	}
 	if err := cmd.Start(); err != nil {
 		return err
