@@ -62,7 +62,7 @@ If you have questions about how consul-template works, its capabilities or
 anything other than a bug or feature request (use github's issue tracker for
 those), please see our community support resources.
 
-Community portal: https://discuss.hashicorp.com/c/consul
+Community portal: https://discuss.hashicorp.com/tags/c/consul/29/consul-template
 
 Other resources: https://www.consul.io/community.html
 

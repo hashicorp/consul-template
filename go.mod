@@ -26,8 +26,8 @@ require (
 	github.com/hashicorp/logutils v1.0.0
 	github.com/hashicorp/serf v0.9.4 // indirect
 	github.com/hashicorp/vault/api v1.0.5-0.20190730042357-746c0b111519
+	github.com/imdario/mergo v0.3.12
 	github.com/mattn/go-colorable v0.1.7 // indirect
-	github.com/mattn/go-shellwords v1.0.12 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/hashstructure v1.0.0
 	github.com/mitchellh/mapstructure v1.3.3

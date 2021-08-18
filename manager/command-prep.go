@@ -1,6 +1,6 @@
-package manager
+// +build !windows
 
-const whitespace = " \t\n\v\f\r"
+package manager
 
 func prepCommand(command string) ([]string, error) {
 	if len(command) == 0 {

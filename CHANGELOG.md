@@ -1,3 +1,18 @@
+## v0.27.0 (Aug 16, 2021)
+
+BREAKING CHANGES:
+* All command execution calls are now made (on *nix systems) using a shell command call ('/bin/sh -c ...') with [process group](https://man7.org/linux/man-pages/man2/setpgid.2.html) set to ensure all signals are propagated to the called commands. This was done to eliminate the need for parsing the shell command as it was a continual source of bugs. Windows systems currently only support single command calls because of no (known) 'sh -c' equivalent on Windows. [[GH-1496](https://github.com/hashicorp/consul-template/pull/1496), [GH-1494](https://github.com/hashicorp/consul-template/pull/1494)]
+
+IMPROVEMENTS:
+* New Docker Image. Similar to old Alpine image but modernized and simplified [[GH-1481](https://github.com/hashicorp/consul-template/issues/1481), [GH-1484](https://github.com/hashicorp/consul-template/pull/1484)]
+* New, more obvious, log level environment variable [[GH-1383](https://github.com/hashicorp/consul-template/pull/1383)]
+* New 'writeToFile' template function [[GH-1495](https://github.com/hashicorp/consul-template/pull/1495), [GH-1077](https://github.com/hashicorp/consul-template/issues/1077)]
+* New mergeMap and mergeMapWithOverride template functions [[GH-1500](https://github.com/hashicorp/consul-template/pull/1500), [GH-1499](https://github.com/hashicorp/consul-template/issues/1499)].
+
+BUG FIXES:
+* Ignore SIGURG signals by default [[GH-1486](https://github.com/hashicorp/consul-template/issues/1486), [GH-1487](https://github.com/hashicorp/consul-template/pull/1487)]
+* Fix issue with command argument parsing when using sub-shell calls [[GH-1482](https://github.com/hashicorp/consul-template/issues/1482)]
+
 ## v0.26.0 (Jun 10, 2021)
 
 BREAKING CHANGES:

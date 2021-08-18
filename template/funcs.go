@@ -26,6 +26,7 @@ import (
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul/api"
 	socktmpl "github.com/hashicorp/go-sockaddr/template"
+	"github.com/imdario/mergo"
 	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -737,6 +738,19 @@ func containsSomeFunc(retTrue, invert bool) func([]interface{}, interface{}) (bo
 		}
 		return retTrue, nil
 	}
+}
+
+// mergeMap is used to merge two maps
+func mergeMap(dstMap map[string]interface{}, srcMap map[string]interface{}, args ...func(*mergo.Config)) (map[string]interface{}, error) {
+	if err := mergo.Map(&dstMap, srcMap, args...); err != nil {
+		return nil, err
+	}
+	return dstMap, nil
+}
+
+// mergeMapWithOverride is used to merge two maps with dstMap overriding vaules in srcMap
+func mergeMapWithOverride(dstMap map[string]interface{}, srcMap map[string]interface{}) (map[string]interface{}, error) {
+	return mergeMap(dstMap, srcMap, mergo.WithOverride)
 }
 
 // explode is used to expand a list of keypairs into a deeply-nested hash.

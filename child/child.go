@@ -278,7 +278,7 @@ func (c *Child) start() error {
 	cmd.Stdout = c.stdout
 	cmd.Stderr = c.stderr
 	cmd.Env = c.env
-	setSetpgid(cmd, c.setpgid)
+	setSysProcAttr(cmd, c.setpgid, c.setsid)
 	if err := cmd.Start(); err != nil {
 		return err
 	}
