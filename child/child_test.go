@@ -483,6 +483,7 @@ func TestSetsid(t *testing.T) {
 		c.command = "sh"
 		c.args = []string{"-c", "while true; do sleep 0.2; done"}
 		c.setsid = true
+		c.setpgid = false
 
 		var err error
 
@@ -517,6 +518,7 @@ func TestSetsid(t *testing.T) {
 		c.command = "sh"
 		c.args = []string{"-c", "while true; do sleep 0.2; done"}
 		c.setsid = false
+		c.setpgid = false
 
 		var err error
 
