@@ -278,10 +278,7 @@ func (c *Child) start() error {
 	cmd.Stdout = c.stdout
 	cmd.Stderr = c.stderr
 	cmd.Env = c.env
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setsid:  c.setsid,
-		Setpgid: c.setpgid,
-	}
+	setSetpgid(cmd, c.setpgid)
 	if err := cmd.Start(); err != nil {
 		return err
 	}
@@ -377,12 +374,16 @@ func (c *Child) signal(s os.Signal) error {
 		return fmt.Errorf("bad signal: %s", s)
 	}
 	pid := c.cmd.Process.Pid
-	if c.setsid {
+	if c.setpgid {
 		// kill takes negative pid to indicate that you want to use gpid
 		pid = -(pid)
 	}
-	// kill is syscall's only signal API
-	return syscall.Kill(pid, sig)
+	// cross platform way to signal process/process group
+	if p, err := os.FindProcess(pid); err != nil {
+		return err
+	} else {
+		return p.Signal(sig)
+	}
 }
 
 func (c *Child) reload() error {
@@ -424,8 +425,8 @@ func (c *Child) kill(immediately bool) {
 
 	if err := c.signal(c.killSignal); err != nil {
 		log.Printf("[ERR] (child) Kill failed: %s", err)
-		if err == syscall.ESRCH {
-			exited = true // ESRCH == no such process, ie. already exited
+		if processNotFoundErr(err) {
+			exited = true // checked in defer
 		}
 		return
 	}
