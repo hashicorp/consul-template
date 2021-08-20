@@ -8,11 +8,11 @@ import (
 )
 
 func prepCommand(command string) ([]string, error) {
-	switch {
-	case len(command) == 0:
+	switch len(strings.Fields(command)) {
+	case 0:
 		return []string{}, nil
-	case len(strings.Fields(command)) > 1:
-		return []string{}, fmt.Errorf("only single commands supported on windows")
+	case 1:
+		return []string{command}, nil
 	}
-	return []string{command}, nil
+	return []string{}, fmt.Errorf("only single commands supported on windows")
 }
