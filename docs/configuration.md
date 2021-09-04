@@ -265,6 +265,25 @@ consul {
     # would be: 1s, 2s, 4s, 8s, 10s, 10s, ...
     max_backoff = "1m"
   }
+  
+  # This block configures tcp connection options
+  transport {
+    # This controls duration between two keepalive transmissions in idle condition.
+    dial_keep_alive = "10s"
+    
+    # This controls tcp timeout between retiries. If consul is down and retires
+    # are enabled consul-template will retry after dial_timeout.
+    dial_timeout = "10s"
+    
+    # This allows you to disable keep alive connections
+    disable_keep_alives = true
+    
+    # This controls amount of maximum idle connections. 
+    max_idle_conns_per_host = 100
+    
+    # This controls timeout for tls handshakes with consul.
+    tls_handshake_timeout = "30s"
+  }
 
   # This block configures the SSL options for connecting to the Consul server.
   ssl {
