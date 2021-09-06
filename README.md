@@ -50,8 +50,6 @@ this functionality might prove useful.
   - [Environment](#environment)
   - [Multiple Commands](#multiple-commands)
 - [Multi-phase Execution](#multi-phase-execution)
-- [Running and Process Lifecycle](#running-and-process-lifecycle)
-- [Debugging](#debugging)
 - [FAQ](#faq)
 - [Contributing](#contributing)
 
