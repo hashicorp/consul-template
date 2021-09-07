@@ -15,15 +15,15 @@ const fileWaitSleepDelay = 50 * time.Millisecond
 
 func testChild(t *testing.T) *Child {
 	c, err := New(&NewInput{
-		Stdout:          ioutil.Discard,
-		Stderr:          ioutil.Discard,
-		Command:         "echo",
-		Args:            []string{"hello", "world"},
-		ReloadSignal:    os.Interrupt,
-		KillSignal:      os.Kill,
-		KillTimeout:     2 * time.Second,
-		Splay:           0 * time.Second,
-		UseReloadSignal: true,
+		Stdout:              ioutil.Discard,
+		Stderr:              ioutil.Discard,
+		Command:             "echo",
+		Args:                []string{"hello", "world"},
+		ReloadSignal:        os.Interrupt,
+		KillSignal:          os.Kill,
+		KillTimeout:         2 * time.Second,
+		Splay:               0 * time.Second,
+		DisableReloadSignal: false,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -43,20 +43,20 @@ func TestNew(t *testing.T) {
 	killSignal := os.Kill
 	killTimeout := fileWaitSleepDelay
 	splay := fileWaitSleepDelay
-	useReloadSignal := true
+	disableReloadSignal := false
 
 	c, err := New(&NewInput{
-		Stdin:           stdin,
-		Stdout:          stdout,
-		Stderr:          stderr,
-		Command:         command,
-		Args:            args,
-		Env:             env,
-		ReloadSignal:    reloadSignal,
-		KillSignal:      killSignal,
-		KillTimeout:     killTimeout,
-		Splay:           splay,
-		UseReloadSignal: useReloadSignal,
+		Stdin:               stdin,
+		Stdout:              stdout,
+		Stderr:              stderr,
+		Command:             command,
+		Args:                args,
+		Env:                 env,
+		ReloadSignal:        reloadSignal,
+		KillSignal:          killSignal,
+		KillTimeout:         killTimeout,
+		Splay:               splay,
+		DisableReloadSignal: disableReloadSignal,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -106,8 +106,8 @@ func TestNew(t *testing.T) {
 		t.Errorf("expected %#v to be", c.stopCh)
 	}
 
-	if c.useReloadSignal != useReloadSignal {
-		t.Errorf("expected %v to be %v", c.useReloadSignal, useReloadSignal)
+	if c.disableReloadSignal != disableReloadSignal {
+		t.Errorf("expected %v to be %v", c.disableReloadSignal, disableReloadSignal)
 	}
 }
 

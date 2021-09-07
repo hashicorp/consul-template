@@ -23,7 +23,34 @@ func TestCLI_ParseFlags(t *testing.T) {
 	}
 	defer os.Remove(f.Name())
 
-	cases := []struct {
+	cases := funcName(f)
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			out := gatedio.NewByteBuffer()
+			cli := NewCLI(out, out)
+
+			a, _, _, _, err := cli.ParseFlags(tc.f)
+			if (err != nil) != tc.err {
+				t.Fatal(err)
+			}
+			a.Finalize()
+
+			var e *config.Config
+			if tc.e != nil {
+				e = config.DefaultConfig().Merge(tc.e)
+				e.Finalize()
+			}
+
+			if !reflect.DeepEqual(e, a) {
+				t.Errorf("Config diff: %soutput: %q", e.Diff(a), out)
+			}
+		})
+	}
+}
+
+func funcName(f *os.File) []struct {name string;f    []string;e    *config.Config;err  bool} {
+	return []struct {
 		name string
 		f    []string
 		e    *config.Config
@@ -330,11 +357,11 @@ func TestCLI_ParseFlags(t *testing.T) {
 			false,
 		},
 		{
-			"exec-use-reload-signal",
-			[]string{"-exec-use-reload-signal", "false"},
+			"exec-disable-reload-signal",
+			[]string{"-exec-disable-reload-signal"},
 			&config.Config{
 				Exec: &config.ExecConfig{
-					UseReloadSignal: config.Bool(false),
+					DisableReloadSignal: config.Bool(false),
 				},
 			},
 			false,
@@ -718,29 +745,6 @@ func TestCLI_ParseFlags(t *testing.T) {
 			},
 			false,
 		},
-	}
-
-	for i, tc := range cases {
-		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-			out := gatedio.NewByteBuffer()
-			cli := NewCLI(out, out)
-
-			a, _, _, _, err := cli.ParseFlags(tc.f)
-			if (err != nil) != tc.err {
-				t.Fatal(err)
-			}
-			a.Finalize()
-
-			var e *config.Config
-			if tc.e != nil {
-				e = config.DefaultConfig().Merge(tc.e)
-				e.Finalize()
-			}
-
-			if !reflect.DeepEqual(e, a) {
-				t.Errorf("Config diff: %soutput: %q", e.Diff(a), out)
-			}
-		})
 	}
 }
 

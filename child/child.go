@@ -69,7 +69,7 @@ type Child struct {
 	// whether to set process group id or not (default on)
 	setpgid bool
 
-	useReloadSignal bool
+	disableReloadSignal bool
 }
 
 // NewInput is input to the NewChild function.
@@ -115,7 +115,7 @@ type NewInput struct {
 	Splay time.Duration
 
 	// Should we use reload signal?
-	UseReloadSignal bool
+	DisableReloadSignal bool
 }
 
 // New creates a new child process for management with high-level APIs for
@@ -134,17 +134,17 @@ func New(i *NewInput) (*Child, error) {
 		stdin:           i.Stdin,
 		stdout:          i.Stdout,
 		stderr:          i.Stderr,
-		command:         i.Command,
-		args:            i.Args,
-		env:             i.Env,
-		timeout:         i.Timeout,
-		reloadSignal:    i.ReloadSignal,
-		killSignal:      i.KillSignal,
-		killTimeout:     i.KillTimeout,
-		splay:           i.Splay,
-		stopCh:          make(chan struct{}, 1),
-		setpgid:         true,
-		useReloadSignal: i.UseReloadSignal,
+		command:             i.Command,
+		args:                i.Args,
+		env:                 i.Env,
+		timeout:             i.Timeout,
+		reloadSignal:        i.ReloadSignal,
+		killSignal:          i.KillSignal,
+		killTimeout:         i.KillTimeout,
+		splay:               i.Splay,
+		stopCh:              make(chan struct{}, 1),
+		setpgid:             true,
+		disableReloadSignal: i.DisableReloadSignal,
 	}
 
 	return child, nil
@@ -218,11 +218,11 @@ func (c *Child) Reload() error {
 	c.RLock()
 	defer c.RUnlock()
 
-	if c.useReloadSignal {
-		return c.reload()
+	if c.disableReloadSignal {
+		return nil
 	}
 
-	return nil
+	return c.reload()
 }
 
 // Kill sends the kill signal to the child process and waits for successful

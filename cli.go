@@ -369,9 +369,9 @@ func (cli *CLI) ParseFlags(args []string) (
 	}), "exec-reload-signal", "")
 
 	flags.Var((funcBoolVar)(func(b bool) error {
-		c.Exec.UseReloadSignal = config.Bool(b)
+		c.Exec.DisableReloadSignal = config.Bool(!b)
 		return nil
-	}), "exec-use-reload-signal", "")
+	}), "exec-disable-reload-signal", "")
 
 	flags.Var((funcDurationVar)(func(d time.Duration) error {
 		c.Exec.Splay = config.TimeDuration(d)

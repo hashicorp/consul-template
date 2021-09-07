@@ -272,16 +272,16 @@ func (r *Runner) Start() {
 					env := r.config.Exec.Env.Copy()
 					env.Custom = append(r.childEnv(), env.Custom...)
 					child, err := spawnChild(&spawnChildInput{
-						Stdin:           r.inStream,
-						Stdout:          r.outStream,
-						Stderr:          r.errStream,
-						Command:         config.StringVal(r.config.Exec.Command),
-						Env:             env.Env(),
-						ReloadSignal:    config.SignalVal(r.config.Exec.ReloadSignal),
-						KillSignal:      config.SignalVal(r.config.Exec.KillSignal),
-						KillTimeout:     config.TimeDurationVal(r.config.Exec.KillTimeout),
-						Splay:           config.TimeDurationVal(r.config.Exec.Splay),
-						UseReloadSignal: config.Bool(*r.config.Exec.UseReloadSignal),
+						Stdin:               r.inStream,
+						Stdout:              r.outStream,
+						Stderr:              r.errStream,
+						Command:             config.StringVal(r.config.Exec.Command),
+						Env:                 env.Env(),
+						ReloadSignal:        config.SignalVal(r.config.Exec.ReloadSignal),
+						KillSignal:          config.SignalVal(r.config.Exec.KillSignal),
+						KillTimeout:         config.TimeDurationVal(r.config.Exec.KillTimeout),
+						Splay:               config.TimeDurationVal(r.config.Exec.Splay),
+						DisableReloadSignal: config.Bool(*r.config.Exec.DisableReloadSignal),
 					})
 					if err != nil {
 						r.ErrCh <- err
@@ -571,16 +571,17 @@ func (r *Runner) Run() error {
 		env := t.Exec.Env.Copy()
 		env.Custom = append(r.childEnv(), env.Custom...)
 		if _, err := spawnChild(&spawnChildInput{
-			Stdin:        r.inStream,
-			Stdout:       r.outStream,
-			Stderr:       r.errStream,
-			Command:      command,
-			Env:          env.Env(),
-			Timeout:      config.TimeDurationVal(t.Exec.Timeout),
-			ReloadSignal: config.SignalVal(t.Exec.ReloadSignal),
-			KillSignal:   config.SignalVal(t.Exec.KillSignal),
-			KillTimeout:  config.TimeDurationVal(t.Exec.KillTimeout),
-			Splay:        config.TimeDurationVal(t.Exec.Splay),
+			Stdin:               r.inStream,
+			Stdout:              r.outStream,
+			Stderr:              r.errStream,
+			Command:             command,
+			Env:                 env.Env(),
+			Timeout:             config.TimeDurationVal(t.Exec.Timeout),
+			ReloadSignal:        config.SignalVal(t.Exec.ReloadSignal),
+			KillSignal:          config.SignalVal(t.Exec.KillSignal),
+			KillTimeout:         config.TimeDurationVal(t.Exec.KillTimeout),
+			Splay:               config.TimeDurationVal(t.Exec.Splay),
+			DisableReloadSignal: config.Bool(*t.Exec.DisableReloadSignal),
 		}); err != nil {
 			s := fmt.Sprintf("failed to execute command %q from %s", command, t.Display())
 			errs = append(errs, errors.Wrap(err, s))
@@ -1147,8 +1148,8 @@ type spawnChildInput struct {
 	ReloadSignal    os.Signal
 	KillSignal      os.Signal
 	KillTimeout     time.Duration
-	Splay           time.Duration
-	UseReloadSignal *bool
+	Splay               time.Duration
+	DisableReloadSignal *bool
 }
 
 // spawnChild spawns a child process with the given inputs and returns the
@@ -1160,17 +1161,17 @@ func spawnChild(i *spawnChildInput) (*child.Child, error) {
 	}
 	child, err := child.New(&child.NewInput{
 		Stdin:        i.Stdin,
-		Stdout:       i.Stdout,
-		Stderr:       i.Stderr,
-		Command:      args[0],
-		Args:         args[1:],
-		Env:          i.Env,
-		Timeout:      i.Timeout,
-		ReloadSignal: i.ReloadSignal,
-		KillSignal:   i.KillSignal,
-		KillTimeout:  i.KillTimeout,
-		Splay:        i.Splay,
-		UseReloadSignal: *i.UseReloadSignal,
+		Stdout:              i.Stdout,
+		Stderr:              i.Stderr,
+		Command:             args[0],
+		Args:                args[1:],
+		Env:                 i.Env,
+		Timeout:             i.Timeout,
+		ReloadSignal:        i.ReloadSignal,
+		KillSignal:          i.KillSignal,
+		KillTimeout:         i.KillTimeout,
+		Splay:               i.Splay,
+		DisableReloadSignal: *i.DisableReloadSignal,
 
 	})
 	if err != nil {

@@ -26,8 +26,8 @@ var (
 	// DefaultExecReloadSignal is the default signal to send to the process to
 	// tell it to reload its configuration.
 	DefaultExecReloadSignal = (os.Signal)(nil)
-	// DefaultExecUseReloadSignal is the default value for enabling/disabling reload signal
-	DefaultExecUseReloadSignal = true
+	// DefaultExecDisableReloadSignal is the default value for enabling/disabling reload signal
+	DefaultExecDisableReloadSignal = false
 )
 
 // ExecConfig is used to configure the application when it runs in
@@ -62,9 +62,9 @@ type ExecConfig struct {
 	// By default, this is 0, which means "wait forever".
 	Timeout *time.Duration `mapstructure:"timeout"`
 
-	// UseReloadSignal enable or disable sending reload signal feature
-	// By default it's enabled
-	UseReloadSignal *bool `mapstructure:"use_reload_signal"`
+	// DisableReloadSignal enable or disable sending reload signal feature
+	// By default sending signals is enabled
+	DisableReloadSignal *bool `mapstructure:"disable_reload_signal"`
 }
 
 // DefaultExecConfig returns a configuration that is populated with the
@@ -101,7 +101,7 @@ func (c *ExecConfig) Copy() *ExecConfig {
 
 	o.Timeout = c.Timeout
 
-	o.UseReloadSignal = c.UseReloadSignal
+	o.DisableReloadSignal = c.DisableReloadSignal
 
 	return &o
 }
@@ -156,8 +156,8 @@ func (c *ExecConfig) Merge(o *ExecConfig) *ExecConfig {
 		r.Timeout = o.Timeout
 	}
 
-	if o.UseReloadSignal != nil {
-		r.UseReloadSignal = o.UseReloadSignal
+	if o.DisableReloadSignal != nil {
+		r.DisableReloadSignal = o.DisableReloadSignal
 	}
 
 	return r
@@ -198,8 +198,8 @@ func (c *ExecConfig) Finalize() {
 		c.Timeout = TimeDuration(DefaultExecTimeout)
 	}
 
-	if c.UseReloadSignal == nil {
-		c.UseReloadSignal = Bool(DefaultExecUseReloadSignal)
+	if c.DisableReloadSignal == nil {
+		c.DisableReloadSignal = Bool(DefaultExecDisableReloadSignal)
 	}
 }
 
@@ -218,7 +218,7 @@ func (c *ExecConfig) GoString() string {
 		"ReloadSignal:%s, "+
 		"Splay:%s, "+
 		"Timeout:%s"+
-		"UseReloadSignal:%s"+
+		"DisableReloadSignal:%s"+
 		"}",
 		StringGoString(c.Command),
 		BoolGoString(c.Enabled),
@@ -228,6 +228,6 @@ func (c *ExecConfig) GoString() string {
 		SignalGoString(c.ReloadSignal),
 		TimeDurationGoString(c.Splay),
 		TimeDurationGoString(c.Timeout),
-		BoolGoString(c.UseReloadSignal),
+		BoolGoString(c.DisableReloadSignal),
 	)
 }
