@@ -50,6 +50,7 @@ this functionality might prove useful.
   - [Environment](#environment)
   - [Multiple Commands](#multiple-commands)
 - [Multi-phase Execution](#multi-phase-execution)
+- [Debugging](#debugging)
 - [FAQ](#faq)
 - [Contributing](#contributing)
 
@@ -301,6 +302,45 @@ so:
 This will still add the dependency to the list of watches, but will not
 evaluate the inner-if, avoiding the out-of-index error.
 
+## Debugging
+
+Consul Template can print verbose debugging output. To set the log level for
+Consul Template, use the `-log-level` flag:
+
+```shell
+$ consul-template -log-level info ...
+```
+
+```text
+<timestamp> [INFO] (cli) received redis from Watcher
+<timestamp> [INFO] (cli) invoking Runner
+# ...
+```
+
+You can also specify the level as debug:
+
+```shell
+$ consul-template -log-level debug ...
+```
+
+```text
+<timestamp> [DEBUG] (cli) creating Runner
+<timestamp> [DEBUG] (cli) creating Consul API client
+<timestamp> [DEBUG] (cli) creating Watcher
+<timestamp> [DEBUG] (cli) looping for data
+<timestamp> [DEBUG] (watcher) starting watch
+<timestamp> [DEBUG] (watcher) all pollers have started, waiting for finish
+<timestamp> [DEBUG] (redis) starting poll
+<timestamp> [DEBUG] (service redis) querying Consul with &{...}
+<timestamp> [DEBUG] (service redis) Consul returned 2 services
+<timestamp> [DEBUG] (redis) writing data to channel
+<timestamp> [DEBUG] (redis) starting poll
+<timestamp> [INFO] (cli) received redis from Watcher
+<timestamp> [INFO] (cli) invoking Runner
+<timestamp> [DEBUG] (service redis) querying Consul with &{...}
+# ...
+```
+
 ## FAQ
 
 **Q: How is this different than confd?**<br>
@@ -308,7 +348,6 @@ A: The answer is simple: Service Discovery as a first class citizen. You are als
 
 **Q: How is this different than Puppet/Chef/Ansible/Salt?**<br>
 A: Configuration management tools are designed to be used in unison with Consul Template. Instead of rendering a stale configuration file, use your configuration management software to render a dynamic template that will be populated by [Consul][consul].
-
 
 ## Contributing
 
