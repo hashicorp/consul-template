@@ -15,14 +15,15 @@ const fileWaitSleepDelay = 50 * time.Millisecond
 
 func testChild(t *testing.T) *Child {
 	c, err := New(&NewInput{
-		Stdout:       ioutil.Discard,
-		Stderr:       ioutil.Discard,
-		Command:      "echo",
-		Args:         []string{"hello", "world"},
-		ReloadSignal: os.Interrupt,
-		KillSignal:   os.Kill,
-		KillTimeout:  2 * time.Second,
-		Splay:        0 * time.Second,
+		Stdout:          ioutil.Discard,
+		Stderr:          ioutil.Discard,
+		Command:         "echo",
+		Args:            []string{"hello", "world"},
+		ReloadSignal:    os.Interrupt,
+		KillSignal:      os.Kill,
+		KillTimeout:     2 * time.Second,
+		Splay:           0 * time.Second,
+		UseReloadSignal: true,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -42,18 +43,20 @@ func TestNew(t *testing.T) {
 	killSignal := os.Kill
 	killTimeout := fileWaitSleepDelay
 	splay := fileWaitSleepDelay
+	useReloadSignal := true
 
 	c, err := New(&NewInput{
-		Stdin:        stdin,
-		Stdout:       stdout,
-		Stderr:       stderr,
-		Command:      command,
-		Args:         args,
-		Env:          env,
-		ReloadSignal: reloadSignal,
-		KillSignal:   killSignal,
-		KillTimeout:  killTimeout,
-		Splay:        splay,
+		Stdin:           stdin,
+		Stdout:          stdout,
+		Stderr:          stderr,
+		Command:         command,
+		Args:            args,
+		Env:             env,
+		ReloadSignal:    reloadSignal,
+		KillSignal:      killSignal,
+		KillTimeout:     killTimeout,
+		Splay:           splay,
+		UseReloadSignal: useReloadSignal,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -101,6 +104,10 @@ func TestNew(t *testing.T) {
 
 	if c.stopCh == nil {
 		t.Errorf("expected %#v to be", c.stopCh)
+	}
+
+	if c.useReloadSignal != useReloadSignal {
+		t.Errorf("expected %v to be %v", c.useReloadSignal, useReloadSignal)
 	}
 }
 

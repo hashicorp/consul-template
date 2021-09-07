@@ -26,6 +26,8 @@ var (
 	// DefaultExecReloadSignal is the default signal to send to the process to
 	// tell it to reload its configuration.
 	DefaultExecReloadSignal = (os.Signal)(nil)
+	// DefaultExecUseReloadSignal is the default value for enabling/disabling reload signal
+	DefaultExecUseReloadSignal = true
 )
 
 // ExecConfig is used to configure the application when it runs in
@@ -59,6 +61,10 @@ type ExecConfig struct {
 	// Timeout is the maximum amount of time to wait for a command to complete.
 	// By default, this is 0, which means "wait forever".
 	Timeout *time.Duration `mapstructure:"timeout"`
+
+	// UseReloadSignal enable or disable sending reload signal feature
+	// By default it's enabled
+	UseReloadSignal *bool `mapstructure:"use_reload_signal"`
 }
 
 // DefaultExecConfig returns a configuration that is populated with the
@@ -94,6 +100,8 @@ func (c *ExecConfig) Copy() *ExecConfig {
 	o.Splay = c.Splay
 
 	o.Timeout = c.Timeout
+
+	o.UseReloadSignal = c.UseReloadSignal
 
 	return &o
 }
@@ -148,6 +156,10 @@ func (c *ExecConfig) Merge(o *ExecConfig) *ExecConfig {
 		r.Timeout = o.Timeout
 	}
 
+	if o.UseReloadSignal != nil {
+		r.UseReloadSignal = o.UseReloadSignal
+	}
+
 	return r
 }
 
@@ -185,6 +197,10 @@ func (c *ExecConfig) Finalize() {
 	if c.Timeout == nil {
 		c.Timeout = TimeDuration(DefaultExecTimeout)
 	}
+
+	if c.UseReloadSignal == nil {
+		c.UseReloadSignal = Bool(DefaultExecUseReloadSignal)
+	}
 }
 
 // GoString defines the printable version of this struct.
@@ -202,6 +218,7 @@ func (c *ExecConfig) GoString() string {
 		"ReloadSignal:%s, "+
 		"Splay:%s, "+
 		"Timeout:%s"+
+		"UseReloadSignal:%s"+
 		"}",
 		StringGoString(c.Command),
 		BoolGoString(c.Enabled),
@@ -211,5 +228,6 @@ func (c *ExecConfig) GoString() string {
 		SignalGoString(c.ReloadSignal),
 		TimeDurationGoString(c.Splay),
 		TimeDurationGoString(c.Timeout),
+		BoolGoString(c.UseReloadSignal),
 	)
 }

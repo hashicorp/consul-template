@@ -309,6 +309,7 @@ func TestExecConfig_Finalize(t *testing.T) {
 				ReloadSignal: Signal(DefaultExecReloadSignal),
 				Splay:        TimeDuration(0 * time.Second),
 				Timeout:      TimeDuration(DefaultExecTimeout),
+				UseReloadSignal: Bool(true),
 			},
 		},
 		{
@@ -332,6 +333,7 @@ func TestExecConfig_Finalize(t *testing.T) {
 				ReloadSignal: Signal(DefaultExecReloadSignal),
 				Splay:        TimeDuration(0 * time.Second),
 				Timeout:      TimeDuration(DefaultExecTimeout),
+				UseReloadSignal: Bool(true),
 			},
 		},
 	}

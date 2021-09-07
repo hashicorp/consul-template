@@ -272,15 +272,16 @@ func (r *Runner) Start() {
 					env := r.config.Exec.Env.Copy()
 					env.Custom = append(r.childEnv(), env.Custom...)
 					child, err := spawnChild(&spawnChildInput{
-						Stdin:        r.inStream,
-						Stdout:       r.outStream,
-						Stderr:       r.errStream,
-						Command:      config.StringVal(r.config.Exec.Command),
-						Env:          env.Env(),
-						ReloadSignal: config.SignalVal(r.config.Exec.ReloadSignal),
-						KillSignal:   config.SignalVal(r.config.Exec.KillSignal),
-						KillTimeout:  config.TimeDurationVal(r.config.Exec.KillTimeout),
-						Splay:        config.TimeDurationVal(r.config.Exec.Splay),
+						Stdin:           r.inStream,
+						Stdout:          r.outStream,
+						Stderr:          r.errStream,
+						Command:         config.StringVal(r.config.Exec.Command),
+						Env:             env.Env(),
+						ReloadSignal:    config.SignalVal(r.config.Exec.ReloadSignal),
+						KillSignal:      config.SignalVal(r.config.Exec.KillSignal),
+						KillTimeout:     config.TimeDurationVal(r.config.Exec.KillTimeout),
+						Splay:           config.TimeDurationVal(r.config.Exec.Splay),
+						UseReloadSignal: config.Bool(*r.config.Exec.UseReloadSignal),
 					})
 					if err != nil {
 						r.ErrCh <- err
@@ -1137,16 +1138,17 @@ func (r *Runner) SetErrStream(err io.Writer) {
 
 // spawnChildInput is used as input to spawn a child process.
 type spawnChildInput struct {
-	Stdin        io.Reader
-	Stdout       io.Writer
-	Stderr       io.Writer
-	Command      string
-	Timeout      time.Duration
-	Env          []string
-	ReloadSignal os.Signal
-	KillSignal   os.Signal
-	KillTimeout  time.Duration
-	Splay        time.Duration
+	Stdin           io.Reader
+	Stdout          io.Writer
+	Stderr          io.Writer
+	Command         string
+	Timeout         time.Duration
+	Env             []string
+	ReloadSignal    os.Signal
+	KillSignal      os.Signal
+	KillTimeout     time.Duration
+	Splay           time.Duration
+	UseReloadSignal *bool
 }
 
 // spawnChild spawns a child process with the given inputs and returns the
@@ -1168,6 +1170,8 @@ func spawnChild(i *spawnChildInput) (*child.Child, error) {
 		KillSignal:   i.KillSignal,
 		KillTimeout:  i.KillTimeout,
 		Splay:        i.Splay,
+		UseReloadSignal: *i.UseReloadSignal,
+
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating child")

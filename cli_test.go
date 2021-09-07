@@ -330,6 +330,16 @@ func TestCLI_ParseFlags(t *testing.T) {
 			false,
 		},
 		{
+			"exec-use-reload-signal",
+			[]string{"-exec-use-reload-signal", "false"},
+			&config.Config{
+				Exec: &config.ExecConfig{
+					UseReloadSignal: config.Bool(false),
+				},
+			},
+			false,
+		},
+		{
 			"exec-splay",
 			[]string{"-exec-splay", "10s"},
 			&config.Config{
