@@ -413,7 +413,7 @@ template {
   # command will only run if the resulting template changes. The command must
   # return within 30s (configurable), and it must have a successful exit code.
   # Consul Template is not a replacement for a process monitor or init system.
-  # Please see the [Command](#command) section below for more.
+  # Please see the Commands section in the README for more.
   command = "restart service foo"
 
   # This is the maximum amount of time to wait for the optional command to

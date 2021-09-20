@@ -234,21 +234,32 @@ users the ability to further customize their command script.
 
 #### Multiple Commands
 
-The command configured for running on template rendering must be a single
-command. That is you cannot join multiple commands with `&&`, `;`, `|`, etc.
-This is a restriction of how they are executed. **However** you are able to do
-this by combining the multiple commands in an explicit shell command using `sh
--c`. This is probably best explained by example.
+The command configured for running on template rendering must take one of two
+forms. 
 
-Say you have a couple scripts you need to run when a template is rendered,
-`/opt/foo` and `/opt/bar`, and you only want `/opt/bar` to run if `/opt/foo` is
-successful. You can do that with the command...
+The first is as a single command without spaces in its name and no arguments.
+This form of command will be called directly by consul-template and is good for
+any situation. The command can be a shell script or an executable, anything
+called via a single word, and must be either on the runtime search PATH or the
+absolute path to the executable. The single word limination is necessary to
+eliminate any need for parsing the command line. For example..
 
-`command = "sh -c '/opt/foo && /opt/bar'"`
+`command = "/opt/foo"` or, if on PATH, `command = "foo"`
 
-As this is a full shell command you can even use conditionals. So accomplishes the same thing.
+The second form is as a multi-word command, a command with arguments or a more
+complex shell command. This form **requires** a shell named `sh` be on the
+executable search path (eg. PATH on *nix). This is the standard on all *nix
+systems and should work out of the box on those systems. This won't work on,
+for example, Docker images with only the executable and not a minimal system
+like Alpine. Using this form you can join multiple commands with logical
+operators, `&&` and `||`, use pipelines with `|`, conditionals, etc. Note that
+the shell `sh` is normally `/bin/sh` on *nix systems and is either a POSIX
+shell or a shell run in POSIX compatible mode, so it is best to stick to POSIX
+shell syntax in this command. For example..
 
-`command = "sh -c 'if /opt/foo; then /opt/bar ; fi'"`
+`command = "/opt/foo && /opt/bar"`
+
+`command = "if /opt/foo ; then /opt/bar ; fi"`
 
 Using this method you can run as many shell commands as you need with whatever
 logic you need. Though it is suggested that if it gets too long you might want

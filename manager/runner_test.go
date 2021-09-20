@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -1118,7 +1120,7 @@ func TestRunner_command(t *testing.T) {
 		{
 			name:   "single",
 			input:  "echo",
-			parsed: []string{"sh", "-c", "echo"},
+			parsed: []string{"echo"},
 			out:    "\n",
 		},
 		{
@@ -1207,5 +1209,21 @@ func TestRunner_command(t *testing.T) {
 					runTest(tc)
 				}
 			})
+	}
+}
+
+func TestRunner_commandPath(t *testing.T) {
+	PATH := os.Getenv("PATH")
+	defer os.Setenv("PATH", PATH)
+	os.Setenv("PATH", "")
+	cmd, err := prepCommand("echo hi")
+	if err != nil && err != exec.ErrNotFound {
+		t.Fatal(err)
+	}
+	if len(cmd) != 3 {
+		t.Fatalf("unexpected command: %#v\n", cmd)
+	}
+	if filepath.Base(cmd[0]) != "sh" {
+		t.Fatalf("unexpected shell: %#v\n", cmd)
 	}
 }
