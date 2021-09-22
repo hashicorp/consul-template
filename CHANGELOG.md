@@ -1,7 +1,24 @@
+## v0.27.1 (Sep 22, 2021)
+
+IMPROVEMENTS:
+
+* Updated command execution on \*nix systems to call the command directly,
+  without the `sh -c` wrapping shell command, *only* in cases where the command
+  is a single word (no spaces). This allows docker to run in environments (like
+  a minimal docker image) where there is no shell (`sh`). Multi-word commands
+  will continue to use the wrapping shell call.
+  [[GH-1509](https://github.com/hashicorp/consul-template/pull/1509),
+  [GH-1508](https://github.com/hashicorp/consul-template/issues/1508)]
+
+SECURITY:
+
+* Updated golang.or/x/crypto dependency for CVE-2020-29652. [[GH-1507](https://github.com/hashicorp/consul-template/issues/1507)]
+
+
 ## v0.27.0 (Aug 16, 2021)
 
 BREAKING CHANGES:
-* All command execution calls are now made (on *nix systems) using a shell command call ('/bin/sh -c ...') with [process group](https://man7.org/linux/man-pages/man2/setpgid.2.html) set to ensure all signals are propagated to the called commands. This was done to eliminate the need for parsing the shell command as it was a continual source of bugs. Windows systems currently only support single command calls because of no (known) 'sh -c' equivalent on Windows. [[GH-1496](https://github.com/hashicorp/consul-template/pull/1496), [GH-1494](https://github.com/hashicorp/consul-template/pull/1494)]
+* All command execution calls are now made (on \*nix systems) using a shell command call ('/bin/sh -c ...') with [process group](https://man7.org/linux/man-pages/man2/setpgid.2.html) set to ensure all signals are propagated to the called commands. This was done to eliminate the need for parsing the shell command as it was a continual source of bugs. Windows systems currently only support single command calls because of no (known) 'sh -c' equivalent on Windows. [[GH-1496](https://github.com/hashicorp/consul-template/pull/1496), [GH-1494](https://github.com/hashicorp/consul-template/pull/1494)]
 
 IMPROVEMENTS:
 * New Docker Image. Similar to old Alpine image but modernized and simplified [[GH-1481](https://github.com/hashicorp/consul-template/issues/1481), [GH-1484](https://github.com/hashicorp/consul-template/pull/1484)]
