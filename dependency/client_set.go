@@ -12,6 +12,8 @@ import (
 	consulapi "github.com/hashicorp/consul/api"
 	rootcerts "github.com/hashicorp/go-rootcerts"
 	vaultapi "github.com/hashicorp/vault/api"
+
+	"github.com/hashicorp/consul-template/config"
 )
 
 // ClientSet is a collection of clients that dependencies use to communicate
@@ -74,6 +76,7 @@ type CreateVaultClientInput struct {
 	SSLCAPath   string
 	ServerName  string
 
+	TransportCustomDialer        config.TransportDialer
 	TransportDialKeepAlive       time.Duration
 	TransportDialTimeout         time.Duration
 	TransportDisableKeepAlives   bool
@@ -202,12 +205,19 @@ func (c *ClientSet) CreateVaultClient(i *CreateVaultClientInput) error {
 	}
 
 	// This transport will attempt to keep connections open to the Vault server.
+	var dialer config.TransportDialer
+	dialer = &net.Dialer{
+		Timeout:   i.TransportDialTimeout,
+		KeepAlive: i.TransportDialKeepAlive,
+	}
+
+	if i.TransportCustomDialer != nil {
+		dialer = i.TransportCustomDialer
+	}
+
 	transport := &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		Dial: (&net.Dialer{
-			Timeout:   i.TransportDialTimeout,
-			KeepAlive: i.TransportDialKeepAlive,
-		}).Dial,
+		Proxy:               http.ProxyFromEnvironment,
+		Dial:                dialer.Dial,
 		DisableKeepAlives:   i.TransportDisableKeepAlives,
 		MaxIdleConns:        i.TransportMaxIdleConns,
 		IdleConnTimeout:     i.TransportIdleConnTimeout,
