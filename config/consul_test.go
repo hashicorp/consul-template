@@ -30,6 +30,7 @@ func TestConsulConfig_Copy(t *testing.T) {
 				Retry:     &RetryConfig{Enabled: Bool(true)},
 				SSL:       &SSLConfig{Enabled: Bool(true)},
 				Token:     String("abcd1234"),
+				TokenFile: String("/a/very/secret/path"),
 				Transport: &TransportConfig{
 					DialKeepAlive: TimeDuration(20 * time.Second),
 				},
@@ -224,6 +225,30 @@ func TestConsulConfig_Merge(t *testing.T) {
 			&ConsulConfig{Token: String("same")},
 		},
 		{
+			"token_file_overrides",
+			&ConsulConfig{TokenFile: String("same")},
+			&ConsulConfig{TokenFile: String("different")},
+			&ConsulConfig{TokenFile: String("different")},
+		},
+		{
+			"token_file_empty_one",
+			&ConsulConfig{TokenFile: String("same")},
+			&ConsulConfig{},
+			&ConsulConfig{TokenFile: String("same")},
+		},
+		{
+			"token_file_empty_two",
+			&ConsulConfig{},
+			&ConsulConfig{TokenFile: String("same")},
+			&ConsulConfig{TokenFile: String("same")},
+		},
+		{
+			"token_file_same",
+			&ConsulConfig{TokenFile: String("same")},
+			&ConsulConfig{TokenFile: String("same")},
+			&ConsulConfig{TokenFile: String("same")},
+		},
+		{
 			"transport_overrides",
 			&ConsulConfig{Transport: &TransportConfig{DialKeepAlive: TimeDuration(10 * time.Second)}},
 			&ConsulConfig{Transport: &TransportConfig{DialKeepAlive: TimeDuration(20 * time.Second)}},
@@ -292,7 +317,8 @@ func TestConsulConfig_Finalize(t *testing.T) {
 					ServerName: String(""),
 					Verify:     Bool(true),
 				},
-				Token: String(""),
+				Token:     String(""),
+				TokenFile: String(""),
 				Transport: &TransportConfig{
 					DialKeepAlive:       TimeDuration(DefaultDialKeepAlive),
 					DialTimeout:         TimeDuration(DefaultDialTimeout),

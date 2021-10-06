@@ -165,7 +165,7 @@ func (c *ConsulConfig) Finalize() {
 	}
 
 	if c.TokenFile == nil {
-		c.Token = stringFromEnv([]string{
+		c.TokenFile = stringFromEnv([]string{
 			"CONSUL_TOKEN_FILE",
 			"CONSUL_HTTP_TOKEN_FILE",
 		}, "")

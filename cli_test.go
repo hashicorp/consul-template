@@ -219,6 +219,16 @@ func TestCLI_ParseFlags(t *testing.T) {
 			false,
 		},
 		{
+			"consul-token-file",
+			[]string{"-consul-token-file", "/a/very/secret/path"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					TokenFile: config.String("/a/very/secret/path"),
+				},
+			},
+			false,
+		},
+		{
 			"consul-transport-dial-keep-alive",
 			[]string{"-consul-transport-dial-keep-alive", "30s"},
 			&config.Config{
