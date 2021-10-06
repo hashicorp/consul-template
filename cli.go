@@ -297,6 +297,11 @@ func (cli *CLI) ParseFlags(args []string) (
 		return nil
 	}), "consul-token", "")
 
+	flags.Var((funcVar)(func(s string) error {
+		c.Consul.TokenFile = config.String(s)
+		return nil
+	}), "consul-token-file", "")
+
 	flags.Var((funcDurationVar)(func(d time.Duration) error {
 		c.Consul.Transport.DialKeepAlive = config.TimeDuration(d)
 		return nil
@@ -675,6 +680,9 @@ Options:
 
   -consul-token=<token>
       Sets the Consul API token
+
+  -consul-token-file=<path>
+      Sets the path to a file containing the Consul API token
 
   -consul-transport-dial-keep-alive=<duration>
       Sets the amount of time to use for keep-alives

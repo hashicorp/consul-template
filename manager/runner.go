@@ -1251,6 +1251,7 @@ func newClientSet(c *config.Config) (*dep.ClientSet, error) {
 		Address:                      config.StringVal(c.Consul.Address),
 		Namespace:                    config.StringVal(c.Consul.Namespace),
 		Token:                        config.StringVal(c.Consul.Token),
+		TokenFile:                    config.StringVal(c.Consul.TokenFile),
 		AuthEnabled:                  config.BoolVal(c.Consul.Auth.Enabled),
 		AuthUsername:                 config.StringVal(c.Consul.Auth.Username),
 		AuthPassword:                 config.StringVal(c.Consul.Auth.Password),
