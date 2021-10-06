@@ -44,7 +44,7 @@ this functionality might prove useful.
 - [Plugins](docs/plugins.md)
 - [Caveats](#caveats)
 - [Docker Image Use](#docker-image-use)
-- [Dots in Service Names](#dots-in-service-names)  
+- [Dots in Service Names](#dots-in-service-names)
 - [Termination on Error](#termination-on-error)
 - [Commands](#commands)
   - [Environment](#environment)
@@ -222,6 +222,7 @@ The current processes environment is used when executing commands with the follo
 
 - `CONSUL_HTTP_ADDR`
 - `CONSUL_HTTP_TOKEN`
+- `CONSUL_HTTP_TOKEN_FILE`
 - `CONSUL_HTTP_AUTH`
 - `CONSUL_HTTP_SSL`
 - `CONSUL_HTTP_SSL_VERIFY`
@@ -235,7 +236,7 @@ users the ability to further customize their command script.
 #### Multiple Commands
 
 The command configured for running on template rendering must take one of two
-forms. 
+forms.
 
 The first is as a single command without spaces in its name and no arguments.
 This form of command will be called directly by consul-template and is good for
