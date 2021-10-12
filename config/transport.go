@@ -40,7 +40,7 @@ type TransportConfig struct {
 	// CustomDialer overrides the default net.Dial with a custom dialer. This is
 	// useful for instance with Vault Agent Templating to direct Consul Template
 	// requests through an internal cache.
-	CustomDialer TransportDialer
+	CustomDialer TransportDialer `mapstructure:"-"`
 
 	// DialKeepAlive is the amount of time for keep-alives.
 	DialKeepAlive *time.Duration `mapstructure:"dial_keep_alive"`
