@@ -1,11 +1,11 @@
 package config
 
 import (
-	"context"
 	"fmt"
-	"net"
 	"runtime"
 	"time"
+
+	"github.com/hashicorp/consul-template/dependency"
 )
 
 const (
@@ -41,7 +41,7 @@ type TransportConfig struct {
 	// CustomDialer overrides the default net.Dial with a custom dialer. This is
 	// useful for instance with Vault Agent Templating to direct Consul Template
 	// requests through an internal cache.
-	CustomDialer TransportDialer `mapstructure:"-"`
+	CustomDialer dependency.TransportDialer `mapstructure:"-"`
 
 	// DialKeepAlive is the amount of time for keep-alives.
 	DialKeepAlive *time.Duration `mapstructure:"dial_keep_alive"`
@@ -66,16 +66,6 @@ type TransportConfig struct {
 	// TLSHandshakeTimeout is the amount of time to wait to complete the TLS
 	// handshake.
 	TLSHandshakeTimeout *time.Duration `mapstructure:"tls_handshake_timeout"`
-}
-
-// TransportDialer is an interface that allows passing a custom dialer function
-// to an HTTP client's transport config
-type TransportDialer interface {
-	// Dial is intended to match https://pkg.go.dev/net#Dialer.Dial
-	Dial(network, address string) (net.Conn, error)
-
-	// DialContext is intended to match https://pkg.go.dev/net#Dialer.DialContext
-	DialContext(ctx context.Context, network, address string) (net.Conn, error)
 }
 
 // DefaultTransportConfig returns a configuration that is populated with the

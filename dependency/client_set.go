@@ -1,6 +1,7 @@
 package dependency
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"log"
@@ -12,8 +13,6 @@ import (
 	consulapi "github.com/hashicorp/consul/api"
 	rootcerts "github.com/hashicorp/go-rootcerts"
 	vaultapi "github.com/hashicorp/vault/api"
-
-	"github.com/hashicorp/consul-template/config"
 )
 
 // ClientSet is a collection of clients that dependencies use to communicate
@@ -35,6 +34,16 @@ type consulClient struct {
 type vaultClient struct {
 	client     *vaultapi.Client
 	httpClient *http.Client
+}
+
+// TransportDialer is an interface that allows passing a custom dialer function
+// to an HTTP client's transport config
+type TransportDialer interface {
+	// Dial is intended to match https://pkg.go.dev/net#Dialer.Dial
+	Dial(network, address string) (net.Conn, error)
+
+	// DialContext is intended to match https://pkg.go.dev/net#Dialer.DialContext
+	DialContext(ctx context.Context, network, address string) (net.Conn, error)
 }
 
 // CreateConsulClientInput is used as input to the CreateConsulClient function.
@@ -76,7 +85,7 @@ type CreateVaultClientInput struct {
 	SSLCAPath   string
 	ServerName  string
 
-	TransportCustomDialer        config.TransportDialer
+	TransportCustomDialer        TransportDialer
 	TransportDialKeepAlive       time.Duration
 	TransportDialTimeout         time.Duration
 	TransportDisableKeepAlives   bool
@@ -205,7 +214,7 @@ func (c *ClientSet) CreateVaultClient(i *CreateVaultClientInput) error {
 	}
 
 	// This transport will attempt to keep connections open to the Vault server.
-	var dialer config.TransportDialer
+	var dialer TransportDialer
 	dialer = &net.Dialer{
 		Timeout:   i.TransportDialTimeout,
 		KeepAlive: i.TransportDialKeepAlive,
