@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"runtime"
@@ -67,10 +68,14 @@ type TransportConfig struct {
 	TLSHandshakeTimeout *time.Duration `mapstructure:"tls_handshake_timeout"`
 }
 
-// TransportDialer is an interface that allows passing a custom dialer to an
-// HTTP client's transport config
+// TransportDialer is an interface that allows passing a custom dialer function
+// to an HTTP client's transport config
 type TransportDialer interface {
+	// Dial is intended to match https://pkg.go.dev/net#Dialer.Dial
 	Dial(network, address string) (net.Conn, error)
+
+	// DialContext is intended to match https://pkg.go.dev/net#Dialer.DialContext
+	DialContext(ctx context.Context, network, address string) (net.Conn, error)
 }
 
 // DefaultTransportConfig returns a configuration that is populated with the
