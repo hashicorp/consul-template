@@ -62,7 +62,7 @@ $ consul-template \
 ```
 
 For more information on supervising, please see the
-[Consul Template Exec Mode documentation](caveats.md#exec-mode).
+[Consul Template Exec Mode documentation](modes.md#exec-mode).
 
 ## Configuration File
 
