@@ -32,7 +32,10 @@ func (writer logWriter) Write(bytes []byte) (int, error) {
 	if len(bytes) == 0 {
 		return 0, nil
 	}
-	return fmt.Fprintf(writer.out, "%s %s", now(), bytes)
+	if _, err := fmt.Fprintf(writer.out, "%s %s", now(), bytes); err != nil {
+		return 0, err
+	}
+	return len(bytes), nil
 }
 
 // Config is the configuration for this log setup.
