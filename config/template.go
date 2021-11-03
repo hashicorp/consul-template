@@ -64,6 +64,20 @@ type TemplateConfig struct {
 	// secrets from Vault.
 	Perms *os.FileMode `mapstructure:"perms"`
 
+	// Uid is the numeric uid that will be set when creating the file on disk.
+	// Useful when simply setting Perms is not enough.
+	//
+	// Platform dependent: this doesn't work on Windows but it fails gracefully
+	// with a warning
+	Uid *int `mapstructure:"uid"`
+
+	// Gid is the numeric gid that will be set when creating the file on disk.
+	// Useful when simply setting Perms is not enough.
+	//
+	// Platform dependent: this doesn't work on Windows but it fails gracefully
+	// with a warning
+	Gid *int `mapstructure:"gid"`
+
 	// Source is the path on disk to the template contents to evaluate. Either
 	// this or Contents should be specified, but not both.
 	Source *string `mapstructure:"source"`

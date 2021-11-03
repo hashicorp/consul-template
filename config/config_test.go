@@ -1026,6 +1026,48 @@ func TestParse(t *testing.T) {
 			false,
 		},
 		{
+			"template_uid",
+			`template {
+				uid = 1000
+			}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Uid: Int(1000),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_gid",
+			`template {
+				gid = 1000
+			}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Gid: Int(1000),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_uid_gid_default",
+			`template {
+			}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Uid: nil,
+						Gid: nil,
+					},
+				},
+			},
+			false,
+		},
+		{
 			"template_source",
 			`template {
 				source = "source"
