@@ -338,6 +338,9 @@ func TestRender_Chown(t *testing.T) {
 	// worst case scenario, if the user belongs to a single group, these tests
 	// would not be testing the cange of ownership but only the fact that it doesn't
 	// fail unexpectedly
+	if len(groups) == 0 {
+		t.Skip("The current user is not member of any group, cannot Chown, skipping...")
+	}
 	wantedGid := groups[0]
 
 	t.Run("sets-file-ownership-when-file-exists-same-content", func(t *testing.T) {
