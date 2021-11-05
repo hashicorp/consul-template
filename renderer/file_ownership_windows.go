@@ -5,7 +5,6 @@ package renderer
 
 import (
 	"log"
-	"os"
 )
 
 func setFileOwnership(path string, uid, gid *int) error {
