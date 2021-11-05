@@ -1,7 +1,11 @@
+## v0.27.2 (Nov 05, 2021)
+
+BUG FIXES:
+* Syslog doesn't work after upgrade to 0.27 [[GH-1523](https://github.com/hashicorp/consul-template/issues/1523), [GH-1529](https://github.com/hashicorp/consul-template/pull/1529)]
+
 ## v0.27.1 (Sep 22, 2021)
 
 IMPROVEMENTS:
-
 * Updated command execution on \*nix systems to call the command directly,
   without the `sh -c` wrapping shell command, *only* in cases where the command
   is a single word (no spaces). This allows docker to run in environments (like
@@ -11,7 +15,6 @@ IMPROVEMENTS:
   [GH-1508](https://github.com/hashicorp/consul-template/issues/1508)]
 
 SECURITY:
-
 * Updated golang.or/x/crypto dependency for CVE-2020-29652. [[GH-1507](https://github.com/hashicorp/consul-template/issues/1507)]
 
 
