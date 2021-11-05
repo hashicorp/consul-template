@@ -556,6 +556,27 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"func_secret_write_empty",
+			&NewTemplateInput{
+				Contents: `{{ with secret "transit/encrypt/foo" "" }}{{ .Data.ciphertext }}{{ end }}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewVaultWriteQuery("transit/encrypt/foo", nil)
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, &dep.Secret{
+						Data: map[string]interface{}{"ciphertext": "encrypted"},
+					})
+					return b
+				}(),
+			},
+			"encrypted",
+			false,
+		},
+		{
 			"func_secret_write_no_exist",
 			&NewTemplateInput{
 				Contents: `{{ with secret "secret/nope" "a=b" }}{{ .Data.zip }}{{ end }}`,

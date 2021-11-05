@@ -342,10 +342,12 @@ func secretFunc(b *Brain, used, missing *dep.Set) func(...string) (*dep.Secret, 
 			return result, nil
 		}
 
-		// TODO: Refactor into separate template functions
 		path, rest := s[0], s[1:]
 		data := make(map[string]interface{})
 		for _, str := range rest {
+			if len(str) == 0 {
+				continue
+			}
 			parts := strings.SplitN(str, "=", 2)
 			if len(parts) != 2 {
 				return result, fmt.Errorf("not k=v pair %q", str)
@@ -358,7 +360,8 @@ func secretFunc(b *Brain, used, missing *dep.Set) func(...string) (*dep.Secret, 
 		var d dep.Dependency
 		var err error
 
-		if len(rest) == 0 {
+		isReadQuery := len(rest) == 0
+		if isReadQuery {
 			d, err = dep.NewVaultReadQuery(path)
 		} else {
 			d, err = dep.NewVaultWriteQuery(path, data)
