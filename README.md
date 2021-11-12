@@ -37,6 +37,7 @@ this functionality might prove useful.
 - [Math Functions](docs/templating-language.md#math-functions)
 - [Observability](docs/observability.md)
 - [Logging](docs/observability.md#logging)
+  - [Logging to file](docs/observability.md#logging-to-file)
 - [Modes](docs/modes.md)
 - [Once Mode](docs/modes.md#once-mode)
 - [De-Duplication Mode](docs/modes.md#de-duplication-mode)
@@ -44,7 +45,7 @@ this functionality might prove useful.
 - [Plugins](docs/plugins.md)
 - [Caveats](#caveats)
 - [Docker Image Use](#docker-image-use)
-- [Dots in Service Names](#dots-in-service-names)  
+- [Dots in Service Names](#dots-in-service-names)
 - [Termination on Error](#termination-on-error)
 - [Commands](#commands)
   - [Environment](#environment)
@@ -235,7 +236,7 @@ users the ability to further customize their command script.
 #### Multiple Commands
 
 The command configured for running on template rendering must take one of two
-forms. 
+forms.
 
 The first is as a single command without spaces in its name and no arguments.
 This form of command will be called directly by consul-template and is good for

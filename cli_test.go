@@ -356,6 +356,46 @@ func TestCLI_ParseFlags(t *testing.T) {
 			false,
 		},
 		{
+			"log-file",
+			[]string{"-log-file", "something.log"},
+			&config.Config{
+				FileLog: &config.LogFileConfig{
+					LogFilePath: config.String("something.log"),
+				},
+			},
+			false,
+		},
+		{
+			"log-rotate-bytes",
+			[]string{"-log-rotate-bytes", "102400"},
+			&config.Config{
+				FileLog: &config.LogFileConfig{
+					LogRotateBytes: config.Int(102400),
+				},
+			},
+			false,
+		},
+		{
+			"log-rotate-duration",
+			[]string{"-log-rotate-duration", "24h"},
+			&config.Config{
+				FileLog: &config.LogFileConfig{
+					LogRotateDuration: config.TimeDuration(24 * time.Hour),
+				},
+			},
+			false,
+		},
+		{
+			"log-rotate-max-files",
+			[]string{"-log-rotate-max-files", "10"},
+			&config.Config{
+				FileLog: &config.LogFileConfig{
+					LogRotateMaxFiles: config.Int(10),
+				},
+			},
+			false,
+		},
+		{
 			"max-stale",
 			[]string{"-max-stale", "10s"},
 			&config.Config{

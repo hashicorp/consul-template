@@ -539,6 +539,74 @@ func TestParse(t *testing.T) {
 			false,
 		},
 		{
+			"log_file",
+			`log_file {}`,
+			&Config{
+				FileLog: &LogFileConfig{},
+			},
+			false,
+		},
+		{
+			"log_file_path",
+			`log_file {
+				path = "something.log"
+			}`,
+			&Config{
+				FileLog: &LogFileConfig{
+					LogFilePath: String("something.log"),
+				},
+			},
+			false,
+		},
+		{
+			"log_file_path_no_filename",
+			`log_file {
+				path = "./logs"
+			}`,
+			&Config{
+				FileLog: &LogFileConfig{
+					LogFilePath: String("./logs"),
+				},
+			},
+			false,
+		},
+		{
+			"log_file_log_rotate_bytes",
+			`log_file {
+				log_rotate_bytes = 102400
+			}`,
+			&Config{
+				FileLog: &LogFileConfig{
+					LogRotateBytes: Int(102400),
+				},
+			},
+			false,
+		},
+		{
+			"log_file_log_rotate_duration",
+			`log_file {
+				log_rotate_duration = "24h"
+			}`,
+			&Config{
+				FileLog: &LogFileConfig{
+					LogRotateDuration: TimeDuration(24 * time.Hour),
+				},
+			},
+			false,
+		},
+		{
+			"log_file_log_rotate_max_files",
+			`log_file {
+				log_rotate_max_files = 10
+			}`,
+			&Config{
+				FileLog: &LogFileConfig{
+					LogRotateMaxFiles: Int(10),
+				},
+			},
+			false,
+		},
+		{
 			"max_stale",
 			`max_stale = "10s"`,
 			&Config{
@@ -1781,6 +1849,24 @@ func TestConfig_Merge(t *testing.T) {
 			},
 			&Config{
 				LogLevel: String("log_level-diff"),
+			},
+		},
+		{
+			"file_log",
+			&Config{
+				FileLog: &LogFileConfig{
+					LogFilePath: String("something.log"),
+				},
+			},
+			&Config{
+				FileLog: &LogFileConfig{
+					LogFilePath: String("somethingelse.log"),
+				},
+			},
+			&Config{
+				FileLog: &LogFileConfig{
+					LogFilePath: String("somethingelse.log"),
+				},
 			},
 		},
 		{
