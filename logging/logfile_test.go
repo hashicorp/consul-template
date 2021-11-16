@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul-template/config"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/logutils"
 	"github.com/stretchr/testify/require"
 )
@@ -21,7 +20,11 @@ func TestLogFileFilter(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	tempDir := testutil.TempDir(t, "")
+	tempDir, err := ioutil.TempDir("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
 	logFile := LogFile{
 		fileName: "something.log",
 		logPath:  tempDir,
@@ -57,8 +60,11 @@ func TestLogFileFilter(t *testing.T) {
 }
 
 func TestLogFileNoFilter(t *testing.T) {
-
-	tempDir := testutil.TempDir(t, "")
+	tempDir, err := ioutil.TempDir("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
 	logFile := LogFile{
 		fileName: "something.log",
 		logPath:  tempDir,
@@ -97,7 +103,11 @@ func TestLogFile_Rotation_MaxDuration(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	tempDir := testutil.TempDir(t, "")
+	tempDir, err := ioutil.TempDir("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
 	logFile := LogFile{
 		fileName: "something.log",
 		logPath:  tempDir,
@@ -111,12 +121,17 @@ func TestLogFile_Rotation_MaxDuration(t *testing.T) {
 }
 
 func TestLogFile_openNew(t *testing.T) {
+	tempDir, err := ioutil.TempDir("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
 	logFile := LogFile{
 		fileName: "something.log",
-		logPath:  testutil.TempDir(t, ""),
+		logPath:  tempDir,
 		duration: config.DefaultLogRotateDuration,
 	}
-	err := logFile.openNew()
+	err = logFile.openNew()
 	require.NoError(t, err)
 
 	msg := "[INFO] Something"
@@ -129,7 +144,11 @@ func TestLogFile_openNew(t *testing.T) {
 }
 
 func TestLogFile_Rotation_MaxBytes(t *testing.T) {
-	tempDir := testutil.TempDir(t, "LogWriterBytes")
+	tempDir, err := ioutil.TempDir("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
 	logFile := LogFile{
 		fileName: "somefile.log",
 		logPath:  tempDir,
@@ -142,7 +161,11 @@ func TestLogFile_Rotation_MaxBytes(t *testing.T) {
 }
 
 func TestLogFile_PruneFiles(t *testing.T) {
-	tempDir := testutil.TempDir(t, t.Name())
+	tempDir, err := ioutil.TempDir("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
 	logFile := LogFile{
 		fileName: "something.log",
 		logPath:  tempDir,
@@ -168,7 +191,11 @@ func TestLogFile_PruneFiles(t *testing.T) {
 }
 
 func TestLogFile_PruneFiles_Disabled(t *testing.T) {
-	tempDir := testutil.TempDir(t, t.Name())
+	tempDir, err := ioutil.TempDir("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
 	logFile := LogFile{
 		fileName: "somename.log",
 		logPath:  tempDir,
@@ -183,7 +210,11 @@ func TestLogFile_PruneFiles_Disabled(t *testing.T) {
 }
 
 func TestLogFile_FileRotation_Disabled(t *testing.T) {
-	tempDir := testutil.TempDir(t, t.Name())
+	tempDir, err := ioutil.TempDir("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tempDir)
 	logFile := LogFile{
 		fileName: "something.log",
 		logPath:  tempDir,
