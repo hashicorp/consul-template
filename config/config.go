@@ -63,6 +63,9 @@ type Config struct {
 	// LogLevel is the level with which to log for this config.
 	LogLevel *string `mapstructure:"log_level"`
 
+	// FileLog is the configuration for file logging.
+	FileLog *LogFileConfig `mapstructure:"log_file"`
+
 	// MaxStale is the maximum amount of time for staleness from Consul as given
 	// by LastContact. If supplied, Consul Template will query all servers instead
 	// of just the leader.
@@ -130,6 +133,10 @@ func (c *Config) Copy() *Config {
 	o.PidFile = c.PidFile
 
 	o.ReloadSignal = c.ReloadSignal
+
+	if c.FileLog != nil {
+		o.FileLog = c.FileLog.Copy()
+	}
 
 	if c.Syslog != nil {
 		o.Syslog = c.Syslog.Copy()
@@ -206,6 +213,10 @@ func (c *Config) Merge(o *Config) *Config {
 		r.ReloadSignal = o.ReloadSignal
 	}
 
+	if o.FileLog != nil {
+		r.FileLog = r.FileLog.Merge(o.FileLog)
+	}
+
 	if o.Syslog != nil {
 		r.Syslog = r.Syslog.Merge(o.Syslog)
 	}
@@ -256,6 +267,7 @@ func Parse(s string) (*Config, error) {
 		"env",
 		"exec",
 		"exec.env",
+		"log_file",
 		"ssl",
 		"syslog",
 		"vault",
@@ -414,6 +426,7 @@ func (c *Config) GoString() string {
 		"MaxStale:%s, "+
 		"PidFile:%s, "+
 		"ReloadSignal:%s, "+
+		"FileLog:%#v, "+
 		"Syslog:%#v, "+
 		"Templates:%#v, "+
 		"Vault:%#v, "+
@@ -430,6 +443,7 @@ func (c *Config) GoString() string {
 		TimeDurationGoString(c.MaxStale),
 		StringGoString(c.PidFile),
 		SignalGoString(c.ReloadSignal),
+		c.FileLog,
 		c.Syslog,
 		c.Templates,
 		c.Vault,
@@ -474,6 +488,7 @@ func DefaultConfig() *Config {
 		Dedup:         DefaultDedupConfig(),
 		DefaultDelims: DefaultDefaultDelims(),
 		Exec:          DefaultExecConfig(),
+		FileLog:       DefaultLogFileConfig(),
 		Syslog:        DefaultSyslogConfig(),
 		Templates:     DefaultTemplateConfigs(),
 		Vault:         DefaultVaultConfig(),
@@ -532,6 +547,11 @@ func (c *Config) Finalize() {
 	if c.ReloadSignal == nil {
 		c.ReloadSignal = Signal(DefaultReloadSignal)
 	}
+
+	if c.FileLog == nil {
+		c.FileLog = DefaultLogFileConfig()
+	}
+	c.FileLog.Finalize()
 
 	if c.Syslog == nil {
 		c.Syslog = DefaultSyslogConfig()

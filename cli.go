@@ -387,6 +387,26 @@ func (cli *CLI) ParseFlags(args []string) (
 		return nil
 	}), "log-level", "")
 
+	flags.Var((funcVar)(func(s string) error {
+		c.FileLog.LogFilePath = config.String(s)
+		return nil
+	}), "log-file", "")
+
+	flags.Var((funcIntVar)(func(i int) error {
+		c.FileLog.LogRotateBytes = config.Int(i)
+		return nil
+	}), "log-rotate-bytes", "")
+
+	flags.Var((funcDurationVar)(func(d time.Duration) error {
+		c.FileLog.LogRotateDuration = config.TimeDuration(d)
+		return nil
+	}), "log-rotate-duration", "")
+
+	flags.Var((funcIntVar)(func(i int) error {
+		c.FileLog.LogRotateMaxFiles = config.Int(i)
+		return nil
+	}), "log-rotate-max-files", "")
+
 	flags.Var((funcDurationVar)(func(d time.Duration) error {
 		c.MaxStale = config.TimeDuration(d)
 		return nil
@@ -605,11 +625,15 @@ func logError(err error, status int) int {
 
 func (cli *CLI) setup(conf *config.Config) (*config.Config, error) {
 	if err := logging.Setup(&logging.Config{
-		Level:          config.StringVal(conf.LogLevel),
-		Syslog:         config.BoolVal(conf.Syslog.Enabled),
-		SyslogFacility: config.StringVal(conf.Syslog.Facility),
-		SyslogName:     config.StringVal(conf.Syslog.Name),
-		Writer:         cli.errStream,
+		Level:             config.StringVal(conf.LogLevel),
+		LogFilePath:       config.StringVal(conf.FileLog.LogFilePath),
+		LogRotateBytes:    config.IntVal(conf.FileLog.LogRotateBytes),
+		LogRotateDuration: config.TimeDurationVal(conf.FileLog.LogRotateDuration),
+		LogRotateMaxFiles: config.IntVal(conf.FileLog.LogRotateMaxFiles),
+		Syslog:            config.BoolVal(conf.Syslog.Enabled),
+		SyslogFacility:    config.StringVal(conf.Syslog.Facility),
+		SyslogName:        config.StringVal(conf.Syslog.Name),
+		Writer:            cli.errStream,
 	}); err != nil {
 		return nil, err
 	}

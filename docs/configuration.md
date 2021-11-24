@@ -194,6 +194,31 @@ syslog {
   # This is the name of the syslog facility to log to.
   facility = "LOCAL5"
 }
+
+# This block defines the configuration for logging to file
+log_file {
+  # If a path is specified, the feature is enabled
+  # Please refer to the documentation for the -log-file
+  # CLI flag for more information about its behaviour
+  path = "/var/log/something.log"
+
+  # This allow you to control the number of bytes that
+  # should be written to a log before it needs to be
+  # rotated. Unless specified, there is no limit to the
+  # number of bytes that can be written to a log file
+  log_rotate_bytes = 1024000
+
+  # This lets you control time based rotation, by default
+  # logs are rotated every 24h
+  log_rotate_duration = "3h"
+
+  # This lets you control the maximum number of older log
+  # file archives to keep. Defaults to 0 (no files are ever
+  # deleted).
+  # Set to -1 to discard old log files when a new one is
+  # created
+  log_rotate_max_files = 10
+}
 ```
 
 ## Consul
@@ -347,7 +372,7 @@ vault {
   # documentation for more information.
   unwrap_token = true
 
-  # The default lease duration Consul Template will use on a Vault secret that 
+  # The default lease duration Consul Template will use on a Vault secret that
   # does not have a lease duration. This is used to calculate the sleep duration
   # for rechecking a Vault secret value. This field is optional and will default to
   # 5 minutes.
