@@ -7,7 +7,7 @@ provides the following functions:
 
 - [API Functions](#api-functions)
   - [caLeaf](#caleaf)
-  - [caRoot](#caroot)
+  - [caRoots](#caroots)
   - [connect](#connect)
   - [datacenters](#datacenters)
   - [file](#file)
@@ -127,7 +127,7 @@ The two most useful fields are `.CertPEM` and `.PrivateKeyPEM`. For a complete
 list of available fields, see consul's documentation on
 [LeafCert](https://godoc.org/github.com/hashicorp/consul/api#LeafCert).
 
-### `caRoot`
+### `caRoots`
 
 Query [Consul][consul] for all [connect][connect] trusted certificate authority
 (CA) root certificates.
