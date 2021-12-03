@@ -291,8 +291,8 @@ func lsFunc(b *Brain, used, missing *dep.Set, emptyIsSafe bool) func(string) ([]
 }
 
 // nodeFunc returns or accumulates catalog node dependency.
-func nodeFunc(b *Brain, used, missing *dep.Set) func(...string) (*dep.CatalogNode, error) {
-	return func(s ...string) (*dep.CatalogNode, error) {
+func nodeFunc(b *Brain, used, missing *dep.Set) func(...string) (interface{}, error) {
+	return func(s ...string) (interface{}, error) {
 
 		d, err := dep.NewCatalogNodeQuery(strings.Join(s, ""))
 		if err != nil {
@@ -334,12 +334,10 @@ func nodesFunc(b *Brain, used, missing *dep.Set) func(...string) ([]*dep.Node, e
 }
 
 // secretFunc returns or accumulates secret dependencies from Vault.
-func secretFunc(b *Brain, used, missing *dep.Set) func(...string) (*dep.Secret, error) {
-	return func(s ...string) (*dep.Secret, error) {
-		var result *dep.Secret
-
+func secretFunc(b *Brain, used, missing *dep.Set) func(...string) (interface{}, error) {
+	return func(s ...string) (interface{}, error) {
 		if len(s) == 0 {
-			return result, nil
+			return nil, nil
 		}
 
 		path, rest := s[0], s[1:]
@@ -350,7 +348,7 @@ func secretFunc(b *Brain, used, missing *dep.Set) func(...string) (*dep.Secret, 
 			}
 			parts := strings.SplitN(str, "=", 2)
 			if len(parts) != 2 {
-				return result, fmt.Errorf("not k=v pair %q", str)
+				return nil, fmt.Errorf("not k=v pair %q", str)
 			}
 
 			k, v := strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
@@ -374,13 +372,12 @@ func secretFunc(b *Brain, used, missing *dep.Set) func(...string) (*dep.Secret, 
 		used.Add(d)
 
 		if value, ok := b.Recall(d); ok {
-			result = value.(*dep.Secret)
-			return result, nil
+			return value.(*dep.Secret), nil
 		}
 
 		missing.Add(d)
 
-		return result, nil
+		return nil, nil
 	}
 }
 
@@ -542,8 +539,8 @@ func connectCARootsFunc(b *Brain, used, missing *dep.Set,
 }
 
 func connectLeafFunc(b *Brain, used, missing *dep.Set,
-) func(...string) (*api.LeafCert, error) {
-	return func(s ...string) (*api.LeafCert, error) {
+) func(...string) (interface{}, error) {
+	return func(s ...string) (interface{}, error) {
 		if len(s) == 0 || s[0] == "" {
 			return nil, nil
 		}
