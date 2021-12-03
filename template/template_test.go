@@ -430,6 +430,17 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"func_node_nil_pointer_evaluation",
+			&NewTemplateInput{
+				Contents: `{{ $v := node }}{{ $v.Node }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"<no value>",
+			false,
+		},
+		{
 			"func_nodes",
 			&NewTemplateInput{
 				Contents: `{{ range nodes }}{{ .Node }}{{ end }}`,
@@ -473,6 +484,17 @@ func TestTemplate_Execute(t *testing.T) {
 				}(),
 			},
 			"zap",
+			false,
+		},
+		{
+			"func_secret_nil_pointer_evaluation",
+			&NewTemplateInput{
+				Contents: `{{ $v := secret "secret/foo" }}{{ $v.Data.zip }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"<no value>",
 			false,
 		},
 		{
@@ -1842,6 +1864,17 @@ func TestTemplate_Execute(t *testing.T) {
 				}(),
 			},
 			"PEMKEY",
+			false,
+		},
+		{
+			"leaf_cert_nil_pointer_evaluation",
+			&NewTemplateInput{
+				Contents: `{{ $v := caLeaf "foo" }}{{ $v.CertPEM }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"<no value>",
 			false,
 		},
 		{
