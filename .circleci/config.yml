@@ -6,8 +6,7 @@ jobs:
       CONSUL_VERSION: 1.8.0
       VAULT_VERSION: 1.4.2
     docker:
-      - image: docker.mirror.hashicorp.services/circleci/golang:latest
-    working_directory: /go/src/github.com/hashicorp/consul-template
+      - image: docker.mirror.hashicorp.services/cimg/go:1.17
     steps:
       - checkout
       - restore_cache:
