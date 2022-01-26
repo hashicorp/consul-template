@@ -1035,6 +1035,14 @@ func (r *Runner) childEnv() []string {
 		m["CONSUL_HTTP_AUTH"] = r.config.Consul.Auth.String()
 	}
 
+	if config.StringPresent(r.config.Consul.Token) {
+		m["CONSUL_HTTP_TOKEN"] = config.StringVal(r.config.Consul.Token)
+	}
+
+	if config.StringPresent(r.config.Consul.TokenFile) {
+		m["CONSUL_HTTP_TOKEN_FILE"] = config.StringVal(r.config.Consul.TokenFile)
+	}
+
 	m["CONSUL_HTTP_SSL"] = strconv.FormatBool(config.BoolVal(r.config.Consul.SSL.Enabled))
 	m["CONSUL_HTTP_SSL_VERIFY"] = strconv.FormatBool(config.BoolVal(r.config.Consul.SSL.Verify))
 
@@ -1251,6 +1259,7 @@ func newClientSet(c *config.Config) (*dep.ClientSet, error) {
 		Address:                      config.StringVal(c.Consul.Address),
 		Namespace:                    config.StringVal(c.Consul.Namespace),
 		Token:                        config.StringVal(c.Consul.Token),
+		TokenFile:                    config.StringVal(c.Consul.TokenFile),
 		AuthEnabled:                  config.BoolVal(c.Consul.Auth.Enabled),
 		AuthUsername:                 config.StringVal(c.Consul.Auth.Username),
 		AuthPassword:                 config.StringVal(c.Consul.Auth.Password),

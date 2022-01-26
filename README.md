@@ -223,6 +223,7 @@ The current processes environment is used when executing commands with the follo
 
 - `CONSUL_HTTP_ADDR`
 - `CONSUL_HTTP_TOKEN`
+- `CONSUL_HTTP_TOKEN_FILE`
 - `CONSUL_HTTP_AUTH`
 - `CONSUL_HTTP_SSL`
 - `CONSUL_HTTP_SSL_VERIFY`

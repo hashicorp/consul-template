@@ -258,10 +258,17 @@ consul {
   # This is the ACL token to use when connecting to Consul. If you did not
   # enable ACLs on your Consul cluster, you do not need to set this option.
   #
-  # This option is also available via the environment variable CONSUL_TOKEN.
+  # This option is also available via the environment variable CONSUL_TOKEN or
+  # CONSUL_HTTP_TOKEN
   # It is highly recommended that you do not put your token in plain-text in a
   # configuration file.
   token = ""
+
+  # Alternatively, you can specify a path to a file containing the token with
+  # this option.
+  # This option is also available via the environment variable CONSUL_TOKEN_FILE or
+  # CONSUL_HTTP_TOKEN_FILE
+  token_file = ""
 
   # This controls the retry behavior when an error is returned from Consul.
   # Consul Template is highly fault tolerant, meaning it does not exit in the

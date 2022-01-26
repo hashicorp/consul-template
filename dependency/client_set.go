@@ -51,6 +51,7 @@ type CreateConsulClientInput struct {
 	Address      string
 	Namespace    string
 	Token        string
+	TokenFile    string
 	AuthEnabled  bool
 	AuthUsername string
 	AuthPassword string
@@ -114,6 +115,10 @@ func (c *ClientSet) CreateConsulClient(i *CreateConsulClientInput) error {
 
 	if i.Token != "" {
 		consulConfig.Token = i.Token
+	}
+
+	if i.TokenFile != "" {
+		consulConfig.TokenFile = i.TokenFile
 	}
 
 	if i.AuthEnabled {
