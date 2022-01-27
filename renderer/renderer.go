@@ -36,6 +36,7 @@ type RenderInput struct {
 	DryStream      io.Writer
 	Path           string
 	Perms          os.FileMode
+	Uid, Gid       *int
 }
 
 // RenderResult is returned and stored. It contains the status of the render
@@ -65,7 +66,13 @@ func Render(i *RenderInput) (*RenderResult, error) {
 		return nil, errors.Wrap(err, "failed reading file")
 	}
 
-	if bytes.Equal(existing, i.Contents) && fileExists {
+	var chownNeeded bool
+
+	if fileExists {
+		chownNeeded = isChownNeeded(i.Path, i.Uid, i.Gid)
+	}
+
+	if bytes.Equal(existing, i.Contents) && fileExists && !chownNeeded {
 		return &RenderResult{
 			DidRender:   false,
 			WouldRender: true,
@@ -78,6 +85,10 @@ func Render(i *RenderInput) (*RenderResult, error) {
 	} else {
 		if err := AtomicWrite(i.Path, i.CreateDestDirs, i.Contents, i.Perms, i.Backup); err != nil {
 			return nil, errors.Wrap(err, "failed writing file")
+		}
+
+		if err = setFileOwnership(i.Path, i.Uid, i.Gid); err != nil {
+			return nil, errors.Wrap(err, "failed setting file ownership")
 		}
 	}
 
@@ -185,4 +196,9 @@ func AtomicWrite(path string, createDestDirs bool, contents []byte, perms os.Fil
 	}
 
 	return nil
+}
+
+// intPtr returns a pointer to the given int.
+func intPtr(i int) *int {
+	return &i
 }
