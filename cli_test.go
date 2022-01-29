@@ -474,6 +474,19 @@ func TestCLI_ParseFlags(t *testing.T) {
 			false,
 		},
 		{
+			"template_err_on_missing_key",
+			[]string{"-error-on-missing-key", "-template", "/tmp/in.tpl"},
+			&config.Config{
+				Templates: &config.TemplateConfigs{
+					&config.TemplateConfig{
+						Source: config.String("/tmp/in.tpl"),
+						ErrMissingKey: config.Bool(true),
+					},
+				},
+			},
+			false,
+		},
+		{
 			"vault-addr",
 			[]string{"-vault-addr", "vault_addr"},
 			&config.Config{
@@ -765,16 +778,16 @@ func TestCLI_ParseFlags(t *testing.T) {
 			out := gatedio.NewByteBuffer()
 			cli := NewCLI(out, out)
 
-			a, _, _, _, err := cli.ParseFlags(tc.f)
+			a, _, _, errOnMissingKey, _, err := cli.ParseFlags(tc.f)
 			if (err != nil) != tc.err {
 				t.Fatal(err)
 			}
-			a.Finalize()
+			a.Finalize(errOnMissingKey)
 
 			var e *config.Config
 			if tc.e != nil {
 				e = config.DefaultConfig().Merge(tc.e)
-				e.Finalize()
+				e.Finalize(false)
 			}
 
 			if !reflect.DeepEqual(e, a) {

@@ -252,7 +252,7 @@ func (c *TemplateConfig) Merge(o *TemplateConfig) *TemplateConfig {
 
 // Finalize ensures the configuration has no nil pointers and sets default
 // values.
-func (c *TemplateConfig) Finalize() {
+func (c *TemplateConfig) Finalize(errorOnMissingKey bool) {
 	if c.Backup == nil {
 		c.Backup = Bool(false)
 	}
@@ -278,7 +278,7 @@ func (c *TemplateConfig) Finalize() {
 	}
 
 	if c.ErrMissingKey == nil {
-		c.ErrMissingKey = Bool(false)
+		c.ErrMissingKey = Bool(errorOnMissingKey)
 	}
 
 	if c.Exec == nil {
@@ -430,13 +430,13 @@ func (c *TemplateConfigs) Merge(o *TemplateConfigs) *TemplateConfigs {
 
 // Finalize ensures the configuration has no nil pointers and sets default
 // values.
-func (c *TemplateConfigs) Finalize() {
+func (c *TemplateConfigs) Finalize(errorOnMissingKey bool) {
 	if c == nil {
 		*c = *DefaultTemplateConfigs()
 	}
 
 	for _, t := range *c {
-		t.Finalize()
+		t.Finalize(errorOnMissingKey)
 	}
 }
 

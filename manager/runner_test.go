@@ -447,7 +447,7 @@ func TestRunner_Run(t *testing.T) {
 
 			c := config.TestConfig(tc.c)
 			c.Once = true
-			c.Finalize()
+			c.Finalize(false)
 
 			r, err := NewRunner(c, true)
 			if err != nil {
@@ -496,7 +496,7 @@ func TestRunner_Start(t *testing.T) {
 				},
 			},
 		})
-		c.Finalize()
+		c.Finalize(false)
 
 		r, err := NewRunner(c, false)
 		if err != nil {
@@ -538,7 +538,7 @@ func TestRunner_Start(t *testing.T) {
 				},
 			},
 		})
-		c.Finalize()
+		c.Finalize(false)
 
 		r, err := NewRunner(c, false)
 		if err != nil {
@@ -586,7 +586,7 @@ func TestRunner_Start(t *testing.T) {
 				},
 			},
 		})
-		c.Finalize()
+		c.Finalize(false)
 
 		r, err := NewRunner(c, false)
 		if err != nil {
@@ -635,7 +635,7 @@ func TestRunner_Start(t *testing.T) {
 				},
 			},
 		})
-		c.Finalize()
+		c.Finalize(false)
 
 		r, err := NewRunner(c, false)
 		if err != nil {
@@ -682,7 +682,7 @@ func TestRunner_Start(t *testing.T) {
 				},
 			},
 		})
-		c.Finalize()
+		c.Finalize(false)
 
 		r, err := NewRunner(c, false)
 		if err != nil {
@@ -738,7 +738,7 @@ func TestRunner_Start(t *testing.T) {
 			},
 			Once: true,
 		})
-		c.Finalize()
+		c.Finalize(false)
 
 		r, err := NewRunner(c, false)
 		if err != nil {
@@ -805,7 +805,7 @@ func TestRunner_Start(t *testing.T) {
 				},
 			},
 		})
-		c.Finalize()
+		c.Finalize(false)
 
 		r, err := NewRunner(c, false)
 		if err != nil {
@@ -882,7 +882,7 @@ func TestRunner_Start(t *testing.T) {
 				},
 			},
 		})
-		c.Finalize()
+		c.Finalize(false)
 
 		r, err := NewRunner(c, false)
 		if err != nil {
@@ -933,7 +933,7 @@ func TestRunner_Start(t *testing.T) {
 			},
 			Once: true,
 		})
-		c.Finalize()
+		c.Finalize(false)
 
 		r, err := NewRunner(c, true)
 		if err != nil {

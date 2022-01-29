@@ -459,7 +459,7 @@ func TestTemplateConfig_Finalize(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-			tc.i.Finalize()
+			tc.i.Finalize(false)
 			if !reflect.DeepEqual(tc.r, tc.i) {
 				t.Errorf("\nexp: %#v\nact: %#v", tc.r, tc.i)
 			}

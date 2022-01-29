@@ -64,7 +64,7 @@ func NewCLI(out, err io.Writer) *CLI {
 // status from the command.
 func (cli *CLI) Run(args []string) int {
 	// Parse the flags
-	config, paths, dry, isVersion, err := cli.ParseFlags(args[1:])
+	config, paths, dry, errorOnMissingKey, isVersion, err := cli.ParseFlags(args[1:])
 	if err != nil {
 		if err == flag.ErrHelp {
 			fmt.Fprintf(cli.errStream, usage, version.Name)
@@ -83,7 +83,10 @@ func (cli *CLI) Run(args []string) int {
 		return logError(err, ExitCodeConfigError)
 	}
 
-	config.Finalize()
+	// Finalize the config by setting default values in place of nil.
+	// The default value for each template's errorOnMissingKey is
+	// the global errorOnMissingKey CLI argument
+	config.Finalize(errorOnMissingKey)
 
 	// Setup the config and logging
 	config, err = cli.setup(config)
@@ -142,7 +145,7 @@ func (cli *CLI) Run(args []string) int {
 				if err != nil {
 					return logError(err, ExitCodeConfigError)
 				}
-				config.Finalize()
+				config.Finalize(errorOnMissingKey)
 
 				// Load the new configuration from disk
 				config, err = cli.setup(config)
@@ -196,16 +199,16 @@ func (cli *CLI) stop() {
 // small, but it also makes writing tests for parsing command line arguments
 // much easier and cleaner.
 func (cli *CLI) ParseFlags(args []string) (
-	*config.Config, []string, bool, bool, error,
+	*config.Config, []string, bool, bool, bool, error,
 ) {
-	var dry, isVersion bool
+	var dry, errorOnMissingKey, isVersion bool
 
 	c := config.DefaultConfig()
 
 	if s := os.Getenv("CT_LOCAL_CONFIG"); s != "" {
 		envConfig, err := config.Parse(s)
 		if err != nil {
-			return nil, nil, false, false, err
+			return nil, nil, false, false, false, err
 		}
 		c = c.Merge(envConfig)
 	}
@@ -343,6 +346,8 @@ func (cli *CLI) ParseFlags(args []string) (
 	}), "default-right-delimiter", "")
 
 	flags.BoolVar(&dry, "dry", false, "")
+
+	flags.BoolVar(&errorOnMissingKey, "error-on-missing-key", false, "")
 
 	flags.Var((funcVar)(func(s string) error {
 		c.Exec.Enabled = config.Bool(true)
@@ -589,16 +594,16 @@ func (cli *CLI) ParseFlags(args []string) (
 
 	// If there was a parser error, stop
 	if err := flags.Parse(args); err != nil {
-		return nil, nil, false, false, err
+		return nil, nil, false, false, false, err
 	}
 
 	// Error if extra arguments are present
 	args = flags.Args()
 	if len(args) > 0 {
-		return nil, nil, false, false, fmt.Errorf("cli: extra args: %q", args)
+		return nil, nil, false, false, false, fmt.Errorf("cli: extra args: %q", args)
 	}
 
-	return c, configPaths, dry, isVersion, nil
+	return c, configPaths, dry, errorOnMissingKey, isVersion, nil
 }
 
 // loadConfigs loads the configuration from the list of paths. The optional
@@ -618,7 +623,7 @@ func loadConfigs(paths []string, o *config.Config) (*config.Config, error) {
 	}
 
 	finalC = finalC.Merge(o)
-	finalC.Finalize()
+	finalC.Finalize(false)
 	return finalC, nil
 }
 
@@ -735,6 +740,12 @@ Options:
 
   -dry
       Print generated templates to stdout instead of rendering
+
+  -error-on-missing-key
+      For all templates, exit with an error when accessing a struct or map
+      field/key that does not exist. The default behavior will print
+      "<no value>" when accessing a field that does not exist. It is highly
+      recommended you specify this when retrieving secrets from Vault.
 
   -exec=<command>
       Enable exec mode to run as a supervisor-like process - the given command
