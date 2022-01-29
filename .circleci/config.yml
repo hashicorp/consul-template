@@ -3,8 +3,8 @@ jobs:
   build:
     environment:
       GO111MODULE: "on"
-      CONSUL_VERSION: 1.8.0
-      VAULT_VERSION: 1.4.2
+      CONSUL_VERSION: 1.10.7
+      VAULT_VERSION: 1.8.8
     docker:
       - image: docker.mirror.hashicorp.services/cimg/go:1.17
     steps:
