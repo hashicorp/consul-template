@@ -7,13 +7,24 @@ import (
 	"log"
 )
 
-func setFileOwnership(path string, uid, gid *int) error {
-	if uid != nil || gid != nil {
-		log.Printf("[WARN] (runner) cannot set uid/gid for rendered files on Windows")
-	}
+func setFileOwnership(path string, uid, gid int) error {
 	return nil
 }
 
-func isChownNeeded(path string, wantedUid, wantedGid *int) bool {
+func isChownNeeded(path string, wantedUid, wantedGid int) bool {
 	return false
+}
+
+func lookupUser(user string) (int, error) {
+	if user != "" {
+		log.Printf("[WARN] (runner) cannot set user for rendered files on Windows")
+	}
+	return -1, nil
+}
+
+func lookupGroup(group string) (int, error) {
+	if group != "" {
+		log.Printf("[WARN] (runner) cannot set group for rendered files on Windows")
+	}
+	return -1, nil
 }

@@ -1096,12 +1096,12 @@ func TestParse(t *testing.T) {
 		{
 			"template_uid",
 			`template {
-				uid = 1000
+				user = "1000"
 			}`,
 			&Config{
 				Templates: &TemplateConfigs{
 					&TemplateConfig{
-						Uid: Int(1000),
+						User: String("1000"),
 					},
 				},
 			},
@@ -1110,12 +1110,12 @@ func TestParse(t *testing.T) {
 		{
 			"template_gid",
 			`template {
-				gid = 1000
+				group = "1000"
 			}`,
 			&Config{
 				Templates: &TemplateConfigs{
 					&TemplateConfig{
-						Gid: Int(1000),
+						Group: String("1000"),
 					},
 				},
 			},
@@ -1128,8 +1128,8 @@ func TestParse(t *testing.T) {
 			&Config{
 				Templates: &TemplateConfigs{
 					&TemplateConfig{
-						Uid: nil,
-						Gid: nil,
+						User:  nil,
+						Group: nil,
 					},
 				},
 			},
