@@ -46,6 +46,10 @@ type Template struct {
 	// is indexed with a key that does not exist.
 	errMissingKey bool
 
+	// errFatal determines whether template errors should cause the process to
+	// exit, or just log and continue.
+	errFatal bool
+
 	// functionDenylist are functions not permitted to be executed
 	// when we render this template
 	functionDenylist []string
@@ -67,6 +71,10 @@ type NewTemplateInput struct {
 	// ErrMissingKey causes the template parser to exit immediately with an error
 	// when a map is indexed with a key that does not exist.
 	ErrMissingKey bool
+
+	// ErrFatal determines whether template errors should cause the process to
+	// exit, or just log and continue.
+	ErrFatal bool
 
 	// LeftDelim and RightDelim are the template delimiters.
 	LeftDelim  string
@@ -104,6 +112,7 @@ func NewTemplate(i *NewTemplateInput) (*Template, error) {
 	t.leftDelim = i.LeftDelim
 	t.rightDelim = i.RightDelim
 	t.errMissingKey = i.ErrMissingKey
+	t.errFatal = i.ErrFatal
 	t.functionDenylist = i.FunctionDenylist
 	t.sandboxPath = i.SandboxPath
 
@@ -138,6 +147,11 @@ func (t *Template) Source() string {
 		return "(dynamic)"
 	}
 	return t.source
+}
+
+// ErrFatal indicates whether errors in this template should be fatal.
+func (t *Template) ErrFatal() bool {
+	return t.errFatal
 }
 
 // ExecuteInput is used as input to the template's execute function.

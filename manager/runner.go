@@ -168,6 +168,9 @@ type RenderEvent struct {
 	// been rendered we need to know if the event is triggered by quiesence
 	// and if we can skip evaluating it as a render event for those purposes
 	ForQuiescence bool
+
+	// Error contains the error encountered while rendering the template.
+	Error error
 }
 
 // NewRunner accepts a slice of TemplateConfigs and returns a pointer to the new
@@ -640,7 +643,8 @@ type templateRunCtx struct {
 // template to run and a shared run context that allows sharing of information
 // between templates. The run returns a potentially nil render event and any
 // error that occured. The render event is nil in the case that the template has
-// been already rendered and is a once template or if there is an error.
+// been already rendered and is a once template or if there is an error and
+// fatal errors are enabled.
 func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*RenderEvent, error) {
 	log.Printf("[DEBUG] (runner) checking template %s", tmpl.ID())
 
@@ -687,7 +691,23 @@ func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*
 		Env:   r.childEnv(),
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, tmpl.Source())
+		if tmpl.ErrFatal() {
+			return nil, errors.Wrap(err, tmpl.Source())
+		}
+		log.Printf("[ERR] (runner) %s: %v", tmpl.Source(), err)
+		event.Error = err
+
+		if lastEvent != nil {
+			// Keep watching our dependencies so that we retry when they update.
+			for _, d := range lastEvent.UsedDeps.List() {
+				if _, ok := runCtx.depsMap[d.String()]; !ok {
+					runCtx.depsMap[d.String()] = d
+				}
+			}
+			event.UsedDeps = lastEvent.UsedDeps
+		}
+
+		return event, nil
 	}
 
 	// Grab the list of used and missing dependencies.
@@ -784,7 +804,12 @@ func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*
 			Gid:            templateConfig.Gid,
 		})
 		if err != nil {
-			return nil, errors.Wrap(err, "error rendering "+templateConfig.Display())
+			if tmpl.ErrFatal() {
+				return nil, errors.Wrap(err, "error rendering "+templateConfig.Display())
+			}
+			log.Printf("[ERR] (runner) error rendering: %s: %v", templateConfig.Display(), err)
+			event.Error = err
+			return event, nil
 		}
 
 		renderTime := time.Now().UTC()
@@ -892,6 +917,7 @@ func (r *Runner) init() error {
 			Source:           config.StringVal(ctmpl.Source),
 			Contents:         config.StringVal(ctmpl.Contents),
 			ErrMissingKey:    config.BoolVal(ctmpl.ErrMissingKey),
+			ErrFatal:         config.BoolVal(ctmpl.ErrFatal),
 			LeftDelim:        leftDelim,
 			RightDelim:       rightDelim,
 			FunctionDenylist: ctmpl.FunctionDenylist,
