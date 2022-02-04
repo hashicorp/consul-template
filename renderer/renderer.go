@@ -78,7 +78,11 @@ func Render(i *RenderInput) (*RenderResult, error) {
 	var chownNeeded bool
 
 	if fileExists {
-		chownNeeded = isChownNeeded(i.Path, uid, gid)
+		chownNeeded, err = isChownNeeded(i.Path, uid, gid)
+		if err != nil {
+			log.Printf("[WARN] (runner) could not determine existing output file's permissions")
+			chownNeeded = true
+		}
 	}
 
 	if bytes.Equal(existing, i.Contents) && fileExists && !chownNeeded {

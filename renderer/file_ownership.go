@@ -10,16 +10,16 @@ import (
 	"syscall"
 )
 
-func getFileOwnership(path string) (*int, *int) {
-	file_info, err := os.Stat(path)
+func getFileOwnership(path string) (int, int, error) {
+	fileInfo, err := os.Stat(path)
 
 	if err != nil {
-		return nil, nil
+		return 0, 0, err
 	}
 
-	file_sys := file_info.Sys()
-	st := file_sys.(*syscall.Stat_t)
-	return intPtr(int(st.Uid)), intPtr(int(st.Gid))
+	fileSys := fileInfo.Sys()
+	st := fileSys.(*syscall.Stat_t)
+	return int(st.Uid), int(st.Gid), nil
 }
 
 func setFileOwnership(path string, uid, gid int) error {
@@ -29,13 +29,16 @@ func setFileOwnership(path string, uid, gid int) error {
 	return os.Chown(path, uid, gid)
 }
 
-func isChownNeeded(path string, uid, gid int) bool {
+func isChownNeeded(path string, uid, gid int) (bool, error) {
 	if uid == -1 && gid == -1 {
-		return false
+		return false, nil
 	}
 
-	currUid, currGid := getFileOwnership(path)
-	return uid != *currUid || gid != *currGid
+	currUid, currGid, err := getFileOwnership(path)
+	if err != nil {
+		return false, err
+	}
+	return uid != currUid || gid != currGid, nil
 }
 
 // parseUidGid parses the uid/gid so that it can be input to os.Chown

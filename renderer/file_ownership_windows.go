@@ -11,8 +11,8 @@ func setFileOwnership(path string, uid, gid int) error {
 	return nil
 }
 
-func isChownNeeded(path string, wantedUid, wantedGid int) bool {
-	return false
+func isChownNeeded(path string, wantedUid, wantedGid int) (bool, error) {
+	return false, nil
 }
 
 func lookupUser(user string) (int, error) {
