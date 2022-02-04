@@ -40,7 +40,7 @@ func TestDedup_IsLeader(t *testing.T) {
 	// Wait until we are leader
 	select {
 	case <-dedup.UpdateCh():
-	case <-time.After(3 * time.Second):
+	case <-time.After(4 * time.Second):
 		t.Fatalf("timeout")
 	}
 
