@@ -109,7 +109,7 @@ The same rules that apply to the [commands](../README.md#commands) apply here,
 that is if you want to use a complex, shell-like command you need to be running
 on a system with `sh` on your PATH. These commands are run using `sh -c` with
 the shell handling all shell parsing. Otherwise you want the command to be a
-single word (no spaces) found on the search PATH or using an absolute path.
+a single command or a, list formatted, command with arguments.
 
 Note that on supporing systems (*nix, with `sh`) the
 [`setpgid`](https://man7.org/linux/man-pages/man2/setpgid.2.html) flag is set

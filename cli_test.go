@@ -304,7 +304,7 @@ func TestCLI_ParseFlags(t *testing.T) {
 			&config.Config{
 				Exec: &config.ExecConfig{
 					Enabled: config.Bool(true),
-					Command: config.String("command"),
+					Command: []string{"command"},
 				},
 			},
 			false,

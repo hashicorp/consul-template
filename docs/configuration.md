@@ -446,19 +446,6 @@ template {
   # `source` option.
   contents = "{{ keyOrDefault \"service/redis/maxconns@east-aws\" \"5\" }}"
 
-  # This is the optional command to run when the template is rendered. The
-  # command will only run if the resulting template changes. The command must
-  # return within 30s (configurable), and it must have a successful exit code.
-  # Consul Template is not a replacement for a process monitor or init system.
-  # Please see the Commands section in the README for more.
-  command = "restart service foo"
-
-  # This is the maximum amount of time to wait for the optional command to
-  # return. If you set the timeout to 0s the command is run in the background
-  # without monitoring it for errors. If also using Once, consul-template can
-  # exit before the command is finished. Default is 30s.
-  command_timeout = "60s"
-
   # Exit with an error when accessing a struct or map field/key that does not
   # exist. The default behavior will print "<no value>" when accessing a field
   # that does not exist. It is highly recommended you set this to "true" when
@@ -506,6 +493,21 @@ template {
     min = "2s"
     max = "10s"
   }
+
+  # This is the optional exec block to give a command to be run when the template 
+  # is rendered. The command will only run if the resulting template changes. 
+  # The command must return within 30s (configurable), and it must have a 
+  # successful exit code.
+  # See the Exec section below and the Commands section in the README for more.
+  exec {
+      command = ["restart", "service", "foo"]
+      timout = "30s"
+  }
+
+  # For backwards compatibility the template block also supports a bare
+  # `command` and `command_timeout` setting.
+  command = ["restart", "service", "foo"]
+  command_timeout = "60s"
 }
 ```
 
@@ -552,7 +554,12 @@ how exec mode operates and the caveats of this mode.
 exec {
   # This is the command to exec as a child process. There can be only one
   # command per Consul Template process.
-  command = "/usr/bin/app"
+  # Please see the Commands section in the README for more.
+  command = ["/usr/bin/app"]
+
+  # Timeout is the maximum amount of time to wait for a command to complete.
+  # By default, this is 0, which means "wait forever".
+  timeout = "0"
 
   # This is a random splay to wait before killing the command. The default
   # value is 0 (no wait), but large clusters should consider setting a splay

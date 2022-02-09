@@ -32,7 +32,7 @@ var (
 // exec/supervise mode.
 type ExecConfig struct {
 	// Command is the command to execute and watch as a child process.
-	Command *string `mapstructure:"command"`
+	Command commandList `mapstructure:"command"`
 
 	// Enabled controls if this exec is enabled.
 	Enabled *bool `mapstructure:"enabled"`
@@ -59,6 +59,13 @@ type ExecConfig struct {
 	// Timeout is the maximum amount of time to wait for a command to complete.
 	// By default, this is 0, which means "wait forever".
 	Timeout *time.Duration `mapstructure:"timeout"`
+}
+
+// commandList is a []string with a common method for testing for content
+type commandList []string
+
+func (c commandList) Empty() bool {
+	return len(c) == 0 || c[0] == ""
 }
 
 // DefaultExecConfig returns a configuration that is populated with the
@@ -154,11 +161,11 @@ func (c *ExecConfig) Merge(o *ExecConfig) *ExecConfig {
 // Finalize ensures there no nil pointers.
 func (c *ExecConfig) Finalize() {
 	if c.Enabled == nil {
-		c.Enabled = Bool(StringPresent(c.Command))
+		c.Enabled = Bool(!c.Command.Empty())
 	}
 
 	if c.Command == nil {
-		c.Command = String("")
+		c.Command = []string{}
 	}
 
 	if c.Env == nil {
@@ -203,7 +210,7 @@ func (c *ExecConfig) GoString() string {
 		"Splay:%s, "+
 		"Timeout:%s"+
 		"}",
-		StringGoString(c.Command),
+		c.Command,
 		BoolGoString(c.Enabled),
 		c.Env,
 		SignalGoString(c.KillSignal),

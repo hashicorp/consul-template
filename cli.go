@@ -346,7 +346,7 @@ func (cli *CLI) ParseFlags(args []string) (
 
 	flags.Var((funcVar)(func(s string) error {
 		c.Exec.Enabled = config.Bool(true)
-		c.Exec.Command = config.String(s)
+		c.Exec.Command = []string{s}
 		return nil
 	}), "exec", "")
 
