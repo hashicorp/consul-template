@@ -33,7 +33,7 @@ type TemplateConfig struct {
 
 	// Command is the arbitrary command to execute after a template has
 	// successfully rendered. This is DEPRECATED. Use Exec instead.
-	Command *string `mapstructure:"command"`
+	Command commandList `mapstructure:"command"`
 
 	// CommandTimeout is the amount of time to wait for the command to finish
 	// before force-killing it. This is DEPRECATED. Use Exec instead.
@@ -268,7 +268,7 @@ func (c *TemplateConfig) Finalize() {
 	}
 
 	if c.Command == nil {
-		c.Command = String("")
+		c.Command = []string{}
 	}
 
 	if c.CommandTimeout == nil {
@@ -303,8 +303,12 @@ func (c *TemplateConfig) Finalize() {
 	if c.Exec.Command == nil && c.Command != nil {
 		c.Exec.Command = c.Command
 	}
-	if c.Exec.Timeout == nil && c.CommandTimeout != nil {
+	// backwards compat with command_timeout and default support for exec.timeout
+	switch {
+	case c.Exec.Timeout == nil && c.CommandTimeout != nil:
 		c.Exec.Timeout = c.CommandTimeout
+	case c.Exec.Timeout == nil:
+		c.Exec.Timeout = TimeDuration(DefaultTemplateCommandTimeout)
 	}
 	c.Exec.Finalize()
 
@@ -366,7 +370,7 @@ func (c *TemplateConfig) GoString() string {
 		"SandboxPath:%s"+
 		"}",
 		BoolGoString(c.Backup),
-		StringGoString(c.Command),
+		c.Command,
 		TimeDurationGoString(c.CommandTimeout),
 		StringGoString(c.Contents),
 		BoolGoString(c.CreateDestDirs),
@@ -492,7 +496,8 @@ func ParseTemplateConfig(s string) (*TemplateConfig, error) {
 		command = strings.Join(parts[2:], ":")
 	}
 
-	var sourcePtr, destinationPtr, commandPtr *string
+	var sourcePtr, destinationPtr *string
+	var commandL commandList
 	if source != "" {
 		sourcePtr = String(source)
 	}
@@ -500,12 +505,12 @@ func ParseTemplateConfig(s string) (*TemplateConfig, error) {
 		destinationPtr = String(destination)
 	}
 	if command != "" {
-		commandPtr = String(command)
+		commandL = []string{command}
 	}
 
 	return &TemplateConfig{
 		Source:      sourcePtr,
 		Destination: destinationPtr,
-		Command:     commandPtr,
+		Command:     commandL,
 	}, nil
 }

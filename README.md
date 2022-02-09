@@ -239,25 +239,34 @@ users the ability to further customize their command script.
 The command configured for running on template rendering must take one of two
 forms.
 
-The first is as a single command without spaces in its name and no arguments.
-This form of command will be called directly by consul-template and is good for
-any situation. The command can be a shell script or an executable, anything
-called via a single word, and must be either on the runtime search PATH or the
-absolute path to the executable. The single word limination is necessary to
-eliminate any need for parsing the command line. For example..
+The first is as a list of the command and arguments split at spaces. The
+command can use an absolute path or be found on the execution environment's
+PATH and must be the first item in the list. This form allows for single or
+multi-word commands that can be executed directly with a system call. For
+example...
 
-`command = "/opt/foo"` or, if on PATH, `command = "foo"`
+`command = ["echo", "hello"]`
+`command = ["/opt/foo-package/bin/run-foo"]`
+`command = ["foo"]`
 
-The second form is as a multi-word command, a command with arguments or a more
-complex shell command. This form **requires** a shell named `sh` be on the
-executable search path (eg. PATH on *nix). This is the standard on all *nix
-systems and should work out of the box on those systems. This won't work on,
-for example, Docker images with only the executable and not a minimal system
-like Alpine. Using this form you can join multiple commands with logical
-operators, `&&` and `||`, use pipelines with `|`, conditionals, etc. Note that
-the shell `sh` is normally `/bin/sh` on *nix systems and is either a POSIX
-shell or a shell run in POSIX compatible mode, so it is best to stick to POSIX
-shell syntax in this command. For example..
+Note that if you give a single command without the list denoting square
+brackets (`[]`) it is converted into a list with a single argument.
+
+This:
+`command = "foo"`
+is equivalent to:
+`command = ["foo"]`
+
+The second form is as a single quoted command using system shell features. This
+form **requires** a shell named `sh` be on the executable search path (eg. PATH
+on *nix). This is the standard on all *nix systems and should work out of the
+box on those systems. This won't work on, for example, Docker images with only
+the executable and without a minimal system like Alpine. Using this form you
+can join multiple commands with logical operators, `&&` and `||`, use pipelines
+with `|`, conditionals, etc. Note that the shell `sh` is normally `/bin/sh` on
+\*nix systems and is either a POSIX shell or a shell run in POSIX compatible
+mode, so it is best to stick to POSIX shell syntax in this command. For
+example..
 
 `command = "/opt/foo && /opt/bar"`
 

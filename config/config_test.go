@@ -369,7 +369,7 @@ func TestParse(t *testing.T) {
 			}`,
 			&Config{
 				Exec: &ExecConfig{
-					Command: String("command"),
+					Command: []string{"command"},
 				},
 			},
 			false,
@@ -726,7 +726,7 @@ func TestParse(t *testing.T) {
 			&Config{
 				Templates: &TemplateConfigs{
 					&TemplateConfig{
-						Command: String("command"),
+						Command: []string{"command"},
 					},
 				},
 			},
@@ -813,7 +813,7 @@ func TestParse(t *testing.T) {
 				Templates: &TemplateConfigs{
 					&TemplateConfig{
 						Exec: &ExecConfig{
-							Command: String("command"),
+							Command: []string{"command"},
 						},
 					},
 				},
@@ -1855,17 +1855,17 @@ func TestConfig_Merge(t *testing.T) {
 			"exec",
 			&Config{
 				Exec: &ExecConfig{
-					Command: String("command"),
+					Command: []string{"command"},
 				},
 			},
 			&Config{
 				Exec: &ExecConfig{
-					Command: String("command-diff"),
+					Command: []string{"command-diff"},
 				},
 			},
 			&Config{
 				Exec: &ExecConfig{
-					Command: String("command-diff"),
+					Command: []string{"command-diff"},
 				},
 			},
 		},

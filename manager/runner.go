@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"reflect"
 	"strconv"
 	"sync"
 	"time"
@@ -265,7 +266,7 @@ func (r *Runner) Start() {
 
 			// If an exec command was given and a command is not currently running,
 			// spawn the child process for supervision.
-			if config.StringPresent(r.config.Exec.Command) {
+			if !r.config.Exec.Command.Empty() {
 				// Lock the child because we are about to check if it exists.
 				r.childLock.Lock()
 
@@ -278,7 +279,7 @@ func (r *Runner) Start() {
 						Stdin:        r.inStream,
 						Stdout:       r.outStream,
 						Stderr:       r.errStream,
-						Command:      config.StringVal(r.config.Exec.Command),
+						Command:      r.config.Exec.Command,
 						Env:          env.Env(),
 						ReloadSignal: config.SignalVal(r.config.Exec.ReloadSignal),
 						KillSignal:   config.SignalVal(r.config.Exec.KillSignal),
@@ -568,15 +569,15 @@ func (r *Runner) Run() error {
 	// ensures all commands execute at least once.
 	var errs []error
 	for _, t := range runCtx.commands {
-		command := config.StringVal(t.Exec.Command)
-		log.Printf("[INFO] (runner) executing command %q from %s", command, t.Display())
+		log.Printf("[INFO] (runner) executing command %q from %s",
+			fmt.Sprintf("%q", t.Exec.Command), t.Display())
 		env := t.Exec.Env.Copy()
 		env.Custom = append(r.childEnv(), env.Custom...)
 		if _, err := spawnChild(&spawnChildInput{
 			Stdin:        r.inStream,
 			Stdout:       r.outStream,
 			Stderr:       r.errStream,
-			Command:      command,
+			Command:      t.Exec.Command,
 			Env:          env.Env(),
 			Timeout:      config.TimeDurationVal(t.Exec.Timeout),
 			ReloadSignal: config.SignalVal(t.Exec.ReloadSignal),
@@ -584,7 +585,8 @@ func (r *Runner) Run() error {
 			KillTimeout:  config.TimeDurationVal(t.Exec.KillTimeout),
 			Splay:        config.TimeDurationVal(t.Exec.Splay),
 		}); err != nil {
-			s := fmt.Sprintf("failed to execute command %q from %s", command, t.Display())
+			s := fmt.Sprintf("failed to execute command %q from %s",
+				fmt.Sprintf("%q", t.Exec.Command), t.Display())
 			errs = append(errs, errors.Wrap(err, s))
 		}
 	}
@@ -847,8 +849,7 @@ func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*
 				// in the order in which they are provided in the TemplateConfig
 				// definitions. If we inserted commands into a map, we would lose that
 				// relative ordering and people would be unhappy.
-				// if config.StringPresent(ctemplate.Command)
-				if c := config.StringVal(templateConfig.Exec.Command); c != "" {
+				if c := templateConfig.Exec.Command; !c.Empty() {
 					existing := findCommand(templateConfig, runCtx.commands)
 					if existing != nil {
 						log.Printf("[DEBUG] (runner) skipping command %q from %s (already appended from %s)",
@@ -1176,7 +1177,7 @@ type spawnChildInput struct {
 	Stdin        io.Reader
 	Stdout       io.Writer
 	Stderr       io.Writer
-	Command      string
+	Command      []string
 	Timeout      time.Duration
 	Env          []string
 	ReloadSignal os.Signal
@@ -1270,9 +1271,9 @@ func (q *quiescence) tick() {
 // findCommand searches the list of template configs for the given command and
 // returns it if it exists.
 func findCommand(c *config.TemplateConfig, templates []*config.TemplateConfig) *config.TemplateConfig {
-	needle := config.StringVal(c.Exec.Command)
+	needle := c.Exec.Command
 	for _, t := range templates {
-		if needle == config.StringVal(t.Exec.Command) {
+		if reflect.DeepEqual(needle, t.Exec.Command) {
 			return t
 		}
 	}

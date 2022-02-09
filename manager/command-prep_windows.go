@@ -1,18 +1,23 @@
+//go:build windows
 // +build windows
 
 package manager
 
 import (
-	"fmt"
+	"os/exec"
 	"strings"
 )
 
-func prepCommand(command string) ([]string, error) {
-	switch len(strings.Fields(command)) {
-	case 0:
-		return []string{}, nil
-	case 1:
-		return []string{command}, nil
+func prepCommand(command []string) ([]string, error) {
+	switch {
+	case len(command) == 1 && len(strings.Fields(command[0])) == 1:
+		// command is []string{"foo"}
+		return []string{command[0]}, nil
+	case len(command) > 1:
+		// command is []string{"foo", "bar"}
+		return command, nil
+	default:
+		// command is []string{}, []string{""}, []string{"foo bar"}
+		return []string{}, exec.ErrNotFound
 	}
-	return []string{}, fmt.Errorf("only single commands supported on windows")
 }
