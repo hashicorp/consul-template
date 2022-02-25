@@ -422,6 +422,11 @@ func (cli *CLI) ParseFlags(args []string) (
 		return nil
 	}), "once", "")
 
+	flags.Var((funcBoolVar)(func(b bool) error {
+		c.ParseOnly = *(config.Bool(b))
+		return nil
+	}), "parse-only", "")
+
 	flags.Var((funcVar)(func(s string) error {
 		c.PidFile = config.String(s)
 		return nil
@@ -775,6 +780,9 @@ Options:
 
   -once
       Do not run the process as a daemon. This disables wait/quiescence timers.
+
+  -parse-only
+      Do not process templates. Parse them for structure.
 
   -pid-file=<path>
       Path on disk to write the PID of the process
