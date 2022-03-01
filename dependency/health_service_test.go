@@ -210,6 +210,7 @@ func TestHealthConnectServiceQuery_Fetch(t *testing.T) {
 			inst.Node, inst.NodeID = "", ""
 			inst.Checks = nil
 			inst.NodeTaggedAddresses = nil
+			inst.ServiceTaggedAddresses = nil
 
 			assert.Equal(t, tc.exp, act)
 		})

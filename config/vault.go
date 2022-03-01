@@ -30,6 +30,10 @@ const (
 
 	// DefaultVaultLeaseDuration is the default lease duration in seconds.
 	DefaultVaultLeaseDuration = 5 * time.Minute
+
+	// DefaultLeaseRenewalThreshold is the default fraction of a non-renewable
+	// lease to wait for before refreshing
+	DefaultLeaseRenewalThreshold = .90
 )
 
 // VaultConfig is the configuration for connecting to a vault server.
@@ -74,6 +78,11 @@ type VaultConfig struct {
 	// DefaultLeaseDuration configures the default lease duration when not explicitly
 	// set by vault
 	DefaultLeaseDuration *time.Duration `mapstructure:"default_lease_duration"`
+
+	// LeaseRenewalThreshold configues how long Consul Template should wait for to
+	// refresh dynamic, non-renewable leases, measured as a fraction of the lease
+	// duration.
+	LeaseRenewalThreshold *float64 `mapstructure:"lease_renewal_threshold"`
 }
 
 // DefaultVaultConfig returns a configuration that is populated with the
@@ -125,6 +134,7 @@ func (c *VaultConfig) Copy() *VaultConfig {
 	o.UnwrapToken = c.UnwrapToken
 
 	o.DefaultLeaseDuration = c.DefaultLeaseDuration
+	o.LeaseRenewalThreshold = c.LeaseRenewalThreshold
 
 	return &o
 }
@@ -189,6 +199,10 @@ func (c *VaultConfig) Merge(o *VaultConfig) *VaultConfig {
 
 	if o.DefaultLeaseDuration != nil {
 		r.DefaultLeaseDuration = o.DefaultLeaseDuration
+	}
+
+	if o.LeaseRenewalThreshold != nil {
+		r.LeaseRenewalThreshold = o.LeaseRenewalThreshold
 	}
 
 	return r
@@ -292,6 +306,10 @@ func (c *VaultConfig) Finalize() {
 	if c.DefaultLeaseDuration == nil {
 		c.DefaultLeaseDuration = TimeDuration(DefaultVaultLeaseDuration)
 	}
+
+	if c.LeaseRenewalThreshold == nil {
+		c.LeaseRenewalThreshold = Float64(DefaultLeaseRenewalThreshold)
+	}
 }
 
 // GoString defines the printable version of this struct.
@@ -310,8 +328,9 @@ func (c *VaultConfig) GoString() string {
 		"Token:%t, "+
 		"VaultAgentTokenFile:%t, "+
 		"Transport:%#v, "+
-		"UnwrapToken:%s"+
+		"UnwrapToken:%s, "+
 		"DefaultLeaseDuration:%s, "+
+		"LeaseRenewalThreshold:%f, "+
 		"}",
 		StringGoString(c.Address),
 		BoolGoString(c.Enabled),
@@ -324,5 +343,6 @@ func (c *VaultConfig) GoString() string {
 		c.Transport,
 		BoolGoString(c.UnwrapToken),
 		TimeDurationGoString(c.DefaultLeaseDuration),
+		*c.LeaseRenewalThreshold,
 	)
 }
