@@ -9,6 +9,7 @@ import (
 
 func init() {
 	VaultDefaultLeaseDuration = 0
+	VaultLeaseRenewalThreshold = .90
 }
 
 func TestVaultRenewDuration(t *testing.T) {
