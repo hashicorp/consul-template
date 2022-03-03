@@ -2055,6 +2055,18 @@ func TestConfig_Merge(t *testing.T) {
 				},
 			},
 		},
+		{
+			"parse-only",
+			&Config{
+				ParseOnly: false,
+			},
+			&Config{
+				ParseOnly: true,
+			},
+			&Config{
+				ParseOnly: true,
+			},
+		},
 	}
 
 	for i, tc := range cases {
