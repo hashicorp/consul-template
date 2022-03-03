@@ -758,6 +758,14 @@ func TestCLI_ParseFlags(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"parse-only",
+			[]string{"-parse-only"},
+			&config.Config{
+				ParseOnly: true,
+			},
+			false,
+		},
 	}
 
 	for i, tc := range cases {
