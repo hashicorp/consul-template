@@ -1,3 +1,20 @@
+## v0.28.0 (Mar 04, 2022)
+
+BUG FIXES:
+* Fix issue returning typed nil pointers in template functions [[GH-1535](https://github.com/hashicorp/consul-template/pull/1535), [GH-1418](https://github.com/hashicorp/consul-template/issues/1418)]
+* Support secret write queries w/ an empty write [[GH-1532](https://github.com/hashicorp/consul-template/pull/1532), [GH-1453](https://github.com/hashicorp/consul-template/issues/1453)]
+
+
+IMPROVEMENTS:
+* Add sprig library [[GH-1312](https://github.com/hashicorp/consul-template/pull/1312)]
+* Add option to make template errors non-fatal [[GH-1420](https://github.com/hashicorp/consul-template/pull/1420), [GH-1419](https://github.com/hashicorp/consul-template/issues/1419), [GH-1289](https://github.com/hashicorp/consul-template/issues/1289)]
+* Support for accepting a custom logger for a child process [[GH-1515](https://github.com/hashicorp/consul-template/pull/1515)]
+* Add support for providing Consul ACL Token via a file [[GH-1516](https://github.com/hashicorp/consul-template/pull/1516), [GH-1429](https://github.com/hashicorp/consul-template/issues/1429)]
+* Allow setting user/group ownership of template output [[GH-1531](https://github.com/hashicorp/consul-template/pull/1531), [GH-1497](https://github.com/hashicorp/consul-template/issues/1497), [GH-639](https://github.com/hashicorp/consul-template/issues/639)]
+* Logging to file [[GH-1534](https://github.com/hashicorp/consul-template/pull/1534), [GH-1416](https://github.com/hashicorp/consul-template/issues/1416)]]
+* Support command/exec lists [[GH-1543](https://github.com/hashicorp/consul-template/pull/1543), [GH-1518](https://github.com/hashicorp/consul-template/issues/1518)]
+
+
 ## v0.27.2 (Nov 05, 2021)
 
 BUG FIXES:
