@@ -1611,8 +1611,10 @@ func md5sum(item string) (string, error) {
 	return fmt.Sprintf("%x", md5.Sum([]byte(item))), nil
 }
 
-// writeToFile writes the content to a file with permissions and optional username/UID,
-// group name/GID, and flags to select appending mode or add a newline.
+// writeToFile writes the content to a file with permissions, username (or UID), group name (or GID),
+// and optional flags to select appending mode or add a newline.
+//
+// The username and group name fields can be left blank to default to the current user and group.
 //
 // For example:
 //   key "my/key/path" | writeToFile "/my/file/path.txt" "" "" "0644"
