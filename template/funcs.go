@@ -1670,9 +1670,16 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 	}
 
 	// Change ownership and permissions
-	if username != "" || groupName != "" {
-		uid := 0
-		gid := 0
+	var uid int
+	var gid int
+	cu, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+
+	if username == "" {
+		uid, _ = strconv.Atoi(cu.Uid)
+	} else {
 		var convErr error
 		u, err := user.Lookup(username)
 		if err != nil {
@@ -1684,7 +1691,12 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 		} else {
 			uid, _ = strconv.Atoi(u.Uid)
 		}
+	}
 
+	if groupName == "" {
+		gid, _ = strconv.Atoi(cu.Gid)
+	} else {
+		var convErr error
 		g, err := user.LookupGroup(groupName)
 		if err != nil {
 			gid, convErr = strconv.Atoi(groupName)
@@ -1694,7 +1706,10 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 		} else {
 			gid, _ = strconv.Atoi(g.Gid)
 		}
+	}
 
+	// Avoid the chown call altogether if using current user and group.
+	if username != "" || groupName != "" {
 		err = os.Chown(path, uid, gid)
 		if err != nil {
 			return "", err
