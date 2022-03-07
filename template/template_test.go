@@ -8,6 +8,7 @@ import (
 	"os/user"
 	"reflect"
 	"strconv"
+	"syscall"
 	"testing"
 	"time"
 
@@ -1978,9 +1979,24 @@ func TestTemplate_Execute(t *testing.T) {
 }
 
 func Test_writeToFile(t *testing.T) {
+	// Use current user and its primary group for input
+	currentUser, err := user.Current()
+	if err != nil {
+		t.Fatal(err)
+	}
+	currentUsername := currentUser.Username
+	currentGroup, err := user.LookupGroupId(currentUser.Gid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	currentGroupName := currentGroup.Name
+
 	cases := []struct {
 		name        string
+		filePath   string
 		content     string
+		username    string
+		groupName   string
 		permissions string
 		flags       string
 		expectation string
@@ -1988,7 +2004,10 @@ func Test_writeToFile(t *testing.T) {
 	}{
 		{
 			"writeToFile_without_flags",
+			"",
 			"after",
+			currentUsername,
+			currentGroupName,
 			"0644",
 			"",
 			"after",
@@ -1996,7 +2015,10 @@ func Test_writeToFile(t *testing.T) {
 		},
 		{
 			"writeToFile_with_different_file_permissions",
+			"",
 			"after",
+			currentUsername,
+			currentGroupName,
 			"0666",
 			"",
 			"after",
@@ -2004,7 +2026,10 @@ func Test_writeToFile(t *testing.T) {
 		},
 		{
 			"writeToFile_with_append",
+			"",
 			"after",
+			currentUsername,
+			currentGroupName,
 			"0644",
 			`"append"`,
 			"beforeafter",
@@ -2012,7 +2037,10 @@ func Test_writeToFile(t *testing.T) {
 		},
 		{
 			"writeToFile_with_newline",
+			"",
 			"after",
+			currentUsername,
+			currentGroupName,
 			"0644",
 			`"newline"`,
 			"after\n",
@@ -2020,10 +2048,46 @@ func Test_writeToFile(t *testing.T) {
 		},
 		{
 			"writeToFile_with_append_and_newline",
+			"",
 			"after",
+			currentUsername,
+			currentGroupName,
 			"0644",
 			`"append,newline"`,
 			"beforeafter\n",
+			false,
+		},
+		{
+			"writeToFile_default_owner",
+			"",
+			"after",
+			"",
+			"",
+			"0644",
+			"",
+			"after",
+			false,
+		},
+		{
+			"writeToFile_provide_uid_gid",
+			"",
+			"after",
+			currentUser.Uid,
+			currentUser.Gid,
+			"0644",
+			"",
+			"after",
+			false,
+		},
+		{
+			"writeToFile_create_directory",
+			"demo/testing.tmp",
+			"after",
+			currentUsername,
+			currentGroupName,
+			"0644",
+			"",
+			"after",
 			false,
 		},
 	}
@@ -2035,27 +2099,25 @@ func Test_writeToFile(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer os.RemoveAll(outDir)
-			outputFile, err := ioutil.TempFile(outDir, "")
-			if err != nil {
-				t.Fatal(err)
-			}
-			outputFile.WriteString("before")
 
-			// Use current user and its primary group for input
-			currentUser, err := user.Current()
-			if err != nil {
-				t.Fatal(err)
+			var outputFilePath string
+			if tc.filePath == "" {
+				outputFile, err := ioutil.TempFile(outDir, "")
+				if err != nil {
+					t.Fatal(err)
+				}
+				_, err = outputFile.WriteString("before")
+				if err != nil {
+					t.Fatal(err)
+				}
+				outputFilePath = outputFile.Name()
+			} else {
+				outputFilePath = outDir + "/" + tc.filePath
 			}
-			currentUsername := currentUser.Username
-			currentGroup, err := user.LookupGroupId(currentUser.Gid)
-			if err != nil {
-				t.Fatal(err)
-			}
-			currentGroupName := currentGroup.Name
 
 			templateContent := fmt.Sprintf(
 				"{{ \"%s\" | writeToFile \"%s\" \"%s\" \"%s\" \"%s\"  %s}}",
-				tc.content, outputFile.Name(), currentUsername, currentGroupName, tc.permissions, tc.flags)
+				tc.content, outputFilePath, tc.username, tc.groupName, tc.permissions, tc.flags)
 			ti := &NewTemplateInput{
 				Contents: templateContent,
 			}
@@ -2072,7 +2134,7 @@ func Test_writeToFile(t *testing.T) {
 
 			// Compare generated file content with the expectation.
 			// The function should generate an empty string to the output.
-			_generatedFileContent, err := ioutil.ReadFile(outputFile.Name())
+			_generatedFileContent, err := ioutil.ReadFile(outputFilePath)
 			generatedFileContent := string(_generatedFileContent)
 			if err != nil {
 				t.Fatal(err)
@@ -2084,7 +2146,7 @@ func Test_writeToFile(t *testing.T) {
 				t.Errorf("writeToFile() got = %v, want %v", generatedFileContent, tc.expectation)
 			}
 			// Assert output file permissions
-			sts, err := outputFile.Stat()
+			sts, err := os.Stat(outputFilePath)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2095,6 +2157,13 @@ func Test_writeToFile(t *testing.T) {
 			perm := os.FileMode(p_u)
 			if sts.Mode() != perm {
 				t.Errorf("writeToFile() wrong permissions got = %v, want %v", perm, tc.permissions)
+			}
+
+			stat := sts.Sys().(*syscall.Stat_t)
+			u := strconv.FormatUint(uint64(stat.Uid), 10)
+			g := strconv.FormatUint(uint64(stat.Gid), 10)
+			if u != currentUser.Uid || g != currentUser.Gid {
+				t.Errorf("writeToFile() owner = %v:%v, wanted %v:%v", u, g, currentUser.Uid, currentUser.Gid)
 			}
 		})
 	}
