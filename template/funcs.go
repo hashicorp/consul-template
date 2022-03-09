@@ -1611,10 +1611,14 @@ func md5sum(item string) (string, error) {
 	return fmt.Sprintf("%x", md5.Sum([]byte(item))), nil
 }
 
-// writeToFile writes the content to a file with username, group name, permissions and optional
-// flags to select appending mode or add a newline.
+// writeToFile writes the content to a file with permissions, username (or UID), group name (or GID),
+// and optional flags to select appending mode or add a newline.
+//
+// The username and group name fields can be left blank to default to the current user and group.
 //
 // For example:
+//   key "my/key/path" | writeToFile "/my/file/path.txt" "" "" "0644"
+//   key "my/key/path" | writeToFile "/my/file/path.txt" "100" "1000" "0644"
 //   key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644"
 //   key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644" "append"
 //   key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644" "append,newline"
@@ -1642,6 +1646,15 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 			return "", err
 		}
 	} else {
+		dirPath := filepath.Dir(path)
+
+		if _, err := os.Stat(dirPath); err != nil {
+			err := os.MkdirAll(dirPath, os.ModePerm)
+			if err != nil {
+				return "", err
+			}
+		}
+
 		f, err = os.Create(path)
 		if err != nil {
 			return "", err
@@ -1659,19 +1672,50 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 	}
 
 	// Change ownership and permissions
-	u, err := user.Lookup(username)
+	var uid int
+	var gid int
+	cu, err := user.Current()
 	if err != nil {
 		return "", err
 	}
-	g, err := user.LookupGroup(groupName)
-	if err != nil {
-		return "", err
+
+	if username == "" {
+		uid, _ = strconv.Atoi(cu.Uid)
+	} else {
+		var convErr error
+		u, err := user.Lookup(username)
+		if err != nil {
+			// Check if username string is already a UID
+			uid, convErr = strconv.Atoi(username)
+			if convErr != nil {
+				return "", err
+			}
+		} else {
+			uid, _ = strconv.Atoi(u.Uid)
+		}
 	}
-	uid, _ := strconv.Atoi(u.Uid)
-	gid, _ := strconv.Atoi(g.Gid)
-	err = os.Chown(path, uid, gid)
-	if err != nil {
-		return "", err
+
+	if groupName == "" {
+		gid, _ = strconv.Atoi(cu.Gid)
+	} else {
+		var convErr error
+		g, err := user.LookupGroup(groupName)
+		if err != nil {
+			gid, convErr = strconv.Atoi(groupName)
+			if convErr != nil {
+				return "", err
+			}
+		} else {
+			gid, _ = strconv.Atoi(g.Gid)
+		}
+	}
+
+	// Avoid the chown call altogether if using current user and group.
+	if username != "" || groupName != "" {
+		err = os.Chown(path, uid, gid)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	err = os.Chmod(path, perm)

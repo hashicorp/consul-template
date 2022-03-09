@@ -1601,12 +1601,16 @@ for more information.
 
 ### `writeToFile`
 
-Writes the content to a file with username, group name, permissions. There are optional flags to
-select appending mode or add a newline.
+Writes the content to a file with permissions, username (or UID), group name (or GID),
+and optional flags to select appending mode or add a newline.
+
+The username and group name fields can be left blank to default to the current user and group.
 
 For example:
 
 ```golang
+{{ key "my/key/path" | writeToFile "/my/file/path.txt" "" "" "0644" }}
+{{ key "my/key/path" | writeToFile "/my/file/path.txt" "100" "1000" "0644" }}
 {{ key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644" }}
 {{ key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644" "append" }}
 {{ key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644" "append,newline" }}
