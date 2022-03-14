@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"testing"
 )
 
@@ -320,8 +321,6 @@ func TestRender_Chown(t *testing.T) {
 
 	// Can't change uid unless root, but can try
 	// changing the group id.
-	// setting Uid to -1 means no change
-	wantedUid := -1
 
 	// we enumerate the groups the current user (running the tests) belongs to
 	callerGroups, err := os.Getgroups()
@@ -365,8 +364,7 @@ func TestRender_Chown(t *testing.T) {
 		rr, err := Render(&RenderInput{
 			Path:     path,
 			Contents: contents,
-			Uid:      intPtr(wantedUid),
-			Gid:      intPtr(wantedGid),
+			Group:    strconv.Itoa(wantedGid),
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -378,10 +376,13 @@ func TestRender_Chown(t *testing.T) {
 				rr.WouldRender, rr.DidRender)
 		}
 
-		gotUid, gotGid := getFileOwnership(path)
-		if *gotGid != wantedGid {
+		gotUid, gotGid, err := getFileOwnership(path)
+		if err != nil {
+			t.Fatalf("getFileOwnership: %s", err)
+		}
+		if gotGid != wantedGid {
 			t.Fatalf("Bad render results; gotUid: %v, wantedGid: %v, gotGid: %v",
-				*gotUid, wantedGid, *gotGid)
+				gotUid, wantedGid, gotGid)
 		}
 
 	})
@@ -410,8 +411,7 @@ func TestRender_Chown(t *testing.T) {
 		rr, err := Render(&RenderInput{
 			Path:     path,
 			Contents: diff_contents,
-			Uid:      intPtr(wantedUid),
-			Gid:      intPtr(wantedGid),
+			Group:    strconv.Itoa(wantedGid),
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -423,10 +423,13 @@ func TestRender_Chown(t *testing.T) {
 				rr.WouldRender, rr.DidRender)
 		}
 
-		gotUid, gotGid := getFileOwnership(path)
-		if *gotGid != wantedGid {
+		gotUid, gotGid, err := getFileOwnership(path)
+		if err != nil {
+			t.Fatalf("getFileOwnership: %s", err)
+		}
+		if gotGid != wantedGid {
 			t.Fatalf("Bad render results; gotUid: %v, wantedGid: %v, gotGid: %v",
-				*gotUid, wantedGid, *gotGid)
+				gotUid, wantedGid, gotGid)
 		}
 
 	})
@@ -443,8 +446,7 @@ func TestRender_Chown(t *testing.T) {
 		rr, err := Render(&RenderInput{
 			Path:     path,
 			Contents: contents,
-			Uid:      intPtr(wantedUid),
-			Gid:      intPtr(wantedGid),
+			Group:    strconv.Itoa(wantedGid),
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -456,10 +458,13 @@ func TestRender_Chown(t *testing.T) {
 				rr.WouldRender, rr.DidRender)
 		}
 
-		gotUid, gotGid := getFileOwnership(path)
-		if *gotGid != wantedGid {
+		gotUid, gotGid, err := getFileOwnership(path)
+		if err != nil {
+			t.Fatalf("getFileOwnership: %s", err)
+		}
+		if gotGid != wantedGid {
 			t.Fatalf("Bad render results; gotUid: %v, wantedGid: %v, gotGid: %v",
-				*gotUid, wantedGid, *gotGid)
+				gotUid, wantedGid, gotGid)
 		}
 
 	})
@@ -476,8 +481,7 @@ func TestRender_Chown(t *testing.T) {
 		rr, err := Render(&RenderInput{
 			Path:     path,
 			Contents: contents,
-			Uid:      intPtr(wantedUid),
-			Gid:      intPtr(wantedGid),
+			Group:    strconv.Itoa(wantedGid),
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -489,14 +493,17 @@ func TestRender_Chown(t *testing.T) {
 				rr.WouldRender, rr.DidRender)
 		}
 
-		gotUid, gotGid := getFileOwnership(path)
-		if *gotGid != wantedGid {
+		gotUid, gotGid, err := getFileOwnership(path)
+		if err != nil {
+			t.Fatalf("getFileOwnership: %s", err)
+		}
+		if gotGid != wantedGid {
 			t.Fatalf("Bad render results; gotUid: %v, wantedGid: %v, gotGid: %v",
-				*gotUid, wantedGid, *gotGid)
+				gotUid, wantedGid, gotGid)
 		}
 	})
 
-	t.Run("should-be-noop-when-missing-uid", func(t *testing.T) {
+	t.Run("should-be-noop-when-missing-user", func(t *testing.T) {
 
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
@@ -517,13 +524,15 @@ func TestRender_Chown(t *testing.T) {
 		}
 
 		// getting file uid:gid for the default behaviour
-		wantUid, wantGid := getFileOwnership(path)
-
+		wantUid, wantGid, err := getFileOwnership(path)
+		if err != nil {
+			t.Fatalf("getFileOwnership: %s", err)
+		}
 		diff_contents := []byte("not-first")
 		rr, err := Render(&RenderInput{
 			Path:     path,
 			Contents: diff_contents,
-			Gid:      intPtr(-1),
+			Group:    "",
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -535,14 +544,17 @@ func TestRender_Chown(t *testing.T) {
 				rr.WouldRender, rr.DidRender)
 		}
 
-		gotUid, gotGid := getFileOwnership(path)
-		if *gotUid != *wantUid || *gotGid != *wantGid {
+		gotUid, gotGid, err := getFileOwnership(path)
+		if err != nil {
+			t.Fatalf("getFileOwnership: %s", err)
+		}
+		if gotUid != wantUid || gotGid != wantGid {
 			t.Fatalf("Bad render results; we shouldn't have altered uid/gid. wantUid: %v, wantGid: %v, gotUid: %v, gotGid: %v ",
-				*wantUid, *wantGid, *gotUid, *gotGid)
+				wantUid, wantGid, gotUid, gotGid)
 		}
 	})
 
-	t.Run("should-be-noop-when-missing-gid", func(t *testing.T) {
+	t.Run("should-be-noop-when-missing-group", func(t *testing.T) {
 
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
@@ -563,13 +575,16 @@ func TestRender_Chown(t *testing.T) {
 		}
 
 		// getting file uid:gid for the default behaviour
-		wantUid, wantGid := getFileOwnership(path)
+		wantUid, wantGid, err := getFileOwnership(path)
+		if err != nil {
+			t.Fatalf("getFileOwnership: %s", err)
+		}
 
 		diff_contents := []byte("not-first")
 		rr, err := Render(&RenderInput{
 			Path:     path,
 			Contents: diff_contents,
-			Uid:      intPtr(-1),
+			User:     "",
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -581,14 +596,17 @@ func TestRender_Chown(t *testing.T) {
 				rr.WouldRender, rr.DidRender)
 		}
 
-		gotUid, gotGid := getFileOwnership(path)
-		if *gotUid != *wantUid || *gotGid != *wantGid {
+		gotUid, gotGid, err := getFileOwnership(path)
+		if err != nil {
+			t.Fatalf("getFileOwnership: %s", err)
+		}
+		if gotUid != wantUid || gotGid != wantGid {
 			t.Fatalf("Bad render results; we shouldn't have altered uid/gid. wantUid: %v, wantGid: %v, gotUid: %v, gotGid: %v ",
-				*wantUid, *wantGid, *gotUid, *gotGid)
+				wantUid, wantGid, gotUid, gotGid)
 		}
 	})
 
-	t.Run("should-be-noop-when-uid-and-gid-are-both-set-to-minus1", func(t *testing.T) {
+	t.Run("should-be-noop-when-user-and-group-are-both-empty", func(t *testing.T) {
 
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
@@ -609,14 +627,17 @@ func TestRender_Chown(t *testing.T) {
 		}
 
 		// getting file uid:gid for the default behaviour
-		wantUid, wantGid := getFileOwnership(path)
+		wantUid, wantGid, err := getFileOwnership(path)
+		if err != nil {
+			t.Fatalf("getFileOwnership: %s", err)
+		}
 
 		diff_contents := []byte("not-first")
 		rr, err := Render(&RenderInput{
 			Path:     path,
 			Contents: diff_contents,
-			Uid:      intPtr(-1),
-			Gid:      intPtr(-1),
+			User:     "",
+			Group:    "",
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -628,10 +649,13 @@ func TestRender_Chown(t *testing.T) {
 				rr.WouldRender, rr.DidRender)
 		}
 
-		gotUid, gotGid := getFileOwnership(path)
-		if *gotUid != *wantUid || *gotGid != *wantGid {
+		gotUid, gotGid, err := getFileOwnership(path)
+		if err != nil {
+			t.Fatalf("getFileOwnership: %s", err)
+		}
+		if gotUid != wantUid || gotGid != wantGid {
 			t.Fatalf("Bad render results; we shouldn't have altered uid/gid. wantUid: %v, wantGid: %v, gotUid: %v, gotGid: %v ",
-				*wantUid, *wantGid, *gotUid, *gotGid)
+				wantUid, wantGid, gotUid, gotGid)
 		}
 	})
 }

@@ -5,45 +5,68 @@ package renderer
 
 import (
 	"os"
+	"os/user"
+	"strconv"
 	"syscall"
 )
 
-func getFileOwnership(path string) (*int, *int) {
-	file_info, err := os.Stat(path)
+func getFileOwnership(path string) (int, int, error) {
+	fileInfo, err := os.Stat(path)
 
 	if err != nil {
-		return nil, nil
+		return 0, 0, err
 	}
 
-	file_sys := file_info.Sys()
-	st := file_sys.(*syscall.Stat_t)
-	return intPtr(int(st.Uid)), intPtr(int(st.Gid))
+	fileSys := fileInfo.Sys()
+	st := fileSys.(*syscall.Stat_t)
+	return int(st.Uid), int(st.Gid), nil
 }
 
-func setFileOwnership(path string, uid, gid *int) error {
-	wantedUid := sanitizeUidGid(uid)
-	wantedGid := sanitizeUidGid(gid)
-	if wantedUid == -1 && wantedGid == -1 {
+func setFileOwnership(path string, uid, gid int) error {
+	if uid == -1 && gid == -1 {
 		return nil //noop
 	}
-	return os.Chown(path, wantedUid, wantedGid)
+	return os.Chown(path, uid, gid)
 }
 
-func isChownNeeded(path string, uid, gid *int) bool {
-	wantedUid := sanitizeUidGid(uid)
-	wantedGid := sanitizeUidGid(gid)
-	if wantedUid == -1 && wantedGid == -1 {
-		return false
+func isChownNeeded(path string, uid, gid int) (bool, error) {
+	if uid == -1 && gid == -1 {
+		return false, nil
 	}
 
-	currUid, currGid := getFileOwnership(path)
-	return wantedUid != *currUid || wantedGid != *currGid
+	currUid, currGid, err := getFileOwnership(path)
+	if err != nil {
+		return false, err
+	}
+	return uid != currUid || gid != currGid, nil
 }
 
-// sanitizeUidGid sanitizes the uid/gid so that can be an input for os.Chown
-func sanitizeUidGid(id *int) int {
-	if id == nil {
-		return -1
+// parseUidGid parses the uid/gid so that it can be input to os.Chown
+func parseUidGid(s string) (int, error) {
+	if s == "" {
+		return -1, nil
 	}
-	return *id
+	return strconv.Atoi(s)
+}
+
+func lookupUser(s string) (int, error) {
+	if id, err := parseUidGid(s); err == nil {
+		return id, nil
+	}
+	u, err := user.Lookup(s)
+	if err != nil {
+		return 0, err
+	}
+	return strconv.Atoi(u.Uid)
+}
+
+func lookupGroup(s string) (int, error) {
+	if id, err := parseUidGid(s); err == nil {
+		return id, nil
+	}
+	u, err := user.LookupGroup(s)
+	if err != nil {
+		return 0, err
+	}
+	return strconv.Atoi(u.Gid)
 }

@@ -36,7 +36,7 @@ type RenderInput struct {
 	DryStream      io.Writer
 	Path           string
 	Perms          os.FileMode
-	Uid, Gid       *int
+	User, Group    string
 }
 
 // RenderResult is returned and stored. It contains the status of the render
@@ -66,10 +66,23 @@ func Render(i *RenderInput) (*RenderResult, error) {
 		return nil, errors.Wrap(err, "failed reading file")
 	}
 
+	uid, err := lookupUser(i.User)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed looking up user")
+	}
+	gid, err := lookupGroup(i.Group)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed looking up group")
+	}
+
 	var chownNeeded bool
 
 	if fileExists {
-		chownNeeded = isChownNeeded(i.Path, i.Uid, i.Gid)
+		chownNeeded, err = isChownNeeded(i.Path, uid, gid)
+		if err != nil {
+			log.Printf("[WARN] (runner) could not determine existing output file's permissions")
+			chownNeeded = true
+		}
 	}
 
 	if bytes.Equal(existing, i.Contents) && fileExists && !chownNeeded {
@@ -87,7 +100,7 @@ func Render(i *RenderInput) (*RenderResult, error) {
 			return nil, errors.Wrap(err, "failed writing file")
 		}
 
-		if err = setFileOwnership(i.Path, i.Uid, i.Gid); err != nil {
+		if err = setFileOwnership(i.Path, uid, gid); err != nil {
 			return nil, errors.Wrap(err, "failed setting file ownership")
 		}
 	}

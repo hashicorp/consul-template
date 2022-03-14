@@ -68,19 +68,19 @@ type TemplateConfig struct {
 	// secrets from Vault.
 	Perms *os.FileMode `mapstructure:"perms"`
 
-	// Uid is the numeric uid that will be set when creating the file on disk.
+	// User is the username or uid that will be set when creating the file on disk.
 	// Useful when simply setting Perms is not enough.
 	//
 	// Platform dependent: this doesn't work on Windows but it fails gracefully
 	// with a warning
-	Uid *int `mapstructure:"uid"`
+	User *string `mapstructure:"user"`
 
-	// Gid is the numeric gid that will be set when creating the file on disk.
+	// Group is the group name or gid that will be set when creating the file on disk.
 	// Useful when simply setting Perms is not enough.
 	//
 	// Platform dependent: this doesn't work on Windows but it fails gracefully
 	// with a warning
-	Gid *int `mapstructure:"gid"`
+	Group *string `mapstructure:"group"`
 
 	// Source is the path on disk to the template contents to evaluate. Either
 	// this or Contents should be specified, but not both.

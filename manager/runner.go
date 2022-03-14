@@ -802,8 +802,8 @@ func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*
 			DryStream:      r.outStream,
 			Path:           config.StringVal(templateConfig.Destination),
 			Perms:          config.FileModeVal(templateConfig.Perms),
-			Uid:            templateConfig.Uid,
-			Gid:            templateConfig.Gid,
+			User:           config.StringVal(templateConfig.User),
+			Group:          config.StringVal(templateConfig.Group),
 		})
 		if err != nil {
 			if tmpl.ErrFatal() {
