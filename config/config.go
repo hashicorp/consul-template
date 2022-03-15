@@ -98,6 +98,10 @@ type Config struct {
 	// Run once, executing each template exactly once, and exit
 	Once bool
 
+	// ParseOnly prevents any rendering and only loads the templates for
+	// checking well formedness.
+	ParseOnly bool
+
 	// BlockQueryWaitTime is amount of time in seconds to do a blocking query for
 	BlockQueryWaitTime *time.Duration `mapstructure:"block_query_wait"`
 }
@@ -163,6 +167,7 @@ func (c *Config) Copy() *Config {
 	}
 
 	o.Once = c.Once
+	o.ParseOnly = c.ParseOnly
 
 	o.BlockQueryWaitTime = c.BlockQueryWaitTime
 
@@ -250,6 +255,7 @@ func (c *Config) Merge(o *Config) *Config {
 	}
 
 	r.Once = o.Once
+	r.ParseOnly = o.ParseOnly
 
 	return r
 }

@@ -225,6 +225,26 @@ func (r *Runner) Start() {
 		r.ErrCh <- err
 		return
 	}
+	if r.config.ParseOnly {
+		log.Printf("[INFO] (runner) ParseOnly mode and all templates parsed")
+
+		if r.child != nil {
+			r.stopDedup()
+			r.stopWatcher()
+
+			log.Printf("[INFO] (runner) waiting for child process to exit")
+			select {
+			case c := <-childExitCh:
+				log.Printf("[INFO] (runner) child process died")
+				r.ErrCh <- NewErrChildDied(c)
+				return
+			case <-r.DoneCh:
+			}
+		}
+
+		r.Stop()
+		return
+	}
 
 	for {
 		// Warn the user if they are watching too many dependencies.

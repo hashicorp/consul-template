@@ -974,6 +974,37 @@ func TestRunner_Start(t *testing.T) {
 			t.Fatal("timeout")
 		}
 	})
+
+	t.Run("parse_only", func(t *testing.T) {
+
+		out, err := ioutil.TempFile("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.Remove(out.Name())
+
+		c := config.DefaultConfig().Merge(&config.Config{
+			Templates: &config.TemplateConfigs{
+				&config.TemplateConfig{
+					Contents:    config.String(`test`),
+					Destination: config.String(out.Name()),
+				},
+			},
+			ParseOnly: true,
+		})
+		c.Finalize()
+
+		r, err := NewRunner(c, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		r.Start()
+
+		if !r.stopped {
+			t.Fatal("expected parse only to stop runner")
+		}
+	})
 }
 
 func TestRunner_quiescence(t *testing.T) {
