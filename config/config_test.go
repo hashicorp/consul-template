@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
+	"strconv"
 	"syscall"
 	"testing"
 	"time"
@@ -1122,6 +1123,34 @@ func TestParse(t *testing.T) {
 			false,
 		},
 		{
+			"template_uid_backward_compat",
+			`template {
+				uid = 1000
+			}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Uid: Int(1000),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_gid_backward_compat",
+			`template {
+				gid = 1000
+			}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Gid: Int(1000),
+					},
+				},
+			},
+			false,
+		},
+		{
 			"template_uid_gid_default",
 			`template {
 			}`,
@@ -1130,6 +1159,8 @@ func TestParse(t *testing.T) {
 					&TemplateConfig{
 						User:  nil,
 						Group: nil,
+						Uid:   nil,
+						Gid:   nil,
 					},
 				},
 			},
@@ -1761,6 +1792,68 @@ func TestFinalize(t *testing.T) {
 					Enabled: Bool(false),
 					Min:     nil,
 					Max:     nil,
+				},
+			},
+		},
+		{
+			"uid_backward_compat",
+			func(act, exp *Config) (bool, error) {
+				for i, tA := range *act.Templates {
+					for j, tE := range *exp.Templates {
+						if i != j {
+							continue
+						}
+						var userInt, _ = strconv.Atoi(*tE.User)
+						if userInt != *tA.Uid {
+							return false, fmt.Errorf("\nexp: %#v\nact: %#v", *tE.User, *tA.User)
+						}
+					}
+				}
+				return true, nil
+			},
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Uid: Int(1000),
+					},
+				},
+			},
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						User: String("1000"),
+					},
+				},
+			},
+		},
+		{
+			"gid_backward_compat",
+			func(act, exp *Config) (bool, error) {
+				for i, tA := range *act.Templates {
+					for j, tE := range *exp.Templates {
+						if i != j {
+							continue
+						}
+						var groupInt, _ = strconv.Atoi(*tE.Group)
+						if groupInt != *tA.Gid {
+							return false, fmt.Errorf("\nexp: %#v\nact: %#v", *tE.Group, *tA.Group)
+						}
+					}
+				}
+				return true, nil
+			},
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Gid: Int(1000),
+					},
+				},
+			},
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Group: String("1000"),
+					},
 				},
 			},
 		},
