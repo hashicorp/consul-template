@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -75,12 +76,18 @@ type TemplateConfig struct {
 	// with a warning
 	User *string `mapstructure:"user"`
 
+	// Uid is equivalent to User when it's a valid int and it's defined for backward compatibility with v0.28.0
+	Uid *int `mapstructure:"uid"`
+
 	// Group is the group name or gid that will be set when creating the file on disk.
 	// Useful when simply setting Perms is not enough.
 	//
 	// Platform dependent: this doesn't work on Windows but it fails gracefully
 	// with a warning
 	Group *string `mapstructure:"group"`
+
+	// Gid is equivalent to Group when it's a valid int and it's defined for backward compatibility with v0.28.0
+	Gid *int `mapstructure:"gid"`
 
 	// Source is the path on disk to the template contents to evaluate. Either
 	// this or Contents should be specified, but not both.
@@ -293,6 +300,18 @@ func (c *TemplateConfig) Finalize() {
 
 	if c.ErrFatal == nil {
 		c.ErrFatal = Bool(true)
+	}
+
+	// Backwards compatibility for uid
+	if c.User == nil && c.Uid != nil {
+		var uStr = strconv.Itoa(*c.Uid)
+		c.User = &uStr
+	}
+
+	// Backwards compatibility for gid
+	if c.Group == nil && c.Gid != nil {
+		var gStr = strconv.Itoa(*c.Gid)
+		c.Group = &gStr
 	}
 
 	if c.Exec == nil {
