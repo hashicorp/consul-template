@@ -16,13 +16,17 @@ require (
 	github.com/hashicorp/go-syslog v1.0.0
 	github.com/hashicorp/hcl v1.0.0
 	github.com/hashicorp/logutils v1.0.0
+	github.com/hashicorp/nomad/api v0.0.0-20220401211553-29eff9ab2a92
+	github.com/hashicorp/serf v0.9.4 // indirect
 	github.com/hashicorp/vault/api v1.0.5-0.20190730042357-746c0b111519
 	github.com/imdario/mergo v0.3.12
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/hashstructure v1.0.0
-	github.com/mitchellh/mapstructure v1.3.3
+	github.com/mitchellh/mapstructure v1.4.3
+	github.com/pierrec/lz4 v2.5.2+incompatible // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.7.1
+	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
 	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e
 	gopkg.in/yaml.v2 v2.3.0
 )

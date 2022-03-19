@@ -1,0 +1,54 @@
+{
+  "Datacenters": [
+    "dc1"
+  ],
+  "ID": "example",
+  "Name": "example",
+  "Namespace": "default",
+  "Region": "global",
+  "Type": "service",
+  "TaskGroups": [
+    {
+      "Constraints": [
+        {
+          "LTarget": "${attr.nomad.service_discovery}",
+          "Operand": "=",
+          "RTarget": "true"
+        }
+      ],
+      "Count": 1,
+      "Name": "cache",
+      "Networks": [
+        {
+          "DynamicPorts": [
+            {
+              "HostNetwork": "default",
+              "Label": "redis",
+              "To": 6379
+            }
+          ]
+        }
+      ],
+      "Services": [
+        {
+          "PortLabel": "redis",
+          "Provider": "nomad",
+          "Tags": ["tag1", "tag2"]
+        }
+      ],
+      "Tasks": [
+        {
+          "Config": {
+            "image": "redis:5"
+          },
+          "Driver": "docker",
+          "Name": "redis",
+          "Resources": {
+            "CPU": 100,
+            "MemoryMB": 100
+          }
+        }
+      ]
+    }
+  ]
+}

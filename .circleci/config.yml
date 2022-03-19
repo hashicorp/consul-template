@@ -5,6 +5,7 @@ jobs:
       GO111MODULE: "on"
       CONSUL_VERSION: 1.10.7
       VAULT_VERSION: 1.8.8
+      NOMAD_VERSION: "1.3.0-beta.1"
     docker:
       - image: docker.mirror.hashicorp.services/cimg/go:1.17
     steps:
@@ -20,6 +21,10 @@ jobs:
           curl -sLo vault.zip https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip
           unzip vault.zip
           sudo cp vault /usr/local/bin/
+      - run: |
+          curl -sLo nomad.zip https://releases.hashicorp.com/nomad/${NOMAD_VERSION}/nomad_${NOMAD_VERSION}_linux_amd64.zip
+          unzip nomad.zip
+          sudo cp nomad /usr/local/bin/
       - run: |
           make test
       - save_cache:
