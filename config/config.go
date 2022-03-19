@@ -91,6 +91,9 @@ type Config struct {
 	// Vault is the configuration for connecting to a vault server.
 	Vault *VaultConfig `mapstructure:"vault"`
 
+	// Nomad is the configuration for connecting to a Nomad agent.
+	Nomad *NomadConfig `mapstructure:"nomad"`
+
 	// Wait is the quiescence timers.
 	Wait *WaitConfig `mapstructure:"wait"`
 
@@ -170,6 +173,10 @@ func (c *Config) Copy() *Config {
 	o.ParseOnly = c.ParseOnly
 
 	o.BlockQueryWaitTime = c.BlockQueryWaitTime
+
+	if c.Nomad != nil {
+		o.Nomad = o.Nomad.Copy()
+	}
 
 	return &o
 }
@@ -257,6 +264,10 @@ func (c *Config) Merge(o *Config) *Config {
 	r.Once = o.Once
 	r.ParseOnly = o.ParseOnly
 
+	if o.Nomad != nil {
+		r.Nomad = r.Nomad.Merge(o.Nomad)
+	}
+
 	return r
 }
 
@@ -286,6 +297,9 @@ func Parse(s string) (*Config, error) {
 		"exec",
 		"exec.env",
 		"log_file",
+		"nomad",
+		"nomad.ssl",
+		"nomad.transport",
 		"ssl",
 		"syslog",
 		"vault",
@@ -509,6 +523,7 @@ func DefaultConfig() *Config {
 		DefaultDelims: DefaultDefaultDelims(),
 		Exec:          DefaultExecConfig(),
 		FileLog:       DefaultLogFileConfig(),
+		Nomad:         DefaultNomadConfig(),
 		Syslog:        DefaultSyslogConfig(),
 		Templates:     DefaultTemplateConfigs(),
 		Vault:         DefaultVaultConfig(),
@@ -572,6 +587,11 @@ func (c *Config) Finalize() {
 		c.FileLog = DefaultLogFileConfig()
 	}
 	c.FileLog.Finalize()
+
+	if c.Nomad == nil {
+		c.Nomad = DefaultNomadConfig()
+	}
+	c.Nomad.Finalize()
 
 	if c.Syslog == nil {
 		c.Syslog = DefaultSyslogConfig()

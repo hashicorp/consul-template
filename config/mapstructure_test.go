@@ -12,37 +12,35 @@ import (
 
 func TestStringToFileModeFunc(t *testing.T) {
 
-	f := StringToFileModeFunc()
-	strType := reflect.TypeOf("")
-	fmType := reflect.TypeOf(os.FileMode(0))
-	u32Type := reflect.TypeOf(uint32(0))
+	hookFunc := StringToFileModeFunc()
+	fileModeVal := reflect.ValueOf(os.FileMode(0))
 
 	cases := []struct {
-		f, t     reflect.Type
-		data     interface{}
+		name     string
+		f, t     reflect.Value
 		expected interface{}
 		err      bool
 	}{
-		{strType, fmType, "0600", os.FileMode(0600), false},
-		{strType, fmType, "4600", os.FileMode(04600), false},
+		{"owner_only", reflect.ValueOf("0600"), fileModeVal, os.FileMode(0600), false},
+		{"high_bits", reflect.ValueOf("4600"), fileModeVal, os.FileMode(04600), false},
 
 		// Prepends 0 automatically
-		{strType, fmType, "600", os.FileMode(0600), false},
+		{"add_zero", reflect.ValueOf("600"), fileModeVal, os.FileMode(0600), false},
 
 		// Invalid file mode
-		{strType, fmType, "12345", "12345", true},
+		{"bad_mode", reflect.ValueOf("12345"), fileModeVal, "12345", true},
 
 		// Invalid syntax
-		{strType, fmType, "abcd", "abcd", true},
+		{"bad_syntax", reflect.ValueOf("abcd"), fileModeVal, "abcd", true},
 
 		// Different type
-		{strType, strType, "0600", "0600", false},
-		{strType, u32Type, "0600", "0600", false},
+		{"two_strs", reflect.ValueOf("0600"), reflect.ValueOf(""), "0600", false},
+		{"uint32", reflect.ValueOf("0600"), reflect.ValueOf(uint32(0)), "0600", false},
 	}
 
 	for i, tc := range cases {
-		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			actual, err := mapstructure.DecodeHookExec(f, tc.f, tc.t, tc.data)
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			actual, err := mapstructure.DecodeHookExec(hookFunc, tc.f, tc.t)
 			if (err != nil) != tc.err {
 				t.Fatalf("%s", err)
 			}
@@ -56,20 +54,17 @@ func TestStringToFileModeFunc(t *testing.T) {
 func TestStringToWaitDurationHookFunc(t *testing.T) {
 
 	f := StringToWaitDurationHookFunc()
-	strType := reflect.TypeOf("")
-	waitType := reflect.TypeOf(WaitConfig{})
+	waitVal := reflect.ValueOf(WaitConfig{})
 
 	cases := []struct {
 		name     string
-		f, t     reflect.Type
-		data     interface{}
+		f, t     reflect.Value
 		expected interface{}
 		err      bool
 	}{
 		{
 			"min",
-			strType, waitType,
-			"5s",
+			reflect.ValueOf("5s"), waitVal,
 			&WaitConfig{
 				Min: TimeDuration(5 * time.Second),
 				Max: TimeDuration(20 * time.Second),
@@ -78,8 +73,7 @@ func TestStringToWaitDurationHookFunc(t *testing.T) {
 		},
 		{
 			"min_max",
-			strType, waitType,
-			"5s:10s",
+			reflect.ValueOf("5s:10s"), waitVal,
 			&WaitConfig{
 				Min: TimeDuration(5 * time.Second),
 				Max: TimeDuration(10 * time.Second),
@@ -88,22 +82,19 @@ func TestStringToWaitDurationHookFunc(t *testing.T) {
 		},
 		{
 			"not_string",
-			waitType, waitType,
-			&WaitConfig{},
-			&WaitConfig{},
+			waitVal, waitVal,
+			WaitConfig{},
 			false,
 		},
 		{
 			"not_wait",
-			strType, strType,
-			"test",
+			reflect.ValueOf("test"), reflect.ValueOf(""),
 			"test",
 			false,
 		},
 		{
 			"bad_wait",
-			strType, waitType,
-			"nope",
+			reflect.ValueOf("nope"), waitVal,
 			(*WaitConfig)(nil),
 			true,
 		},
@@ -111,7 +102,7 @@ func TestStringToWaitDurationHookFunc(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-			actual, err := mapstructure.DecodeHookExec(f, tc.f, tc.t, tc.data)
+			actual, err := mapstructure.DecodeHookExec(f, tc.f, tc.t)
 			if (err != nil) != tc.err {
 				t.Fatalf("%s", err)
 			}
@@ -125,20 +116,17 @@ func TestStringToWaitDurationHookFunc(t *testing.T) {
 func TestConsulStringToStructFunc(t *testing.T) {
 
 	f := ConsulStringToStructFunc()
-	strType := reflect.TypeOf("")
-	consulType := reflect.TypeOf(ConsulConfig{})
+	consulVal := reflect.ValueOf(ConsulConfig{})
 
 	cases := []struct {
 		name     string
-		f, t     reflect.Type
-		data     interface{}
+		f, t     reflect.Value
 		expected interface{}
 		err      bool
 	}{
 		{
 			"address",
-			strType, consulType,
-			"1.2.3.4",
+			reflect.ValueOf("1.2.3.4"), consulVal,
 			&ConsulConfig{
 				Address: String("1.2.3.4"),
 			},
@@ -146,15 +134,13 @@ func TestConsulStringToStructFunc(t *testing.T) {
 		},
 		{
 			"not_string",
-			consulType, consulType,
-			&ConsulConfig{},
-			&ConsulConfig{},
+			consulVal, consulVal,
+			ConsulConfig{},
 			false,
 		},
 		{
 			"not_consul",
-			strType, strType,
-			"test",
+			reflect.ValueOf("test"), reflect.ValueOf(""),
 			"test",
 			false,
 		},
@@ -162,7 +148,7 @@ func TestConsulStringToStructFunc(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-			actual, err := mapstructure.DecodeHookExec(f, tc.f, tc.t, tc.data)
+			actual, err := mapstructure.DecodeHookExec(f, tc.f, tc.t)
 			if (err != nil) != tc.err {
 				t.Fatalf("%s", err)
 			}

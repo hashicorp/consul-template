@@ -258,6 +258,10 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"caRoots":      connectCARootsFunc(i.brain, i.used, i.missing),
 		"caLeaf":       connectLeafFunc(i.brain, i.used, i.missing),
 
+		// Nomad Functions.
+		"nomadServices": nomadServicesFunc(i.brain, i.used, i.missing),
+		"nomadService":  nomadServiceFunc(i.brain, i.used, i.missing),
+
 		// Scratch
 		"scratch": func() *Scratch { return &scratch },
 
