@@ -394,7 +394,7 @@ vault {
   # Template will wait for. This is used to calculate the sleep duration for
   # rechecking a Vault secret value. This field is optional and will default to
   # 90% of the lease time.
-  default_lease_duration = 0.90
+  lease_renewal_threshold = 0.90
 
   # This option tells Consul Template to automatically renew the Vault token
   # given. If you are unfamiliar with Vault's architecture, Vault requires
