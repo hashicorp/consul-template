@@ -333,6 +333,43 @@ func nodesFunc(b *Brain, used, missing *dep.Set) func(...string) ([]*dep.Node, e
 	}
 }
 
+// pkiCertFunc returns a PKI cert from Vault
+func pkiCertFunc(b *Brain, used, missing *dep.Set, destPath string) func(...string) (interface{}, error) {
+	return func(s ...string) (interface{}, error) {
+		if len(s) == 0 {
+			return nil, nil
+		}
+
+		path, rest := s[0], s[1:]
+		data := make(map[string]interface{})
+		for _, str := range rest {
+			if len(str) == 0 {
+				continue
+			}
+			parts := strings.SplitN(str, "=", 2)
+			if len(parts) != 2 {
+				return nil, fmt.Errorf("not k=v pair %q", str)
+			}
+
+			k, v := strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
+			data[k] = v
+		}
+
+		d, err := dep.NewVaultPKIQuery(path, destPath, data)
+		if err != nil {
+			return nil, err
+		}
+
+		used.Add(d)
+		if value, ok := b.Recall(d); ok {
+			return value, nil
+		}
+		missing.Add(d)
+
+		return nil, nil
+	}
+}
+
 // secretFunc returns or accumulates secret dependencies from Vault.
 func secretFunc(b *Brain, used, missing *dep.Set) func(...string) (interface{}, error) {
 	return func(s ...string) (interface{}, error) {
