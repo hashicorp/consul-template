@@ -52,7 +52,7 @@ type Runner struct {
 
 	// ctemplatesMap is a map of each template ID to the TemplateConfigs
 	// that made it.
-	ctemplatesMap map[string]config.TemplateConfigs
+	ctemplatesMap map[string]*config.TemplateConfig
 
 	// templates is the list of calculated templates.
 	templates []*template.Template
@@ -265,14 +265,13 @@ func (r *Runner) Start() {
 					continue NEXT_Q
 				}
 
-				for _, c := range r.templateConfigsFor(t) {
-					if *c.Wait.Enabled {
-						log.Printf("[DEBUG] (runner) enabling template-specific "+
-							"quiescence for %q", t.ID())
-						r.quiescenceMap[t.ID()] = newQuiescence(
-							r.quiescenceCh, *c.Wait.Min, *c.Wait.Max, t)
-						continue NEXT_Q
-					}
+				c := r.templateConfigFor(t)
+				if *c.Wait.Enabled {
+					log.Printf("[DEBUG] (runner) enabling template-specific "+
+						"quiescence for %q", t.ID())
+					r.quiescenceMap[t.ID()] = newQuiescence(
+						r.quiescenceCh, *c.Wait.Min, *c.Wait.Max, t)
+					continue NEXT_Q
 				}
 
 				if *r.config.Wait.Enabled {
@@ -678,7 +677,7 @@ func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*
 	// Create the event
 	event := &RenderEvent{
 		Template:        tmpl,
-		TemplateConfigs: r.templateConfigsFor(tmpl),
+		TemplateConfigs: config.TemplateConfigs{r.templateConfigFor(tmpl)},
 	}
 
 	if lastEvent != nil {
@@ -810,7 +809,8 @@ func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*
 
 	// For each template configuration that is tied to this template, attempt to
 	// render it to disk and accumulate commands for later use.
-	for _, templateConfig := range r.templateConfigsFor(tmpl) {
+	templateConfig := r.templateConfigFor(tmpl)
+	if templateConfig != nil {
 		log.Printf("[DEBUG] (runner) rendering %s", templateConfig.Display())
 
 		// Render the template, taking dry mode into account
@@ -919,7 +919,7 @@ func (r *Runner) init() error {
 
 	numTemplates := len(*r.config.Templates)
 	templates := make([]*template.Template, 0, numTemplates)
-	ctemplatesMap := make(map[string]config.TemplateConfigs)
+	ctemplatesMap := make(map[string]*config.TemplateConfig)
 
 	// Iterate over each TemplateConfig, creating a new Template resource for each
 	// entry. Templates are parsed and saved, and a map of templates to their
@@ -949,14 +949,9 @@ func (r *Runner) init() error {
 			return err
 		}
 
-		if _, ok := ctemplatesMap[tmpl.ID()]; !ok {
-			templates = append(templates, tmpl)
-		}
+		templates = append(templates, tmpl)
 
-		if _, ok := ctemplatesMap[tmpl.ID()]; !ok {
-			ctemplatesMap[tmpl.ID()] = make([]*config.TemplateConfig, 0, 1)
-		}
-		ctemplatesMap[tmpl.ID()] = append(ctemplatesMap[tmpl.ID()], ctmpl)
+		ctemplatesMap[tmpl.ID()] = ctmpl
 	}
 
 	// Convert the map of templates (which was only used to ensure uniqueness)
@@ -1021,23 +1016,19 @@ func (r *Runner) diffAndUpdateDeps(depsMap map[string]dep.Dependency) {
 }
 
 // TemplateConfigFor returns the TemplateConfig for the given Template
-func (r *Runner) templateConfigsFor(tmpl *template.Template) []*config.TemplateConfig {
+func (r *Runner) templateConfigFor(tmpl *template.Template) *config.TemplateConfig {
 	return r.ctemplatesMap[tmpl.ID()]
 }
 
 // TemplateConfigMapping returns a mapping between the template ID and the set
 // of TemplateConfig represented by the template ID
-func (r *Runner) TemplateConfigMapping() map[string][]*config.TemplateConfig {
+func (r *Runner) TemplateConfigMapping() map[string]*config.TemplateConfig {
 	// this method is primarily used to support embedding consul-template
 	// in other applications (ex. Nomad)
-	m := make(map[string][]*config.TemplateConfig, len(r.ctemplatesMap))
+	m := make(map[string]*config.TemplateConfig)
 
 	for id, set := range r.ctemplatesMap {
-		ctmpls := make([]*config.TemplateConfig, len(set))
-		m[id] = ctmpls
-		for i, ctmpl := range set {
-			ctmpls[i] = ctmpl
-		}
+		m[id] = set
 	}
 
 	return m
