@@ -20,6 +20,7 @@ provides the following functions:
   - [nodes](#nodes)
   - [secret](#secret)
   - [secrets](#secrets)
+  - [pkiCert](#pkicert)
   - [service](#service)
   - [services](#services)
   - [tree](#tree)
@@ -588,6 +589,25 @@ You should probably never do this.
 Please also note that Vault does not support
 blocking queries. To understand the implications, please read the note at the
 end of the `secret` function.
+
+### `pkiCert`
+
+Query [Vault][vault] for a PKI certificate. It returns the certificate PEM
+encoded in a string. It only returns the PKI certificate, not the CA, key or
+any other informaion about the certificate.
+
+**Special Note**: This function uses the template file destination as a cache
+for the certificate to prevent Consul-Template from re-fetching it on reload or
+restart. This special behavior is to better work with Vault's PKI behavior of
+always returning a new certificate even if the current one is still good. Using
+the destination file as a local "cache" allows Consul-Template to check for the
+certificate in that local file and, if found, parse it and checks it's valid
+date range only fetching a new certificate if the local one has expired.
+
+
+```golang
+{{ pkiCert "pki/issue/my-domain-dot-com" "common_name=foo.example.com" }}
+```
 
 ### `service`
 

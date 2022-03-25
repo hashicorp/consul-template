@@ -520,27 +520,14 @@ func TestVaultReadQuery_Fetch_KVv2(t *testing.T) {
 func TestVaultReadQuery_Fetch_PKI_Anonymous(t *testing.T) {
 	clients := testClients
 
-	err := clients.Vault().Sys().Mount("pki", &api.MountInput{
-		Type: "pki",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	vc := clients.Vault()
-	_, err = vc.Logical().Write("sys/policies/acl/secrets-only",
+	_, err := vc.Logical().Write("sys/policies/acl/secrets-only",
 		map[string]interface{}{
 			"policy": `path "secret/*" { capabilities = ["create", "read"] }`,
 		})
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	_, err = vc.Logical().Write("pki/root/generate/internal",
-		map[string]interface{}{
-			"common_name": "example.com",
-			"ttl":         "24h",
-		})
 
 	anonClient := NewClientSet()
 	anonClient.CreateVaultClient(&CreateVaultClientInput{
@@ -567,6 +554,7 @@ func TestVaultReadQuery_Fetch_PKI_Anonymous(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected secret but found %v", reflect.TypeOf(act))
 	}
+
 	cert, ok := sec.Data["certificate"].(string)
 	if !ok || !strings.Contains(cert, "BEGIN") {
 		t.Fatalf("expected a cert but found: %v", cert)

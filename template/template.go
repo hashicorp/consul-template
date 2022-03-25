@@ -35,6 +35,9 @@ type Template struct {
 	// the template was dynamically defined.
 	source string
 
+	// destination file/path to which the template is rendered
+	destination string
+
 	// leftDelim and rightDelim are the template delimiters.
 	leftDelim  string
 	rightDelim string
@@ -64,6 +67,9 @@ type Template struct {
 type NewTemplateInput struct {
 	// Source is the location on disk to the file.
 	Source string
+
+	// Destination is the file on disk to render/write the template output.
+	Destination string
 
 	// Contents are the raw template contents.
 	Contents string
@@ -115,6 +121,7 @@ func NewTemplate(i *NewTemplateInput) (*Template, error) {
 	t.errFatal = i.ErrFatal
 	t.functionDenylist = i.FunctionDenylist
 	t.sandboxPath = i.SandboxPath
+	t.destination = i.Destination
 
 	if i.Source != "" {
 		contents, err := ioutil.ReadFile(i.Source)
@@ -189,13 +196,14 @@ func (t *Template) Execute(i *ExecuteInput) (*ExecuteResult, error) {
 	tmpl.Delims(t.leftDelim, t.rightDelim)
 
 	tmpl.Funcs(funcMap(&funcMapInput{
-		t:                tmpl,
+		newTmpl:          tmpl,
 		brain:            i.Brain,
 		env:              i.Env,
 		used:             &used,
 		missing:          &missing,
 		functionDenylist: t.functionDenylist,
 		sandboxPath:      t.sandboxPath,
+		destination:      t.destination,
 	}))
 
 	if t.errMissingKey {
@@ -224,11 +232,12 @@ func (t *Template) Execute(i *ExecuteInput) (*ExecuteResult, error) {
 
 // funcMapInput is input to the funcMap, which builds the template functions.
 type funcMapInput struct {
-	t                *template.Template
+	newTmpl          *template.Template
 	brain            *Brain
 	env              []string
 	functionDenylist []string
 	sandboxPath      string
+	destination      string
 	used             *dep.Set
 	missing          *dep.Set
 }
@@ -257,6 +266,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"safeTree":     safeTreeFunc(i.brain, i.used, i.missing),
 		"caRoots":      connectCARootsFunc(i.brain, i.used, i.missing),
 		"caLeaf":       connectLeafFunc(i.brain, i.used, i.missing),
+		"pkiCert":      pkiCertFunc(i.brain, i.used, i.missing, i.destination),
 
 		// Scratch
 		"scratch": func() *Scratch { return &scratch },
@@ -275,7 +285,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"containsNotAll":        containsSomeFunc(false, true),
 		"env":                   envFunc(i.env),
 		"envOrDefault":          envWithDefaultFunc(i.env),
-		"executeTemplate":       executeTemplateFunc(i.t),
+		"executeTemplate":       executeTemplateFunc(i.newTmpl),
 		"explode":               explode,
 		"explodeMap":            explodeMap,
 		"mergeMap":              mergeMap,

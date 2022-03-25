@@ -3,8 +3,11 @@ package dependency
 import (
 	"encoding/json"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/vault/api"
 )
 
 func init() {
@@ -113,4 +116,37 @@ func TestVaultRenewDuration(t *testing.T) {
 		})
 
 	})
+}
+
+func setupVaultPKI(clients *ClientSet) {
+	err := clients.Vault().Sys().Mount("pki", &api.MountInput{
+		Type: "pki",
+	})
+	switch {
+	case err == nil:
+	case strings.Contains(err.Error(), "path is already in use"):
+		// for idempotency
+		return
+	default:
+		panic(err)
+	}
+
+	vc := clients.Vault()
+	_, err = vc.Logical().Write("pki/root/generate/internal",
+		map[string]interface{}{
+			"common_name": "example.com",
+			"ttl":         "48h",
+		})
+	if err != nil {
+		panic(err)
+	}
+	_, err = vc.Logical().Write("pki/roles/example-dot-com",
+		map[string]interface{}{
+			"allowed_domains":  "example.com",
+			"allow_subdomains": "true",
+			"ttl":              "24h",
+		})
+	if err != nil {
+		panic(err)
+	}
 }

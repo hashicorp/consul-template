@@ -44,6 +44,8 @@ func TestMain(m *testing.M) {
 	}
 	testClients = clients
 
+	setupVaultPKI(clients)
+
 	consul_agent := testClients.consul.client.Agent()
 	// service with meta data
 	serviceMetaService := &api.AgentServiceRegistration{

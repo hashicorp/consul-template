@@ -1929,6 +1929,25 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"func_pkiCert",
+			&NewTemplateInput{
+				Contents: `{{ pkiCert "pki/issue/egs-dot-com" }}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewVaultPKIQuery("pki/issue/egs-dot-com", "/dev/null", nil)
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, testCert)
+					return b
+				}(),
+			},
+			testCert,
+			false,
+		},
+		{
 			"spew_sdump_simple_output",
 			&NewTemplateInput{
 				Contents: `{{ timestamp "2006-01-02" | spew_sdump }}`,
@@ -1993,7 +2012,7 @@ func Test_writeToFile(t *testing.T) {
 
 	cases := []struct {
 		name        string
-		filePath   string
+		filePath    string
 		content     string
 		username    string
 		groupName   string
@@ -2190,3 +2209,26 @@ func Test_writeToFile(t *testing.T) {
 		})
 	}
 }
+
+const testCert = `
+-----BEGIN CERTIFICATE-----
+MIIDWTCCAkGgAwIBAgIUUARA+vQExU8zjdsX/YXMMu1K5FkwDQYJKoZIhvcNAQEL
+BQAwFjEUMBIGA1UEAxMLZXhhbXBsZS5jb20wHhcNMjIwMzAxMjIzMzAzWhcNMjIw
+MzA0MjIzMzMzWjAaMRgwFgYDVQQDEw9mb28uZXhhbXBsZS5jb20wggEiMA0GCSqG
+SIb3DQEBAQUAA4IBDwAwggEKAoIBAQDD3sktiNGo/CSvtL84+GIcsuDzp1VFjG++
+8P682ZPiqPGjrgwe3P8ypyhQv6I8ZGOyu7helMqBN/S1mrhmHWUONy/4o95QWDsJ
+CGw4H44dRil5hKC6K8BUrf79XGAGIQJr3T6I5CCwxukfYhU/+xNE3dq5AgLrIIB2
+BtzZA6m1T5CmgAzSzI1byTjaRpxOJjucI37iKzkx7AkYS5hGfVsFmJgGi/UXhvzK
+uwnHHIq9rLItx7p261dJV8mxRDFaf4x+4bZh2kYkEaG8REOfyHSCJ78RniWbF/DN
+Jtgh8bT2/938/ecBtWcTN+psICD62DJii6988FD2qS+Yd8Eu8M5rAgMBAAGjgZow
+gZcwDgYDVR0PAQH/BAQDAgOoMB0GA1UdJQQWMBQGCCsGAQUFBwMBBggrBgEFBQcD
+AjAdBgNVHQ4EFgQUfmm32UJb3xJNxfA7ZB0Q5RXsQIkwHwYDVR0jBBgwFoAUDoYJ
+CtobWJrR1xmTsYJd9buj2jwwJgYDVR0RBB8wHYIPZm9vLmV4YW1wbGUuY29thwR/
+AAABhwTAqAEpMA0GCSqGSIb3DQEBCwUAA4IBAQBzB+RM2PSZPmDG3xJssS1litV8
+TOlGtBAOUi827W68kx1lprp35c9Jyy7l4AAu3Q1+az3iDQBfYBazq89GOZeXRvml
+x9PVCjnXP2E7mH9owA6cE+Z1cLN/5h914xUZCb4t9Ahu04vpB3/bnoucXdM5GJsZ
+EJylY99VsC/bZKPCheZQnC/LtFBC31WEGYb8rnB7gQxmH99H91+JxnJzYhT1a6lw
+arHERAKScrZMTrYPLt2YqYoeyO//aCuT9YW6YdIa9jPQhzjeMKXywXLetE+Ip18G
+eB01bl42Y5WwHl0IrjfbEevzoW0+uhlUlZ6keZHr7bLn/xuRCUkVfj3PRlMl
+-----END CERTIFICATE-----
+`
