@@ -950,6 +950,21 @@ func join(sep string, a []string) (string, error) {
 	return strings.Join(a, sep), nil
 }
 
+// trim is a version of strings.Trim that can be piped
+func trim(cutset string, s string) (string, error) {
+	return strings.Trim(s, cutset), nil
+}
+
+// trimPrefix is a version of strings.TrimPrefix that can be piped
+func trimPrefix(prefix string, s string) (string, error) {
+	return strings.TrimPrefix(s, prefix), nil
+}
+
+// trimSuffix is a version of strings.TrimSuffix that can be piped
+func trimSuffix(suffix string, s string) (string, error) {
+	return strings.TrimSuffix(s, suffix), nil
+}
+
 // TrimSpace is a version of strings.TrimSpace that can be piped
 func trimSpace(s string) (string, error) {
 	return strings.TrimSpace(s), nil
