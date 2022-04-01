@@ -1674,13 +1674,12 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 	// Change ownership and permissions
 	var uid int
 	var gid int
-	cu, err := user.Current()
 	if err != nil {
 		return "", err
 	}
 
 	if username == "" {
-		uid, _ = strconv.Atoi(cu.Uid)
+		uid = os.Getuid()
 	} else {
 		var convErr error
 		u, err := user.Lookup(username)
@@ -1696,7 +1695,7 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 	}
 
 	if groupName == "" {
-		gid, _ = strconv.Atoi(cu.Gid)
+		gid = os.Getgid()
 	} else {
 		var convErr error
 		g, err := user.LookupGroup(groupName)
