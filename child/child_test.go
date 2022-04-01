@@ -553,6 +553,7 @@ func TestSetsid(t *testing.T) {
 			t.Fatal("pid and sid should not match when setsid is false")
 		}
 	})
+}
 
 func TestLog(t *testing.T) {
 	var buf bytes.Buffer
