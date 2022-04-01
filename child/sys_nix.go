@@ -8,8 +8,11 @@ import (
 	"syscall"
 )
 
-func setSetpgid(cmd *exec.Cmd, value bool) {
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: value}
+func setSysProcAttr(cmd *exec.Cmd, setpgid, setsid bool) {
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: setpgid,
+		Setsid:  setsid,
+	}
 }
 
 func processNotFoundErr(err error) bool {

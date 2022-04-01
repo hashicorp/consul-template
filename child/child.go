@@ -69,6 +69,9 @@ type Child struct {
 	// whether to set process group id or not (default on)
 	setpgid bool
 
+	// whether to set process session id or not (default off)
+	setsid bool
+
 	// a logger that can be used for messages pertinent to this child process
 	logger *log.Logger
 }
@@ -115,6 +118,12 @@ type NewInput struct {
 	// may be zero (which disables the splay entirely).
 	Splay time.Duration
 
+	// Setsid flag, if set to true will create the child processes with their own
+	// session ID and Process group ID. The default value of false will cause the
+	// child processes to have their own PGID but they will have the same SID as
+	// that of their parent
+	Setsid bool
+
 	// an optional logger that can be used for messages pertinent to the child process
 	Logger *log.Logger
 }
@@ -148,7 +157,8 @@ func New(i *NewInput) (*Child, error) {
 		killTimeout:  i.KillTimeout,
 		splay:        i.Splay,
 		stopCh:       make(chan struct{}, 1),
-		setpgid:      true,
+		setpgid:      !i.Setsid,
+		setsid:       i.Setsid,
 		logger:       i.Logger,
 	}
 
@@ -278,7 +288,7 @@ func (c *Child) start() error {
 	cmd.Stdout = c.stdout
 	cmd.Stderr = c.stderr
 	cmd.Env = c.env
-	setSetpgid(cmd, c.setpgid)
+	setSysProcAttr(cmd, c.setpgid, c.setsid)
 	if err := cmd.Start(); err != nil {
 		return err
 	}
