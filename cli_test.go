@@ -219,6 +219,16 @@ func TestCLI_ParseFlags(t *testing.T) {
 			false,
 		},
 		{
+			"consul-token-file",
+			[]string{"-consul-token-file", "/a/very/secret/path"},
+			&config.Config{
+				Consul: &config.ConsulConfig{
+					TokenFile: config.String("/a/very/secret/path"),
+				},
+			},
+			false,
+		},
+		{
 			"consul-transport-dial-keep-alive",
 			[]string{"-consul-transport-dial-keep-alive", "30s"},
 			&config.Config{
@@ -294,7 +304,7 @@ func TestCLI_ParseFlags(t *testing.T) {
 			&config.Config{
 				Exec: &config.ExecConfig{
 					Enabled: config.Bool(true),
-					Command: config.String("command"),
+					Command: []string{"command"},
 				},
 			},
 			false,
@@ -352,6 +362,46 @@ func TestCLI_ParseFlags(t *testing.T) {
 			[]string{"-log-level", "DEBUG"},
 			&config.Config{
 				LogLevel: config.String("DEBUG"),
+			},
+			false,
+		},
+		{
+			"log-file",
+			[]string{"-log-file", "something.log"},
+			&config.Config{
+				FileLog: &config.LogFileConfig{
+					LogFilePath: config.String("something.log"),
+				},
+			},
+			false,
+		},
+		{
+			"log-rotate-bytes",
+			[]string{"-log-rotate-bytes", "102400"},
+			&config.Config{
+				FileLog: &config.LogFileConfig{
+					LogRotateBytes: config.Int(102400),
+				},
+			},
+			false,
+		},
+		{
+			"log-rotate-duration",
+			[]string{"-log-rotate-duration", "24h"},
+			&config.Config{
+				FileLog: &config.LogFileConfig{
+					LogRotateDuration: config.TimeDuration(24 * time.Hour),
+				},
+			},
+			false,
+		},
+		{
+			"log-rotate-max-files",
+			[]string{"-log-rotate-max-files", "10"},
+			&config.Config{
+				FileLog: &config.LogFileConfig{
+					LogRotateMaxFiles: config.Int(10),
+				},
 			},
 			false,
 		},
@@ -705,6 +755,14 @@ func TestCLI_ParseFlags(t *testing.T) {
 					Enabled: config.Bool(false),
 				},
 				Once: true,
+			},
+			false,
+		},
+		{
+			"parse-only",
+			[]string{"-parse-only"},
+			&config.Config{
+				ParseOnly: true,
 			},
 			false,
 		},

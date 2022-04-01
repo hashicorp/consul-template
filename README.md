@@ -37,6 +37,7 @@ this functionality might prove useful.
 - [Math Functions](docs/templating-language.md#math-functions)
 - [Observability](docs/observability.md)
 - [Logging](docs/observability.md#logging)
+  - [Logging to file](docs/observability.md#logging-to-file)
 - [Modes](docs/modes.md)
 - [Once Mode](docs/modes.md#once-mode)
 - [De-Duplication Mode](docs/modes.md#de-duplication-mode)
@@ -44,13 +45,12 @@ this functionality might prove useful.
 - [Plugins](docs/plugins.md)
 - [Caveats](#caveats)
 - [Docker Image Use](#docker-image-use)
-- [Dots in Service Names](#dots-in-service-names)  
+- [Dots in Service Names](#dots-in-service-names)
 - [Termination on Error](#termination-on-error)
 - [Commands](#commands)
   - [Environment](#environment)
   - [Multiple Commands](#multiple-commands)
 - [Multi-phase Execution](#multi-phase-execution)
-- [Running and Process Lifecycle](#running-and-process-lifecycle)
 - [Debugging](#debugging)
 - [FAQ](#faq)
 - [Contributing](#contributing)
@@ -223,6 +223,7 @@ The current processes environment is used when executing commands with the follo
 
 - `CONSUL_HTTP_ADDR`
 - `CONSUL_HTTP_TOKEN`
+- `CONSUL_HTTP_TOKEN_FILE`
 - `CONSUL_HTTP_AUTH`
 - `CONSUL_HTTP_SSL`
 - `CONSUL_HTTP_SSL_VERIFY`
@@ -235,21 +236,41 @@ users the ability to further customize their command script.
 
 #### Multiple Commands
 
-The command configured for running on template rendering must be a single
-command. That is you cannot join multiple commands with `&&`, `;`, `|`, etc.
-This is a restriction of how they are executed. **However** you are able to do
-this by combining the multiple commands in an explicit shell command using `sh
--c`. This is probably best explained by example.
+The command configured for running on template rendering must take one of two
+forms.
 
-Say you have a couple scripts you need to run when a template is rendered,
-`/opt/foo` and `/opt/bar`, and you only want `/opt/bar` to run if `/opt/foo` is
-successful. You can do that with the command...
+The first is as a list of the command and arguments split at spaces. The
+command can use an absolute path or be found on the execution environment's
+PATH and must be the first item in the list. This form allows for single or
+multi-word commands that can be executed directly with a system call. For
+example...
 
-`command = "sh -c '/opt/foo && /opt/bar'"`
+`command = ["echo", "hello"]`
+`command = ["/opt/foo-package/bin/run-foo"]`
+`command = ["foo"]`
 
-As this is a full shell command you can even use conditionals. So accomplishes the same thing.
+Note that if you give a single command without the list denoting square
+brackets (`[]`) it is converted into a list with a single argument.
 
-`command = "sh -c 'if /opt/foo; then /opt/bar ; fi'"`
+This:
+`command = "foo"`
+is equivalent to:
+`command = ["foo"]`
+
+The second form is as a single quoted command using system shell features. This
+form **requires** a shell named `sh` be on the executable search path (eg. PATH
+on *nix). This is the standard on all *nix systems and should work out of the
+box on those systems. This won't work on, for example, Docker images with only
+the executable and without a minimal system like Alpine. Using this form you
+can join multiple commands with logical operators, `&&` and `||`, use pipelines
+with `|`, conditionals, etc. Note that the shell `sh` is normally `/bin/sh` on
+\*nix systems and is either a POSIX shell or a shell run in POSIX compatible
+mode, so it is best to stick to POSIX shell syntax in this command. For
+example..
+
+`command = "/opt/foo && /opt/bar"`
+
+`command = "if /opt/foo ; then /opt/bar ; fi"`
 
 Using this method you can run as many shell commands as you need with whatever
 logic you need. Though it is suggested that if it gets too long you might want
@@ -303,6 +324,45 @@ so:
 This will still add the dependency to the list of watches, but will not
 evaluate the inner-if, avoiding the out-of-index error.
 
+## Debugging
+
+Consul Template can print verbose debugging output. To set the log level for
+Consul Template, use the `-log-level` flag:
+
+```shell
+$ consul-template -log-level info ...
+```
+
+```text
+<timestamp> [INFO] (cli) received redis from Watcher
+<timestamp> [INFO] (cli) invoking Runner
+# ...
+```
+
+You can also specify the level as debug:
+
+```shell
+$ consul-template -log-level debug ...
+```
+
+```text
+<timestamp> [DEBUG] (cli) creating Runner
+<timestamp> [DEBUG] (cli) creating Consul API client
+<timestamp> [DEBUG] (cli) creating Watcher
+<timestamp> [DEBUG] (cli) looping for data
+<timestamp> [DEBUG] (watcher) starting watch
+<timestamp> [DEBUG] (watcher) all pollers have started, waiting for finish
+<timestamp> [DEBUG] (redis) starting poll
+<timestamp> [DEBUG] (service redis) querying Consul with &{...}
+<timestamp> [DEBUG] (service redis) Consul returned 2 services
+<timestamp> [DEBUG] (redis) writing data to channel
+<timestamp> [DEBUG] (redis) starting poll
+<timestamp> [INFO] (cli) received redis from Watcher
+<timestamp> [INFO] (cli) invoking Runner
+<timestamp> [DEBUG] (service redis) querying Consul with &{...}
+# ...
+```
+
 ## FAQ
 
 **Q: How is this different than confd?**<br>
@@ -310,7 +370,6 @@ A: The answer is simple: Service Discovery as a first class citizen. You are als
 
 **Q: How is this different than Puppet/Chef/Ansible/Salt?**<br>
 A: Configuration management tools are designed to be used in unison with Consul Template. Instead of rendering a stale configuration file, use your configuration management software to render a dynamic template that will be populated by [Consul][consul].
-
 
 ## Contributing
 

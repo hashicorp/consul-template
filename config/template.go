@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -33,7 +34,7 @@ type TemplateConfig struct {
 
 	// Command is the arbitrary command to execute after a template has
 	// successfully rendered. This is DEPRECATED. Use Exec instead.
-	Command *string `mapstructure:"command"`
+	Command commandList `mapstructure:"command"`
 
 	// CommandTimeout is the amount of time to wait for the command to finish
 	// before force-killing it. This is DEPRECATED. Use Exec instead.
@@ -55,6 +56,10 @@ type TemplateConfig struct {
 	// to index a struct or map key that does not exist.
 	ErrMissingKey *bool `mapstructure:"error_on_missing_key"`
 
+	// ErrFatal determines whether template errors should cause the process to
+	// exit, or just log and continue.
+	ErrFatal *bool `mapstructure:"error_fatal"`
+
 	// Exec is the configuration for the command to run when the template renders
 	// successfully.
 	Exec *ExecConfig `mapstructure:"exec"`
@@ -63,6 +68,26 @@ type TemplateConfig struct {
 	// disk. This is useful for when files contain sensitive information, such as
 	// secrets from Vault.
 	Perms *os.FileMode `mapstructure:"perms"`
+
+	// User is the username or uid that will be set when creating the file on disk.
+	// Useful when simply setting Perms is not enough.
+	//
+	// Platform dependent: this doesn't work on Windows but it fails gracefully
+	// with a warning
+	User *string `mapstructure:"user"`
+
+	// Uid is equivalent to User when it's a valid int and it's defined for backward compatibility with v0.28.0
+	Uid *int `mapstructure:"uid"`
+
+	// Group is the group name or gid that will be set when creating the file on disk.
+	// Useful when simply setting Perms is not enough.
+	//
+	// Platform dependent: this doesn't work on Windows but it fails gracefully
+	// with a warning
+	Group *string `mapstructure:"group"`
+
+	// Gid is equivalent to Group when it's a valid int and it's defined for backward compatibility with v0.28.0
+	Gid *int `mapstructure:"gid"`
 
 	// Source is the path on disk to the template contents to evaluate. Either
 	// this or Contents should be specified, but not both.
@@ -122,6 +147,8 @@ func (c *TemplateConfig) Copy() *TemplateConfig {
 	o.Destination = c.Destination
 
 	o.ErrMissingKey = c.ErrMissingKey
+
+	o.ErrFatal = c.ErrFatal
 
 	if c.Exec != nil {
 		o.Exec = c.Exec.Copy()
@@ -197,6 +224,10 @@ func (c *TemplateConfig) Merge(o *TemplateConfig) *TemplateConfig {
 		r.ErrMissingKey = o.ErrMissingKey
 	}
 
+	if o.ErrFatal != nil {
+		r.ErrFatal = o.ErrFatal
+	}
+
 	if o.Exec != nil {
 		r.Exec = r.Exec.Merge(o.Exec)
 	}
@@ -244,7 +275,7 @@ func (c *TemplateConfig) Finalize() {
 	}
 
 	if c.Command == nil {
-		c.Command = String("")
+		c.Command = []string{}
 	}
 
 	if c.CommandTimeout == nil {
@@ -267,6 +298,22 @@ func (c *TemplateConfig) Finalize() {
 		c.ErrMissingKey = Bool(false)
 	}
 
+	if c.ErrFatal == nil {
+		c.ErrFatal = Bool(true)
+	}
+
+	// Backwards compatibility for uid
+	if c.User == nil && c.Uid != nil {
+		var uStr = strconv.Itoa(*c.Uid)
+		c.User = &uStr
+	}
+
+	// Backwards compatibility for gid
+	if c.Group == nil && c.Gid != nil {
+		var gStr = strconv.Itoa(*c.Gid)
+		c.Group = &gStr
+	}
+
 	if c.Exec == nil {
 		c.Exec = DefaultExecConfig()
 	}
@@ -275,8 +322,12 @@ func (c *TemplateConfig) Finalize() {
 	if c.Exec.Command == nil && c.Command != nil {
 		c.Exec.Command = c.Command
 	}
-	if c.Exec.Timeout == nil && c.CommandTimeout != nil {
+	// backwards compat with command_timeout and default support for exec.timeout
+	switch {
+	case c.Exec.Timeout == nil && c.CommandTimeout != nil:
 		c.Exec.Timeout = c.CommandTimeout
+	case c.Exec.Timeout == nil:
+		c.Exec.Timeout = TimeDuration(DefaultTemplateCommandTimeout)
 	}
 	c.Exec.Finalize()
 
@@ -327,6 +378,7 @@ func (c *TemplateConfig) GoString() string {
 		"CreateDestDirs:%s, "+
 		"Destination:%s, "+
 		"ErrMissingKey:%s, "+
+		"ErrFatal:%s, "+
 		"Exec:%#v, "+
 		"Perms:%s, "+
 		"Source:%s, "+
@@ -337,12 +389,13 @@ func (c *TemplateConfig) GoString() string {
 		"SandboxPath:%s"+
 		"}",
 		BoolGoString(c.Backup),
-		StringGoString(c.Command),
+		c.Command,
 		TimeDurationGoString(c.CommandTimeout),
 		StringGoString(c.Contents),
 		BoolGoString(c.CreateDestDirs),
 		StringGoString(c.Destination),
 		BoolGoString(c.ErrMissingKey),
+		BoolGoString(c.ErrFatal),
 		c.Exec,
 		FileModeGoString(c.Perms),
 		StringGoString(c.Source),
@@ -462,7 +515,8 @@ func ParseTemplateConfig(s string) (*TemplateConfig, error) {
 		command = strings.Join(parts[2:], ":")
 	}
 
-	var sourcePtr, destinationPtr, commandPtr *string
+	var sourcePtr, destinationPtr *string
+	var commandL commandList
 	if source != "" {
 		sourcePtr = String(source)
 	}
@@ -470,12 +524,12 @@ func ParseTemplateConfig(s string) (*TemplateConfig, error) {
 		destinationPtr = String(destination)
 	}
 	if command != "" {
-		commandPtr = String(command)
+		commandL = []string{command}
 	}
 
 	return &TemplateConfig{
 		Source:      sourcePtr,
 		Destination: destinationPtr,
-		Command:     commandPtr,
+		Command:     commandL,
 	}, nil
 }

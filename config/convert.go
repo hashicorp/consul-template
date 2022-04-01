@@ -71,6 +71,11 @@ func FileModePresent(o *os.FileMode) bool {
 	return *o != 0
 }
 
+// Float64 returns a pointer to the given float64
+func Float64(f float64) *float64 {
+	return &f
+}
+
 // Int returns a pointer to the given int.
 func Int(i int) *int {
 	return &i

@@ -3,12 +3,16 @@ package dependency
 import (
 	"encoding/json"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/vault/api"
 )
 
 func init() {
 	VaultDefaultLeaseDuration = 0
+	VaultLeaseRenewalThreshold = .90
 }
 
 func TestVaultRenewDuration(t *testing.T) {
@@ -20,8 +24,8 @@ func TestVaultRenewDuration(t *testing.T) {
 
 	nonRenewable := Secret{LeaseDuration: 100}
 	nonRenewableDur := leaseCheckWait(&nonRenewable).Seconds()
-	if nonRenewableDur < 85 || nonRenewableDur > 95 {
-		t.Fatalf("renewable duration is not within 85%% to 95%% of lease duration: %f", nonRenewableDur)
+	if nonRenewableDur < 80 || nonRenewableDur > 95 {
+		t.Fatalf("renewable duration is not within 80%% to 95%% of lease duration: %f", nonRenewableDur)
 	}
 
 	var data = map[string]interface{}{
@@ -60,8 +64,8 @@ func TestVaultRenewDuration(t *testing.T) {
 
 	nonRenewableCert := Secret{LeaseDuration: 100, Data: data}
 	nonRenewableCertDur := leaseCheckWait(&nonRenewableCert).Seconds()
-	if nonRenewableCertDur < 85 || nonRenewableCertDur > 95 {
-		t.Fatalf("non renewable certificate duration is not within 85%% to 95%%: %f", nonRenewableCertDur)
+	if nonRenewableCertDur < 80 || nonRenewableCertDur > 95 {
+		t.Fatalf("non renewable certificate duration is not within 80%% to 95%%: %f", nonRenewableCertDur)
 	}
 
 	t.Run("secret ID handling", func(t *testing.T) {
@@ -75,8 +79,8 @@ func TestVaultRenewDuration(t *testing.T) {
 			nonRenewableSecretID := Secret{LeaseDuration: 100, Data: data}
 			nonRenewableSecretIDDur := leaseCheckWait(&nonRenewableSecretID).Seconds()
 
-			if nonRenewableSecretIDDur < 0.85*(60+1) || nonRenewableSecretIDDur > 0.95*(60+1) {
-				t.Fatalf("renewable duration is not within 85%% to 95%% of lease duration: %f", nonRenewableSecretIDDur)
+			if nonRenewableSecretIDDur < 0.80*(60+1) || nonRenewableSecretIDDur > 0.95*(60+1) {
+				t.Fatalf("renewable duration is not within 80%% to 95%% of lease duration: %f", nonRenewableSecretIDDur)
 			}
 		})
 
@@ -91,8 +95,8 @@ func TestVaultRenewDuration(t *testing.T) {
 			nonRenewableSecretID := Secret{LeaseDuration: leaseDuration, Data: data}
 			nonRenewableSecretIDDur := leaseCheckWait(&nonRenewableSecretID).Seconds()
 
-			if nonRenewableSecretIDDur < 0.85*(leaseDuration+1) || nonRenewableSecretIDDur > 0.95*(leaseDuration+1) {
-				t.Fatalf("renewable duration is not within 85%% to 95%% of lease duration: %f", nonRenewableSecretIDDur)
+			if nonRenewableSecretIDDur < 0.80*(leaseDuration+1) || nonRenewableSecretIDDur > 0.95*(leaseDuration+1) {
+				t.Fatalf("renewable duration is not within 80%% to 95%% of lease duration: %f", nonRenewableSecretIDDur)
 			}
 		})
 
@@ -106,10 +110,43 @@ func TestVaultRenewDuration(t *testing.T) {
 			nonRenewableSecretID := Secret{LeaseDuration: leaseDuration, Data: data}
 			nonRenewableSecretIDDur := leaseCheckWait(&nonRenewableSecretID).Seconds()
 
-			if nonRenewableSecretIDDur < 0.85*(leaseDuration+1) || nonRenewableSecretIDDur > 0.95*(leaseDuration+1) {
-				t.Fatalf("renewable duration is not within 85%% to 95%% of lease duration: %f", nonRenewableSecretIDDur)
+			if nonRenewableSecretIDDur < 0.80*(leaseDuration+1) || nonRenewableSecretIDDur > 0.95*(leaseDuration+1) {
+				t.Fatalf("renewable duration is not within 80%% to 95%% of lease duration: %f", nonRenewableSecretIDDur)
 			}
 		})
 
 	})
+}
+
+func setupVaultPKI(clients *ClientSet) {
+	err := clients.Vault().Sys().Mount("pki", &api.MountInput{
+		Type: "pki",
+	})
+	switch {
+	case err == nil:
+	case strings.Contains(err.Error(), "path is already in use"):
+		// for idempotency
+		return
+	default:
+		panic(err)
+	}
+
+	vc := clients.Vault()
+	_, err = vc.Logical().Write("pki/root/generate/internal",
+		map[string]interface{}{
+			"common_name": "example.com",
+			"ttl":         "48h",
+		})
+	if err != nil {
+		panic(err)
+	}
+	_, err = vc.Logical().Write("pki/roles/example-dot-com",
+		map[string]interface{}{
+			"allowed_domains":  "example.com",
+			"allow_subdomains": "true",
+			"ttl":              "24h",
+		})
+	if err != nil {
+		panic(err)
+	}
 }

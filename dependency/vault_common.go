@@ -13,8 +13,10 @@ import (
 
 var (
 	// VaultDefaultLeaseDuration is the default lease duration in seconds.
-	VaultDefaultLeaseDuration     time.Duration
-	onceVaultDefaultLeaseDuration sync.Once
+	VaultDefaultLeaseDuration      time.Duration
+	onceVaultDefaultLeaseDuration  sync.Once
+	VaultLeaseRenewalThreshold     float64
+	onceVaultLeaseRenewalThreshold sync.Once
 )
 
 // Secret is the structure returned for every secret within Vault.
@@ -166,9 +168,19 @@ func leaseCheckWait(s *Secret) time.Duration {
 		// If the secret doesn't have a rotation period, this is a non-renewable leased
 		// secret.
 		// For non-renewable leases set the renew duration to use much of the secret
-		// lease as possible. Use a stagger over 85%-95% of the lease duration so that
-		// many clients do not hit Vault simultaneously.
-		sleep = sleep * (.85 + rand.Float64()*0.1)
+		// lease as possible. Use a stagger over the configured threshold
+		// fraction of the lease duration so that many clients do not hit
+		// Vault simultaneously.
+		finalFraction := VaultLeaseRenewalThreshold + (rand.Float64()-0.5)*0.1
+		if finalFraction >= 1.0 || finalFraction <= 0.0 {
+			// If the fraction randomly winds up outside of (0.0-1.0), clamp
+			// back down to the VaultLeaseRenewalThreshold provided by the user,
+			// since a) the user picked that value, so they should be
+			// comfortable with it, and b) it should not skew the staggering too
+			// much
+			finalFraction = VaultLeaseRenewalThreshold
+		}
+		sleep = sleep * finalFraction
 	}
 
 	return time.Duration(sleep)
@@ -350,4 +362,12 @@ func SetVaultDefaultLeaseDuration(t time.Duration) {
 		VaultDefaultLeaseDuration = t
 	}
 	onceVaultDefaultLeaseDuration.Do(set)
+}
+
+// Make sure to only set VaultLeaseRenewalThreshold once
+func SetVaultLeaseRenewalThreshold(f float64) {
+	set := func() {
+		VaultLeaseRenewalThreshold = f
+	}
+	onceVaultLeaseRenewalThreshold.Do(set)
 }

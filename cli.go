@@ -297,6 +297,11 @@ func (cli *CLI) ParseFlags(args []string) (
 		return nil
 	}), "consul-token", "")
 
+	flags.Var((funcVar)(func(s string) error {
+		c.Consul.TokenFile = config.String(s)
+		return nil
+	}), "consul-token-file", "")
+
 	flags.Var((funcDurationVar)(func(d time.Duration) error {
 		c.Consul.Transport.DialKeepAlive = config.TimeDuration(d)
 		return nil
@@ -341,7 +346,7 @@ func (cli *CLI) ParseFlags(args []string) (
 
 	flags.Var((funcVar)(func(s string) error {
 		c.Exec.Enabled = config.Bool(true)
-		c.Exec.Command = config.String(s)
+		c.Exec.Command = []string{s}
 		return nil
 	}), "exec", "")
 
@@ -387,6 +392,26 @@ func (cli *CLI) ParseFlags(args []string) (
 		return nil
 	}), "log-level", "")
 
+	flags.Var((funcVar)(func(s string) error {
+		c.FileLog.LogFilePath = config.String(s)
+		return nil
+	}), "log-file", "")
+
+	flags.Var((funcIntVar)(func(i int) error {
+		c.FileLog.LogRotateBytes = config.Int(i)
+		return nil
+	}), "log-rotate-bytes", "")
+
+	flags.Var((funcDurationVar)(func(d time.Duration) error {
+		c.FileLog.LogRotateDuration = config.TimeDuration(d)
+		return nil
+	}), "log-rotate-duration", "")
+
+	flags.Var((funcIntVar)(func(i int) error {
+		c.FileLog.LogRotateMaxFiles = config.Int(i)
+		return nil
+	}), "log-rotate-max-files", "")
+
 	flags.Var((funcDurationVar)(func(d time.Duration) error {
 		c.MaxStale = config.TimeDuration(d)
 		return nil
@@ -396,6 +421,11 @@ func (cli *CLI) ParseFlags(args []string) (
 		c.Once = *(config.Bool(b))
 		return nil
 	}), "once", "")
+
+	flags.Var((funcBoolVar)(func(b bool) error {
+		c.ParseOnly = *(config.Bool(b))
+		return nil
+	}), "parse-only", "")
 
 	flags.Var((funcVar)(func(s string) error {
 		c.PidFile = config.String(s)
@@ -439,6 +469,11 @@ func (cli *CLI) ParseFlags(args []string) (
 		*c.Templates = append(*c.Templates, t)
 		return nil
 	}), "template", "")
+
+	flags.Var((funcBoolVar)(func(b bool) error {
+		c.TemplateErrFatal = config.Bool(b)
+		return nil
+	}), "template-error-fatal", "")
 
 	flags.Var((funcVar)(func(s string) error {
 		c.Vault.Address = config.String(s)
@@ -593,6 +628,11 @@ func loadConfigs(paths []string, o *config.Config) (*config.Config, error) {
 	}
 
 	finalC = finalC.Merge(o)
+	if o.TemplateErrFatal != nil {
+		for _, tmpl := range *finalC.Templates {
+			tmpl.ErrFatal = o.TemplateErrFatal
+		}
+	}
 	finalC.Finalize()
 	return finalC, nil
 }
@@ -605,11 +645,15 @@ func logError(err error, status int) int {
 
 func (cli *CLI) setup(conf *config.Config) (*config.Config, error) {
 	if err := logging.Setup(&logging.Config{
-		Level:          config.StringVal(conf.LogLevel),
-		Syslog:         config.BoolVal(conf.Syslog.Enabled),
-		SyslogFacility: config.StringVal(conf.Syslog.Facility),
-		SyslogName:     config.StringVal(conf.Syslog.Name),
-		Writer:         cli.errStream,
+		Level:             config.StringVal(conf.LogLevel),
+		LogFilePath:       config.StringVal(conf.FileLog.LogFilePath),
+		LogRotateBytes:    config.IntVal(conf.FileLog.LogRotateBytes),
+		LogRotateDuration: config.TimeDurationVal(conf.FileLog.LogRotateDuration),
+		LogRotateMaxFiles: config.IntVal(conf.FileLog.LogRotateMaxFiles),
+		Syslog:            config.BoolVal(conf.Syslog.Enabled),
+		SyslogFacility:    config.StringVal(conf.Syslog.Facility),
+		SyslogName:        config.StringVal(conf.Syslog.Name),
+		Writer:            cli.errStream,
 	}); err != nil {
 		return nil, err
 	}
@@ -676,6 +720,9 @@ Options:
   -consul-token=<token>
       Sets the Consul API token
 
+  -consul-token-file=<path>
+      Sets the path to a file containing the Consul API token
+
   -consul-transport-dial-keep-alive=<duration>
       Sets the amount of time to use for keep-alives
 
@@ -734,6 +781,9 @@ Options:
   -once
       Do not run the process as a daemon. This disables wait/quiescence timers.
 
+  -parse-only
+      Do not process templates. Parse them for structure.
+
   -pid-file=<path>
       Path on disk to write the PID of the process
 
@@ -758,7 +808,11 @@ Options:
       attribute is supplied, the -syslog flag must also be supplied
 
   -template=<template>
-       Adds a new template to watch on disk in the format 'in:out(:command)'
+      Adds a new template to watch on disk in the format 'in:out(:command)'
+
+  -template-error-fatal=<bool>
+      Control whether template errors cause consul-template to immediately exit.
+      This overrides the per-template setting.
 
   -vault-addr=<address>
       Sets the address of the Vault server

@@ -105,40 +105,15 @@ Consul Template will proxy any signals it receives to the child process. This
 enables a scheduler to control the lifecycle of the process and also eases the
 friction of running inside a container.
 
-A common point of confusion is that the command string behaves the same as the
-shell; it does not. In the shell, when you run `foo | bar` or `foo > bar`, that
-is actually running as a subprocess of your shell (bash, zsh, csh, etc.). When
-Consul Template spawns the exec process, it runs outside of your shell. This
-behavior is _different_ from when Consul Template executes the template-specific
-reload command. If you want the ability to pipe or redirect in the exec command,
-you will need to spawn the process in subshell, for example:
+The same rules that apply to the [commands](../README.md#commands) apply here,
+that is if you want to use a complex, shell-like command you need to be running
+on a system with `sh` on your PATH. These commands are run using `sh -c` with
+the shell handling all shell parsing. Otherwise you want the command to be a
+a single command or a, list formatted, command with arguments.
 
-```hcl
-exec {
-  command = "/bin/bash -c 'my-server > /var/log/my-server.log'"
-}
-```
-
-Note that when spawning like this, most shells do not proxy signals to their
-child by default, so your child process will not receive the signals that Consul
-Template sends to the shell. You can avoid this by writing a tiny shell wrapper
-and executing that instead:
-
-```bash
-#!/usr/bin/env bash
-trap "kill -TERM $child" SIGTERM
-
-/bin/my-server -config /tmp/server.conf
-child=$!
-wait "$child"
-```
-
-Alternatively, you can use your shell's exec function directly, if it exists:
-
-```bash
-#!/usr/bin/env bash
-exec /bin/my-server -config /tmp/server.conf > /var/log/my-server.log
-```
+Note that on supporing systems (*nix, with `sh`) the
+[`setpgid`](https://man7.org/linux/man-pages/man2/setpgid.2.html) flag is set
+on the exectution which ensures all signals are sent to all processes.
 
 There are some additional caveats with Exec Mode, which should be considered
 carefully before use:

@@ -27,7 +27,7 @@ mkdir -p /tmp/build && cd /tmp/build
 apkArch="$(apk --print-arch)"
 case "${apkArch}" in \
     aarch64) ARCH='arm64' ;;
-    armhf) ARCH='armhfv6' ;;
+    armhf) ARCH='arm' ;;
     x86) ARCH='386' ;;
     x86_64) ARCH='amd64' ;;
     *) echo >&2 "error: unsupported architecture: ${apkArch} (see ${HASHICORP_RELEASES}/${NAME}/${VERSION}/)" && exit 1 ;;
@@ -43,5 +43,6 @@ unzip -d /bin ${NAME}_${VERSION}_linux_${ARCH}.zip
 apk del gnupg
 cd /tmp
 rm -rf /tmp/build
-rm -rf /root/.gnupg
-rm "$0"
+gpgconf --kill gpg-agent || true
+rm -rf /root/.gnupg || true
+rm -f "$0"

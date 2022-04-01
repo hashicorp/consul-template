@@ -1,10 +1,14 @@
 package child
 
 import (
+	"bytes"
+	"github.com/hashicorp/go-hclog"
 	"io/ioutil"
+	"log"
 	"os"
 	"reflect"
 	"runtime"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -549,4 +553,57 @@ func TestSetsid(t *testing.T) {
 			t.Fatal("pid and sid should not match when setsid is false")
 		}
 	})
+
+func TestLog(t *testing.T) {
+	var buf bytes.Buffer
+	log.SetOutput(&buf)
+	defer func() {
+		log.SetOutput(os.Stderr)
+	}()
+
+	c := testChild(t)
+	c.command = "sh"
+	c.args = []string{"-c", "echo 1"}
+
+	if err := c.Start(); err != nil {
+		t.Fatal(err)
+	}
+	defer c.Stop()
+	expected := "[INFO] (child) spawning: sh -c echo 1\n"
+	actual := buf.String()
+
+	// trim off leading timestamp
+	index := strings.Index(actual, "[")
+	actual = actual[index:]
+	if actual != expected {
+		t.Fatalf("Expected '%s' to be '%s'", actual, expected)
+	}
+}
+
+func TestCustomLogger(t *testing.T) {
+	var buf bytes.Buffer
+
+	c := testChild(t)
+	c.command = "sh"
+	c.args = []string{"-c", "echo 1"}
+	c.logger = hclog.New(&hclog.LoggerOptions{
+		Output: &buf,
+	}).With("child-name", "echo").StandardLogger(&hclog.StandardLoggerOptions{
+		InferLevels: true,
+		ForceLevel:  0,
+	})
+
+	if err := c.Start(); err != nil {
+		t.Fatal(err)
+	}
+	defer c.Stop()
+	expected := " [INFO]  (child) spawning: sh -c echo 1: child-name=echo\n"
+	actual := buf.String()
+
+	// trim off leading timestamp
+	index := strings.Index(actual, " ")
+	actual = actual[index:]
+	if actual != expected {
+		t.Fatalf("Expected '%s' to be '%s'", actual, expected)
+	}
 }

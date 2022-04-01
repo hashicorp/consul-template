@@ -25,7 +25,7 @@ func TestExecConfig_Copy(t *testing.T) {
 		{
 			"copy",
 			&ExecConfig{
-				Command:      String("command"),
+				Command:      []string{"command"},
 				Enabled:      Bool(true),
 				Env:          &EnvConfig{Pristine: Bool(true)},
 				KillSignal:   Signal(syscall.SIGINT),
@@ -81,27 +81,27 @@ func TestExecConfig_Merge(t *testing.T) {
 		},
 		{
 			"command_overrides",
-			&ExecConfig{Command: String("command")},
-			&ExecConfig{Command: String("")},
-			&ExecConfig{Command: String("")},
+			&ExecConfig{Command: []string{"command"}},
+			&ExecConfig{Command: []string{}},
+			&ExecConfig{Command: []string{}},
 		},
 		{
 			"command_empty_one",
-			&ExecConfig{Command: String("command")},
+			&ExecConfig{Command: []string{"command"}},
 			&ExecConfig{},
-			&ExecConfig{Command: String("command")},
+			&ExecConfig{Command: []string{"command"}},
 		},
 		{
 			"command_empty_two",
 			&ExecConfig{},
-			&ExecConfig{Command: String("command")},
-			&ExecConfig{Command: String("command")},
+			&ExecConfig{Command: []string{"command"}},
+			&ExecConfig{Command: []string{"command"}},
 		},
 		{
 			"command_same",
-			&ExecConfig{Command: String("command")},
-			&ExecConfig{Command: String("command")},
-			&ExecConfig{Command: String("command")},
+			&ExecConfig{Command: []string{"command"}},
+			&ExecConfig{Command: []string{"command"}},
+			&ExecConfig{Command: []string{"command"}},
 		},
 		{
 			"enabled_overrides",
@@ -294,7 +294,7 @@ func TestExecConfig_Finalize(t *testing.T) {
 			"empty",
 			&ExecConfig{},
 			&ExecConfig{
-				Command: String(""),
+				Command: []string{},
 				Enabled: Bool(false),
 				Env: &EnvConfig{
 					Allowlist:           []string{},
@@ -314,10 +314,56 @@ func TestExecConfig_Finalize(t *testing.T) {
 		{
 			"with_command",
 			&ExecConfig{
-				Command: String("command"),
+				Command: []string{"command"},
 			},
 			&ExecConfig{
-				Command: String("command"),
+				Command: []string{"command"},
+				Enabled: Bool(true),
+				Env: &EnvConfig{
+					Denylist:            []string{},
+					DenylistDeprecated:  []string{},
+					Custom:              []string{},
+					Pristine:            Bool(false),
+					Allowlist:           []string{},
+					AllowlistDeprecated: []string{},
+				},
+				KillSignal:   Signal(DefaultExecKillSignal),
+				KillTimeout:  TimeDuration(DefaultExecKillTimeout),
+				ReloadSignal: Signal(DefaultExecReloadSignal),
+				Splay:        TimeDuration(0 * time.Second),
+				Timeout:      TimeDuration(DefaultExecTimeout),
+			},
+		},
+		{
+			"with_command_list",
+			&ExecConfig{
+				Command: []string{"command", "argument1", "argument2"},
+			},
+			&ExecConfig{
+				Command: []string{"command", "argument1", "argument2"},
+				Enabled: Bool(true),
+				Env: &EnvConfig{
+					Denylist:            []string{},
+					DenylistDeprecated:  []string{},
+					Custom:              []string{},
+					Pristine:            Bool(false),
+					Allowlist:           []string{},
+					AllowlistDeprecated: []string{},
+				},
+				KillSignal:   Signal(DefaultExecKillSignal),
+				KillTimeout:  TimeDuration(DefaultExecKillTimeout),
+				ReloadSignal: Signal(DefaultExecReloadSignal),
+				Splay:        TimeDuration(0 * time.Second),
+				Timeout:      TimeDuration(DefaultExecTimeout),
+			},
+		},
+		{
+			"with_shell_command",
+			&ExecConfig{
+				Command: []string{"command | pipe && command"},
+			},
+			&ExecConfig{
+				Command: []string{"command | pipe && command"},
 				Enabled: Bool(true),
 				Env: &EnvConfig{
 					Denylist:            []string{},

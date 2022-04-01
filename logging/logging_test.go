@@ -58,11 +58,18 @@ func TestWriter(t *testing.T) {
 		config := newConfig(&buf)
 		writer, err := newWriter(config)
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
-		writer.Write([]byte(tc.input))
+		n, err := writer.Write([]byte(tc.input))
+		if err != nil {
+			t.Error(err)
+		}
+		if n != len(tc.input) {
+			t.Errorf("byte count (%d) doesn't match output len (%d).",
+				n, len(tc.input))
+		}
 		if buf.String() != tc.output {
-			t.Fatalf("unexpected log output string: '%s'", buf.String())
+			t.Errorf("unexpected log output string: '%s'", buf.String())
 		}
 	}
 

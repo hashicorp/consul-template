@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -322,12 +324,12 @@ func TestRunner_Run(t *testing.T) {
 				Templates: &config.TemplateConfigs{
 					&config.TemplateConfig{
 						Contents:    config.String("hello"),
-						Command:     config.String("echo 123"),
+						Command:     []string{"echo 123"},
 						Destination: config.String("/tmp/ct-runs_commands_a"),
 					},
 					&config.TemplateConfig{
 						Contents:    config.String("world"),
-						Command:     config.String("echo 456"),
+						Command:     []string{"echo 456"},
 						Destination: config.String("/tmp/ct-runs_commands_b"),
 					},
 				},
@@ -366,7 +368,7 @@ func TestRunner_Run(t *testing.T) {
 				Templates: &config.TemplateConfigs{
 					&config.TemplateConfig{
 						Contents:    config.String("hello"),
-						Command:     config.String("echo 123"),
+						Command:     []string{"echo 123"},
 						Destination: config.String("/tmp/ct-no_command_if_same_template"),
 					},
 				},
@@ -389,12 +391,12 @@ func TestRunner_Run(t *testing.T) {
 				Templates: &config.TemplateConfigs{
 					&config.TemplateConfig{
 						Contents:    config.String("hello"),
-						Command:     config.String("echo 123"),
+						Command:     []string{"echo 123"},
 						Destination: config.String("/tmp/ct-no_duplicate_commands_a"),
 					},
 					&config.TemplateConfig{
 						Contents:    config.String("world"),
-						Command:     config.String("echo 123"),
+						Command:     []string{"echo 123"},
 						Destination: config.String("/tmp/ct-no_duplicate_commands_b"),
 					},
 				},
@@ -421,7 +423,7 @@ func TestRunner_Run(t *testing.T) {
 				Templates: &config.TemplateConfigs{
 					&config.TemplateConfig{
 						Contents:    config.String("hello"),
-						Command:     config.String("env"),
+						Command:     []string{"env"},
 						Destination: config.String("/tmp/ct-env_a"),
 					},
 				},
@@ -670,7 +672,7 @@ func TestRunner_Start(t *testing.T) {
 
 		c := config.DefaultConfig().Merge(&config.Config{
 			Exec: &config.ExecConfig{
-				Command:     config.String(`sleep 30`),
+				Command:     []string{`sleep 30`},
 				KillTimeout: config.TimeDuration(time.Duration(10 * time.Second)),
 			},
 			Templates: &config.TemplateConfigs{
@@ -726,7 +728,7 @@ func TestRunner_Start(t *testing.T) {
 
 		c := config.DefaultConfig().Merge(&config.Config{
 			Exec: &config.ExecConfig{
-				Command: config.String(`sleep 30`),
+				Command: []string{`sleep 30`},
 			},
 			Templates: &config.TemplateConfigs{
 				&config.TemplateConfig{
@@ -794,7 +796,7 @@ func TestRunner_Start(t *testing.T) {
 			},
 			Exec: &config.ExecConfig{
 				// `cat filename` would fail if template hadn't rendered
-				Command: config.String(`cat ` + firstOut.Name()),
+				Command: []string{`cat ` + firstOut.Name()},
 			},
 			Templates: &config.TemplateConfigs{
 				&config.TemplateConfig{
@@ -867,7 +869,7 @@ func TestRunner_Start(t *testing.T) {
 				Max: config.TimeDuration(10 * time.Millisecond),
 			},
 			Exec: &config.ExecConfig{
-				Command: config.String(`sleep 30`),
+				Command: []string{`sleep 30`},
 			},
 			Templates: &config.TemplateConfigs{
 				&config.TemplateConfig{
@@ -972,6 +974,37 @@ func TestRunner_Start(t *testing.T) {
 			t.Fatal("timeout")
 		}
 	})
+
+	t.Run("parse_only", func(t *testing.T) {
+
+		out, err := ioutil.TempFile("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.Remove(out.Name())
+
+		c := config.DefaultConfig().Merge(&config.Config{
+			Templates: &config.TemplateConfigs{
+				&config.TemplateConfig{
+					Contents:    config.String(`test`),
+					Destination: config.String(out.Name()),
+				},
+			},
+			ParseOnly: true,
+		})
+		c.Finalize()
+
+		r, err := NewRunner(c, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		r.Start()
+
+		if !r.stopped {
+			t.Fatal("expected parse only to stop runner")
+		}
+	})
 }
 
 func TestRunner_quiescence(t *testing.T) {
@@ -1063,8 +1096,8 @@ func TestRunner_quiescence(t *testing.T) {
 
 func TestRunner_command(t *testing.T) {
 	type testCase struct {
-		name, input, out string
-		parsed           []string
+		name, out     string
+		input, parsed []string
 	}
 	os.Setenv("FOO", "bar")
 
@@ -1072,7 +1105,7 @@ func TestRunner_command(t *testing.T) {
 		out, err := prepCommand(tc.input)
 		mismatchErr := "bad command parse\n   got: '%#v'\nwanted: '%#v'"
 		switch {
-		case err != nil:
+		case err != nil && len(tc.input) > 0 && tc.input[0] != "":
 			t.Error("unexpected error:", err)
 		case len(out) != len(tc.parsed):
 			t.Errorf(mismatchErr, out, tc.parsed)
@@ -1083,7 +1116,13 @@ func TestRunner_command(t *testing.T) {
 	runTest := func(tc testCase) {
 		stdout := new(bytes.Buffer)
 		stderr := new(bytes.Buffer)
-		args, _ := prepCommand(tc.input)
+		args, err := prepCommand(tc.input)
+		switch {
+		case err == exec.ErrNotFound && len(args) == 0:
+			return // expected
+		case err != nil:
+			t.Fatal("unexpected error", err)
+		}
 		child, err := child.New(&child.NewInput{
 			Stdin:   os.Stdin,
 			Stdout:  stdout,
@@ -1111,91 +1150,91 @@ func TestRunner_command(t *testing.T) {
 	for i, tc := range []testCase{
 		{
 			name:   "null",
-			input:  "",
+			input:  []string{""},
 			parsed: []string{},
 			out:    "",
 		},
 		{
 			name:   "single",
-			input:  "echo",
-			parsed: []string{"sh", "-c", "echo"},
+			input:  []string{"echo"},
+			parsed: []string{"echo"},
 			out:    "\n",
 		},
 		{
 			name:   "simple",
-			input:  "printf hi",
+			input:  []string{"printf hi"},
 			parsed: []string{"sh", "-c", "printf hi"},
 			out:    "hi",
 		},
 		{
 			name:   "subshell-bash", // GH-1456 & GH-1463
-			input:  "bash -c 'printf hi'",
+			input:  []string{"bash -c 'printf hi'"},
 			parsed: []string{"sh", "-c", "bash -c 'printf hi'"},
 			out:    "hi",
 		},
 		{
 			name:   "subshell-single-quoting", // GH-1456 & GH-1463
-			input:  "sh -c 'printf hi'",
+			input:  []string{"sh -c 'printf hi'"},
 			parsed: []string{"sh", "-c", "sh -c 'printf hi'"},
 			out:    "hi",
 		},
 		{
 			name:   "subshell-double-quoting",
-			input:  `sh -c "echo -n hi"`,
+			input:  []string{`sh -c "echo -n hi"`},
 			parsed: []string{"sh", "-c", `sh -c "echo -n hi"`},
 			out:    "hi",
 		},
 		{
 			name:   "subshell-call",
-			input:  `echo -n $(echo -n foo)`,
+			input:  []string{`echo -n $(echo -n foo)`},
 			parsed: []string{"sh", "-c", "echo -n $(echo -n foo)"},
 			out:    "foo",
 		},
 		{
 			name:   "pipe",
-			input:  `seq 1 5 | grep 3`,
+			input:  []string{`seq 1 5 | grep 3`},
 			parsed: []string{"sh", "-c", "seq 1 5 | grep 3"},
 			out:    "3\n",
 		},
 		{
 			name:   "conditional",
-			input:  `sh -c 'if true; then printf foo; fi'`,
+			input:  []string{`sh -c 'if true; then printf foo; fi'`},
 			parsed: []string{"sh", "-c", "sh -c 'if true; then printf foo; fi'"},
 			out:    "foo",
 		},
 		{
 			name:   "command-substition",
-			input:  `sh -c 'echo -n $(which /bin/sh)'`,
+			input:  []string{`sh -c 'echo -n $(which /bin/sh)'`},
 			parsed: []string{"sh", "-c", "sh -c 'echo -n $(which /bin/sh)'"},
 			out:    "/bin/sh",
 		},
 		{
 			name:   "curly-brackets",
-			input:  "sh -c '{ if [ -f /bin/sh ]; then echo -n foo; else echo -n bar; fi }'",
+			input:  []string{"sh -c '{ if [ -f /bin/sh ]; then echo -n foo; else echo -n bar; fi }'"},
 			parsed: []string{"sh", "-c", "sh -c '{ if [ -f /bin/sh ]; then echo -n foo; else echo -n bar; fi }'"},
 			out:    "foo",
 		},
 		{
 			name:   "and",
-			input:  "true && true && echo -n and",
+			input:  []string{"true && true && echo -n and"},
 			parsed: []string{"sh", "-c", "true && true && echo -n and"},
 			out:    "and",
 		},
 		{
 			name:   "or",
-			input:  "false || false || echo -n or",
+			input:  []string{"false || false || echo -n or"},
 			parsed: []string{"sh", "-c", "false || false || echo -n or"},
 			out:    "or",
 		},
 		{
 			name:   "backgrounded",
-			input:  "(sleep .1; echo -n hi) &",
+			input:  []string{"(sleep .1; echo -n hi) &"},
 			parsed: []string{"sh", "-c", "(sleep .1; echo -n hi) &"},
 			out:    "hi",
 		},
 		{
 			name:   "env",
-			input:  "echo -n ${FOO}",
+			input:  []string{"echo -n ${FOO}"},
 			parsed: []string{"sh", "-c", "echo -n ${FOO}"},
 			out:    "bar",
 		},
@@ -1207,5 +1246,21 @@ func TestRunner_command(t *testing.T) {
 					runTest(tc)
 				}
 			})
+	}
+}
+
+func TestRunner_commandPath(t *testing.T) {
+	PATH := os.Getenv("PATH")
+	defer os.Setenv("PATH", PATH)
+	os.Setenv("PATH", "")
+	cmd, err := prepCommand([]string{"echo hi"})
+	if err != nil && err != exec.ErrNotFound {
+		t.Fatal(err)
+	}
+	if len(cmd) != 3 {
+		t.Fatalf("unexpected command: %#v\n", cmd)
+	}
+	if filepath.Base(cmd[0]) != "sh" {
+		t.Fatalf("unexpected shell: %#v\n", cmd)
 	}
 }

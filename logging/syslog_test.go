@@ -33,12 +33,18 @@ func TestSyslogFilter(t *testing.T) {
 	}
 
 	s := &SyslogWrapper{l, filt}
-	n, err := s.Write([]byte("[INFO] test"))
+	infotest := []byte("[INFO] test")
+	n, err := s.Write(infotest)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if n == 0 {
 		t.Fatalf("should have logged")
+	}
+	if n != len(infotest) {
+		t.Fatalf("byte count (%d) doesn't match output len (%d).",
+			n, len(infotest))
+
 	}
 
 	n, err = s.Write([]byte("[DEBUG] test"))

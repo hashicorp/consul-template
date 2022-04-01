@@ -7,7 +7,7 @@ provides the following functions:
 
 - [API Functions](#api-functions)
   - [caLeaf](#caleaf)
-  - [caRoot](#caroot)
+  - [caRoots](#caroots)
   - [connect](#connect)
   - [datacenters](#datacenters)
   - [file](#file)
@@ -20,6 +20,7 @@ provides the following functions:
   - [nodes](#nodes)
   - [secret](#secret)
   - [secrets](#secrets)
+  - [pkiCert](#pkicert)
   - [service](#service)
   - [services](#services)
   - [tree](#tree)
@@ -82,6 +83,7 @@ provides the following functions:
   - [toYAML](#toyaml)
   - [sockaddr](#sockaddr)
   - [writeToFile](#writeToFile)
+- [Sprig Functions](#sprig-functions)
 - [Math Functions](#math-functions)
   - [add](#add)
   - [subtract](#subtract)
@@ -127,7 +129,7 @@ The two most useful fields are `.CertPEM` and `.PrivateKeyPEM`. For a complete
 list of available fields, see consul's documentation on
 [LeafCert](https://godoc.org/github.com/hashicorp/consul/api#LeafCert).
 
-### `caRoot`
+### `caRoots`
 
 Query [Consul][consul] for all [connect][connect] trusted certificate authority
 (CA) root certificates.
@@ -587,6 +589,25 @@ You should probably never do this.
 Please also note that Vault does not support
 blocking queries. To understand the implications, please read the note at the
 end of the `secret` function.
+
+### `pkiCert`
+
+Query [Vault][vault] for a PKI certificate. It returns the certificate PEM
+encoded in a string. It only returns the PKI certificate, not the CA, key or
+any other informaion about the certificate.
+
+**Special Note**: This function uses the template file destination as a cache
+for the certificate to prevent Consul-Template from re-fetching it on reload or
+restart. This special behavior is to better work with Vault's PKI behavior of
+always returning a new certificate even if the current one is still good. Using
+the destination file as a local "cache" allows Consul-Template to check for the
+certificate in that local file and, if found, parse it and checks it's valid
+date range only fetching a new certificate if the local one has expired.
+
+
+```golang
+{{ pkiCert "pki/issue/my-domain-dot-com" "common_name=foo.example.com" }}
+```
 
 ### `service`
 
@@ -1600,16 +1621,27 @@ for more information.
 
 ### `writeToFile`
 
-Writes the content to a file with username, group name, permissions. There are optional flags to
-select appending mode or add a newline.
+Writes the content to a file with permissions, username (or UID), group name (or GID),
+and optional flags to select appending mode or add a newline.
+
+The username and group name fields can be left blank to default to the current user and group.
 
 For example:
 
 ```golang
+{{ key "my/key/path" | writeToFile "/my/file/path.txt" "" "" "0644" }}
+{{ key "my/key/path" | writeToFile "/my/file/path.txt" "100" "1000" "0644" }}
 {{ key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644" }}
 {{ key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644" "append" }}
 {{ key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644" "append,newline" }}
 ```
+
+---
+
+## Sprig Functions
+
+Consul-template provides access to the Sprig library
+in templates. To use a Sprig function in your template, prepend `sprig_` to the function name.  A full list of Sprig functions can be found in the [Sprig Function Documentation](http://masterminds.github.io/sprig/)
 
 ---
 

@@ -5,8 +5,11 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"path/filepath"
 	"strings"
 	"time"
+
+	cnf "github.com/hashicorp/consul-template/config"
 
 	gsyslog "github.com/hashicorp/go-syslog"
 	"github.com/hashicorp/logutils"
@@ -32,13 +35,29 @@ func (writer logWriter) Write(bytes []byte) (int, error) {
 	if len(bytes) == 0 {
 		return 0, nil
 	}
-	return fmt.Fprintf(writer.out, "%s %s", now(), bytes)
+	if _, err := fmt.Fprintf(writer.out, "%s %s", now(), bytes); err != nil {
+		return 0, err
+	}
+	return len(bytes), nil
 }
 
 // Config is the configuration for this log setup.
 type Config struct {
 	// Level is the log level to use.
 	Level string `json:"level"`
+
+	// LogFilePath is the path to the file the logs get written to
+	LogFilePath string `json:"log_file"`
+
+	// LogRotateBytes is the maximum number of bytes that should be written to a log
+	// file
+	LogRotateBytes int `json:"log_rotate_bytes"`
+
+	// LogRotateDuration is the time after which log rotation needs to be performed
+	LogRotateDuration time.Duration `json:"log_rotate_duration"`
+
+	// LogRotateMaxFiles is the maximum number of log file archives to keep
+	LogRotateMaxFiles int `json:"log_rotate_max_files"`
 
 	// Syslog and SyslogFacility are the syslog configuration options.
 	Syslog         bool   `json:"syslog"`
@@ -71,6 +90,34 @@ func newWriter(config *Config) (io.Writer, error) {
 	logOutput, err := newLogFilter(logOutput, logLevel)
 	if err != nil {
 		return nil, err
+	}
+
+	if config.LogFilePath != "" {
+		dir, fileName := filepath.Split(config.LogFilePath)
+		if fileName == "" {
+			fileName = cnf.DefaultLogFileName
+		}
+		if config.LogRotateDuration == 0 {
+			config.LogRotateDuration = cnf.DefaultLogRotateDuration
+		}
+		log.Printf("[DEBUG] (logging) enabling log_file logging to %s with rotation every %s",
+			filepath.Join(dir, fileName), config.LogRotateDuration,
+		)
+		logFile := &LogFile{
+			filt:     logOutput.(*logutils.LevelFilter),
+			fileName: fileName,
+			logPath:  dir,
+			duration: config.LogRotateDuration,
+			MaxBytes: config.LogRotateBytes,
+			MaxFiles: config.LogRotateMaxFiles,
+		}
+		if err := logFile.pruneFiles(); err != nil {
+			return nil, fmt.Errorf("error while pruning log files: %w", err)
+		}
+		if err := logFile.openNew(); err != nil {
+			return nil, fmt.Errorf("error setting up log_file logging : %w", err)
+		}
+		logOutput = io.MultiWriter(logOutput, logFile)
 	}
 
 	if config.Syslog {

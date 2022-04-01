@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
+	"strconv"
 	"syscall"
 	"testing"
 	"time"
@@ -369,7 +370,7 @@ func TestParse(t *testing.T) {
 			}`,
 			&Config{
 				Exec: &ExecConfig{
-					Command: String("command"),
+					Command: []string{"command"},
 				},
 			},
 			false,
@@ -539,6 +540,74 @@ func TestParse(t *testing.T) {
 			false,
 		},
 		{
+			"log_file",
+			`log_file {}`,
+			&Config{
+				FileLog: &LogFileConfig{},
+			},
+			false,
+		},
+		{
+			"log_file_path",
+			`log_file {
+				path = "something.log"
+			}`,
+			&Config{
+				FileLog: &LogFileConfig{
+					LogFilePath: String("something.log"),
+				},
+			},
+			false,
+		},
+		{
+			"log_file_path_no_filename",
+			`log_file {
+				path = "./logs"
+			}`,
+			&Config{
+				FileLog: &LogFileConfig{
+					LogFilePath: String("./logs"),
+				},
+			},
+			false,
+		},
+		{
+			"log_file_log_rotate_bytes",
+			`log_file {
+				log_rotate_bytes = 102400
+			}`,
+			&Config{
+				FileLog: &LogFileConfig{
+					LogRotateBytes: Int(102400),
+				},
+			},
+			false,
+		},
+		{
+			"log_file_log_rotate_duration",
+			`log_file {
+				log_rotate_duration = "24h"
+			}`,
+			&Config{
+				FileLog: &LogFileConfig{
+					LogRotateDuration: TimeDuration(24 * time.Hour),
+				},
+			},
+			false,
+		},
+		{
+			"log_file_log_rotate_max_files",
+			`log_file {
+				log_rotate_max_files = 10
+			}`,
+			&Config{
+				FileLog: &LogFileConfig{
+					LogRotateMaxFiles: Int(10),
+				},
+			},
+			false,
+		},
+		{
 			"max_stale",
 			`max_stale = "10s"`,
 			&Config{
@@ -658,7 +727,7 @@ func TestParse(t *testing.T) {
 			&Config{
 				Templates: &TemplateConfigs{
 					&TemplateConfig{
-						Command: String("command"),
+						Command: []string{"command"},
 					},
 				},
 			},
@@ -745,7 +814,7 @@ func TestParse(t *testing.T) {
 				Templates: &TemplateConfigs{
 					&TemplateConfig{
 						Exec: &ExecConfig{
-							Command: String("command"),
+							Command: []string{"command"},
 						},
 					},
 				},
@@ -1020,6 +1089,78 @@ func TestParse(t *testing.T) {
 				Templates: &TemplateConfigs{
 					&TemplateConfig{
 						Perms: FileMode(0600),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_uid",
+			`template {
+				user = "1000"
+			}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						User: String("1000"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_gid",
+			`template {
+				group = "1000"
+			}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Group: String("1000"),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_uid_backward_compat",
+			`template {
+				uid = 1000
+			}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Uid: Int(1000),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_gid_backward_compat",
+			`template {
+				gid = 1000
+			}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Gid: Int(1000),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"template_uid_gid_default",
+			`template {
+			}`,
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						User:  nil,
+						Group: nil,
+						Uid:   nil,
+						Gid:   nil,
 					},
 				},
 			},
@@ -1654,6 +1795,68 @@ func TestFinalize(t *testing.T) {
 				},
 			},
 		},
+		{
+			"uid_backward_compat",
+			func(act, exp *Config) (bool, error) {
+				for i, tA := range *act.Templates {
+					for j, tE := range *exp.Templates {
+						if i != j {
+							continue
+						}
+						var userInt, _ = strconv.Atoi(*tE.User)
+						if userInt != *tA.Uid {
+							return false, fmt.Errorf("\nexp: %#v\nact: %#v", *tE.User, *tA.User)
+						}
+					}
+				}
+				return true, nil
+			},
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Uid: Int(1000),
+					},
+				},
+			},
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						User: String("1000"),
+					},
+				},
+			},
+		},
+		{
+			"gid_backward_compat",
+			func(act, exp *Config) (bool, error) {
+				for i, tA := range *act.Templates {
+					for j, tE := range *exp.Templates {
+						if i != j {
+							continue
+						}
+						var groupInt, _ = strconv.Atoi(*tE.Group)
+						if groupInt != *tA.Gid {
+							return false, fmt.Errorf("\nexp: %#v\nact: %#v", *tE.Group, *tA.Group)
+						}
+					}
+				}
+				return true, nil
+			},
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Gid: Int(1000),
+					},
+				},
+			},
+			&Config{
+				Templates: &TemplateConfigs{
+					&TemplateConfig{
+						Group: String("1000"),
+					},
+				},
+			},
+		},
 	}
 
 	for i, tc := range cases {
@@ -1745,17 +1948,17 @@ func TestConfig_Merge(t *testing.T) {
 			"exec",
 			&Config{
 				Exec: &ExecConfig{
-					Command: String("command"),
+					Command: []string{"command"},
 				},
 			},
 			&Config{
 				Exec: &ExecConfig{
-					Command: String("command-diff"),
+					Command: []string{"command-diff"},
 				},
 			},
 			&Config{
 				Exec: &ExecConfig{
-					Command: String("command-diff"),
+					Command: []string{"command-diff"},
 				},
 			},
 		},
@@ -1781,6 +1984,24 @@ func TestConfig_Merge(t *testing.T) {
 			},
 			&Config{
 				LogLevel: String("log_level-diff"),
+			},
+		},
+		{
+			"file_log",
+			&Config{
+				FileLog: &LogFileConfig{
+					LogFilePath: String("something.log"),
+				},
+			},
+			&Config{
+				FileLog: &LogFileConfig{
+					LogFilePath: String("somethingelse.log"),
+				},
+			},
+			&Config{
+				FileLog: &LogFileConfig{
+					LogFilePath: String("somethingelse.log"),
+				},
 			},
 		},
 		{
@@ -1925,6 +2146,18 @@ func TestConfig_Merge(t *testing.T) {
 					Min: TimeDuration(20 * time.Second),
 					Max: TimeDuration(50 * time.Second),
 				},
+			},
+		},
+		{
+			"parse-only",
+			&Config{
+				ParseOnly: false,
+			},
+			&Config{
+				ParseOnly: true,
+			},
+			&Config{
+				ParseOnly: true,
 			},
 		},
 	}

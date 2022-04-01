@@ -8,6 +8,7 @@ import (
 	"os/user"
 	"reflect"
 	"strconv"
+	"syscall"
 	"testing"
 	"time"
 
@@ -430,6 +431,17 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"func_node_nil_pointer_evaluation",
+			&NewTemplateInput{
+				Contents: `{{ $v := node }}{{ $v.Node }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"<no value>",
+			false,
+		},
+		{
 			"func_nodes",
 			&NewTemplateInput{
 				Contents: `{{ range nodes }}{{ .Node }}{{ end }}`,
@@ -473,6 +485,17 @@ func TestTemplate_Execute(t *testing.T) {
 				}(),
 			},
 			"zap",
+			false,
+		},
+		{
+			"func_secret_nil_pointer_evaluation",
+			&NewTemplateInput{
+				Contents: `{{ $v := secret "secret/foo" }}{{ $v.Data.zip }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"<no value>",
 			false,
 		},
 		{
@@ -548,6 +571,27 @@ func TestTemplate_Execute(t *testing.T) {
 						LeaseDuration: 120,
 						Renewable:     true,
 						Data:          map[string]interface{}{"ciphertext": "encrypted"},
+					})
+					return b
+				}(),
+			},
+			"encrypted",
+			false,
+		},
+		{
+			"func_secret_write_empty",
+			&NewTemplateInput{
+				Contents: `{{ with secret "transit/encrypt/foo" "" }}{{ .Data.ciphertext }}{{ end }}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewVaultWriteQuery("transit/encrypt/foo", nil)
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, &dep.Secret{
+						Data: map[string]interface{}{"ciphertext": "encrypted"},
 					})
 					return b
 				}(),
@@ -1824,6 +1868,17 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"leaf_cert_nil_pointer_evaluation",
+			&NewTemplateInput{
+				Contents: `{{ $v := caLeaf "foo" }}{{ $v.CertPEM }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"<no value>",
+			false,
+		},
+		{
 			"root_ca",
 			&NewTemplateInput{
 				Contents: `{{range caRoots}}{{.RootCertPEM}}{{end}}`,
@@ -1871,6 +1926,25 @@ func TestTemplate_Execute(t *testing.T) {
 				}(),
 			},
 			"1.2.3.45.6.7.8",
+			false,
+		},
+		{
+			"func_pkiCert",
+			&NewTemplateInput{
+				Contents: `{{ pkiCert "pki/issue/egs-dot-com" }}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewVaultPKIQuery("pki/issue/egs-dot-com", "/dev/null", nil)
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, testCert)
+					return b
+				}(),
+			},
+			testCert,
 			false,
 		},
 		{
@@ -1924,9 +1998,24 @@ func TestTemplate_Execute(t *testing.T) {
 }
 
 func Test_writeToFile(t *testing.T) {
+	// Use current user and its primary group for input
+	currentUser, err := user.Current()
+	if err != nil {
+		t.Fatal(err)
+	}
+	currentUsername := currentUser.Username
+	currentGroup, err := user.LookupGroupId(currentUser.Gid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	currentGroupName := currentGroup.Name
+
 	cases := []struct {
 		name        string
+		filePath    string
 		content     string
+		username    string
+		groupName   string
 		permissions string
 		flags       string
 		expectation string
@@ -1934,7 +2023,10 @@ func Test_writeToFile(t *testing.T) {
 	}{
 		{
 			"writeToFile_without_flags",
+			"",
 			"after",
+			currentUsername,
+			currentGroupName,
 			"0644",
 			"",
 			"after",
@@ -1942,7 +2034,10 @@ func Test_writeToFile(t *testing.T) {
 		},
 		{
 			"writeToFile_with_different_file_permissions",
+			"",
 			"after",
+			currentUsername,
+			currentGroupName,
 			"0666",
 			"",
 			"after",
@@ -1950,7 +2045,10 @@ func Test_writeToFile(t *testing.T) {
 		},
 		{
 			"writeToFile_with_append",
+			"",
 			"after",
+			currentUsername,
+			currentGroupName,
 			"0644",
 			`"append"`,
 			"beforeafter",
@@ -1958,7 +2056,10 @@ func Test_writeToFile(t *testing.T) {
 		},
 		{
 			"writeToFile_with_newline",
+			"",
 			"after",
+			currentUsername,
+			currentGroupName,
 			"0644",
 			`"newline"`,
 			"after\n",
@@ -1966,10 +2067,68 @@ func Test_writeToFile(t *testing.T) {
 		},
 		{
 			"writeToFile_with_append_and_newline",
+			"",
 			"after",
+			currentUsername,
+			currentGroupName,
 			"0644",
 			`"append,newline"`,
 			"beforeafter\n",
+			false,
+		},
+		{
+			"writeToFile_default_owner",
+			"",
+			"after",
+			"",
+			"",
+			"0644",
+			"",
+			"after",
+			false,
+		},
+		{
+			"writeToFile_provide_uid_gid",
+			"",
+			"after",
+			currentUser.Uid,
+			currentUser.Gid,
+			"0644",
+			"",
+			"after",
+			false,
+		},
+		{
+			"writeToFile_provide_just_gid",
+			"",
+			"after",
+			"",
+			currentUser.Gid,
+			"0644",
+			"",
+			"after",
+			false,
+		},
+		{
+			"writeToFile_provide_just_uid",
+			"",
+			"after",
+			currentUser.Uid,
+			"",
+			"0644",
+			"",
+			"after",
+			false,
+		},
+		{
+			"writeToFile_create_directory",
+			"demo/testing.tmp",
+			"after",
+			currentUsername,
+			currentGroupName,
+			"0644",
+			"",
+			"after",
 			false,
 		},
 	}
@@ -1981,27 +2140,25 @@ func Test_writeToFile(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer os.RemoveAll(outDir)
-			outputFile, err := ioutil.TempFile(outDir, "")
-			if err != nil {
-				t.Fatal(err)
-			}
-			outputFile.WriteString("before")
 
-			// Use current user and its primary group for input
-			currentUser, err := user.Current()
-			if err != nil {
-				t.Fatal(err)
+			var outputFilePath string
+			if tc.filePath == "" {
+				outputFile, err := ioutil.TempFile(outDir, "")
+				if err != nil {
+					t.Fatal(err)
+				}
+				_, err = outputFile.WriteString("before")
+				if err != nil {
+					t.Fatal(err)
+				}
+				outputFilePath = outputFile.Name()
+			} else {
+				outputFilePath = outDir + "/" + tc.filePath
 			}
-			currentUsername := currentUser.Username
-			currentGroup, err := user.LookupGroupId(currentUser.Gid)
-			if err != nil {
-				t.Fatal(err)
-			}
-			currentGroupName := currentGroup.Name
 
 			templateContent := fmt.Sprintf(
 				"{{ \"%s\" | writeToFile \"%s\" \"%s\" \"%s\" \"%s\"  %s}}",
-				tc.content, outputFile.Name(), currentUsername, currentGroupName, tc.permissions, tc.flags)
+				tc.content, outputFilePath, tc.username, tc.groupName, tc.permissions, tc.flags)
 			ti := &NewTemplateInput{
 				Contents: templateContent,
 			}
@@ -2018,7 +2175,7 @@ func Test_writeToFile(t *testing.T) {
 
 			// Compare generated file content with the expectation.
 			// The function should generate an empty string to the output.
-			_generatedFileContent, err := ioutil.ReadFile(outputFile.Name())
+			_generatedFileContent, err := ioutil.ReadFile(outputFilePath)
 			generatedFileContent := string(_generatedFileContent)
 			if err != nil {
 				t.Fatal(err)
@@ -2030,7 +2187,7 @@ func Test_writeToFile(t *testing.T) {
 				t.Errorf("writeToFile() got = %v, want %v", generatedFileContent, tc.expectation)
 			}
 			// Assert output file permissions
-			sts, err := outputFile.Stat()
+			sts, err := os.Stat(outputFilePath)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2042,6 +2199,36 @@ func Test_writeToFile(t *testing.T) {
 			if sts.Mode() != perm {
 				t.Errorf("writeToFile() wrong permissions got = %v, want %v", perm, tc.permissions)
 			}
+
+			stat := sts.Sys().(*syscall.Stat_t)
+			u := strconv.FormatUint(uint64(stat.Uid), 10)
+			g := strconv.FormatUint(uint64(stat.Gid), 10)
+			if u != currentUser.Uid || g != currentUser.Gid {
+				t.Errorf("writeToFile() owner = %v:%v, wanted %v:%v", u, g, currentUser.Uid, currentUser.Gid)
+			}
 		})
 	}
 }
+
+const testCert = `
+-----BEGIN CERTIFICATE-----
+MIIDWTCCAkGgAwIBAgIUUARA+vQExU8zjdsX/YXMMu1K5FkwDQYJKoZIhvcNAQEL
+BQAwFjEUMBIGA1UEAxMLZXhhbXBsZS5jb20wHhcNMjIwMzAxMjIzMzAzWhcNMjIw
+MzA0MjIzMzMzWjAaMRgwFgYDVQQDEw9mb28uZXhhbXBsZS5jb20wggEiMA0GCSqG
+SIb3DQEBAQUAA4IBDwAwggEKAoIBAQDD3sktiNGo/CSvtL84+GIcsuDzp1VFjG++
+8P682ZPiqPGjrgwe3P8ypyhQv6I8ZGOyu7helMqBN/S1mrhmHWUONy/4o95QWDsJ
+CGw4H44dRil5hKC6K8BUrf79XGAGIQJr3T6I5CCwxukfYhU/+xNE3dq5AgLrIIB2
+BtzZA6m1T5CmgAzSzI1byTjaRpxOJjucI37iKzkx7AkYS5hGfVsFmJgGi/UXhvzK
+uwnHHIq9rLItx7p261dJV8mxRDFaf4x+4bZh2kYkEaG8REOfyHSCJ78RniWbF/DN
+Jtgh8bT2/938/ecBtWcTN+psICD62DJii6988FD2qS+Yd8Eu8M5rAgMBAAGjgZow
+gZcwDgYDVR0PAQH/BAQDAgOoMB0GA1UdJQQWMBQGCCsGAQUFBwMBBggrBgEFBQcD
+AjAdBgNVHQ4EFgQUfmm32UJb3xJNxfA7ZB0Q5RXsQIkwHwYDVR0jBBgwFoAUDoYJ
+CtobWJrR1xmTsYJd9buj2jwwJgYDVR0RBB8wHYIPZm9vLmV4YW1wbGUuY29thwR/
+AAABhwTAqAEpMA0GCSqGSIb3DQEBCwUAA4IBAQBzB+RM2PSZPmDG3xJssS1litV8
+TOlGtBAOUi827W68kx1lprp35c9Jyy7l4AAu3Q1+az3iDQBfYBazq89GOZeXRvml
+x9PVCjnXP2E7mH9owA6cE+Z1cLN/5h914xUZCb4t9Ahu04vpB3/bnoucXdM5GJsZ
+EJylY99VsC/bZKPCheZQnC/LtFBC31WEGYb8rnB7gQxmH99H91+JxnJzYhT1a6lw
+arHERAKScrZMTrYPLt2YqYoeyO//aCuT9YW6YdIa9jPQhzjeMKXywXLetE+Ip18G
+eB01bl42Y5WwHl0IrjfbEevzoW0+uhlUlZ6keZHr7bLn/xuRCUkVfj3PRlMl
+-----END CERTIFICATE-----
+`

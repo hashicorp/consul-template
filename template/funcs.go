@@ -291,8 +291,8 @@ func lsFunc(b *Brain, used, missing *dep.Set, emptyIsSafe bool) func(string) ([]
 }
 
 // nodeFunc returns or accumulates catalog node dependency.
-func nodeFunc(b *Brain, used, missing *dep.Set) func(...string) (*dep.CatalogNode, error) {
-	return func(s ...string) (*dep.CatalogNode, error) {
+func nodeFunc(b *Brain, used, missing *dep.Set) func(...string) (interface{}, error) {
+	return func(s ...string) (interface{}, error) {
 
 		d, err := dep.NewCatalogNodeQuery(strings.Join(s, ""))
 		if err != nil {
@@ -333,22 +333,59 @@ func nodesFunc(b *Brain, used, missing *dep.Set) func(...string) ([]*dep.Node, e
 	}
 }
 
-// secretFunc returns or accumulates secret dependencies from Vault.
-func secretFunc(b *Brain, used, missing *dep.Set) func(...string) (*dep.Secret, error) {
-	return func(s ...string) (*dep.Secret, error) {
-		var result *dep.Secret
-
+// pkiCertFunc returns a PKI cert from Vault
+func pkiCertFunc(b *Brain, used, missing *dep.Set, destPath string) func(...string) (interface{}, error) {
+	return func(s ...string) (interface{}, error) {
 		if len(s) == 0 {
-			return result, nil
+			return nil, nil
 		}
 
-		// TODO: Refactor into separate template functions
 		path, rest := s[0], s[1:]
 		data := make(map[string]interface{})
 		for _, str := range rest {
+			if len(str) == 0 {
+				continue
+			}
 			parts := strings.SplitN(str, "=", 2)
 			if len(parts) != 2 {
-				return result, fmt.Errorf("not k=v pair %q", str)
+				return nil, fmt.Errorf("not k=v pair %q", str)
+			}
+
+			k, v := strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
+			data[k] = v
+		}
+
+		d, err := dep.NewVaultPKIQuery(path, destPath, data)
+		if err != nil {
+			return nil, err
+		}
+
+		used.Add(d)
+		if value, ok := b.Recall(d); ok {
+			return value, nil
+		}
+		missing.Add(d)
+
+		return nil, nil
+	}
+}
+
+// secretFunc returns or accumulates secret dependencies from Vault.
+func secretFunc(b *Brain, used, missing *dep.Set) func(...string) (interface{}, error) {
+	return func(s ...string) (interface{}, error) {
+		if len(s) == 0 {
+			return nil, nil
+		}
+
+		path, rest := s[0], s[1:]
+		data := make(map[string]interface{})
+		for _, str := range rest {
+			if len(str) == 0 {
+				continue
+			}
+			parts := strings.SplitN(str, "=", 2)
+			if len(parts) != 2 {
+				return nil, fmt.Errorf("not k=v pair %q", str)
 			}
 
 			k, v := strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
@@ -358,7 +395,8 @@ func secretFunc(b *Brain, used, missing *dep.Set) func(...string) (*dep.Secret, 
 		var d dep.Dependency
 		var err error
 
-		if len(rest) == 0 {
+		isReadQuery := len(rest) == 0
+		if isReadQuery {
 			d, err = dep.NewVaultReadQuery(path)
 		} else {
 			d, err = dep.NewVaultWriteQuery(path, data)
@@ -371,13 +409,12 @@ func secretFunc(b *Brain, used, missing *dep.Set) func(...string) (*dep.Secret, 
 		used.Add(d)
 
 		if value, ok := b.Recall(d); ok {
-			result = value.(*dep.Secret)
-			return result, nil
+			return value.(*dep.Secret), nil
 		}
 
 		missing.Add(d)
 
-		return result, nil
+		return nil, nil
 	}
 }
 
@@ -539,8 +576,8 @@ func connectCARootsFunc(b *Brain, used, missing *dep.Set,
 }
 
 func connectLeafFunc(b *Brain, used, missing *dep.Set,
-) func(...string) (*api.LeafCert, error) {
-	return func(s ...string) (*api.LeafCert, error) {
+) func(...string) (interface{}, error) {
+	return func(s ...string) (interface{}, error) {
 		if len(s) == 0 || s[0] == "" {
 			return nil, nil
 		}
@@ -1611,10 +1648,14 @@ func md5sum(item string) (string, error) {
 	return fmt.Sprintf("%x", md5.Sum([]byte(item))), nil
 }
 
-// writeToFile writes the content to a file with username, group name, permissions and optional
-// flags to select appending mode or add a newline.
+// writeToFile writes the content to a file with permissions, username (or UID), group name (or GID),
+// and optional flags to select appending mode or add a newline.
+//
+// The username and group name fields can be left blank to default to the current user and group.
 //
 // For example:
+//   key "my/key/path" | writeToFile "/my/file/path.txt" "" "" "0644"
+//   key "my/key/path" | writeToFile "/my/file/path.txt" "100" "1000" "0644"
 //   key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644"
 //   key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644" "append"
 //   key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644" "append,newline"
@@ -1642,6 +1683,15 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 			return "", err
 		}
 	} else {
+		dirPath := filepath.Dir(path)
+
+		if _, err := os.Stat(dirPath); err != nil {
+			err := os.MkdirAll(dirPath, os.ModePerm)
+			if err != nil {
+				return "", err
+			}
+		}
+
 		f, err = os.Create(path)
 		if err != nil {
 			return "", err
@@ -1659,19 +1709,50 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 	}
 
 	// Change ownership and permissions
-	u, err := user.Lookup(username)
+	var uid int
+	var gid int
+	cu, err := user.Current()
 	if err != nil {
 		return "", err
 	}
-	g, err := user.LookupGroup(groupName)
-	if err != nil {
-		return "", err
+
+	if username == "" {
+		uid, _ = strconv.Atoi(cu.Uid)
+	} else {
+		var convErr error
+		u, err := user.Lookup(username)
+		if err != nil {
+			// Check if username string is already a UID
+			uid, convErr = strconv.Atoi(username)
+			if convErr != nil {
+				return "", err
+			}
+		} else {
+			uid, _ = strconv.Atoi(u.Uid)
+		}
 	}
-	uid, _ := strconv.Atoi(u.Uid)
-	gid, _ := strconv.Atoi(g.Gid)
-	err = os.Chown(path, uid, gid)
-	if err != nil {
-		return "", err
+
+	if groupName == "" {
+		gid, _ = strconv.Atoi(cu.Gid)
+	} else {
+		var convErr error
+		g, err := user.LookupGroup(groupName)
+		if err != nil {
+			gid, convErr = strconv.Atoi(groupName)
+			if convErr != nil {
+				return "", err
+			}
+		} else {
+			gid, _ = strconv.Atoi(g.Gid)
+		}
+	}
+
+	// Avoid the chown call altogether if using current user and group.
+	if username != "" || groupName != "" {
+		err = os.Chown(path, uid, gid)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	err = os.Chmod(path, perm)

@@ -7,9 +7,9 @@ import (
 	"io/ioutil"
 	"text/template"
 
-	"github.com/pkg/errors"
-
+	"github.com/Masterminds/sprig"
 	dep "github.com/hashicorp/consul-template/dependency"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -35,6 +35,9 @@ type Template struct {
 	// the template was dynamically defined.
 	source string
 
+	// destination file/path to which the template is rendered
+	destination string
+
 	// leftDelim and rightDelim are the template delimiters.
 	leftDelim  string
 	rightDelim string
@@ -45,6 +48,10 @@ type Template struct {
 	// errMissingKey causes the template processing to exit immediately if a map
 	// is indexed with a key that does not exist.
 	errMissingKey bool
+
+	// errFatal determines whether template errors should cause the process to
+	// exit, or just log and continue.
+	errFatal bool
 
 	// functionDenylist are functions not permitted to be executed
 	// when we render this template
@@ -61,12 +68,19 @@ type NewTemplateInput struct {
 	// Source is the location on disk to the file.
 	Source string
 
+	// Destination is the file on disk to render/write the template output.
+	Destination string
+
 	// Contents are the raw template contents.
 	Contents string
 
 	// ErrMissingKey causes the template parser to exit immediately with an error
 	// when a map is indexed with a key that does not exist.
 	ErrMissingKey bool
+
+	// ErrFatal determines whether template errors should cause the process to
+	// exit, or just log and continue.
+	ErrFatal bool
 
 	// LeftDelim and RightDelim are the template delimiters.
 	LeftDelim  string
@@ -104,8 +118,10 @@ func NewTemplate(i *NewTemplateInput) (*Template, error) {
 	t.leftDelim = i.LeftDelim
 	t.rightDelim = i.RightDelim
 	t.errMissingKey = i.ErrMissingKey
+	t.errFatal = i.ErrFatal
 	t.functionDenylist = i.FunctionDenylist
 	t.sandboxPath = i.SandboxPath
+	t.destination = i.Destination
 
 	if i.Source != "" {
 		contents, err := ioutil.ReadFile(i.Source)
@@ -138,6 +154,11 @@ func (t *Template) Source() string {
 		return "(dynamic)"
 	}
 	return t.source
+}
+
+// ErrFatal indicates whether errors in this template should be fatal.
+func (t *Template) ErrFatal() bool {
+	return t.errFatal
 }
 
 // ExecuteInput is used as input to the template's execute function.
@@ -175,13 +196,14 @@ func (t *Template) Execute(i *ExecuteInput) (*ExecuteResult, error) {
 	tmpl.Delims(t.leftDelim, t.rightDelim)
 
 	tmpl.Funcs(funcMap(&funcMapInput{
-		t:                tmpl,
+		newTmpl:          tmpl,
 		brain:            i.Brain,
 		env:              i.Env,
 		used:             &used,
 		missing:          &missing,
 		functionDenylist: t.functionDenylist,
 		sandboxPath:      t.sandboxPath,
+		destination:      t.destination,
 	}))
 
 	if t.errMissingKey {
@@ -210,11 +232,12 @@ func (t *Template) Execute(i *ExecuteInput) (*ExecuteResult, error) {
 
 // funcMapInput is input to the funcMap, which builds the template functions.
 type funcMapInput struct {
-	t                *template.Template
+	newTmpl          *template.Template
 	brain            *Brain
 	env              []string
 	functionDenylist []string
 	sandboxPath      string
+	destination      string
 	used             *dep.Set
 	missing          *dep.Set
 }
@@ -243,6 +266,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"safeTree":     safeTreeFunc(i.brain, i.used, i.missing),
 		"caRoots":      connectCARootsFunc(i.brain, i.used, i.missing),
 		"caLeaf":       connectLeafFunc(i.brain, i.used, i.missing),
+		"pkiCert":      pkiCertFunc(i.brain, i.used, i.missing, i.destination),
 
 		// Scratch
 		"scratch": func() *Scratch { return &scratch },
@@ -261,7 +285,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"containsNotAll":        containsSomeFunc(false, true),
 		"env":                   envFunc(i.env),
 		"envOrDefault":          envWithDefaultFunc(i.env),
-		"executeTemplate":       executeTemplateFunc(i.t),
+		"executeTemplate":       executeTemplateFunc(i.newTmpl),
 		"explode":               explode,
 		"explodeMap":            explodeMap,
 		"mergeMap":              mergeMap,
@@ -311,6 +335,12 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"spew_printf":  spewPrintf,
 		"spew_sdump":   spewSdump,
 		"spew_sprintf": spewSprintf,
+	}
+
+	// Add the Sprig functions to the funcmap
+	for k, v := range sprig.FuncMap() {
+		target := "sprig_" + k
+		r[target] = v
 	}
 
 	for _, bf := range i.functionDenylist {

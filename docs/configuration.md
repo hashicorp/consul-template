@@ -62,7 +62,7 @@ $ consul-template \
 ```
 
 For more information on supervising, please see the
-[Consul Template Exec Mode documentation](caveats.md#exec-mode).
+[Consul Template Exec Mode documentation](modes.md#exec-mode).
 
 ## Configuration File
 
@@ -165,6 +165,11 @@ block_query_wait = "60s"
 # Valid options include (in order of verbosity): trace, debug, info, warn, err
 log_level = "warn"
 
+# This controls whether an error within a template will cause consul-template
+# to immediately exit. This value can be overridden within each template
+# configuration.
+template_error_fatal = true
+
 # This is the quiescence timers; it defines the minimum and maximum amount of
 # time to wait for the cluster to reach a consistent state before rendering a
 # template. This is useful to enable in systems that have a lot of flapping,
@@ -193,6 +198,31 @@ syslog {
 
   # This is the name of the syslog facility to log to.
   facility = "LOCAL5"
+}
+
+# This block defines the configuration for logging to file
+log_file {
+  # If a path is specified, the feature is enabled
+  # Please refer to the documentation for the -log-file
+  # CLI flag for more information about its behaviour
+  path = "/var/log/something.log"
+
+  # This allow you to control the number of bytes that
+  # should be written to a log before it needs to be
+  # rotated. Unless specified, there is no limit to the
+  # number of bytes that can be written to a log file
+  log_rotate_bytes = 1024000
+
+  # This lets you control time based rotation, by default
+  # logs are rotated every 24h
+  log_rotate_duration = "3h"
+
+  # This lets you control the maximum number of older log
+  # file archives to keep. Defaults to 0 (no files are ever
+  # deleted).
+  # Set to -1 to discard old log files when a new one is
+  # created
+  log_rotate_max_files = 10
 }
 ```
 
@@ -233,10 +263,17 @@ consul {
   # This is the ACL token to use when connecting to Consul. If you did not
   # enable ACLs on your Consul cluster, you do not need to set this option.
   #
-  # This option is also available via the environment variable CONSUL_TOKEN.
+  # This option is also available via the environment variable CONSUL_TOKEN or
+  # CONSUL_HTTP_TOKEN
   # It is highly recommended that you do not put your token in plain-text in a
   # configuration file.
   token = ""
+
+  # Alternatively, you can specify a path to a file containing the token with
+  # this option.
+  # This option is also available via the environment variable CONSUL_TOKEN_FILE or
+  # CONSUL_HTTP_TOKEN_FILE
+  token_file = ""
 
   # This controls the retry behavior when an error is returned from Consul.
   # Consul Template is highly fault tolerant, meaning it does not exit in the
@@ -347,11 +384,17 @@ vault {
   # documentation for more information.
   unwrap_token = true
 
-  # The default lease duration Consul Template will use on a Vault secret that 
+  # The default lease duration Consul Template will use on a Vault secret that
   # does not have a lease duration. This is used to calculate the sleep duration
   # for rechecking a Vault secret value. This field is optional and will default to
   # 5 minutes.
   default_lease_duration = "60s"
+
+  # The fraction of the lease duration of a non-renewable secret Consul
+  # Template will wait for. This is used to calculate the sleep duration for
+  # rechecking a Vault secret value. This field is optional and will default to
+  # 90% of the lease time.
+  lease_renewal_threshold = 0.90
 
   # This option tells Consul Template to automatically renew the Vault token
   # given. If you are unfamiliar with Vault's architecture, Vault requires
@@ -409,24 +452,15 @@ template {
   # `source` option.
   contents = "{{ keyOrDefault \"service/redis/maxconns@east-aws\" \"5\" }}"
 
-  # This is the optional command to run when the template is rendered. The
-  # command will only run if the resulting template changes. The command must
-  # return within 30s (configurable), and it must have a successful exit code.
-  # Consul Template is not a replacement for a process monitor or init system.
-  # Please see the [Command](#command) section below for more.
-  command = "restart service foo"
-
-  # This is the maximum amount of time to wait for the optional command to
-  # return. If you set the timeout to 0s the command is run in the background
-  # without monitoring it for errors. If also using Once, consul-template can
-  # exit before the command is finished. Default is 30s.
-  command_timeout = "60s"
-
   # Exit with an error when accessing a struct or map field/key that does not
   # exist. The default behavior will print "<no value>" when accessing a field
   # that does not exist. It is highly recommended you set this to "true" when
   # retrieving secrets from Vault.
   error_on_missing_key = false
+
+  # This controls whether an error within the template will cause
+  # consul-template to immediately exit.
+  error_fatal = true
 
   # This is the permission to render the file. If this option is left
   # unspecified, Consul Template will attempt to match the permissions of the
@@ -465,6 +499,21 @@ template {
     min = "2s"
     max = "10s"
   }
+
+  # This is the optional exec block to give a command to be run when the template 
+  # is rendered. The command will only run if the resulting template changes. 
+  # The command must return within 30s (configurable), and it must have a 
+  # successful exit code.
+  # See the Exec section below and the Commands section in the README for more.
+  exec {
+      command = ["restart", "service", "foo"]
+      timout = "30s"
+  }
+
+  # For backwards compatibility the template block also supports a bare
+  # `command` and `command_timeout` setting.
+  command = ["restart", "service", "foo"]
+  command_timeout = "60s"
 }
 ```
 
@@ -511,7 +560,12 @@ how exec mode operates and the caveats of this mode.
 exec {
   # This is the command to exec as a child process. There can be only one
   # command per Consul Template process.
-  command = "/usr/bin/app"
+  # Please see the Commands section in the README for more.
+  command = ["/usr/bin/app"]
+
+  # Timeout is the maximum amount of time to wait for a command to complete.
+  # By default, this is 0, which means "wait forever".
+  timeout = "0"
 
   # This is a random splay to wait before killing the command. The default
   # value is 0 (no wait), but large clusters should consider setting a splay

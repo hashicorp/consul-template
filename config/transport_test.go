@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net"
 	"reflect"
 	"testing"
 	"time"
@@ -26,6 +27,17 @@ func TestTransportConfig_Copy(t *testing.T) {
 			&TransportConfig{
 				DialKeepAlive:       TimeDuration(10 * time.Second),
 				DialTimeout:         TimeDuration(20 * time.Second),
+				DisableKeepAlives:   Bool(true),
+				IdleConnTimeout:     TimeDuration(40 * time.Second),
+				MaxIdleConns:        Int(150),
+				MaxIdleConnsPerHost: Int(15),
+				TLSHandshakeTimeout: TimeDuration(30 * time.Second),
+			},
+		},
+		{
+			"same_enabled_custom_dialer",
+			&TransportConfig{
+				CustomDialer:        &net.Dialer{Timeout: 10 * time.Second},
 				DisableKeepAlives:   Bool(true),
 				IdleConnTimeout:     TimeDuration(40 * time.Second),
 				MaxIdleConns:        Int(150),
@@ -244,6 +256,30 @@ func TestTransportConfig_Merge(t *testing.T) {
 			&TransportConfig{TLSHandshakeTimeout: TimeDuration(10 * time.Second)},
 			&TransportConfig{TLSHandshakeTimeout: TimeDuration(10 * time.Second)},
 			&TransportConfig{TLSHandshakeTimeout: TimeDuration(10 * time.Second)},
+		},
+		{
+			"custom_transport_dialer",
+			&TransportConfig{CustomDialer: &net.Dialer{Timeout: 10 * time.Second}},
+			&TransportConfig{CustomDialer: &net.Dialer{Timeout: 20 * time.Second}},
+			&TransportConfig{CustomDialer: &net.Dialer{Timeout: 20 * time.Second}},
+		},
+		{
+			"custom_transport_dialer_empty_one",
+			&TransportConfig{CustomDialer: &net.Dialer{Timeout: 10 * time.Second}},
+			&TransportConfig{},
+			&TransportConfig{CustomDialer: &net.Dialer{Timeout: 10 * time.Second}},
+		},
+		{
+			"custom_transport_dialer_empty_two",
+			&TransportConfig{},
+			&TransportConfig{CustomDialer: &net.Dialer{Timeout: 10 * time.Second}},
+			&TransportConfig{CustomDialer: &net.Dialer{Timeout: 10 * time.Second}},
+		},
+		{
+			"custom_transport_dialer_same",
+			&TransportConfig{CustomDialer: &net.Dialer{Timeout: 10 * time.Second}},
+			&TransportConfig{CustomDialer: &net.Dialer{Timeout: 10 * time.Second}},
+			&TransportConfig{CustomDialer: &net.Dialer{Timeout: 10 * time.Second}},
 		},
 	}
 

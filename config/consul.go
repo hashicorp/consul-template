@@ -25,6 +25,9 @@ type ConsulConfig struct {
 	// Token is the token to communicate with Consul securely.
 	Token *string
 
+	// TokenFile is the path to a token to communicate with Consul securely.
+	TokenFile *string `mapstructure:"token_file"`
+
 	// Transport configures the low-level network connection details.
 	Transport *TransportConfig `mapstructure:"transport"`
 }
@@ -65,6 +68,7 @@ func (c *ConsulConfig) Copy() *ConsulConfig {
 	}
 
 	o.Token = c.Token
+	o.TokenFile = c.TokenFile
 
 	if c.Transport != nil {
 		o.Transport = c.Transport.Copy()
@@ -115,6 +119,10 @@ func (c *ConsulConfig) Merge(o *ConsulConfig) *ConsulConfig {
 		r.Token = o.Token
 	}
 
+	if o.TokenFile != nil {
+		r.TokenFile = o.TokenFile
+	}
+
 	if o.Transport != nil {
 		r.Transport = r.Transport.Merge(o.Transport)
 	}
@@ -156,6 +164,13 @@ func (c *ConsulConfig) Finalize() {
 		}, "")
 	}
 
+	if c.TokenFile == nil {
+		c.TokenFile = stringFromEnv([]string{
+			"CONSUL_TOKEN_FILE",
+			"CONSUL_HTTP_TOKEN_FILE",
+		}, "")
+	}
+
 	if c.Transport == nil {
 		c.Transport = DefaultTransportConfig()
 	}
@@ -175,6 +190,7 @@ func (c *ConsulConfig) GoString() string {
 		"Retry:%#v, "+
 		"SSL:%#v, "+
 		"Token:%t, "+
+		"TokenFile:%s, "+
 		"Transport:%#v"+
 		"}",
 		StringGoString(c.Address),
@@ -183,6 +199,7 @@ func (c *ConsulConfig) GoString() string {
 		c.Retry,
 		c.SSL,
 		StringPresent(c.Token),
+		StringGoString(c.TokenFile),
 		c.Transport,
 	)
 }
