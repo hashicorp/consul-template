@@ -49,7 +49,6 @@ func (d *ConnectCAQuery) Fetch(clients *ClientSet, opts *QueryOptions) (
 	rm := &ResponseMetadata{
 		LastIndex:   md.LastIndex,
 		LastContact: md.LastContact,
-		Block:       true,
 	}
 
 	return certs.Roots, rm, nil

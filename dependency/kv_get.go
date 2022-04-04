@@ -21,9 +21,9 @@ var (
 type KVGetQuery struct {
 	stopCh chan struct{}
 
-	dc    string
-	key   string
-	block bool
+	dc         string
+	key        string
+	blockOnNil bool
 }
 
 // NewKVGetQuery parses a string into a dependency.
@@ -57,6 +57,9 @@ func (d *KVGetQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface{},
 		RawQuery: opts.String(),
 	})
 
+	// NOTE that the Consul HTTP KV API returns a 404 on failed gets, but the
+	// Consul Go API Package ignores those for KV Gets, returning nil data and
+	// an error.
 	pair, qm, err := clients.Consul().KV().Get(d.key, opts.ToConsulOpts())
 	if err != nil {
 		return nil, nil, errors.Wrap(err, d.String())
@@ -65,7 +68,7 @@ func (d *KVGetQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface{},
 	rm := &ResponseMetadata{
 		LastIndex:   qm.LastIndex,
 		LastContact: qm.LastContact,
-		Block:       d.block,
+		BlockOnNil:  d.blockOnNil,
 	}
 
 	if pair == nil {
@@ -80,7 +83,7 @@ func (d *KVGetQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface{},
 
 // EnableBlocking turns this into a blocking KV query.
 func (d *KVGetQuery) EnableBlocking() {
-	d.block = true
+	d.blockOnNil = true
 }
 
 // CanShare returns a boolean if this dependency is shareable.
@@ -95,7 +98,7 @@ func (d *KVGetQuery) String() string {
 		key = key + "@" + d.dc
 	}
 
-	if d.block {
+	if d.blockOnNil {
 		return fmt.Sprintf("kv.block(%s)", key)
 	}
 	return fmt.Sprintf("kv.get(%s)", key)

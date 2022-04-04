@@ -243,6 +243,8 @@ func (v *View) fetch(doneCh, successCh chan<- struct{}, errCh chan<- error) {
 			time.Sleep(dur)
 		}
 
+		// blocking queries that return due to block timeout
+		// will have the same index
 		if rm.LastIndex == v.lastIndex {
 			log.Printf("[TRACE] (view) %s no new data (index was the same)", v.dependency)
 			continue
@@ -263,7 +265,10 @@ func (v *View) fetch(doneCh, successCh chan<- struct{}, errCh chan<- error) {
 			continue
 		}
 
-		if data == nil && rm.Block {
+		// this is for queries that are blocking but return a nil value on
+		// lookup failures, but you want the dependency to act like it is still
+		// blocking and loop back and hit it again.
+		if data == nil && rm.BlockOnNil {
 			log.Printf("[TRACE] (view) %s asked for blocking query", v.dependency)
 			v.dataLock.Unlock()
 			continue
