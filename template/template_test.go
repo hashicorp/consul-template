@@ -1456,6 +1456,39 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"helper_trim",
+			&NewTemplateInput{
+				Contents: `{{ "!!hello world!!" | trim "!!" }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"hello world",
+			false,
+		},
+		{
+			"helper_trimPrefix",
+			&NewTemplateInput{
+				Contents: `{{ "hello world!!" | trimPrefix "hello " }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"world!!",
+			false,
+		},
+		{
+			"helper_trimSuffix",
+			&NewTemplateInput{
+				Contents: `{{ "hello world!!" | trimSuffix " world!!" }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"hello",
+			false,
+		},
+		{
 			"helper_parseBool",
 			&NewTemplateInput{
 				Contents: `{{ "true" | parseBool }}`,
@@ -1993,7 +2026,7 @@ func Test_writeToFile(t *testing.T) {
 
 	cases := []struct {
 		name        string
-		filePath   string
+		filePath    string
 		content     string
 		username    string
 		groupName   string
