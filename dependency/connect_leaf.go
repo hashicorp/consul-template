@@ -51,7 +51,6 @@ func (d *ConnectLeafQuery) Fetch(clients *ClientSet, opts *QueryOptions) (
 	rm := &ResponseMetadata{
 		LastIndex:   md.LastIndex,
 		LastContact: md.LastContact,
-		Block:       true,
 	}
 
 	return cert, rm, nil

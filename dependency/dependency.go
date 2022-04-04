@@ -145,7 +145,7 @@ func (q *QueryOptions) String() string {
 type ResponseMetadata struct {
 	LastIndex   uint64
 	LastContact time.Duration
-	Block       bool
+	BlockOnNil  bool // keep blocking on `nil` data returns
 }
 
 // deepCopyAndSortTags deep copies the tags in the given string slice and then
