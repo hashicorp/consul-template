@@ -1,3 +1,10 @@
+## v0.28.1 (Apr 04, 2022)
+
+IMPROVEMENTS:
+* Allow setting template destination file ownership by name (with uid/gid compatibilty) [[GH-1541](https://github.com/hashicorp/consul-template/pull/1541), [GH-1551](https://github.com/hashicorp/consul-template/pull/1551)]
+* better writeToFile user/group ownership behaviors [[GH-1549](https://github.com/hashicorp/consul-template/pull/1549)]
+* configurable lease check wait for non-renewable secrets [[GH-1546](https://github.com/hashicorp/consul-template/pull/1546)]
+
 ## v0.28.0 (Mar 04, 2022)
 
 BUG FIXES:
