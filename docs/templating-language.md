@@ -57,6 +57,9 @@ provides the following functions:
   - [mergeMap](#mergemap)
   - [mergeMapWithOverride](#mergemapwithoverride)
   - [trimSpace](#trimspace)
+  - [trim](#trim)
+  - [trimPrefix](#trimprefix)
+  - [trimSuffix](#trimsuffix)  
   - [parseBool](#parsebool)
   - [parseFloat](#parsefloat)
   - [parseInt](#parseint)
@@ -1254,6 +1257,30 @@ Takes the provided input and trims all whitespace, tabs and newlines:
 
 ```golang
 {{ file "/etc/ec2_version" | trimSpace }}
+```
+
+### `trim`
+
+Takes the provided input and trims all leading and trailing unicode:
+
+```golang
+{{ "hello world!!" | trim "!!" }}
+```
+
+### `trimPrefix`
+
+Takes the provided input and trims leading prefix string:
+
+```golang
+{{ "hello world!!" | trimPrefix "hello" }}
+```
+
+### `trimSuffix`
+
+Takes the provided input and trims trailing suffix string:
+
+```golang
+{{ "hello world!!" | trimSuffix "world!!" }}
 ```
 
 ### `parseBool`
