@@ -526,7 +526,7 @@ template {
   # See the Exec section below and the Commands section in the README for more.
   exec {
       command = ["restart", "service", "foo"]
-      timout = "30s"
+      timeout = "30s"
   }
 
   # For backwards compatibility the template block also supports a bare
