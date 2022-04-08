@@ -1110,6 +1110,55 @@ func regexMatch(re, s string) (bool, error) {
 	return compiled.MatchString(s), nil
 }
 
+// chooseOne uses rendezvous hashing select an item
+// from the list with semi-sticky results even
+// if the list itself has an item appended or removed.
+// This is used for semi-random load balancing
+// in consul template with minimal template updates
+// (and thus minimal restarts/signals)
+func chooseOne(hashKey string, list []interface{}) (interface{}, error) {
+	// Make an empty list for hashed items
+	hashKeys := make([]string, 0, len(list))
+	// Make an empty map (hash -> item)
+	hashKeyToListItem := make(map[string]interface{})
+
+	// Iterate over the list
+	for _, listItem := range list {
+		// hash each key-item combo
+		toHash := rendezvousHash{
+			item: listItem,
+			key:  hashKey,
+		}
+		hashKeyForItem := getInterfaceHash(toHash)
+		// add hashKey to list
+		hashKeys = append(hashKeys, hashKeyForItem)
+		// add listItem to Hash
+		hashKeyToListItem[hashKeyForItem] = listItem
+	}
+
+	// get highest key in the list
+	sort.Strings(hashKeys)
+	highestKey := hashKeys[0]
+	returnValue := hashKeyToListItem[highestKey]
+
+	return returnValue, nil
+}
+
+func getInterfaceHash(i interface{}) string {
+	h := sha256.New()
+	// TODO: This is passing in a map into a hash function
+	// if we cannot guarantee maps to be stabley sorted
+	// then could this hash function become unstable?
+	// Might have to make this a stable sort somehow?
+	h.Write([]byte(fmt.Sprintf("%v", i)))
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+type rendezvousHash struct {
+	item interface{}
+	key  string
+}
+
 // split is a version of strings.Split that can be piped
 func split(sep, s string) ([]string, error) {
 	s = strings.TrimSpace(s)

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	dep "github.com/hashicorp/consul-template/dependency"
+	"github.com/stretchr/testify/require"
 )
 
 // NOTE: the template functions are all tested in ./template_test.go and
@@ -211,8 +212,8 @@ func Test_sha256Hex(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "Should return the proper string",
-			args:    args{
+			name: "Should return the proper string",
+			args: args{
 				item: "bladibla",
 			},
 			want:    "54cf4c66bcabb5c20e25331c01dd600b73369e97a947861bd8d3a0e0b8b3d70b",
@@ -261,6 +262,73 @@ func Test_md5sum(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("md5sum() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_chooseOne(t *testing.T) {
+	type args struct {
+		list    []interface{}
+		hashKey string
+	}
+
+	type exampleService struct {
+		Port    string
+		Address string
+	}
+
+	es1 := exampleService{
+		Port:    "1234",
+		Address: "1.2.3.4",
+	}
+
+	es2 := exampleService{
+		Port:    "4321",
+		Address: "1.2.3.4",
+	}
+
+	es3 := exampleService{
+		Port:    "1234",
+		Address: "1.1.1.1",
+	}
+
+	es4 := exampleService{
+		Port:    "1234",
+		Address: "4.4.4.4",
+	}
+
+	es5 := exampleService{
+		Port:    "1222",
+		Address: "4.4.4.4",
+	}
+
+	servicesList := []interface{}{es1, es2, es3, es4, es5}
+
+	tests := []struct {
+		name    string
+		args    args
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			name: "Should return the proper string",
+			args: args{
+				list:    servicesList,
+				hashKey: "alloc-id-1",
+			},
+			want:    es5,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := chooseOne(tt.args.hashKey, tt.args.list)
+			if tt.wantErr {
+				require.Error(t, err)
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("chooseOne() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

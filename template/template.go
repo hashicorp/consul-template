@@ -301,6 +301,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"replaceAll":            replaceAll,
 		"sha256Hex":             sha256Hex,
 		"md5sum":                md5sum,
+		"chooseOne":             chooseOne,
 		"timestamp":             timestamp,
 		"toLower":               toLower,
 		"toJSON":                toJSON,

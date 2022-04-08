@@ -40,6 +40,7 @@ provides the following functions:
   - [byKey](#bykey)
   - [byTag](#bytag)
   - [byMeta](#bymeta)
+  - [chooseOne](#chooseOne)
   - [contains](#contains)
   - [containsAll](#containsall)
   - [containsAny](#containsany)
@@ -111,11 +112,13 @@ Query [Consul][consul] for the leaf certificate representing a single service.
 ```
 
 For example:
+
 ```golang
 {{ with caLeaf "proxy" }}{{ .CertPEM }}{{ end }}
 ```
 
 renders
+
 ```text
 -----BEGIN CERTIFICATE-----
 MIICizCCAjGgAwIBAgIBCDAKBggqhkjOPQQDAjAWMRQwEgYDVQQDEwtDb25zdWwg
@@ -138,11 +141,13 @@ Query [Consul][consul] for all [connect][connect] trusted certificate authority
 ```
 
 For example:
+
 ```golang
 {{ range caRoots }}{{ .RootCertPEM }}{{ end }}
 ```
 
 renders
+
 ```text
 -----BEGIN CERTIFICATE-----
 MIICWDCCAf+gAwIBAgIBBzAKBggqhkjOPQQDAjAWMRQwEgYDVQQDEwtDb25zdWwg
@@ -156,7 +161,6 @@ The most useful field is `.RootCertPEM`. For a complete list of available
 fields, see consul's documentation on
 [CARootList](https://godoc.org/github.com/hashicorp/consul/api#CARootList).
 
-
 ### `connect`
 
 Query [Consul][consul] for [connect][connect]-capable services based on their
@@ -167,7 +171,6 @@ health.
 ```
 
 Syntax is exactly the same as for the [service](#service) function below.
-
 
 ```golang
 {{ range connect "web" }}
@@ -181,7 +184,6 @@ renders the IP addresses of all _healthy_ nodes with a logical
 server web01 10.5.2.45:21000
 server web02 10.2.6.61:21000
 ```
-
 
 ### `datacenters`
 
@@ -457,8 +459,7 @@ Query [Vault][vault] for the secret at the given path.
 {{ secret "<PATH>" "<DATA>" }}
 ```
 
-The `<DATA>` attribute is optional; if omitted, the request will be a `vault
-read` (HTTP GET) request. If provided, the request will be a `vault write` (HTTP
+The `<DATA>` attribute is optional; if omitted, the request will be a `vault read` (HTTP GET) request. If provided, the request will be a `vault write` (HTTP
 PUT/POST) request.
 
 For example:
@@ -681,7 +682,6 @@ and perform client-side filtering. As a general rule, do not use the "passing"
 argument alone if you want only healthy services - simply omit the second
 argument instead.
 
-
 ### `services`
 
 Query [Consul][consul] for all services in the catalog.
@@ -723,6 +723,7 @@ For example:
 {{ range tree "service/redis" }}
 {{ .Key }}:{{ .Value }}{{ end }}
 ```
+
 renders
 
 ```text
@@ -946,8 +947,7 @@ Takes the list of services returned by the [`service`](#service) or
 Takes a list of services returned by [`service`](#service) and returns a map
 that groups services by ServiceMeta values. Multiple service meta keys can be
 passed as a comma separated string. `|int` can be added to a meta key to
-convert numbers from service meta values to padded numbers in `printf "%05d" %
-value` format (useful for sorting as Go Template sorts maps by keys).
+convert numbers from service meta values to padded numbers in `printf "%05d" % value` format (useful for sorting as Go Template sorts maps by keys).
 
 **Example**:
 
@@ -1014,6 +1014,26 @@ The code above will produce a map of services grouped by meta:
     }
   ]
 }
+```
+
+### `chooseOne`
+
+Selects an item from a list. Consistently returns
+the same item from the list assuming the first argument,
+the "key", is consistent.
+
+Uses rendezvous hashing to usually return the same
+item from the list even if items are removed or added.
+This allows the user to load balance using templates
+with minimal template updates, and thus minimal signals
+or restarts sent.
+
+```golang
+{{ $selectedService := nomadServices | chooseOne allocationId }}
+```
+
+```golang
+{{ $selectedService := services | chooseOne nodeId }}
 ```
 
 ### `contains`
@@ -1149,7 +1169,6 @@ You can also access deeply nested values:
 
 You will need to have a reasonable format about your data in Consul. Please see
 [Go's text/template package][text-template] for more information.
-
 
 ### `explodeMap`
 
@@ -1450,7 +1469,7 @@ Takes the result from a [`tree`](#tree) or [`ls`](#ls) call and converts it into
 renders
 
 ```json
-{"admin":{"port":"1234"},"maxconns":"5","minconns":"2"}
+{ "admin": { "port": "1234" }, "maxconns": "5", "minconns": "2" }
 ```
 
 Note: Consul stores all KV data as strings. Thus true is "true", 1 is "1", etc.
@@ -1489,7 +1508,12 @@ Takes the result from a [`tree`](#tree) or [`ls`](#ls) call and converts it into
 renders
 
 ```json
-{"admin":{"port":"1234"},"maxconns":"5","minconns":"2", "queryparams": "a?b=c&d=e"}
+{
+  "admin": { "port": "1234" },
+  "maxconns": "5",
+  "minconns": "2",
+  "queryparams": "a?b=c&d=e"
+}
 ```
 
 ##### `toUnescapedJSONPretty`
@@ -1621,7 +1645,7 @@ For example:
 ## Sprig Functions
 
 Consul-template provides access to the Sprig library
-in templates. To use a Sprig function in your template, prepend `sprig_` to the function name.  A full list of Sprig functions can be found in the [Sprig Function Documentation](http://masterminds.github.io/sprig/)
+in templates. To use a Sprig function in your template, prepend `sprig_` to the function name. A full list of Sprig functions can be found in the [Sprig Function Documentation](http://masterminds.github.io/sprig/)
 
 ---
 
@@ -1791,10 +1815,10 @@ renders
 
 Formats output according to the provided format string and then writes the generated information to stdout. You can use format strings to produce a compacted inline printing style by your choice:
 
-* `%v`: most compact
-* `%+v`: adds pointer addresses
-* `%#v`: adds types
-* `%#+v`: adds types and pointer addresses
+- `%v`: most compact
+- `%+v`: adds pointer addresses
+- `%#v`: adds types
+- `%#+v`: adds types and pointer addresses
 
 ```golang
 spew_printf("myVar1: %v -- myVar2: %+v", myVar1, myVar2)
@@ -1823,7 +1847,6 @@ map[foo:map[bar:true baz:string theAnswer:42]]
 ```
 
 #### using `%+v`
-
 
 ```golang
 {{ spew_printf "%+v\n" $OBJ }}
@@ -1877,11 +1900,10 @@ outputs
 
 If you would prefer to use format strings with a compacted inline printing style, use the convenience wrappers for [`spew.Printf`](https://pkg.go.dev/github.com/davecgh/go-spew/spew#Printf), [`spew.Sprintf`](https://pkg.go.dev/github.com/davecgh/go-spew/spew#Sprintf), etc with:
 
-* `%v`: most compact
-* `%+v`: adds pointer addresses
-* `%#v`: adds types
-* `%#+v`: adds types and pointer addresses
-
+- `%v`: most compact
+- `%+v`: adds pointer addresses
+- `%#v`: adds types
+- `%#+v`: adds types and pointer addresses
 
 [connect]: https://www.consul.io/docs/connect/ "Connect"
 [consul]: https://www.consul.io "Consul by HashiCorp"
