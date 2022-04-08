@@ -1,6 +1,7 @@
 package signals
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"syscall"
@@ -11,29 +12,31 @@ import (
 
 func TestStringToSignalFunc(t *testing.T) {
 	f := StringToSignalFunc()
-	strType := reflect.TypeOf("")
-	sigType := reflect.TypeOf((*os.Signal)(nil)).Elem()
+	sigType := reflect.ValueOf(os.Interrupt)
 
 	cases := []struct {
-		f, t     reflect.Type
-		data     interface{}
+		name     string
+		f, t     reflect.Value
 		expected interface{}
 		err      bool
 	}{
-		{strType, sigType, "SIGTERM", syscall.SIGTERM, false},
-		{strType, sigType, "SIGINT", syscall.SIGINT, false},
+		{"sigterm", reflect.ValueOf("SIGTERM"), sigType, syscall.SIGTERM, false},
+		{"sigint", reflect.ValueOf("SIGINT"), sigType, syscall.SIGINT, false},
 
 		// Invalid signal name
-		{strType, sigType, "BACON", nil, true},
+		{"bad", reflect.ValueOf("BACON"), sigType, nil, true},
 	}
 
 	for i, tc := range cases {
-		actual, err := mapstructure.DecodeHookExec(f, tc.f, tc.t, tc.data)
-		if (err != nil) != tc.err {
-			t.Errorf("case %d: %s", i, err)
-		}
-		if !reflect.DeepEqual(actual, tc.expected) {
-			t.Errorf("case %d: expected %#v to be %#v", i, actual, tc.expected)
-		}
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			actual, err := mapstructure.DecodeHookExec(f, tc.f, tc.t)
+			if (err != nil) != tc.err {
+				t.Errorf("case %d: %v", i, err)
+			}
+			if !reflect.DeepEqual(actual, tc.expected) {
+				t.Errorf("case %d: expected %#v (%T) to be %#v (%T)",
+					i, actual, actual, tc.expected, tc.expected)
+			}
+		})
 	}
 }

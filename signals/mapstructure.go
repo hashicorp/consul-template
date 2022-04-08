@@ -19,7 +19,18 @@ func StringToSignalFunc() mapstructure.DecodeHookFunc {
 			return data, nil
 		}
 
-		if t.String() != "os.Signal" {
+		//TODO(schmichael): I added the syscall.Signal check because I
+		//can't get `t` to have type os.Signal here!
+		//
+		// How do you reflect to a type of os.Signal?
+		// If I pass a ValueOf(os.Signal)(nil) to DecodeHookExec, it
+		// panics because you can't get a concrete type out of that.
+		//
+		// If I pass a ValueOf(os.Interrupt), then DecodeHookExec gets
+		// the *concrete* type (syscall.Signal).
+		//
+		// Not sure what else to try
+		if t.String() != "syscall.Signal" && t.String() != "os.Signal" {
 			return data, nil
 		}
 
