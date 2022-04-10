@@ -158,6 +158,12 @@ func (c *TemplateConfig) Copy() *TemplateConfig {
 
 	o.Source = c.Source
 
+	o.User = c.User
+	o.Group = c.Group
+
+	o.Uid = c.Uid
+	o.Gid = c.Gid
+
 	if c.Wait != nil {
 		o.Wait = c.Wait.Copy()
 	}
