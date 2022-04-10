@@ -944,6 +944,7 @@ func (r *Runner) init() error {
 			RightDelim:       rightDelim,
 			FunctionDenylist: ctmpl.FunctionDenylist,
 			SandboxPath:      config.StringVal(ctmpl.SandboxPath),
+			Destination:      config.StringVal(ctmpl.Destination),
 		})
 		if err != nil {
 			return err
