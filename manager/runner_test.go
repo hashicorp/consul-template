@@ -18,6 +18,38 @@ import (
 	"github.com/hashicorp/consul-template/template"
 )
 
+func TestRunner_initTemplates(t *testing.T) {
+
+	c := config.TestConfig(
+		&config.Config{
+			Templates: &config.TemplateConfigs{
+				&config.TemplateConfig{
+					Contents: config.String(`template`),
+				},
+				&config.TemplateConfig{
+					Contents: config.String(`template`),
+				},
+			},
+		})
+
+	r, err := NewRunner(c, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	confMap := r.TemplateConfigMapping()
+
+	for _, tmpl := range r.templates {
+		if _, ok := confMap[tmpl.ID()]; !ok {
+			t.Errorf("config map missing template entry")
+		}
+		if confs := confMap[tmpl.ID()]; len(confs) != len(r.templates) {
+			t.Errorf("should be %v templates, but there are %v",
+				len(r.templates), len(confs))
+		}
+	}
+}
+
 func TestRunner_Receive(t *testing.T) {
 
 	c := config.TestConfig(&config.Config{Once: true})

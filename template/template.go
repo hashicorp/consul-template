@@ -8,6 +8,7 @@ import (
 	"text/template"
 
 	"github.com/Masterminds/sprig"
+	"github.com/hashicorp/consul-template/config"
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/pkg/errors"
 )
@@ -61,6 +62,9 @@ type Template struct {
 	// and causes an error if a relative path tries to traverse outside that
 	// prefix.
 	sandboxPath string
+
+	// local reference to configuration for this template
+	config *config.TemplateConfig
 }
 
 // NewTemplateInput is used as input when creating the template.
@@ -94,6 +98,9 @@ type NewTemplateInput struct {
 	// and causes an error if a relative path tries to traverse outside that
 	// prefix.
 	SandboxPath string
+
+	// Config keeps local reference to config struct
+	Config *config.TemplateConfig
 }
 
 // NewTemplate creates and parses a new Consul Template template at the given
@@ -122,6 +129,7 @@ func NewTemplate(i *NewTemplateInput) (*Template, error) {
 	t.functionDenylist = i.FunctionDenylist
 	t.sandboxPath = i.SandboxPath
 	t.destination = i.Destination
+	t.config = i.Config
 
 	if i.Source != "" {
 		contents, err := ioutil.ReadFile(i.Source)
@@ -146,6 +154,11 @@ func (t *Template) ID() string {
 // Contents returns the raw contents of the template.
 func (t *Template) Contents() string {
 	return t.contents
+}
+
+// Config returns the template's config
+func (t *Template) Config() *config.TemplateConfig {
+	return t.config
 }
 
 // Source returns the filepath source of this template.
