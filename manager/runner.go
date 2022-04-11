@@ -50,10 +50,6 @@ type Runner struct {
 	outStream, errStream io.Writer
 	inStream             io.Reader
 
-	// ctemplatesMap is a map of each template ID to the TemplateConfigs
-	// that made it.
-	ctemplatesMap map[string]*config.TemplateConfig
-
 	// templates is the list of calculated templates.
 	templates []*template.Template
 
@@ -919,7 +915,6 @@ func (r *Runner) init() error {
 
 	numTemplates := len(*r.config.Templates)
 	templates := make([]*template.Template, 0, numTemplates)
-	ctemplatesMap := make(map[string]*config.TemplateConfig)
 
 	// Iterate over each TemplateConfig, creating a new Template resource for each
 	// entry. Templates are parsed and saved, and a map of templates to their
@@ -944,14 +939,13 @@ func (r *Runner) init() error {
 			RightDelim:       rightDelim,
 			FunctionDenylist: ctmpl.FunctionDenylist,
 			SandboxPath:      config.StringVal(ctmpl.SandboxPath),
+			Config:           ctmpl,
 		})
 		if err != nil {
 			return err
 		}
 
 		templates = append(templates, tmpl)
-
-		ctemplatesMap[tmpl.ID()] = ctmpl
 	}
 
 	// Convert the map of templates (which was only used to ensure uniqueness)
@@ -964,7 +958,6 @@ func (r *Runner) init() error {
 	r.renderedCh = make(chan struct{}, 1)
 	r.renderEventCh = make(chan struct{}, 1)
 
-	r.ctemplatesMap = ctemplatesMap
 	r.inStream = os.Stdin
 	r.outStream = os.Stdout
 	r.errStream = os.Stderr
@@ -1017,18 +1010,22 @@ func (r *Runner) diffAndUpdateDeps(depsMap map[string]dep.Dependency) {
 
 // TemplateConfigFor returns the TemplateConfig for the given Template
 func (r *Runner) templateConfigFor(tmpl *template.Template) *config.TemplateConfig {
-	return r.ctemplatesMap[tmpl.ID()]
+	return tmpl.Config()
 }
 
 // TemplateConfigMapping returns a mapping between the template ID and the set
 // of TemplateConfig represented by the template ID
-func (r *Runner) TemplateConfigMapping() map[string]*config.TemplateConfig {
+func (r *Runner) TemplateConfigMapping() map[string][]*config.TemplateConfig {
 	// this method is primarily used to support embedding consul-template
 	// in other applications (ex. Nomad)
-	m := make(map[string]*config.TemplateConfig)
+	m := make(map[string][]*config.TemplateConfig)
 
-	for id, set := range r.ctemplatesMap {
-		m[id] = set
+	for _, tmpl := range r.templates {
+		m[tmpl.ID()] = []*config.TemplateConfig{}
+	}
+
+	for _, tmpl := range r.templates {
+		m[tmpl.ID()] = append(m[tmpl.ID()], tmpl.Config())
 	}
 
 	return m
