@@ -242,15 +242,19 @@ func initTestNomad(errCh chan<- error) {
 	}
 
 	// Wait for it start
+	var allocs []*nomadapi.AllocationListStub
 	for e := time.Now().Add(30 * time.Second); time.Now().Before(e); {
-		var allocs []*nomadapi.AllocationListStub
-		allocs, _, err := client.Jobs().Allocations(*job.ID, true, nil)
+		allocs, _, err = client.Jobs().Allocations(*job.ID, true, nil)
 		if err != nil {
 			time.Sleep(100 * time.Millisecond)
 			continue
 		}
 		if n := len(allocs); n > 1 {
-			errCh <- fmt.Errorf("expected 1 nomad alloc but found: %d", n)
+			errCh <- fmt.Errorf("expected 1 nomad alloc but found: %d\n%s\n%s",
+				n,
+				compileTaskStates(allocs[0]),
+				compileTaskStates(allocs[1]),
+			)
 			return
 		} else if n == 0 {
 			err = fmt.Errorf("expected 1 nomad alloc but found none")
@@ -259,7 +263,9 @@ func initTestNomad(errCh chan<- error) {
 		}
 
 		if s := allocs[0].ClientStatus; s != "running" {
-			err = fmt.Errorf("expected nomad alloc running but found %q", s)
+			err = fmt.Errorf("expected nomad alloc running but found %q\n%s",
+				s, compileTaskStates(allocs[0]),
+			)
 			time.Sleep(100 * time.Millisecond)
 			continue
 		}
@@ -269,6 +275,22 @@ func initTestNomad(errCh chan<- error) {
 		errCh <- fmt.Errorf("failed to start nomad job: %w", err)
 		return
 	}
+	fmt.Printf("Nomad started: %s\n", compileTaskStates(allocs[0]))
+}
+
+func compileTaskStates(a *nomadapi.AllocationListStub) string {
+	out := ""
+	for name, state := range a.TaskStates {
+		out += fmt.Sprintf("%s: [", name)
+		for i, e := range state.Events {
+			out += e.Type
+			if i != len(state.Events)-1 {
+				out += ", "
+			}
+		}
+		out += "] "
+	}
+	return out
 }
 
 type nomadServer struct {
@@ -277,9 +299,11 @@ type nomadServer struct {
 
 func (n *nomadServer) Stop() error {
 	if n == nil || n.cmd == nil || n.cmd.Process == nil {
+		fmt.Println("No Nomad process to stop")
 		return nil
 	}
 
+	fmt.Println("Signalling Nomad")
 	n.cmd.Process.Signal(os.Interrupt)
 	return n.cmd.Wait()
 }

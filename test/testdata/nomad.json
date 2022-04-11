@@ -9,20 +9,13 @@
   "Type": "service",
   "TaskGroups": [
     {
-      "Constraints": [
-        {
-          "LTarget": "${attr.nomad.service_discovery}",
-          "Operand": "=",
-          "RTarget": "true"
-        }
-      ],
       "Count": 1,
       "Name": "cache",
       "Networks": [
         {
           "DynamicPorts": [
             {
-              "HostNetwork": "default",
+              "Mode": "host",
               "Label": "redis",
               "To": 6379
             }
@@ -39,9 +32,10 @@
       "Tasks": [
         {
           "Config": {
-            "image": "redis:5"
+            "command": "sleep",
+            "args": ["10000"]
           },
-          "Driver": "docker",
+          "Driver": "raw_exec",
           "Name": "redis",
           "Resources": {
             "CPU": 100,
