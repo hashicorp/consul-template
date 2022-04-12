@@ -259,7 +259,7 @@ is equivalent to:
 
 The second form is as a single quoted command using system shell features. This
 form **requires** a shell named `sh` be on the executable search path (eg. PATH
-on *nix). This is the standard on all *nix systems and should work out of the
+on \*nix). This is the standard on all \*nix systems and should work out of the
 box on those systems. This won't work on, for example, Docker images with only
 the executable and without a minimal system like Alpine. Using this form you
 can join multiple commands with logical operators, `&&` and `||`, use pipelines
@@ -275,6 +275,43 @@ example..
 Using this method you can run as many shell commands as you need with whatever
 logic you need. Though it is suggested that if it gets too long you might want
 to wrap it in a shell script, deploy and run that.
+
+#### Shell Commands and Exec Mode
+
+Using the system shell based command has one additional caveat when used for
+the Exec mode process (the managed, executed process to which it will propagate
+signals). That is to get signals to work correctly means not only does anything
+the shell runs need to handle signals, but the shell itself needs to handle
+them. This needs to be managed by you as shells will exit upon receiving most
+signals.
+
+A common example of this would be wanting the SIGHUP signal to trigger a reload
+of the underlying process and to be ignored by the shell process. To get this
+you have 2 options, you can use `trap` to ignore the signal or you can use
+`exec` to replace the shell with another process.
+
+To use `trap` to ignore the signal, you call `trap` to catch the signal in the
+shell with no action. For example if you had an underlying nginx process you
+wanted to run with a shell command and have the shell ignore it you'd do..
+
+`command = "trap '' HUP; /usr/sbin/nginx -c /etc/nginx/nginx.conf"`
+
+The `trap '' HUP;` bit is enough to get the shell to ignore the HUP signal. If
+you left off the `trap` command nginx would reload but the shell command would
+exit but leave the nginx still running, not unmanaged.
+
+Alternatively using `exec` will replace the shell's process with a sub-process,
+keeping the same PID and process grouping (allowing the sub-process to be
+managed). This is simpler, but a bit less flexible than `trap`, and looks
+like..
+
+`command = "exec /usr/sbin/nginx -c /etc/nginx/nginx.conf"`
+
+Where the nginx process would replace the enclosing shell process to be managed
+by consul-template, receiving the Signals directly. Basically `exec` eliminates
+the shell from the equation.
+
+See your shell's documentation on `trap` and/or `exec` for more details on this.
 
 ### Multi-phase Execution
 
