@@ -111,9 +111,12 @@ func Test_VaultPKI_refetch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	act1, _, err := d.Fetch(clients, nil)
+	act1, rm, err := d.Fetch(clients, nil)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if rm == nil {
+		t.Error("Fetch returned nil for response metadata.")
 	}
 
 	cert1, ok := act1.(string)
@@ -130,9 +133,12 @@ func Test_VaultPKI_refetch(t *testing.T) {
 	// re-fetch, should be the same cert pulled from the file
 	// if re-fetched from Vault it will be different
 	<-d.sleepCh // drain sleepCh so we don't wait
-	act2, _, err := d.Fetch(clients, nil)
+	act2, rm, err := d.Fetch(clients, nil)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if rm == nil {
+		t.Error("Fetch returned nil for response metadata.")
 	}
 
 	cert2, ok := act2.(string)
