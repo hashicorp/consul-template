@@ -246,6 +246,21 @@ func (c *TemplateConfig) Merge(o *TemplateConfig) *TemplateConfig {
 		r.Source = o.Source
 	}
 
+	if o.User != nil {
+		r.User = o.User
+	}
+	if o.Group != nil {
+		r.Group = o.Group
+	}
+
+	if o.Uid != nil {
+		r.Uid = o.Uid
+	}
+
+	if o.Gid != nil {
+		r.Gid = o.Gid
+	}
+
 	if o.Wait != nil {
 		r.Wait = r.Wait.Merge(o.Wait)
 	}
