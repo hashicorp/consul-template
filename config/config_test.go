@@ -1695,6 +1695,74 @@ func TestParse(t *testing.T) {
 			nil,
 			true,
 		},
+		{
+			"nomad",
+			`nomad {}`,
+			&Config{
+				Nomad: &NomadConfig{},
+			},
+			false,
+		},
+		{
+			"nomad_address",
+			`nomad {
+              address = "http://10.10.10.2:4646"
+            }`,
+			&Config{
+				Nomad: &NomadConfig{
+					Address: String("http://10.10.10.2:4646"),
+				},
+			},
+			false,
+		},
+		{
+			"nomad_namespace",
+			`nomad {
+              namespace = "platform"
+            }`,
+			&Config{
+				Nomad: &NomadConfig{
+					Namespace: String("platform"),
+				},
+			},
+			false,
+		},
+		{
+			"nomad_token",
+			`nomad {
+              token = "sssssshhhhhh"
+            }`,
+			&Config{
+				Nomad: &NomadConfig{
+					Token: String("sssssshhhhhh"),
+				},
+			},
+			false,
+		},
+		{
+			"nomad_auth_username",
+			`nomad {
+              auth_username = "admin"
+            }`,
+			&Config{
+				Nomad: &NomadConfig{
+					AuthUsername: String("admin"),
+				},
+			},
+			false,
+		},
+		{
+			"nomad_auth_password",
+			`nomad {
+              auth_password = "admin"
+            }`,
+			&Config{
+				Nomad: &NomadConfig{
+					AuthPassword: String("admin"),
+				},
+			},
+			false,
+		},
 	}
 
 	for i, tc := range cases {

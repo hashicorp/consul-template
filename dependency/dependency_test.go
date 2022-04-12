@@ -1,6 +1,7 @@
 package dependency
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -9,10 +10,12 @@ import (
 	"reflect"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
+	nomadapi "github.com/hashicorp/nomad/api"
 	vapi "github.com/hashicorp/vault/api"
 )
 
@@ -21,10 +24,12 @@ const vaultToken = "a_token"
 
 var testConsul *testutil.TestServer
 var testVault *vaultServer
+var testNomad *nomadServer
 var testClients *ClientSet
 
 func TestMain(m *testing.M) {
 	log.SetOutput(ioutil.Discard)
+	nomadFuture := runTestNomad()
 	runTestVault()
 	tb := &test.TestingTB{}
 	runTestConsul(tb)
@@ -39,8 +44,17 @@ func TestMain(m *testing.M) {
 		Address: vaultAddr,
 		Token:   vaultToken,
 	}); err != nil {
+		testConsul.Stop()
 		testVault.Stop()
 		Fatalf("failed to create vault client: %v\n", err)
+	}
+	if err := clients.CreateNomadClient(&CreateNomadClientInput{
+		Address: "http://127.0.0.1:4646",
+	}); err != nil {
+		testConsul.Stop()
+		testVault.Stop()
+		testNomad.Stop()
+		Fatalf("failed to create nomad client: %v\n", err)
 	}
 	testClients = clients
 
@@ -102,6 +116,14 @@ func TestMain(m *testing.M) {
 		Fatalf("%v", err)
 	}
 
+	// Wait for Nomad initialization to finish
+	if err := <-nomadFuture; err != nil {
+		testConsul.Stop()
+		testNomad.Stop()
+		testVault.Stop()
+		Fatalf("failed to start Nomad: %v\n", err)
+	}
+
 	exitCh := make(chan int, 1)
 	func() {
 		defer func() {
@@ -111,6 +133,7 @@ func TestMain(m *testing.M) {
 			if r := recover(); r != nil {
 				testConsul.Stop()
 				testVault.Stop()
+				testNomad.Stop()
 				panic(r)
 			}
 		}()
@@ -123,6 +146,7 @@ func TestMain(m *testing.M) {
 	tb.DoCleanup()
 	testConsul.Stop()
 	testVault.Stop()
+	testNomad.Stop()
 	os.Exit(exit)
 }
 
@@ -137,6 +161,151 @@ func runTestConsul(tb testutil.TestingTB) {
 		Fatalf("failed to start consul server: %v", err)
 	}
 	testConsul = consul
+}
+
+// runTestNomad starts a Nomad agent and returns a chan which will block until
+// initialization is complete or fails. Stop() is safe to call after the chan
+// is returned.
+func runTestNomad() <-chan error {
+	path, err := exec.LookPath("nomad")
+	if err != nil || path == "" {
+		Fatalf("nomad not found on $PATH")
+	}
+	cmd := exec.Command(path, "agent", "-dev",
+		"-node=test",
+		"-vault-enabled=false",
+		"-consul-auto-advertise=false",
+		"-consul-client-auto-join=false", "-consul-server-auto-join=false",
+		"-network-speed=100",
+		"-log-level=error", // We're just discarding it anyway
+	)
+	cmd.Stdout = ioutil.Discard
+	cmd.Stderr = ioutil.Discard
+
+	if err := cmd.Start(); err != nil {
+		Fatalf("nomad failed to start: %v", err)
+	}
+	testNomad = &nomadServer{
+		cmd: cmd,
+	}
+
+	errCh := make(chan error, 1)
+	go initTestNomad(errCh)
+
+	return errCh
+}
+
+func initTestNomad(errCh chan<- error) {
+	defer close(errCh)
+
+	// Load a job with a Nomad service. Use a JSON formatted job to avoid
+	// an additional dependency upon Nomad's jobspec package or having to
+	// wait for the agent to be up before the job can be parsed.
+	fd, err := os.Open("../test/testdata/nomad.json")
+	if err != nil {
+		errCh <- fmt.Errorf("error opening test job: %w", err)
+		return
+	}
+	var job nomadapi.Job
+	if err := json.NewDecoder(fd).Decode(&job); err != nil {
+		errCh <- fmt.Errorf("error parsing test job: %w", err)
+		return
+	}
+
+	config := nomadapi.DefaultConfig()
+	client, err := nomadapi.NewClient(config)
+	if err != nil {
+		errCh <- fmt.Errorf("failed to create nomad client: %w", err)
+		return
+	}
+
+	// Wait for API to become available
+	for e := time.Now().Add(30 * time.Second); time.Now().Before(e); {
+		var self *nomadapi.AgentSelf
+		self, err = client.Agent().Self()
+		if err != nil {
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+		fmt.Printf("Nomad v%s running on %s\n", self.Member.Tags["build"], config.Address)
+		break
+	}
+	if err != nil {
+		errCh <- fmt.Errorf("failed to contact nomad agent: %w", err)
+		return
+	}
+
+	// Register a job
+	if _, _, err := client.Jobs().Register(&job, nil); err != nil {
+		errCh <- fmt.Errorf("failed registering nomad job: %w", err)
+		return
+	}
+
+	// Wait for it start
+	var allocs []*nomadapi.AllocationListStub
+	for e := time.Now().Add(30 * time.Second); time.Now().Before(e); {
+		allocs, _, err = client.Jobs().Allocations(*job.ID, true, nil)
+		if err != nil {
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+		if n := len(allocs); n > 1 {
+			errCh <- fmt.Errorf("expected 1 nomad alloc but found: %d\n%s\n%s",
+				n,
+				compileTaskStates(allocs[0]),
+				compileTaskStates(allocs[1]),
+			)
+			return
+		} else if n == 0 {
+			err = fmt.Errorf("expected 1 nomad alloc but found none")
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+
+		if s := allocs[0].ClientStatus; s != "running" {
+			err = fmt.Errorf("expected nomad alloc running but found %q\n%s",
+				s, compileTaskStates(allocs[0]),
+			)
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+		break
+	}
+	if err != nil {
+		errCh <- fmt.Errorf("failed to start nomad job: %w", err)
+		return
+	}
+	fmt.Printf("Nomad started: %s\n", compileTaskStates(allocs[0]))
+}
+
+func compileTaskStates(a *nomadapi.AllocationListStub) string {
+	out := ""
+	for name, state := range a.TaskStates {
+		out += fmt.Sprintf("%s: [", name)
+		for i, e := range state.Events {
+			out += e.Type
+			if i != len(state.Events)-1 {
+				out += ", "
+			}
+		}
+		out += "] "
+	}
+	return out
+}
+
+type nomadServer struct {
+	cmd *exec.Cmd
+}
+
+func (n *nomadServer) Stop() error {
+	if n == nil || n.cmd == nil || n.cmd.Process == nil {
+		fmt.Println("No Nomad process to stop")
+		return nil
+	}
+
+	fmt.Println("Signalling Nomad")
+	n.cmd.Process.Signal(os.Interrupt)
+	return n.cmd.Wait()
 }
 
 type vaultServer struct {

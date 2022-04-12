@@ -8,6 +8,7 @@ import (
 	"time"
 
 	consulapi "github.com/hashicorp/consul/api"
+	nomadapi "github.com/hashicorp/nomad/api"
 )
 
 const (
@@ -19,6 +20,7 @@ const (
 	nearRe        = `(~(?P<near>[[:word:]\.\-\_]+))?`
 	prefixRe      = `/?(?P<prefix>[^@]+)`
 	tagRe         = `((?P<tag>[[:word:]=:\.\-\_]+)\.)?`
+	regionRe      = `(@(?P<region>[[:word:]\.\-\_]+))?`
 )
 
 type Type int
@@ -27,6 +29,7 @@ const (
 	TypeConsul Type = iota
 	TypeVault
 	TypeLocal
+	TypeNomad
 )
 
 // Dependency is an interface for a dependency that Consul Template is capable
@@ -48,6 +51,7 @@ type ServiceTags []string
 type QueryOptions struct {
 	AllowStale        bool
 	Datacenter        string
+	Region            string
 	Near              string
 	RequireConsistent bool
 	VaultGrace        time.Duration
@@ -80,6 +84,10 @@ func (q *QueryOptions) Merge(o *QueryOptions) *QueryOptions {
 		r.Datacenter = o.Datacenter
 	}
 
+	if o.Region != "" {
+		r.Region = o.Region
+	}
+
 	if o.Near != "" {
 		r.Near = o.Near
 	}
@@ -110,6 +118,15 @@ func (q *QueryOptions) ToConsulOpts() *consulapi.QueryOptions {
 	}
 }
 
+func (q *QueryOptions) ToNomadOpts() *nomadapi.QueryOptions {
+	return &nomadapi.QueryOptions{
+		AllowStale: q.AllowStale,
+		Region:     q.Region,
+		WaitIndex:  q.WaitIndex,
+		WaitTime:   q.WaitTime,
+	}
+}
+
 func (q *QueryOptions) String() string {
 	u := &url.Values{}
 
@@ -119,6 +136,10 @@ func (q *QueryOptions) String() string {
 
 	if q.Datacenter != "" {
 		u.Add("dc", q.Datacenter)
+	}
+
+	if q.Region != "" {
+		u.Add("region", q.Region)
 	}
 
 	if q.Near != "" {

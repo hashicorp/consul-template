@@ -281,6 +281,10 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"caLeaf":       connectLeafFunc(i.brain, i.used, i.missing),
 		"pkiCert":      pkiCertFunc(i.brain, i.used, i.missing, i.destination),
 
+		// Nomad Functions.
+		"nomadServices": nomadServicesFunc(i.brain, i.used, i.missing),
+		"nomadService":  nomadServiceFunc(i.brain, i.used, i.missing),
+
 		// Scratch
 		"scratch": func() *Scratch { return &scratch },
 

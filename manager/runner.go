@@ -1344,6 +1344,31 @@ func newClientSet(c *config.Config) (*dep.ClientSet, error) {
 		return nil, fmt.Errorf("runner: %s", err)
 	}
 
+	if err := clients.CreateNomadClient(&dep.CreateNomadClientInput{
+		Address:                      config.StringVal(c.Nomad.Address),
+		Namespace:                    config.StringVal(c.Nomad.Namespace),
+		Token:                        config.StringVal(c.Nomad.Token),
+		AuthUsername:                 config.StringVal(c.Nomad.AuthUsername),
+		AuthPassword:                 config.StringVal(c.Nomad.AuthPassword),
+		SSLEnabled:                   config.BoolVal(c.Vault.SSL.Enabled),
+		SSLVerify:                    config.BoolVal(c.Vault.SSL.Verify),
+		SSLCert:                      config.StringVal(c.Vault.SSL.Cert),
+		SSLKey:                       config.StringVal(c.Vault.SSL.Key),
+		SSLCACert:                    config.StringVal(c.Vault.SSL.CaCert),
+		SSLCAPath:                    config.StringVal(c.Vault.SSL.CaPath),
+		ServerName:                   config.StringVal(c.Vault.SSL.ServerName),
+		TransportCustomDialer:        c.Nomad.Transport.CustomDialer,
+		TransportDialKeepAlive:       config.TimeDurationVal(c.Nomad.Transport.DialKeepAlive),
+		TransportDialTimeout:         config.TimeDurationVal(c.Nomad.Transport.DialTimeout),
+		TransportDisableKeepAlives:   config.BoolVal(c.Nomad.Transport.DisableKeepAlives),
+		TransportIdleConnTimeout:     config.TimeDurationVal(c.Nomad.Transport.IdleConnTimeout),
+		TransportMaxIdleConns:        config.IntVal(c.Nomad.Transport.MaxIdleConns),
+		TransportMaxIdleConnsPerHost: config.IntVal(c.Nomad.Transport.MaxIdleConnsPerHost),
+		TransportTLSHandshakeTimeout: config.TimeDurationVal(c.Nomad.Transport.TLSHandshakeTimeout),
+	}); err != nil {
+		return nil, fmt.Errorf("runner: %s", err)
+	}
+
 	return clients, nil
 }
 
