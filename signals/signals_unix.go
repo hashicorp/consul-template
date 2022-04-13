@@ -8,15 +8,14 @@ import (
 	"syscall"
 )
 
-// RuntimeSig is set to SIGURG, a signal used by the runtime on *nix systems to
-// manage pre-emptive scheduling.
-const RuntimeSig = syscall.SIGURG
+//// Ignored Signals
+// SIGCHLD - don't propagate these to child process as we manage it instead
+// SIGURG  - used by the golang scheduler for parallel runtime.
 
 var SignalLookup = map[string]os.Signal{
 	"SIGABRT":  syscall.SIGABRT,
 	"SIGALRM":  syscall.SIGALRM,
 	"SIGBUS":   syscall.SIGBUS,
-	"SIGCHLD":  syscall.SIGCHLD,
 	"SIGCONT":  syscall.SIGCONT,
 	"SIGFPE":   syscall.SIGFPE,
 	"SIGHUP":   syscall.SIGHUP,
@@ -36,7 +35,6 @@ var SignalLookup = map[string]os.Signal{
 	"SIGTSTP":  syscall.SIGTSTP,
 	"SIGTTIN":  syscall.SIGTTIN,
 	"SIGTTOU":  syscall.SIGTTOU,
-	"SIGURG":   syscall.SIGURG,
 	"SIGUSR1":  syscall.SIGUSR1,
 	"SIGUSR2":  syscall.SIGUSR2,
 	"SIGWINCH": syscall.SIGWINCH,

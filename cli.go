@@ -55,7 +55,7 @@ func NewCLI(out, err io.Writer) *CLI {
 	return &CLI{
 		outStream: out,
 		errStream: err,
-		signalCh:  make(chan os.Signal, 1),
+		signalCh:  make(chan os.Signal, 10),
 		stopCh:    make(chan struct{}),
 	}
 }
@@ -110,8 +110,8 @@ func (cli *CLI) Run(args []string) int {
 	}
 	go runner.Start()
 
-	// Listen for signals
-	signal.Notify(cli.signalCh)
+	// Listen for monitored signals
+	signal.Notify(cli.signalCh, signals.MonitoredSignals...)
 
 	for {
 		select {
@@ -159,15 +159,6 @@ func (cli *CLI) Run(args []string) int {
 				fmt.Fprintf(cli.errStream, "Cleaning up...\n")
 				runner.StopImmediately()
 				return ExitCodeInterrupt
-			case signals.SignalLookup["SIGCHLD"]:
-				// The SIGCHLD signal is sent to the parent of a child process when it
-				// exits, is interrupted, or resumes after being interrupted. We ignore
-				// this signal because the child process is monitored on its own.
-				//
-				// Also, the reason we do a lookup instead of a direct syscall.SIGCHLD
-				// is because that isn't defined on Windows.
-			case signals.RuntimeSig:
-				// ignore these as the runtime uses them with the scheduler
 			default:
 				// Propagate the signal to the child process
 				runner.Signal(s)
