@@ -1,26 +1,325 @@
 name: build
 
-on:
-  push:
-  pull_request:
+# We now default to running this workflow on every push to every branch.
+# This provides fast feedback when build issues occur, so they can be
+# fixed prior to being merged to the main branch.
+#
+# If you want to opt out of this, and only run the build on certain branches
+# please refer to the documentation on branch filtering here:
+#
+#   https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#onpushbranchestagsbranches-ignoretags-ignore
+#
+on: [workflow_dispatch, push, pull_request]
+
+env:
+  PKG_NAME: "consul-template"
 
 jobs:
-  run-tests:
-    name: Run test cases
-    runs-on: ${{ matrix.os }}
+  get-go-version:
+    name: "Determine Go toolchain version"
+    runs-on: ubuntu-latest
+    outputs:
+      go-version: ${{ steps.get-go-version.outputs.go-version }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Determine Go version
+        id: get-go-version
+        # We use .go-version as our source of truth for current Go
+        # version, because "goenv" can react to it automatically.
+        run: |
+          echo "Building with Go $(cat .go-version)"
+          echo "::set-output name=go-version::$(cat .go-version)"
+
+  get-product-version:
+    runs-on: ubuntu-latest
+    outputs:
+      product-version: ${{ steps.get-product-version.outputs.product-version }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: get product version
+        id: get-product-version
+        run: |
+          make version
+          echo "::set-output name=product-version::$(make version)"
+
+  generate-metadata-file:
+    needs: get-product-version
+    runs-on: ubuntu-latest
+    outputs:
+      filepath: ${{ steps.generate-metadata-file.outputs.filepath }}
+    steps:
+      - name: "Checkout directory"
+        uses: actions/checkout@v2
+      - name: Generate metadata file
+        id: generate-metadata-file
+        uses: hashicorp/actions-generate-metadata@v1
+        with:
+          version: ${{ needs.get-product-version.outputs.product-version }}
+          product: ${{ env.PKG_NAME }}
+          repositoryOwner: "hashicorp"
+      - uses: actions/upload-artifact@v2
+        with:
+          name: metadata.json
+          path: ${{ steps.generate-metadata-file.outputs.filepath }}
+
+  build-other:
+    needs:
+      - get-go-version
+      - get-product-version
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        go: [^1]
+        goos: [freebsd, windows, netbsd, openbsd, solaris]
+        goarch: ["386", "amd64", "arm"]
+        exclude:
+          - goos: solaris
+            goarch: 386
+          - goos: solaris
+            goarch: arm
+          - goos: windows
+            goarch: arm
+
+      fail-fast: true
+
+    name: Go ${{ needs.get-go-version.outputs.go-version }} ${{ matrix.goos }} ${{ matrix.goarch }} build
 
     steps:
       - uses: actions/checkout@v2
 
-      - name: Set up Go
+      - name: Setup go
         uses: actions/setup-go@v2
         with:
-          go-version: ${{ matrix.go }}
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
 
-      - name: Make sure we build on all platforms
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
         run: |
-          go build
+          mkdir dist out
+          go build -o dist/ .
+          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+          path: out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+
+  build-linux:
+    needs:
+      - get-go-version
+      - get-product-version
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux]
+        goarch: ["arm", "arm64", "386", "amd64"]
+
+      fail-fast: true
+
+    name: Go ${{ needs.get-go-version.outputs.go-version }} ${{ matrix.goos }} ${{ matrix.goarch }} build
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          mkdir dist out
+          go build -o dist/ .
+          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+          path: out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+
+      - name: Package
+        if: ${{ matrix.goos == 'linux' }}
+        uses: hashicorp/actions-packaging-linux@v1
+        with:
+          name: ${{ github.event.repository.name }}
+          description: "Template rendering, notifier, and supervisor for @hashicorp Consul, Nomad and Vault data. "
+          arch: ${{ matrix.goarch }}
+          version: ${{ needs.get-product-version.outputs.product-version }}
+          maintainer: "HashiCorp"
+          homepage: "https://github.com/hashicorp/consul-template"
+          license: "MPL-2.0"
+          binary: "dist/${{ env.PKG_NAME }}"
+          deb_depends: "openssl"
+          rpm_depends: "openssl"
+
+      - name: Set Package Names
+        if: ${{ matrix.goos == 'linux' }}
+        run: |
+          echo "RPM_PACKAGE=$(basename out/*.rpm)" >> $GITHUB_ENV
+          echo "DEB_PACKAGE=$(basename out/*.deb)" >> $GITHUB_ENV
+
+      - uses: actions/upload-artifact@v2
+        if: ${{ matrix.goos == 'linux' }}
+        with:
+          name: ${{ env.RPM_PACKAGE }}
+          path: out/${{ env.RPM_PACKAGE }}
+
+      - uses: actions/upload-artifact@v2
+        if: ${{ matrix.goos == 'linux' }}
+        with:
+          name: ${{ env.DEB_PACKAGE }}
+          path: out/${{ env.DEB_PACKAGE }}
+
+  build-darwin:
+    needs:
+      - get-go-version
+      - get-product-version
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        goos: [darwin]
+        goarch: ["amd64", "arm64"]
+      fail-fast: true
+
+    name: Go ${{ needs.get-go-version.outputs.go-version }} ${{ matrix.goos }} ${{ matrix.goarch }} build
+
+    env:
+      GOOS: ${{ matrix.goos }}
+      GOARCH: ${{ matrix.goarch }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+      - name: Build
+        run: |
+          mkdir dist out
+          go build -tags netcgo -o dist/
+          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+          path: out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+
+  build-docker-default:
+    name: Docker ${{ matrix.arch }} default release build
+    needs:
+      - get-product-version
+      - build-linux
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: ["arm", "arm64", "386", "amd64"]
+    env:
+      repo: ${{ github.event.repository.name }}
+      version: ${{ needs.get-product-version.outputs.product-version }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Docker Build (Action)
+        uses: hashicorp/actions-docker-build@v1
+        with:
+          # Add smoke test here. Below is a sample smoke test that runs the built image
+          # and validates the version.
+          smoke_test: |
+            TEST_VERSION="$(docker run "${IMAGE_NAME}" | awk '/CLI version/{print $3}')"
+            if [ "${TEST_VERSION}" != "${version}" ]; then
+              echo "Test FAILED"
+              exit 1
+            fi
+            echo "Test PASSED"
+          version: ${{ env.version }}
+          target: release-default
+          arch: ${{ matrix.arch }}
+          tags: |
+            docker.io/hashicorp/${{ env.repo }}:${{ env.version }}
+            986891699432.dkr.ecr.us-east-1.amazonaws.com/hashicorp/${{ env.repo }}:${{ env.version }}
+          # dev_tags are tags that get automatically pushed whenever successful
+          # builds make it to the stable channel. The intention is for these tags
+          # to be used for early testing of new code prior to official releases
+          # going out. The stable channel implies that all tests and scans have
+          # completed successfully, so these images should be _stable_ but are not
+          # intended for production use.
+          #
+          # Here we have two example dev tags. The first (ending -dev) is a tag
+          # that will be updated over-and-over as new builds arrive in stable.
+          #
+          # The second (using the git SHA) will produce a new separate tag for
+          # each commit that is built. (These can still be overridden if the same
+          # commit is built successfully a second time, but that is a less likely
+          # scenario.) These kinds of dev tags are useful if you want to be able
+          # to use Docker images built from those specific commits.
+          #
+          # NOTE: dev_tags MUST publish to the 'hashicorppreview' DockerHub org, it
+          # will fail to any other DockerHub org or registry. You can optionally
+          # prepend docker.io
+          dev_tags: |
+            hashicorppreview/${{ env.repo }}:${{ env.version }}-dev
+            docker.io/hashicorppreview/${{ env.repo }}:${{ env.version }}-${{ github.sha }}
+
+  build-docker-alternate:
+    name: Docker ${{ matrix.arch }} alternate release build
+    needs:
+      - get-product-version
+      - build-linux
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: ["arm", "arm64", "386", "amd64"]
+    env:
+      repo: ${{ github.event.repository.name }}
+      version: ${{ needs.get-product-version.outputs.product-version }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: hashicorp/actions-docker-build@v1
+        with:
+          version: ${{ env.version }}
+          target: release-alternate
+          arch: ${{ matrix.arch }}
+          tags: |
+            docker.io/hashicorp/${{ env.repo }}-alternate:${{ env.version }}
+            986891699432.dkr.ecr.us-east-1.amazonaws.com/hashicorp/${{ env.repo }}-alternate:${{ env.version }}
+          dev_tags: |
+            hashicorppreview/${{ env.repo }}-alternate:${{ env.version }}-dev
+            docker.io/hashicorppreview/${{ env.repo }}-alternate:${{ env.version }}-${{ github.sha }}
+
+  # build-docker-redhat is an example of how to build a Red Hat Certified Container (RHCC) Image.
+  # This means it uses the 'redhat_tag' input, instead of 'tags' and 'dev_tags'.
+  #
+  # It's important to note that there are other important differences with RHCC images, compared
+  # with calls using the 'tags' and optionally 'dev_tags' inputs:
+  #
+  #   - They can only be built for a single architecture,
+  #     so the 'arch' input is hard-coded to 'amd64' in this case.
+  #   - Therefore, we don't use a matrix to expand over architectures,
+  #     when using the 'redhat_tag' input.
+  #   - We can only specify a single 'redhat_tag' not multiple tags,
+  #     as with the 'tags' and 'dev_tags' inputs.
+  build-docker-redhat:
+    name: Docker ${{ matrix.arch }} alternate release build
+    needs:
+      - get-product-version
+      - build-linux
+    runs-on: ubuntu-latest
+    env:
+      repo: ${{github.event.repository.name}}
+      version: ${{needs.get-product-version.outputs.product-version}}
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: hashicorp/actions-docker-build@v1
+        with:
+          version: ${{env.version}}
+          target: release-default
+          arch: amd64
+          redhat_tag: scan.connect.redhat.com/ospid-62211e0d8bf2cabc69a39c7d/${{env.repo}}:${{env.version}}-ubi
