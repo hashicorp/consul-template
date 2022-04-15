@@ -23,6 +23,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	spewLib "github.com/davecgh/go-spew/spew"
+	"github.com/hashicorp/consul-template/dependency"
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul/api"
 	socktmpl "github.com/hashicorp/go-sockaddr/template"
@@ -1116,30 +1117,31 @@ func regexMatch(re, s string) (bool, error) {
 // This is used for semi-random load balancing
 // in consul template with minimal template updates
 // (and thus minimal restarts/signals)
-func chooseOne(hashKey string, list []interface{}) (interface{}, error) {
+func chooseOne(hashKey string, list []*dependency.NomadService) (*dependency.NomadService, error) {
 	// Make an empty list for hashed items
-	hashKeys := make([]string, 0, len(list))
+	keys := make([]string, 0, len(list))
 	// Make an empty map (hash -> item)
-	hashKeyToListItem := make(map[string]interface{})
+	hashKeyToService := make(map[string]*dependency.NomadService)
 
 	// Iterate over the list
-	for _, listItem := range list {
+	for _, service := range list {
+		s := *service
 		// hash each key-item combo
-		toHash := rendezvousHash{
-			item: listItem,
+		toHash := serviceInfo{
+			item: fmt.Sprintf("%s%v", s.Address, s.Port),
 			key:  hashKey,
 		}
-		hashKeyForItem := getInterfaceHash(toHash)
+		keyForService := getInterfaceHash(toHash)
 		// add hashKey to list
-		hashKeys = append(hashKeys, hashKeyForItem)
+		keys = append(keys, keyForService)
 		// add listItem to Hash
-		hashKeyToListItem[hashKeyForItem] = listItem
+		hashKeyToService[keyForService] = service
 	}
 
 	// get highest key in the list
-	sort.Strings(hashKeys)
-	highestKey := hashKeys[0]
-	returnValue := hashKeyToListItem[highestKey]
+	sort.Strings(keys)
+	highestKey := keys[0]
+	returnValue := hashKeyToService[highestKey]
 
 	return returnValue, nil
 }
@@ -1154,8 +1156,8 @@ func getInterfaceHash(i interface{}) string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-type rendezvousHash struct {
-	item interface{}
+type serviceInfo struct {
+	item string
 	key  string
 }
 

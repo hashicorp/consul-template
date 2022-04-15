@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/hashicorp/consul-template/dependency"
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/stretchr/testify/require"
 )
@@ -269,46 +270,41 @@ func Test_md5sum(t *testing.T) {
 
 func Test_chooseOne(t *testing.T) {
 	type args struct {
-		list    []interface{}
+		list    []*dependency.NomadService
 		hashKey string
 	}
 
-	type exampleService struct {
-		Port    string
-		Address string
-	}
-
-	es1 := exampleService{
-		Port:    "1234",
+	es1 := dep.NomadService{
+		Port:    1234,
 		Address: "1.2.3.4",
 	}
 
-	es2 := exampleService{
-		Port:    "4321",
+	es2 := dep.NomadService{
+		Port:    4321,
 		Address: "1.2.3.4",
 	}
 
-	es3 := exampleService{
-		Port:    "1234",
+	es3 := dep.NomadService{
+		Port:    1234,
 		Address: "1.1.1.1",
 	}
 
-	es4 := exampleService{
-		Port:    "1234",
+	es4 := dep.NomadService{
+		Port:    1234,
 		Address: "4.4.4.4",
 	}
 
-	es5 := exampleService{
-		Port:    "1222",
+	es5 := dep.NomadService{
+		Port:    1222,
 		Address: "4.4.4.4",
 	}
 
-	servicesList := []interface{}{es1, es2, es3, es4, es5}
+	servicesList := []*dependency.NomadService{&es1, &es2, &es3, &es4, &es5}
 
 	tests := []struct {
 		name    string
 		args    args
-		want    interface{}
+		want    dependency.NomadService
 		wantErr bool
 	}{
 		{
@@ -317,17 +313,18 @@ func Test_chooseOne(t *testing.T) {
 				list:    servicesList,
 				hashKey: "alloc-id-1",
 			},
-			want:    es5,
+			want:    es2,
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := chooseOne(tt.args.hashKey, tt.args.list)
+			derefGot := *got
 			if tt.wantErr {
 				require.Error(t, err)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
+			if !reflect.DeepEqual(derefGot, tt.want) {
 				t.Errorf("chooseOne() got = %v, want %v", got, tt.want)
 			}
 		})
