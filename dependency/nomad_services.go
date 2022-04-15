@@ -27,8 +27,10 @@ func init() {
 
 // NomadServicesSnippet is a stub service entry in Nomad.
 type NomadServicesSnippet struct {
-	Name string
-	Tags ServiceTags
+	Name    string
+	Address string
+	Port    int
+	Tags    ServiceTags
 }
 
 // nomadSortableSnippet is a sortable slice of NomadServicesSnippet structs.

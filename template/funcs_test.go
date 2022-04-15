@@ -270,41 +270,41 @@ func Test_md5sum(t *testing.T) {
 
 func Test_chooseOne(t *testing.T) {
 	type args struct {
-		list    []*dependency.NomadService
+		list    []*dependency.NomadServicesSnippet
 		hashKey string
 	}
 
-	es1 := dep.NomadService{
+	es1 := dep.NomadServicesSnippet{
 		Port:    1234,
 		Address: "1.2.3.4",
 	}
 
-	es2 := dep.NomadService{
+	es2 := dep.NomadServicesSnippet{
 		Port:    4321,
 		Address: "1.2.3.4",
 	}
 
-	es3 := dep.NomadService{
+	es3 := dep.NomadServicesSnippet{
 		Port:    1234,
 		Address: "1.1.1.1",
 	}
 
-	es4 := dep.NomadService{
+	es4 := dep.NomadServicesSnippet{
 		Port:    1234,
 		Address: "4.4.4.4",
 	}
 
-	es5 := dep.NomadService{
+	es5 := dep.NomadServicesSnippet{
 		Port:    1222,
 		Address: "4.4.4.4",
 	}
 
-	servicesList := []*dependency.NomadService{&es1, &es2, &es3, &es4, &es5}
+	servicesList := []*dependency.NomadServicesSnippet{&es1, &es2, &es3, &es4, &es5}
 
 	tests := []struct {
 		name    string
 		args    args
-		want    dependency.NomadService
+		want    dependency.NomadServicesSnippet
 		wantErr bool
 	}{
 		{

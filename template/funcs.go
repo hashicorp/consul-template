@@ -1117,11 +1117,11 @@ func regexMatch(re, s string) (bool, error) {
 // This is used for semi-random load balancing
 // in consul template with minimal template updates
 // (and thus minimal restarts/signals)
-func chooseOne(hashKey string, list []*dependency.NomadService) (*dependency.NomadService, error) {
+func chooseOne(hashKey string, list []*dependency.NomadServicesSnippet) (*dependency.NomadServicesSnippet, error) {
 	// Make an empty list for hashed items
 	keys := make([]string, 0, len(list))
 	// Make an empty map (hash -> item)
-	hashKeyToService := make(map[string]*dependency.NomadService)
+	hashKeyToService := make(map[string]*dependency.NomadServicesSnippet)
 
 	// Iterate over the list
 	for _, service := range list {
