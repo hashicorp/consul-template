@@ -1,3 +1,16 @@
+## v0.29.0 (Apr 20, 2022)
+
+IMPROVEMENTS:
+* Nomad Service Discovery! [[GH-1565](https://github.com/hashicorp/consul-template/pull/1565)]
+* New `pkiCert` template function provides self-caching certificates [[GH-1559](https://github.com/hashicorp/consul-template/pull/1559), [GH-1259](https://github.com/hashicorp/consul-template/issues/1259)]
+* Add string trim template functions [[GH-1558](https://github.com/hashicorp/consul-template/pull/1558), [GH-1544](https://github.com/hashicorp/consul-template/issues/1544)]
+
+BUG FIXES:
+* Fix issue with multiple identical templates using the same path [[GH-1573](https://github.com/hashicorp/consul-template/pull/1573)]
+* Reduce signal processing overhead [[GH-1575](https://github.com/hashicorp/consul-template/pull/1575), [GH-1548](https://github.com/hashicorp/consul-template/issues/1548)]
+* Fix issue with template user/group setting [[GH-1571](https://github.com/hashicorp/consul-template/pull/1571), [GH-1570](https://github.com/hashicorp/consul-template/issues/1570)]
+
+
 ## v0.28.1 (Apr 04, 2022)
 
 IMPROVEMENTS:
