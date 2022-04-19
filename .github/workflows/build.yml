@@ -95,9 +95,10 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
         run: |
           mkdir dist out
-          go build -o dist/ .
+          go build -o dist/ -ldflags "-s -w -X $(go list -m)/version.GitCommit=$(git rev-parse --short HEAD)" .
           zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
 
       - uses: actions/upload-artifact@v2
@@ -131,9 +132,10 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
         run: |
           mkdir dist out
-          go build -o dist/ .
+          go build -o dist/ -ldflags "-s -w -X $(go list -m)/version.GitCommit=$(git rev-parse --short HEAD)" .
           zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
 
       - uses: actions/upload-artifact@v2
