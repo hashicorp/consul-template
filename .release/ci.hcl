@@ -1,7 +1,8 @@
 schema = "1"
 
 project "consul-template" {
-  team = "consul-template"
+  // the team key is not used by CRT currently
+  team = "cat-floss"
   slack {
     notification_channel = "C026W707YHJ"
   }
@@ -33,20 +34,6 @@ event "upload-dev" {
     repository = "crt-workflows-common"
     workflow = "upload-dev"
     depends = ["build"]
-  }
-
-  notification {
-    on = "fail"
-  }
-}
-
-event "promote-dev-docker" {
-  depends = ["verify"]
-  action "promote-dev-docker" {
-    organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "promote-dev-docker"
-    depends = ["verify"]
   }
 
   notification {
@@ -88,11 +75,6 @@ event "notarize-darwin-amd64" {
     organization = "hashicorp"
     repository = "crt-workflows-common"
     workflow = "notarize-darwin-amd64"
-
-    parameter {
-      key = "SOME_KEY"
-      value = "SOME_VALUE"
-    }
   }
 
   notification {
@@ -106,11 +88,6 @@ event "notarize-windows-386" {
     organization = "hashicorp"
     repository = "crt-workflows-common"
     workflow = "notarize-windows-386"
-
-    parameter {
-      key = "SOME_KEY"
-      value = "SOME_VALUE"
-    }
   }
 
   notification {
@@ -124,11 +101,6 @@ event "notarize-windows-amd64" {
     organization = "hashicorp"
     repository = "crt-workflows-common"
     workflow = "notarize-windows-amd64"
-
-    parameter {
-      key = "SOME_KEY"
-      value = "SOME_VALUE"
-    }
   }
 
   notification {
@@ -175,8 +147,22 @@ event "verify" {
   }
 }
 
-event "fossa-scan" {
+event "promote-dev-docker" {
   depends = ["verify"]
+  action "promote-dev-docker" {
+    organization = "hashicorp"
+    repository = "crt-workflows-common"
+    workflow = "promote-dev-docker"
+    depends = ["verify"]
+  }
+
+  notification {
+    on = "fail"
+  }
+}
+
+event "fossa-scan" {
+  depends = ["promote-dev-docker"]
   action "fossa-scan" {
     organization = "hashicorp"
     repository = "crt-workflows-common"
@@ -202,20 +188,6 @@ event "promote-staging" {
 
   notification {
     on = "always"
-  }
-}
-
-event "promote-staging-new-hc-releases" {
-  depends = ["promote-staging"]
-  action "promote-staging-new-hc-releases" {
-    organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "promote-staging-new-hc-releases"
-	config = "release-metadata.hcl"
-  }
-
-  notification {
-    on = "fail"
   }
 }
 
