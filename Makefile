@@ -10,7 +10,8 @@ OWNER := "hashicorp"
 NAME := "consul-template"
 PROJECT := $(shell go list -m)
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD || echo release)
-VERSION := $(shell awk -F\" '/Version/ { print $$2; exit }' "${CURRENT_DIR}/version/version.go")
+VERSION := $(shell awk -F\" '/^[ \t]+Version/ { print $$2; exit }' "${CURRENT_DIR}/version/version.go")
+PRERELEASE := $(shell awk -F\" '/^[ \t]+VersionPrerelease/ { print $$2; exit }' "${CURRENT_DIR}/version/version.go")
 
 # Current system information
 GOOS ?= $(shell go env GOOS)
@@ -18,9 +19,13 @@ GOARCH ?= $(shell go env GOARCH)
 
 # List of ldflags
 LD_FLAGS ?= \
-	-s \
-	-w \
+	-s -w \
 	-X ${PROJECT}/version.GitCommit=${GIT_COMMIT}
+
+# for CRT build process
+version:
+	@echo ${VERSION}${PRERELEASE}
+.PHONY: version
 
 # dev builds and installs the project locally.
 dev:
@@ -31,6 +36,14 @@ dev:
 			-ldflags "${LD_FLAGS}" \
 			-tags "${GOTAGS}"
 .PHONY: dev
+
+# dev docker builds
+docker:
+	@env CGO_ENABLED="0" go build -ldflags "${LD_FLAGS}" -o $(NAME)
+	mkdir -p dist/linux/amd64/
+	cp consul-template dist/linux/amd64/
+	env DOCKER_BUILDKIT=1 docker build -t consul-template .
+.PHONY: docker
 
 # test runs the test suite.
 test:
@@ -46,8 +59,7 @@ test-race:
 
 # _cleanup removes any previous binaries
 clean:
-	@rm -rf "${CURRENT_DIR}/pkg/"
-	@rm -rf "${CURRENT_DIR}/bin/"
+	@rm -rf "${CURRENT_DIR}/dist/"
 	@rm -f "consul-template"
 .PHONY: clean
 
