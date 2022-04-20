@@ -192,7 +192,7 @@ event "promote-staging" {
 }
 
 event "promote-staging-docker" {
-  depends = ["promote-staging-new-hc-releases"]
+  depends = ["promote-staging"]
   action "promote-staging-docker" {
     organization = "hashicorp"
     repository = "crt-workflows-common"
