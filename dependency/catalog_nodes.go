@@ -144,7 +144,7 @@ func (s ByNode) Len() int      { return len(s) }
 func (s ByNode) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 func (s ByNode) Less(i, j int) bool {
 	if s[i].Node == s[j].Node {
-		return s[i].Address <= s[j].Address
+		return s[i].Address < s[j].Address
 	}
-	return s[i].Node <= s[j].Node
+	return s[i].Node < s[j].Node
 }

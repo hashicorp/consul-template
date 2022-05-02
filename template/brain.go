@@ -31,7 +31,7 @@ func NewBrain() *Brain {
 
 // Remember accepts a dependency and the data to store associated with that
 // dep. This function converts the given data to a proper type and stores
-// it interally.
+// it internally.
 func (b *Brain) Remember(d dep.Dependency, data interface{}) {
 	b.Lock()
 	defer b.Unlock()

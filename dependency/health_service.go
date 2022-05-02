@@ -268,7 +268,7 @@ func (s ByNodeThenID) Less(i, j int) bool {
 	if s[i].Node < s[j].Node {
 		return true
 	} else if s[i].Node == s[j].Node {
-		return s[i].ID <= s[j].ID
+		return s[i].ID < s[j].ID
 	}
 	return false
 }
