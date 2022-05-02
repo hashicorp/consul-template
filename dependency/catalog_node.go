@@ -175,7 +175,7 @@ func (s ByService) Len() int      { return len(s) }
 func (s ByService) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 func (s ByService) Less(i, j int) bool {
 	if s[i].Service == s[j].Service {
-		return s[i].ID <= s[j].ID
+		return s[i].ID < s[j].ID
 	}
-	return s[i].Service <= s[j].Service
+	return s[i].Service < s[j].Service
 }

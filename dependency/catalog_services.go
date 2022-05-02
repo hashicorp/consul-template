@@ -119,11 +119,6 @@ func (d *CatalogServicesQuery) Type() Type {
 // ByName is a sortable slice of CatalogService structs.
 type ByName []*CatalogSnippet
 
-func (s ByName) Len() int      { return len(s) }
-func (s ByName) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
-func (s ByName) Less(i, j int) bool {
-	if s[i].Name <= s[j].Name {
-		return true
-	}
-	return false
-}
+func (s ByName) Len() int           { return len(s) }
+func (s ByName) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s ByName) Less(i, j int) bool { return s[i].Name < s[j].Name }

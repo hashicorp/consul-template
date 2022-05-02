@@ -2,7 +2,7 @@ package config
 
 import "fmt"
 
-// NomadConfig is the configuration for connecto to a Nomad agent.
+// NomadConfig is the configuration for connecting to a Nomad agent.
 type NomadConfig struct {
 	// Address is the URI to the Nomad agent.
 	Address *string `mapstructure:"address"`

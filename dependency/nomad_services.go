@@ -34,14 +34,9 @@ type NomadServicesSnippet struct {
 // nomadSortableSnippet is a sortable slice of NomadServicesSnippet structs.
 type nomadSortableSnippet []*NomadServicesSnippet
 
-func (s nomadSortableSnippet) Len() int      { return len(s) }
-func (s nomadSortableSnippet) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
-func (s nomadSortableSnippet) Less(i, j int) bool {
-	if s[i].Name <= s[j].Name {
-		return true
-	}
-	return false
-}
+func (s nomadSortableSnippet) Len() int           { return len(s) }
+func (s nomadSortableSnippet) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s nomadSortableSnippet) Less(i, j int) bool { return s[i].Name < s[j].Name }
 
 // NomadServicesQuery is the representation of a requested Nomad service
 // dependency from inside a template.

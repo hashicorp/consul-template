@@ -154,11 +154,6 @@ func (d *NomadServiceQuery) Type() Type {
 // NomadServiceByName is a sortable slice of NomadService structs.
 type NomadServiceByName []*NomadService
 
-func (s NomadServiceByName) Len() int      { return len(s) }
-func (s NomadServiceByName) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
-func (s NomadServiceByName) Less(i, j int) bool {
-	if s[i].Name <= s[j].Name {
-		return true
-	}
-	return false
-}
+func (s NomadServiceByName) Len() int           { return len(s) }
+func (s NomadServiceByName) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s NomadServiceByName) Less(i, j int) bool { return s[i].Name < s[j].Name }
