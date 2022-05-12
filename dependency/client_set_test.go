@@ -58,7 +58,7 @@ func TestClientSet_K8SServiceTokenAuth(t *testing.T) {
 		}
 	}
 
-	t.Run("service_token", func(t *testing.T) {
+	t.Run("service_token_value", func(t *testing.T) {
 		t.Parallel()
 
 		testServerAddr := newVaultMockReversedProxy(t, vaultMock{
