@@ -540,7 +540,7 @@ func prepareK8SServiceTokenAuth(
 	i *CreateVaultClientInput,
 	client *vaultapi.Client,
 ) (err error) {
-	opts := make([]vaultkubernetesauth.LoginOption, 0, 1)
+	opts := make([]vaultkubernetesauth.LoginOption, 0, 2)
 
 	switch {
 	case i.K8SServiceAccountToken != "":
