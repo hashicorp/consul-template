@@ -104,7 +104,7 @@ func TestClientSet_K8SServiceTokenAuth(t *testing.T) {
 		err := clientSet.CreateVaultClient(&CreateVaultClientInput{
 			Address:                    testServerAddr,
 			K8SAuthRoleName:            "default_file",
-			K8SServiceAccountMountPath: f.Name(),
+			K8SServiceAccountTokenPath: f.Name(),
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -133,7 +133,7 @@ func TestClientSet_K8SServiceTokenAuth(t *testing.T) {
 		err := clientSet.CreateVaultClient(&CreateVaultClientInput{
 			Address:                    testServerAddr,
 			K8SAuthRoleName:            "default",
-			K8SServiceAccountMountPath: f.Name(),
+			K8SServiceAccountTokenPath: f.Name(),
 			K8SServiceAccountToken:     "service_token_value",
 		})
 		if err != nil {

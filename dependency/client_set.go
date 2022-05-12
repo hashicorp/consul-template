@@ -96,7 +96,7 @@ type CreateVaultClientInput struct {
 	ServerName  string
 
 	K8SAuthRoleName            string
-	K8SServiceAccountMountPath string
+	K8SServiceAccountTokenPath string
 	K8SServiceAccountToken     string
 	K8SServiceMountPath        string
 
@@ -547,9 +547,9 @@ func prepareK8SServiceTokenAuth(
 		opts = append(opts, vaultkubernetesauth.WithServiceAccountToken(
 			i.K8SServiceAccountToken,
 		))
-	case i.K8SServiceAccountMountPath != "":
+	case i.K8SServiceAccountTokenPath != "":
 		opts = append(opts, vaultkubernetesauth.WithServiceAccountTokenPath(
-			i.K8SServiceAccountMountPath,
+			i.K8SServiceAccountTokenPath,
 		))
 	default:
 		// The Kubernetes service account token JWT will be retrieved

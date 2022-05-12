@@ -1340,6 +1340,10 @@ func newClientSet(c *config.Config) (*dep.ClientSet, error) {
 		TransportMaxIdleConns:        config.IntVal(c.Vault.Transport.MaxIdleConns),
 		TransportMaxIdleConnsPerHost: config.IntVal(c.Vault.Transport.MaxIdleConnsPerHost),
 		TransportTLSHandshakeTimeout: config.TimeDurationVal(c.Vault.Transport.TLSHandshakeTimeout),
+		K8SAuthRoleName:              config.StringVal(c.Vault.K8SAuthRoleName),
+		K8SServiceAccountTokenPath:   config.StringVal(c.Vault.K8SServiceAccountTokenPath),
+		K8SServiceAccountToken:       config.StringVal(c.Vault.K8SServiceAccountToken),
+		K8SServiceMountPath:          config.StringVal(c.Vault.K8SServiceMountPath),
 	}); err != nil {
 		return nil, fmt.Errorf("runner: %s", err)
 	}
