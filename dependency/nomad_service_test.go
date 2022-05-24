@@ -9,7 +9,6 @@ import (
 )
 
 func TestNewNomadServiceQuery(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string
@@ -97,8 +96,20 @@ func TestNewNomadServiceQuery(t *testing.T) {
 	}
 }
 
-func TestNomadServiceQuery_Fetch(t *testing.T) {
+func TestNomadServiceChooseQuery(t *testing.T) {
+	query, err := NewNomadServiceChooseQuery(4, "abc123", "tag.name@us-east-1")
+	require.NoError(t, err)
 
+	query.stopCh = nil
+	require.Equal(t, &NomadServiceQuery{
+		region: "us-east-1",
+		name:   "name",
+		tag:    "tag",
+		choose: "4|abc123",
+	}, query)
+}
+
+func TestNomadServiceQuery_Fetch(t *testing.T) {
 	cases := []struct {
 		name string
 		i    string
@@ -185,8 +196,59 @@ func TestNomadServiceQuery_Fetch(t *testing.T) {
 	}
 }
 
-func TestNomadServiceQuery_String(t *testing.T) {
+func TestNomadServicesQuery_Fetch_3arg(t *testing.T) {
+	cases := []struct {
+		name    string
+		service string
+		count   int
+		key     string
+		exp     []*NomadService
+	}{
+		{
+			name:    "choose one",
+			service: "example-cache",
+			count:   1,
+			key:     "abc123",
+			exp: []*NomadService{
+				&NomadService{
+					Name:       "example-cache",
+					Address:    "127.0.0.1",
+					Datacenter: "dc1",
+					Tags:       ServiceTags([]string{"tag1", "tag2"}),
+					JobID:      "example",
+				},
+			},
+		},
+	}
 
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			d, err := NewNomadServiceChooseQuery(tc.count, tc.key, tc.service)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			actI, _, err := d.Fetch(testClients, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			act := actI.([]*NomadService)
+
+			for _, s := range act {
+				// clear random fields
+				s.ID = ""
+				s.Node = ""
+				s.Port = 0
+				s.AllocID = ""
+			}
+
+			require.Equal(t, tc.exp, act)
+		})
+	}
+}
+
+func TestNomadServiceQuery_String(t *testing.T) {
 	cases := []struct {
 		name string
 		i    string
@@ -217,6 +279,34 @@ func TestNomadServiceQuery_String(t *testing.T) {
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
 			d, err := NewNomadServiceQuery(tc.i)
+			if err != nil {
+				t.Fatal(err)
+			}
+			require.Equal(t, tc.exp, d.String())
+		})
+	}
+}
+
+func TestNomadServiceQuery_String_3arg(t *testing.T) {
+	cases := []struct {
+		name  string
+		i     string
+		count int
+		key   string
+		exp   string
+	}{
+		{
+			"choose",
+			"redis",
+			3,
+			"abc123",
+			"nomad.service(redis:3|abc123)",
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			d, err := NewNomadServiceChooseQuery(3, "abc123", tc.i)
 			if err != nil {
 				t.Fatal(err)
 			}

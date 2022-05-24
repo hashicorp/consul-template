@@ -17,6 +17,8 @@ var (
 
 	// NomadServiceQueryRe is the regex that is used to understand a service
 	// specific Nomad query.
+	//
+	// e.g. "<tag=value>.<name>@<region>"
 	NomadServiceQueryRe = regexp.MustCompile(`\A` + tagRe + serviceNameRe + regionRe + `\z`)
 )
 
@@ -46,6 +48,7 @@ type NomadServiceQuery struct {
 	region string
 	name   string
 	tag    string
+	choose string
 }
 
 // NewNomadServiceQuery parses a string into a NomadServiceQuery which is
@@ -56,12 +59,28 @@ func NewNomadServiceQuery(s string) (*NomadServiceQuery, error) {
 	}
 
 	m := regexpMatch(NomadServiceQueryRe, s)
+
 	return &NomadServiceQuery{
 		stopCh: make(chan struct{}, 1),
 		region: m["region"],
 		name:   m["name"],
 		tag:    m["tag"],
 	}, nil
+}
+
+// NewNomadServiceChooseQuery parses s using NewNomadServiceQuery, and then also
+// configures the resulting query with the choose parameter set according to the
+// count and key arguments.
+func NewNomadServiceChooseQuery(count int, key, s string) (*NomadServiceQuery, error) {
+	query, err := NewNomadServiceQuery(s)
+	if err != nil {
+		return nil, err
+	}
+
+	choose := fmt.Sprintf("%d|%s", count, key)
+	query.choose = choose
+
+	return query, nil
 }
 
 // Fetch queries the Nomad API defined by the given client and returns a slice
@@ -75,6 +94,7 @@ func (d *NomadServiceQuery) Fetch(client *ClientSet, opts *QueryOptions) (interf
 
 	opts = opts.Merge(&QueryOptions{
 		Region: d.region,
+		Choose: d.choose,
 	})
 
 	u := &url.URL{
@@ -137,6 +157,9 @@ func (d *NomadServiceQuery) String() string {
 	}
 	if d.region != "" {
 		name = name + "@" + d.region
+	}
+	if d.choose != "" {
+		name = name + ":" + d.choose
 	}
 	return fmt.Sprintf("nomad.service(%s)", name)
 }

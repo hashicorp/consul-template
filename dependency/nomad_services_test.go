@@ -53,17 +53,16 @@ func TestNewNomadServicesQueryQuery(t *testing.T) {
 	}
 }
 
-func TestNomadServicesQuery_Fetch(t *testing.T) {
-
+func TestNomadServicesQuery_Fetch_1arg(t *testing.T) {
 	cases := []struct {
-		name string
-		i    string
-		exp  []*NomadServicesSnippet
+		name    string
+		service string
+		exp     []*NomadServicesSnippet
 	}{
 		{
-			"all",
-			"",
-			[]*NomadServicesSnippet{
+			name:    "all",
+			service: "",
+			exp: []*NomadServicesSnippet{
 				&NomadServicesSnippet{
 					Name: "example-cache",
 					Tags: ServiceTags([]string{"tag1", "tag2"}),
@@ -74,7 +73,7 @@ func TestNomadServicesQuery_Fetch(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-			d, err := NewNomadServicesQuery(tc.i)
+			d, err := NewNomadServicesQuery(tc.service)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -88,6 +87,7 @@ func TestNomadServicesQuery_Fetch(t *testing.T) {
 		})
 	}
 }
+
 func TestNomadServicesQuery_String(t *testing.T) {
 
 	cases := []struct {
