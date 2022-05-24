@@ -553,7 +553,7 @@ func prepareK8SServiceTokenAuth(
 		))
 	default:
 		// The Kubernetes service account token JWT will be retrieved
-		// from /var/run/secrets/kubernetes.io/serviceaccount/token.
+		// from /run/secrets/kubernetes.io/serviceaccount/token.
 	}
 
 	if i.K8SServiceMountPath != "" {

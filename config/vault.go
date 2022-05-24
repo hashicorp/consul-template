@@ -37,7 +37,7 @@ const (
 
 	// DefaultK8SServiceAccountTokenPath is a default path to a file
 	// with service token for the k8s auth method.
-	DefaultK8SServiceAccountTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	DefaultK8SServiceAccountTokenPath = "/run/secrets/kubernetes.io/serviceaccount/token"
 
 	// DefaultK8SServiceMountPath is a default value of the k8s auth method
 	// login path.
@@ -106,7 +106,7 @@ type VaultConfig struct {
 	// a K8SServiceAccountToken. It will be ignored if K8SServiceAccountToken
 	// is set.
 	//
-	// Default value is "/var/run/secrets/kubernetes.io/serviceaccount/token".
+	// Default value is "/run/secrets/kubernetes.io/serviceaccount/token".
 	//
 	// This can also be set via the VAULT_K8S_SERVICE_ACCOUNT_TOKEN_PATH.
 	K8SServiceAccountTokenPath *string `mapstructure:"k8s_service_account_token_path"`
