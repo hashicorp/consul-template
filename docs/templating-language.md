@@ -95,6 +95,9 @@ provides the following functions:
   - [modulo](#modulo)
   - [minimum](#minimum)
   - [maximum](#maximum)
+- [Nomad Functions](#nomad-functions)
+  - [nomadServices](#nomadservices)
+  - [nomadService](#nomadservice)
 - [Debugging Functions](#debugging)
   - [spew_dump](#spew_dump)
   - [spew_sdump](#spew_sdump)
@@ -1778,6 +1781,44 @@ This can also be used with a pipe function.
 
 ```golang
 {{ 5 | maximum 2 }} // 2
+```
+
+## Nomad Functions
+
+Nomad service registrations can be queried using the `nomadServices` and `nomadService` functions.
+Typically these will be used from within a Nomad [template](https://www.nomadproject.io/docs/job-specification/template#nomad-services) configuration.
+
+### `nomadServices`
+
+This can be used to query the names of services registered in Nomad.
+
+```nomadServices
+{{ range nomadServices }}
+  {{ .Name .Tags }}
+{{ end }}
+```
+
+### `nomadService`
+
+This can be used to query for additional information about each instance of a service registered in Nomad.
+
+```nomadService
+{{ range nomadService "my-app" }}
+  {{ .Address }} {{ .Port }}
+{{ end}}
+```
+
+The `nomadService` function also supports basic load-balancing via a [rendezvous hashing](https://en.wikipedia.org/wiki/Rendezvous_hashing)
+algorithm implemented in Nomad's API. To activate this behavior, the function requires three arguments in this order:
+the number of instances desired, a unique but consistent identifier associated with the requester, and the service name.
+
+Typically the unique identifier would be the allocation ID in a Nomad job.
+
+```nomadService
+{{$allocID := env "NOMAD_ALLOC_ID" -}}
+{{range nomadService 3 $allocID "redis"}}
+  {{.Address}} {{.Port}} | {{.Tags}} @ {{.Datacenter}}
+{{- end}}
 ```
 
 ## Debugging Functions
