@@ -13,10 +13,11 @@ var (
 )
 
 // AuthConfig is the HTTP basic authentication data.
+// Skip passwords in json output that is used for logging.
 type AuthConfig struct {
 	Enabled  *bool   `mapstructure:"enabled"`
 	Username *string `mapstructure:"username"`
-	Password *string `mapstructure:"password"`
+	Password *string `mapstructure:"password" json:"-"`
 }
 
 // DefaultAuthConfig is the default configuration.
