@@ -330,7 +330,7 @@ func (c *VaultConfig) GoString() string {
 		"Transport:%#v, "+
 		"UnwrapToken:%s, "+
 		"DefaultLeaseDuration:%s, "+
-		"LeaseRenewalThreshold:%f, "+
+		"LeaseRenewalThreshold:%s, "+
 		"}",
 		StringGoString(c.Address),
 		BoolGoString(c.Enabled),
@@ -343,6 +343,6 @@ func (c *VaultConfig) GoString() string {
 		c.Transport,
 		BoolGoString(c.UnwrapToken),
 		TimeDurationGoString(c.DefaultLeaseDuration),
-		*c.LeaseRenewalThreshold,
+		FloatGoString(c.LeaseRenewalThreshold),
 	)
 }
