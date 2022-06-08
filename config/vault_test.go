@@ -56,8 +56,14 @@ func TestVaultConfig_Copy(t *testing.T) {
 	}
 }
 
-func TestVaultConfig_Merge(t *testing.T) {
+// test simple nil rendering (there was a bug for this)
+func TestVaultGoString(t *testing.T) {
+	v := &VaultConfig{}
+	v.GoString()
+	(*v).GoString()
+}
 
+func TestVaultConfig_Merge(t *testing.T) {
 	cases := []struct {
 		name string
 		a    *VaultConfig
