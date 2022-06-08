@@ -2446,6 +2446,46 @@ func TestDefaultConfig(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"VAULT_K8S_AUTH_ROLE_NAME",
+			"VAULT_K8S_AUTH_ROLE_NAME",
+			&Config{
+				Vault: &VaultConfig{
+					K8SAuthRoleName: String("VAULT_K8S_AUTH_ROLE_NAME"),
+				},
+			},
+			false,
+		},
+		{
+			"VAULT_K8S_SERVICE_ACCOUNT_TOKEN",
+			"VAULT_K8S_SERVICE_ACCOUNT_TOKEN",
+			&Config{
+				Vault: &VaultConfig{
+					K8SServiceAccountToken: String("VAULT_K8S_SERVICE_ACCOUNT_TOKEN"),
+				},
+			},
+			false,
+		},
+		{
+			"VAULT_K8S_SERVICE_ACCOUNT_TOKEN_PATH",
+			"VAULT_K8S_SERVICE_ACCOUNT_TOKEN_PATH",
+			&Config{
+				Vault: &VaultConfig{
+					K8SServiceAccountTokenPath: String("VAULT_K8S_SERVICE_ACCOUNT_TOKEN_PATH"),
+				},
+			},
+			false,
+		},
+		{
+			"VAULT_K8S_SERVICE_MOUNT_PATH",
+			"VAULT_K8S_SERVICE_MOUNT_PATH",
+			&Config{
+				Vault: &VaultConfig{
+					K8SServiceMountPath: String("VAULT_K8S_SERVICE_MOUNT_PATH"),
+				},
+			},
+			false,
+		},
 	}
 
 	for i, tc := range cases {
@@ -2453,10 +2493,7 @@ func TestDefaultConfig(t *testing.T) {
 			r := DefaultConfig().Merge(tc.e)
 			r.Finalize()
 
-			if err := os.Setenv(tc.env, tc.val); err != nil {
-				t.Fatal(err)
-			}
-			defer os.Unsetenv(tc.env)
+			t.Setenv(tc.env, tc.val)
 			c := DefaultConfig()
 			c.Finalize()
 

@@ -535,9 +535,11 @@ func TestVaultReadQuery_Fetch_PKI_Anonymous(t *testing.T) {
 		Token:   "",
 	})
 	_, err = anonClient.vault.client.Auth().Token().LookupSelf()
-	if err == nil || !strings.Contains(err.Error(), "missing client token") {
+	if err == nil ||
+		!(strings.Contains(err.Error(), "missing client token") ||
+			strings.Contains(err.Error(), "permission denied")) {
 		// check environment for VAULT_TOKEN
-		t.Fatalf("expected a missing client token error but found: %v", err)
+		t.Fatalf("expected a missing client token error but found: %q", err)
 	}
 
 	d, err := NewVaultReadQuery("pki/cert/ca")

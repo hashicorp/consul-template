@@ -34,6 +34,14 @@ const (
 	// DefaultLeaseRenewalThreshold is the default fraction of a non-renewable
 	// lease to wait for before refreshing
 	DefaultLeaseRenewalThreshold = .90
+
+	// DefaultK8SServiceAccountTokenPath is a default path to a file
+	// with service token for the k8s auth method.
+	DefaultK8SServiceAccountTokenPath = "/run/secrets/kubernetes.io/serviceaccount/token"
+
+	// DefaultK8SServiceMountPath is a default value of the k8s auth method
+	// login path.
+	DefaultK8SServiceMountPath = "kubernetes"
 )
 
 // VaultConfig is the configuration for connecting to a vault server.
@@ -83,6 +91,34 @@ type VaultConfig struct {
 	// refresh dynamic, non-renewable leases, measured as a fraction of the lease
 	// duration.
 	LeaseRenewalThreshold *float64 `mapstructure:"lease_renewal_threshold"`
+
+	// If Token is empty and K8SAuthRoleName is set, it means to use
+	// k8s vault auth method.
+	//
+	// The kubernetes auth method can be used to authenticate with Vault
+	// using a Kubernetes Service Account Token. This method of
+	// authentication makes it easy to introduce a Vault token into
+	// a Kubernetes Pod.
+	//
+	// This can also be set via the VAULT_K8S_AUTH_ROLE_NAME.
+	K8SAuthRoleName *string `mapstructure:"k8s_auth_role_name"`
+	// K8SServiceAccountTokenPath is the path of file that contains
+	// a K8SServiceAccountToken. It will be ignored if K8SServiceAccountToken
+	// is set.
+	//
+	// Default value is "/run/secrets/kubernetes.io/serviceaccount/token".
+	//
+	// This can also be set via the VAULT_K8S_SERVICE_ACCOUNT_TOKEN_PATH.
+	K8SServiceAccountTokenPath *string `mapstructure:"k8s_service_account_token_path"`
+	// Value of an account token for k8s auth method.
+	//
+	// This can also be set via the VAULT_K8S_SERVICE_ACCOUNT_TOKEN.
+	K8SServiceAccountToken *string `mapstructure:"k8s_service_account_token"`
+	// K8SServiceMountPath is a part of k8s login path, by default the value is
+	// "kubernetes". In this case a full path will be "auth/kubernetes/login".
+	//
+	// This can also be set via the VAULT_K8S_SERVICE_MOUNT_PATH.
+	K8SServiceMountPath *string `mapstructure:"k8s_service_mount_path"`
 }
 
 // DefaultVaultConfig returns a configuration that is populated with the
@@ -135,6 +171,11 @@ func (c *VaultConfig) Copy() *VaultConfig {
 
 	o.DefaultLeaseDuration = c.DefaultLeaseDuration
 	o.LeaseRenewalThreshold = c.LeaseRenewalThreshold
+
+	o.K8SAuthRoleName = c.K8SAuthRoleName
+	o.K8SServiceAccountToken = c.K8SServiceAccountToken
+	o.K8SServiceAccountTokenPath = c.K8SServiceAccountTokenPath
+	o.K8SServiceMountPath = c.K8SServiceMountPath
 
 	return &o
 }
@@ -203,6 +244,22 @@ func (c *VaultConfig) Merge(o *VaultConfig) *VaultConfig {
 
 	if o.LeaseRenewalThreshold != nil {
 		r.LeaseRenewalThreshold = o.LeaseRenewalThreshold
+	}
+
+	if o.K8SAuthRoleName != nil {
+		r.K8SAuthRoleName = o.K8SAuthRoleName
+	}
+
+	if o.K8SServiceAccountToken != nil {
+		r.K8SServiceAccountToken = o.K8SServiceAccountToken
+	}
+
+	if o.K8SServiceAccountTokenPath != nil {
+		r.K8SServiceAccountTokenPath = o.K8SServiceAccountTokenPath
+	}
+
+	if o.K8SServiceMountPath != nil {
+		r.K8SServiceMountPath = o.K8SServiceMountPath
 	}
 
 	return r
@@ -310,6 +367,27 @@ func (c *VaultConfig) Finalize() {
 	if c.LeaseRenewalThreshold == nil {
 		c.LeaseRenewalThreshold = Float64(DefaultLeaseRenewalThreshold)
 	}
+
+	if c.K8SAuthRoleName == nil {
+		c.K8SAuthRoleName = stringFromEnv([]string{
+			"VAULT_K8S_AUTH_ROLE_NAME",
+		}, "")
+	}
+	if c.K8SServiceAccountToken == nil {
+		c.K8SServiceAccountToken = stringFromEnv([]string{
+			"VAULT_K8S_SERVICE_ACCOUNT_TOKEN",
+		}, "")
+	}
+	if c.K8SServiceAccountTokenPath == nil {
+		c.K8SServiceAccountTokenPath = stringFromEnv([]string{
+			"VAULT_K8S_SERVICE_ACCOUNT_TOKEN_PATH",
+		}, DefaultK8SServiceAccountTokenPath)
+	}
+	if c.K8SServiceMountPath == nil {
+		c.K8SServiceMountPath = stringFromEnv([]string{
+			"VAULT_K8S_SERVICE_MOUNT_PATH",
+		}, DefaultK8SServiceMountPath)
+	}
 }
 
 // GoString defines the printable version of this struct.
@@ -331,6 +409,10 @@ func (c *VaultConfig) GoString() string {
 		"UnwrapToken:%s, "+
 		"DefaultLeaseDuration:%s, "+
 		"LeaseRenewalThreshold:%s, "+
+		"K8SAuthRoleName:%s, "+
+		"K8SServiceAccountToken:%s, "+
+		"K8SServiceAccountTokenPath:%s, "+
+		"K8SServiceMountPath:%s, "+
 		"}",
 		StringGoString(c.Address),
 		BoolGoString(c.Enabled),
@@ -344,5 +426,9 @@ func (c *VaultConfig) GoString() string {
 		BoolGoString(c.UnwrapToken),
 		TimeDurationGoString(c.DefaultLeaseDuration),
 		FloatGoString(c.LeaseRenewalThreshold),
+		StringGoString(c.K8SAuthRoleName),
+		StringGoString(c.K8SServiceAccountToken),
+		StringGoString(c.K8SServiceAccountTokenPath),
+		StringGoString(c.K8SServiceMountPath),
 	)
 }
