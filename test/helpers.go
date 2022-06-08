@@ -9,19 +9,26 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func CreateTempfile(b []byte, t *testing.T) *os.File {
+// CreateTempfile that will be closed and removed at the end of the test.
+func CreateTempfile(tb testing.TB, b []byte) *os.File {
+	tb.Helper()
+
 	f, err := ioutil.TempFile(os.TempDir(), "")
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(tb, err)
+
+	tb.Cleanup(func() {
+		fName := f.Name()
+		assert.NoError(tb, f.Close())
+		assert.NoError(tb, os.Remove(fName))
+	})
 
 	if len(b) > 0 {
 		_, err = f.Write(b)
-		if err != nil {
-			t.Fatal(err)
-		}
+		assert.NoError(tb, err)
 	}
 
 	return f
