@@ -8,15 +8,15 @@ import (
 )
 
 func TestConnectCAQuery_Fetch(t *testing.T) {
-
 	d := NewConnectCAQuery()
 	raw, _, err := d.Fetch(testClients, nil)
 	assert.NoError(t, err)
 	act := raw.([]*api.CARoot)
 	if assert.Len(t, act, 1) {
-		root := act[0]
-		assert.Equal(t, root.Name, "Consul CA Root Cert")
-		assert.True(t, root.Active)
-		assert.NotEmpty(t, root.RootCertPEM)
+		ca := act[0]
+		valid := []string{"Consul CA Root Cert", "Consul CA Primary Cert"}
+		assert.Contains(t, valid, ca.Name)
+		assert.True(t, ca.Active)
+		assert.NotEmpty(t, ca.RootCertPEM)
 	}
 }
