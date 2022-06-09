@@ -15,7 +15,6 @@ import (
 )
 
 func TestNewVaultReadQuery(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string
@@ -86,7 +85,6 @@ func TestNewVaultReadQuery(t *testing.T) {
 }
 
 func TestVaultReadQuery_Fetch_KVv1(t *testing.T) {
-
 	clients, vault := testVaultServer(t, "read_fetch_v1", "1")
 	secretsPath := vault.secretsPath
 	// Enable v1 kv for versioned secrets
@@ -262,7 +260,6 @@ func TestVaultReadQuery_Fetch_KVv1(t *testing.T) {
 }
 
 func TestVaultReadQuery_Fetch_KVv2(t *testing.T) {
-
 	clients, vault := testVaultServer(t, "read_fetch_v2", "2")
 	secretsPath := vault.secretsPath
 
@@ -535,9 +532,11 @@ func TestVaultReadQuery_Fetch_PKI_Anonymous(t *testing.T) {
 		Token:   "",
 	})
 	_, err = anonClient.vault.client.Auth().Token().LookupSelf()
-	if err == nil || !strings.Contains(err.Error(), "missing client token") {
+	// 'missing client token' vault <1.9.7, 'permission denied' vault >1.10.0
+	if err == nil || (!strings.Contains(err.Error(), "missing client token") &&
+		!strings.Contains(err.Error(), "permission denied")) {
 		// check environment for VAULT_TOKEN
-		t.Fatalf("expected a missing client token error but found: %v", err)
+		t.Fatalf("expected a 'missing client token' (vault < 1.10) or 'permission denied' error but found: %v", err)
 	}
 
 	d, err := NewVaultReadQuery("pki/cert/ca")
@@ -564,7 +563,6 @@ func TestVaultReadQuery_Fetch_PKI_Anonymous(t *testing.T) {
 // TestVaultReadQuery_Fetch_NonSecrets asserts that vault.read can fetch a
 // non-secret
 func TestVaultReadQuery_Fetch_NonSecrets(t *testing.T) {
-
 	var err error
 
 	clients := testClients
@@ -623,7 +621,6 @@ func TestVaultReadQuery_Fetch_NonSecrets(t *testing.T) {
 }
 
 func TestVaultReadQuery_String(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string
