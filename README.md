@@ -1,6 +1,7 @@
 # Consul Template
 
-[![CircleCI](https://circleci.com/gh/hashicorp/consul-template.svg?style=svg)](https://circleci.com/gh/hashicorp/consul-template)
+[![Build](https://github.com/hashicorp/consul-template/actions/workflows/build.yml/badge.svg)](https://github.com/hashicorp/consul-template/actions/workflows/build.yml)
+[![CI](https://github.com/hashicorp/consul-template/actions/workflows/ci.yml/badge.svg)](https://github.com/hashicorp/consul-template/actions/workflows/ci.yml)
 [![Go Documentation](http://img.shields.io/badge/go-documentation-%2300acd7)](https://godoc.org/github.com/hashicorp/consul-template)
 
 This project provides a convenient way to populate values from [Consul][consul]
