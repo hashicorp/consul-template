@@ -106,7 +106,7 @@ func Test_VaultPKI_refetch(t *testing.T) {
 	/// above is prep work
 	data := map[string]interface{}{
 		"common_name": "foo.example.com",
-		"ttl":         "2s",
+		"ttl":         "3s",
 		"ip_sans":     "127.0.0.1,192.168.2.2",
 	}
 	d, err := NewVaultPKIQuery("pki/issue/example-dot-com", f.Name(), data)
