@@ -23,12 +23,12 @@ func Test_VaultPKI_notGoodFor(t *testing.T) {
 	}
 	dur, ok := goodFor(cert)
 	if ok != false {
-		t.Error("should be false")
+		t.Error("should be false", dur)
 	}
 	// duration should be negative as cert has already expired
 	// but still tests cert time parsing (it'd be 0 if there was an issue)
-	if dur >= 0 {
-		t.Error("cert shouldn't be 0 or positive (old cert)")
+	if dur > 0 {
+		t.Error("cert shouldn't positive (old cert)")
 	}
 }
 
@@ -93,6 +93,8 @@ func Test_VaultPKI_fetchPEM(t *testing.T) {
 }
 
 func Test_VaultPKI_refetch(t *testing.T) {
+	t.Parallel() // have time waits, so parallel might help
+
 	f, err := os.CreateTemp("", "")
 	if err != nil {
 		t.Fatal(err)
@@ -104,7 +106,7 @@ func Test_VaultPKI_refetch(t *testing.T) {
 	/// above is prep work
 	data := map[string]interface{}{
 		"common_name": "foo.example.com",
-		"ttl":         "2h",
+		"ttl":         "2s",
 		"ip_sans":     "127.0.0.1,192.168.2.2",
 	}
 	d, err := NewVaultPKIQuery("pki/issue/example-dot-com", f.Name(), data)
@@ -125,14 +127,17 @@ func Test_VaultPKI_refetch(t *testing.T) {
 	}
 
 	// Fake template rendering file to disk
-	renderer.Render(&renderer.RenderInput{
+	_, err = renderer.Render(&renderer.RenderInput{
 		Contents: []byte(cert1),
 		Path:     f.Name(),
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// re-fetch, should be the same cert pulled from the file
 	// if re-fetched from Vault it will be different
-	<-d.sleepCh // drain sleepCh so we don't wait
+	<-d.sleepCh // drain sleepCh so we don't wait and reuse the cached copy
 	act2, rm, err := d.Fetch(clients, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -147,7 +152,25 @@ func Test_VaultPKI_refetch(t *testing.T) {
 	}
 
 	if cert1 != cert2 {
-		t.Errorf("certs don't match and should. cert1: %s, cert2: %s", cert1, cert2)
+		t.Errorf("certs don't match and should.")
+	}
+
+	// Don't pre-drain here as we want it to get a new cert
+	act3, rm, err := d.Fetch(clients, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rm == nil {
+		t.Error("Fetch returned nil for response metadata.")
+	}
+
+	cert3, ok := act3.(string)
+	if !ok || !strings.Contains(cert2, "BEGIN") {
+		t.Fatalf("expected a cert but found: %s", cert2)
+	}
+
+	if cert2 == cert3 {
+		t.Errorf("certs match and shouldn't.")
 	}
 }
 

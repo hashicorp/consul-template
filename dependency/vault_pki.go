@@ -25,9 +25,6 @@ type VaultPKIQuery struct {
 	pkiPath  string
 	data     map[string]interface{}
 	filePath string
-	// populated from cert data
-	pemBlock   *pem.Block
-	expiration time.Time
 }
 
 // NewVaultReadQuery creates a new datacenter dependency.
@@ -66,30 +63,43 @@ func (d *VaultPKIQuery) Fetch(clients *ClientSet, opts *QueryOptions,
 	default:
 	}
 
-	var encPEM []byte
-	var err error
-	if encPEM, err = os.ReadFile(d.filePath); err != nil || len(encPEM) == 0 {
-		// no need to write to file as it is the template dest
-		encPEM, err = d.fetchPEM(clients)
-	}
-	if err != nil {
-		return nil, nil, errors.Wrap(err, d.String())
+	needsRenewal := fmt.Errorf("needs renewal")
+	getPEM := func(renew bool) ([]byte, error) {
+		var encPEM []byte
+		var err error
+		encPEM, err = os.ReadFile(d.filePath)
+		if renew || err != nil || len(encPEM) == 0 {
+			encPEM, err = d.fetchPEM(clients)
+			// no need to write cert to file as it is the template dest
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		block, cert, err := getCert(encPEM)
+		if err != nil {
+			return nil, err
+		}
+
+		if sleepFor, ok := goodFor(cert); ok {
+			d.sleepCh <- sleepFor
+			return pem.EncodeToMemory(block), nil
+		}
+		return []byte{}, needsRenewal
 	}
 
-	block, cert, err := getCert(encPEM)
-	if err != nil {
+	pemBytes, err := getPEM(false)
+	switch err {
+	case nil:
+	case needsRenewal:
+		pemBytes, err = getPEM(true)
+		if err != nil {
+			return nil, nil, err
+		}
+	default:
 		return nil, nil, err
 	}
-
-	if sleepFor, ok := goodFor(cert); ok {
-		d.sleepCh <- sleepFor
-		return respWithMetadata(string(pem.EncodeToMemory(block)))
-	}
-	d.pemBlock = nil
-	return "", &ResponseMetadata{
-		LastContact: 0,
-		LastIndex:   0,
-	}, nil
+	return respWithMetadata(string(pemBytes))
 }
 
 // returns time left in 90% of the original lease

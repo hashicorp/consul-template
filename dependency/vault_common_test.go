@@ -142,9 +142,9 @@ func setupVaultPKI(clients *ClientSet) {
 	}
 	_, err = vc.Logical().Write("pki/roles/example-dot-com",
 		map[string]interface{}{
-			"allowed_domains":  "example.com",
-			"allow_subdomains": "true",
-			"ttl":              "24h",
+			"allowed_domains":     "example.com",
+			"allow_subdomains":    "true",
+			"not_before_duration": "1s",
 		})
 	if err != nil {
 		panic(err)
