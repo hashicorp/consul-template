@@ -4,6 +4,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"math/rand"
 	"net/url"
 	"os"
 	"strings"
@@ -25,9 +26,6 @@ type VaultPKIQuery struct {
 	pkiPath  string
 	data     map[string]interface{}
 	filePath string
-	// populated from cert data
-	pemBlock   *pem.Block
-	expiration time.Time
 }
 
 // NewVaultReadQuery creates a new datacenter dependency.
@@ -66,40 +64,70 @@ func (d *VaultPKIQuery) Fetch(clients *ClientSet, opts *QueryOptions,
 	default:
 	}
 
-	var encPEM []byte
-	var err error
-	if encPEM, err = os.ReadFile(d.filePath); err != nil || len(encPEM) == 0 {
-		// no need to write to file as it is the template dest
-		encPEM, err = d.fetchPEM(clients)
-	}
-	if err != nil {
-		return nil, nil, errors.Wrap(err, d.String())
+	needsRenewal := fmt.Errorf("needs renewal")
+	getPEM := func(renew bool) ([]byte, error) {
+		var encPEM []byte
+		var err error
+		encPEM, err = os.ReadFile(d.filePath)
+		if renew || err != nil || len(encPEM) == 0 {
+			encPEM, err = d.fetchPEM(clients)
+			// no need to write cert to file as it is the template dest
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		block, cert, err := getCert(encPEM)
+		if err != nil {
+			return nil, err
+		}
+
+		if sleepFor, ok := goodFor(cert); ok {
+			d.sleepCh <- sleepFor
+			return pem.EncodeToMemory(block), nil
+		}
+		return []byte{}, needsRenewal
 	}
 
-	block, cert, err := getCert(encPEM)
-	if err != nil {
+	pemBytes, err := getPEM(false)
+	switch err {
+	case nil:
+	case needsRenewal:
+		pemBytes, err = getPEM(true)
+		if err != nil {
+			return nil, nil, err
+		}
+	default:
 		return nil, nil, err
 	}
-
-	if sleepFor, ok := goodFor(cert); ok {
-		d.sleepCh <- sleepFor
-		return respWithMetadata(string(pem.EncodeToMemory(block)))
-	}
-	d.pemBlock = nil
-	return "", &ResponseMetadata{
-		LastContact: 0,
-		LastIndex:   0,
-	}, nil
+	return respWithMetadata(string(pemBytes))
 }
 
-// returns time left in 90% of the original lease
-// boolean returns false if time has already past
+// returns time left in ~90% of the original lease and a boolean
+// that returns false if cert needs renewing, true otherwise
 func goodFor(cert *x509.Certificate) (time.Duration, bool) {
+	// These are all int64's with Seconds since the Epoch
+	// handy for the math
 	start, end := cert.NotBefore.Unix(), cert.NotAfter.Unix()
-	// use 90% of the cert duration
-	goodfor := ((end - start) * 9) / 10
-	sleepFor := time.Until(time.Unix(start+goodfor, 0))
-	return sleepFor, sleepFor > 0
+	now := time.Now().UTC().Unix()
+	if end <= now { // already expired
+		return 0, false
+	}
+	lifespan := end - start        // full ttl of cert
+	duration := end - now          // duration remaining
+	gooddur := (duration * 9) / 10 // 90% of duration
+	mindur := (lifespan / 10)      // 10% of lifespan
+	if gooddur <= mindur {
+		return 0, false // almost expired, get a new one
+	}
+	if gooddur > 100 { // 100 seconds
+		// add jitter if big enough for it to matter
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		// between 87% and 93%
+		gooddur = gooddur + ((gooddur / 100) * int64(r.Intn(6)-3))
+	}
+	sleepFor := time.Duration(gooddur * 1e9)
+	return sleepFor, true
 }
 
 // loops through all pem encoded blocks in the byte stream
