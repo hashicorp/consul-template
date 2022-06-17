@@ -15,7 +15,6 @@ func init() {
 }
 
 func TestNewFileQuery(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string
@@ -55,7 +54,6 @@ func TestNewFileQuery(t *testing.T) {
 }
 
 func TestFileQuery_Fetch(t *testing.T) {
-
 	f, err := ioutil.TempFile("", "")
 	if err != nil {
 		t.Fatal(err)
@@ -151,7 +149,7 @@ func TestFileQuery_Fetch(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := syncWriteFile(f.Name(), []byte("hello"), 0644); err != nil {
+		if err := syncWriteFile(f.Name(), []byte("hello"), 0o644); err != nil {
 			t.Fatal(err)
 		}
 		defer os.Remove(f.Name())
@@ -181,7 +179,7 @@ func TestFileQuery_Fetch(t *testing.T) {
 		case <-dataCh:
 		}
 
-		if err := syncWriteFile(f.Name(), []byte("goodbye"), 0644); err != nil {
+		if err := syncWriteFile(f.Name(), []byte("goodbye"), 0o644); err != nil {
 			t.Fatal(err)
 		}
 
@@ -195,7 +193,6 @@ func TestFileQuery_Fetch(t *testing.T) {
 }
 
 func TestFileQuery_String(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string

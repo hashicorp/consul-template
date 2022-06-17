@@ -124,7 +124,7 @@ func TestNomadServiceQuery_Fetch(t *testing.T) {
 			"example_cache",
 			"example-cache",
 			[]*NomadService{
-				&NomadService{
+				{
 					// ID is randomized so manually checked below
 					Name: "example-cache",
 					// Node is randomized so manually checked below
@@ -146,7 +146,7 @@ func TestNomadServiceQuery_Fetch(t *testing.T) {
 			"right_tag",
 			"tag2.example-cache",
 			[]*NomadService{
-				&NomadService{
+				{
 					// ID is randomized so manually checked below
 					Name: "example-cache",
 					// Node is randomized so manually checked below
@@ -210,7 +210,7 @@ func TestNomadServicesQuery_Fetch_3arg(t *testing.T) {
 			count:   1,
 			key:     "abc123",
 			exp: []*NomadService{
-				&NomadService{
+				{
 					Name:       "example-cache",
 					Address:    "127.0.0.1",
 					Datacenter: "dc1",

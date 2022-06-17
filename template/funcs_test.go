@@ -211,8 +211,8 @@ func Test_sha256Hex(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "Should return the proper string",
-			args:    args{
+			name: "Should return the proper string",
+			args: args{
 				item: "bladibla",
 			},
 			want:    "54cf4c66bcabb5c20e25331c01dd600b73369e97a947861bd8d3a0e0b8b3d70b",

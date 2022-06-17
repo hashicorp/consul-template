@@ -9,7 +9,6 @@ import (
 )
 
 func TestNewHealthServiceQuery(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string
@@ -170,7 +169,7 @@ func TestHealthConnectServiceQuery_Fetch(t *testing.T) {
 			"connect-service",
 			"foo",
 			[]*HealthService{
-				&HealthService{
+				{
 					Name:        "foo-sidecar-proxy",
 					ID:          "foo",
 					Port:        21999,
@@ -179,7 +178,8 @@ func TestHealthConnectServiceQuery_Fetch(t *testing.T) {
 					NodeAddress: "127.0.0.1",
 					Tags:        ServiceTags([]string{}),
 					NodeMeta: map[string]string{
-						"consul-network-segment": ""},
+						"consul-network-segment": "",
+					},
 					Weights: api.AgentWeights{
 						Passing: 1,
 						Warning: 1,
@@ -218,7 +218,6 @@ func TestHealthConnectServiceQuery_Fetch(t *testing.T) {
 }
 
 func TestHealthServiceQuery_Fetch(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string
@@ -228,7 +227,7 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 			"consul",
 			"consul",
 			[]*HealthService{
-				&HealthService{
+				{
 					Node:        testConsul.Config.NodeName,
 					NodeAddress: testConsul.Config.Bind,
 					NodeTaggedAddresses: map[string]string{
@@ -261,7 +260,7 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 			"multifilter",
 			"consul|warning,passing",
 			[]*HealthService{
-				&HealthService{
+				{
 					Node:        testConsul.Config.NodeName,
 					NodeAddress: testConsul.Config.Bind,
 					NodeTaggedAddresses: map[string]string{
@@ -289,7 +288,7 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 			"service-meta",
 			"service-meta",
 			[]*HealthService{
-				&HealthService{
+				{
 					Node:        testConsul.Config.NodeName,
 					NodeAddress: testConsul.Config.Bind,
 					NodeTaggedAddresses: map[string]string{
@@ -318,7 +317,7 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 			"service-taggedAddresses",
 			"service-taggedAddresses",
 			[]*HealthService{
-				&HealthService{
+				{
 					Node:        testConsul.Config.NodeName,
 					NodeAddress: testConsul.Config.Bind,
 					NodeTaggedAddresses: map[string]string{
@@ -382,7 +381,6 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 }
 
 func TestHealthServiceQuery_String(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string
@@ -462,7 +460,6 @@ func TestHealthServiceQuery_String(t *testing.T) {
 }
 
 func TestHealthServiceQueryConnect_String(t *testing.T) {
-
 	cases := []struct {
 		name string
 		fact func(string) (*HealthServiceQuery, error)

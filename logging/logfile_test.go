@@ -14,7 +14,6 @@ import (
 )
 
 func TestLogFileFilter(t *testing.T) {
-
 	filt, err := newLogFilter(ioutil.Discard, logutils.LogLevel("INFO"))
 	if err != nil {
 		t.Fatal(err)

@@ -12,7 +12,6 @@ import (
 
 func getFileOwnership(path string) (int, int, error) {
 	fileInfo, err := os.Stat(path)
-
 	if err != nil {
 		return 0, 0, err
 	}
@@ -24,7 +23,7 @@ func getFileOwnership(path string) (int, int, error) {
 
 func setFileOwnership(path string, uid, gid int) error {
 	if uid == -1 && gid == -1 {
-		return nil //noop
+		return nil // noop
 	}
 	return os.Chown(path, uid, gid)
 }

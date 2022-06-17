@@ -7,10 +7,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	// Ensure implements
-	_ Dependency = (*ConnectCAQuery)(nil)
-)
+// Ensure implements
+var _ Dependency = (*ConnectCAQuery)(nil)
 
 type ConnectCAQuery struct {
 	stopCh chan struct{}

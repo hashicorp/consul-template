@@ -28,7 +28,7 @@ func TestVaultRenewDuration(t *testing.T) {
 		t.Fatalf("renewable duration is not within 80%% to 95%% of lease duration: %f", nonRenewableDur)
 	}
 
-	var data = map[string]interface{}{
+	data := map[string]interface{}{
 		"rotation_period": json.Number("60"),
 		"ttl":             json.Number("30"),
 	}
@@ -114,7 +114,6 @@ func TestVaultRenewDuration(t *testing.T) {
 				t.Fatalf("renewable duration is not within 80%% to 95%% of lease duration: %f", nonRenewableSecretIDDur)
 			}
 		})
-
 	})
 }
 

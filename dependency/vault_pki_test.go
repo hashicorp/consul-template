@@ -219,23 +219,33 @@ WR7VgKRCphRGmfp/SlI3c/zYScHHanZ3umQvilPmftPX+BxVFA5FhCUUimkZEJMq
 v57ZY8gIDE5E
 -----END CERTIFICATE-----
 `
-const goodCertAfterCA = goodCA + goodCert
-const goodCertGarbo = `
+
+const (
+	goodCertAfterCA = goodCA + goodCert
+	goodCertGarbo   = `
 aa983w4;/amndsfm908q26035vc;ng902338(%@%!@QY!&DVLMNSALX>PT(RQ!QO*%@
 ` + goodCert + `
 !Q)(*@^YUO!Q#MN%$#WP(G^&+_!%)!+^%$Y	:!#QLKENFVJ)	!#*&%YHTM
 `
+)
+
 const badCert = `
 -----BEGIN CERTIFICATE-----
 MIIDWTCCAkGgAwIBAgIUUARA+vQExU8zjdsX/YXMMu1K5FkwDQYJKoZIhvcNAQEL
 eB01bl42Y5WwHl0IrjfbEevzoW0+uhlUlZ6keZHr7bLn/xuRCUkVfj3PRlMl
 -----END CERTIFICATE-----
 `
-const badPlusCA = badCert + goodCA
-const badPlusGarbo = `
+
+const (
+	badPlusCA    = badCert + goodCA
+	badPlusGarbo = `
 aa983w4;/amndsfm908q26035vc;ng902338(%@%!@QY!&DVLMNSALX>PT(RQ!QO*%@
 ` + badCert + `
 !Q)(*@^YUO!Q#MN%$#WP(G^&+_!%)!+^%$Y	:!#QLKENFVJ)	!#*&%YHTM
 `
-const badGood = badCert + goodCert
-const goodBad = goodCert + badCert
+)
+
+const (
+	badGood = badCert + goodCert
+	goodBad = goodCert + badCert
+)

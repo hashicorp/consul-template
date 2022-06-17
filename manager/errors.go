@@ -7,8 +7,10 @@ type ErrExitable interface {
 	ExitStatus() int
 }
 
-var _ error = new(ErrChildDied)
-var _ ErrExitable = new(ErrChildDied)
+var (
+	_ error       = new(ErrChildDied)
+	_ ErrExitable = new(ErrChildDied)
+)
 
 // ErrChildDied is the error returned when the child process prematurely dies.
 type ErrChildDied struct {

@@ -113,7 +113,6 @@ func (n *NomadConfig) Merge(o *NomadConfig) *NomadConfig {
 
 // Finalize ensures there no nil pointers.
 func (n *NomadConfig) Finalize() {
-
 	if n.Address == nil {
 		n.Address = stringFromEnv([]string{"NOMAD_ADDR"}, "")
 	}

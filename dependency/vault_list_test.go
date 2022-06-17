@@ -9,7 +9,6 @@ import (
 )
 
 func TestNewVaultListQuery(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string
@@ -65,7 +64,6 @@ func TestNewVaultListQuery(t *testing.T) {
 }
 
 func TestVaultListQuery_Fetch(t *testing.T) {
-
 	clients, vault := testVaultServer(t, "listfetch", "1")
 	secretsPath := vault.secretsPath
 
@@ -207,7 +205,6 @@ func TestVaultListQuery_Fetch(t *testing.T) {
 }
 
 func TestVaultListQuery_String(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string

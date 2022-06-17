@@ -37,7 +37,6 @@ func testFile(t *testing.T, contents string) (path string, remove func()) {
 }
 
 func TestParse(t *testing.T) {
-
 	testFilePath, remove := testFile(t, "")
 	defer remove()
 
@@ -1088,7 +1087,7 @@ func TestParse(t *testing.T) {
 			&Config{
 				Templates: &TemplateConfigs{
 					&TemplateConfig{
-						Perms: FileMode(0600),
+						Perms: FileMode(0o600),
 					},
 				},
 			},
@@ -1646,7 +1645,7 @@ func TestParse(t *testing.T) {
 			&Config{
 				Templates: &TemplateConfigs{
 					&TemplateConfig{
-						Perms: FileMode(0600),
+						Perms: FileMode(0o600),
 					},
 				},
 			},
@@ -1664,10 +1663,10 @@ func TestParse(t *testing.T) {
 			&Config{
 				Templates: &TemplateConfigs{
 					&TemplateConfig{
-						Perms: FileMode(0600),
+						Perms: FileMode(0o600),
 					},
 					&TemplateConfig{
-						Perms: FileMode(0600),
+						Perms: FileMode(0o600),
 					},
 				},
 			},
@@ -1779,7 +1778,6 @@ func TestParse(t *testing.T) {
 }
 
 func TestFinalize(t *testing.T) {
-
 	testFileContents := "testing123"
 	testFilePath, remove := testFile(t, testFileContents)
 	defer remove()
@@ -1871,7 +1869,7 @@ func TestFinalize(t *testing.T) {
 						if i != j {
 							continue
 						}
-						var userInt, _ = strconv.Atoi(*tE.User)
+						userInt, _ := strconv.Atoi(*tE.User)
 						if userInt != *tA.Uid {
 							return false, fmt.Errorf("\nexp: %#v\nact: %#v", *tE.User, *tA.User)
 						}
@@ -1902,7 +1900,7 @@ func TestFinalize(t *testing.T) {
 						if i != j {
 							continue
 						}
-						var groupInt, _ = strconv.Atoi(*tE.Group)
+						groupInt, _ := strconv.Atoi(*tE.Group)
 						if groupInt != *tA.Gid {
 							return false, fmt.Errorf("\nexp: %#v\nact: %#v", *tE.Group, *tA.Group)
 						}
@@ -1945,7 +1943,6 @@ func TestFinalize(t *testing.T) {
 }
 
 func TestConfig_Merge(t *testing.T) {
-
 	cases := []struct {
 		name string
 		a    *Config
@@ -2241,7 +2238,6 @@ func TestConfig_Merge(t *testing.T) {
 }
 
 func TestFromPath(t *testing.T) {
-
 	f, err := ioutil.TempFile("", "")
 	if err != nil {
 		t.Fatal(err)
@@ -2268,7 +2264,7 @@ func TestFromPath(t *testing.T) {
 			address = "1.2.3.4"
 		}
 	`)
-	if err = ioutil.WriteFile(cf1.Name(), d, 0644); err != nil {
+	if err = ioutil.WriteFile(cf1.Name(), d, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	cf2, err := ioutil.TempFile(configDir, "")
@@ -2280,7 +2276,7 @@ func TestFromPath(t *testing.T) {
 			token = "token"
 		}
 	`)
-	if err := ioutil.WriteFile(cf2.Name(), d, 0644); err != nil {
+	if err := ioutil.WriteFile(cf2.Name(), d, 0o644); err != nil {
 		t.Fatal(err)
 	}
 

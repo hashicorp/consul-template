@@ -27,7 +27,7 @@ func TestAtomicWrite(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if err := AtomicWrite(outFile.Name(), true, nil, 0644, false); err != nil {
+		if err := AtomicWrite(outFile.Name(), true, nil, 0o644, false); err != nil {
 			t.Fatal(err)
 		}
 
@@ -46,7 +46,7 @@ func TestAtomicWrite(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		os.Chmod(outFile.Name(), 0600)
+		os.Chmod(outFile.Name(), 0o600)
 
 		if err := AtomicWrite(outFile.Name(), true, nil, 0, false); err != nil {
 			t.Fatal(err)
@@ -57,7 +57,7 @@ func TestAtomicWrite(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		expected := os.FileMode(0600)
+		expected := os.FileMode(0o600)
 		if stat.Mode() != expected {
 			t.Errorf("expected %q to be %q", stat.Mode(), expected)
 		}
@@ -73,7 +73,7 @@ func TestAtomicWrite(t *testing.T) {
 
 		// Try AtomicWrite to a file that doesn't exist yet
 		file := filepath.Join(outDir, "nope/not/it/create")
-		if err := AtomicWrite(file, true, nil, 0644, false); err != nil {
+		if err := AtomicWrite(file, true, nil, 0o644, false); err != nil {
 			t.Fatal(err)
 		}
 
@@ -92,7 +92,7 @@ func TestAtomicWrite(t *testing.T) {
 
 		// Try AtomicWrite to a file that doesn't exist yet
 		file := filepath.Join(outDir, "nope/not/it/nope-no-create")
-		if err := AtomicWrite(file, false, nil, 0644, false); err != ErrNoParentDir {
+		if err := AtomicWrite(file, false, nil, 0o644, false); err != ErrNoParentDir {
 			t.Fatalf("expected %q to be %q", err, ErrNoParentDir)
 		}
 	})
@@ -107,14 +107,14 @@ func TestAtomicWrite(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := os.Chmod(outFile.Name(), 0600); err != nil {
+		if err := os.Chmod(outFile.Name(), 0o600); err != nil {
 			t.Fatal(err)
 		}
 		if _, err := outFile.Write([]byte("before")); err != nil {
 			t.Fatal(err)
 		}
 
-		if err := AtomicWrite(outFile.Name(), true, []byte("after"), 0644, true); err != nil {
+		if err := AtomicWrite(outFile.Name(), true, []byte("after"), 0o644, true); err != nil {
 			t.Fatal(err)
 		}
 
@@ -129,8 +129,8 @@ func TestAtomicWrite(t *testing.T) {
 		if stat, err := os.Stat(outFile.Name() + ".bak"); err != nil {
 			t.Fatal(err)
 		} else {
-			if stat.Mode() != 0600 {
-				t.Fatalf("expected %d to be %d", stat.Mode(), 0600)
+			if stat.Mode() != 0o600 {
+				t.Fatalf("expected %d to be %d", stat.Mode(), 0o600)
 			}
 		}
 	})
@@ -149,7 +149,7 @@ func TestAtomicWrite(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if err := AtomicWrite(outFile.Name(), true, nil, 0644, true); err != nil {
+		if err := AtomicWrite(outFile.Name(), true, nil, 0o644, true); err != nil {
 			t.Fatal(err)
 		}
 
@@ -187,13 +187,13 @@ func TestAtomicWrite(t *testing.T) {
 			}
 		}
 
-		err = AtomicWrite(outFile.Name(), true, []byte("second"), 0644, true)
+		err = AtomicWrite(outFile.Name(), true, []byte("second"), 0o644, true)
 		if err != nil {
 			t.Fatal(err)
 		}
 		contains(outFile.Name(), "first")
 
-		err = AtomicWrite(outFile.Name(), true, []byte("third"), 0644, true)
+		err = AtomicWrite(outFile.Name(), true, []byte("third"), 0o644, true)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -318,7 +318,6 @@ func TestRender(t *testing.T) {
 }
 
 func TestRender_Chown(t *testing.T) {
-
 	// Can't change uid unless root, but can try
 	// changing the group id.
 
@@ -342,7 +341,6 @@ func TestRender_Chown(t *testing.T) {
 	wantedGid := callerGroups[0]
 
 	t.Run("sets-file-ownership-when-file-exists-same-content", func(t *testing.T) {
-
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
 			t.Fatal(err)
@@ -370,7 +368,7 @@ func TestRender_Chown(t *testing.T) {
 			t.Fatal(err)
 		}
 		switch {
-		case rr.WouldRender && rr.DidRender: //we expect rerendering to disk here
+		case rr.WouldRender && rr.DidRender: // we expect rerendering to disk here
 		default:
 			t.Fatalf("Bad render results; would: %v, did: %v",
 				rr.WouldRender, rr.DidRender)
@@ -384,11 +382,9 @@ func TestRender_Chown(t *testing.T) {
 			t.Fatalf("Bad render results; gotUid: %v, wantedGid: %v, gotGid: %v",
 				gotUid, wantedGid, gotGid)
 		}
-
 	})
 
 	t.Run("sets-file-ownership-when-file-exists-diff-content", func(t *testing.T) {
-
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
 			t.Fatal(err)
@@ -431,10 +427,8 @@ func TestRender_Chown(t *testing.T) {
 			t.Fatalf("Bad render results; gotUid: %v, wantedGid: %v, gotGid: %v",
 				gotUid, wantedGid, gotGid)
 		}
-
 	})
 	t.Run("sets-file-ownership-when-file-no-exists", func(t *testing.T) {
-
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
 			t.Fatal(err)
@@ -466,10 +460,8 @@ func TestRender_Chown(t *testing.T) {
 			t.Fatalf("Bad render results; gotUid: %v, wantedGid: %v, gotGid: %v",
 				gotUid, wantedGid, gotGid)
 		}
-
 	})
 	t.Run("sets-file-ownership-when-empty-file-no-exists", func(t *testing.T) {
-
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
 			t.Fatal(err)
@@ -504,7 +496,6 @@ func TestRender_Chown(t *testing.T) {
 	})
 
 	t.Run("should-be-noop-when-missing-user", func(t *testing.T) {
-
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
 			t.Fatal(err)
@@ -555,7 +546,6 @@ func TestRender_Chown(t *testing.T) {
 	})
 
 	t.Run("should-be-noop-when-missing-group", func(t *testing.T) {
-
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
 			t.Fatal(err)
@@ -607,7 +597,6 @@ func TestRender_Chown(t *testing.T) {
 	})
 
 	t.Run("should-be-noop-when-user-and-group-are-both-empty", func(t *testing.T) {
-
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
 			t.Fatal(err)

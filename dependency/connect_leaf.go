@@ -8,10 +8,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	// Ensure implements
-	_ Dependency = (*ConnectLeafQuery)(nil)
-)
+// Ensure implements
+var _ Dependency = (*ConnectLeafQuery)(nil)
 
 type ConnectLeafQuery struct {
 	stopCh chan struct{}

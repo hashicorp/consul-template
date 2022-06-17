@@ -8,7 +8,6 @@ import (
 )
 
 func TestNewCatalogServiceQuery(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string
@@ -143,7 +142,6 @@ func TestNewCatalogServiceQuery(t *testing.T) {
 }
 
 func TestCatalogServiceQuery_Fetch(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string
@@ -153,7 +151,7 @@ func TestCatalogServiceQuery_Fetch(t *testing.T) {
 			"consul",
 			"consul",
 			[]*CatalogService{
-				&CatalogService{
+				{
 					Node:       testConsul.Config.NodeName,
 					Address:    testConsul.Config.Bind,
 					Datacenter: "dc1",
@@ -177,7 +175,7 @@ func TestCatalogServiceQuery_Fetch(t *testing.T) {
 			"service-meta",
 			"service-meta",
 			[]*CatalogService{
-				&CatalogService{
+				{
 					Node:       testConsul.Config.NodeName,
 					Address:    testConsul.Config.Bind,
 					Datacenter: "dc1",
@@ -230,7 +228,6 @@ func TestCatalogServiceQuery_Fetch(t *testing.T) {
 }
 
 func TestCatalogServiceQuery_String(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string

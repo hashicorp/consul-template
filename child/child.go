@@ -408,7 +408,6 @@ func (c *Child) reload() error {
 // kill sends the signal to kill the process using the configured signal
 // if set, else the default system signal
 func (c *Child) kill(immediately bool) {
-
 	if !c.running() {
 		c.logger.Printf("[DEBUG] (child) Kill() called but process dead; not waiting for splay.")
 		return

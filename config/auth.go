@@ -6,11 +6,9 @@ import (
 	"strings"
 )
 
-var (
-	// ErrAuthStringEmpty is the error returned with authentication is provided,
-	// but empty.
-	ErrAuthStringEmpty = errors.New("auth: cannot be empty")
-)
+// ErrAuthStringEmpty is the error returned with authentication is provided,
+// but empty.
+var ErrAuthStringEmpty = errors.New("auth: cannot be empty")
 
 // AuthConfig is the HTTP basic authentication data.
 // Skip passwords in json output that is used for logging.

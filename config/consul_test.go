@@ -8,7 +8,6 @@ import (
 )
 
 func TestConsulConfig_Copy(t *testing.T) {
-
 	cases := []struct {
 		name string
 		a    *ConsulConfig
@@ -49,7 +48,6 @@ func TestConsulConfig_Copy(t *testing.T) {
 }
 
 func TestConsulConfig_Merge(t *testing.T) {
-
 	cases := []struct {
 		name string
 		a    *ConsulConfig
@@ -285,7 +283,6 @@ func TestConsulConfig_Merge(t *testing.T) {
 }
 
 func TestConsulConfig_Finalize(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    *ConsulConfig

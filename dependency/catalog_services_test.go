@@ -8,7 +8,6 @@ import (
 )
 
 func TestNewCatalogServicesQuery(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string
@@ -54,7 +53,6 @@ func TestNewCatalogServicesQuery(t *testing.T) {
 }
 
 func TestCatalogServicesQuery_Fetch(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string
@@ -64,19 +62,19 @@ func TestCatalogServicesQuery_Fetch(t *testing.T) {
 			"all",
 			"",
 			[]*CatalogSnippet{
-				&CatalogSnippet{
+				{
 					Name: "consul",
 					Tags: ServiceTags([]string{}),
 				},
-				&CatalogSnippet{
+				{
 					Name: "foo-sidecar-proxy",
 					Tags: ServiceTags([]string{}),
 				},
-				&CatalogSnippet{
+				{
 					Name: "service-meta",
 					Tags: ServiceTags([]string{"tag1"}),
 				},
-				&CatalogSnippet{
+				{
 					Name: "service-taggedAddresses",
 					Tags: ServiceTags([]string{}),
 				},
@@ -102,7 +100,6 @@ func TestCatalogServicesQuery_Fetch(t *testing.T) {
 }
 
 func TestCatalogServicesQuery_String(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string

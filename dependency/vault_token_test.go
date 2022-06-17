@@ -9,7 +9,6 @@ import (
 )
 
 func TestNewVaultTokenQuery(t *testing.T) {
-
 	cases := []struct {
 		name string
 		exp  *VaultTokenQuery
@@ -54,7 +53,6 @@ func TestNewVaultTokenQuery(t *testing.T) {
 }
 
 func TestVaultTokenQuery_String(t *testing.T) {
-
 	cases := []struct {
 		name string
 		exp  string

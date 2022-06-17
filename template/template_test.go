@@ -394,9 +394,9 @@ func TestTemplate_Execute(t *testing.T) {
 						t.Fatal(err)
 					}
 					b.Remember(d, []*dep.KeyPair{
-						&dep.KeyPair{Key: "", Value: ""},
-						&dep.KeyPair{Key: "foo", Value: "bar"},
-						&dep.KeyPair{Key: "foo/zip", Value: "zap"},
+						{Key: "", Value: ""},
+						{Key: "foo", Value: "bar"},
+						{Key: "foo/zip", Value: "zap"},
 					})
 					return b
 				}(),
@@ -419,7 +419,7 @@ func TestTemplate_Execute(t *testing.T) {
 					b.Remember(d, &dep.CatalogNode{
 						Node: &dep.Node{Node: "node1"},
 						Services: []*dep.CatalogNodeService{
-							&dep.CatalogNodeService{
+							{
 								Service: "service1",
 							},
 						},
@@ -454,8 +454,8 @@ func TestTemplate_Execute(t *testing.T) {
 						t.Fatal(err)
 					}
 					b.Remember(d, []*dep.Node{
-						&dep.Node{Node: "node1"},
-						&dep.Node{Node: "node2"},
+						{Node: "node1"},
+						{Node: "node2"},
 					})
 					return b
 				}(),
@@ -709,11 +709,11 @@ func TestTemplate_Execute(t *testing.T) {
 						t.Fatal(err)
 					}
 					b.Remember(d, []*dep.HealthService{
-						&dep.HealthService{
+						{
 							Node:    "node1",
 							Address: "1.2.3.4",
 						},
-						&dep.HealthService{
+						{
 							Node:    "node2",
 							Address: "5.6.7.8",
 						},
@@ -737,11 +737,11 @@ func TestTemplate_Execute(t *testing.T) {
 						t.Fatal(err)
 					}
 					b.Remember(d, []*dep.HealthService{
-						&dep.HealthService{
+						{
 							Node:    "node1",
 							Address: "1.2.3.4",
 						},
-						&dep.HealthService{
+						{
 							Node:    "node2",
 							Address: "5.6.7.8",
 						},
@@ -765,10 +765,10 @@ func TestTemplate_Execute(t *testing.T) {
 						t.Fatal(err)
 					}
 					b.Remember(d, []*dep.CatalogSnippet{
-						&dep.CatalogSnippet{
+						{
 							Name: "service1",
 						},
-						&dep.CatalogSnippet{
+						{
 							Name: "service2",
 						},
 					})
@@ -791,10 +791,10 @@ func TestTemplate_Execute(t *testing.T) {
 						t.Fatal(err)
 					}
 					b.Remember(d, []*dep.KeyPair{
-						&dep.KeyPair{Key: "", Value: ""},
-						&dep.KeyPair{Key: "admin/port", Value: "1134"},
-						&dep.KeyPair{Key: "maxconns", Value: "5"},
-						&dep.KeyPair{Key: "minconns", Value: "2"},
+						{Key: "", Value: ""},
+						{Key: "admin/port", Value: "1134"},
+						{Key: "maxconns", Value: "5"},
+						{Key: "minconns", Value: "2"},
 					})
 					return b
 				}(),
@@ -874,9 +874,9 @@ func TestTemplate_Execute(t *testing.T) {
 						t.Fatal(err)
 					}
 					b.Remember(d, []*dep.KeyPair{
-						&dep.KeyPair{Key: "", Value: ""},
-						&dep.KeyPair{Key: "foo/bar", Value: "a"},
-						&dep.KeyPair{Key: "zip/zap", Value: "b"},
+						{Key: "", Value: ""},
+						{Key: "foo/bar", Value: "a"},
+						{Key: "zip/zap", Value: "b"},
 					})
 					return b
 				}(),
@@ -897,11 +897,11 @@ func TestTemplate_Execute(t *testing.T) {
 						t.Fatal(err)
 					}
 					b.Remember(d, []*dep.HealthService{
-						&dep.HealthService{
+						{
 							Address: "1.2.3.4",
 							Tags:    []string{"prod", "staging"},
 						},
-						&dep.HealthService{
+						{
 							Address: "5.6.7.8",
 							Tags:    []string{"staging"},
 						},
@@ -925,11 +925,11 @@ func TestTemplate_Execute(t *testing.T) {
 						t.Fatal(err)
 					}
 					b.Remember(d, []*dep.HealthService{
-						&dep.HealthService{
+						{
 							Address: "1.2.3.4",
 							Tags:    []string{"prod", "staging"},
 						},
-						&dep.HealthService{
+						{
 							Address: "5.6.7.8",
 							Tags:    []string{"staging"},
 						},
@@ -953,11 +953,11 @@ func TestTemplate_Execute(t *testing.T) {
 						t.Fatal(err)
 					}
 					b.Remember(d, []*dep.HealthService{
-						&dep.HealthService{
+						{
 							Address: "1.2.3.4",
 							Tags:    []string{"prod", "us-realm"},
 						},
-						&dep.HealthService{
+						{
 							Address: "5.6.7.8",
 							Tags:    []string{"prod", "ca-realm"},
 						},
@@ -981,11 +981,11 @@ func TestTemplate_Execute(t *testing.T) {
 						t.Fatal(err)
 					}
 					b.Remember(d, []*dep.HealthService{
-						&dep.HealthService{
+						{
 							Address: "1.2.3.4",
 							Tags:    []string{"prod", "us-realm"},
 						},
-						&dep.HealthService{
+						{
 							Address: "5.6.7.8",
 							Tags:    []string{"prod", "ca-realm"},
 						},
@@ -1009,11 +1009,11 @@ func TestTemplate_Execute(t *testing.T) {
 						t.Fatal(err)
 					}
 					b.Remember(d, []*dep.HealthService{
-						&dep.HealthService{
+						{
 							Address: "1.2.3.4",
 							Tags:    []string{"prod", "v1"},
 						},
-						&dep.HealthService{
+						{
 							Address: "5.6.7.8",
 							Tags:    []string{"prod", "v2"},
 						},
@@ -1037,11 +1037,11 @@ func TestTemplate_Execute(t *testing.T) {
 						t.Fatal(err)
 					}
 					b.Remember(d, []*dep.HealthService{
-						&dep.HealthService{
+						{
 							Address: "1.2.3.4",
 							Tags:    []string{"prod", "v1"},
 						},
-						&dep.HealthService{
+						{
 							Address: "5.6.7.8",
 							Tags:    []string{"prod", "v2"},
 						},
@@ -1065,11 +1065,11 @@ func TestTemplate_Execute(t *testing.T) {
 						t.Fatal(err)
 					}
 					b.Remember(d, []*dep.HealthService{
-						&dep.HealthService{
+						{
 							Address: "1.2.3.4",
 							Tags:    []string{"prod", "v1"},
 						},
-						&dep.HealthService{
+						{
 							Address: "5.6.7.8",
 							Tags:    []string{"devel", "v2"},
 						},
@@ -1093,11 +1093,11 @@ func TestTemplate_Execute(t *testing.T) {
 						t.Fatal(err)
 					}
 					b.Remember(d, []*dep.HealthService{
-						&dep.HealthService{
+						{
 							Address: "1.2.3.4",
 							Tags:    []string{"staging", "v1"},
 						},
-						&dep.HealthService{
+						{
 							Address: "5.6.7.8",
 							Tags:    []string{"devel", "v2"},
 						},
@@ -1121,11 +1121,11 @@ func TestTemplate_Execute(t *testing.T) {
 						t.Fatal(err)
 					}
 					b.Remember(d, []*dep.HealthService{
-						&dep.HealthService{
+						{
 							Address: "1.2.3.4",
 							Tags:    []string{"prod", "es-v1"},
 						},
-						&dep.HealthService{
+						{
 							Address: "5.6.7.8",
 							Tags:    []string{"prod", "hybrid", "es-v1", "es-v2"},
 						},
@@ -1149,11 +1149,11 @@ func TestTemplate_Execute(t *testing.T) {
 						t.Fatal(err)
 					}
 					b.Remember(d, []*dep.HealthService{
-						&dep.HealthService{
+						{
 							Address: "1.2.3.4",
 							Tags:    []string{"prod", "es-v1"},
 						},
-						&dep.HealthService{
+						{
 							Address: "5.6.7.8",
 							Tags:    []string{"prod", "hybrid", "es-v1", "es-v2"},
 						},
@@ -1248,9 +1248,9 @@ func TestTemplate_Execute(t *testing.T) {
 						t.Fatal(err)
 					}
 					b.Remember(d, []*dep.KeyPair{
-						&dep.KeyPair{Key: "", Value: ""},
-						&dep.KeyPair{Key: "foo/bar", Value: "a"},
-						&dep.KeyPair{Key: "zip/zap", Value: "b"},
+						{Key: "", Value: ""},
+						{Key: "foo/bar", Value: "a"},
+						{Key: "zip/zap", Value: "b"},
 					})
 					return b
 				}(),
@@ -1271,9 +1271,9 @@ func TestTemplate_Execute(t *testing.T) {
 						t.Fatal(err)
 					}
 					b.Remember(d, []*dep.KeyPair{
-						&dep.KeyPair{Key: "", Value: ""},
-						&dep.KeyPair{Key: "foo/bar", Value: "a"},
-						&dep.KeyPair{Key: "zip/zap", Value: "b"},
+						{Key: "", Value: ""},
+						{Key: "foo/bar", Value: "a"},
+						{Key: "zip/zap", Value: "b"},
 					})
 					return b
 				}(),
@@ -1294,9 +1294,9 @@ func TestTemplate_Execute(t *testing.T) {
 						t.Fatal(err)
 					}
 					b.Remember(d, []*dep.KeyPair{
-						&dep.KeyPair{Key: "", Value: ""},
-						&dep.KeyPair{Key: "foo/bar", Value: "a"},
-						&dep.KeyPair{Key: "zip/zap", Value: "b"},
+						{Key: "", Value: ""},
+						{Key: "foo/bar", Value: "a"},
+						{Key: "zip/zap", Value: "b"},
 					})
 					return b
 				}(),
@@ -1328,11 +1328,11 @@ func TestTemplate_Execute(t *testing.T) {
 						t.Fatal(err)
 					}
 					b.Remember(d, []*dep.HealthService{
-						&dep.HealthService{
+						{
 							Address: "1.2.3.4",
 							Tags:    []string{"prod", "staging"},
 						},
-						&dep.HealthService{
+						{
 							Address: "5.6.7.8",
 							Tags:    []string{"staging"},
 						},
@@ -1711,9 +1711,9 @@ func TestTemplate_Execute(t *testing.T) {
 						t.Fatal(err)
 					}
 					b.Remember(d, []*dep.KeyPair{
-						&dep.KeyPair{Key: "a", Value: "b&c"},
-						&dep.KeyPair{Key: "x", Value: "y&z"},
-						&dep.KeyPair{Key: "k", Value: "<>&&"},
+						{Key: "a", Value: "b&c"},
+						{Key: "x", Value: "y&z"},
+						{Key: "k", Value: "<>&&"},
 					})
 					return b
 				}(),
@@ -1921,7 +1921,7 @@ func TestTemplate_Execute(t *testing.T) {
 					d := dep.NewConnectCAQuery()
 					b := NewBrain()
 					b.Remember(d, []*api.CARoot{
-						&api.CARoot{
+						{
 							Name:        "Consul CA Root Cert",
 							RootCertPEM: "PEM",
 							Active:      true,
@@ -1946,11 +1946,11 @@ func TestTemplate_Execute(t *testing.T) {
 						t.Fatal(err)
 					}
 					b.Remember(d, []*dep.HealthService{
-						&dep.HealthService{
+						{
 							Node:    "node1",
 							Address: "1.2.3.4",
 						},
-						&dep.HealthService{
+						{
 							Node:    "node2",
 							Address: "5.6.7.8",
 						},

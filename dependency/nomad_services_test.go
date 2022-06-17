@@ -8,7 +8,6 @@ import (
 )
 
 func TestNewNomadServicesQueryQuery(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string
@@ -63,7 +62,7 @@ func TestNomadServicesQuery_Fetch_1arg(t *testing.T) {
 			name:    "all",
 			service: "",
 			exp: []*NomadServicesSnippet{
-				&NomadServicesSnippet{
+				{
 					Name: "example-cache",
 					Tags: ServiceTags([]string{"tag1", "tag2"}),
 				},
@@ -89,7 +88,6 @@ func TestNomadServicesQuery_Fetch_1arg(t *testing.T) {
 }
 
 func TestNomadServicesQuery_String(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string

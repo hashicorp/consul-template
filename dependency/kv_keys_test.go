@@ -9,7 +9,6 @@ import (
 )
 
 func TestNewKVKeysQuery(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string
@@ -144,7 +143,6 @@ func TestNewKVKeysQuery(t *testing.T) {
 }
 
 func TestKVKeysQuery_Fetch(t *testing.T) {
-
 	testConsul.SetKVString(t, "test-kv-keys/prefix/foo", "bar")
 	testConsul.SetKVString(t, "test-kv-keys/prefix/zip", "zap")
 	testConsul.SetKVString(t, "test-kv-keys/prefix/wave/ocean", "sleek")
@@ -262,7 +260,6 @@ func TestKVKeysQuery_Fetch(t *testing.T) {
 }
 
 func TestKVKeysQuery_String(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string

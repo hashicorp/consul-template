@@ -5,10 +5,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	// Ensure implements
-	_ Dependency = (*VaultTokenQuery)(nil)
-)
+// Ensure implements
+var _ Dependency = (*VaultTokenQuery)(nil)
 
 // VaultTokenQuery is the dependency to Vault for a secret
 type VaultTokenQuery struct {

@@ -11,16 +11,14 @@ const (
 	DefaultSyslogFacility = "LOCAL0"
 )
 
-var (
-	// DefaultSyslogName is the default app name in syslog.
-	DefaultSyslogName = version.Name
-)
+// DefaultSyslogName is the default app name in syslog.
+var DefaultSyslogName = version.Name
 
 // SyslogConfig is the configuration for syslog.
 type SyslogConfig struct {
 	Enabled  *bool   `mapstructure:"enabled"`
 	Facility *string `mapstructure:"facility"`
-	Name	 *string `mapstructure:"name"`
+	Name     *string `mapstructure:"name"`
 }
 
 // DefaultSyslogConfig returns a configuration that is populated with the

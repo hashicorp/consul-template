@@ -14,8 +14,10 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-var testConsul *testutil.TestServer
-var testClients *dep.ClientSet
+var (
+	testConsul  *testutil.TestServer
+	testClients *dep.ClientSet
+)
 
 func TestMain(m *testing.M) {
 	log.SetOutput(ioutil.Discard)

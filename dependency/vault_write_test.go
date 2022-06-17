@@ -11,7 +11,6 @@ import (
 )
 
 func TestNewVaultWriteQuery(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string
@@ -72,7 +71,6 @@ func TestNewVaultWriteQuery(t *testing.T) {
 }
 
 func TestVaultWriteSecretKV_Fetch(t *testing.T) {
-
 	// previously triggered a nil-pointer-deref panic in wq.Fetch() with KVv1
 	// due to writeSecret() returning nil for vaultSecret
 	// see GH-1252
@@ -174,7 +172,6 @@ func TestVaultWriteSecretKV_Fetch(t *testing.T) {
 }
 
 func TestVaultWriteQuery_Fetch(t *testing.T) {
-
 	clients := testClients
 
 	if err := clients.Vault().Sys().Mount("transit", &api.MountInput{
@@ -362,7 +359,6 @@ func TestVaultWriteQuery_Fetch(t *testing.T) {
 }
 
 func TestVaultWriteQuery_String(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string

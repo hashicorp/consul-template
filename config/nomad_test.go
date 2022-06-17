@@ -16,7 +16,6 @@ func (mockDialer) DialContext(ctx context.Context, network string, address strin
 }
 
 func TestNomadConfig_Copy(t *testing.T) {
-
 	cases := []struct {
 		name string
 		a    *NomadConfig
@@ -37,7 +36,7 @@ func TestNomadConfig_Copy(t *testing.T) {
 				Token:        String("token"),
 				AuthUsername: String("admin"),
 				AuthPassword: String("admin"),
-				//HttpClient:   retryablehttp.NewClient().StandardClient(),
+				// HttpClient:   retryablehttp.NewClient().StandardClient(),
 			},
 		},
 	}
@@ -53,7 +52,6 @@ func TestNomadConfig_Copy(t *testing.T) {
 }
 
 func TestNomadConfig_Merge(t *testing.T) {
-
 	cases := []struct {
 		name string
 		a    *NomadConfig
@@ -169,7 +167,6 @@ func TestNomadConfig_Merge(t *testing.T) {
 }
 
 func TestNomadConfig_Finalize(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    *NomadConfig

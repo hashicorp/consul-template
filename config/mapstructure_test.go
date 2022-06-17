@@ -11,7 +11,6 @@ import (
 )
 
 func TestStringToFileModeFunc(t *testing.T) {
-
 	hookFunc := StringToFileModeFunc()
 	fileModeVal := reflect.ValueOf(os.FileMode(0))
 
@@ -21,11 +20,11 @@ func TestStringToFileModeFunc(t *testing.T) {
 		expected interface{}
 		err      bool
 	}{
-		{"owner_only", reflect.ValueOf("0600"), fileModeVal, os.FileMode(0600), false},
-		{"high_bits", reflect.ValueOf("4600"), fileModeVal, os.FileMode(04600), false},
+		{"owner_only", reflect.ValueOf("0600"), fileModeVal, os.FileMode(0o600), false},
+		{"high_bits", reflect.ValueOf("4600"), fileModeVal, os.FileMode(0o4600), false},
 
 		// Prepends 0 automatically
-		{"add_zero", reflect.ValueOf("600"), fileModeVal, os.FileMode(0600), false},
+		{"add_zero", reflect.ValueOf("600"), fileModeVal, os.FileMode(0o600), false},
 
 		// Invalid file mode
 		{"bad_mode", reflect.ValueOf("12345"), fileModeVal, "12345", true},
@@ -52,7 +51,6 @@ func TestStringToFileModeFunc(t *testing.T) {
 }
 
 func TestStringToWaitDurationHookFunc(t *testing.T) {
-
 	f := StringToWaitDurationHookFunc()
 	waitVal := reflect.ValueOf(WaitConfig{})
 
@@ -114,7 +112,6 @@ func TestStringToWaitDurationHookFunc(t *testing.T) {
 }
 
 func TestConsulStringToStructFunc(t *testing.T) {
-
 	f := ConsulStringToStructFunc()
 	consulVal := reflect.ValueOf(ConsulConfig{})
 

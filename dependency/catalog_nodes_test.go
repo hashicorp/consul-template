@@ -8,7 +8,6 @@ import (
 )
 
 func TestNewCatalogNodesQuery(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string
@@ -71,7 +70,6 @@ func TestNewCatalogNodesQuery(t *testing.T) {
 }
 
 func TestCatalogNodesQuery_Fetch(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string
@@ -81,7 +79,7 @@ func TestCatalogNodesQuery_Fetch(t *testing.T) {
 			"all",
 			"",
 			[]*Node{
-				&Node{
+				{
 					Node:       testConsul.Config.NodeName,
 					Address:    testConsul.Config.Bind,
 					Datacenter: "dc1",
@@ -122,7 +120,6 @@ func TestCatalogNodesQuery_Fetch(t *testing.T) {
 }
 
 func TestCatalogNodesQuery_String(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string

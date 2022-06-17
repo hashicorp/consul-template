@@ -8,7 +8,6 @@ import (
 )
 
 func TestDedupConfig_Copy(t *testing.T) {
-
 	cases := []struct {
 		name string
 		a    *DedupConfig
@@ -43,7 +42,6 @@ func TestDedupConfig_Copy(t *testing.T) {
 }
 
 func TestDedupConfig_Merge(t *testing.T) {
-
 	cases := []struct {
 		name string
 		a    *DedupConfig
@@ -183,7 +181,6 @@ func TestDedupConfig_Merge(t *testing.T) {
 }
 
 func TestDedupConfig_Finalize(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    *DedupConfig

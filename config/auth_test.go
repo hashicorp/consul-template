@@ -7,7 +7,6 @@ import (
 )
 
 func TestParseAuthConfig(t *testing.T) {
-
 	cases := []struct {
 		name string
 		s    string
@@ -53,7 +52,6 @@ func TestParseAuthConfig(t *testing.T) {
 }
 
 func TestAuthConfig_Copy(t *testing.T) {
-
 	cases := []struct {
 		name string
 		a    *AuthConfig
@@ -87,7 +85,6 @@ func TestAuthConfig_Copy(t *testing.T) {
 }
 
 func TestAuthConfig_Merge(t *testing.T) {
-
 	cases := []struct {
 		name string
 		a    *AuthConfig
@@ -203,7 +200,6 @@ func TestAuthConfig_Merge(t *testing.T) {
 }
 
 func TestAuthConfig_Finalize(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    *AuthConfig
@@ -242,7 +238,6 @@ func TestAuthConfig_Finalize(t *testing.T) {
 }
 
 func TestAuthConfig_String(t *testing.T) {
-
 	cases := []struct {
 		name string
 		a    *AuthConfig

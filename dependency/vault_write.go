@@ -14,10 +14,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	// Ensure implements
-	_ Dependency = (*VaultWriteQuery)(nil)
-)
+// Ensure implements
+var _ Dependency = (*VaultWriteQuery)(nil)
 
 // VaultWriteQuery is the dependency to Vault for a secret
 type VaultWriteQuery struct {
@@ -132,7 +130,7 @@ func (d *VaultWriteQuery) Type() Type {
 // information.
 func sha1Map(m map[string]interface{}) string {
 	keys := make([]string, 0, len(m))
-	for k, _ := range m {
+	for k := range m {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)

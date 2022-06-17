@@ -10,10 +10,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	// Ensure implements
-	_ Dependency = (*VaultAgentTokenQuery)(nil)
-)
+// Ensure implements
+var _ Dependency = (*VaultAgentTokenQuery)(nil)
 
 const (
 	// VaultAgentTokenSleepTime is the amount of time to sleep between queries, since

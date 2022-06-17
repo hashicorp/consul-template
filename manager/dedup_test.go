@@ -9,7 +9,6 @@ import (
 )
 
 func TestDedup_StartStop(t *testing.T) {
-
 	dedup := testDedupManager(t, nil)
 
 	// Start and stop
@@ -22,7 +21,6 @@ func TestDedup_StartStop(t *testing.T) {
 }
 
 func TestDedup_IsLeader(t *testing.T) {
-
 	// Create a template
 	tmpl, err := template.NewTemplate(&template.NewTemplateInput{
 		Contents: `template-1 {{ range service "consul" }}{{ .Node }}{{ end }}`,
@@ -51,7 +49,6 @@ func TestDedup_IsLeader(t *testing.T) {
 }
 
 func TestDedup_UpdateDeps(t *testing.T) {
-
 	// Create a template
 	tmpl, err := template.NewTemplate(&template.NewTemplateInput{
 		Contents: `template-2 {{ range service "consul" }}{{ .Node }}{{ end }}`,
@@ -90,7 +87,6 @@ func TestDedup_UpdateDeps(t *testing.T) {
 }
 
 func TestDedup_FollowerUpdate(t *testing.T) {
-
 	// hangs on this sometimes, so make as short as possible
 	lockWaitTime = 100 * time.Millisecond
 

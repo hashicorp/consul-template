@@ -13,10 +13,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	// Ensure implements
-	_ Dependency = (*VaultPKIQuery)(nil)
-)
+// Ensure implements
+var _ Dependency = (*VaultPKIQuery)(nil)
 
 // VaultPKIQuery is the dependency to Vault for a secret
 type VaultPKIQuery struct {

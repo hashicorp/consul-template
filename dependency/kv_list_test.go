@@ -9,7 +9,6 @@ import (
 )
 
 func TestNewKVListQuery(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string
@@ -144,7 +143,6 @@ func TestNewKVListQuery(t *testing.T) {
 }
 
 func TestKVListQuery_Fetch(t *testing.T) {
-
 	testConsul.SetKVString(t, "test-kv-list/prefix/foo", "bar")
 	testConsul.SetKVString(t, "test-kv-list/prefix/zip", "zap")
 	testConsul.SetKVString(t, "test-kv-list/prefix/wave/ocean", "sleek")
@@ -158,17 +156,17 @@ func TestKVListQuery_Fetch(t *testing.T) {
 			"exists",
 			"test-kv-list/prefix",
 			[]*KeyPair{
-				&KeyPair{
+				{
 					Path:  "test-kv-list/prefix/foo",
 					Key:   "foo",
 					Value: "bar",
 				},
-				&KeyPair{
+				{
 					Path:  "test-kv-list/prefix/wave/ocean",
 					Key:   "wave/ocean",
 					Value: "sleek",
 				},
-				&KeyPair{
+				{
 					Path:  "test-kv-list/prefix/zip",
 					Key:   "zip",
 					Value: "zap",
@@ -179,17 +177,17 @@ func TestKVListQuery_Fetch(t *testing.T) {
 			"trailing",
 			"test-kv-list/prefix/",
 			[]*KeyPair{
-				&KeyPair{
+				{
 					Path:  "test-kv-list/prefix/foo",
 					Key:   "foo",
 					Value: "bar",
 				},
-				&KeyPair{
+				{
 					Path:  "test-kv-list/prefix/wave/ocean",
 					Key:   "wave/ocean",
 					Value: "sleek",
 				},
-				&KeyPair{
+				{
 					Path:  "test-kv-list/prefix/zip",
 					Key:   "zip",
 					Value: "zap",
@@ -313,7 +311,6 @@ func TestKVListQuery_Fetch(t *testing.T) {
 }
 
 func TestKVListQuery_String(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string

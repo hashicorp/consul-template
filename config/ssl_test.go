@@ -7,7 +7,6 @@ import (
 )
 
 func TestSSLConfig_Copy(t *testing.T) {
-
 	cases := []struct {
 		name string
 		a    *SSLConfig
@@ -45,7 +44,6 @@ func TestSSLConfig_Copy(t *testing.T) {
 }
 
 func TestSSLConfig_Merge(t *testing.T) {
-
 	cases := []struct {
 		name string
 		a    *SSLConfig
@@ -257,7 +255,6 @@ func TestSSLConfig_Merge(t *testing.T) {
 }
 
 func TestSSLConfig_Finalize(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    *SSLConfig

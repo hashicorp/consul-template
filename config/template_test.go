@@ -8,7 +8,6 @@ import (
 )
 
 func TestTemplateConfig_Copy(t *testing.T) {
-
 	cases := []struct {
 		name string
 		a    *TemplateConfig
@@ -31,7 +30,7 @@ func TestTemplateConfig_Copy(t *testing.T) {
 				CreateDestDirs: Bool(true),
 				Destination:    String("destination"),
 				Exec:           &ExecConfig{Command: []string{"command"}},
-				Perms:          FileMode(0600),
+				Perms:          FileMode(0o600),
 				Source:         String("source"),
 				Wait:           &WaitConfig{Min: TimeDuration(10)},
 				LeftDelim:      String("left_delim"),
@@ -51,7 +50,6 @@ func TestTemplateConfig_Copy(t *testing.T) {
 }
 
 func TestTemplateConfig_Merge(t *testing.T) {
-
 	cases := []struct {
 		name string
 		a    *TemplateConfig
@@ -276,27 +274,27 @@ func TestTemplateConfig_Merge(t *testing.T) {
 		},
 		{
 			"perms_overrides",
-			&TemplateConfig{Perms: FileMode(0600)},
-			&TemplateConfig{Perms: FileMode(0000)},
-			&TemplateConfig{Perms: FileMode(0000)},
+			&TemplateConfig{Perms: FileMode(0o600)},
+			&TemplateConfig{Perms: FileMode(0o000)},
+			&TemplateConfig{Perms: FileMode(0o000)},
 		},
 		{
 			"perms_empty_one",
-			&TemplateConfig{Perms: FileMode(0600)},
+			&TemplateConfig{Perms: FileMode(0o600)},
 			&TemplateConfig{},
-			&TemplateConfig{Perms: FileMode(0600)},
+			&TemplateConfig{Perms: FileMode(0o600)},
 		},
 		{
 			"perms_empty_two",
 			&TemplateConfig{},
-			&TemplateConfig{Perms: FileMode(0600)},
-			&TemplateConfig{Perms: FileMode(0600)},
+			&TemplateConfig{Perms: FileMode(0o600)},
+			&TemplateConfig{Perms: FileMode(0o600)},
 		},
 		{
 			"perms_same",
-			&TemplateConfig{Perms: FileMode(0600)},
-			&TemplateConfig{Perms: FileMode(0600)},
-			&TemplateConfig{Perms: FileMode(0600)},
+			&TemplateConfig{Perms: FileMode(0o600)},
+			&TemplateConfig{Perms: FileMode(0o600)},
+			&TemplateConfig{Perms: FileMode(0o600)},
 		},
 		{
 			"source_overrides",
@@ -407,7 +405,6 @@ func TestTemplateConfig_Merge(t *testing.T) {
 }
 
 func TestTemplateConfig_Finalize(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    *TemplateConfig
@@ -469,7 +466,6 @@ func TestTemplateConfig_Finalize(t *testing.T) {
 }
 
 func TestTemplateConfig_Display(t *testing.T) {
-
 	cases := []struct {
 		name string
 		c    *TemplateConfig
@@ -515,7 +511,6 @@ func TestTemplateConfig_Display(t *testing.T) {
 }
 
 func TestParseTemplateConfig(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    string

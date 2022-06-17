@@ -22,11 +22,9 @@ const (
 	DefaultExecTimeout = 0 * time.Second
 )
 
-var (
-	// DefaultExecReloadSignal is the default signal to send to the process to
-	// tell it to reload its configuration.
-	DefaultExecReloadSignal = (os.Signal)(nil)
-)
+// DefaultExecReloadSignal is the default signal to send to the process to
+// tell it to reload its configuration.
+var DefaultExecReloadSignal = (os.Signal)(nil)
 
 // ExecConfig is used to configure the application when it runs in
 // exec/supervise mode.

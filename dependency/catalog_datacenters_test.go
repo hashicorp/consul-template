@@ -13,7 +13,6 @@ func init() {
 }
 
 func TestNewCatalogDatacentersQuery(t *testing.T) {
-
 	cases := []struct {
 		name string
 		exp  *CatalogDatacentersQuery
@@ -43,7 +42,6 @@ func TestNewCatalogDatacentersQuery(t *testing.T) {
 }
 
 func TestCatalogDatacentersQuery_Fetch(t *testing.T) {
-
 	cases := []struct {
 		name string
 		exp  []string
@@ -141,7 +139,6 @@ func TestCatalogDatacentersQuery_Fetch(t *testing.T) {
 }
 
 func TestCatalogDatacentersQuery_String(t *testing.T) {
-
 	cases := []struct {
 		name string
 		exp  string

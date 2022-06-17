@@ -90,7 +90,6 @@ func (c *LogFileConfig) Merge(o *LogFileConfig) *LogFileConfig {
 
 // Finalize ensures there no nil pointers.
 func (c *LogFileConfig) Finalize() {
-
 	if c.LogFilePath == nil {
 		c.LogFilePath = String("")
 	}
@@ -106,7 +105,6 @@ func (c *LogFileConfig) Finalize() {
 	if c.LogRotateMaxFiles == nil {
 		c.LogRotateMaxFiles = Int(0)
 	}
-
 }
 
 // GoString defines the printable version of this struct.

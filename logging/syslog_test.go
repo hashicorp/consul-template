@@ -44,7 +44,6 @@ func TestSyslogFilter(t *testing.T) {
 	if n != len(infotest) {
 		t.Fatalf("byte count (%d) doesn't match output len (%d).",
 			n, len(infotest))
-
 	}
 
 	n, err = s.Write([]byte("[DEBUG] test"))

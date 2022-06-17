@@ -325,13 +325,13 @@ func (c *TemplateConfig) Finalize() {
 
 	// Backwards compatibility for uid
 	if c.User == nil && c.Uid != nil {
-		var uStr = strconv.Itoa(*c.Uid)
+		uStr := strconv.Itoa(*c.Uid)
 		c.User = &uStr
 	}
 
 	// Backwards compatibility for gid
 	if c.Group == nil && c.Gid != nil {
-		var gStr = strconv.Itoa(*c.Gid)
+		gStr := strconv.Itoa(*c.Gid)
 		c.Group = &gStr
 	}
 

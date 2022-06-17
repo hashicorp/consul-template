@@ -13,7 +13,6 @@ import (
 )
 
 func TestNewConnectLeafQuery(t *testing.T) {
-
 	act := NewConnectLeafQuery("foo")
 	act.stopCh = nil
 	exp := &ConnectLeafQuery{service: "foo"}
@@ -79,7 +78,6 @@ func TestConnectLeafQuery_Fetch(t *testing.T) {
 }
 
 func TestConnectLeafQuery_String(t *testing.T) {
-
 	cases := []struct {
 		name    string
 		service string

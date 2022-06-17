@@ -19,7 +19,6 @@ import (
 )
 
 func TestRunner_initTemplates(t *testing.T) {
-
 	c := config.TestConfig(
 		&config.Config{
 			Templates: &config.TemplateConfigs{
@@ -51,7 +50,6 @@ func TestRunner_initTemplates(t *testing.T) {
 }
 
 func TestRunner_Receive(t *testing.T) {
-
 	c := config.TestConfig(&config.Config{Once: true})
 	r, err := NewRunner(c, true)
 	if err != nil {
@@ -59,7 +57,6 @@ func TestRunner_Receive(t *testing.T) {
 	}
 
 	t.Run("adds_to_brain", func(t *testing.T) {
-
 		d, err := dep.NewKVGetQuery("foo")
 		if err != nil {
 			t.Fatal(err)
@@ -80,7 +77,6 @@ func TestRunner_Receive(t *testing.T) {
 	})
 
 	t.Run("skips_brain_if_not_watching", func(t *testing.T) {
-
 		d, err := dep.NewKVGetQuery("zip")
 		if err != nil {
 			t.Fatal(err)
@@ -392,7 +388,7 @@ func TestRunner_Run(t *testing.T) {
 			"no_command_if_same_template",
 			func(t *testing.T, r *Runner) {
 				r.dry = false
-				if err := ioutil.WriteFile("/tmp/ct-no_command_if_same_template", []byte("hello"), 0644); err != nil {
+				if err := ioutil.WriteFile("/tmp/ct-no_command_if_same_template", []byte("hello"), 0o644); err != nil {
 					t.Fatal(err)
 				}
 			},
@@ -474,7 +470,6 @@ func TestRunner_Run(t *testing.T) {
 	for i, tc := range cases {
 		tc := tc
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-
 			var out bytes.Buffer
 
 			c := config.TestConfig(tc.c)
@@ -504,9 +499,7 @@ func TestRunner_Run(t *testing.T) {
 }
 
 func TestRunner_Start(t *testing.T) {
-
 	t.Run("store_pid", func(t *testing.T) {
-
 		pid, err := ioutil.TempFile("", "")
 		if err != nil {
 			t.Fatal(err)
@@ -555,7 +548,6 @@ func TestRunner_Start(t *testing.T) {
 	})
 
 	t.Run("run_no_deps", func(t *testing.T) {
-
 		out, err := ioutil.TempFile("", "")
 		if err != nil {
 			t.Fatal(err)
@@ -598,7 +590,6 @@ func TestRunner_Start(t *testing.T) {
 	})
 
 	t.Run("single_dependency", func(t *testing.T) {
-
 		testConsul.SetKVString(t, "single-dep-foo", "bar")
 
 		out, err := ioutil.TempFile("", "")
@@ -646,7 +637,6 @@ func TestRunner_Start(t *testing.T) {
 	})
 
 	t.Run("multipass", func(t *testing.T) {
-
 		testConsul.SetKVString(t, "multipass-foo", "multipass-bar")
 		testConsul.SetKVString(t, "multipass-bar", "zip")
 
@@ -695,7 +685,6 @@ func TestRunner_Start(t *testing.T) {
 	})
 
 	t.Run("exec", func(t *testing.T) {
-
 		out, err := ioutil.TempFile("", "")
 		if err != nil {
 			t.Fatal(err)
@@ -751,7 +740,6 @@ func TestRunner_Start(t *testing.T) {
 	})
 
 	t.Run("exec_once", func(t *testing.T) {
-
 		out, err := ioutil.TempFile("", "")
 		if err != nil {
 			t.Fatal(err)
@@ -808,7 +796,6 @@ func TestRunner_Start(t *testing.T) {
 
 	// Exec would run before template rendering if Wait was defined.
 	t.Run("exec-wait", func(t *testing.T) {
-
 		testConsul.SetKVString(t, "exec-wait-foo", "foo")
 
 		firstOut, err := ioutil.TempFile("", "foo")
@@ -877,7 +864,6 @@ func TestRunner_Start(t *testing.T) {
 	// a wait parameter call an exec function
 	// https://github.com/hashicorp/consul-template/issues/1043
 	t.Run("multi-template-exec", func(t *testing.T) {
-
 		testConsul.SetKVString(t, "multi-exec-wait-foo", "bar")
 		testConsul.SetKVString(t, "multi-exec-wait-bar", "bat")
 
@@ -951,7 +937,6 @@ func TestRunner_Start(t *testing.T) {
 	})
 
 	t.Run("render_in_memory", func(t *testing.T) {
-
 		testConsul.SetKVString(t, "render-in-memory", "foo")
 
 		c := config.DefaultConfig().Merge(&config.Config{
@@ -1008,7 +993,6 @@ func TestRunner_Start(t *testing.T) {
 	})
 
 	t.Run("parse_only", func(t *testing.T) {
-
 		out, err := ioutil.TempFile("", "")
 		if err != nil {
 			t.Fatal(err)
@@ -1040,11 +1024,9 @@ func TestRunner_Start(t *testing.T) {
 }
 
 func TestRunner_quiescence(t *testing.T) {
-
 	tpl := &template.Template{}
 
 	t.Run("min", func(t *testing.T) {
-
 		ch := make(chan *template.Template, 1)
 		q := newQuiescence(ch,
 			50*time.Millisecond, 250*time.Millisecond, tpl)
@@ -1074,7 +1056,6 @@ func TestRunner_quiescence(t *testing.T) {
 
 	// Single snooze case.
 	t.Run("snooze", func(t *testing.T) {
-
 		ch := make(chan *template.Template, 1)
 		q := newQuiescence(ch,
 			50*time.Millisecond, 250*time.Millisecond, tpl)
@@ -1101,7 +1082,6 @@ func TestRunner_quiescence(t *testing.T) {
 
 	// Max time case.
 	t.Run("max", func(t *testing.T) {
-
 		ch := make(chan *template.Template, 1)
 		q := newQuiescence(ch,
 			50*time.Millisecond, 250*time.Millisecond, tpl)

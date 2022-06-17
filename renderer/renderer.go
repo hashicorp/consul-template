@@ -15,7 +15,7 @@ import (
 const (
 	// DefaultFilePerms are the default file permissions for files rendered onto
 	// disk when a specific file permission has not already been specified.
-	DefaultFilePerms = 0644
+	DefaultFilePerms = 0o644
 )
 
 var (
@@ -139,7 +139,7 @@ func AtomicWrite(path string, createDestDirs bool, contents []byte, perms os.Fil
 	parent := filepath.Dir(path)
 	if _, err := os.Stat(parent); os.IsNotExist(err) {
 		if createDestDirs {
-			if err := os.MkdirAll(parent, 0755); err != nil {
+			if err := os.MkdirAll(parent, 0o755); err != nil {
 				return err
 			}
 		} else {

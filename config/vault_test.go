@@ -8,7 +8,6 @@ import (
 )
 
 func TestVaultConfig_Copy(t *testing.T) {
-
 	cases := []struct {
 		name string
 		a    *VaultConfig
@@ -467,7 +466,6 @@ func TestVaultConfig_Merge(t *testing.T) {
 }
 
 func TestVaultConfig_Finalize(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    *VaultConfig
@@ -753,7 +751,6 @@ func TestVaultConfig_Finalize(t *testing.T) {
 }
 
 func TestVaultConfig_TokenRenew(t *testing.T) {
-
 	cases := []struct {
 		name   string
 		act    *VaultConfig
@@ -804,7 +801,6 @@ func TestVaultConfig_TokenRenew(t *testing.T) {
 	}
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-
 			tc.act.Finalize()
 			for _, f := range tc.fields {
 				av := reflect.Indirect(reflect.ValueOf(*tc.act).FieldByName(f))

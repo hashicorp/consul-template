@@ -29,11 +29,9 @@ const (
 	DefaultTLSHandshakeTimeout = 10 * time.Second
 )
 
-var (
-	// DefaultMaxIdleConnsPerHost is the default number of idle connections to use
-	// per host.
-	DefaultMaxIdleConnsPerHost = runtime.GOMAXPROCS(0) + 1
-)
+// DefaultMaxIdleConnsPerHost is the default number of idle connections to use
+// per host.
+var DefaultMaxIdleConnsPerHost = runtime.GOMAXPROCS(0) + 1
 
 // TransportConfig is the configuration to tune low-level APIs for the
 // interactions on the wire.

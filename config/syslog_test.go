@@ -7,7 +7,6 @@ import (
 )
 
 func TestSyslogConfig_Copy(t *testing.T) {
-
 	cases := []struct {
 		name string
 		a    *SyslogConfig
@@ -25,7 +24,7 @@ func TestSyslogConfig_Copy(t *testing.T) {
 			&SyslogConfig{
 				Enabled:  Bool(true),
 				Facility: String("facility"),
-				Name:	  String("name"),
+				Name:     String("name"),
 			},
 		},
 	}
@@ -41,7 +40,6 @@ func TestSyslogConfig_Copy(t *testing.T) {
 }
 
 func TestSyslogConfig_Merge(t *testing.T) {
-
 	cases := []struct {
 		name string
 		a    *SyslogConfig
@@ -157,7 +155,6 @@ func TestSyslogConfig_Merge(t *testing.T) {
 }
 
 func TestSyslogConfig_Finalize(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    *SyslogConfig
@@ -169,7 +166,7 @@ func TestSyslogConfig_Finalize(t *testing.T) {
 			&SyslogConfig{
 				Enabled:  Bool(false),
 				Facility: String(DefaultSyslogFacility),
-				Name:	  String(DefaultSyslogName),
+				Name:     String(DefaultSyslogName),
 			},
 		},
 		{
@@ -180,7 +177,7 @@ func TestSyslogConfig_Finalize(t *testing.T) {
 			&SyslogConfig{
 				Enabled:  Bool(true),
 				Facility: String("facility"),
-				Name:	  String(DefaultSyslogName),
+				Name:     String(DefaultSyslogName),
 			},
 		},
 		{

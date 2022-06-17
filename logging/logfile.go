@@ -14,34 +14,34 @@ import (
 )
 
 type LogFile struct {
-	//Name of the log file
+	// Name of the log file
 	fileName string
 
-	//Path to the log file
+	// Path to the log file
 	logPath string
 
-	//Duration between each file rotation operation
+	// Duration between each file rotation operation
 	duration time.Duration
 
-	//LastCreated represents the creation time of the latest log
+	// LastCreated represents the creation time of the latest log
 	LastCreated time.Time
 
-	//FileInfo is the pointer to the current file being written to
+	// FileInfo is the pointer to the current file being written to
 	FileInfo *os.File
 
-	//MaxBytes is the maximum number of desired bytes for a log file
+	// MaxBytes is the maximum number of desired bytes for a log file
 	MaxBytes int
 
-	//BytesWritten is the number of bytes written in the current log file
+	// BytesWritten is the number of bytes written in the current log file
 	BytesWritten int64
 
 	// Max rotated files to keep before removing them.
 	MaxFiles int
 
-	//filt is used to filter log messages depending on their level
+	// filt is used to filter log messages depending on their level
 	filt *logutils.LevelFilter
 
-	//acquire is the mutex utilized to ensure we have no concurrency issues
+	// acquire is the mutex utilized to ensure we have no concurrency issues
 	acquire sync.Mutex
 }
 
@@ -64,7 +64,7 @@ func (l *LogFile) openNew() error {
 	newfilePath := filepath.Join(l.logPath, newfileName)
 
 	// Try creating a file. We truncate the file because we are the only authority to write the logs
-	filePointer, err := os.OpenFile(newfilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0640)
+	filePointer, err := os.OpenFile(newfilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o640)
 	if err != nil {
 		return err
 	}

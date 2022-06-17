@@ -12,10 +12,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	// Ensure implements
-	_ Dependency = (*VaultReadQuery)(nil)
-)
+// Ensure implements
+var _ Dependency = (*VaultReadQuery)(nil)
 
 // VaultReadQuery is the dependency to Vault for a secret
 type VaultReadQuery struct {
@@ -160,7 +158,6 @@ func (d *VaultReadQuery) readSecret(clients *ClientSet, opts *QueryOptions) (*ap
 	})
 	vaultSecret, err := vaultClient.Logical().ReadWithData(d.secretPath,
 		d.queryValues)
-
 	if err != nil {
 		return nil, errors.Wrap(err, d.String())
 	}

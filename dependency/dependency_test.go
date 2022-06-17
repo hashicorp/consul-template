@@ -19,13 +19,17 @@ import (
 	vapi "github.com/hashicorp/vault/api"
 )
 
-const vaultAddr = "http://127.0.0.1:8200"
-const vaultToken = "a_token"
+const (
+	vaultAddr  = "http://127.0.0.1:8200"
+	vaultToken = "a_token"
+)
 
-var testConsul *testutil.TestServer
-var testVault *vaultServer
-var testNomad *nomadServer
-var testClients *ClientSet
+var (
+	testConsul  *testutil.TestServer
+	testVault   *vaultServer
+	testNomad   *nomadServer
+	testClients *ClientSet
+)
 
 func TestMain(m *testing.M) {
 	log.SetOutput(ioutil.Discard)
@@ -106,7 +110,8 @@ func TestMain(m *testing.M) {
 		ID:   "foo",
 		Port: 21999,
 		Proxy: &api.AgentServiceConnectProxyConfig{
-			DestinationServiceName: "foo"},
+			DestinationServiceName: "foo",
+		},
 	}
 
 	if err := consul_agent.ServiceRegister(testService); err != nil {
@@ -318,8 +323,10 @@ func runTestVault() {
 	if err != nil || path == "" {
 		Fatalf("vault not found on $PATH")
 	}
-	args := []string{"server", "-dev", "-dev-root-token-id", vaultToken,
-		"-dev-no-store-token"}
+	args := []string{
+		"server", "-dev", "-dev-root-token-id", vaultToken,
+		"-dev-no-store-token",
+	}
 	cmd := exec.Command("vault", args...)
 	cmd.Stdout = ioutil.Discard
 	cmd.Stderr = ioutil.Discard
@@ -376,7 +383,6 @@ func (v *vaultServer) deleteSecret(path string) error {
 }
 
 func TestCanShare(t *testing.T) {
-
 	deps := []Dependency{
 		&CatalogNodeQuery{},
 		&FileQuery{},
@@ -394,7 +400,6 @@ func TestCanShare(t *testing.T) {
 }
 
 func TestDeepCopyAndSortTags(t *testing.T) {
-
 	tags := []string{"hello", "world", "these", "are", "tags", "foo:bar", "baz=qux"}
 	expected := []string{"are", "baz=qux", "foo:bar", "hello", "tags", "these", "world"}
 

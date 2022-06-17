@@ -16,7 +16,6 @@ import (
 )
 
 func TestCLI_ParseFlags(t *testing.T) {
-
 	f, err := ioutil.TempFile("", "")
 	if err != nil {
 		t.Fatal(err)
@@ -793,7 +792,6 @@ func TestCLI_ParseFlags(t *testing.T) {
 }
 
 func TestCLI_Run(t *testing.T) {
-
 	cases := []struct {
 		name string
 		args []string
@@ -843,7 +841,6 @@ func TestCLI_Run(t *testing.T) {
 	}
 
 	t.Run("once", func(t *testing.T) {
-
 		f, err := ioutil.TempFile("", "")
 		if err != nil {
 			t.Fatal(err)
@@ -866,7 +863,8 @@ func TestCLI_Run(t *testing.T) {
 
 		ch := make(chan int, 1)
 		go func() {
-			ch <- cli.Run([]string{"consul-template",
+			ch <- cli.Run([]string{
+				"consul-template",
 				"-once",
 				"-wait", "30s", // should not wait
 				"-consul-addr", testConsul.HTTPAddr,
@@ -894,7 +892,6 @@ func TestCLI_Run(t *testing.T) {
 	})
 
 	t.Run("reload", func(t *testing.T) {
-
 		f, err := ioutil.TempFile("", "")
 		if err != nil {
 			t.Fatal(err)
@@ -910,7 +907,8 @@ func TestCLI_Run(t *testing.T) {
 
 		ch := make(chan int, 1)
 		go func() {
-			ch <- cli.Run([]string{"consul-template",
+			ch <- cli.Run([]string{
+				"consul-template",
 				"-dry",
 				"-consul-addr", testConsul.HTTPAddr,
 				"-template", f.Name(),

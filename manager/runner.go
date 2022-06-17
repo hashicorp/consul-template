@@ -1064,7 +1064,7 @@ func (r *Runner) allTemplatesRendered() bool {
 // childEnv creates a map of environment variables for child processes to have
 // access to configurations in Consul Template's configuration.
 func (r *Runner) childEnv() []string {
-	var m = make(map[string]string)
+	m := make(map[string]string)
 
 	if config.StringPresent(r.config.Consul.Address) {
 		m["CONSUL_HTTP_ADDR"] = config.StringVal(r.config.Consul.Address)
@@ -1134,7 +1134,7 @@ func (r *Runner) storePid() error {
 
 	log.Printf("[INFO] creating pid file at %q", path)
 
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o666)
 	if err != nil {
 		return fmt.Errorf("runner: could not open pid file: %s", err)
 	}

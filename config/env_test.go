@@ -10,7 +10,6 @@ import (
 )
 
 func TestEnvConfig_Copy(t *testing.T) {
-
 	cases := []struct {
 		name string
 		a    *EnvConfig
@@ -47,7 +46,6 @@ func TestEnvConfig_Copy(t *testing.T) {
 }
 
 func TestEnvConfig_Merge(t *testing.T) {
-
 	cases := []struct {
 		name string
 		a    *EnvConfig
@@ -181,7 +179,6 @@ func TestEnvConfig_Merge(t *testing.T) {
 }
 
 func TestExecConfig_Env(t *testing.T) {
-
 	cases := []struct {
 		name string
 		c    *EnvConfig
@@ -272,7 +269,6 @@ func TestExecConfig_Env(t *testing.T) {
 }
 
 func TestEnvConfig_Finalize(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    *EnvConfig
@@ -303,7 +299,6 @@ func TestEnvConfig_Finalize(t *testing.T) {
 }
 
 func TestCombineLists(t *testing.T) {
-
 	cases := []struct {
 		name     string
 		a        []string

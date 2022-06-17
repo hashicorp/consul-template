@@ -2,7 +2,6 @@ package child
 
 import (
 	"bytes"
-	"github.com/hashicorp/go-hclog"
 	"io/ioutil"
 	"log"
 	"os"
@@ -12,6 +11,8 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/go-gatedio"
 	"golang.org/x/sys/unix"
@@ -37,7 +38,6 @@ func testChild(t *testing.T) *Child {
 }
 
 func TestNew(t *testing.T) {
-
 	stdin := gatedio.NewByteBuffer()
 	stdout := gatedio.NewByteBuffer()
 	stderr := gatedio.NewByteBuffer()
@@ -111,7 +111,6 @@ func TestNew(t *testing.T) {
 }
 
 func TestNew_errMissingCommand(t *testing.T) {
-
 	_, err := New(nil)
 	if err == nil {
 		t.Fatal("expected error")
@@ -123,7 +122,6 @@ func TestNew_errMissingCommand(t *testing.T) {
 }
 
 func TestExitCh_noProcess(t *testing.T) {
-
 	c := testChild(t)
 	ch := c.ExitCh()
 	if ch != nil {
@@ -132,7 +130,6 @@ func TestExitCh_noProcess(t *testing.T) {
 }
 
 func TestExitCh(t *testing.T) {
-
 	c := testChild(t)
 	if err := c.Start(); err != nil {
 		t.Fatal(err)
@@ -146,7 +143,6 @@ func TestExitCh(t *testing.T) {
 }
 
 func TestPid_noProcess(t *testing.T) {
-
 	c := testChild(t)
 	pid := c.Pid()
 	if pid != 0 {
@@ -155,7 +151,6 @@ func TestPid_noProcess(t *testing.T) {
 }
 
 func TestPid(t *testing.T) {
-
 	c := testChild(t)
 	if err := c.Start(); err != nil {
 		t.Fatal(err)
@@ -169,7 +164,6 @@ func TestPid(t *testing.T) {
 }
 
 func TestStart(t *testing.T) {
-
 	c := testChild(t)
 
 	// Set our own reader and writer so we can verify they are wired to the child.
@@ -203,7 +197,6 @@ func TestStart(t *testing.T) {
 }
 
 func TestSignal(t *testing.T) {
-
 	c := testChild(t)
 	c.command = "sh"
 	c.args = []string{"-c", "trap 'echo one; exit' USR1; while true; do sleep 0.2; done"}
@@ -233,7 +226,6 @@ func TestSignal(t *testing.T) {
 }
 
 func TestSignal_noProcess(t *testing.T) {
-
 	c := testChild(t)
 	if err := c.Signal(syscall.SIGUSR1); err != nil {
 		// Just assert there is no error
@@ -242,7 +234,6 @@ func TestSignal_noProcess(t *testing.T) {
 }
 
 func TestReload_signal(t *testing.T) {
-
 	c := testChild(t)
 	c.command = "sh"
 	c.args = []string{"-c", "trap 'echo one; exit' USR1; while true; do sleep 0.2; done"}
@@ -273,7 +264,6 @@ func TestReload_signal(t *testing.T) {
 }
 
 func TestReload_noSignal(t *testing.T) {
-
 	c := testChild(t)
 	c.command = "sh"
 	c.args = []string{"-c", "while true; do sleep 0.2; done"}
@@ -307,7 +297,6 @@ func TestReload_noSignal(t *testing.T) {
 }
 
 func TestReload_noProcess(t *testing.T) {
-
 	c := testChild(t)
 	c.reloadSignal = syscall.SIGUSR1
 	if err := c.Reload(); err != nil {
@@ -316,7 +305,6 @@ func TestReload_noProcess(t *testing.T) {
 }
 
 func TestKill_signal(t *testing.T) {
-
 	c := testChild(t)
 	c.command = "sh"
 	c.args = []string{"-c", "trap 'echo one; exit' USR1; while true; do sleep 0.2; done"}
@@ -345,7 +333,6 @@ func TestKill_signal(t *testing.T) {
 }
 
 func TestKill_noSignal(t *testing.T) {
-
 	c := testChild(t)
 	c.command = "sh"
 	c.args = []string{"-c", "while true; do sleep 0.2; done"}
@@ -371,7 +358,6 @@ func TestKill_noSignal(t *testing.T) {
 }
 
 func TestKill_noProcess(t *testing.T) {
-
 	c := testChild(t)
 	c.killSignal = syscall.SIGUSR1
 	c.Kill()

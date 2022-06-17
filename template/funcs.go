@@ -293,7 +293,6 @@ func lsFunc(b *Brain, used, missing *dep.Set, emptyIsSafe bool) func(string) ([]
 // nodeFunc returns or accumulates catalog node dependency.
 func nodeFunc(b *Brain, used, missing *dep.Set) func(...string) (interface{}, error) {
 	return func(s ...string) (interface{}, error) {
-
 		d, err := dep.NewCatalogNodeQuery(strings.Join(s, ""))
 		if err != nil {
 			return nil, err
@@ -588,7 +587,6 @@ func connectLeafFunc(b *Brain, used, missing *dep.Set,
 		}
 		missing.Add(d)
 		return nil, nil
-
 	}
 }
 
@@ -934,7 +932,6 @@ func indent(spaces int, s string) (string, error) {
 // 		}
 //
 func loop(ifaces ...interface{}) (<-chan int64, error) {
-
 	to64 := func(i interface{}) (int64, error) {
 		v := reflect.ValueOf(i)
 		switch v.Kind() {

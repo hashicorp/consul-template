@@ -8,7 +8,6 @@ import (
 )
 
 func TestRetryFunc(t *testing.T) {
-
 	cases := []struct {
 		name string
 		c    *RetryConfig
@@ -153,11 +152,9 @@ func TestRetryFunc(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestRetryConfig_Copy(t *testing.T) {
-
 	cases := []struct {
 		name string
 		a    *RetryConfig
@@ -200,7 +197,6 @@ func TestRetryConfig_Copy(t *testing.T) {
 }
 
 func TestRetryConfig_Merge(t *testing.T) {
-
 	cases := []struct {
 		name string
 		a    *RetryConfig
@@ -343,7 +339,6 @@ func TestRetryConfig_Merge(t *testing.T) {
 }
 
 func TestRetryConfig_Finalize(t *testing.T) {
-
 	cases := []struct {
 		name string
 		i    *RetryConfig

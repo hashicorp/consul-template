@@ -306,7 +306,8 @@ func (c *VaultConfig) Finalize() {
 	}
 	if c.SSL.Verify == nil {
 		c.SSL.Verify = antiboolFromEnv([]string{
-			EnvVaultSkipVerify, api.EnvVaultInsecure}, true)
+			EnvVaultSkipVerify, api.EnvVaultInsecure,
+		}, true)
 	}
 	c.SSL.Finalize()
 
