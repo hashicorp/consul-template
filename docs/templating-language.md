@@ -600,8 +600,8 @@ end of the `secret` function.
 ### `pkiCert`
 
 Query [Vault][vault] for a PKI certificate. It returns the certificate PEM
-encoded in a string. It only returns the PKI certificate, not the CA, key or
-any other informaion about the certificate.
+encoded in a string. It returns the PKI Certificate, CA, and the Secret Key as
+the fields: `Cert`, `CA` and `Key`.
 
 **Special Note**: This function uses the template file destination as a cache
 for the certificate to prevent Consul-Template from re-fetching it on reload or
@@ -609,11 +609,19 @@ restart. This special behavior is to better work with Vault's PKI behavior of
 always returning a new certificate even if the current one is still good. Using
 the destination file as a local "cache" allows Consul-Template to check for the
 certificate in that local file and, if found, parse it and checks it's valid
-date range only fetching a new certificate if the local one has expired.
+date range only fetching a new certificate if the local one has expired. It can
+only get re-populate the fields (Cert, CA, Key) if that data is in the file.
+Eg. If you don't include the CA in the file the CA field will be blank when
+loading from cache. And note that you **must** include the Certificate itself
+in this file as it contains the TTL/expiration data.
 
 
 ```golang
-{{ pkiCert "pki/issue/my-domain-dot-com" "common_name=foo.example.com" }}
+{{ with pkiCert "pki/issue/my-domain-dot-com" "common_name=foo.example.com" }}
+Certificate: {{ .Cert }}
+Private Key: {{ .Key }}
+Cert Authority: {{ .CA }}
+{{ end }}
 ```
 
 ### `service`
