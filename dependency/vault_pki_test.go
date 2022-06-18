@@ -17,7 +17,7 @@ import (
 func Test_VaultPKI_notGoodFor(t *testing.T) {
 	// only test the negation, postive is tested below with certificates
 	// fetched in Vault integration tests (creating certs is non-trivial)
-	_, cert, err := getCert([]byte(goodCert))
+	_, cert, err := getCert([]byte(validCert))
 	if err != nil {
 		t.Error(err)
 	}
@@ -34,13 +34,13 @@ func Test_VaultPKI_notGoodFor(t *testing.T) {
 
 func Test_VaultPKI_getCert(t *testing.T) {
 	// tests w/ valid cert
-	for _, testcert := range []string{goodCert, goodBad, badGood, goodCertAfterCA, goodCertGarbo} {
+	for _, testcert := range []string{validCert, validBad, badGood, validCertAfterCA, validCertGarbo} {
 		pemBlk, cert, err := getCert([]byte(testcert))
 		if err != nil {
 			t.Fatal(err) // Fatal to avoid panic's below
 		}
 		got := strings.TrimRight(string(pem.EncodeToMemory(pemBlk)), "\n")
-		want := strings.TrimRight(strings.TrimSpace(goodCert), "\n")
+		want := strings.TrimRight(strings.TrimSpace(validCert), "\n")
 		if got != want {
 			t.Errorf("certs didn't match:\ngot: %v\nwant: %v", got, want)
 		}
@@ -174,7 +174,7 @@ func Test_VaultPKI_refetch(t *testing.T) {
 	}
 }
 
-const goodCert = `
+const validCert = `
 -----BEGIN CERTIFICATE-----
 MIIDWTCCAkGgAwIBAgIUUARA+vQExU8zjdsX/YXMMu1K5FkwDQYJKoZIhvcNAQEL
 BQAwFjEUMBIGA1UEAxMLZXhhbXBsZS5jb20wHhcNMjIwMzAxMjIzMzAzWhcNMjIw
@@ -197,7 +197,7 @@ eB01bl42Y5WwHl0IrjfbEevzoW0+uhlUlZ6keZHr7bLn/xuRCUkVfj3PRlMl
 -----END CERTIFICATE-----
 `
 
-const goodCA = `
+const validCA = `
 -----BEGIN CERTIFICATE-----
 MIIDNTCCAh2gAwIBAgIUbJ/1ELw6X6OUg6YeVtsTqg20G2swDQYJKoZIhvcNAQEL
 BQAwFjEUMBIGA1UEAxMLZXhhbXBsZS5jb20wHhcNMjIwMzAxMjIzMjQ3WhcNMjMw
@@ -221,10 +221,10 @@ v57ZY8gIDE5E
 `
 
 const (
-	goodCertAfterCA = goodCA + goodCert
-	goodCertGarbo   = `
+	validCertAfterCA = validCA + validCert
+	validCertGarbo   = `
 aa983w4;/amndsfm908q26035vc;ng902338(%@%!@QY!&DVLMNSALX>PT(RQ!QO*%@
-` + goodCert + `
+` + validCert + `
 !Q)(*@^YUO!Q#MN%$#WP(G^&+_!%)!+^%$Y	:!#QLKENFVJ)	!#*&%YHTM
 `
 )
@@ -237,7 +237,7 @@ eB01bl42Y5WwHl0IrjfbEevzoW0+uhlUlZ6keZHr7bLn/xuRCUkVfj3PRlMl
 `
 
 const (
-	badPlusCA    = badCert + goodCA
+	badPlusCA    = badCert + validCA
 	badPlusGarbo = `
 aa983w4;/amndsfm908q26035vc;ng902338(%@%!@QY!&DVLMNSALX>PT(RQ!QO*%@
 ` + badCert + `
@@ -246,6 +246,6 @@ aa983w4;/amndsfm908q26035vc;ng902338(%@%!@QY!&DVLMNSALX>PT(RQ!QO*%@
 )
 
 const (
-	badGood = badCert + goodCert
-	goodBad = goodCert + badCert
+	badGood  = badCert + validCert
+	validBad = validCert + badCert
 )
