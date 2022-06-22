@@ -456,13 +456,14 @@ To access map data such as `TaggedAddresses` or `Meta`, use
 
 ### `secret`
 
-#### Simple Read
+#### Format
 
 Query [Vault][vault] for the secret at the given path.
 
 ```golang
 {{ secret "<PATH>" "<DATA>" }}
 ```
+#### Simple Read
 
 The `<DATA>` attribute is optional; if omitted, the request will be a `vault
 read` (HTTP GET) request. If provided, the request will be a `vault write` (HTTP
