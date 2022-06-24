@@ -1,3 +1,18 @@
+## v0.29.1 (Jun 24, 2022)
+
+IMPROVEMENTS:
+
+* Kubernetets Vault authentication support [[GH-1580](https://github.com/hashicorp/consul-template/pull/1580)]
+* Nomad: add support for querying consistent subset of services [[GH-1579](https://github.com/hashicorp/consul-template/pull/1579)]
+
+BUG FIXES:
+
+* pkiCert now useful, getting the certificate, private key and CA [[GH-1591](https://github.com/hashicorp/consul-template/pull/1591), [1567](https://github.com/hashicorp/consul-template/issues/1567)]
+* fix issue with VaultConfig debug printing [[GH-1587](https://github.com/hashicorp/consul-template/pull/1587)]
+* update crypto package version [[GH-1592](https://github.com/hashicorp/consul-template/pull/1592), [GH-1582](https://github.com/hashicorp/consul-template/issues/1582)]
+* fix sort.Stable sorting [[GH-1578](https://github.com/hashicorp/consul-template/pull/1578)]
+
+
 ## v0.29.0 (Apr 20, 2022)
 
 IMPROVEMENTS:

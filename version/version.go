@@ -3,7 +3,7 @@ package version
 import "fmt"
 
 const (
-	Version           = "0.29.0"
+	Version           = "0.29.1"
 	VersionPrerelease = "" // "-dev", "-beta", "-rc1", etc. (include dash)
 )
 
