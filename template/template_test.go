@@ -1964,7 +1964,7 @@ func TestTemplate_Execute(t *testing.T) {
 		{
 			"func_pkiCert",
 			&NewTemplateInput{
-				Contents: `{{ pkiCert "pki/issue/egs-dot-com" }}`,
+				Contents: `{{ with pkiCert "pki/issue/egs-dot-com" }}{{.Cert}}{{end}}`,
 			},
 			&ExecuteInput{
 				Brain: func() *Brain {
@@ -1973,7 +1973,26 @@ func TestTemplate_Execute(t *testing.T) {
 					if err != nil {
 						t.Fatal(err)
 					}
-					b.Remember(d, testCert)
+					b.Remember(d, dep.PemEncoded{Cert: testCert})
+					return b
+				}(),
+			},
+			testCert,
+			false,
+		},
+		{
+			"func_pkiCert_Data_compat",
+			&NewTemplateInput{
+				Contents: `{{ with pkiCert "pki/issue/egs-dot-com" }}{{.Data.Cert}}{{end}}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewVaultPKIQuery("pki/issue/egs-dot-com", "/dev/null", nil)
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, dep.PemEncoded{Cert: testCert})
 					return b
 				}(),
 			},
