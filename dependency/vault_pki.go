@@ -140,9 +140,11 @@ func pemsCert(encoded []byte) (PemEncoded, *x509.Certificate, error) {
 	var block *pem.Block
 	var cert *x509.Certificate
 	var encPems PemEncoded
+	var aPem []byte
 	for {
+		aPem, encoded = nextPem(encoded)
 		// scan, find and parse PEM blocks
-		block, encoded = pem.Decode(encoded)
+		block, _ = pem.Decode(aPem)
 		switch {
 		case block == nil: // end of scan, no more PEMs found
 			return encPems, cert, nil
@@ -163,6 +165,22 @@ func pemsCert(encoded []byte) (PemEncoded, *x509.Certificate, error) {
 			encPems.Cert = string(pem.EncodeToMemory(block))
 		}
 	}
+}
+
+// find the next PEM in the byte stream
+func nextPem(encoded []byte) (aPem []byte, theRest []byte) {
+	start := bytes.Index(encoded, []byte("-----BEGIN"))
+	if start >= 0 { // finds the PEM and pulls it to decode
+		encoded = encoded[start:] // clip pre-pem junk
+		// find the end
+		end := bytes.Index(encoded, []byte("-----END")) + 8
+		end = end + bytes.Index(encoded[end:], []byte("-----")) + 5
+		// the PEM padded with newlines (what pem.Decode likes)
+		aPem = append([]byte("\n"), encoded[:end]...)
+		aPem = append(aPem, []byte("\n")...)
+		theRest = encoded[end:] // the rest
+	}
+	return aPem, theRest
 }
 
 // Vault call to fetch the PKI Cert PEM data

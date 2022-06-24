@@ -61,11 +61,11 @@ func Test_VaultPKI_pemsCert(t *testing.T) {
 	}
 	// tests w/o valid pems (test error)
 	expectedErr := "x509: malformed certificate"
-	for _, badpems := range []string{badCert, badPlusCA, badPlusGarbo} {
+	for name, badpems := range map[string]string{"bad": badCert, "bad+gar": badPlusGarbo} {
 		_, _, err := pemsCert([]byte(badpems))
 		switch {
 		case err == nil:
-			t.Errorf("error should not be nil")
+			t.Errorf("error should not be nil for %s", name)
 		case !strings.Contains(err.Error(), expectedErr):
 			t.Errorf("wrong error; wanted: '%s', got: '%s'", expectedErr, err)
 		}
@@ -186,8 +186,7 @@ func Test_VaultPKI_refetch(t *testing.T) {
 	}
 }
 
-const validCert = `
------BEGIN CERTIFICATE-----
+const validCert = `-----BEGIN CERTIFICATE-----
 MIIDWTCCAkGgAwIBAgIUaawVY56cY+a0GUYJaL2zsHFBgqQwDQYJKoZIhvcNAQEL
 BQAwFjEUMBIGA1UEAxMLZXhhbXBsZS5jb20wHhcNMjIwNjIxMjEyODIxWhcNMjIw
 NjIxMjEyODI1WjAaMRgwFgYDVQQDEw9mb28uZXhhbXBsZS5jb20wggEiMA0GCSqG
@@ -206,11 +205,9 @@ Kcn5zHURLgCFTw4uFrC3hsR9by/PytE5mvMe8arpkiboUYrUIT5OlQmsZNpksbB9
 34fBi72qhhwYC1kzoBkFRMQQtwAgpmLM46pAIbZza7d+vnQRXngb6n/pFnq7gOOM
 KHy/moLj0fK4dmlrjbrvkLJTZt/IFxLNWvj8wGmnLSuIuBt08Rc1McY4gbTySats
 8lpG3zQS6aqGJjLEqjXkvfzWAAS5Xrvcc59a2dc6GZ01Y1ZP6krQ2rJBUEAO
------END CERTIFICATE-----
-`
+-----END CERTIFICATE-----`
 
-const validKey = `
------BEGIN RSA PRIVATE KEY-----
+const validKey = `-----BEGIN RSA PRIVATE KEY-----
 MIIEogIBAAKCAQEAydzSukniUHcQJl10XD7ecR2FblFi47bx6fMAFLTGEryxawtF
 w/WBisUnGyy3J5WXUrw+9i2IfUeIe5C48j/SUJ1Ej6oYsVJNgEWLolEzYnqabDO6
 QTDNFGJMjrW/KSzUp61eLuoGtYkhmXf96sUmw3fStJLvQO+ags1S73Duy6j8OkSP
@@ -236,11 +233,9 @@ QrzI6FpvRZddVjheKtgrb1Hhlr0cbtjw/gVgODuBlzRxOM/Mrd5RAo2MhjlZgUoM
 A4ODAoGAb9QJ4NlahKEX68ooC/FToiiUpJ33lAxFXVo0Nl/M8XsjcKDsKVsVDZkt
 /sWSUr3HJ54XMgsTybG9l7poeM6lWN/B+q1O05688Bp3h1Jx4uKCDjouS+u1xViJ
 iUV6/HfQYsykAni+pF6Zomu7ViIpl2u9bXExReB9UDI7LfHU4cg=
------END RSA PRIVATE KEY-----
-`
+-----END RSA PRIVATE KEY-----`
 
-const validCA = `
------BEGIN CERTIFICATE-----
+const validCA = `-----BEGIN CERTIFICATE-----
 MIIDNTCCAh2gAwIBAgIURRe+G6nEMYhVGqXpsIyIKVAzqBwwDQYJKoZIhvcNAQEL
 BQAwFjEUMBIGA1UEAxMLZXhhbXBsZS5jb20wHhcNMjIwNjIxMjEyNzUyWhcNMjIw
 NjIzMjEyODIyWjAWMRQwEgYDVQQDEwtleGFtcGxlLmNvbTCCASIwDQYJKoZIhvcN
@@ -259,8 +254,7 @@ Okq7idvya6tYyVawJfinXNk7hbZG9NagmdIpAnufl5vrAW/Q3z2yLE0lwwEbByDi
 m/xetJzhoO/acy/PVOPK+llLLRNTuRCYjCvA2BO73t4IA233rHfycPV7sAtP/BIL
 WMd2uXhevQmufC8kPWlHXlTo3X5gxrEsyBeO3BzjEz76eYq+VdimmkV8qm/Zbccj
 ceJ0WflHmKDF
------END CERTIFICATE-----
-`
+-----END CERTIFICATE-----`
 
 var validPems = map[string]string{
 	"ca": validCA, "cert": validCert, "key": validKey,
@@ -279,35 +273,31 @@ func validPermutations() map[string]string {
 			}
 		}
 	}
+	for k, v := range embedded {
+		result[k] = v
+	}
 	return result
 }
 
-const (
-	allValid   = validCert + validKey + validCA
-	validGarbo = `
-aa983w4;/amndsfm908q26035vc;ng902338(%@%!@QY!&DVLMNSALX>PT(RQ!QO*%@
-` + allValid + `
-!Q)(*@^YUO!Q#MN%$#WP(G^&+_!%)!+^%$Y	:!#QLKENFVJ)	!#*&%YHTM
-`
-)
+var allPEMs = strings.Join([]string{validCert, validKey, validCA}, "\n")
 
-const badCert = `
------BEGIN CERTIFICATE-----
+var embedded = map[string]string{
+	"spaces":     " " + allPEMs + " ",
+	"brackets":   "{{ " + allPEMs + " }}",
+	"null":       "\x00" + allPEMs + "\x00",
+	"tabs":       "\t" + allPEMs + "\t",
+	"assignment": "\tCerts='" + allPEMs + "'",
+}
+
+const badCert = `-----BEGIN CERTIFICATE-----
 MIIDWTCCAkGgAwIBAgIUUARA+vQExU8zjdsX/YXMMu1K5FkwDQYJKoZIhvcNAQEL
 eB01bl42Y5WwHl0IrjfbEevzoW0+uhlUlZ6keZHr7bLn/xuRCUkVfj3PRlMl
------END CERTIFICATE-----
-`
+-----END CERTIFICATE-----`
 
 const (
-	badPlusCA    = badCert + validCA
 	badPlusGarbo = `
 aa983w4;/amndsfm908q26035vc;ng902338(%@%!@QY!&DVLMNSALX>PT(RQ!QO*%@
-` + badCert + `
+X` + badCert + `X
 !Q)(*@^YUO!Q#MN%$#WP(G^&+_!%)!+^%$Y	:!#QLKENFVJ)	!#*&%YHTM
 `
-)
-
-const (
-	badGood  = badCert + validCert
-	validBad = validCert + badCert
 )
