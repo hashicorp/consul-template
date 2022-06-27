@@ -739,6 +739,18 @@ func byTag(in interface{}) (map[string][]interface{}, error) {
 				m[t] = append(m[t], s)
 			}
 		}
+	case []*dep.NomadServicesSnippet:
+		for _, s := range typed {
+			for _, t := range s.Tags {
+				m[t] = append(m[t], s)
+			}
+		}
+	case []*dep.NomadService:
+		for _, s := range typed {
+			for _, t := range s.Tags {
+				m[t] = append(m[t], s)
+			}
+		}
 	default:
 		return nil, fmt.Errorf("byTag: wrong argument type %T", in)
 	}
