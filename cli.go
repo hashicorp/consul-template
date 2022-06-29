@@ -67,7 +67,7 @@ func (cli *CLI) Run(args []string) int {
 	config, paths, dry, isVersion, err := cli.ParseFlags(args[1:])
 	if err != nil {
 		if err == flag.ErrHelp {
-			fmt.Fprintf(cli.errStream, usage, version.Name)
+			fmt.Fprintf(cli.outStream, usage, version.Name)
 			return 0
 		}
 		fmt.Fprintln(cli.errStream, err.Error())
