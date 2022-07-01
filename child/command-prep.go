@@ -1,14 +1,14 @@
 //go:build !windows
 // +build !windows
 
-package manager
+package child
 
 import (
 	"os/exec"
 	"strings"
 )
 
-func prepCommand(command []string) ([]string, error) {
+func CommandPrep(command []string) ([]string, error) {
 	switch {
 	case len(command) == 1 && len(strings.Fields(command[0])) > 1:
 		// command is []string{"command using arguments or shell features"}

@@ -1114,7 +1114,7 @@ func TestRunner_command(t *testing.T) {
 	os.Setenv("FOO", "bar")
 
 	parseTest := func(tc testCase) {
-		out, err := prepCommand(tc.input)
+		out, err := child.CommandPrep(tc.input)
 		mismatchErr := "bad command parse\n   got: '%#v'\nwanted: '%#v'"
 		switch {
 		case err != nil && len(tc.input) > 0 && tc.input[0] != "":
@@ -1128,7 +1128,7 @@ func TestRunner_command(t *testing.T) {
 	runTest := func(tc testCase) {
 		stdout := new(bytes.Buffer)
 		stderr := new(bytes.Buffer)
-		args, err := prepCommand(tc.input)
+		args, err := child.CommandPrep(tc.input)
 		switch {
 		case err == exec.ErrNotFound && len(args) == 0:
 			return // expected
@@ -1265,7 +1265,7 @@ func TestRunner_commandPath(t *testing.T) {
 	PATH := os.Getenv("PATH")
 	defer os.Setenv("PATH", PATH)
 	os.Setenv("PATH", "")
-	cmd, err := prepCommand([]string{"echo hi"})
+	cmd, err := child.CommandPrep([]string{"echo hi"})
 	if err != nil && err != exec.ErrNotFound {
 		t.Fatal(err)
 	}

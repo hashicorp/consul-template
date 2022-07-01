@@ -1,4 +1,4 @@
-package manager
+package child
 
 import (
 	"os/exec"
@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func Test_prepCommand(t *testing.T) {
+func Test_CommandPrep(t *testing.T) {
 	type cmd []string
 	cases := []struct {
 		n   string
@@ -24,7 +24,7 @@ func Test_prepCommand(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.n, func(t *testing.T) {
-			out, err := prepCommand(tc.in)
+			out, err := CommandPrep(tc.in)
 			if !reflect.DeepEqual(cmd(out), tc.out) {
 				t.Errorf("bad prepCommand output. wanted: %#v, got %#v", tc.out, out)
 			}
