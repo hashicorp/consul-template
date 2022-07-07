@@ -1401,7 +1401,7 @@ combined with a JSON filter for customization:
 {{ tree "foo" | explode | toJSON | plugin "my-plugin" }}
 ```
 
-Please see the [plugins](#plugins) section for more information about plugins.
+Please see the [Plugins](plugins.md) section for more information about plugins.
 
 ### `regexMatch`
 
