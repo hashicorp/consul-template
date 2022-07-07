@@ -16,16 +16,16 @@ require (
 	github.com/hashicorp/go-syslog v1.0.0
 	github.com/hashicorp/hcl v1.0.0
 	github.com/hashicorp/logutils v1.0.0
-	github.com/hashicorp/nomad/api v0.0.0-20220407202126-2eba643965c4
+	github.com/hashicorp/nomad/api v0.0.0-20220707195938-75f4c2237b28
 	github.com/hashicorp/serf v0.9.4 // indirect
 	github.com/hashicorp/vault/api v1.3.0
-	github.com/imdario/mergo v0.3.12
+	github.com/imdario/mergo v0.3.13
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/hashstructure v1.0.0
-	github.com/mitchellh/mapstructure v1.4.3
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/pierrec/lz4 v2.5.2+incompatible // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/stretchr/testify v1.7.1
+	github.com/stretchr/testify v1.8.0
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d // indirect
 	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e
 	gopkg.in/yaml.v2 v2.3.0
@@ -44,7 +44,7 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/btree v1.0.0 // indirect
 	github.com/google/uuid v1.1.2 // indirect
-	github.com/gorilla/websocket v1.4.2 // indirect
+	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/cronexpr v1.1.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
@@ -77,7 +77,7 @@ require (
 	google.golang.org/grpc v1.41.0 // indirect
 	google.golang.org/protobuf v1.26.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 replace github.com/golang/lint => golang.org/x/lint v0.0.0-20190409202823-959b441ac422
