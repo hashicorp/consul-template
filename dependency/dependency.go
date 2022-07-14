@@ -21,6 +21,7 @@ const (
 	prefixRe      = `/?(?P<prefix>[^@]+)`
 	tagRe         = `((?P<tag>[[:word:]=:\.\-\_]+)\.)?`
 	regionRe      = `(@(?P<region>[[:word:]\.\-\_]+))?`
+	svPathRe      = `/?(?P<path>[^@]+)`
 )
 
 type Type int
