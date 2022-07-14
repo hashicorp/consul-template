@@ -21,6 +21,8 @@ func TestDedup_StartStop(t *testing.T) {
 }
 
 func TestDedup_IsLeader(t *testing.T) {
+	sessionCreateRetry = 100 * time.Millisecond
+
 	// Create a template
 	tmpl, err := template.NewTemplate(&template.NewTemplateInput{
 		Contents: `template-1 {{ range service "consul" }}{{ .Node }}{{ end }}`,

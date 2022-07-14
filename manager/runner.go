@@ -110,6 +110,11 @@ type Runner struct {
 
 	// stopped is a boolean of whether the runner is stopped
 	stopped bool
+
+	// finalConfigCopy provides access to a static copy of the finalized
+	// Runner config. This prevents risk of data races when reading config for
+	// other elements started by the Runner, like template functions.
+	finalConfigCopy config.Config
 }
 
 // RenderEvent captures the time and events that occurred for a template
@@ -164,7 +169,7 @@ type RenderEvent struct {
 
 	// ForQuiescence determines if this event is returned early in the
 	// render loop due to quiescence. When evaluating if all templates have
-	// been rendered we need to know if the event is triggered by quiesence
+	// been rendered we need to know if the event is triggered by quiescence
 	// and if we can skip evaluating it as a render event for those purposes
 	ForQuiescence bool
 
@@ -208,7 +213,7 @@ func NewRunner(config *config.Config, dry bool) (*Runner, error) {
 	if err := runner.init(clients); err != nil {
 		return nil, err
 	}
-
+	runner.finalConfigCopy = *runner.config.Copy()
 	return runner, nil
 }
 
@@ -542,7 +547,7 @@ func (r *Runner) Receive(d dep.Dependency, data interface{}) {
 	// Just because we received data, it does not mean that we are actually
 	// watching for that data. How is that possible you may ask? Well, this
 	// Runner's data channel is pooled, meaning it accepts multiple data views
-	// before actually blocking. Whilest this runner is performing a Run() and
+	// before actually blocking. While this runner is performing a Run() and
 	// executing diffs, it may be possible that more data was pushed onto the
 	// data channel pool for a dependency that we no longer care about.
 	//
@@ -693,7 +698,7 @@ type templateRunCtx struct {
 // runTemplate is used to run a particular template. It takes as input the
 // template to run and a shared run context that allows sharing of information
 // between templates. The run returns a potentially nil render event and any
-// error that occured. The render event is nil in the case that the template has
+// error that occurred. The render event is nil in the case that the template has
 // been already rendered and is a once template or if there is an error and
 // fatal errors are enabled.
 func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*RenderEvent, error) {
@@ -738,8 +743,9 @@ func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*
 	// the rendered contents. If there are any missing dependencies, the
 	// contents cannot be rendered or trusted!
 	result, err := tmpl.Execute(&template.ExecuteInput{
-		Brain: r.brain,
-		Env:   r.childEnv(),
+		Brain:  r.brain,
+		Env:    r.childEnv(),
+		Config: &r.finalConfigCopy,
 	})
 	if err != nil {
 		if tmpl.ErrFatal() {
@@ -1364,13 +1370,13 @@ func NewClientSet(c *config.Config) (*dep.ClientSet, error) {
 		Token:                        config.StringVal(c.Nomad.Token),
 		AuthUsername:                 config.StringVal(c.Nomad.AuthUsername),
 		AuthPassword:                 config.StringVal(c.Nomad.AuthPassword),
-		SSLEnabled:                   config.BoolVal(c.Vault.SSL.Enabled),
-		SSLVerify:                    config.BoolVal(c.Vault.SSL.Verify),
-		SSLCert:                      config.StringVal(c.Vault.SSL.Cert),
-		SSLKey:                       config.StringVal(c.Vault.SSL.Key),
-		SSLCACert:                    config.StringVal(c.Vault.SSL.CaCert),
-		SSLCAPath:                    config.StringVal(c.Vault.SSL.CaPath),
-		ServerName:                   config.StringVal(c.Vault.SSL.ServerName),
+		SSLEnabled:                   config.BoolVal(c.Nomad.SSL.Enabled),
+		SSLVerify:                    config.BoolVal(c.Nomad.SSL.Verify),
+		SSLCert:                      config.StringVal(c.Nomad.SSL.Cert),
+		SSLKey:                       config.StringVal(c.Nomad.SSL.Key),
+		SSLCACert:                    config.StringVal(c.Nomad.SSL.CaCert),
+		SSLCAPath:                    config.StringVal(c.Nomad.SSL.CaPath),
+		ServerName:                   config.StringVal(c.Nomad.SSL.ServerName),
 		TransportCustomDialer:        c.Nomad.Transport.CustomDialer,
 		TransportDialKeepAlive:       config.TimeDurationVal(c.Nomad.Transport.DialKeepAlive),
 		TransportDialTimeout:         config.TimeDurationVal(c.Nomad.Transport.DialTimeout),
@@ -1398,8 +1404,8 @@ func newWatcher(c *config.Config, clients *dep.ClientSet, once bool) *watch.Watc
 		RenewVault:          clients.Vault().Token() != "" && config.BoolVal(c.Vault.RenewToken),
 		VaultAgentTokenFile: config.StringVal(c.Vault.VaultAgentTokenFile),
 		RetryFuncConsul:     watch.RetryFunc(c.Consul.Retry.RetryFunc()),
-		// TODO: Add a sane default retry - right now this only affects "local"
-		// dependencies like reading a file from disk.
+		// TODO: Add a reasonable default retry - right now this only affects
+		// "local" dependencies like reading a file from disk.
 		RetryFuncDefault: nil,
 		RetryFuncVault:   watch.RetryFunc(c.Vault.Retry.RetryFunc()),
 		VaultToken:       clients.Vault().Token(),

@@ -413,3 +413,31 @@ func Fatalf(format string, args ...interface{}) {
 	fmt.Printf(format, args...)
 	runtime.Goexit()
 }
+
+func (v *nomadServer) CreateVariable(path string, data map[string]string, opts *nomadapi.WriteOptions) error {
+	nVar := nomadapi.NewVariable(path)
+	for k, v := range data {
+		nVar.Items[k] = v
+	}
+	_, _, err := testClients.Nomad().Variables().Update(nVar, opts)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return err
+}
+func (v *nomadServer) CreateNamespace(name string, opts *nomadapi.WriteOptions) error {
+	ns := nomadapi.Namespace{Name: name}
+	_, err := testClients.Nomad().Namespaces().Register(&ns, opts)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return err
+}
+
+func (v *nomadServer) DeleteVariable(path string, opts *nomadapi.WriteOptions) error {
+	_, err := testClients.Nomad().Variables().Delete(path, opts)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return err
+}

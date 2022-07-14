@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -193,6 +195,23 @@ func TestNomadConfig_Merge(t *testing.T) {
 }
 
 func TestNomadConfig_Finalize(t *testing.T) {
+	// This test is envvar sensitive, so there are a whole lot of them that need
+	// to be backed up and reset after the test
+	nomadVars := make(map[string]string)
+	for _, v := range os.Environ() {
+		if strings.HasPrefix(v, "NOMAD_") {
+			k, v, found := strings.Cut(v, "=")
+			if found {
+				nomadVars[k] = v
+				os.Unsetenv(k)
+			}
+		}
+	}
+	t.Cleanup(func() {
+		for k, v := range nomadVars {
+			os.Setenv(k, v)
+		}
+	})
 	cases := []struct {
 		name string
 		i    *NomadConfig

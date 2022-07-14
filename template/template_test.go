@@ -16,6 +16,7 @@ import (
 
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul/api"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewTemplate(t *testing.T) {
@@ -2053,6 +2054,194 @@ func TestTemplate_Execute(t *testing.T) {
 			"([]string) (len=3 cap=3) {\n (string) (len=1) \"a\",\n (string) (len=1) \"b\",\n (string) (len=1) \"c\"\n}\n",
 			false,
 		},
+		{
+			"func_nomadVariable",
+			&NewTemplateInput{
+				Contents: `{{with nomadVar "path" }}{{.k1}}{{end}}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewNVGetQuery("", "path")
+					if err != nil {
+						t.Fatal(err)
+					}
+					d.EnableBlocking()
+					b.Remember(d, &dep.NomadVarItems{
+						"k1": dep.NomadVarItem{Key: "k1", Value: "v1"},
+						"k2": dep.NomadVarItem{Key: "k2", Value: "v2"},
+					})
+					return b
+				}(),
+			},
+			"v1",
+			false,
+		},
+		{
+			"func_nomadVariableExists",
+			&NewTemplateInput{
+				Contents: `{{ nomadVarExists "path" }} {{ nomadVarExists "no_path" }}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewNVGetQuery("", "path")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, true)
+					return b
+				}(),
+			},
+			"true false",
+			false,
+		},
+		{
+			"func_nomadVariables",
+			&NewTemplateInput{
+				Contents: `{{ range nomadVarList "list" }}{{ .Path }} {{ end }}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewNVListQuery("", "list")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, []*dep.NomadVarMeta{
+						{Path: "list"},
+						{Path: "list/foo"},
+						{Path: "list/foo/zip"},
+					})
+					return b
+				}(),
+			},
+			"list list/foo list/foo/zip ",
+			false,
+		},
+		{
+			"func_nomadVariables_no_arg",
+			&NewTemplateInput{
+				Contents: `{{ range nomadVarList }}{{ .Path }} {{ end }}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewNVListQuery("", "")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, []*dep.NomadVarMeta{
+						{Path: "list"},
+						{Path: "list/foo"},
+						{Path: "list/foo/zip"},
+					})
+					return b
+				}(),
+			},
+			"list list/foo list/foo/zip ",
+			false,
+		},
+		{
+			"func_nomadVariables_too_many_args",
+			&NewTemplateInput{
+				Contents: `{{ range nomadVarList "a" "b" }}{{ .Path }} {{ end }}`,
+			},
+			nil,
+			"",
+			true,
+		},
+		{
+			"func_nomadVar_ns_region",
+			&NewTemplateInput{
+				Contents: `{{with nomadVar "test@default.dc1" }}{{.k1}}{{end}}{{with nomadVar "test@default.global" }}{{.k1}}{{end}}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d1, err := dep.NewNVGetQuery("", "test@default.dc1")
+					if err != nil {
+						t.Fatal(err)
+					}
+					d1.EnableBlocking()
+					b.Remember(d1, &dep.NomadVarItems{
+						"k1": dep.NomadVarItem{Key: "k1", Value: "dc1"},
+						"k2": dep.NomadVarItem{Key: "k2", Value: "v2"},
+					})
+
+					d2, err := dep.NewNVGetQuery("", "test@default.global")
+					if err != nil {
+						t.Fatal(err)
+					}
+					d2.EnableBlocking()
+					b.Remember(d2, &dep.NomadVarItems{
+						"k1": dep.NomadVarItem{Key: "k1", Value: "global"},
+						"k2": dep.NomadVarItem{Key: "k2", Value: "v2"},
+					})
+					return b
+				}(),
+			},
+			"dc1global",
+			false,
+		},
+		{
+			"func_nomadVariableExists_ns_region",
+			&NewTemplateInput{
+				Contents: `{{ nomadVarExists "path@default.global" }} {{ nomadVarExists "path@default.dc1" }}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d1, err := dep.NewNVGetQuery("", "path@default.global")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d1, true)
+
+					d2, err := dep.NewNVGetQuery("", "path@default.dc1")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d2, nil)
+					return b
+				}(),
+			},
+			"true false",
+			false,
+		},
+		{
+			"func_nomadVarList_ns_region",
+			&NewTemplateInput{
+				Contents: `{{ range nomadVarList "list" }}{{ .Path }} {{ end }}{{ range nomadVarList "list@default.dc1" }}{{ .Path }} {{ end }}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d1, err := dep.NewNVListQuery("", "list")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d1, []*dep.NomadVarMeta{
+						{Path: "list"},
+						{Path: "list/foo"},
+						{Path: "list/foo/zip"},
+					})
+
+					d2, err := dep.NewNVListQuery("", "list@default.dc1")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d2, []*dep.NomadVarMeta{
+						{Path: "list"},
+						{Path: "list/alpha"},
+						{Path: "list/beta/zip"},
+					})
+					return b
+				}(),
+			},
+			"list list/foo list/foo/zip list list/alpha list/beta/zip ",
+			false,
+		},
 	}
 
 	//	struct {
@@ -2064,7 +2253,7 @@ func TestTemplate_Execute(t *testing.T) {
 	//	}
 
 	for i, tc := range cases {
-		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%03d_%s", i, tc.name), func(t *testing.T) {
 			tpl, err := NewTemplate(tc.ti)
 			if err != nil {
 				t.Fatal(err)
@@ -2089,6 +2278,7 @@ func TestTemplate_error_secret_leak(t *testing.T) {
 					{{- end }}
 				{{ end }}`,
 	}
+
 	execinput := &ExecuteInput{
 		Brain: func() *Brain {
 			b := NewBrain()
@@ -2119,8 +2309,46 @@ func TestTemplate_error_secret_leak(t *testing.T) {
 	}
 	_, err = tpl.Execute(execinput)
 	if strings.Contains(err.Error(), "zoo") {
-		t.Error("error contains secret... (zoo)\n", err.Error())
+		t.Error("error contains vault secret... (zoo)\n", err.Error())
 	}
+}
+
+func TestTemplate_error_secret_leak_SV(t *testing.T) {
+	tmplinput := &NewTemplateInput{
+		Contents: `
+		{{ with nomadVar "var/test" }}
+			{{range $key, $value := .varKey}}
+				export {{ $key }}="{{ $value }}"
+			{{- end }}
+		{{ end }}`,
+	}
+	execinput := &ExecuteInput{
+		Brain: func() *Brain {
+			b := NewBrain()
+			b.RWMutex = sync.RWMutex{}
+			nVar, err := dep.NewNVGetQuery("", "var/test")
+			if err != nil {
+				t.Fatal(err)
+			}
+			nVar.EnableBlocking()
+			b.Remember(nVar, &dep.NomadVarItems{
+				"varKey": dep.NomadVarItem{
+					Key:   "varKey",
+					Value: "varSecret",
+				},
+			})
+			return b
+		}(),
+	}
+
+	tpl, err := NewTemplate(tmplinput)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = tpl.Execute(execinput)
+	require.Error(t, err)
+	require.True(t, !strings.Contains(err.Error(), "varSecret"), "error contains variable secret (varSecret); err: %v", err)
+	require.ErrorContains(t, err, "[redacted]")
 }
 
 func Test_writeToFile(t *testing.T) {
