@@ -2025,6 +2025,71 @@ func TestTemplate_Execute(t *testing.T) {
 			"([]string) (len=3 cap=3) {\n (string) (len=1) \"a\",\n (string) (len=1) \"b\",\n (string) (len=1) \"c\"\n}\n",
 			false,
 		},
+		{
+			"func_nomadSecureVariable",
+			&NewTemplateInput{
+				Contents: `{{with nomadVar "path" }}{{.k1}}{{end}}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewSVGetQuery("path")
+					if err != nil {
+						t.Fatal(err)
+					}
+					d.EnableBlocking()
+					b.Remember(d, dep.NomadSVItems{
+						"k1": dep.NomadSVItem{Key: "k1", Value: "v1"},
+						"k2": dep.NomadSVItem{Key: "k2", Value: "v2"},
+					})
+					return b
+				}(),
+			},
+			"v1",
+			false,
+		},
+		{
+			"func_nomadSecureVariableExists",
+			&NewTemplateInput{
+				Contents: `{{ nomadVarExists "path" }} {{ nomadVarExists "no_path" }}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewSVGetQuery("path")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, true)
+					return b
+				}(),
+			},
+			"true false",
+			false,
+		},
+		{
+			"func_nomadSecureVariables",
+			&NewTemplateInput{
+				Contents: `{{ range nomadVarList "list" }}{{ .Path }} {{ end }}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewSVListQuery("list")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, []*dep.NomadSVMeta{
+						{Path: "list"},
+						{Path: "list/foo"},
+						{Path: "list/foo/zip"},
+					})
+					return b
+				}(),
+			},
+			"list list/foo list/foo/zip ",
+			false,
+		},
 	}
 
 	//	struct {
