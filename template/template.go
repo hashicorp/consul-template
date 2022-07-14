@@ -298,8 +298,12 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"pkiCert":      pkiCertFunc(i.brain, i.used, i.missing, i.destination),
 
 		// Nomad Functions.
-		"nomadServices": nomadServicesFunc(i.brain, i.used, i.missing),
-		"nomadService":  nomadServiceFunc(i.brain, i.used, i.missing),
+		"nomadServices":    nomadServicesFunc(i.brain, i.used, i.missing),
+		"nomadService":     nomadServiceFunc(i.brain, i.used, i.missing),
+		"nomadVarList":     nomadSecureVariablesFunc(i.brain, i.used, i.missing, true),
+		"nomadVarListSafe": nomadSafeSecureVariablesFunc(i.brain, i.used, i.missing),
+		"nomadVar":         nomadSecureVariableItemsFunc(i.brain, i.used, i.missing),
+		"nomadVarExists":   nomadSecureVariableExistsFunc(i.brain, i.used, i.missing),
 
 		// Scratch
 		"scratch": func() *Scratch { return &scratch },
