@@ -413,3 +413,24 @@ func Fatalf(format string, args ...interface{}) {
 	fmt.Printf(format, args...)
 	runtime.Goexit()
 }
+
+func (v *nomadServer) CreateSecureVariable(path string, data map[string]string) error {
+	sv := nomadapi.NewSecureVariable(path)
+	for k, v := range data {
+		sv.Items[k] = v
+	}
+	_, err := testClients.Nomad().SecureVariables().Update(sv, nil)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return err
+}
+
+// deleteSecureVariable lets us delete keys as needed for tests
+func (v *nomadServer) deleteSecureVariable(path string) error {
+	_, err := testClients.Nomad().SecureVariables().Delete(path, nil)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return err
+}
