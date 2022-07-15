@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func CommandPrep(command []string) ([]string, error) {
+func CommandPrep(command []string) ([]string, bool, error) {
 	switch {
 	case len(command) == 1 && len(strings.Fields(command[0])) > 1:
 		// command is []string{"command using arguments or shell features"}
@@ -24,15 +24,15 @@ func CommandPrep(command []string) ([]string, error) {
 			}
 		}
 		if shell == "" {
-			return []string{}, exec.ErrNotFound
+			return []string{}, false, exec.ErrNotFound
 		}
 		cmd := []string{shell, "-c", command[0]}
-		return cmd, nil
+		return cmd, true, nil
 	case len(command) >= 1 && len(strings.TrimSpace(command[0])) > 0:
 		// command is already good ([]string{"foo"}, []string{"foo", "bar"}, ..)
-		return command, nil
+		return command, false, nil
 	default:
 		// command is []string{} or []string{""}
-		return []string{}, exec.ErrNotFound
+		return []string{}, false, exec.ErrNotFound
 	}
 }

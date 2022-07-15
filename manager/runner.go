@@ -1199,7 +1199,7 @@ type spawnChildInput struct {
 // spawnChild spawns a child process with the given inputs and returns the
 // resulting child.
 func spawnChild(i *spawnChildInput) (*child.Child, error) {
-	args, err := child.CommandPrep(i.Command)
+	args, subshell, err := child.CommandPrep(i.Command)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed parsing command")
 	}
@@ -1215,6 +1215,7 @@ func spawnChild(i *spawnChildInput) (*child.Child, error) {
 		KillSignal:   i.KillSignal,
 		KillTimeout:  i.KillTimeout,
 		Splay:        i.Splay,
+		Setpgid:      subshell, // setpgid for subshells to propagate signals
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating child")

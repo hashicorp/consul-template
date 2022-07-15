@@ -370,6 +370,7 @@ func TestStop_noWaitForSplay(t *testing.T) {
 	c.splay = 100 * time.Second
 	c.reloadSignal = nil
 	c.killSignal = syscall.SIGUSR1
+	c.setpgid = true
 
 	out := gatedio.NewByteBuffer()
 	c.stdout = out
