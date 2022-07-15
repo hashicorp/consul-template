@@ -119,10 +119,13 @@ type NewInput struct {
 	Splay time.Duration
 
 	// Setsid flag, if set to true will create the child processes with their own
-	// session ID and Process group ID. The default value of false will cause the
-	// child processes to have their own PGID but they will have the same SID as
-	// that of their parent
+	// session ID and Process group ID. Note this overrides Setpgid below.
 	Setsid bool
+
+	// Setpgid flag, if set to true will create the child processes with their
+	// own Process group ID. If set the child processes to have their own PGID
+	// but they will have the same SID as that of their parent
+	Setpgid bool
 
 	// an optional logger that can be used for messages pertinent to the child process
 	Logger *log.Logger
@@ -157,7 +160,7 @@ func New(i *NewInput) (*Child, error) {
 		killTimeout:  i.KillTimeout,
 		splay:        i.Splay,
 		stopCh:       make(chan struct{}, 1),
-		setpgid:      !i.Setsid,
+		setpgid:      i.Setpgid && !i.Setsid,
 		setsid:       i.Setsid,
 		logger:       i.Logger,
 	}
