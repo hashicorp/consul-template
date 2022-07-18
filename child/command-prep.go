@@ -8,6 +8,10 @@ import (
 	"strings"
 )
 
+// Evaluates the command slice for the different possible formats.
+// Returns the command slice ready to pass to exec.Command.
+// Returns a boolean 'true' if it wrapped the call in 'sh -c' so the caller
+// knows it needs to setpgid to get signal propagation.
 func CommandPrep(command []string) ([]string, bool, error) {
 	switch {
 	case len(command) == 1 && len(strings.Fields(command[0])) > 1:

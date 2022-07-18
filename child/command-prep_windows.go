@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+// Simplified command prep for windows. Only supports single or slice commands
+// and doesn't wrap anything in a shell call (so bool is always false).
 func CommandPrep(command []string) ([]string, bool, error) {
 	switch {
 	case len(command) == 1 && len(strings.Fields(command[0])) == 1:
