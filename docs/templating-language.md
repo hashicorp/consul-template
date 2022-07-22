@@ -624,6 +624,21 @@ Cert Authority: {{ .CA }}
 {{ end }}
 ```
 
+If you need the complete CA+Chain in the same file as your Cert and Key use the
+standard `secret` to include it, but note the CA in the pkiCert return should
+be ignored as it would be redundant and upon reload might grab one of the chain
+certs. Something like this.
+
+```golang
+{{ with pkiCert "pki/issue/my-domain-dot-com" "common_name=foo.example.com" }}
+Private Key: {{ .Key }}
+Cert Authority: {{ .CA }}
+{{ end }}
+{{ with secret "pki/cert/ca_chain" }}
+CA+Chain: {{ .Data.ca_chain }}
+{{ end }}
+```
+
 ### `service`
 
 Query [Consul][consul] for services based on their health.
