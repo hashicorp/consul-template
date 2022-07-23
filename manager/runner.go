@@ -1394,6 +1394,7 @@ func newWatcher(c *config.Config, clients *dep.ClientSet, once bool) (*watch.Wat
 		RetryFuncDefault: nil,
 		RetryFuncVault:   watch.RetryFunc(c.Vault.Retry.RetryFunc()),
 		VaultToken:       clients.Vault().Token(),
+		RetryFuncNomad:   watch.RetryFunc(c.Nomad.Retry.RetryFunc()),
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "runner")
