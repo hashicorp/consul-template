@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul-template/signals"
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/go-gatedio"
@@ -19,6 +20,11 @@ import (
 )
 
 const fileWaitSleepDelay = 50 * time.Millisecond
+
+func TestMain(m *testing.M) {
+	log.SetOutput(ioutil.Discard)
+	os.Exit(m.Run())
+}
 
 func testChild(t *testing.T) *Child {
 	c, err := New(&NewInput{
@@ -260,6 +266,39 @@ func TestReload_signal(t *testing.T) {
 	expected := "one\n"
 	if out.String() != expected {
 		t.Errorf("expected %q to be %q", out.String(), expected)
+	}
+}
+
+func TestReload_nilSignal(t *testing.T) {
+	c := testChild(t)
+	c.command = "sh"
+	c.args = []string{"-c", "while true; do sleep 0.2; done"}
+	c.killTimeout = 10 * time.Millisecond
+	c.reloadSignal = signals.SIGNULL
+
+	if err := c.Start(); err != nil {
+		t.Fatal(err)
+	}
+	defer c.Stop()
+
+	// For some reason bash doesn't start immediately
+	time.Sleep(fileWaitSleepDelay)
+
+	// Grab the original pid
+	opid := c.cmd.Process.Pid
+
+	if err := c.Reload(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Give time for the file to flush
+	time.Sleep(fileWaitSleepDelay)
+
+	// Get the new pid
+	npid := c.cmd.Process.Pid
+
+	if opid != npid {
+		t.Error("unexpected process restart")
 	}
 }
 
