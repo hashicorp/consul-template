@@ -145,7 +145,7 @@ func SignalPresent(s *os.Signal) bool {
 	if s == nil {
 		return false
 	}
-	return *s != signals.SIGNIL
+	return *s != signals.SIGNULL
 }
 
 // String returns a pointer to the given string.

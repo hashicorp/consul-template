@@ -12,6 +12,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/hashicorp/consul-template/signals"
 )
 
 func init() {
@@ -383,9 +385,14 @@ func (c *Child) signal(s os.Signal) error {
 	}
 
 	sig, ok := s.(syscall.Signal)
-	if !ok {
+	switch {
+	case !ok:
 		return fmt.Errorf("bad signal: %s", s)
+	case sig == signals.SIGNULL:
+		// skip on SIGNULL (ie. no signal)
+		return nil
 	}
+
 	pid := c.cmd.Process.Pid
 	if c.setpgid {
 		// kill takes negative pid to indicate that you want to use gpid
