@@ -12,6 +12,7 @@ configuration.
   - [Consul Template](#consul-template)
   - [Consul](#consul)
   - [Vault](#vault)
+  - [Nomad](#nomad)
   - [Templates](#templates)
   - [Consul Template Modes](#modes)
     - [Once Mode](#once-mode)
@@ -435,6 +436,66 @@ vault {
   }
 
   # This section details the SSL options for connecting to the Vault server.
+  # Please see the SSL options in the Consul section for more information (they
+  # are the same).
+  ssl {
+    # ...
+  }
+}
+```
+
+## Nomad
+
+Enable Consul Template to connect with [Nomad][nomad] by declaring the `nomad`
+block. This configures a Nomad client to query Nomad for native service discovery
+or secrets to render data into templates.
+
+```hcl
+# This denotes the start of the configuration section for Nomad. All values
+# contained in this section pertain to Nomad.
+nomad {
+  # This is the address of the Nomad agent. The protocol (http(s)) portion
+  # of the address is required.
+  #
+  # This value can also be specified via the environment variable NOMAD_ADDR.
+  address = "https://127.0.0.1:4647"
+
+  # This is a Nomad namespace to use for queries.
+  #
+  # This value can also be specified via the environment variable NOMAD_NAMESPACE.
+  namespace = ""
+
+  # This is the token to use when communicating with the Nomad agent.
+  # Like other tools that integrate with Nomad, Consul Template makes the
+  # assumption that you provide it with a Vault token; it does not have the
+  # incorporated logic to generate tokens via Vault's auth methods.
+  #
+  # This value can also be specified via the environment variable NOMAD_TOKEN.
+  # It is highly recommended that you do not put your token in plain-text in a
+  # configuration file.
+  token = ""
+  
+  # The HTTP Basic Auth username to use when authenticating with the Nomad API.
+  auth_username = ""
+
+  # The HTTP Basic Auth password to use when authenticating with the Nomad API.
+  auth_password = ""
+  
+  # This block configures tcp connection options between Consul Template and Nomad.
+  # Please see the transport options in the Consul section for more information (they
+  # are the same).
+  transport {
+    # ...
+  }
+  
+  # This section details the retry options for connecting to Nomad. Please see
+  # the retry options in the Consul section for more information (they are the
+  # same).
+  retry {
+    # ...
+  }
+  
+  # This section details the SSL options for connecting to the Nomad agent.
   # Please see the SSL options in the Consul section for more information (they
   # are the same).
   ssl {
