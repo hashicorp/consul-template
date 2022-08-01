@@ -13,6 +13,16 @@ import (
 	"github.com/hashicorp/vault/api"
 )
 
+func Test_VaultPKI_uniqueID(t *testing.T) {
+	d1, _ := NewVaultPKIQuery("pki/issue/example-dot-com", "/unique_1", nil)
+	id1 := d1.String()
+	d2, _ := NewVaultPKIQuery("pki/issue/example-dot-com", "/unique_2", nil)
+	id2 := d2.String()
+	if id1 == id2 {
+		t.Errorf("IDs should be unique.\n%s\n%s", id1, id2)
+	}
+}
+
 func Test_VaultPKI_notGoodFor(t *testing.T) {
 	// only test the negation, postive is tested below with pemsificates
 	// fetched in Vault integration tests (creating pemss is non-trivial)

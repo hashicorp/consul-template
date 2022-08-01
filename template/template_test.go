@@ -1964,7 +1964,8 @@ func TestTemplate_Execute(t *testing.T) {
 		{
 			"func_pkiCert",
 			&NewTemplateInput{
-				Contents: `{{ with pkiCert "pki/issue/egs-dot-com" }}{{.Cert}}{{end}}`,
+				Contents:    `{{ with pkiCert "pki/issue/egs-dot-com" }}{{.Cert}}{{end}}`,
+				Destination: "/dev/null",
 			},
 			&ExecuteInput{
 				Brain: func() *Brain {
@@ -1983,7 +1984,8 @@ func TestTemplate_Execute(t *testing.T) {
 		{
 			"func_pkiCert_Data_compat",
 			&NewTemplateInput{
-				Contents: `{{ with pkiCert "pki/issue/egs-dot-com" }}{{.Data.Cert}}{{end}}`,
+				Contents:    `{{ with pkiCert "pki/issue/egs-dot-com" }}{{.Data.Cert}}{{end}}`,
+				Destination: "/dev/null",
 			},
 			&ExecuteInput{
 				Brain: func() *Brain {

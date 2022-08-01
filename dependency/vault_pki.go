@@ -220,7 +220,7 @@ func (d *VaultPKIQuery) Stop() {
 
 // String returns the human-friendly version of this dependency.
 func (d *VaultPKIQuery) String() string {
-	return fmt.Sprintf("vault.pki(%s)", d.pkiPath)
+	return fmt.Sprintf("vault.pki(%s->%s)", d.pkiPath, d.filePath)
 }
 
 // Type returns the type of this dependency.
