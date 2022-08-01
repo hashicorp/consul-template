@@ -5,10 +5,11 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"syscall"
 )
 
-// SIGNIL is the nil signal.
-var SIGNIL os.Signal = new(NilSignal)
+// SIGNULL is the nil/zero signal.
+var SIGNULL os.Signal = syscall.Signal(0)
 
 // ValidSignals is the list of all valid signals. This is built at runtime
 // because it is OS-dependent.

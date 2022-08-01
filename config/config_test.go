@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul-template/signals"
 	"github.com/hashicorp/vault/api"
 )
 
@@ -499,6 +500,18 @@ func TestParse(t *testing.T) {
 			false,
 		},
 		{
+			"exec_reload_signal_null",
+			`exec {
+				reload_signal = "SIGNULL"
+			 }`,
+			&Config{
+				Exec: &ExecConfig{
+					ReloadSignal: Signal(signals.SIGNULL),
+				},
+			},
+			false,
+		},
+		{
 			"exec_splay",
 			`exec {
 				splay = "30s"
@@ -635,6 +648,58 @@ func TestParse(t *testing.T) {
 			`reload_signal = "SIGUSR1"`,
 			&Config{
 				ReloadSignal: Signal(syscall.SIGUSR1),
+			},
+			false,
+		},
+		{
+			"reload_signal_default",
+			``,
+			&Config{
+				ReloadSignal: nil,
+			},
+			false,
+		},
+		{
+			"reload_signal_null",
+			`reload_signal = "SIGNULL"`,
+			&Config{
+				ReloadSignal: &signals.SIGNULL,
+			},
+			false,
+		},
+		{
+			"reload_signal_blank",
+			`reload_signal = ""`,
+			&Config{
+				ReloadSignal: &signals.SIGNULL,
+			},
+			false,
+		},
+		{
+			"reload_signal_blank_exec",
+			`reload_signal = ""
+			exec {
+				reload_signal = ""
+			 }`,
+			&Config{
+				ReloadSignal: &signals.SIGNULL,
+				Exec: &ExecConfig{
+					ReloadSignal: &signals.SIGNULL,
+				},
+			},
+			false,
+		},
+		{
+			"reload_signal_exec_override",
+			`reload_signal = ""
+			exec {
+				reload_signal = "SIGUSR1"
+			 }`,
+			&Config{
+				ReloadSignal: &signals.SIGNULL,
+				Exec: &ExecConfig{
+					ReloadSignal: Signal(syscall.SIGUSR1),
+				},
 			},
 			false,
 		},
@@ -1809,6 +1874,34 @@ func TestFinalize(t *testing.T) {
 					Min:     TimeDuration(10 * time.Second),
 					Max:     TimeDuration(20 * time.Second),
 				},
+			},
+		},
+		{
+			"reload_defaults",
+			func(act, exp *Config) (bool, error) {
+				sv := SignalVal
+				switch {
+				case act == nil || exp == nil:
+					return false, fmt.Errorf("bad test input")
+				case sv(act.ReloadSignal) != sv(exp.ReloadSignal):
+					return false, fmt.Errorf("signals don't match: %v!=%v",
+						sv(act.ReloadSignal), sv(exp.ReloadSignal))
+				case act.Exec == nil || exp.Exec == nil:
+					return false, fmt.Errorf("Exec config should not be empty")
+				case sv(act.Exec.ReloadSignal) != sv(exp.Exec.ReloadSignal):
+					return false, fmt.Errorf("exec signals don't match: %v!=%v",
+						sv(act.Exec.ReloadSignal), sv(exp.Exec.ReloadSignal))
+				default:
+					return true, nil
+				}
+			},
+			&Config{
+				ReloadSignal: nil,
+				Exec:         &ExecConfig{ReloadSignal: nil},
+			},
+			&Config{
+				ReloadSignal: Signal(DefaultReloadSignal),
+				Exec:         &ExecConfig{ReloadSignal: nil},
 			},
 		},
 		{

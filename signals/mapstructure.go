@@ -25,7 +25,7 @@ func StringToSignalFunc() mapstructure.DecodeHookFunc {
 		}
 
 		if data == nil || data.(string) == "" {
-			return SIGNIL, nil
+			return SIGNULL, nil
 		}
 
 		return Parse(data.(string))

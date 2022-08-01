@@ -442,7 +442,7 @@ func TestSignalPresent(t *testing.T) {
 		},
 		{
 			"present_zero_value",
-			Signal(signals.SIGNIL),
+			Signal(signals.SIGNULL),
 			false,
 		},
 	}

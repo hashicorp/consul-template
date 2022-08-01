@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul-template/config"
+	"github.com/hashicorp/consul-template/signals"
 	"github.com/hashicorp/consul-template/test"
 	gatedio "github.com/hashicorp/go-gatedio"
 )
@@ -425,6 +426,14 @@ func TestCLI_ParseFlags(t *testing.T) {
 			[]string{"-reload-signal", "SIGUSR1"},
 			&config.Config{
 				ReloadSignal: config.Signal(syscall.SIGUSR1),
+			},
+			false,
+		},
+		{
+			"reload-signal-signil",
+			[]string{"-reload-signal", "SIGNULL"},
+			&config.Config{
+				ReloadSignal: config.Signal(signals.SIGNULL),
 			},
 			false,
 		},
