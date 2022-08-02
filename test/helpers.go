@@ -95,9 +95,10 @@ func (t *TestingTB) DoCleanup() {
 	t.cleanup()
 }
 
-func (*TestingTB) Failed() bool                { return false }
-func (*TestingTB) Logf(string, ...interface{}) {}
-func (*TestingTB) Name() string                { return "TestingTB" }
+func (*TestingTB) Failed() bool                  { return false }
+func (*TestingTB) Logf(string, ...interface{})   {}
+func (*TestingTB) Fatalf(string, ...interface{}) {}
+func (*TestingTB) Name() string                  { return "TestingTB" }
 func (t *TestingTB) Cleanup(f func()) {
 	t.Lock()
 	defer t.Unlock()
