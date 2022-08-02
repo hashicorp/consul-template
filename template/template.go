@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
+	"strings"
 	"text/template"
 
 	"github.com/Masterminds/sprig"
@@ -225,7 +227,7 @@ func (t *Template) Execute(i *ExecuteInput) (*ExecuteResult, error) {
 	// Execute the template into the writer
 	var b bytes.Buffer
 	if err := tmpl.Execute(&b, nil); err != nil {
-		return nil, errors.Wrap(err, "execute")
+		return nil, errors.Wrap(redactinator(&used, i.Brain, err), "execute")
 	}
 
 	return &ExecuteResult{
@@ -233,6 +235,20 @@ func (t *Template) Execute(i *ExecuteInput) (*ExecuteResult, error) {
 		Missing: &missing,
 		Output:  b.Bytes(),
 	}, nil
+}
+
+func redactinator(used *dep.Set, b *Brain, err error) error {
+	pairs := make([]string, 0, used.Len())
+	for _, d := range used.List() {
+		if data, ok := b.Recall(d); ok {
+			if vd, ok := data.(*dep.Secret); ok {
+				for _, v := range vd.Data {
+					pairs = append(pairs, fmt.Sprintf("%v", v), "[redacted]")
+				}
+			}
+		}
+	}
+	return fmt.Errorf(strings.NewReplacer(pairs...).Replace(err.Error()))
 }
 
 // funcMapInput is input to the funcMap, which builds the template functions.

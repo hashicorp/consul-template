@@ -8,6 +8,8 @@ import (
 	"os/user"
 	"reflect"
 	"strconv"
+	"strings"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -1975,6 +1977,48 @@ func TestTemplate_Execute(t *testing.T) {
 				t.Errorf("\nexp: %#v\nact: %#v", tc.e, string(a.Output))
 			}
 		})
+	}
+}
+
+func TestTemplate_error_secret_leak(t *testing.T) {
+	tmplinput := &NewTemplateInput{
+		Contents: `{{ with secret "secret/foo" }}
+					{{- range $key, $value := .Data.zip }}
+						export {{ $key }}="{{ $value }}"
+					{{- end }}
+				{{ end }}`,
+	}
+	execinput := &ExecuteInput{
+		Brain: func() *Brain {
+			b := NewBrain()
+			b.RWMutex = sync.RWMutex{}
+			d, err := dep.NewVaultReadQuery("secret/foo")
+			if err != nil {
+				t.Fatal(err)
+			}
+			b.Remember(d, &dep.Secret{
+				LeaseID:       "abcd1234",
+				LeaseDuration: 120,
+				Renewable:     true,
+				Data: map[string]interface{}{
+					"zip": struct {
+						Zap string
+					}{
+						Zap: "zoo",
+					},
+				},
+			})
+			return b
+		}(),
+	}
+
+	tpl, err := NewTemplate(tmplinput)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = tpl.Execute(execinput)
+	if strings.Contains(err.Error(), "zoo") {
+		t.Error("error contains secret... (zoo)\n", err.Error())
 	}
 }
 
