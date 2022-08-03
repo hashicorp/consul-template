@@ -7,7 +7,7 @@
 This project provides a convenient way to populate values from [Consul][consul]
 into the file system using the `consul-template` daemon.
 
-The daemon `consul-template` queries a [Consul][consul] or [Vault][vault]
+The daemon `consul-template` queries a [Consul][consul], [Vault][vault], or [Nomad][nomad]
 cluster and updates any number of specified templates on the file system. As an
 added bonus, it can optionally run arbitrary commands when the update process
 completes. Please see the [examples folder][examples] for some scenarios where
@@ -130,6 +130,7 @@ Template.
 * [Consul Catalog](https://learn.hashicorp.com/consul/developer-configuration/consul-template#use-case-discover-all-services)
 * [Vault Agent Templates](https://learn.hashicorp.com/vault/identity-access-management/agent-templates)
 * [Vault Secrets](https://www.vaultproject.io/docs/agent/template#example-template)
+* [Nomad Native Service Discovery](https://learn.hashicorp.com/tutorials/nomad/schedule-edge-services)
 
 ## Configuration
 
@@ -228,6 +229,9 @@ The current processes environment is used when executing commands with the follo
 - `CONSUL_HTTP_AUTH`
 - `CONSUL_HTTP_SSL`
 - `CONSUL_HTTP_SSL_VERIFY`
+- `NOMAD_ADDR`
+- `NOMAD_NAMESPACE`
+- `NOMAD_TOKEN`
 
 These environment variables are exported with their current values when the
 command executes. Other Consul tooling reads these environment variables,
@@ -453,3 +457,4 @@ go test ./... -run SomeTestFunction_name
 [releases]: https://releases.hashicorp.com/consul-template "Consul Template Releases"
 [vault]: https://www.vaultproject.io "Vault by HashiCorp"
 [go]: https://golang.org "Go programming language"
+[nomad]: https://www.nomadproject.io "Nomad By HashiCorp"

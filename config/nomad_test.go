@@ -6,6 +6,7 @@ import (
 	"net"
 	"reflect"
 	"testing"
+	"time"
 )
 
 type mockDialer struct{}
@@ -36,6 +37,7 @@ func TestNomadConfig_Copy(t *testing.T) {
 				Token:        String("token"),
 				AuthUsername: String("admin"),
 				AuthPassword: String("admin"),
+				Retry:        &RetryConfig{Enabled: Bool(true)},
 				// HttpClient:   retryablehttp.NewClient().StandardClient(),
 			},
 		},
@@ -154,6 +156,30 @@ func TestNomadConfig_Merge(t *testing.T) {
 			&NomadConfig{Token: String("same")},
 			&NomadConfig{Token: String("same")},
 		},
+		{
+			"retry_overrides",
+			&NomadConfig{Retry: &RetryConfig{Enabled: Bool(true)}},
+			&NomadConfig{Retry: &RetryConfig{Enabled: Bool(false)}},
+			&NomadConfig{Retry: &RetryConfig{Enabled: Bool(false)}},
+		},
+		{
+			"retry_empty_one",
+			&NomadConfig{Retry: &RetryConfig{Enabled: Bool(true)}},
+			&NomadConfig{},
+			&NomadConfig{Retry: &RetryConfig{Enabled: Bool(true)}},
+		},
+		{
+			"retry_empty_two",
+			&NomadConfig{},
+			&NomadConfig{Retry: &RetryConfig{Enabled: Bool(true)}},
+			&NomadConfig{Retry: &RetryConfig{Enabled: Bool(true)}},
+		},
+		{
+			"retry_same",
+			&NomadConfig{Retry: &RetryConfig{Enabled: Bool(true)}},
+			&NomadConfig{Retry: &RetryConfig{Enabled: Bool(true)}},
+			&NomadConfig{Retry: &RetryConfig{Enabled: Bool(true)}},
+		},
 	}
 
 	for i, tc := range cases {
@@ -200,6 +226,12 @@ func TestNomadConfig_Finalize(t *testing.T) {
 					MaxIdleConnsPerHost: Int(DefaultMaxIdleConnsPerHost),
 					TLSHandshakeTimeout: TimeDuration(DefaultTLSHandshakeTimeout),
 				},
+				Retry: &RetryConfig{
+					Backoff:    TimeDuration(DefaultRetryBackoff),
+					MaxBackoff: TimeDuration(DefaultRetryMaxBackoff),
+					Enabled:    Bool(true),
+					Attempts:   Int(DefaultRetryAttempts),
+				},
 			},
 		},
 		{
@@ -231,6 +263,12 @@ func TestNomadConfig_Finalize(t *testing.T) {
 					MaxIdleConns:        Int(DefaultMaxIdleConns),
 					MaxIdleConnsPerHost: Int(DefaultMaxIdleConnsPerHost),
 					TLSHandshakeTimeout: TimeDuration(DefaultTLSHandshakeTimeout),
+				},
+				Retry: &RetryConfig{
+					Backoff:    TimeDuration(DefaultRetryBackoff),
+					MaxBackoff: TimeDuration(DefaultRetryMaxBackoff),
+					Enabled:    Bool(true),
+					Attempts:   Int(DefaultRetryAttempts),
 				},
 			},
 		},
@@ -271,6 +309,12 @@ func TestNomadConfig_Finalize(t *testing.T) {
 					MaxIdleConnsPerHost: Int(DefaultMaxIdleConnsPerHost),
 					TLSHandshakeTimeout: TimeDuration(DefaultTLSHandshakeTimeout),
 				},
+				Retry: &RetryConfig{
+					Backoff:    TimeDuration(DefaultRetryBackoff),
+					MaxBackoff: TimeDuration(DefaultRetryMaxBackoff),
+					Enabled:    Bool(true),
+					Attempts:   Int(DefaultRetryAttempts),
+				},
 			},
 		},
 		{
@@ -305,6 +349,55 @@ func TestNomadConfig_Finalize(t *testing.T) {
 					MaxIdleConnsPerHost: Int(DefaultMaxIdleConnsPerHost),
 					TLSHandshakeTimeout: TimeDuration(DefaultTLSHandshakeTimeout),
 					CustomDialer:        mockDialer{},
+				},
+				Retry: &RetryConfig{
+					Backoff:    TimeDuration(DefaultRetryBackoff),
+					MaxBackoff: TimeDuration(DefaultRetryMaxBackoff),
+					Enabled:    Bool(true),
+					Attempts:   Int(DefaultRetryAttempts),
+				},
+			},
+		},
+		{
+			"with_retry_config",
+			&NomadConfig{
+				Retry: &RetryConfig{
+					Backoff:    TimeDuration(5 * time.Second),
+					MaxBackoff: TimeDuration(30 * time.Second),
+					Enabled:    Bool(true),
+					Attempts:   Int(0),
+				},
+			},
+			&NomadConfig{
+				Address:   String(""),
+				Enabled:   Bool(false),
+				Namespace: String(""),
+				SSL: &SSLConfig{
+					CaCert:     String(""),
+					CaPath:     String(""),
+					Cert:       String(""),
+					Enabled:    Bool(false),
+					Key:        String(""),
+					ServerName: String(""),
+					Verify:     Bool(true),
+				},
+				Token:        String(""),
+				AuthUsername: String(""),
+				AuthPassword: String(""),
+				Transport: &TransportConfig{
+					DialKeepAlive:       TimeDuration(DefaultDialKeepAlive),
+					DialTimeout:         TimeDuration(DefaultDialTimeout),
+					DisableKeepAlives:   Bool(false),
+					IdleConnTimeout:     TimeDuration(DefaultIdleConnTimeout),
+					MaxIdleConns:        Int(DefaultMaxIdleConns),
+					MaxIdleConnsPerHost: Int(DefaultMaxIdleConnsPerHost),
+					TLSHandshakeTimeout: TimeDuration(DefaultTLSHandshakeTimeout),
+				},
+				Retry: &RetryConfig{
+					Backoff:    TimeDuration(5 * time.Second),
+					MaxBackoff: TimeDuration(30 * time.Second),
+					Enabled:    Bool(true),
+					Attempts:   Int(0),
 				},
 			},
 		},

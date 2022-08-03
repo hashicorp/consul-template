@@ -45,6 +45,7 @@ type Watcher struct {
 	retryFuncConsul  RetryFunc
 	retryFuncDefault RetryFunc
 	retryFuncVault   RetryFunc
+	retryFuncNomad   RetryFunc
 }
 
 type NewWatcherInput struct {
@@ -73,6 +74,7 @@ type NewWatcherInput struct {
 	RetryFuncConsul  RetryFunc
 	RetryFuncDefault RetryFunc
 	RetryFuncVault   RetryFunc
+	RetryFuncNomad   RetryFunc
 }
 
 // NewWatcher creates a new watcher using the given API client.
@@ -88,6 +90,7 @@ func NewWatcher(i *NewWatcherInput) (*Watcher, error) {
 		retryFuncConsul:    i.RetryFuncConsul,
 		retryFuncDefault:   i.RetryFuncDefault,
 		retryFuncVault:     i.RetryFuncVault,
+		retryFuncNomad:     i.RetryFuncNomad,
 	}
 
 	// Start a watcher for the Vault renew if that config was specified
@@ -151,6 +154,8 @@ func (w *Watcher) Add(d dep.Dependency) (bool, error) {
 		retryFunc = w.retryFuncConsul
 	case dep.TypeVault:
 		retryFunc = w.retryFuncVault
+	case dep.TypeNomad:
+		retryFunc = w.retryFuncNomad
 	default:
 		retryFunc = w.retryFuncDefault
 	}
