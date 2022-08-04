@@ -2090,6 +2090,38 @@ func TestTemplate_Execute(t *testing.T) {
 			"list list/foo list/foo/zip ",
 			false,
 		},
+		{
+			"func_nomadSecureVariables_no_arg",
+			&NewTemplateInput{
+				Contents: `{{ range nomadVarList }}{{ .Path }} {{ end }}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewSVListQuery("")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, []*dep.NomadSVMeta{
+						{Path: "list"},
+						{Path: "list/foo"},
+						{Path: "list/foo/zip"},
+					})
+					return b
+				}(),
+			},
+			"list list/foo list/foo/zip ",
+			false,
+		},
+		{
+			"func_nomadSecureVariables_too_many_args",
+			&NewTemplateInput{
+				Contents: `{{ range nomadVarList "a" "b" }}{{ .Path }} {{ end }}`,
+			},
+			nil,
+			"",
+			true,
+		},
 	}
 
 	//	struct {
@@ -2101,7 +2133,7 @@ func TestTemplate_Execute(t *testing.T) {
 	//	}
 
 	for i, tc := range cases {
-		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%03d_%s", i, tc.name), func(t *testing.T) {
 			tpl, err := NewTemplate(tc.ti)
 			if err != nil {
 				t.Fatal(err)
