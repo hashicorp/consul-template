@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul-template/config"
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul-template/renderer"
+	"github.com/hashicorp/consul-template/telemetry"
 	"github.com/hashicorp/consul-template/template"
 	"github.com/hashicorp/consul-template/watch"
 
@@ -255,6 +256,8 @@ func NewRunner(config *config.Config, dry bool) (*Runner, error) {
 // execution. This function is blocking and should be called as a goroutine.
 func (r *Runner) Start() {
 	log.Printf("[INFO] (runner) starting")
+
+	telemetry.CounterActions.Add(1, telemetry.NewLabel("action", "start"))
 
 	// Create the pid before doing anything.
 	if err := r.storePid(); err != nil {
@@ -540,6 +543,9 @@ func (r *Runner) internalStop(immediately bool) {
 	}
 
 	log.Printf("[INFO] (runner) stopping")
+
+	telemetry.CounterActions.Add(1, telemetry.NewLabel("action", "stop"))
+
 	r.stopDedup()
 	r.stopWatchers()
 	r.stopChild(immediately)
@@ -608,9 +614,16 @@ func (r *Runner) Receive(d dep.Dependency, data interface{}) {
 	//     https://github.com/hashicorp/consul-template/issues/198
 	//
 	// and by "little" bug, I mean really big bug.
-	if _, ok := r.dependencies[d.String()]; ok {
+	depID := d.String()
+	if _, ok := r.dependencies[depID]; ok {
 		log.Printf("[DEBUG] (runner) receiving dependency %s", d)
 		r.brain.Remember(d, data)
+
+		telemetry.CounterDependenciesReceived.Add(
+			1,
+			telemetry.NewLabel("id", depID),
+			telemetry.NewLabel("type", d.Type().String()),
+		)
 	}
 }
 
@@ -634,6 +647,7 @@ func (r *Runner) Signal(s os.Signal) error {
 // executed.
 func (r *Runner) Run() error {
 	log.Printf("[DEBUG] (runner) initiating run")
+	telemetry.CounterActions.Add(1, telemetry.NewLabel("action", "run"))
 
 	var newRenderEvent, wouldRenderAny, renderedAny bool
 	runCtx := &templateRunCtx{
@@ -655,20 +669,41 @@ func (r *Runner) Run() error {
 			// Record that there is at least one new render event
 			newRenderEvent = true
 
+			var label string
+
 			// Record that at least one template would have been rendered.
 			if event.WouldRender {
 				wouldRenderAny = true
+				label = "would"
 			}
 
 			// Record that at least one template was rendered.
 			if event.DidRender {
 				renderedAny = true
+				label = "rendered"
+			}
+
+			if event.ForQuiescence {
+				label = "quiescence"
+			}
+
+			// Report the template render event
+			if label != "" {
+				telemetry.CounterTemplatesRendered.Add(
+					1,
+					telemetry.NewLabel("id", tmpl.ID()),
+					telemetry.NewLabel("status", label),
+				)
 			}
 		}
 	}
 
 	// Perform the diff and update the known dependencies.
 	r.diffAndUpdateDeps(runCtx.depsMap)
+
+	// Record dependency counts on runCtx instead of runner.dependencies
+	// to avoid blocking the locks
+	recordDependencyCounts(runCtx.depsMap)
 
 	// Execute each command in sequence, collecting any errors that occur - this
 	// ensures all commands execute at least once.
@@ -695,6 +730,12 @@ func (r *Runner) Run() error {
 			errs = append(errs, errors.Wrap(err, s))
 		}
 	}
+
+	// Report on number of commands executed and their statuses
+	numCommands := len(runCtx.commands)
+	failedCommands := len(errs)
+	telemetry.CounterCommandExecs.Add(float32(numCommands-failedCommands), telemetry.NewLabel("status", "success"))
+	telemetry.CounterCommandExecs.Add(float32(failedCommands), telemetry.NewLabel("status", "error"))
 
 	// Check if we need to deliver any rendered signals
 	if wouldRenderAny || renderedAny {
@@ -1477,4 +1518,11 @@ func newWatcher(c *config.Config, clients *dep.ClientSet) *watch.Watcher {
 		VaultToken:       clients.Vault().Token(),
 		RetryFuncNomad:   watch.RetryFunc(c.Nomad.Retry.RetryFunc()),
 	})
+}
+
+func recordDependencyCounts(deps map[string]dep.Dependency) {
+	types := make(map[dep.Type]float32)
+	for _, dep := range deps {
+		types[dep.Type()]++
+	}
 }
