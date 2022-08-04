@@ -2,6 +2,7 @@ package template
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	dep "github.com/hashicorp/consul-template/dependency"
@@ -130,7 +131,7 @@ func nomadSecureVariableExistsFunc(b *Brain, used, missing *dep.Set) func(string
 	}
 }
 
-func nomadSafeSecureVariablesFunc(b *Brain, used, missing *dep.Set) func(string) ([]*dep.NomadSVMeta, error) {
+func nomadSafeSecureVariablesFunc(b *Brain, used, missing *dep.Set) func(...string) ([]*dep.NomadSVMeta, error) {
 	// call nomadSecureVariablesFunc but explicitly mark that empty data set
 	// returned on monitored secure variable prefix is NOT safe
 	return nomadSecureVariablesFunc(b, used, missing, false)
@@ -138,12 +139,17 @@ func nomadSafeSecureVariablesFunc(b *Brain, used, missing *dep.Set) func(string)
 
 // nomadSecureVariablesFunc returns or accumulates nomad secure variable prefix
 // list dependencies.
-func nomadSecureVariablesFunc(b *Brain, used, missing *dep.Set, emptyIsSafe bool) func(string) ([]*dep.NomadSVMeta, error) {
-	return func(s string) ([]*dep.NomadSVMeta, error) {
-		result := []*dep.NomadSVMeta{}
+func nomadSecureVariablesFunc(b *Brain, used, missing *dep.Set, emptyIsSafe bool) func(...string) ([]*dep.NomadSVMeta, error) {
+	return func(args ...string) ([]*dep.NomadSVMeta, error) {
+		if len(args) > 1 {
+			return nil, fmt.Errorf("nomadVarList takes either a single \"prefix\" parameter or none for all available variables; got: %v", args)
+		}
 
-		if len(s) == 0 {
-			return result, nil
+		result := []*dep.NomadSVMeta{}
+		s := ""
+
+		if len(args) == 1 {
+			s = args[0]
 		}
 
 		d, err := dep.NewSVListQuery(s)
