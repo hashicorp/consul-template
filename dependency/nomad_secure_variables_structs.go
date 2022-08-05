@@ -109,7 +109,7 @@ func (i NomadSVItems) Parent() *NomadSecureVariable {
 }
 
 // NomadSVItem enriches the basic string values in a api.SecureVariable's Items
-// map with additional helper funcs for formatting and access to it's parent
+// map with additional helper funcs for formatting and access to its parent
 // item. This enables us to have the template funcs start at the Items
 // collection without the user having to delve to it themselves and to minimize
 // the number of template funcs that we have to provide for coverage.
@@ -130,6 +130,8 @@ type NomadSVMeta struct {
 	CreateIndex, ModifyIndex uint64
 	CreateTime, ModifyTime   nanoTime
 }
+
+func (s NomadSVMeta) String() string { return s.Path }
 
 // nanoTime is the typical storage encoding for times in Nomad's backend. They
 // are not pretty for consul-template consumption, so this gives us a type to
