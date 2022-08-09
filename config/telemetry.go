@@ -163,14 +163,14 @@ type TelemetryConfig struct {
 	// by prefix. Use the 'prefix_filter' option and prefix rules with '+' to be
 	// included.
 	//
-	// hcl: telemetry { prefix_filter = []string{"+<expr>", "+<expr>", ...} }
+	// hcl: telemetry { allowed_prefixes = ["<expr>", "<expr>", ...] }
 	AllowedPrefixes []string `json:"allowed_prefixes,omitempty" mapstructure:"allowed_prefixes"`
 
 	// BlockedPrefixes is a list of filter rules to apply for blocking metrics
 	// by prefix. Use the 'prefix_filter' option and prefix rules with '-' to be
 	// excluded.
 	//
-	// hcl: telemetry { prefix_filter = []string{"-<expr>", "-<expr>", ...} }
+	// hcl: telemetry { blocked_prefixes = ["<expr>", "<expr>", ...] }
 	BlockedPrefixes []string `json:"blocked_prefixes,omitempty" mapstructure:"blocked_prefixes"`
 
 	// MetricsPrefix is the prefix used to write stats values to.
