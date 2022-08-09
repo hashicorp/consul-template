@@ -7,6 +7,7 @@ package telemetry
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -50,6 +51,8 @@ func ConfigureSinks(cfg *config.TelemetryConfig, memSink metrics.MetricSink) (me
 	addSink := func(fn func(*config.TelemetryConfig, string) (metrics.MetricSink, error)) {
 		s, err := fn(cfg, metricsConf.HostName)
 		if err != nil {
+			log.Println("error!!!")
+			log.Println(err)
 			errors = multierror.Append(errors, err)
 			return
 		}
@@ -68,12 +71,22 @@ func ConfigureSinks(cfg *config.TelemetryConfig, memSink metrics.MetricSink) (me
 	if len(sinks) > 0 {
 		sinks = append(sinks, memSink)
 		_, err := metrics.NewGlobal(metricsConf, sinks)
-		errors = multierror.Append(errors, err)
+		if err != nil {
+			errors = multierror.Append(errors, err)
+		}
 	} else {
 		metricsConf.EnableHostname = false
 		_, err := metrics.NewGlobal(metricsConf, memSink)
-		errors = multierror.Append(errors, err)
+		if err != nil {
+			errors = multierror.Append(errors, err)
+		}
 	}
+
+	// if no errors where collected, the method should not return
+	/*if len(errors.Errors) == 0 {
+		errors = nil
+	}*/
+
 	return sinks, errors
 }
 
@@ -94,6 +107,7 @@ func Init(cfg *config.TelemetryConfig) (*Telemetry, error) {
 	}
 
 	_, errs := ConfigureSinks(cfg, memSink)
+
 	if errs != nil {
 		return nil, errs
 	}
