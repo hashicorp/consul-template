@@ -125,3 +125,11 @@ func TestPrometheusMetrics(t *testing.T) {
 	require.Emptyf(t, missingActualMetrics, "The following metrics are missing:\n - %s", strings.Join(missingActualMetrics, "\n - "))
 
 }
+
+func TestInitWithEmptyConfig(t *testing.T) {
+	cfg := &config.Config{}
+	cfg.Finalize()
+	_, err := Init(cfg.Telemetry)
+	require.NoError(t, err)
+
+}
