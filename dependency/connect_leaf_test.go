@@ -30,7 +30,7 @@ func TestConnectLeafQuery_Fetch(t *testing.T) {
 
 		_, _, err := d.Fetch(testClients, nil)
 		exp := "Unexpected response code: 500 (" +
-			"URI must be either service or agent)"
+			"URI must be either service, agent, or kind)"
 		if errors.Cause(err).Error() != exp {
 			t.Fatalf("Unexpected error: %v", err)
 		}
