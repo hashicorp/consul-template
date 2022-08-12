@@ -3,7 +3,7 @@ module github.com/hashicorp/consul-template
 go 1.17
 
 require (
-	github.com/BurntSushi/toml v0.3.1
+	github.com/BurntSushi/toml v1.2.0
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/davecgh/go-spew v1.1.1
 	github.com/hashicorp/consul/api v1.4.0
