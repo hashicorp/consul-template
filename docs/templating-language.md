@@ -1998,9 +1998,10 @@ See the [`spew` GoDoc documentation](https://pkg.go.dev/github.com/davecgh/go-sp
 
 ### `spew_dump`
 
-Outputs the value with full newlines, indentation, type, and pointer
-information to stdout (instead of rendered in the template) by calling [`spew.Dump`](https://pkg.go.dev/github.com/davecgh/go-spew/spew#Dump) on it. Returns an empty string
-or an error.
+Outputs the value with full newlines, indentation, type, and pointer information
+to stdout, instead of rendered in the template, by calling
+[`spew.Dump`](https://pkg.go.dev/github.com/davecgh/go-spew/spew#Dump) on it.
+Returns an empty string or an error.
 
 ```golang
 {{- $JSON := `{ "foo": { "bar":true, "baz":"string", "theAnswer":42} }` -}}
@@ -2008,10 +2009,9 @@ or an error.
 {{- spew_dump $OBJ -}}
 ```
 
-renders
+renders the following to stdout.
 
 ```golang
->
 (map[string]interface {}) (len=1) {
  (string) (len=3) "foo": (map[string]interface {}) (len=3) {
   (string) (len=3) "bar": (bool) true,
@@ -2023,7 +2023,8 @@ renders
 
 ### `spew_sdump`
 
-Creates a string containing the values with full newlines, indentation, type, and pointer information by calling [`spew.Sdump`](https://pkg.go.dev/github.com/davecgh/go-spew/spew#Sdump) on them. Returns an error or the string. The return value can be captured as a variable, used as input to a pipeline, or written to the template in place.
+Creates a string containing the values with full newlines, indentation, type,
+and pointer information by calling [`spew.Sdump`](https://pkg.go.dev/github.com/davecgh/go-spew/spew#Sdump) on them. Returns an error or the string. The return value can be captured as a variable, used as input to a pipeline, or written to the template in place.
 
 ```golang
 {{- $JSON := `{ "foo": { "bar":true, "baz":"string", "theAnswer":42} }` -}}
@@ -2031,10 +2032,9 @@ Creates a string containing the values with full newlines, indentation, type, an
 {{- spew_dump $OBJ -}}
 ```
 
-renders
+renders the following inside the template.
 
 ```golang
->
 (map[string]interface {}) (len=1) {
  (string) (len=3) "foo": (map[string]interface {}) (len=3) {
   (string) (len=3) "bar": (bool) true,
@@ -2046,11 +2046,13 @@ renders
 
 ### `spew_printf`
 
-Formats output according to the provided format string and then writes the generated information to stdout. You can use format strings to produce a compacted inline printing style by your choice:
+Formats output according to the provided format string and then writes the
+generated information to stdout, not to the template itself. You can use format
+strings to produce a compacted inline printing style by your choice:
 
 * `%v`: most compact
-* `%+v`: adds pointer addresses
 * `%#v`: adds types
+* `%+v`: adds pointer addresses
 * `%#+v`: adds types and pointer addresses
 
 ```golang
@@ -2079,32 +2081,7 @@ outputs
 map[foo:map[bar:true baz:string theAnswer:42]]
 ```
 
-#### using `%+v`
-
-
-```golang
-{{ spew_printf "%+v\n" $OBJ }}
-```
-
-outputs
-
-```golang
-map[foo:map[bar:true baz:string theAnswer:42]]
-```
-
-#### using `%+v`
-
-```golang
-{{ spew_printf "%v\n" $OBJ }}
-```
-
-outputs
-
-```golang
-map[foo:map[bar:true baz:string theAnswer:42]]
-```
-
-#### using `%#v`
+#### Using `%#v`
 
 ```golang
 {{ spew_printf "%#v\n" $OBJ }}
@@ -2116,18 +2093,32 @@ outputs
 (map[string]interface {})map[foo:(map[string]interface {})map[bar:(bool)true baz:(string)string theAnswer:(float64)42]]
 ```
 
-#### using `%+#v`
+#### Using `%+v`
 
-#### using `%#v`
+> **Note**: very few template use cases will benefit from pointer visibility.
 
 ```golang
-{{ spew_printf "%#+v\n" $OBJ }}
+{{ spew_printf "%+v\n" scratch }}
 ```
 
 outputs
 
 ```golang
-(map[string]interface {})map[foo:(map[string]interface {})map[theAnswer:(float64)42 bar:(bool)true baz:(string)string]]
+<*>(0x1400008e2d0){once:{done:0 m:{state:0 sema:0}} RWMutex:{w:{state:0 sema:0} writerSem:0 readerSem:0 readerCount:0 readerWait:0} values:<nil>}
+```
+
+#### Using `%+#v`
+
+> **Note**: very few template use cases will benefit from pointer visibility.
+
+```golang
+{{ spew_printf "%+#v\n" scratch }}
+```
+
+outputs
+
+```golang
+(*template.Scratch)(0x1400008e2d0){once:(sync.Once){done:(uint32)0 m:(sync.Mutex){state:(int32)0 sema:(uint32)0}} RWMutex:(sync.RWMutex){w:(sync.Mutex){state:(int32)0 sema:(uint32)0} writerSem:(uint32)0 readerSem:(uint32)0 readerCount:(int32)0 readerWait:(int32)0} values:(map[string]interface {})<nil>}
 ```
 
 ### `spew_sprintf`
