@@ -8,7 +8,7 @@ GOTAGS ?=
 # Get the project metadata
 OWNER := "hashicorp"
 NAME := "consul-template"
-PROJECT := $(shell go list -m)
+PROJECT := $(shell go list -m | awk '/${NAME}/ {print $0}' )
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD || echo release)
 VERSION := $(shell awk -F\" '/^[ \t]+Version/ { print $$2; exit }' "${CURRENT_DIR}/version/version.go")
 PRERELEASE := $(shell awk -F\" '/^[ \t]+VersionPrerelease/ { print $$2; exit }' "${CURRENT_DIR}/version/version.go")
