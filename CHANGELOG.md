@@ -1,3 +1,19 @@
+## v0.29.2 (Aug 16, 2022)
+
+IMPROVEMENTS:
+* Nomad services support use of `byTab` template function. [[GH-1594](https://github.com/hashicorp/consul-template/pull/1594)]
+
+BUG FIXES:
+* Fix issue with pkiCert caching certificate based on consul key path. [[GH-1611](https://github.com/hashicorp/consul-template/pull/1611), [GH-1607](https://github.com/hashicorp/consul-template/issues/1607)]
+* Fix issue with setting the reload_signal to an empty string ("") not disabling the reload_signal as documented. [[GH-1610](https://github.com/hashicorp/consul-template/pull/1610), [GH-1428](https://github.com/hashicorp/consul-template/issues/1428), [GH-1442](https://github.com/hashicorp/consul-template/issues/1442)]
+* Limit Setgpid setting to strictly `sh -c` wrapped calls. [[GH-1600](https://github.com/hashicorp/consul-template/pull/1600), [GH-1604](https://github.com/hashicorp/consul-template/issues/1604)]
+* Fix potential for nil pointer dereference in vault config debug output. [[GH-1586](https://github.com/hashicorp/consul-template/issues/1586)]
+
+SECURITY:
+* Filter Vault Secrets from text/template error messages, [CVE-2022-38149](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-38149). [[GH-1613](https://github.com/hashicorp/consul-template/pull/1613)]
+* Updates dependencies several of which had known CVEs. [[GH-1622](https://github.com/hashicorp/consul-template/pull/1622), [GH-1614](https://github.com/hashicorp/consul-template/issues/1614)]
+
+
 ## v0.29.1 (Jun 24, 2022)
 
 IMPROVEMENTS:
