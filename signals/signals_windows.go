@@ -9,7 +9,7 @@ import (
 )
 
 var SignalLookup = map[string]os.Signal{
-	"SIGNULL":  SIGNULL,
+	"SIGNULL": SIGNULL,
 	"SIGABRT": syscall.SIGABRT,
 	"SIGALRM": syscall.SIGALRM,
 	"SIGBUS":  syscall.SIGBUS,

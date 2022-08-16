@@ -71,7 +71,6 @@ func templateNoData() []byte {
 // would normally require 2500 blocking queries. Using deduplication, one
 // instance has 50 view queries, plus 50 additional queries on the lock
 // path for a total of 100.
-//
 type DedupManager struct {
 	// config is the deduplicate configuration
 	config *config.DedupConfig

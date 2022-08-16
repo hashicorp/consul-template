@@ -68,7 +68,6 @@ type SecretWrapInfo struct {
 	WrappedAccessor string
 }
 
-//
 type renewer interface {
 	Dependency
 	stopChan() chan struct{}

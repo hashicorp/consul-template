@@ -674,13 +674,13 @@ func base64URLEncode(s string) (string, error) {
 // byKey accepts a slice of KV pairs and returns a map of the top-level
 // key to all its subkeys. For example:
 //
-//		elasticsearch/a //=> "1"
-//		elasticsearch/b //=> "2"
-//		redis/a/b //=> "3"
+//	elasticsearch/a //=> "1"
+//	elasticsearch/b //=> "2"
+//	redis/a/b //=> "3"
 //
 // Passing the result from Consul through byTag would yield:
 //
-// 		map[string]map[string]string{
+//		map[string]map[string]string{
 //	  	"elasticsearch": &dep.KeyPair{"a": "1"}, &dep.KeyPair{"b": "2"},
 //			"redis": &dep.KeyPair{"a/b": "3"}
 //		}
@@ -761,8 +761,7 @@ func byTag(in interface{}) (map[string][]interface{}, error) {
 // contains is a function that have reverse arguments of "in" and is designed to
 // be used as a pipe instead of a function:
 //
-// 		{{ l | contains "thing" }}
-//
+//	{{ l | contains "thing" }}
 func contains(v, l interface{}) (bool, error) {
 	return in(l, v)
 }
@@ -933,16 +932,15 @@ func indent(spaces int, s string) (string, error) {
 // loop will return a goroutine that begins at the first parameter and loops
 // up to but not including the second parameter.
 //
-//    // Prints 0 1 2 3 4
-// 		for _, i := range loop(5) {
-// 			print(i)
-// 		}
+//	   // Prints 0 1 2 3 4
+//			for _, i := range loop(5) {
+//				print(i)
+//			}
 //
-//    // Prints 5 6 7
-// 		for _, i := range loop(5, 8) {
-// 			print(i)
-// 		}
-//
+//	   // Prints 5 6 7
+//			for _, i := range loop(5, 8) {
+//				print(i)
+//			}
 func loop(ifaces ...interface{}) (<-chan int64, error) {
 	to64 := func(i interface{}) (int64, error) {
 		v := reflect.ValueOf(i)
@@ -1678,12 +1676,12 @@ func md5sum(item string) (string, error) {
 // The username and group name fields can be left blank to default to the current user and group.
 //
 // For example:
-//   key "my/key/path" | writeToFile "/my/file/path.txt" "" "" "0644"
-//   key "my/key/path" | writeToFile "/my/file/path.txt" "100" "1000" "0644"
-//   key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644"
-//   key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644" "append"
-//   key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644" "append,newline"
 //
+//	key "my/key/path" | writeToFile "/my/file/path.txt" "" "" "0644"
+//	key "my/key/path" | writeToFile "/my/file/path.txt" "100" "1000" "0644"
+//	key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644"
+//	key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644" "append"
+//	key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644" "append,newline"
 func writeToFile(path, username, groupName, permissions string, args ...string) (string, error) {
 	// Parse arguments
 	flags := ""

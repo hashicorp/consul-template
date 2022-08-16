@@ -13,7 +13,7 @@ import (
 // SIGURG  - used by the golang scheduler for parallel runtime.
 
 var SignalLookup = map[string]os.Signal{
-	"SIGNULL":   SIGNULL,
+	"SIGNULL":  SIGNULL,
 	"SIGABRT":  syscall.SIGABRT,
 	"SIGALRM":  syscall.SIGALRM,
 	"SIGBUS":   syscall.SIGBUS,
