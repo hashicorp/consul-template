@@ -3,6 +3,7 @@ package dependency
 import (
 	"fmt"
 	"math/rand"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,7 +14,6 @@ import (
 )
 
 func TestNewConnectLeafQuery(t *testing.T) {
-
 	act := NewConnectLeafQuery("foo")
 	act.stopCh = nil
 	exp := &ConnectLeafQuery{service: "foo"}
@@ -30,10 +30,10 @@ func TestConnectLeafQuery_Fetch(t *testing.T) {
 		d := NewConnectLeafQuery("")
 
 		_, _, err := d.Fetch(testClients, nil)
-		exp := "Unexpected response code: 500 (" +
-			"URI must be either service or agent)"
-		if errors.Cause(err).Error() != exp {
-			t.Fatalf("Unexpected error: %v", err)
+		exp := "Unexpected response code: 500"
+		errstr := errors.Cause(err).Error()
+		if !strings.Contains(errstr, exp) {
+			t.Fatalf("Unexpected error:\n%v\n%v\n", errstr, exp)
 		}
 	})
 	t.Run("with-service", func(t *testing.T) {
@@ -79,7 +79,6 @@ func TestConnectLeafQuery_Fetch(t *testing.T) {
 }
 
 func TestConnectLeafQuery_String(t *testing.T) {
-
 	cases := []struct {
 		name    string
 		service string

@@ -15,7 +15,7 @@ func TestConnectCAQuery_Fetch(t *testing.T) {
 	act := raw.([]*api.CARoot)
 	if assert.Len(t, act, 1) {
 		root := act[0]
-		assert.Equal(t, root.Name, "Consul CA Root Cert")
+		assert.Contains(t, root.Name, "Consul CA")
 		assert.True(t, root.Active)
 		assert.NotEmpty(t, root.RootCertPEM)
 	}
