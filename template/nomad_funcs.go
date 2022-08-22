@@ -79,8 +79,8 @@ func nomadServiceFunc(b *Brain, used, missing *dep.Set) func(...interface{}) ([]
 
 // nomadSecureVariableItemsFunc returns a given secure variable rooted at the
 // items map.
-func nomadSecureVariableItemsFunc(b *Brain, used, missing *dep.Set) func(string) (dep.NomadSVItems, error) {
-	return func(s string) (dep.NomadSVItems, error) {
+func nomadSecureVariableItemsFunc(b *Brain, used, missing *dep.Set) func(string) (*dep.NomadSVItems, error) {
+	return func(s string) (*dep.NomadSVItems, error) {
 		if len(s) == 0 {
 			return nil, nil
 		}
@@ -97,7 +97,7 @@ func nomadSecureVariableItemsFunc(b *Brain, used, missing *dep.Set) func(string)
 			if value == nil {
 				return nil, nil
 			}
-			return value.(dep.NomadSVItems), nil
+			return value.(*dep.NomadSVItems), nil
 		}
 
 		missing.Add(d)

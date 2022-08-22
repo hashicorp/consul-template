@@ -75,7 +75,7 @@ func (d *SVGetQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface{},
 		return nil, rm, nil
 	}
 
-	items := NewNomadSecureVariable(sv).Items
+	items := &NewNomadSecureVariable(sv).Items
 	log.Printf("[TRACE] %s: returned %q", d, sv.Path)
 	return items, rm, nil
 }
