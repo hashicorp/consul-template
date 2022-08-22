@@ -16,6 +16,7 @@ import (
 
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul/api"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewTemplate(t *testing.T) {
@@ -2158,6 +2159,7 @@ func TestTemplate_error_secret_leak(t *testing.T) {
 					{{- end }}
 				{{ end }}`,
 	}
+
 	execinput := &ExecuteInput{
 		Brain: func() *Brain {
 			b := NewBrain()
@@ -2188,8 +2190,46 @@ func TestTemplate_error_secret_leak(t *testing.T) {
 	}
 	_, err = tpl.Execute(execinput)
 	if strings.Contains(err.Error(), "zoo") {
-		t.Error("error contains secret... (zoo)\n", err.Error())
+		t.Error("error contains vault secret... (zoo)\n", err.Error())
 	}
+}
+
+func TestTemplate_error_secret_leak_SV(t *testing.T) {
+	tmplinput := &NewTemplateInput{
+		Contents: `
+		{{ with nomadVar "var/test" }}
+			{{range $key, $value := .svKey}}
+				export {{ $key }}="{{ $value }}"
+			{{- end }}
+		{{ end }}`,
+	}
+	execinput := &ExecuteInput{
+		Brain: func() *Brain {
+			b := NewBrain()
+			b.RWMutex = sync.RWMutex{}
+			sv, err := dep.NewSVGetQuery("var/test")
+			if err != nil {
+				t.Fatal(err)
+			}
+			sv.EnableBlocking()
+			b.Remember(sv, &dep.NomadSVItems{
+				"svKey": dep.NomadSVItem{
+					Key:   "svKey",
+					Value: "svSecret",
+				},
+			})
+			return b
+		}(),
+	}
+
+	tpl, err := NewTemplate(tmplinput)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = tpl.Execute(execinput)
+	require.Error(t, err)
+	require.True(t, !strings.Contains(err.Error(), "svSecret"), "error contains secure variable secret (svSecret); err: %v", err)
+	require.ErrorContains(t, err, "[redacted]")
 }
 
 func Test_writeToFile(t *testing.T) {
