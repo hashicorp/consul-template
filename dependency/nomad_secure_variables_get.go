@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/url"
 	"regexp"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -27,6 +28,9 @@ type SVGetQuery struct {
 
 // NewSVGetQuery parses a string into a dependency.
 func NewSVGetQuery(s string) (*SVGetQuery, error) {
+	s = strings.TrimSpace(s)
+	s = strings.Trim(s, "/")
+
 	if s != "" && !SVGetQueryRe.MatchString(s) {
 		return nil, fmt.Errorf("nomad.secure_variables.get: invalid format: %q", s)
 	}
