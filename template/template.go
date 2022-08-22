@@ -254,6 +254,11 @@ func redactinator(used *dep.Set, b *Brain, err error) error {
 					pairs = append(pairs, fmt.Sprintf("%v", v), "[redacted]")
 				}
 			}
+			if sv, ok := data.(*dep.NomadSVItems); ok {
+				for _, v := range sv.Values() {
+					pairs = append(pairs, fmt.Sprintf("%v", v), "[redacted]")
+				}
+			}
 		}
 	}
 	return fmt.Errorf(strings.NewReplacer(pairs...).Replace(err.Error()))
