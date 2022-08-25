@@ -15,14 +15,17 @@ var (
 	_ Dependency = (*SVGetQuery)(nil)
 
 	// SVGetQueryRe is the regular expression to use.
-	SVGetQueryRe = regexp.MustCompile(`\A` + svPathRe + `\z`)
+	SVGetQueryRe = regexp.MustCompile(`\A` + svPathRe + svNamespaceRe + regionRe + `\z`)
 )
 
 // SVGetQuery queries the KV store for a single key.
 type SVGetQuery struct {
 	stopCh chan struct{}
 
-	path       string
+	path      string
+	namespace string
+	region    string
+
 	blockOnNil bool
 }
 
@@ -37,8 +40,10 @@ func NewSVGetQuery(s string) (*SVGetQuery, error) {
 
 	m := regexpMatch(SVGetQueryRe, s)
 	return &SVGetQuery{
-		stopCh: make(chan struct{}, 1),
-		path:   m["path"],
+		stopCh:    make(chan struct{}, 1),
+		path:      m["path"],
+		namespace: m["namespace"],
+		region:    m["region"],
 	}, nil
 }
 

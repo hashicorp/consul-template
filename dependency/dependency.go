@@ -22,6 +22,7 @@ const (
 	tagRe         = `((?P<tag>[[:word:]=:\.\-\_]+)\.)?`
 	regionRe      = `(@(?P<region>[[:word:]\.\-\_]+))?`
 	svPathRe      = `/?(?P<path>[^@]+)`
+	svNamespaceRe = `(@(?P<namespace>[[:word:]\-\_]+))?`
 )
 
 type Type int
