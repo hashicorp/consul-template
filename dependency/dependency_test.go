@@ -419,7 +419,7 @@ func (v *nomadServer) CreateSecureVariable(path string, data map[string]string) 
 	for k, v := range data {
 		sv.Items[k] = v
 	}
-	_, err := testClients.Nomad().SecureVariables().Update(sv, nil)
+	_, _, err := testClients.Nomad().SecureVariables().Update(sv, nil)
 	if err != nil {
 		fmt.Println(err)
 	}
