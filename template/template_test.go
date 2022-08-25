@@ -2039,7 +2039,7 @@ func TestTemplate_Execute(t *testing.T) {
 						t.Fatal(err)
 					}
 					d.EnableBlocking()
-					b.Remember(d, dep.NomadSVItems{
+					b.Remember(d, &dep.NomadSVItems{
 						"k1": dep.NomadSVItem{Key: "k1", Value: "v1"},
 						"k2": dep.NomadSVItem{Key: "k2", Value: "v2"},
 					})
