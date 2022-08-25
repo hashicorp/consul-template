@@ -75,7 +75,7 @@ func TestNewSVGetQuery(t *testing.T) {
 			"trailing_slash",
 			"trailing/slash/",
 			&SVGetQuery{
-				path: "trailing/slash/",
+				path: "trailing/slash",
 			},
 			false,
 		},
@@ -99,7 +99,7 @@ func TestNewSVGetQuery(t *testing.T) {
 			"splat",
 			"config/*/timeouts/",
 			&SVGetQuery{
-				path: "config/*/timeouts/",
+				path: "config/*/timeouts",
 			},
 			false,
 		},
@@ -135,7 +135,7 @@ func TestSVGetQuery_Fetch(t *testing.T) {
 		{
 			"exists",
 			"test-kv-get/path",
-			NewNomadSecureVariable(&nomadapi.SecureVariable{
+			&NewNomadSecureVariable(&nomadapi.SecureVariable{
 				Namespace: "default",
 				Path:      "test-kv-get/path",
 				Items: nomadapi.SecureVariableItems{
@@ -237,12 +237,12 @@ func TestSVGetQuery_Fetch(t *testing.T) {
 		case err := <-errCh:
 			t.Fatal(err)
 		case data := <-dataCh:
-			exp := NewNomadSecureVariable(&nomadapi.SecureVariable{
+			exp := &(NewNomadSecureVariable(&nomadapi.SecureVariable{
 				Namespace: "default",
 				Path:      "test-kv-get/path",
 				Items:     nomadapi.SecureVariableItems{"bar": "barp", "car": "carp"},
-			})
-			testNomadSVEquivalent(t, exp.Items, data)
+			}).Items)
+			testNomadSVEquivalent(t, exp, data)
 		}
 	})
 }
@@ -279,10 +279,10 @@ func testNomadSVEquivalent(t *testing.T, expIf, actIf interface{}) {
 	if expIf == nil || actIf == nil {
 		t.Fatalf("Mismatched nil and value.\na: %v\nb:%v", expIf, actIf)
 	}
-	exp, ok := expIf.(NomadSVItems)
-	require.True(t, ok, "exp is not NomadSVItems, got %T", expIf)
-	act, ok := actIf.(NomadSVItems)
-	require.True(t, ok, "act is not NomadSVItems, got %T", actIf)
+	exp, ok := expIf.(*NomadSVItems)
+	require.True(t, ok, "exp is not *NomadSVItems, got %T", expIf)
+	act, ok := actIf.(*NomadSVItems)
+	require.True(t, ok, "act is not *NomadSVItems, got %T", actIf)
 
 	expMeta := exp.Metadata()
 	actMeta := act.Metadata()
