@@ -125,12 +125,14 @@ func TestNewSVGetQuery(t *testing.T) {
 func TestSVGetQuery_Fetch(t *testing.T) {
 
 	type svmap map[string]string
-	_ = testNomad.CreateSecureVariable("test-kv-get/path", svmap{"bar": "barp"})
-
+	_ = testNomad.CreateSecureVariable("test-kv-get/path", svmap{"bar": "barp"}, nil)
+	_ = testNomad.CreateNamespace("test", nil)
+	_ = testNomad.CreateSecureVariable("test-ns-get/path", svmap{"car": "carp"}, &nomadapi.WriteOptions{Namespace: "test"})
 	cases := []struct {
 		name string
 		i    string
 		exp  interface{}
+		err  bool
 	}{
 		{
 			"exists",
@@ -142,11 +144,31 @@ func TestSVGetQuery_Fetch(t *testing.T) {
 					"bar": "barp",
 				},
 			}).Items,
+			false,
 		},
 		{
 			"no_exist",
 			"test-kv-get/not/a/real/path/like/ever",
 			nil,
+			false,
+		},
+		{
+			"exists_ns",
+			"test-ns-get/path@test",
+			&NewNomadSecureVariable(&nomadapi.SecureVariable{
+				Namespace: "test",
+				Path:      "test-ns-get/path",
+				Items: nomadapi.SecureVariableItems{
+					"car": "carp",
+				},
+			}).Items,
+			false,
+		},
+		{
+			"exists_badregion",
+			"test-ns-get/path@default.bad",
+			fmt.Errorf("nomad.secure_variables.get(test-ns-get/path): Unexpected response code: 500 (No path to region)"),
+			true,
 		},
 	}
 
@@ -158,7 +180,14 @@ func TestSVGetQuery_Fetch(t *testing.T) {
 			}
 
 			act, _, err := d.Fetch(testClients, nil)
-			if err != nil {
+			if (err != nil) != tc.err {
+				t.Fatal(err)
+			}
+			if err != nil && tc.err {
+				// handle error test-cases
+				if err.Error() == tc.exp.(error).Error() {
+					return
+				}
 				t.Fatal(err)
 			}
 			if tc.exp != nil {
@@ -231,7 +260,7 @@ func TestSVGetQuery_Fetch(t *testing.T) {
 			}
 		}()
 
-		_ = testNomad.CreateSecureVariable("test-kv-get/path", svmap{"bar": "barp", "car": "carp"})
+		_ = testNomad.CreateSecureVariable("test-kv-get/path", svmap{"bar": "barp", "car": "carp"}, nil)
 
 		select {
 		case err := <-errCh:

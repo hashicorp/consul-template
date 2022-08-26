@@ -2123,6 +2123,97 @@ func TestTemplate_Execute(t *testing.T) {
 			"",
 			true,
 		},
+		{
+			"func_nomadVar_ns_region",
+			&NewTemplateInput{
+				Contents: `{{with nomadVar "test@default.dc1" }}{{.k1}}{{end}}{{with nomadVar "test@default.global" }}{{.k1}}{{end}}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d1, err := dep.NewSVGetQuery("test@default.dc1")
+					if err != nil {
+						t.Fatal(err)
+					}
+					d1.EnableBlocking()
+					b.Remember(d1, &dep.NomadSVItems{
+						"k1": dep.NomadSVItem{Key: "k1", Value: "dc1"},
+						"k2": dep.NomadSVItem{Key: "k2", Value: "v2"},
+					})
+
+					d2, err := dep.NewSVGetQuery("test@default.global")
+					if err != nil {
+						t.Fatal(err)
+					}
+					d2.EnableBlocking()
+					b.Remember(d2, &dep.NomadSVItems{
+						"k1": dep.NomadSVItem{Key: "k1", Value: "global"},
+						"k2": dep.NomadSVItem{Key: "k2", Value: "v2"},
+					})
+					return b
+				}(),
+			},
+			"dc1global",
+			false,
+		},
+		{
+			"func_nomadSecureVariableExists_ns_region",
+			&NewTemplateInput{
+				Contents: `{{ nomadVarExists "path@default.global" }} {{ nomadVarExists "path@default.dc1" }}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d1, err := dep.NewSVGetQuery("path@default.global")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d1, true)
+
+					d2, err := dep.NewSVGetQuery("path@default.dc1")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d2, nil)
+					return b
+				}(),
+			},
+			"true false",
+			false,
+		},
+		{
+			"func_nomadVarList_ns_region",
+			&NewTemplateInput{
+				Contents: `{{ range nomadVarList "list" }}{{ .Path }} {{ end }}{{ range nomadVarList "list@default.dc1" }}{{ .Path }} {{ end }}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d1, err := dep.NewSVListQuery("list")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d1, []*dep.NomadSVMeta{
+						{Path: "list"},
+						{Path: "list/foo"},
+						{Path: "list/foo/zip"},
+					})
+
+					d2, err := dep.NewSVListQuery("list@default.dc1")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d2, []*dep.NomadSVMeta{
+						{Path: "list"},
+						{Path: "list/alpha"},
+						{Path: "list/beta/zip"},
+					})
+					return b
+				}(),
+			},
+			"list list/foo list/foo/zip list list/alpha list/beta/zip ",
+			false,
+		},
 	}
 
 	//	struct {

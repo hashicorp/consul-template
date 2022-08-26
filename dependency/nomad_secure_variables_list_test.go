@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	nomadapi "github.com/hashicorp/nomad/api"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -110,6 +111,50 @@ func TestNewSVListQuery(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"path-NS",
+			"a/b@test",
+			&SVListQuery{
+				prefix:    "a/b",
+				namespace: "test",
+			},
+			false,
+		},
+		{
+			"path-splatNS",
+			"a/b@*",
+			&SVListQuery{
+				prefix:    "a/b",
+				namespace: "*",
+			},
+			false,
+		},
+		{
+			"path-NS-region",
+			"a/b@test.dc2",
+			&SVListQuery{
+				prefix:    "a/b",
+				namespace: "test",
+				region:    "dc2",
+			},
+			false,
+		},
+		{
+			"path-splatNS-region",
+			"a/b@*.dc2",
+			&SVListQuery{
+				prefix:    "a/b",
+				namespace: "*",
+				region:    "dc2",
+			},
+			false,
+		},
+		{
+			"path-bad_splatNS-region",
+			"a/b@bad*.dc2",
+			nil,
+			true,
+		},
 	}
 
 	for i, tc := range cases {
@@ -131,9 +176,14 @@ func TestNewSVListQuery(t *testing.T) {
 func TestSVListQuery_Fetch(t *testing.T) {
 
 	type svmap map[string]string
-	_ = testNomad.CreateSecureVariable("test-kv-list/prefix/foo", svmap{"bar": "barp"})
-	_ = testNomad.CreateSecureVariable("test-kv-list/prefix/zip", svmap{"zap": "zapp"})
-	_ = testNomad.CreateSecureVariable("test-kv-list/prefix/wave/ocean", svmap{"sleek": "sleekp"})
+	_ = testNomad.CreateSecureVariable("test-kv-list/prefix/foo", svmap{"bar": "barp"}, nil)
+	_ = testNomad.CreateSecureVariable("test-kv-list/prefix/zip", svmap{"zap": "zapp"}, nil)
+	_ = testNomad.CreateSecureVariable("test-kv-list/prefix/wave/ocean", svmap{"sleek": "sleekp"}, nil)
+
+	nsOpt := &nomadapi.WriteOptions{Namespace: "test"}
+	_ = testNomad.CreateSecureVariable("test-kv-list/prefix/foo", svmap{"bar": "barp"}, nsOpt)
+	_ = testNomad.CreateSecureVariable("test-kv-list/prefix/zip", svmap{"zap": "zapp"}, nsOpt)
+	_ = testNomad.CreateSecureVariable("test-kv-list/prefix/wave/ocean", svmap{"sleek": "sleekp"}, nsOpt)
 
 	cases := []struct {
 		name string
@@ -162,6 +212,27 @@ func TestSVListQuery_Fetch(t *testing.T) {
 			"no_exist",
 			"test-kv-list/not/a/real/prefix/like/ever",
 			[]*NomadSVMeta{},
+		},
+		{
+			"exists_ns",
+			"test-kv-list/prefix@test",
+			[]*NomadSVMeta{
+				{Namespace: "test", Path: "test-kv-list/prefix/foo"},
+				{Namespace: "test", Path: "test-kv-list/prefix/wave/ocean"},
+				{Namespace: "test", Path: "test-kv-list/prefix/zip"},
+			},
+		},
+		{
+			"splat",
+			"test-kv-list/prefix@*",
+			[]*NomadSVMeta{
+				{Namespace: "default", Path: "test-kv-list/prefix/foo"},
+				{Namespace: "default", Path: "test-kv-list/prefix/wave/ocean"},
+				{Namespace: "default", Path: "test-kv-list/prefix/zip"},
+				{Namespace: "test", Path: "test-kv-list/prefix/foo"},
+				{Namespace: "test", Path: "test-kv-list/prefix/wave/ocean"},
+				{Namespace: "test", Path: "test-kv-list/prefix/zip"},
+			},
 		},
 	}
 
@@ -250,7 +321,7 @@ func TestSVListQuery_Fetch(t *testing.T) {
 			}
 		}()
 
-		_ = testNomad.CreateSecureVariable("test-kv-list/prefix/foo", svmap{"new-bar": "new-barp"})
+		_ = testNomad.CreateSecureVariable("test-kv-list/prefix/foo", svmap{"new-bar": "new-barp"}, nil)
 
 		select {
 		case err := <-errCh:

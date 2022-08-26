@@ -15,7 +15,7 @@ var (
 	_ Dependency = (*SVListQuery)(nil)
 
 	// SVListQueryRe is the regular expression to use.
-	SVListQueryRe = regexp.MustCompile(`\A` + prefixRe + `\z`)
+	SVListQueryRe = regexp.MustCompile(`\A` + prefixRe + svListNSRe + svRegionRe + `\z`)
 )
 
 func init() {
@@ -25,9 +25,10 @@ func init() {
 // SVListQuery queries the SV store for the metadata for keys matching the given
 // prefix.
 type SVListQuery struct {
-	stopCh chan struct{}
-
-	prefix string
+	stopCh    chan struct{}
+	namespace string
+	region    string
+	prefix    string
 }
 
 // NewSVListQuery parses a string into a dependency.
@@ -38,8 +39,10 @@ func NewSVListQuery(s string) (*SVListQuery, error) {
 
 	m := regexpMatch(SVListQueryRe, s)
 	return &SVListQuery{
-		stopCh: make(chan struct{}, 1),
-		prefix: m["prefix"],
+		stopCh:    make(chan struct{}, 1),
+		namespace: m["namespace"],
+		region:    m["region"],
+		prefix:    m["prefix"],
 	}, nil
 }
 
@@ -58,7 +61,10 @@ func (d *SVListQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 		RawQuery: opts.String(),
 	})
 
-	list, qm, err := clients.Nomad().SecureVariables().PrefixList(d.prefix, opts.ToNomadOpts())
+	nOpts := opts.ToNomadOpts()
+	nOpts.Namespace = d.namespace
+	nOpts.Region = d.region
+	list, qm, err := clients.Nomad().SecureVariables().PrefixList(d.prefix, nOpts)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, d.String())
 	}
@@ -85,8 +91,18 @@ func (d *SVListQuery) CanShare() bool {
 
 // String returns the human-friendly version of this dependency.
 func (d *SVListQuery) String() string {
+	ns := d.namespace
+	if ns == "" {
+		ns = "default"
+	}
+	region := d.region
+	if region == "" {
+		region = "global"
+	}
 	prefix := d.prefix
-	return fmt.Sprintf("nomad.secure_variables.list(%s)", prefix)
+	key := fmt.Sprintf("%s@%s.%s", prefix, ns, region)
+
+	return fmt.Sprintf("nomad.vars.list(%s)", key)
 }
 
 // Stop halts the dependency's fetch function.

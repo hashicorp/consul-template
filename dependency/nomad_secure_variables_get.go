@@ -15,7 +15,7 @@ var (
 	_ Dependency = (*SVGetQuery)(nil)
 
 	// SVGetQueryRe is the regular expression to use.
-	SVGetQueryRe = regexp.MustCompile(`\A` + svPathRe + svNamespaceRe + regionRe + `\z`)
+	SVGetQueryRe = regexp.MustCompile(`\A` + svPathRe + svNamespaceRe + svRegionRe + `\z`)
 )
 
 // SVGetQuery queries the KV store for a single key.
@@ -62,9 +62,12 @@ func (d *SVGetQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface{},
 		RawQuery: opts.String(),
 	})
 
+	nOpts := opts.ToNomadOpts()
+	nOpts.Namespace = d.namespace
+	nOpts.Region = d.region
 	// NOTE: The Peek method of the Nomad SV API will check a value, return it
 	// if it exists, but return a nil value and NO error if it is not found.
-	sv, qm, err := clients.Nomad().SecureVariables().Peek(d.path, opts.ToNomadOpts())
+	sv, qm, err := clients.Nomad().SecureVariables().Peek(d.path, nOpts)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, d.String())
 	}
@@ -96,12 +99,22 @@ func (d *SVGetQuery) CanShare() bool {
 }
 
 // String returns the human-friendly version of this dependency.
+// This value is also used to disambiguate multiple instances in the Brain
 func (d *SVGetQuery) String() string {
-	path := d.path
-	if d.blockOnNil {
-		return fmt.Sprintf("nomad.secure_variables.block(%s)", path)
+	ns := d.namespace
+	if ns == "" {
+		ns = "default"
 	}
-	return fmt.Sprintf("nomad.secure_variables.get(%s)", path)
+	region := d.region
+	if region == "" {
+		region = "global"
+	}
+	path := d.path
+	key := fmt.Sprintf("%s@%s.%s", path, ns, region)
+	if d.blockOnNil {
+		return fmt.Sprintf("nomad.var.block(%s)", key)
+	}
+	return fmt.Sprintf("nomad.var.get(%s)", key)
 }
 
 // Stop halts the dependency's fetch function.
