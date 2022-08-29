@@ -355,7 +355,7 @@ func TestNVListQuery_String(t *testing.T) {
 		{
 			"prefix",
 			"prefix",
-			"nomad.secure_variables.list(prefix)",
+			"nomad.var.list(prefix@default.global)",
 		},
 	}
 

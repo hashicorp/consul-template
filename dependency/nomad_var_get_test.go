@@ -167,7 +167,7 @@ func TestNVGetQuery_Fetch(t *testing.T) {
 		{
 			"exists_badregion",
 			"test-ns-get/path@default.bad",
-			fmt.Errorf("nomad.secure_variables.get(test-ns-get/path): Unexpected response code: 500 (No path to region)"),
+			fmt.Errorf("nomad.var.get(test-ns-get/path@default.bad): Unexpected response code: 500 (No path to region)"),
 			true,
 		},
 	}
@@ -184,11 +184,8 @@ func TestNVGetQuery_Fetch(t *testing.T) {
 				t.Fatal(err)
 			}
 			if err != nil && tc.err {
-				// handle error test-cases
-				if err.Error() == tc.exp.(error).Error() {
-					return
-				}
-				t.Fatal(err)
+				require.Equal(t, tc.exp.(error).Error(), err.Error())
+				return
 			}
 			if tc.exp != nil {
 				testNomadSVEquivalent(t, tc.exp, act)
@@ -286,7 +283,7 @@ func TestNVGetQuery_String(t *testing.T) {
 		{
 			"path",
 			"path",
-			"nomad.secure_variables.get(path)",
+			"nomad.var.get(path@default.global)",
 		},
 	}
 
