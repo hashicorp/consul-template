@@ -77,15 +77,15 @@ func nomadServiceFunc(b *Brain, used, missing *dep.Set) func(...interface{}) ([]
 	}
 }
 
-// nomadSecureVariableItemsFunc returns a given secure variable rooted at the
+// nomadVariableItemsFunc returns a given variable rooted at the
 // items map.
-func nomadSecureVariableItemsFunc(b *Brain, used, missing *dep.Set) func(string) (*dep.NomadSVItems, error) {
-	return func(s string) (*dep.NomadSVItems, error) {
+func nomadVariableItemsFunc(b *Brain, used, missing *dep.Set) func(string) (*dep.NomadVarItems, error) {
+	return func(s string) (*dep.NomadVarItems, error) {
 		if len(s) == 0 {
 			return nil, nil
 		}
 
-		d, err := dep.NewSVGetQuery(s)
+		d, err := dep.NewNVGetQuery(s)
 		if err != nil {
 			return nil, err
 		}
@@ -97,7 +97,7 @@ func nomadSecureVariableItemsFunc(b *Brain, used, missing *dep.Set) func(string)
 			if value == nil {
 				return nil, nil
 			}
-			return value.(*dep.NomadSVItems), nil
+			return value.(*dep.NomadVarItems), nil
 		}
 
 		missing.Add(d)
@@ -106,15 +106,14 @@ func nomadSecureVariableItemsFunc(b *Brain, used, missing *dep.Set) func(string)
 	}
 }
 
-// nomadSecureVariableExistsFunc returns true if a secure variable exists, false
-// otherwise.
-func nomadSecureVariableExistsFunc(b *Brain, used, missing *dep.Set) func(string) (bool, error) {
+// nomadVariableExistsFunc returns true if a variable exists, false otherwise.
+func nomadVariableExistsFunc(b *Brain, used, missing *dep.Set) func(string) (bool, error) {
 	return func(s string) (bool, error) {
 		if len(s) == 0 {
 			return false, nil
 		}
 
-		d, err := dep.NewSVGetQuery(s)
+		d, err := dep.NewNVGetQuery(s)
 		if err != nil {
 			return false, err
 		}
@@ -131,28 +130,28 @@ func nomadSecureVariableExistsFunc(b *Brain, used, missing *dep.Set) func(string
 	}
 }
 
-func nomadSafeSecureVariablesFunc(b *Brain, used, missing *dep.Set) func(...string) ([]*dep.NomadSVMeta, error) {
-	// call nomadSecureVariablesFunc but explicitly mark that empty data set
-	// returned on monitored secure variable prefix is NOT safe
-	return nomadSecureVariablesFunc(b, used, missing, false)
+func nomadSafeVariablesFunc(b *Brain, used, missing *dep.Set) func(...string) ([]*dep.NomadVarMeta, error) {
+	// call nomadVariablesFunc but explicitly mark that empty data set
+	// returned on monitored variable prefix is NOT safe
+	return nomadVariablesFunc(b, used, missing, false)
 }
 
-// nomadSecureVariablesFunc returns or accumulates nomad secure variable prefix
-// list dependencies.
-func nomadSecureVariablesFunc(b *Brain, used, missing *dep.Set, emptyIsSafe bool) func(...string) ([]*dep.NomadSVMeta, error) {
-	return func(args ...string) ([]*dep.NomadSVMeta, error) {
+// nomadVariablesFunc returns or accumulates nomad variable prefix list
+// dependencies.
+func nomadVariablesFunc(b *Brain, used, missing *dep.Set, emptyIsSafe bool) func(...string) ([]*dep.NomadVarMeta, error) {
+	return func(args ...string) ([]*dep.NomadVarMeta, error) {
 		if len(args) > 1 {
 			return nil, fmt.Errorf("nomadVarList takes either a single \"prefix\" parameter or none for all available variables; got: %v", args)
 		}
 
-		result := []*dep.NomadSVMeta{}
+		result := []*dep.NomadVarMeta{}
 		s := ""
 
 		if len(args) == 1 {
 			s = args[0]
 		}
 
-		d, err := dep.NewSVListQuery(s)
+		d, err := dep.NewNVListQuery(s)
 		if err != nil {
 			return result, err
 		}
@@ -162,11 +161,11 @@ func nomadSecureVariablesFunc(b *Brain, used, missing *dep.Set, emptyIsSafe bool
 		// Only return non-empty top-level keys
 		value, ok := b.Recall(d)
 		if ok {
-			result = append(result, value.([]*dep.NomadSVMeta)...)
+			result = append(result, value.([]*dep.NomadVarMeta)...)
 
 			if len(result) == 0 {
 				if emptyIsSafe {
-					// Operator used potentially unsafe nomadSecureVariables
+					// Operator used potentially unsafe nomadVariables
 					// function in the template instead of the safe version.
 					return result, nil
 				}
@@ -176,12 +175,12 @@ func nomadSecureVariablesFunc(b *Brain, used, missing *dep.Set, emptyIsSafe bool
 			}
 
 			// If we reach this part of the code result is completely empty as
-			// value returned no secure variables. Operator selected to use
-			// safeSecureVariables on the specific secure variable prefix so we
-			// will refuse to render template by marking d as missing
+			// value returned no variables. Operator selected to use
+			// safeVariables on the specific variable prefix so we will refuse
+			// to render template by marking d as missing
 		}
 
-		// b.Recall either returned an error or safeSecureVariables entered unsafe case
+		// b.Recall either returned an error or safeVariables entered unsafe case
 		missing.Add(d)
 
 		return result, nil

@@ -254,8 +254,8 @@ func redactinator(used *dep.Set, b *Brain, err error) error {
 					pairs = append(pairs, fmt.Sprintf("%v", v), "[redacted]")
 				}
 			}
-			if sv, ok := data.(*dep.NomadSVItems); ok {
-				for _, v := range sv.Values() {
+			if nVar, ok := data.(*dep.NomadVarItems); ok {
+				for _, v := range nVar.Values() {
 					pairs = append(pairs, fmt.Sprintf("%v", v), "[redacted]")
 				}
 			}
@@ -305,10 +305,10 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		// Nomad Functions.
 		"nomadServices":    nomadServicesFunc(i.brain, i.used, i.missing),
 		"nomadService":     nomadServiceFunc(i.brain, i.used, i.missing),
-		"nomadVarList":     nomadSecureVariablesFunc(i.brain, i.used, i.missing, true),
-		"nomadVarListSafe": nomadSafeSecureVariablesFunc(i.brain, i.used, i.missing),
-		"nomadVar":         nomadSecureVariableItemsFunc(i.brain, i.used, i.missing),
-		"nomadVarExists":   nomadSecureVariableExistsFunc(i.brain, i.used, i.missing),
+		"nomadVarList":     nomadVariablesFunc(i.brain, i.used, i.missing, true),
+		"nomadVarListSafe": nomadSafeVariablesFunc(i.brain, i.used, i.missing),
+		"nomadVar":         nomadVariableItemsFunc(i.brain, i.used, i.missing),
+		"nomadVarExists":   nomadVariableExistsFunc(i.brain, i.used, i.missing),
 
 		// Scratch
 		"scratch": func() *Scratch { return &scratch },
