@@ -1814,7 +1814,7 @@ This can also be used with a pipe function.
 ## Nomad Functions
 
 Nomad service registrations can be queried using the `nomadServices` and `nomadService` functions.
-Nomad secure variables can be queried using the `nomadVarList` and `nomadVar` functions.
+Nomad variables can be queried using the `nomadVarList` and `nomadVar` functions.
 Typically these will be used from within a Nomad [template](https://www.nomadproject.io/docs/job-specification/template#nomad-services) configuration.
 
 ### `nomadServices`
@@ -1850,17 +1850,17 @@ Typically the unique identifier would be the allocation ID in a Nomad job.
 {{- end}}
 ```
 
-## Nomad Secure Variables
+## Nomad Variables
 
-Consul-template can access Nomad secure variables and use their values as output
+Consul-template can access Nomad variables and use their values as output
 to or to control template rendering flow.
 
 ### `nomadVarList`
 
-This can be used to list the paths of Nomad secure variables available to the
+This can be used to list the paths of Nomad variables available to the
 currently running template based on Nomad ACLs. You can provide an optional
 prefix to filter the path list by as a parameter. The value returned is a slice
-of NomadSVMeta objects, which print their `Path` value when used as a string.
+of NomadVarMeta objects, which print their `Path` value when used as a string.
 
 ```golang
 {{ nomadVarList "<PREFIX>" }}
@@ -1886,12 +1886,12 @@ You can provide a prefix to filter the path list as an optional parameter to the
 ### `nomadVarListSafe`
 
 Same as [`nomadVarList`](#nomadvarlist), but refuses to render template if the
-secure variable list query returns blank/empty data.
+variable list query returns blank/empty data.
 
-#### The `NomadSVMeta` Type
+#### The `NomadVarMeta` Type
 
 ```golang
-type NomadSVMeta struct {
+type NomadVarMeta struct {
 	Namespace, Path          string
 	CreateIndex, ModifyIndex uint64
 	CreateTime, ModifyTime   nanoTime
@@ -1900,19 +1900,19 @@ type NomadSVMeta struct {
 
 The `nanoTime` type contains Unix nanoseconds since the epoch. It's String method
 prints it out as a formatted date/time value. It also has a `Time` method that
-can be used to retrieve a Go `time.Time` for further manipuation.
+can be used to retrieve a Go `time.Time` for further manipulation.
 
 ### `nomadVar`
 
-Query [Nomad][nomad] for the Items at the given secure variable path. If the path
+Query [Nomad][nomad] for the Items at the given variable path. If the path
 does not exist or the caller does not have access to it, Consul Template will
 block rendering until the path is available. To avoid blocking, wrap `nomadVar`
 calls with [`nomadVarExists`](#nomadvarexists).
 
-The `nomadVar` function returns a map of NomadSVItems structs. Each member of the
-map corresponds to a member of the secure variable's `Items` collection. Each map
-value also contains helper methods to get the secure variable metadata and a
-link to the parent secure variable.
+The `nomadVar` function returns a map of NomadVarItems structs. Each member of the
+map corresponds to a member of the variable's `Items` collection. Each map
+value also contains helper methods to get the variable metadata and a
+link to the parent variable.
 
 ```golang
 {{ nomadVar "<PATH>" }}
@@ -1920,7 +1920,7 @@ link to the parent secure variable.
 
 For example:
 
-Supposing a secure variable exists at the path `nomad/jobs/redis`, with a single
+Given a variable exists at the path `nomad/jobs/redis`, with a single
 key/value pair in its Items collection—`maxconns`:`15`
 
 ```golang
@@ -1933,48 +1933,48 @@ renders
 15
 ```
 
-#### The `NomadSVItems` Type
+#### The `NomadVarItems` Type
 
-Calls to the `nomadVar` function return a value of type `NomadSVItems`. This
-value is a map of `string` to `NomadSVItem` elements. It provides some
+Calls to the `nomadVar` function return a value of type `NomadVarItems`. This
+value is a map of `string` to `NomadVarItem` elements. It provides some
 convenience methods:
 
-* `Keys`: produces a sorted list of keys to this `NomadSVItems` map.
+* `Keys`: produces a sorted list of keys to this `NomadVarItems` map.
 
 * `Values`: produces a key-sorted list.
 
 * `Tuples`: produces a key-sorted list of K,V tuple structs.
 
-* `Metadata`: returns this collection's parent metadata as a `NomadSVMeta`
+* `Metadata`: returns this collection's parent metadata as a `NomadVarMeta`
 
-* `Parent`: returns the consul-template version (NomadSecureVariable) of a full
-    secure variable, which has the Metadata values and Items collection as peers.
+* `Parent`: returns the consul-template version (NomadVariable) of a full
+    variable, which has the Metadata values and Items collection as peers.
 
-#### The `NomadSVItem` Type
+#### The `NomadVarItem` Type
 
-Specific item of a NomadSVItems collection that are directly accessed by name or
+Specific item of a NomadVarItems collection that are directly accessed by name or
 the elements that are obtained while ranging the return of `nomadVar` are of type
-`NomadSVItem`.
+`NomadVarItem`.
 
 ```golang
-type NomadSVItem struct {
+type NomadVarItem struct {
 	Key, Value string
 }
 ```
 
-`NomadSVItem` objects also provide helper methods:
+`NomadVarItem` objects also provide helper methods:
 
-* `Metadata`: returns this item's parent's metadata as a `NomadSVMeta`
+* `Metadata`: returns this item's parent's metadata as a `NomadVarMeta`
 
-* `Parent`: returns the consul-template version (NomadSecureVariable) of the
-    secure variable that contains this item.
+* `Parent`: returns the consul-template version (NomadVariable) of the
+    Nomad variable that contains this item.
 
 ### `nomadVarExists`
 
-Query [Nomad][nomad] to see if a secure variable exists at the given path. If
+Query [Nomad][nomad] to see if a variable exists at the given path. If
 a variable exists, this will return true, false otherwise. Unlike
-[`nomadVar`](#nomadvar), this function will not block if the secure variable
-does not exist, which can be useful for controlling flow.
+[`nomadVar`](#nomadvar), this function will not block if the variable does not
+exist, which can be useful for controlling flow.
 
 ```golang
 {{ nomadVarExists "<PATH>" }}
