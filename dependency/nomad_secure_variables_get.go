@@ -12,14 +12,14 @@ import (
 
 var (
 	// Ensure implements
-	_ Dependency = (*SVGetQuery)(nil)
+	_ Dependency = (*NVGetQuery)(nil)
 
-	// SVGetQueryRe is the regular expression to use.
-	SVGetQueryRe = regexp.MustCompile(`\A` + svPathRe + svNamespaceRe + svRegionRe + `\z`)
+	// NVGetQueryRe is the regular expression to use.
+	NVGetQueryRe = regexp.MustCompile(`\A` + nvPathRe + nvNamespaceRe + nvRegionRe + `\z`)
 )
 
-// SVGetQuery queries the KV store for a single key.
-type SVGetQuery struct {
+// NVGetQuery queries the KV store for a single key.
+type NVGetQuery struct {
 	stopCh chan struct{}
 
 	path      string
@@ -29,17 +29,17 @@ type SVGetQuery struct {
 	blockOnNil bool
 }
 
-// NewSVGetQuery parses a string into a dependency.
-func NewSVGetQuery(s string) (*SVGetQuery, error) {
+// NewNVGetQuery parses a string into a dependency.
+func NewNVGetQuery(s string) (*NVGetQuery, error) {
 	s = strings.TrimSpace(s)
 	s = strings.Trim(s, "/")
 
-	if s != "" && !SVGetQueryRe.MatchString(s) {
-		return nil, fmt.Errorf("nomad.secure_variables.get: invalid format: %q", s)
+	if s != "" && !NVGetQueryRe.MatchString(s) {
+		return nil, fmt.Errorf("nomad.var.get: invalid format: %q", s)
 	}
 
-	m := regexpMatch(SVGetQueryRe, s)
-	return &SVGetQuery{
+	m := regexpMatch(NVGetQueryRe, s)
+	return &NVGetQuery{
 		stopCh:    make(chan struct{}, 1),
 		path:      m["path"],
 		namespace: m["namespace"],
@@ -48,7 +48,7 @@ func NewSVGetQuery(s string) (*SVGetQuery, error) {
 }
 
 // Fetch queries the Nomad API defined by the given client.
-func (d *SVGetQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
+func (d *NVGetQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
 	select {
 	case <-d.stopCh:
 		return nil, nil, ErrStopped
@@ -65,9 +65,10 @@ func (d *SVGetQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface{},
 	nOpts := opts.ToNomadOpts()
 	nOpts.Namespace = d.namespace
 	nOpts.Region = d.region
-	// NOTE: The Peek method of the Nomad SV API will check a value, return it
-	// if it exists, but return a nil value and NO error if it is not found.
-	sv, qm, err := clients.Nomad().SecureVariables().Peek(d.path, nOpts)
+	// NOTE: The Peek method of the Nomad Variables API will check a value,
+	// return it if it exists, but return a nil value and NO error if it is
+	// not found.
+	nVar, qm, err := clients.Nomad().Variables().Peek(d.path, nOpts)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, d.String())
 	}
@@ -78,29 +79,29 @@ func (d *SVGetQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface{},
 		BlockOnNil:  d.blockOnNil,
 	}
 
-	if sv == nil {
+	if nVar == nil {
 		log.Printf("[TRACE] %s: returned nil", d)
 		return nil, rm, nil
 	}
 
-	items := &NewNomadSecureVariable(sv).Items
-	log.Printf("[TRACE] %s: returned %q", d, sv.Path)
+	items := &NewNomadVariable(nVar).Items
+	log.Printf("[TRACE] %s: returned %q", d, nVar.Path)
 	return items, rm, nil
 }
 
 // EnableBlocking turns this into a blocking KV query.
-func (d *SVGetQuery) EnableBlocking() {
+func (d *NVGetQuery) EnableBlocking() {
 	d.blockOnNil = true
 }
 
 // CanShare returns a boolean if this dependency is shareable.
-func (d *SVGetQuery) CanShare() bool {
+func (d *NVGetQuery) CanShare() bool {
 	return true
 }
 
 // String returns the human-friendly version of this dependency.
 // This value is also used to disambiguate multiple instances in the Brain
-func (d *SVGetQuery) String() string {
+func (d *NVGetQuery) String() string {
 	ns := d.namespace
 	if ns == "" {
 		ns = "default"
@@ -118,11 +119,11 @@ func (d *SVGetQuery) String() string {
 }
 
 // Stop halts the dependency's fetch function.
-func (d *SVGetQuery) Stop() {
+func (d *NVGetQuery) Stop() {
 	close(d.stopCh)
 }
 
 // Type returns the type of this dependency.
-func (d *SVGetQuery) Type() Type {
+func (d *NVGetQuery) Type() Type {
 	return TypeNomad
 }

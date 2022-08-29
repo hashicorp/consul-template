@@ -12,33 +12,33 @@ import (
 
 var (
 	// Ensure implements
-	_ Dependency = (*SVListQuery)(nil)
+	_ Dependency = (*NVListQuery)(nil)
 
-	// SVListQueryRe is the regular expression to use.
-	SVListQueryRe = regexp.MustCompile(`\A` + prefixRe + svListNSRe + svRegionRe + `\z`)
+	// NVListQueryRe is the regular expression to use.
+	NVListQueryRe = regexp.MustCompile(`\A` + prefixRe + nvListNSRe + nvRegionRe + `\z`)
 )
 
 func init() {
-	gob.Register([]*NomadSVMeta{})
+	gob.Register([]*NomadVarMeta{})
 }
 
-// SVListQuery queries the SV store for the metadata for keys matching the given
+// NVListQuery queries the SV store for the metadata for keys matching the given
 // prefix.
-type SVListQuery struct {
+type NVListQuery struct {
 	stopCh    chan struct{}
 	namespace string
 	region    string
 	prefix    string
 }
 
-// NewSVListQuery parses a string into a dependency.
-func NewSVListQuery(s string) (*SVListQuery, error) {
-	if s != "" && !SVListQueryRe.MatchString(s) {
+// NewNVListQuery parses a string into a dependency.
+func NewNVListQuery(s string) (*NVListQuery, error) {
+	if s != "" && !NVListQueryRe.MatchString(s) {
 		return nil, fmt.Errorf("nomad.secure_variables.list: invalid format: %q", s)
 	}
 
-	m := regexpMatch(SVListQueryRe, s)
-	return &SVListQuery{
+	m := regexpMatch(NVListQueryRe, s)
+	return &NVListQuery{
 		stopCh:    make(chan struct{}, 1),
 		namespace: m["namespace"],
 		region:    m["region"],
@@ -47,7 +47,7 @@ func NewSVListQuery(s string) (*SVListQuery, error) {
 }
 
 // Fetch queries the Nomad API defined by the given client.
-func (d *SVListQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
+func (d *NVListQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
 	select {
 	case <-d.stopCh:
 		return nil, nil, ErrStopped
@@ -64,16 +64,16 @@ func (d *SVListQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 	nOpts := opts.ToNomadOpts()
 	nOpts.Namespace = d.namespace
 	nOpts.Region = d.region
-	list, qm, err := clients.Nomad().SecureVariables().PrefixList(d.prefix, nOpts)
+	list, qm, err := clients.Nomad().Variables().PrefixList(d.prefix, nOpts)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, d.String())
 	}
 
 	log.Printf("[TRACE] %s: returned %d paths", d, len(list))
 
-	vars := make([]*NomadSVMeta, 0, len(list))
-	for _, sv := range list {
-		vars = append(vars, NewNomadSVMeta(sv))
+	vars := make([]*NomadVarMeta, 0, len(list))
+	for _, nVar := range list {
+		vars = append(vars, NewNomadVarMeta(nVar))
 	}
 
 	rm := &ResponseMetadata{
@@ -85,12 +85,12 @@ func (d *SVListQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 }
 
 // CanShare returns a boolean if this dependency is shareable.
-func (d *SVListQuery) CanShare() bool {
+func (d *NVListQuery) CanShare() bool {
 	return true
 }
 
 // String returns the human-friendly version of this dependency.
-func (d *SVListQuery) String() string {
+func (d *NVListQuery) String() string {
 	ns := d.namespace
 	if ns == "" {
 		ns = "default"
@@ -102,15 +102,15 @@ func (d *SVListQuery) String() string {
 	prefix := d.prefix
 	key := fmt.Sprintf("%s@%s.%s", prefix, ns, region)
 
-	return fmt.Sprintf("nomad.vars.list(%s)", key)
+	return fmt.Sprintf("nomad.var.list(%s)", key)
 }
 
 // Stop halts the dependency's fetch function.
-func (d *SVListQuery) Stop() {
+func (d *NVListQuery) Stop() {
 	close(d.stopCh)
 }
 
 // Type returns the type of this dependency.
-func (d *SVListQuery) Type() Type {
+func (d *NVListQuery) Type() Type {
 	return TypeNomad
 }

@@ -10,18 +10,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewSVGetQuery(t *testing.T) {
+func TestNewNVGetQuery(t *testing.T) {
 
 	cases := []struct {
 		name string
 		i    string
-		exp  *SVGetQuery
+		exp  *NVGetQuery
 		err  bool
 	}{
 		{
 			"empty",
 			"",
-			&SVGetQuery{},
+			&NVGetQuery{},
 			false,
 		},
 
@@ -34,7 +34,7 @@ func TestNewSVGetQuery(t *testing.T) {
 		{
 			"path",
 			"path",
-			&SVGetQuery{
+			&NVGetQuery{
 				path: "path",
 			},
 			false,
@@ -42,7 +42,7 @@ func TestNewSVGetQuery(t *testing.T) {
 		{
 			"dots",
 			"path.with.dots",
-			&SVGetQuery{
+			&NVGetQuery{
 				path: "path.with.dots",
 			},
 			false,
@@ -50,7 +50,7 @@ func TestNewSVGetQuery(t *testing.T) {
 		{
 			"slashes",
 			"path/with/slashes",
-			&SVGetQuery{
+			&NVGetQuery{
 				path: "path/with/slashes",
 			},
 			false,
@@ -58,7 +58,7 @@ func TestNewSVGetQuery(t *testing.T) {
 		{
 			"dashes",
 			"path-with-dashes",
-			&SVGetQuery{
+			&NVGetQuery{
 				path: "path-with-dashes",
 			},
 			false,
@@ -66,7 +66,7 @@ func TestNewSVGetQuery(t *testing.T) {
 		{
 			"leading_slash",
 			"/leading/slash",
-			&SVGetQuery{
+			&NVGetQuery{
 				path: "leading/slash",
 			},
 			false,
@@ -74,7 +74,7 @@ func TestNewSVGetQuery(t *testing.T) {
 		{
 			"trailing_slash",
 			"trailing/slash/",
-			&SVGetQuery{
+			&NVGetQuery{
 				path: "trailing/slash",
 			},
 			false,
@@ -82,7 +82,7 @@ func TestNewSVGetQuery(t *testing.T) {
 		{
 			"underscores",
 			"path_with_underscores",
-			&SVGetQuery{
+			&NVGetQuery{
 				path: "path_with_underscores",
 			},
 			false,
@@ -90,7 +90,7 @@ func TestNewSVGetQuery(t *testing.T) {
 		{
 			"special_characters",
 			"config/facet:größe-lf-si",
-			&SVGetQuery{
+			&NVGetQuery{
 				path: "config/facet:größe-lf-si",
 			},
 			false,
@@ -98,7 +98,7 @@ func TestNewSVGetQuery(t *testing.T) {
 		{
 			"splat",
 			"config/*/timeouts/",
-			&SVGetQuery{
+			&NVGetQuery{
 				path: "config/*/timeouts",
 			},
 			false,
@@ -107,7 +107,7 @@ func TestNewSVGetQuery(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-			act, err := NewSVGetQuery(tc.i)
+			act, err := NewNVGetQuery(tc.i)
 			if (err != nil) != tc.err {
 				t.Fatal(err)
 			}
@@ -122,12 +122,12 @@ func TestNewSVGetQuery(t *testing.T) {
 	fmt.Println("done")
 }
 
-func TestSVGetQuery_Fetch(t *testing.T) {
+func TestNVGetQuery_Fetch(t *testing.T) {
 
-	type svmap map[string]string
-	_ = testNomad.CreateSecureVariable("test-kv-get/path", svmap{"bar": "barp"}, nil)
+	type nvmap map[string]string
+	_ = testNomad.CreateVariable("test-kv-get/path", nvmap{"bar": "barp"}, nil)
 	_ = testNomad.CreateNamespace("test", nil)
-	_ = testNomad.CreateSecureVariable("test-ns-get/path", svmap{"car": "carp"}, &nomadapi.WriteOptions{Namespace: "test"})
+	_ = testNomad.CreateVariable("test-ns-get/path", nvmap{"car": "carp"}, &nomadapi.WriteOptions{Namespace: "test"})
 	cases := []struct {
 		name string
 		i    string
@@ -137,10 +137,10 @@ func TestSVGetQuery_Fetch(t *testing.T) {
 		{
 			"exists",
 			"test-kv-get/path",
-			&NewNomadSecureVariable(&nomadapi.SecureVariable{
+			&NewNomadVariable(&nomadapi.Variable{
 				Namespace: "default",
 				Path:      "test-kv-get/path",
-				Items: nomadapi.SecureVariableItems{
+				Items: nomadapi.VariableItems{
 					"bar": "barp",
 				},
 			}).Items,
@@ -155,10 +155,10 @@ func TestSVGetQuery_Fetch(t *testing.T) {
 		{
 			"exists_ns",
 			"test-ns-get/path@test",
-			&NewNomadSecureVariable(&nomadapi.SecureVariable{
+			&NewNomadVariable(&nomadapi.Variable{
 				Namespace: "test",
 				Path:      "test-ns-get/path",
-				Items: nomadapi.SecureVariableItems{
+				Items: nomadapi.VariableItems{
 					"car": "carp",
 				},
 			}).Items,
@@ -174,7 +174,7 @@ func TestSVGetQuery_Fetch(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-			d, err := NewSVGetQuery(tc.i)
+			d, err := NewNVGetQuery(tc.i)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -199,7 +199,7 @@ func TestSVGetQuery_Fetch(t *testing.T) {
 	}
 
 	t.Run("stops", func(t *testing.T) {
-		d, err := NewSVGetQuery("test-kv-get/path")
+		d, err := NewNVGetQuery("test-kv-get/path")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -236,7 +236,7 @@ func TestSVGetQuery_Fetch(t *testing.T) {
 	})
 
 	t.Run("fires_changes", func(t *testing.T) {
-		d, err := NewSVGetQuery("test-kv-get/path")
+		d, err := NewNVGetQuery("test-kv-get/path")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -260,23 +260,23 @@ func TestSVGetQuery_Fetch(t *testing.T) {
 			}
 		}()
 
-		_ = testNomad.CreateSecureVariable("test-kv-get/path", svmap{"bar": "barp", "car": "carp"}, nil)
+		_ = testNomad.CreateVariable("test-kv-get/path", nvmap{"bar": "barp", "car": "carp"}, nil)
 
 		select {
 		case err := <-errCh:
 			t.Fatal(err)
 		case data := <-dataCh:
-			exp := &(NewNomadSecureVariable(&nomadapi.SecureVariable{
+			exp := &(NewNomadVariable(&nomadapi.Variable{
 				Namespace: "default",
 				Path:      "test-kv-get/path",
-				Items:     nomadapi.SecureVariableItems{"bar": "barp", "car": "carp"},
+				Items:     nomadapi.VariableItems{"bar": "barp", "car": "carp"},
 			}).Items)
 			testNomadSVEquivalent(t, exp, data)
 		}
 	})
 }
 
-func TestSVGetQuery_String(t *testing.T) {
+func TestNVGetQuery_String(t *testing.T) {
 
 	cases := []struct {
 		name string
@@ -292,7 +292,7 @@ func TestSVGetQuery_String(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-			d, err := NewSVGetQuery(tc.i)
+			d, err := NewNVGetQuery(tc.i)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -308,10 +308,10 @@ func testNomadSVEquivalent(t *testing.T, expIf, actIf interface{}) {
 	if expIf == nil || actIf == nil {
 		t.Fatalf("Mismatched nil and value.\na: %v\nb:%v", expIf, actIf)
 	}
-	exp, ok := expIf.(*NomadSVItems)
-	require.True(t, ok, "exp is not *NomadSVItems, got %T", expIf)
-	act, ok := actIf.(*NomadSVItems)
-	require.True(t, ok, "act is not *NomadSVItems, got %T", actIf)
+	exp, ok := expIf.(*NomadVarItems)
+	require.True(t, ok, "exp is not *NomadVarItems, got %T", expIf)
+	act, ok := actIf.(*NomadVarItems)
+	require.True(t, ok, "act is not *NomadVarItems, got %T", actIf)
 
 	expMeta := exp.Metadata()
 	actMeta := act.Metadata()

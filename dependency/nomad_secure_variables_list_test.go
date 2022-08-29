@@ -9,24 +9,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewSVListQuery(t *testing.T) {
+func TestNewNVListQuery(t *testing.T) {
 
 	cases := []struct {
 		name string
 		i    string
-		exp  *SVListQuery
+		exp  *NVListQuery
 		err  bool
 	}{
 		{
 			"empty",
 			"",
-			&SVListQuery{},
+			&NVListQuery{},
 			false,
 		},
 		{
 			"prefix",
 			"prefix",
-			&SVListQuery{
+			&NVListQuery{
 				prefix: "prefix",
 			},
 			false,
@@ -34,7 +34,7 @@ func TestNewSVListQuery(t *testing.T) {
 		{
 			"dots",
 			"prefix.with.dots",
-			&SVListQuery{
+			&NVListQuery{
 				prefix: "prefix.with.dots",
 			},
 			false,
@@ -42,7 +42,7 @@ func TestNewSVListQuery(t *testing.T) {
 		{
 			"slashes",
 			"prefix/with/slashes",
-			&SVListQuery{
+			&NVListQuery{
 				prefix: "prefix/with/slashes",
 			},
 			false,
@@ -50,7 +50,7 @@ func TestNewSVListQuery(t *testing.T) {
 		{
 			"dashes",
 			"prefix-with-dashes",
-			&SVListQuery{
+			&NVListQuery{
 				prefix: "prefix-with-dashes",
 			},
 			false,
@@ -58,7 +58,7 @@ func TestNewSVListQuery(t *testing.T) {
 		{
 			"leading_slash",
 			"/leading/slash",
-			&SVListQuery{
+			&NVListQuery{
 				prefix: "leading/slash",
 			},
 			false,
@@ -66,7 +66,7 @@ func TestNewSVListQuery(t *testing.T) {
 		{
 			"trailing_slash",
 			"trailing/slash/",
-			&SVListQuery{
+			&NVListQuery{
 				prefix: "trailing/slash/",
 			},
 			false,
@@ -74,7 +74,7 @@ func TestNewSVListQuery(t *testing.T) {
 		{
 			"underscores",
 			"prefix_with_underscores",
-			&SVListQuery{
+			&NVListQuery{
 				prefix: "prefix_with_underscores",
 			},
 			false,
@@ -82,7 +82,7 @@ func TestNewSVListQuery(t *testing.T) {
 		{
 			"special_characters",
 			"config/facet:größe-lf-si",
-			&SVListQuery{
+			&NVListQuery{
 				prefix: "config/facet:größe-lf-si",
 			},
 			false,
@@ -90,7 +90,7 @@ func TestNewSVListQuery(t *testing.T) {
 		{
 			"splat",
 			"config/*/timeouts/",
-			&SVListQuery{
+			&NVListQuery{
 				prefix: "config/*/timeouts/",
 			},
 			false,
@@ -98,7 +98,7 @@ func TestNewSVListQuery(t *testing.T) {
 		{
 			"slash",
 			"/",
-			&SVListQuery{
+			&NVListQuery{
 				prefix: "/",
 			},
 			false,
@@ -106,7 +106,7 @@ func TestNewSVListQuery(t *testing.T) {
 		{
 			"slash-slash",
 			"//",
-			&SVListQuery{
+			&NVListQuery{
 				prefix: "/",
 			},
 			false,
@@ -114,7 +114,7 @@ func TestNewSVListQuery(t *testing.T) {
 		{
 			"path-NS",
 			"a/b@test",
-			&SVListQuery{
+			&NVListQuery{
 				prefix:    "a/b",
 				namespace: "test",
 			},
@@ -123,7 +123,7 @@ func TestNewSVListQuery(t *testing.T) {
 		{
 			"path-splatNS",
 			"a/b@*",
-			&SVListQuery{
+			&NVListQuery{
 				prefix:    "a/b",
 				namespace: "*",
 			},
@@ -132,7 +132,7 @@ func TestNewSVListQuery(t *testing.T) {
 		{
 			"path-NS-region",
 			"a/b@test.dc2",
-			&SVListQuery{
+			&NVListQuery{
 				prefix:    "a/b",
 				namespace: "test",
 				region:    "dc2",
@@ -142,7 +142,7 @@ func TestNewSVListQuery(t *testing.T) {
 		{
 			"path-splatNS-region",
 			"a/b@*.dc2",
-			&SVListQuery{
+			&NVListQuery{
 				prefix:    "a/b",
 				namespace: "*",
 				region:    "dc2",
@@ -159,7 +159,7 @@ func TestNewSVListQuery(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-			act, err := NewSVListQuery(tc.i)
+			act, err := NewNVListQuery(tc.i)
 			if (err != nil) != tc.err {
 				t.Fatal(err)
 			}
@@ -173,27 +173,27 @@ func TestNewSVListQuery(t *testing.T) {
 	}
 }
 
-func TestSVListQuery_Fetch(t *testing.T) {
+func TestNVListQuery_Fetch(t *testing.T) {
 
-	type svmap map[string]string
-	_ = testNomad.CreateSecureVariable("test-kv-list/prefix/foo", svmap{"bar": "barp"}, nil)
-	_ = testNomad.CreateSecureVariable("test-kv-list/prefix/zip", svmap{"zap": "zapp"}, nil)
-	_ = testNomad.CreateSecureVariable("test-kv-list/prefix/wave/ocean", svmap{"sleek": "sleekp"}, nil)
+	type nvmap map[string]string
+	_ = testNomad.CreateVariable("test-kv-list/prefix/foo", nvmap{"bar": "barp"}, nil)
+	_ = testNomad.CreateVariable("test-kv-list/prefix/zip", nvmap{"zap": "zapp"}, nil)
+	_ = testNomad.CreateVariable("test-kv-list/prefix/wave/ocean", nvmap{"sleek": "sleekp"}, nil)
 
 	nsOpt := &nomadapi.WriteOptions{Namespace: "test"}
-	_ = testNomad.CreateSecureVariable("test-kv-list/prefix/foo", svmap{"bar": "barp"}, nsOpt)
-	_ = testNomad.CreateSecureVariable("test-kv-list/prefix/zip", svmap{"zap": "zapp"}, nsOpt)
-	_ = testNomad.CreateSecureVariable("test-kv-list/prefix/wave/ocean", svmap{"sleek": "sleekp"}, nsOpt)
+	_ = testNomad.CreateVariable("test-kv-list/prefix/foo", nvmap{"bar": "barp"}, nsOpt)
+	_ = testNomad.CreateVariable("test-kv-list/prefix/zip", nvmap{"zap": "zapp"}, nsOpt)
+	_ = testNomad.CreateVariable("test-kv-list/prefix/wave/ocean", nvmap{"sleek": "sleekp"}, nsOpt)
 
 	cases := []struct {
 		name string
 		i    string
-		exp  []*NomadSVMeta
+		exp  []*NomadVarMeta
 	}{
 		{
 			"exists",
 			"test-kv-list/prefix",
-			[]*NomadSVMeta{
+			[]*NomadVarMeta{
 				{Namespace: "default", Path: "test-kv-list/prefix/foo"},
 				{Namespace: "default", Path: "test-kv-list/prefix/wave/ocean"},
 				{Namespace: "default", Path: "test-kv-list/prefix/zip"},
@@ -202,7 +202,7 @@ func TestSVListQuery_Fetch(t *testing.T) {
 		{
 			"trailing",
 			"test-kv-list/prefix/",
-			[]*NomadSVMeta{
+			[]*NomadVarMeta{
 				{Namespace: "default", Path: "test-kv-list/prefix/foo"},
 				{Namespace: "default", Path: "test-kv-list/prefix/wave/ocean"},
 				{Namespace: "default", Path: "test-kv-list/prefix/zip"},
@@ -211,12 +211,12 @@ func TestSVListQuery_Fetch(t *testing.T) {
 		{
 			"no_exist",
 			"test-kv-list/not/a/real/prefix/like/ever",
-			[]*NomadSVMeta{},
+			[]*NomadVarMeta{},
 		},
 		{
 			"exists_ns",
 			"test-kv-list/prefix@test",
-			[]*NomadSVMeta{
+			[]*NomadVarMeta{
 				{Namespace: "test", Path: "test-kv-list/prefix/foo"},
 				{Namespace: "test", Path: "test-kv-list/prefix/wave/ocean"},
 				{Namespace: "test", Path: "test-kv-list/prefix/zip"},
@@ -225,7 +225,7 @@ func TestSVListQuery_Fetch(t *testing.T) {
 		{
 			"splat",
 			"test-kv-list/prefix@*",
-			[]*NomadSVMeta{
+			[]*NomadVarMeta{
 				{Namespace: "default", Path: "test-kv-list/prefix/foo"},
 				{Namespace: "default", Path: "test-kv-list/prefix/wave/ocean"},
 				{Namespace: "default", Path: "test-kv-list/prefix/zip"},
@@ -238,7 +238,7 @@ func TestSVListQuery_Fetch(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-			d, err := NewSVListQuery(tc.i)
+			d, err := NewNVListQuery(tc.i)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -248,7 +248,7 @@ func TestSVListQuery_Fetch(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			for _, p := range act.([]*NomadSVMeta) {
+			for _, p := range act.([]*NomadVarMeta) {
 				p.CreateIndex = 0
 				p.CreateTime = 0
 				p.ModifyIndex = 0
@@ -260,7 +260,7 @@ func TestSVListQuery_Fetch(t *testing.T) {
 	}
 
 	t.Run("stops", func(t *testing.T) {
-		d, err := NewSVListQuery("test-kv-list/prefix")
+		d, err := NewNVListQuery("test-kv-list/prefix")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -297,7 +297,7 @@ func TestSVListQuery_Fetch(t *testing.T) {
 	})
 
 	t.Run("fires_changes", func(t *testing.T) {
-		d, err := NewSVListQuery("test-kv-list/prefix/")
+		d, err := NewNVListQuery("test-kv-list/prefix/")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -321,31 +321,31 @@ func TestSVListQuery_Fetch(t *testing.T) {
 			}
 		}()
 
-		_ = testNomad.CreateSecureVariable("test-kv-list/prefix/foo", svmap{"new-bar": "new-barp"}, nil)
+		_ = testNomad.CreateVariable("test-kv-list/prefix/foo", nvmap{"new-bar": "new-barp"}, nil)
 
 		select {
 		case err := <-errCh:
 			t.Fatal(err)
 		case data := <-dataCh:
-			svs := data.([]*NomadSVMeta)
-			if len(svs) == 0 {
+			nVars := data.([]*NomadVarMeta)
+			if len(nVars) == 0 {
 				t.Fatal("bad length")
 			}
 
 			// Zero out the dynamic elements
-			act := svs[0]
+			act := nVars[0]
 			act.CreateIndex = 0
 			act.CreateTime = 0
 			act.ModifyIndex = 0
 			act.ModifyTime = 0
 
-			exp := &NomadSVMeta{Namespace: "default", Path: "test-kv-list/prefix/foo"}
+			exp := &NomadVarMeta{Namespace: "default", Path: "test-kv-list/prefix/foo"}
 			assert.Equal(t, exp, act)
 		}
 	})
 }
 
-func TestSVListQuery_String(t *testing.T) {
+func TestNVListQuery_String(t *testing.T) {
 
 	cases := []struct {
 		name string
@@ -361,7 +361,7 @@ func TestSVListQuery_String(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-			d, err := NewSVListQuery(tc.i)
+			d, err := NewNVListQuery(tc.i)
 			if err != nil {
 				t.Fatal(err)
 			}
