@@ -3,6 +3,7 @@ package dependency
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -347,14 +348,16 @@ func (c *ClientSet) CreateVaultClient(i *CreateVaultClientInput) error {
 		}
 	}
 
-	// Set the token if given
-	if i.Token != "" {
-		client.SetToken(i.Token)
+	token, _ := unwrapTTL(i.Token) // error expected, returned for testing
+
+	// Needs to be above Unwrap call below.
+	if token != "" {
+		client.SetToken(token)
 	}
 
 	// Check if we are unwrapping
 	if i.UnwrapToken {
-		secret, err := client.Logical().Unwrap(i.Token)
+		secret, err := client.Logical().Unwrap(token)
 		if err != nil {
 			return fmt.Errorf("client set: vault unwrap: %s", err)
 		}
@@ -383,6 +386,20 @@ func (c *ClientSet) CreateVaultClient(i *CreateVaultClientInput) error {
 	c.Unlock()
 
 	return nil
+}
+
+// If vault agent specifies wrap_ttl for the token it is returned as
+// a SecretWrapInfo struct marshalled into JSON instead of the normal raw
+// token. This checks for that and pulls out the token if it is the case.
+//
+// An error is expected most of the time (when it is a normal token) but
+// we return it to help testing/debugging.
+func unwrapTTL(token string) (string, error) {
+	var wrapinfo vaultapi.SecretWrapInfo
+	if err := json.Unmarshal([]byte(token), &wrapinfo); err != nil {
+		return token, err
+	}
+	return wrapinfo.Token, nil
 }
 
 // CreateNomadClient creates a new Nomad API client from the given input.

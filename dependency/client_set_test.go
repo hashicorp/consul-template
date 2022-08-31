@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/vault/api"
+	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -42,6 +43,27 @@ func TestClientSet_unwrapVaultToken(t *testing.T) {
 
 	if _, err := vault.Auth().Token().LookupSelf(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// When vault-agent uses the wrap_ttl option it writes a json blob instead of
+// a raw token. This verifies it will extract the token from that when needed.
+func TestVaultAgentWrapTTL(t *testing.T) {
+	wrapinfo := vaultapi.SecretWrapInfo{
+		Token: "btoken",
+	}
+	b, _ := json.Marshal(wrapinfo)
+	testcases := []struct{ in, out string }{
+		{in: "", out: ""},
+		{in: "atoken", out: "atoken"},
+		{in: string(b), out: "btoken"},
+	}
+	for _, tc := range testcases {
+		token, err := unwrapTTL(tc.in)
+		if token != tc.out {
+			t.Errorf("unwrapTTL, wanted: '%v', got: '%v', err: '%v'",
+				tc.out, token, err)
+		}
 	}
 }
 
