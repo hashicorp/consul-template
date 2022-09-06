@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -50,13 +49,14 @@ func (d *VaultAgentTokenQuery) Fetch(clients *ClientSet, opts *QueryOptions) (in
 
 		log.Printf("[TRACE] %s: reported change", d)
 
-		token, err := ioutil.ReadFile(d.path)
+		raw_token, err := ioutil.ReadFile(d.path)
 		if err != nil {
 			return "", nil, errors.Wrap(err, d.String())
 		}
+		token, _ := unwrapTTL(string(raw_token))
 
 		d.stat = r.stat
-		clients.Vault().SetToken(strings.TrimSpace(string(token)))
+		clients.Vault().SetToken(token)
 	}
 
 	return respWithMetadata("")

@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -397,7 +398,7 @@ func (c *ClientSet) CreateVaultClient(i *CreateVaultClientInput) error {
 func unwrapTTL(token string) (string, error) {
 	var wrapinfo vaultapi.SecretWrapInfo
 	if err := json.Unmarshal([]byte(token), &wrapinfo); err != nil {
-		return token, err
+		return strings.TrimSpace(token), err
 	}
 	return wrapinfo.Token, nil
 }
