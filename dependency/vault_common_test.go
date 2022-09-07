@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/vault/api"
+	vaultapi "github.com/hashicorp/vault/api"
 )
 
 func init() {
@@ -148,4 +149,37 @@ func setupVaultPKI(clients *ClientSet) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+// When vault-agent uses the wrap_ttl option it writes a json blob instead of
+// a raw token. This verifies it will extract the token from that when needed.
+func TestVaultSetToken(t *testing.T) {
+	wrapinfo := vaultapi.SecretWrapInfo{
+		Token: "btoken",
+	}
+	b, _ := json.Marshal(wrapinfo)
+	testcases := []struct{ in, out string }{
+		{in: "", out: ""},
+		{in: "atoken", out: "atoken"},
+		{in: string(b), out: "btoken"},
+	}
+	for _, tc := range testcases {
+		dummy := &setTokenFaker{}
+		VaultSetToken(dummy, tc.in, false)
+		if dummy.Token != tc.out {
+			t.Errorf("unwrapTTL, wanted: '%v', got: '%v'", tc.out, dummy.Token)
+		}
+	}
+}
+
+type setTokenFaker struct {
+	Token string
+}
+
+func (t *setTokenFaker) SetToken(token string) {
+	t.Token = token
+}
+
+func (t *setTokenFaker) Logical() *api.Logical {
+	return testClients.Vault().Logical()
 }

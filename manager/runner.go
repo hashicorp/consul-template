@@ -1388,6 +1388,7 @@ func newWatcher(c *config.Config, clients *dep.ClientSet, once bool) (*watch.Wat
 		BlockQueryWaitTime:  config.TimeDurationVal(c.BlockQueryWaitTime),
 		RenewVault:          clients.Vault().Token() != "" && config.BoolVal(c.Vault.RenewToken),
 		VaultAgentTokenFile: config.StringVal(c.Vault.VaultAgentTokenFile),
+		VaultTokenUnwrap:    config.BoolVal(c.Vault.UnwrapToken),
 		RetryFuncConsul:     watch.RetryFunc(c.Consul.Retry.RetryFunc()),
 		// TODO: Add a sane default retry - right now this only affects "local"
 		// dependencies like reading a file from disk.

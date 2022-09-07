@@ -70,6 +70,9 @@ type NewWatcherInput struct {
 	// VaultAgentTokenFile is the path to Vault Agent token file
 	VaultAgentTokenFile string
 
+	// Does the Vault token need to be unwrapped?
+	VaultTokenUnwrap bool
+
 	// RetryFuncs specify the different ways to retry based on the upstream.
 	RetryFuncConsul  RetryFunc
 	RetryFuncDefault RetryFunc
@@ -105,7 +108,7 @@ func NewWatcher(i *NewWatcherInput) (*Watcher, error) {
 	}
 
 	if len(i.VaultAgentTokenFile) > 0 {
-		vag, err := dep.NewVaultAgentTokenQuery(i.VaultAgentTokenFile)
+		vag, err := dep.NewVaultAgentTokenQuery(i.VaultAgentTokenFile, i.VaultTokenUnwrap)
 		if err != nil {
 			return nil, errors.Wrap(err, "watcher")
 		}

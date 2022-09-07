@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"strings"
 	"sync"
 	"time"
 
@@ -369,4 +370,41 @@ func SetVaultLeaseRenewalThreshold(f float64) {
 		VaultLeaseRenewalThreshold = f
 	}
 	onceVaultLeaseRenewalThreshold.Do(set)
+}
+
+type setTokener interface {
+	SetToken(string)
+	Logical() *api.Logical
+}
+
+func VaultSetToken(client setTokener, token string, unwrap bool) error {
+	// If vault agent specifies wrap_ttl for the token it is returned as
+	// a SecretWrapInfo struct marshalled into JSON instead of the normal raw
+	// token. This checks for that and pulls out the token if it is the case.
+	var wrapinfo api.SecretWrapInfo
+	if err := json.Unmarshal([]byte(token), &wrapinfo); err == nil {
+		token = wrapinfo.Token
+	}
+	token = strings.TrimSpace(token)
+
+	if token != "" {
+		client.SetToken(token)
+	}
+
+	if unwrap {
+		secret, err := client.Logical().Unwrap(token)
+		switch {
+		case err != nil:
+			return fmt.Errorf("client set: vault unwrap: %s", err)
+		case secret == nil:
+			return fmt.Errorf("client set: vault unwrap: no secret")
+		case secret.Auth == nil:
+			return fmt.Errorf("client set: vault unwrap: no secret auth")
+		case secret.Auth.ClientToken == "":
+			return fmt.Errorf("client set: vault unwrap: no token returned")
+		}
+		client.SetToken(secret.Auth.ClientToken)
+	}
+
+	return nil
 }

@@ -23,13 +23,15 @@ type VaultAgentTokenQuery struct {
 	stopCh chan struct{}
 	path   string
 	stat   os.FileInfo
+	unwrap bool
 }
 
 // NewVaultAgentTokenQuery creates a new dependency.
-func NewVaultAgentTokenQuery(path string) (*VaultAgentTokenQuery, error) {
+func NewVaultAgentTokenQuery(path string, unwrap bool) (*VaultAgentTokenQuery, error) {
 	return &VaultAgentTokenQuery{
 		stopCh: make(chan struct{}, 1),
 		path:   path,
+		unwrap: unwrap,
 	}, nil
 }
 
@@ -49,14 +51,15 @@ func (d *VaultAgentTokenQuery) Fetch(clients *ClientSet, opts *QueryOptions) (in
 
 		log.Printf("[TRACE] %s: reported change", d)
 
-		raw_token, err := ioutil.ReadFile(d.path)
+		token, err := ioutil.ReadFile(d.path)
 		if err != nil {
 			return "", nil, errors.Wrap(err, d.String())
 		}
-		token, _ := unwrapTTL(string(raw_token))
 
 		d.stat = r.stat
-		clients.Vault().SetToken(token)
+		if err := VaultSetToken(clients.Vault(), string(token), d.unwrap); err != nil {
+			return "", nil, errors.Wrap(err, d.String())
+		}
 	}
 
 	return respWithMetadata("")
