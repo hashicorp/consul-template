@@ -57,8 +57,9 @@ func (d *VaultAgentTokenQuery) Fetch(clients *ClientSet, opts *QueryOptions) (in
 		}
 
 		d.stat = r.stat
-		if err := VaultSetToken(clients.Vault(), string(token), d.unwrap); err != nil {
-			return "", nil, errors.Wrap(err, d.String())
+		err = VaultSetToken(clients.Vault(), string(token), d.unwrap)
+		if err != nil {
+			log.Printf("[INFO] token not unwrapped")
 		}
 	}
 
