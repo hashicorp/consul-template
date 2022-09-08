@@ -395,13 +395,13 @@ func VaultSetToken(client setTokener, token string, unwrap bool) error {
 		secret, err := client.Logical().Unwrap(token)
 		switch {
 		case err != nil:
-			return fmt.Errorf("client set: vault unwrap: %s", err)
+			return fmt.Errorf("vault token not wrapped")
 		case secret == nil:
-			return fmt.Errorf("client set: vault unwrap: no secret")
+			return fmt.Errorf("vault unwrap: no secret")
 		case secret.Auth == nil:
-			return fmt.Errorf("client set: vault unwrap: no secret auth")
+			return fmt.Errorf("vault unwrap: no secret auth")
 		case secret.Auth.ClientToken == "":
-			return fmt.Errorf("client set: vault unwrap: no token returned")
+			return fmt.Errorf("vault unwrap: no token returned")
 		}
 		client.SetToken(secret.Auth.ClientToken)
 	}

@@ -348,7 +348,7 @@ func (c *ClientSet) CreateVaultClient(i *CreateVaultClientInput) error {
 	}
 
 	if err := VaultSetToken(client, i.Token, i.UnwrapToken); err != nil {
-		return err
+		return fmt.Errorf("client set: %w", err)
 	}
 
 	// Save the data on ourselves
