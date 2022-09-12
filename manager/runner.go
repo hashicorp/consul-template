@@ -172,7 +172,7 @@ type RenderEvent struct {
 
 // NewRunner accepts a slice of TemplateConfigs and returns a pointer to the new
 // Runner and any error that occurred during creation.
-func NewRunner(config *config.Config, dry bool) (*Runner, error) {
+func NewRunner(clients *dep.ClientSet, config *config.Config, dry bool) (*Runner, error) {
 	log.Printf("[INFO] (runner) creating new runner (dry: %v, once: %v)",
 		dry, config.Once)
 
@@ -181,7 +181,7 @@ func NewRunner(config *config.Config, dry bool) (*Runner, error) {
 		dry:    dry,
 	}
 
-	if err := runner.init(); err != nil {
+	if err := runner.init(clients); err != nil {
 		return nil, err
 	}
 
@@ -885,7 +885,7 @@ func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*
 
 // init() creates the Runner's underlying data structures and returns an error
 // if any problems occur.
-func (r *Runner) init() error {
+func (r *Runner) init(clients *dep.ClientSet) error {
 	// Ensure default configuration values
 	r.config = config.DefaultConfig().Merge(r.config)
 	r.config.Finalize()
@@ -900,18 +900,8 @@ func (r *Runner) init() error {
 	dep.SetVaultDefaultLeaseDuration(config.TimeDurationVal(r.config.Vault.DefaultLeaseDuration))
 	dep.SetVaultLeaseRenewalThreshold(*r.config.Vault.LeaseRenewalThreshold)
 
-	// Create the clientset
-	clients, err := newClientSet(r.config)
-	if err != nil {
-		return fmt.Errorf("runner: %s", err)
-	}
-
 	// Create the watcher
-	watcher, err := newWatcher(r.config, clients, r.config.Once)
-	if err != nil {
-		return fmt.Errorf("runner: %s", err)
-	}
-	r.watcher = watcher
+	r.watcher = newWatcher(r.config, clients, r.config.Once)
 
 	numTemplates := len(*r.config.Templates)
 	templates := make([]*template.Template, 0, numTemplates)
@@ -1291,8 +1281,8 @@ func findCommand(c *config.TemplateConfig, templates []*config.TemplateConfig) *
 	return nil
 }
 
-// newClientSet creates a new client set from the given config.
-func newClientSet(c *config.Config) (*dep.ClientSet, error) {
+// NewClientSet creates a new client set from the given config.
+func NewClientSet(c *config.Config) (*dep.ClientSet, error) {
 	clients := dep.NewClientSet()
 
 	if err := clients.CreateConsulClient(&dep.CreateConsulClientInput{
@@ -1378,10 +1368,10 @@ func newClientSet(c *config.Config) (*dep.ClientSet, error) {
 }
 
 // newWatcher creates a new watcher.
-func newWatcher(c *config.Config, clients *dep.ClientSet, once bool) (*watch.Watcher, error) {
+func newWatcher(c *config.Config, clients *dep.ClientSet, once bool) *watch.Watcher {
 	log.Printf("[INFO] (runner) creating watcher")
 
-	w, err := watch.NewWatcher(&watch.NewWatcherInput{
+	return watch.NewWatcher(&watch.NewWatcherInput{
 		Clients:             clients,
 		MaxStale:            config.TimeDurationVal(c.MaxStale),
 		Once:                c.Once,
@@ -1396,8 +1386,4 @@ func newWatcher(c *config.Config, clients *dep.ClientSet, once bool) (*watch.Wat
 		VaultToken:       clients.Vault().Token(),
 		RetryFuncNomad:   watch.RetryFunc(c.Nomad.Retry.RetryFunc()),
 	})
-	if err != nil {
-		return nil, errors.Wrap(err, "runner")
-	}
-	return w, nil
 }

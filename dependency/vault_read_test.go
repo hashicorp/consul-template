@@ -571,8 +571,8 @@ func TestVaultReadQuery_Fetch_NonSecrets(t *testing.T) {
 	vc := clients.Vault()
 
 	err = vc.Sys().EnableAuth("approle", "approle", "")
-	if err != nil {
-		t.Fatal(err)
+	if err != nil && !strings.Contains(err.Error(), "path is already in use") {
+		t.Fatalf("(%T) %s\n", err, err)
 	}
 
 	_, err = vc.Logical().Write("auth/approle/role/my-approle", nil)

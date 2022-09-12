@@ -8,13 +8,10 @@ import (
 )
 
 func TestAdd_updatesMap(t *testing.T) {
-	w, err := NewWatcher(&NewWatcherInput{
+	w := NewWatcher(&NewWatcherInput{
 		Clients: dep.NewClientSet(),
 		Once:    true,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	d := &TestDep{}
 	if _, err := w.Add(d); err != nil {
@@ -28,13 +25,10 @@ func TestAdd_updatesMap(t *testing.T) {
 }
 
 func TestAdd_exists(t *testing.T) {
-	w, err := NewWatcher(&NewWatcherInput{
+	w := NewWatcher(&NewWatcherInput{
 		Clients: dep.NewClientSet(),
 		Once:    true,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	d := &TestDep{}
 	w.depViewMap[d.String()] = &View{}
@@ -50,13 +44,10 @@ func TestAdd_exists(t *testing.T) {
 }
 
 func TestAdd_startsViewPoll(t *testing.T) {
-	w, err := NewWatcher(&NewWatcherInput{
+	w := NewWatcher(&NewWatcherInput{
 		Clients: dep.NewClientSet(),
 		Once:    true,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	added, err := w.Add(&TestDep{})
 	if err != nil {
@@ -76,13 +67,10 @@ func TestAdd_startsViewPoll(t *testing.T) {
 }
 
 func TestWatching_notExists(t *testing.T) {
-	w, err := NewWatcher(&NewWatcherInput{
+	w := NewWatcher(&NewWatcherInput{
 		Clients: dep.NewClientSet(),
 		Once:    true,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	d := &TestDep{}
 	if w.Watching(d) == true {
@@ -91,13 +79,10 @@ func TestWatching_notExists(t *testing.T) {
 }
 
 func TestWatching_exists(t *testing.T) {
-	w, err := NewWatcher(&NewWatcherInput{
+	w := NewWatcher(&NewWatcherInput{
 		Clients: dep.NewClientSet(),
 		Once:    true,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	d := &TestDep{}
 	if _, err := w.Add(d); err != nil {
@@ -110,13 +95,10 @@ func TestWatching_exists(t *testing.T) {
 }
 
 func TestRemove_exists(t *testing.T) {
-	w, err := NewWatcher(&NewWatcherInput{
+	w := NewWatcher(&NewWatcherInput{
 		Clients: dep.NewClientSet(),
 		Once:    true,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	d := &TestDep{}
 	if _, err := w.Add(d); err != nil {
@@ -134,13 +116,10 @@ func TestRemove_exists(t *testing.T) {
 }
 
 func TestRemove_doesNotExist(t *testing.T) {
-	w, err := NewWatcher(&NewWatcherInput{
+	w := NewWatcher(&NewWatcherInput{
 		Clients: dep.NewClientSet(),
 		Once:    true,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	removed := w.Remove(&TestDep{})
 	if removed != false {
@@ -149,13 +128,10 @@ func TestRemove_doesNotExist(t *testing.T) {
 }
 
 func TestSize_empty(t *testing.T) {
-	w, err := NewWatcher(&NewWatcherInput{
+	w := NewWatcher(&NewWatcherInput{
 		Clients: dep.NewClientSet(),
 		Once:    true,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	if w.Size() != 0 {
 		t.Errorf("expected %d to be %d", w.Size(), 0)
@@ -163,13 +139,10 @@ func TestSize_empty(t *testing.T) {
 }
 
 func TestSize_returnsNumViews(t *testing.T) {
-	w, err := NewWatcher(&NewWatcherInput{
+	w := NewWatcher(&NewWatcherInput{
 		Clients: dep.NewClientSet(),
 		Once:    true,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	for i := 0; i < 10; i++ {
 		d := &TestDep{name: fmt.Sprintf("%d", i)}

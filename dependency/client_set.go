@@ -347,31 +347,8 @@ func (c *ClientSet) CreateVaultClient(i *CreateVaultClientInput) error {
 		}
 	}
 
-	// Set the token if given
 	if i.Token != "" {
 		client.SetToken(i.Token)
-	}
-
-	// Check if we are unwrapping
-	if i.UnwrapToken {
-		secret, err := client.Logical().Unwrap(i.Token)
-		if err != nil {
-			return fmt.Errorf("client set: vault unwrap: %s", err)
-		}
-
-		if secret == nil {
-			return fmt.Errorf("client set: vault unwrap: no secret")
-		}
-
-		if secret.Auth == nil {
-			return fmt.Errorf("client set: vault unwrap: no secret auth")
-		}
-
-		if secret.Auth.ClientToken == "" {
-			return fmt.Errorf("client set: vault unwrap: no token returned")
-		}
-
-		client.SetToken(secret.Auth.ClientToken)
 	}
 
 	// Save the data on ourselves

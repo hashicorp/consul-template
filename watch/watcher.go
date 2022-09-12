@@ -78,7 +78,7 @@ type NewWatcherInput struct {
 }
 
 // NewWatcher creates a new watcher using the given API client.
-func NewWatcher(i *NewWatcherInput) (*Watcher, error) {
+func NewWatcher(i *NewWatcherInput) *Watcher {
 	w := &Watcher{
 		clients:            i.Clients,
 		depViewMap:         make(map[string]*View),
@@ -92,29 +92,7 @@ func NewWatcher(i *NewWatcherInput) (*Watcher, error) {
 		retryFuncVault:     i.RetryFuncVault,
 		retryFuncNomad:     i.RetryFuncNomad,
 	}
-
-	// Start a watcher for the Vault renew if that config was specified
-	if i.RenewVault {
-		vt, err := dep.NewVaultTokenQuery(i.VaultToken)
-		if err != nil {
-			return nil, errors.Wrap(err, "watcher")
-		}
-		if _, err := w.Add(vt); err != nil {
-			return nil, errors.Wrap(err, "watcher")
-		}
-	}
-
-	if len(i.VaultAgentTokenFile) > 0 {
-		vag, err := dep.NewVaultAgentTokenQuery(i.VaultAgentTokenFile)
-		if err != nil {
-			return nil, errors.Wrap(err, "watcher")
-		}
-		if _, err := w.Add(vag); err != nil {
-			return nil, errors.Wrap(err, "watcher")
-		}
-	}
-
-	return w, nil
+	return w
 }
 
 // DataCh returns a read-only channel of Views which is populated when a view

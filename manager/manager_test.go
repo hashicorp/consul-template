@@ -33,12 +33,16 @@ func TestMain(m *testing.M) {
 	}
 	testConsul = consul
 
-	clients := dep.NewClientSet()
-	if err := clients.CreateConsulClient(&dep.CreateConsulClientInput{
-		Address: testConsul.HTTPAddr,
-	}); err != nil {
+	consulConfig := config.DefaultConsulConfig()
+	consulConfig.Address = &testConsul.HTTPAddr
+	clients, err := NewClientSet(&config.Config{
+		Consul: consulConfig,
+		Vault:  config.DefaultVaultConfig(),
+		Nomad:  config.DefaultNomadConfig(),
+	})
+	if err != nil {
 		testConsul.Stop()
-		log.Fatal(err)
+		log.Fatal(fmt.Errorf("failed to start clients: %v", err))
 	}
 	testClients = clients
 

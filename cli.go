@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul-template/service_os"
 	"github.com/hashicorp/consul-template/signals"
 	"github.com/hashicorp/consul-template/version"
+	"github.com/hashicorp/consul-template/watch"
 )
 
 // Exit codes are int values that represent an exit code for a particular error.
@@ -103,8 +104,20 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeOK
 	}
 
+	// Create the clientset
+	clients, err := manager.NewClientSet(config)
+	if err != nil {
+		return logError(err, ExitCodeConfigError)
+	}
+
+	// vault token watcher
+	vtwatchErrCh := watch.VaultTokenWatcher(clients, config.Vault)
+	if err != nil {
+		return logError(err, ExitCodeRunnerError)
+	}
+
 	// Initial runner
-	runner, err := manager.NewRunner(config, dry)
+	runner, err := manager.NewRunner(clients, config, dry)
 	if err != nil {
 		return logError(err, ExitCodeRunnerError)
 	}
@@ -115,6 +128,8 @@ func (cli *CLI) Run(args []string) int {
 
 	for {
 		select {
+		case err := <-vtwatchErrCh:
+			return logError(err, ExitCodeRunnerError)
 		case err := <-runner.ErrCh:
 			// Check if the runner's error returned a specific exit status, and return
 			// that value. If no value was given, return a generic exit status.
@@ -150,7 +165,7 @@ func (cli *CLI) Run(args []string) int {
 					return logError(err, ExitCodeConfigError)
 				}
 
-				runner, err = manager.NewRunner(config, dry)
+				runner, err = manager.NewRunner(clients, config, dry)
 				if err != nil {
 					return logError(err, ExitCodeRunnerError)
 				}
