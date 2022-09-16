@@ -41,6 +41,17 @@ func Test_VaultPKI_notGoodFor(t *testing.T) {
 	}
 }
 
+func Test_VaultPKI_pemsCertNone(t *testing.T) {
+	_, cert, err := pemsCert(make([]byte, 0))
+	if err == nil {
+		t.Fatal("error should be not be nil as we don't have a cert")
+	}
+
+	if cert != nil {
+		t.Fatal("we should have a nil cert")
+	}
+}
+
 func Test_VaultPKI_pemsCert(t *testing.T) {
 	// tests w/ valid pems, and having it hidden behind various things
 	want := strings.TrimRight(strings.TrimSpace(validCert), "\n")

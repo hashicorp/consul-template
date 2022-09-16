@@ -147,6 +147,9 @@ func pemsCert(encoded []byte) (PemEncoded, *x509.Certificate, error) {
 		block, _ = pem.Decode(aPem)
 		switch {
 		case block == nil: // end of scan, no more PEMs found
+			if cert == nil {
+				return PemEncoded{}, nil, errors.New("Cert: not found")
+			}
 			return encPems, cert, nil
 		case strings.HasSuffix(block.Type, "PRIVATE KEY"):
 			// PKCS#1 and PKCS#8 matching to find private key
