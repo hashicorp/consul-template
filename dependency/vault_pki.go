@@ -110,6 +110,11 @@ func (d *VaultPKIQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface
 // returns time left in ~90% of the original lease and a boolean
 // that returns false if cert needs renewing, true otherwise
 func goodFor(cert *x509.Certificate) (time.Duration, bool) {
+	// If we got called with a cert that doesn't exist, just say there's no
+	// time left, and it needs to be renewed
+	if cert == nil {
+		return 0, false
+	}
 	// These are all int64's with Seconds since the Epoch, handy for the math
 	start, end := cert.NotBefore.Unix(), cert.NotAfter.Unix()
 	now := time.Now().UTC().Unix()

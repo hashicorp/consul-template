@@ -24,20 +24,29 @@ func Test_VaultPKI_uniqueID(t *testing.T) {
 }
 
 func Test_VaultPKI_notGoodFor(t *testing.T) {
-	// only test the negation, postive is tested below with pemsificates
-	// fetched in Vault integration tests (creating pemss is non-trivial)
-	_, cert, err := pemsCert([]byte(validCert))
-	if err != nil {
-		t.Error(err)
+	tests := map[string]struct {
+		input []byte
+	}{
+		"valid cert": {input: []byte(validCert)},
+		"empty cert": {input: make([]byte, 0)},
 	}
-	dur, ok := goodFor(cert)
-	if ok != false {
-		t.Error("should be false")
-	}
-	// duration should be negative as pems has already expired
-	// but still tests pems time parsing (it'd be 0 if there was an issue)
-	if dur > 0 {
-		t.Error("duration shouldn't be positive (old cert)")
+
+	for name, tc := range tests {
+		// only test the negation, postive is tested below with pemsificates
+		// fetched in Vault integration tests (creating pemss is non-trivial)
+		_, cert, err := pemsCert(tc.input)
+		if err != nil {
+			t.Error(err)
+		}
+		dur, ok := goodFor(cert)
+		if ok != false {
+			t.Errorf("%v: should be false", name)
+		}
+		// duration should be negative as pems has already expired
+		// but still tests pems time parsing (it'd be 0 if there was an issue)
+		if dur > 0 {
+			t.Errorf("%v: duration shouldn't be positive (old cert)", name)
+		}
 	}
 }
 
