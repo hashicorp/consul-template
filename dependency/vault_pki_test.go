@@ -36,16 +36,16 @@ func Test_VaultPKI_notGoodFor(t *testing.T) {
 		// fetched in Vault integration tests (creating pemss is non-trivial)
 		_, cert, err := pemsCert(tc.input)
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		dur, ok := goodFor(cert)
 		if ok != false {
-			t.Fatalf("%v: should be false", name)
+			t.Errorf("%v: should be false", name)
 		}
 		// duration should be negative as pems has already expired
 		// but still tests pems time parsing (it'd be 0 if there was an issue)
 		if dur > 0 {
-			t.Fatalf("%v: duration shouldn't be positive (old cert)", name)
+			t.Errorf("%v: duration shouldn't be positive (old cert)", name)
 		}
 	}
 }
