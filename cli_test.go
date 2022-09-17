@@ -885,7 +885,7 @@ func TestCLI_Run(t *testing.T) {
 		select {
 		case status := <-ch:
 			if status != ExitCodeOK {
-				t.Errorf("\nexp: %#v\nact: %#v", status, ExitCodeOK)
+				t.Errorf("\nexp: %#v\nact: %#v", ExitCodeOK, status)
 			}
 			b, err := ioutil.ReadFile(dest.Name())
 			if err != nil {
