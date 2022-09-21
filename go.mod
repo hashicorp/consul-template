@@ -31,7 +31,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 )
 
-require github.com/hashicorp/vault/api/auth/kubernetes v0.2.0
+require github.com/hashicorp/vault/api/auth/kubernetes v0.3.0
 
 require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
