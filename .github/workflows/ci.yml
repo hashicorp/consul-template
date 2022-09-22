@@ -26,6 +26,7 @@ jobs:
           curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
           sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
           sudo apt-get update && sudo apt-get install consul vault nomad
+          wget https://releases.hashicorp.com/nomad/1.4.0-beta.1/nomad_1.4.0-beta.1_linux_amd64.zip && unzip nomad_1.4.0-beta.1_linux_amd64.zip && sudo mv nomad /usr/bin
 
       - name: Run tests
         run: |
