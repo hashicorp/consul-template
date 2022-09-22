@@ -108,6 +108,17 @@ func (i NomadVarItems) Parent() *NomadVariable {
 	return nil
 }
 
+func (i NomadVarItems) ItemsMap() map[string]interface{} {
+	if len(i) == 0 {
+		return nil
+	}
+	out := make(map[string]interface{})
+	for k, v := range i {
+		out[k] = v.String()
+	}
+	return out
+}
+
 // NomadVarItem enriches the basic string values in a api.Variable's Items
 // map with additional helper funcs for formatting and access to its parent
 // item. This enables us to have the template funcs start at the Items
