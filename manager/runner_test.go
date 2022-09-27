@@ -31,7 +31,7 @@ func TestRunner_initTemplates(t *testing.T) {
 			},
 		})
 
-	r, err := NewRunner(testClients, c, true)
+	r, err := NewRunner(c, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func TestRunner_initTemplates(t *testing.T) {
 
 func TestRunner_Receive(t *testing.T) {
 	c := config.TestConfig(&config.Config{Once: true})
-	r, err := NewRunner(testClients, c, true)
+	r, err := NewRunner(c, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -476,7 +476,7 @@ func TestRunner_Run(t *testing.T) {
 			c.Once = true
 			c.Finalize()
 
-			r, err := NewRunner(testClients, c, true)
+			r, err := NewRunner(c, true)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -523,7 +523,7 @@ func TestRunner_Start(t *testing.T) {
 		})
 		c.Finalize()
 
-		r, err := NewRunner(testClients, c, false)
+		r, err := NewRunner(c, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -564,7 +564,7 @@ func TestRunner_Start(t *testing.T) {
 		})
 		c.Finalize()
 
-		r, err := NewRunner(testClients, c, false)
+		r, err := NewRunner(c, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -611,7 +611,7 @@ func TestRunner_Start(t *testing.T) {
 		})
 		c.Finalize()
 
-		r, err := NewRunner(testClients, c, false)
+		r, err := NewRunner(c, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -659,7 +659,7 @@ func TestRunner_Start(t *testing.T) {
 		})
 		c.Finalize()
 
-		r, err := NewRunner(testClients, c, false)
+		r, err := NewRunner(c, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -705,7 +705,7 @@ func TestRunner_Start(t *testing.T) {
 		})
 		c.Finalize()
 
-		r, err := NewRunner(testClients, c, false)
+		r, err := NewRunner(c, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -760,7 +760,7 @@ func TestRunner_Start(t *testing.T) {
 		})
 		c.Finalize()
 
-		r, err := NewRunner(testClients, c, false)
+		r, err := NewRunner(c, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -826,7 +826,7 @@ func TestRunner_Start(t *testing.T) {
 		})
 		c.Finalize()
 
-		r, err := NewRunner(testClients, c, false)
+		r, err := NewRunner(c, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -902,7 +902,7 @@ func TestRunner_Start(t *testing.T) {
 		})
 		c.Finalize()
 
-		r, err := NewRunner(testClients, c, false)
+		r, err := NewRunner(c, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -952,7 +952,7 @@ func TestRunner_Start(t *testing.T) {
 		})
 		c.Finalize()
 
-		r, err := NewRunner(testClients, c, true)
+		r, err := NewRunner(c, true)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1010,7 +1010,7 @@ func TestRunner_Start(t *testing.T) {
 		})
 		c.Finalize()
 
-		r, err := NewRunner(testClients, c, false)
+		r, err := NewRunner(c, false)
 		if err != nil {
 			t.Fatal(err)
 		}

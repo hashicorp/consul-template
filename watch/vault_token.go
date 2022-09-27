@@ -13,25 +13,23 @@ import (
 )
 
 // VaultTokenWatcher monitors the vault token for updates
-func VaultTokenWatcher(clients *dep.ClientSet, c *config.VaultConfig) chan error {
+func VaultTokenWatcher(
+	clients *dep.ClientSet, c *config.VaultConfig, doneCh chan struct{},
+) (*Watcher, error) {
 	// c.Vault.Token is populated by the config code from all places
 	// vault tokens are supported. So if there is no token set here,
 	// tokens are not being used.
 	raw_token := strings.TrimSpace(config.StringVal(c.Token))
 	if raw_token == "" {
-		return nil
+		return nil, nil
 	}
 
 	unwrap := config.BoolVal(c.UnwrapToken)
 	vault := clients.Vault()
-	// buffer 1 error to allow for sequential errors to send and return
-	errChan := make(chan error, 1)
-
 	// get/set token once when kicked off, async after that..
-	token, err := getToken(vault, raw_token, unwrap)
+	token, err := unpackToken(vault, raw_token, unwrap)
 	if err != nil {
-		errChan <- err
-		return errChan
+		return nil, fmt.Errorf("vaultwatcher: %w", err)
 	}
 	vault.SetToken(token)
 
@@ -50,71 +48,66 @@ func VaultTokenWatcher(clients *dep.ClientSet, c *config.VaultConfig) chan error
 	// Vault Agent Token File process //
 	tokenFile := strings.TrimSpace(config.StringVal(c.VaultAgentTokenFile))
 	if tokenFile != "" {
-		atf, err := dep.NewVaultAgentTokenQuery(tokenFile)
-		if err != nil {
-			errChan <- fmt.Errorf("vaultwatcher: %w", err)
-			return errChan
-		}
 		w := getWatcher()
-		if _, err := w.Add(atf); err != nil {
-			errChan <- fmt.Errorf("vaultwatcher: %w", err)
-			return errChan
+		watchLoop, err := watchTokenFile(w, tokenFile, raw_token, unwrap, doneCh)
+		if err != nil {
+			return nil, fmt.Errorf("vaultwatcher: %w", err)
 		}
-		go func() {
-			for {
-				raw_token, err = waitforToken(w, raw_token, unwrap)
-				if err != nil {
-					errChan <- err
-					return
-				}
-			}
-		}()
+		go watchLoop()
 	}
 
 	// Vault Token Renewal process //
 	renewVault := vault.Token() != "" && config.BoolVal(c.RenewToken)
 	if renewVault {
-		go func() {
-			vt, err := dep.NewVaultTokenQuery(token)
-			if err != nil {
-				errChan <- fmt.Errorf("vaultwatcher: %w", err)
-			}
-			w := getWatcher()
-			if _, err := w.Add(vt); err != nil {
-				errChan <- fmt.Errorf("vaultwatcher: %w", err)
-			}
-
-			// VaultTokenQuery loops internally and never returns data,
-			// so we only care about if it errors out.
-			errChan <- <-w.ErrCh()
-		}()
+		w := getWatcher()
+		vt, err := dep.NewVaultTokenQuery(token)
+		if err != nil {
+			w.Stop()
+			return nil, fmt.Errorf("vaultwatcher: %w", err)
+		}
+		if _, err := w.Add(vt); err != nil {
+			w.Stop()
+			return nil, fmt.Errorf("vaultwatcher: %w", err)
+		}
 	}
 
-	return errChan
+	return watcher, nil
 }
 
-// waitforToken blocks until the tokenfile is updated, and it given the new
-// data on the watcher's DataCh(annel)
-// (as a variable to swap out in tests)
-var waitforToken = func(w *Watcher, old_raw_token string, unwrap bool) (string, error) {
-	vault := w.clients.Vault()
-	var new_raw_token string
-	select {
-	case v := <-w.DataCh():
-		new_raw_token = strings.TrimSpace(v.Data().(string))
-		if new_raw_token == old_raw_token {
-			break
-		}
-		switch token, err := getToken(vault, new_raw_token, unwrap); err {
-		case nil:
-			vault.SetToken(token)
-		default:
-			log.Printf("[INFO] %s", err)
-		}
-	case err := <-w.ErrCh():
-		return "", err
+func watchTokenFile(
+	w *Watcher, tokenFile, raw_token string, unwrap bool, doneCh chan struct{},
+) (func(), error) {
+	// watcher, tokenFile, raw_token, unwrap, doneCh
+	atf, err := dep.NewVaultAgentTokenQuery(tokenFile)
+	if err != nil {
+		return nil, fmt.Errorf("vaultwatcher: %w", err)
 	}
-	return new_raw_token, nil
+	if _, err := w.Add(atf); err != nil {
+		w.Stop()
+		return nil, fmt.Errorf("vaultwatcher: %w", err)
+	}
+	vault := w.clients.Vault()
+	return func() {
+		for {
+			select {
+			case v := <-w.DataCh():
+				new_raw_token := strings.TrimSpace(v.Data().(string))
+				if new_raw_token == raw_token {
+					break
+				}
+				token, err := unpackToken(vault, new_raw_token, unwrap)
+				switch err {
+				case nil:
+					raw_token = new_raw_token
+					vault.SetToken(token)
+				default:
+					log.Printf("[INFO] %s", err)
+				}
+			case <-doneCh:
+				return
+			}
+		}
+	}, nil
 }
 
 type vaultClient interface {
@@ -122,8 +115,8 @@ type vaultClient interface {
 	Logical() *api.Logical
 }
 
-// getToken grabs the real token from raw_token (unwrap, etc)
-func getToken(client vaultClient, token string, unwrap bool) (string, error) {
+// unpackToken grabs the real token from raw_token (unwrap, etc)
+func unpackToken(client vaultClient, token string, unwrap bool) (string, error) {
 	// If vault agent specifies wrap_ttl for the token it is returned as
 	// a SecretWrapInfo struct marshalled into JSON instead of the normal raw
 	// token. This checks for that and pulls out the token if it is the case.

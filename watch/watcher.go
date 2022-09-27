@@ -103,6 +103,9 @@ func (w *Watcher) DataCh() <-chan *View {
 
 // ErrCh returns a read-only channel of errors returned by the upstream.
 func (w *Watcher) ErrCh() <-chan error {
+	if w == nil {
+		return nil
+	}
 	return w.errCh
 }
 
@@ -211,6 +214,9 @@ func (w *Watcher) Size() int {
 // Stop halts this watcher and any currently polling views immediately. If a
 // view was in the middle of a poll, no data will be returned.
 func (w *Watcher) Stop() {
+	if w == nil {
+		return
+	}
 	w.Lock()
 	defer w.Unlock()
 

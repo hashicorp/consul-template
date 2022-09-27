@@ -134,7 +134,7 @@ func runVaultAgent(clients *dep.ClientSet, role_id string) string {
 	}
 	defer os.RemoveAll(dir)
 
-	tokenFile := filepath.Join("", "vatoken")
+	tokenFile := filepath.Join("", "vatoken.txt")
 
 	role_idPath := filepath.Join(dir, "roleid")
 	secret_idPath := filepath.Join(dir, "secretid")

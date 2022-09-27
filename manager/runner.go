@@ -74,6 +74,8 @@ type Runner struct {
 	// dependenciesLock is a lock around touching the dependencies map.
 	dependenciesLock sync.Mutex
 
+	// token watcher
+	vaultTokenWatcher *watch.Watcher
 	// watcher is the watcher this runner is using.
 	watcher *watch.Watcher
 
@@ -172,7 +174,7 @@ type RenderEvent struct {
 
 // NewRunner accepts a slice of TemplateConfigs and returns a pointer to the new
 // Runner and any error that occurred during creation.
-func NewRunner(clients *dep.ClientSet, config *config.Config, dry bool) (*Runner, error) {
+func NewRunner(config *config.Config, dry bool) (*Runner, error) {
 	log.Printf("[INFO] (runner) creating new runner (dry: %v, once: %v)",
 		dry, config.Once)
 
@@ -181,10 +183,21 @@ func NewRunner(clients *dep.ClientSet, config *config.Config, dry bool) (*Runner
 		dry:    dry,
 	}
 
-	if err := runner.init(clients); err != nil {
+	// Create the clientset
+	clients, err := NewClientSet(config)
+	if err != nil {
+		return nil, fmt.Errorf("runner: %w", err)
+	}
+	// needs to be run early to do initial token handling
+	runner.vaultTokenWatcher, err = watch.VaultTokenWatcher(
+		clients, config.Vault, runner.DoneCh)
+	if err != nil {
 		return nil, err
 	}
 
+	if err := runner.init(clients); err != nil {
+		return nil, err
+	}
 	return runner, nil
 }
 
@@ -226,7 +239,7 @@ func (r *Runner) Start() {
 
 		if r.child != nil {
 			r.stopDedup()
-			r.stopWatcher()
+			r.stopWatchers()
 
 			log.Printf("[INFO] (runner) waiting for child process to exit")
 			select {
@@ -330,7 +343,7 @@ func (r *Runner) Start() {
 
 				if r.child != nil {
 					r.stopDedup()
-					r.stopWatcher()
+					r.stopWatchers()
 
 					log.Printf("[INFO] (runner) waiting for child process to exit")
 					select {
@@ -381,6 +394,12 @@ func (r *Runner) Start() {
 		case err := <-r.watcher.ErrCh():
 			// Push the error back up the stack
 			log.Printf("[ERR] (runner) watcher reported error: %s", err)
+			r.ErrCh <- err
+			return
+
+		case err := <-r.vaultTokenWatcher.ErrCh():
+			// Push the error back up the stack
+			log.Printf("[ERR] (runner): %s", err)
 			r.ErrCh <- err
 			return
 
@@ -455,7 +474,7 @@ func (r *Runner) internalStop(immediately bool) {
 
 	log.Printf("[INFO] (runner) stopping")
 	r.stopDedup()
-	r.stopWatcher()
+	r.stopWatchers()
 	r.stopChild(immediately)
 
 	if err := r.deletePid(); err != nil {
@@ -475,10 +494,14 @@ func (r *Runner) stopDedup() {
 	}
 }
 
-func (r *Runner) stopWatcher() {
+func (r *Runner) stopWatchers() {
 	if r.watcher != nil {
 		log.Printf("[DEBUG] (runner) stopping watcher")
 		r.watcher.Stop()
+	}
+	if r.vaultTokenWatcher != nil {
+		log.Printf("[DEBUG] (runner) stopping vault token watcher")
+		r.vaultTokenWatcher.Stop()
 	}
 }
 

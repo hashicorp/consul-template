@@ -19,10 +19,13 @@ func TestVaultTokenWatcher(t *testing.T) {
 	// running vault's permissions.
 	t.Run("noop", func(t *testing.T) {
 		conf := config.DefaultVaultConfig()
-		errCh := VaultTokenWatcher(testClients, conf)
-
+		watcher, err := VaultTokenWatcher(testClients, conf, nil)
+		if err != nil {
+			t.Error(err)
+		}
+		defer watcher.Stop()
 		select {
-		case err := <-errCh:
+		case err := <-watcher.ErrCh():
 			if err != nil {
 				t.Error(err)
 			}
@@ -36,7 +39,14 @@ func TestVaultTokenWatcher(t *testing.T) {
 		conf := config.DefaultVaultConfig()
 		token := vaultToken
 		conf.Token = &token
-		_ = VaultTokenWatcher(testClients, conf)
+		watcher, err := VaultTokenWatcher(testClients, conf, nil)
+		if err != nil {
+			t.Error(err)
+		}
+		defer watcher.Stop()
+		if watcher != nil {
+			t.Error("watcher should be nil")
+		}
 		if testClients.Vault().Token() != vaultToken {
 			t.Error("Token should be " + vaultToken)
 		}
@@ -51,7 +61,11 @@ func TestVaultTokenWatcher(t *testing.T) {
 		}
 		jsonToken := string(data)
 		conf.Token = &jsonToken
-		_ = VaultTokenWatcher(testClients, conf)
+		watcher, err := VaultTokenWatcher(testClients, conf, nil)
+		if err != nil {
+			t.Error(err)
+		}
+		defer watcher.Stop()
 		if testClients.Vault().Token() != vaultToken {
 			t.Error("Token should be " + vaultToken)
 		}
@@ -61,38 +75,32 @@ func TestVaultTokenWatcher(t *testing.T) {
 		// setup
 		testClients.Vault().SetToken(vaultToken)
 		tokenfile := runVaultAgent(testClients, tokenRoleId)
-		defer func() { os.Remove(tokenfile) }()
+		defer func() {
+			testClients.Vault().SetToken(vaultToken)
+			os.Remove(tokenfile)
+		}()
 		conf := config.DefaultVaultConfig()
 		token := vaultToken
 		conf.Token = &token
 		conf.VaultAgentTokenFile = &tokenfile
-
 		// test data
-		d, _ := dep.NewVaultAgentTokenQuery("")
-		waitforCalled := fmt.Errorf("refresh called successfully")
-		_waitforToken := waitforToken
-		defer func() {
-			waitforToken = _waitforToken
-		}()
-		waitforToken = func(w *Watcher, raw_token string, unwrap bool) (string, error) {
-			_, ok := w.depViewMap[d.String()]
-			if !ok {
-				t.Error("missing tokenfile dependency")
-			}
-			return "", waitforCalled
+		doneCh := make(chan struct{})
+		watcher, err := VaultTokenWatcher(testClients, conf, doneCh)
+		if err != nil {
+			t.Error(err)
 		}
-
-		errCh := VaultTokenWatcher(testClients, conf)
+		defer watcher.Stop()
 		// tests
-		err := <-errCh
-		switch err {
-		case waitforCalled, nil:
-		default:
+		select {
+		case <-time.After(time.Millisecond):
+			// XXX remove this timer in hashicat port
+			doneCh <- struct{}{}
+		case err := <-watcher.ErrCh():
 			t.Error(err)
 		}
 
-		if testClients.Vault().Token() != vaultToken {
-			t.Error("Token should be " + vaultToken)
+		if testClients.Vault().Token() == vaultToken {
+			t.Error("Token should not be " + vaultToken)
 		}
 	})
 
@@ -115,10 +123,14 @@ func TestVaultTokenWatcher(t *testing.T) {
 		token := "b_token"
 		conf.Token = &token //
 		conf.RenewToken = &renew
-		errCh := VaultTokenWatcher(testClients, conf)
+		watcher, err := VaultTokenWatcher(testClients, conf, nil)
+		if err != nil {
+			t.Error(err)
+		}
+		defer watcher.Stop()
 
 		select {
-		case err := <-errCh:
+		case err := <-watcher.ErrCh():
 			if err != nil {
 				t.Error(err)
 			}
@@ -132,6 +144,8 @@ func TestVaultTokenRefreshToken(t *testing.T) {
 	watcher := NewWatcher(&NewWatcherInput{
 		Clients: testClients,
 	})
+	// force watcher to be synchronous so we can control test flow
+	watcher.dataCh = make(chan *View) // no buffer
 	wrapinfo := api.SecretWrapInfo{
 		Token: "btoken",
 	}
@@ -150,21 +164,24 @@ func TestVaultTokenRefreshToken(t *testing.T) {
 		name := fmt.Sprintf("%d_%s", i, tc.name)
 		t.Run(name, func(t *testing.T) {
 			var wg sync.WaitGroup
+			dCh := make(chan struct{})
+			watchLoop, err := watchTokenFile(watcher, "", "XXX", false, dCh)
+			if err != nil {
+				t.Error(err)
+			}
 			wg.Add(1)
-			go func(t *testing.T) {
-				defer wg.Done()
-				token, err := waitforToken(watcher, "", false)
-				switch {
-				case err != nil:
-					t.Error(err)
-				case vault.Token() != tc.exp_token:
-					t.Errorf("bad token, expected: '%s', received '%s'",
-						tc.exp_token, token)
-				}
-			}(t)
+			go func() {
+				watchLoop()
+				wg.Done()
+			}()
 			fd := fakeDep{name: name}
 			watcher.dataCh <- &View{dependency: fd, data: tc.raw_token}
+			close(dCh) // close doneCh to stop watchLoop
 			wg.Wait()
+			if vault.Token() != tc.exp_token {
+				t.Errorf("bad token, expected: '%s', received '%s'",
+					tc.exp_token, tc.raw_token)
+			}
 		})
 	}
 	watcher.Stop()
@@ -186,9 +203,9 @@ func TestVaultTokenGetToken(t *testing.T) {
 		}
 		for _, tc := range testcases {
 			dummy := &setTokenFaker{}
-			token, _ := getToken(dummy, tc.in, false)
+			token, _ := unpackToken(dummy, tc.in, false)
 			if token != tc.out {
-				t.Errorf("getToken, wanted: '%v', got: '%v'", tc.out, token)
+				t.Errorf("unpackToken, wanted: '%v', got: '%v'", tc.out, token)
 			}
 		}
 	})
@@ -212,7 +229,7 @@ func TestVaultTokenGetToken(t *testing.T) {
 
 		unwrap := true
 		wrappedToken := secret.WrapInfo.Token
-		token, err := getToken(vault, wrappedToken, unwrap)
+		token, err := unpackToken(vault, wrappedToken, unwrap)
 		if err != nil {
 			t.Fatal(err)
 		}
