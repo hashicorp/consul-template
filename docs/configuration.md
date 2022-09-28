@@ -548,6 +548,14 @@ template {
   # path, the permissions are 0644.
   perms = 0600
 
+  # These are the user and group ownerships of the rendered file. They can be specified
+  # in the form of username/group name or UID/GID. If left unspecified, Consul Template
+  # will preserve the ownerships of the existing file. If no file exists, the
+  # ownerships will default to the user running Consul Template. This option is not
+  # supported on Windows.
+  user = 1000
+  group = 1000
+
   # This option backs up the previously rendered template at the destination
   # path before writing a new one. It keeps exactly one backup. This option is
   # useful for preventing accidental changes to the data without having a
