@@ -116,13 +116,20 @@ func (cli *CLI) Run(args []string) int {
 	for {
 		select {
 		case err := <-runner.ErrCh:
-			// Check if the runner's error returned a specific exit status, and return
-			// that value. If no value was given, return a generic exit status.
+			// Check if the runner's error returned a specific exit status, and
+			// return that value.
+			// If no value was given, return a generic exit status.
 			code := ExitCodeRunnerError
 			if typed, ok := err.(manager.ErrExitable); ok {
 				code = typed.ExitStatus()
 			}
-			return logError(err, code)
+			switch code {
+			case 0:
+				log.Printf("[INFO] (cli) %s", err)
+				return ExitCodeOK
+			default:
+				return logError(err, code)
+			}
 		case <-runner.DoneCh:
 			return ExitCodeOK
 		case <-service_os.Shutdown_Channel():
