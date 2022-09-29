@@ -1,3 +1,15 @@
+## v0.29.3 (Sept 30, 2022)
+
+IMPROVEMENTS:
+* Vault token management refactor to increase encapsulation and enable testing. [[GH-1645](https://github.com/hashicorp/consul-template/pull/1645)]
+
+BUG FIXES:
+* Log child process successful exits at INFO level (not ERR). [[GH-1649](https://github.com/hashicorp/consul-template/pull/1649), [GH-1282](https://github.com/hashicorp/consul-template/issues/1282)]
+* Fix reading vault agent token in wrapped format [[GH-1498](https://github.com/hashicorp/consul-template/issues/1498)]
+* Fix issue with transient goroutine leak causing unnecessary memory growth. [[GH-1644](https://github.com/hashicorp/consul-template/pull/1644)]
+* Fix issue with pkiCerts failing if cert file is moved. [[GH-1639](https://github.com/hashicorp/consul-template/pull/1639)]
+
+
 ## v0.29.2 (Aug 16, 2022)
 
 IMPROVEMENTS:
