@@ -189,6 +189,7 @@ func (v *View) fetch(doneCh, successCh chan<- struct{}, errCh chan<- error) {
 		allowStale = true
 	}
 
+	firstLoop := true // to disable rate limiting on first pass
 	for {
 		// If the view was stopped, short-circuit this loop. This prevents a bug
 		// where a view can get "lost" in the event Consul Template is reloaded.
@@ -239,9 +240,10 @@ func (v *View) fetch(doneCh, successCh chan<- struct{}, errCh chan<- error) {
 			allowStale = true
 		}
 
-		if dur := rateLimiter(start); dur > 1 {
+		if dur := rateLimiter(start); dur > 1 && !firstLoop {
 			time.Sleep(dur)
 		}
+		firstLoop = false
 
 		// blocking queries that return due to block timeout
 		// will have the same index

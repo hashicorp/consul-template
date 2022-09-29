@@ -74,6 +74,8 @@ type Runner struct {
 	// dependenciesLock is a lock around touching the dependencies map.
 	dependenciesLock sync.Mutex
 
+	// token watcher
+	vaultTokenWatcher *watch.Watcher
 	// watcher is the watcher this runner is using.
 	watcher *watch.Watcher
 
@@ -181,10 +183,21 @@ func NewRunner(config *config.Config, dry bool) (*Runner, error) {
 		dry:    dry,
 	}
 
-	if err := runner.init(); err != nil {
+	// Create the clientset
+	clients, err := NewClientSet(config)
+	if err != nil {
+		return nil, fmt.Errorf("runner: %w", err)
+	}
+	// needs to be run early to do initial token handling
+	runner.vaultTokenWatcher, err = watch.VaultTokenWatcher(
+		clients, config.Vault, runner.DoneCh)
+	if err != nil {
 		return nil, err
 	}
 
+	if err := runner.init(clients); err != nil {
+		return nil, err
+	}
 	return runner, nil
 }
 
@@ -226,7 +239,7 @@ func (r *Runner) Start() {
 
 		if r.child != nil {
 			r.stopDedup()
-			r.stopWatcher()
+			r.stopWatchers()
 
 			log.Printf("[INFO] (runner) waiting for child process to exit")
 			select {
@@ -330,7 +343,7 @@ func (r *Runner) Start() {
 
 				if r.child != nil {
 					r.stopDedup()
-					r.stopWatcher()
+					r.stopWatchers()
 
 					log.Printf("[INFO] (runner) waiting for child process to exit")
 					select {
@@ -381,6 +394,12 @@ func (r *Runner) Start() {
 		case err := <-r.watcher.ErrCh():
 			// Push the error back up the stack
 			log.Printf("[ERR] (runner) watcher reported error: %s", err)
+			r.ErrCh <- err
+			return
+
+		case err := <-r.vaultTokenWatcher.ErrCh():
+			// Push the error back up the stack
+			log.Printf("[ERR] (runner): %s", err)
 			r.ErrCh <- err
 			return
 
@@ -455,7 +474,7 @@ func (r *Runner) internalStop(immediately bool) {
 
 	log.Printf("[INFO] (runner) stopping")
 	r.stopDedup()
-	r.stopWatcher()
+	r.stopWatchers()
 	r.stopChild(immediately)
 
 	if err := r.deletePid(); err != nil {
@@ -475,10 +494,14 @@ func (r *Runner) stopDedup() {
 	}
 }
 
-func (r *Runner) stopWatcher() {
+func (r *Runner) stopWatchers() {
 	if r.watcher != nil {
 		log.Printf("[DEBUG] (runner) stopping watcher")
 		r.watcher.Stop()
+	}
+	if r.vaultTokenWatcher != nil {
+		log.Printf("[DEBUG] (runner) stopping vault token watcher")
+		r.vaultTokenWatcher.Stop()
 	}
 }
 
@@ -885,7 +908,7 @@ func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*
 
 // init() creates the Runner's underlying data structures and returns an error
 // if any problems occur.
-func (r *Runner) init() error {
+func (r *Runner) init(clients *dep.ClientSet) error {
 	// Ensure default configuration values
 	r.config = config.DefaultConfig().Merge(r.config)
 	r.config.Finalize()
@@ -900,18 +923,8 @@ func (r *Runner) init() error {
 	dep.SetVaultDefaultLeaseDuration(config.TimeDurationVal(r.config.Vault.DefaultLeaseDuration))
 	dep.SetVaultLeaseRenewalThreshold(*r.config.Vault.LeaseRenewalThreshold)
 
-	// Create the clientset
-	clients, err := newClientSet(r.config)
-	if err != nil {
-		return fmt.Errorf("runner: %s", err)
-	}
-
 	// Create the watcher
-	watcher, err := newWatcher(r.config, clients, r.config.Once)
-	if err != nil {
-		return fmt.Errorf("runner: %s", err)
-	}
-	r.watcher = watcher
+	r.watcher = newWatcher(r.config, clients, r.config.Once)
 
 	numTemplates := len(*r.config.Templates)
 	templates := make([]*template.Template, 0, numTemplates)
@@ -1291,8 +1304,8 @@ func findCommand(c *config.TemplateConfig, templates []*config.TemplateConfig) *
 	return nil
 }
 
-// newClientSet creates a new client set from the given config.
-func newClientSet(c *config.Config) (*dep.ClientSet, error) {
+// NewClientSet creates a new client set from the given config.
+func NewClientSet(c *config.Config) (*dep.ClientSet, error) {
 	clients := dep.NewClientSet()
 
 	if err := clients.CreateConsulClient(&dep.CreateConsulClientInput{
@@ -1378,10 +1391,10 @@ func newClientSet(c *config.Config) (*dep.ClientSet, error) {
 }
 
 // newWatcher creates a new watcher.
-func newWatcher(c *config.Config, clients *dep.ClientSet, once bool) (*watch.Watcher, error) {
+func newWatcher(c *config.Config, clients *dep.ClientSet, once bool) *watch.Watcher {
 	log.Printf("[INFO] (runner) creating watcher")
 
-	w, err := watch.NewWatcher(&watch.NewWatcherInput{
+	return watch.NewWatcher(&watch.NewWatcherInput{
 		Clients:             clients,
 		MaxStale:            config.TimeDurationVal(c.MaxStale),
 		Once:                c.Once,
@@ -1396,8 +1409,4 @@ func newWatcher(c *config.Config, clients *dep.ClientSet, once bool) (*watch.Wat
 		VaultToken:       clients.Vault().Token(),
 		RetryFuncNomad:   watch.RetryFunc(c.Nomad.Retry.RetryFunc()),
 	})
-	if err != nil {
-		return nil, errors.Wrap(err, "runner")
-	}
-	return w, nil
 }

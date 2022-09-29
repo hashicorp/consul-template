@@ -1,10 +1,8 @@
 package dependency
 
 import (
-	"io/ioutil"
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -39,6 +37,7 @@ func NewVaultAgentTokenQuery(path string) (*VaultAgentTokenQuery, error) {
 func (d *VaultAgentTokenQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
 	log.Printf("[TRACE] %s: READ %s", d, d.path)
 
+	var token string
 	select {
 	case <-d.stopCh:
 		log.Printf("[TRACE] %s: stopped", d)
@@ -50,16 +49,15 @@ func (d *VaultAgentTokenQuery) Fetch(clients *ClientSet, opts *QueryOptions) (in
 
 		log.Printf("[TRACE] %s: reported change", d)
 
-		token, err := ioutil.ReadFile(d.path)
+		raw_token, err := os.ReadFile(d.path)
 		if err != nil {
 			return "", nil, errors.Wrap(err, d.String())
 		}
-
 		d.stat = r.stat
-		clients.Vault().SetToken(strings.TrimSpace(string(token)))
+		token = string(raw_token)
 	}
 
-	return respWithMetadata("")
+	return respWithMetadata(token)
 }
 
 // CanShare returns if this dependency is sharable.

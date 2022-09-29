@@ -14,11 +14,6 @@ func TestVaultAgentTokenQuery_Fetch(t *testing.T) {
 	// Don't use t.Parallel() here as the SetToken() calls are global and break
 	// other tests if run in parallel
 
-	// reset token back to original
-	vc := testClients.Vault()
-	token := vc.Token()
-	defer vc.SetToken(token)
-
 	// Set up the Vault token file.
 	tokenFile, err := ioutil.TempFile("", "token1")
 	if err != nil {
@@ -33,22 +28,22 @@ func TestVaultAgentTokenQuery_Fetch(t *testing.T) {
 	}
 
 	clientSet := testClients
-	_, _, err = d.Fetch(clientSet, nil)
+	token, _, err := d.Fetch(clientSet, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, "token", clientSet.Vault().Token())
+	assert.Equal(t, "token", token)
 
 	// Update the contents.
 	renderer.AtomicWrite(
 		tokenFile.Name(), false, []byte("another_token"), 0o644, false)
-	_, _, err = d.Fetch(clientSet, nil)
+	token, _, err = d.Fetch(clientSet, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, "another_token", clientSet.Vault().Token())
+	assert.Equal(t, "another_token", token)
 }
 
 func TestVaultAgentTokenQuery_Fetch_missingFile(t *testing.T) {
