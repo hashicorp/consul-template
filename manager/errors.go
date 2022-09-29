@@ -24,7 +24,7 @@ func NewErrChildDied(c int) *ErrChildDied {
 
 // Error implements the error interface.
 func (e *ErrChildDied) Error() string {
-	return fmt.Sprintf("child process died with exit code %d", e.code)
+	return fmt.Sprintf("child process exited with code %d", e.code)
 }
 
 // ExitStatus implements the ErrExitable interface.

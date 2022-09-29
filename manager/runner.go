@@ -244,7 +244,7 @@ func (r *Runner) Start() {
 			log.Printf("[INFO] (runner) waiting for child process to exit")
 			select {
 			case c := <-childExitCh:
-				log.Printf("[INFO] (runner) child process died")
+				log.Printf("[INFO] (runner) child process exited")
 				r.ErrCh <- NewErrChildDied(c)
 				return
 			case <-r.DoneCh:
@@ -348,7 +348,7 @@ func (r *Runner) Start() {
 					log.Printf("[INFO] (runner) waiting for child process to exit")
 					select {
 					case c := <-childExitCh:
-						log.Printf("[INFO] (runner) child process died")
+						log.Printf("[INFO] (runner) child process exited")
 						r.ErrCh <- NewErrChildDied(c)
 						return
 					case <-r.DoneCh:
@@ -410,7 +410,7 @@ func (r *Runner) Start() {
 			delete(r.quiescenceMap, tmpl.ID())
 
 		case c := <-childExitCh:
-			log.Printf("[INFO] (runner) child process died")
+			log.Printf("[INFO] (runner) child process exited")
 			r.ErrCh <- NewErrChildDied(c)
 			return
 
