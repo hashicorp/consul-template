@@ -179,8 +179,19 @@ func NewRunner(config *config.Config, dry bool) (*Runner, error) {
 		dry, config.Once)
 
 	runner := &Runner{
-		config: config,
-		dry:    dry,
+		ErrCh:         make(chan error),
+		DoneCh:        make(chan struct{}),
+		config:        config,
+		dry:           dry,
+		inStream:      os.Stdin,
+		outStream:     os.Stdout,
+		errStream:     os.Stderr,
+		renderedCh:    make(chan struct{}, 1),
+		renderEventCh: make(chan struct{}, 1),
+		dependencies:  make(map[string]dep.Dependency),
+		brain:         template.NewBrain(),
+		quiescenceMap: make(map[string]*quiescence),
+		quiescenceCh:  make(chan *template.Template),
 	}
 
 	// Create the clientset
@@ -194,10 +205,10 @@ func NewRunner(config *config.Config, dry bool) (*Runner, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	if err := runner.init(clients); err != nil {
 		return nil, err
 	}
+
 	return runner, nil
 }
 
@@ -967,21 +978,6 @@ func (r *Runner) init(clients *dep.ClientSet) error {
 	r.templates = templates
 
 	r.renderEvents = make(map[string]*RenderEvent, numTemplates)
-	r.dependencies = make(map[string]dep.Dependency)
-
-	r.renderedCh = make(chan struct{}, 1)
-	r.renderEventCh = make(chan struct{}, 1)
-
-	r.inStream = os.Stdin
-	r.outStream = os.Stdout
-	r.errStream = os.Stderr
-	r.brain = template.NewBrain()
-
-	r.ErrCh = make(chan error)
-	r.DoneCh = make(chan struct{})
-
-	r.quiescenceMap = make(map[string]*quiescence)
-	r.quiescenceCh = make(chan *template.Template)
 
 	if *r.config.Dedup.Enabled {
 		if r.config.Once {
