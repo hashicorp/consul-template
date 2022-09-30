@@ -1,3 +1,8 @@
+## v0.29.4 (Sept 30, 2022)
+
+BUG FIXES:
+* Fix goroutine leak in vault token watcher on config reload. [[GH-1650](https://github.com/hashicorp/consul-template/issues/1650)]
+
 ## v0.29.3 (Sept 30, 2022)
 
 IMPROVEMENTS:
