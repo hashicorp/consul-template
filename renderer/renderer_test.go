@@ -2,6 +2,7 @@ package renderer
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -16,45 +17,45 @@ func TestAtomicWrite(t *testing.T) {
 		// "simulate" a non-existent folder
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
 		outFile, err := ioutil.TempFile(outDir, "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		if err := os.RemoveAll(outDir); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 
 		if err := AtomicWrite(outFile.Name(), true, nil, 0o644, false); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 
 		if _, err := os.Stat(outFile.Name()); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 	})
 
 	t.Run("retains_permissions", func(t *testing.T) {
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
 		outFile, err := ioutil.TempFile(outDir, "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		os.Chmod(outFile.Name(), 0o600)
 
 		if err := AtomicWrite(outFile.Name(), true, nil, 0, false); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 
 		stat, err := os.Stat(outFile.Name())
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 
 		expected := os.FileMode(0o600)
@@ -66,7 +67,7 @@ func TestAtomicWrite(t *testing.T) {
 	t.Run("non_existent", func(t *testing.T) {
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		os.RemoveAll(outDir)
 		defer os.RemoveAll(outDir)
@@ -74,18 +75,18 @@ func TestAtomicWrite(t *testing.T) {
 		// Try AtomicWrite to a file that doesn't exist yet
 		file := filepath.Join(outDir, "nope/not/it/create")
 		if err := AtomicWrite(file, true, nil, 0o644, false); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 
 		if _, err := os.Stat(file); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 	})
 
 	t.Run("non_existent_no_create", func(t *testing.T) {
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		os.RemoveAll(outDir)
 		defer os.RemoveAll(outDir)
@@ -93,44 +94,44 @@ func TestAtomicWrite(t *testing.T) {
 		// Try AtomicWrite to a file that doesn't exist yet
 		file := filepath.Join(outDir, "nope/not/it/nope-no-create")
 		if err := AtomicWrite(file, false, nil, 0o644, false); err != ErrNoParentDir {
-			t.Fatalf("expected %q to be %q", err, ErrNoParentDir)
+			t.Errorf("expected %q to be %q", err, ErrNoParentDir)
 		}
 	})
 
 	t.Run("backup", func(t *testing.T) {
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
 		outFile, err := ioutil.TempFile(outDir, "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		if err := os.Chmod(outFile.Name(), 0o600); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		if _, err := outFile.Write([]byte("before")); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 
 		if err := AtomicWrite(outFile.Name(), true, []byte("after"), 0o644, true); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 
 		f, err := ioutil.ReadFile(outFile.Name() + ".bak")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		if !bytes.Equal(f, []byte("before")) {
-			t.Fatalf("expected %q to be %q", f, []byte("before"))
+			t.Errorf("expected %q to be %q", f, []byte("before"))
 		}
 
 		if stat, err := os.Stat(outFile.Name() + ".bak"); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		} else {
 			if stat.Mode() != 0o600 {
-				t.Fatalf("expected %d to be %d", stat.Mode(), 0o600)
+				t.Errorf("expected %d to be %d", stat.Mode(), 0o600)
 			}
 		}
 	})
@@ -138,27 +139,27 @@ func TestAtomicWrite(t *testing.T) {
 	t.Run("backup_not_exists", func(t *testing.T) {
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
 		outFile, err := ioutil.TempFile(outDir, "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		if err := os.Remove(outFile.Name()); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 
 		if err := AtomicWrite(outFile.Name(), true, nil, 0o644, true); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 
 		// Shouldn't have a backup file, since the original file didn't exist
 		if _, err := os.Stat(outFile.Name() + ".bak"); err == nil {
-			t.Fatal("expected error")
+			t.Error("expected error")
 		} else {
 			if !os.IsNotExist(err) {
-				t.Fatalf("bad error: %s", err)
+				t.Errorf("bad error: %s", err)
 			}
 		}
 	})
@@ -166,36 +167,36 @@ func TestAtomicWrite(t *testing.T) {
 	t.Run("backup_backup", func(t *testing.T) {
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
 		outFile, err := ioutil.TempFile(outDir, "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		if _, err := outFile.Write([]byte("first")); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 
 		contains := func(filename, content string) {
 			f, err := ioutil.ReadFile(filename + ".bak")
 			if err != nil {
-				t.Fatal(err)
+				t.Error(err)
 			}
 			if !bytes.Equal(f, []byte(content)) {
-				t.Fatalf("expected %q to be %q", f, []byte(content))
+				t.Errorf("expected %q to be %q", f, []byte(content))
 			}
 		}
 
 		err = AtomicWrite(outFile.Name(), true, []byte("second"), 0o644, true)
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		contains(outFile.Name(), "first")
 
 		err = AtomicWrite(outFile.Name(), true, []byte("third"), 0o644, true)
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		contains(outFile.Name(), "second")
 	})
@@ -205,20 +206,20 @@ func TestRender(t *testing.T) {
 	t.Run("file-exists-same-content", func(t *testing.T) {
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
 		outFile, err := ioutil.TempFile(outDir, "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		contents := []byte("first")
 		if _, err := outFile.Write(contents); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		path := outFile.Name()
 		if err = outFile.Close(); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 
 		rr, err := Render(&RenderInput{
@@ -226,32 +227,32 @@ func TestRender(t *testing.T) {
 			Contents: contents,
 		})
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		switch {
 		case rr.WouldRender && !rr.DidRender:
 		default:
-			t.Fatalf("Bad render results; would: %v, did: %v",
+			t.Errorf("Bad render results; would: %v, did: %v",
 				rr.WouldRender, rr.DidRender)
 		}
 	})
 	t.Run("file-exists-diff-content", func(t *testing.T) {
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
 		outFile, err := ioutil.TempFile(outDir, "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		contents := []byte("first")
 		if _, err := outFile.Write(contents); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		path := outFile.Name()
 		if err = outFile.Close(); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 
 		diff_contents := []byte("not-first")
@@ -260,19 +261,19 @@ func TestRender(t *testing.T) {
 			Contents: diff_contents,
 		})
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		switch {
 		case rr.WouldRender && rr.DidRender:
 		default:
-			t.Fatalf("Bad render results; would: %v, did: %v",
+			t.Errorf("Bad render results; would: %v, did: %v",
 				rr.WouldRender, rr.DidRender)
 		}
 	})
 	t.Run("file-no-exists", func(t *testing.T) {
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
 		path := path.Join(outDir, "no-exists")
@@ -283,19 +284,19 @@ func TestRender(t *testing.T) {
 			Contents: contents,
 		})
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		switch {
 		case rr.WouldRender && rr.DidRender:
 		default:
-			t.Fatalf("Bad render results; would: %v, did: %v",
+			t.Errorf("Bad render results; would: %v, did: %v",
 				rr.WouldRender, rr.DidRender)
 		}
 	})
 	t.Run("empty-file-no-exists", func(t *testing.T) {
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
 		path := path.Join(outDir, "no-exists")
@@ -306,12 +307,12 @@ func TestRender(t *testing.T) {
 			Contents: contents,
 		})
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		switch {
 		case rr.WouldRender && rr.DidRender:
 		default:
-			t.Fatalf("Bad render results; would: %v, did: %v",
+			t.Errorf("Bad render results; would: %v, did: %v",
 				rr.WouldRender, rr.DidRender)
 		}
 	})
@@ -324,7 +325,7 @@ func TestRender_Chown(t *testing.T) {
 	// we enumerate the groups the current user (running the tests) belongs to
 	callerGroups, err := os.Getgroups()
 	if err != nil {
-		t.Fatalf("getgroups: %s", err)
+		t.Errorf("getgroups: %s", err)
 	}
 
 	// we'll use the last group because we can assume it's not the default one
@@ -343,20 +344,20 @@ func TestRender_Chown(t *testing.T) {
 	t.Run("sets-file-ownership-when-file-exists-same-content", func(t *testing.T) {
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
 		outFile, err := ioutil.TempFile(outDir, "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		contents := []byte("first")
 		if _, err := outFile.Write(contents); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		path := outFile.Name()
 		if err = outFile.Close(); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 
 		rr, err := Render(&RenderInput{
@@ -365,21 +366,21 @@ func TestRender_Chown(t *testing.T) {
 			Group:    strconv.Itoa(wantedGid),
 		})
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		switch {
 		case rr.WouldRender && rr.DidRender: // we expect rerendering to disk here
 		default:
-			t.Fatalf("Bad render results; would: %v, did: %v",
+			t.Errorf("Bad render results; would: %v, did: %v",
 				rr.WouldRender, rr.DidRender)
 		}
 
 		gotUid, gotGid, err := getFileOwnership(path)
 		if err != nil {
-			t.Fatalf("getFileOwnership: %s", err)
+			t.Errorf("getFileOwnership: %s", err)
 		}
 		if gotGid != wantedGid {
-			t.Fatalf("Bad render results; gotUid: %v, wantedGid: %v, gotGid: %v",
+			t.Errorf("Bad render results; gotUid: %v, wantedGid: %v, gotGid: %v",
 				gotUid, wantedGid, gotGid)
 		}
 	})
@@ -387,20 +388,20 @@ func TestRender_Chown(t *testing.T) {
 	t.Run("sets-file-ownership-when-file-exists-diff-content", func(t *testing.T) {
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
 		outFile, err := ioutil.TempFile(outDir, "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		contents := []byte("first")
 		if _, err := outFile.Write(contents); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		path := outFile.Name()
 		if err = outFile.Close(); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 
 		diff_contents := []byte("not-first")
@@ -410,28 +411,28 @@ func TestRender_Chown(t *testing.T) {
 			Group:    strconv.Itoa(wantedGid),
 		})
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		switch {
 		case rr.WouldRender && rr.DidRender:
 		default:
-			t.Fatalf("Bad render results; would: %v, did: %v",
+			t.Errorf("Bad render results; would: %v, did: %v",
 				rr.WouldRender, rr.DidRender)
 		}
 
 		gotUid, gotGid, err := getFileOwnership(path)
 		if err != nil {
-			t.Fatalf("getFileOwnership: %s", err)
+			t.Errorf("getFileOwnership: %s", err)
 		}
 		if gotGid != wantedGid {
-			t.Fatalf("Bad render results; gotUid: %v, wantedGid: %v, gotGid: %v",
+			t.Errorf("Bad render results; gotUid: %v, wantedGid: %v, gotGid: %v",
 				gotUid, wantedGid, gotGid)
 		}
 	})
 	t.Run("sets-file-ownership-when-file-no-exists", func(t *testing.T) {
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
 		path := path.Join(outDir, "no-exists")
@@ -443,28 +444,28 @@ func TestRender_Chown(t *testing.T) {
 			Group:    strconv.Itoa(wantedGid),
 		})
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		switch {
 		case rr.WouldRender && rr.DidRender:
 		default:
-			t.Fatalf("Bad render results; would: %v, did: %v",
+			t.Errorf("Bad render results; would: %v, did: %v",
 				rr.WouldRender, rr.DidRender)
 		}
 
 		gotUid, gotGid, err := getFileOwnership(path)
 		if err != nil {
-			t.Fatalf("getFileOwnership: %s", err)
+			t.Errorf("getFileOwnership: %s", err)
 		}
 		if gotGid != wantedGid {
-			t.Fatalf("Bad render results; gotUid: %v, wantedGid: %v, gotGid: %v",
+			t.Errorf("Bad render results; gotUid: %v, wantedGid: %v, gotGid: %v",
 				gotUid, wantedGid, gotGid)
 		}
 	})
 	t.Run("sets-file-ownership-when-empty-file-no-exists", func(t *testing.T) {
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
 		path := path.Join(outDir, "no-exists")
@@ -476,21 +477,21 @@ func TestRender_Chown(t *testing.T) {
 			Group:    strconv.Itoa(wantedGid),
 		})
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		switch {
 		case rr.WouldRender && rr.DidRender:
 		default:
-			t.Fatalf("Bad render results; would: %v, did: %v",
+			t.Errorf("Bad render results; would: %v, did: %v",
 				rr.WouldRender, rr.DidRender)
 		}
 
 		gotUid, gotGid, err := getFileOwnership(path)
 		if err != nil {
-			t.Fatalf("getFileOwnership: %s", err)
+			t.Errorf("getFileOwnership: %s", err)
 		}
 		if gotGid != wantedGid {
-			t.Fatalf("Bad render results; gotUid: %v, wantedGid: %v, gotGid: %v",
+			t.Errorf("Bad render results; gotUid: %v, wantedGid: %v, gotGid: %v",
 				gotUid, wantedGid, gotGid)
 		}
 	})
@@ -498,49 +499,48 @@ func TestRender_Chown(t *testing.T) {
 	t.Run("should-be-noop-when-missing-user", func(t *testing.T) {
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
 		outFile, err := ioutil.TempFile(outDir, "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		contents := []byte("first")
 		if _, err := outFile.Write(contents); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		path := outFile.Name()
 		if err = outFile.Close(); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 
 		// getting file uid:gid for the default behaviour
 		wantUid, wantGid, err := getFileOwnership(path)
 		if err != nil {
-			t.Fatalf("getFileOwnership: %s", err)
+			t.Errorf("getFileOwnership: %s", err)
 		}
-		diff_contents := []byte("not-first")
 		rr, err := Render(&RenderInput{
 			Path:     path,
-			Contents: diff_contents,
+			Contents: contents,
 			Group:    "",
 		})
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		switch {
-		case rr.WouldRender && rr.DidRender:
+		case rr.WouldRender && !rr.DidRender:
 		default:
-			t.Fatalf("Bad render results; would: %v, did: %v",
+			t.Errorf("Bad render results; would: %v, did: %v",
 				rr.WouldRender, rr.DidRender)
 		}
 
 		gotUid, gotGid, err := getFileOwnership(path)
 		if err != nil {
-			t.Fatalf("getFileOwnership: %s", err)
+			t.Errorf("getFileOwnership: %s", err)
 		}
 		if gotUid != wantUid || gotGid != wantGid {
-			t.Fatalf("Bad render results; we shouldn't have altered uid/gid. wantUid: %v, wantGid: %v, gotUid: %v, gotGid: %v ",
+			t.Errorf("Bad render results; we shouldn't have altered uid/gid. wantUid: %v, wantGid: %v, gotUid: %v, gotGid: %v ",
 				wantUid, wantGid, gotUid, gotGid)
 		}
 	})
@@ -548,50 +548,49 @@ func TestRender_Chown(t *testing.T) {
 	t.Run("should-be-noop-when-missing-group", func(t *testing.T) {
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
 		outFile, err := ioutil.TempFile(outDir, "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		contents := []byte("first")
 		if _, err := outFile.Write(contents); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		path := outFile.Name()
 		if err = outFile.Close(); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 
 		// getting file uid:gid for the default behaviour
 		wantUid, wantGid, err := getFileOwnership(path)
 		if err != nil {
-			t.Fatalf("getFileOwnership: %s", err)
+			t.Errorf("getFileOwnership: %s", err)
 		}
 
-		diff_contents := []byte("not-first")
 		rr, err := Render(&RenderInput{
 			Path:     path,
-			Contents: diff_contents,
+			Contents: contents,
 			User:     "",
 		})
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		switch {
-		case rr.WouldRender && rr.DidRender:
+		case rr.WouldRender && !rr.DidRender:
 		default:
-			t.Fatalf("Bad render results; would: %v, did: %v",
+			t.Errorf("Bad render results; would: %v, did: %v",
 				rr.WouldRender, rr.DidRender)
 		}
 
 		gotUid, gotGid, err := getFileOwnership(path)
 		if err != nil {
-			t.Fatalf("getFileOwnership: %s", err)
+			t.Errorf("getFileOwnership: %s", err)
 		}
 		if gotUid != wantUid || gotGid != wantGid {
-			t.Fatalf("Bad render results; we shouldn't have altered uid/gid. wantUid: %v, wantGid: %v, gotUid: %v, gotGid: %v ",
+			t.Errorf("Bad render results; we shouldn't have altered uid/gid. wantUid: %v, wantGid: %v, gotUid: %v, gotGid: %v ",
 				wantUid, wantGid, gotUid, gotGid)
 		}
 	})
@@ -599,51 +598,148 @@ func TestRender_Chown(t *testing.T) {
 	t.Run("should-be-noop-when-user-and-group-are-both-empty", func(t *testing.T) {
 		outDir, err := ioutil.TempDir("", "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
 		outFile, err := ioutil.TempFile(outDir, "")
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		contents := []byte("first")
 		if _, err := outFile.Write(contents); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		path := outFile.Name()
 		if err = outFile.Close(); err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 
 		// getting file uid:gid for the default behaviour
 		wantUid, wantGid, err := getFileOwnership(path)
 		if err != nil {
-			t.Fatalf("getFileOwnership: %s", err)
+			t.Errorf("getFileOwnership: %s", err)
 		}
 
-		diff_contents := []byte("not-first")
 		rr, err := Render(&RenderInput{
 			Path:     path,
-			Contents: diff_contents,
+			Contents: contents,
 			User:     "",
 			Group:    "",
 		})
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		switch {
-		case rr.WouldRender && rr.DidRender:
+		case rr.WouldRender && !rr.DidRender:
 		default:
-			t.Fatalf("Bad render results; would: %v, did: %v",
+			t.Errorf("Bad render results; would: %v, did: %v",
 				rr.WouldRender, rr.DidRender)
 		}
 
 		gotUid, gotGid, err := getFileOwnership(path)
 		if err != nil {
-			t.Fatalf("getFileOwnership: %s", err)
+			t.Errorf("getFileOwnership: %s", err)
 		}
 		if gotUid != wantUid || gotGid != wantGid {
-			t.Fatalf("Bad render results; we shouldn't have altered uid/gid. wantUid: %v, wantGid: %v, gotUid: %v, gotGid: %v ",
+			t.Errorf("Bad render results; we shouldn't have altered uid/gid. wantUid: %v, wantGid: %v, gotUid: %v, gotGid: %v ",
+				wantUid, wantGid, gotUid, gotGid)
+		}
+	})
+	t.Run("should-be-noop-user-only-second-pass", func(t *testing.T) {
+		outDir, err := ioutil.TempDir("", "")
+		if err != nil {
+			t.Error(err)
+		}
+		defer os.RemoveAll(outDir)
+		outFile, err := ioutil.TempFile(outDir, "")
+		if err != nil {
+			t.Error(err)
+		}
+		contents := []byte("first")
+		if _, err := outFile.Write(contents); err != nil {
+			t.Error(err)
+		}
+		path := outFile.Name()
+		if err = outFile.Close(); err != nil {
+			t.Error(err)
+		}
+
+		// getting file uid:gid for the default behaviour
+		wantUid, wantGid, err := getFileOwnership(path)
+		if err != nil {
+			t.Errorf("getFileOwnership: %s", err)
+		}
+
+		rr, err := Render(&RenderInput{
+			Path:     path,
+			Contents: contents,
+			User:     fmt.Sprint(wantUid),
+		})
+		if err != nil {
+			t.Error(err)
+		}
+		switch {
+		case rr.WouldRender && !rr.DidRender:
+		default:
+			t.Errorf("Bad render results; would: %v, did: %v",
+				rr.WouldRender, rr.DidRender)
+		}
+
+		gotUid, gotGid, err := getFileOwnership(path)
+		if err != nil {
+			t.Errorf("getFileOwnership: %s", err)
+		}
+		if gotUid != wantUid || gotGid != wantGid {
+			t.Errorf("Bad render results; we shouldn't have altered uid/gid. wantUid: %v, wantGid: %v, gotUid: %v, gotGid: %v ",
+				wantUid, wantGid, gotUid, gotGid)
+		}
+	})
+	t.Run("should-be-noop-group-only-second-pass", func(t *testing.T) {
+		outDir, err := ioutil.TempDir("", "")
+		if err != nil {
+			t.Error(err)
+		}
+		defer os.RemoveAll(outDir)
+		outFile, err := ioutil.TempFile(outDir, "")
+		if err != nil {
+			t.Error(err)
+		}
+		contents := []byte("first")
+		if _, err := outFile.Write(contents); err != nil {
+			t.Error(err)
+		}
+		path := outFile.Name()
+		if err = outFile.Close(); err != nil {
+			t.Error(err)
+		}
+
+		// getting file uid:gid for the default behaviour
+		wantUid, wantGid, err := getFileOwnership(path)
+		if err != nil {
+			t.Errorf("getFileOwnership: %s", err)
+		}
+
+		rr, err := Render(&RenderInput{
+			Path:     path,
+			Contents: contents,
+			Group:    fmt.Sprint(wantGid),
+		})
+		if err != nil {
+			t.Error(err)
+		}
+		switch {
+		case rr.WouldRender && !rr.DidRender:
+		default:
+			t.Errorf("Bad render results; would: %v, did: %v",
+				rr.WouldRender, rr.DidRender)
+		}
+
+		gotUid, gotGid, err := getFileOwnership(path)
+		if err != nil {
+			t.Errorf("getFileOwnership: %s", err)
+		}
+		if gotUid != wantUid || gotGid != wantGid {
+			t.Errorf("Bad render results; we shouldn't have altered uid/gid. wantUid: %v, wantGid: %v, gotUid: %v, gotGid: %v ",
 				wantUid, wantGid, gotUid, gotGid)
 		}
 	})

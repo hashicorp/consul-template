@@ -37,6 +37,14 @@ func isChownNeeded(path string, uid, gid int) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
+	switch {
+	case uid == -1:
+		currUid = -1
+	case gid == -1:
+		currGid = -1
+	}
+
 	return uid != currUid || gid != currGid, nil
 }
 
