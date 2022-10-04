@@ -1,3 +1,9 @@
+## v0.29.5 (Oct 04, 2022)
+
+BUG FIXES:
+* Fix issue with ownership change detection incorrectly indicating a change when a user or group was set but not both [[GH-1652](https://github.com/hashicorp/consul-template/pull/1652)]
+* Fix issue with nomad configuration setup [[GH-1653](https://github.com/hashicorp/consul-template/pull/1653)]
+
 ## v0.29.4 (Sept 30, 2022)
 
 BUG FIXES:
