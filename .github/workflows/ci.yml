@@ -21,7 +21,7 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
 
-      - name: Install Consul and Vault for integration testing
+      - name: Install Consul, Vault and Nomad for integration testing
         run: |
           curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
           sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
