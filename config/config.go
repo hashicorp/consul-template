@@ -173,7 +173,7 @@ func (c *Config) Copy() *Config {
 	o.BlockQueryWaitTime = c.BlockQueryWaitTime
 
 	if c.Nomad != nil {
-		o.Nomad = o.Nomad.Copy()
+		o.Nomad = c.Nomad.Copy()
 	}
 
 	return &o

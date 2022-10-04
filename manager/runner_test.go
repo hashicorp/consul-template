@@ -1155,8 +1155,8 @@ func TestRunner_command(t *testing.T) {
 		case stderr.Len() > 0:
 			t.Errorf("unexpected error output: %s", stderr.String())
 		case tc.out != stdout.String():
-			t.Errorf("wrong command output\n   got: '%#v'\nwanted: '%#v'",
-				stdout.String(), tc.out)
+			t.Errorf("wrong command output: %s \n   got: '%#v'\nwanted: '%#v'",
+				tc.name, stdout.String(), tc.out)
 		}
 	}
 	for i, tc := range []testCase{
