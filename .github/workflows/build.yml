@@ -22,13 +22,15 @@ jobs:
       go-version: ${{ steps.get-go-version.outputs.go-version }}
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version-file: 'go.mod'
       - name: Determine Go version
         id: get-go-version
-        # We use .go-version as our source of truth for current Go
-        # version, because "goenv" can react to it automatically.
+        # looking for just the number, eg. 1.18.3
         run: |
-          echo "Building with Go $(cat .go-version)"
-          echo "::set-output name=go-version::$(cat .go-version)"
+          echo "Building with Go $(go env GOVERSION | tr -d 'go')"
+          echo "::set-output name=go-version::$(go env GOVERSION | tr -d 'go')"
 
   get-product-version:
     runs-on: ubuntu-latest
@@ -233,9 +235,9 @@ jobs:
           # Add smoke test here. Below is a sample smoke test that runs the built image
           # and validates the version.
           smoke_test: |
-            TEST_VERSION="$(docker run "${IMAGE_NAME}" -v | awk '{print $2}')"
+            TEST_VERSION="$(docker run "${IMAGE_NAME}" -v 2>&1 | awk '{print $2}')"
             if [ "${TEST_VERSION}" != "v${version}" ]; then
-              echo "Test FAILED"
+              echo "Test FAILED (${TEST_VERSION} != v${version}"
               exit 1
             fi
             echo "Test PASSED"
