@@ -47,6 +47,7 @@ provides the following functions:
   - [containsNone](#containsnone)
   - [containsNotAll](#containsnotall)
   - [env](#env)
+  - [mustEnv](#mustEnv)
   - [envOrDefault](#envOrDefault)
   - [executeTemplate](#executetemplate)
   - [explode](#explode)
@@ -60,7 +61,7 @@ provides the following functions:
   - [trimSpace](#trimspace)
   - [trim](#trim)
   - [trimPrefix](#trimprefix)
-  - [trimSuffix](#trimsuffix)  
+  - [trimSuffix](#trimsuffix)
   - [parseBool](#parsebool)
   - [parseFloat](#parsefloat)
   - [parseInt](#parseint)
@@ -1138,6 +1139,14 @@ Reads the given environment variable and if it does not exist or is blank use a 
 
 ```golang
 {{ or (env "CLUSTER_ID") "12345" }}
+```
+
+### `mustEnv`
+
+Reads the given environment variable accessible to the current process. If the variable is not defined or is empty the substitution will fail with error.
+
+```golang
+{{ mustEnv "CLUSTER_ID" }}
 ```
 
 ### `envOrDefault`
