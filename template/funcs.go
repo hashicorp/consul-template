@@ -84,6 +84,31 @@ func envFunc(env []string) func(string) (string, error) {
 	}
 }
 
+// mustEnvFunc returns a function which checks the value of an environment variable
+// and returns an error if environment variable value is empty.
+// Invokers can specify their own environment, which takes precedences over any
+// real environment variables.
+func mustEnvFunc(env []string) func(string) (string, error) {
+	return func(s string) (string, error) {
+		val := ""
+		for _, e := range env {
+			split := strings.SplitN(e, "=", 2)
+			k, v := split[0], split[1]
+			if k == s {
+				val = v
+				break
+			}
+		}
+		if val == "" {
+			val = os.Getenv(s)
+		}
+		if val == "" {
+			return "", fmt.Errorf("required environment variable %s is empty", s)
+		}
+		return val, nil
+	}
+}
+
 // envWithDefaultFunc returns a function which checks the value of an environment variable.
 // Invokers can specify their own environment, which takes precedences over any
 // real environment variables.

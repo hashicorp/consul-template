@@ -1184,6 +1184,34 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"helper_mustEnv",
+			&NewTemplateInput{
+				Contents: `{{ mustEnv "CT_TEST" }}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					// Cheat and use the brain callback here to set the env.
+					if err := os.Setenv("CT_TEST", "1"); err != nil {
+						t.Fatal(err)
+					}
+					return NewBrain()
+				}(),
+			},
+			"1",
+			false,
+		},
+		{
+			"helper_mustEnv_negative",
+			&NewTemplateInput{
+				Contents: `{{ mustEnv "CT_TEST_NONEXISTENT" }}`,
+			},
+			&ExecuteInput{
+				Brain:  NewBrain(),
+			},
+			"",
+			true,
+		},
+		{
 			"helper_env__override",
 			&NewTemplateInput{
 				Contents: `{{ env "CT_TEST" }}`,
