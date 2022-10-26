@@ -185,6 +185,11 @@ type ExecuteInput struct {
 	// Values specified here will take precedence over any values in the
 	// environment when using the `env` function.
 	Env []string
+
+	// Config is a copy of the Runner's consul-template configuration. It is
+	// provided to allow for functions that might need to adapt based on certain
+	// configuration values
+	Config *config.Config
 }
 
 // ExecuteResult is the result of the template execution.
@@ -219,6 +224,7 @@ func (t *Template) Execute(i *ExecuteInput) (*ExecuteResult, error) {
 		functionDenylist: t.functionDenylist,
 		sandboxPath:      t.sandboxPath,
 		destination:      t.destination,
+		config:           i.Config,
 	}))
 
 	if t.errMissingKey {
@@ -254,6 +260,11 @@ func redactinator(used *dep.Set, b *Brain, err error) error {
 					pairs = append(pairs, fmt.Sprintf("%v", v), "[redacted]")
 				}
 			}
+			if nVar, ok := data.(*dep.NomadVarItems); ok {
+				for _, v := range nVar.Values() {
+					pairs = append(pairs, fmt.Sprintf("%v", v), "[redacted]")
+				}
+			}
 		}
 	}
 	return fmt.Errorf(strings.NewReplacer(pairs...).Replace(err.Error()))
@@ -269,11 +280,20 @@ type funcMapInput struct {
 	destination      string
 	used             *dep.Set
 	missing          *dep.Set
+	config           *config.Config
 }
 
 // funcMap is the map of template functions to their respective functions.
 func funcMap(i *funcMapInput) template.FuncMap {
 	var scratch Scratch
+
+	// Get the Nomad default namespace from the client config
+	// this is done here rather than in the function to prevent an
+	// import cycle between the dependency and config packages
+	nomadNS := "default"
+	if i.config != nil && i.config.Nomad != nil && *(i.config.Nomad).Namespace != "" {
+		nomadNS = *(i.config.Nomad).Namespace
+	}
 
 	r := template.FuncMap{
 		// API functions
@@ -298,8 +318,12 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"pkiCert":      pkiCertFunc(i.brain, i.used, i.missing, i.destination),
 
 		// Nomad Functions.
-		"nomadServices": nomadServicesFunc(i.brain, i.used, i.missing),
-		"nomadService":  nomadServiceFunc(i.brain, i.used, i.missing),
+		"nomadServices":    nomadServicesFunc(i.brain, i.used, i.missing),
+		"nomadService":     nomadServiceFunc(i.brain, i.used, i.missing),
+		"nomadVarList":     nomadVariablesFunc(i.brain, i.used, i.missing, nomadNS, true),
+		"nomadVarListSafe": nomadSafeVariablesFunc(i.brain, i.used, i.missing, nomadNS),
+		"nomadVar":         nomadVariableItemsFunc(i.brain, i.used, i.missing, nomadNS),
+		"nomadVarExists":   nomadVariableExistsFunc(i.brain, i.used, i.missing, nomadNS),
 
 		// Scratch
 		"scratch": func() *Scratch { return &scratch },

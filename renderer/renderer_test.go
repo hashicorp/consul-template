@@ -319,27 +319,42 @@ func TestRender(t *testing.T) {
 }
 
 func TestRender_Chown(t *testing.T) {
-	// Can't change uid unless root, but can try
-	// changing the group id.
+	// Can't change uid unless root, but can try changing the group id
 
-	// we enumerate the groups the current user (running the tests) belongs to
+	// In order to test this behavior, the caller needs to be in at least two
+	// groups. One to create the initial file and the other to test as part of
+	// the change behavior
+
+	// In order to make sure that this is tested properly we would have to
+	// preconfigure the environment and specify the gid here or (better) add
+	// the user to a group and leave this dynamic avoiding hardcoded values
+
+	// Enumerate the groups the current user (running the tests) belongs to
 	callerGroups, err := os.Getgroups()
 	if err != nil {
 		t.Errorf("getgroups: %s", err)
 	}
 
-	// we'll use the last group because we can assume it's not the default one
-	// for the current user (thinking about CI/CD).
-	// In order to make sure that this is tested properly we would have to
-	// preconfigure the environment and specify the gid here or (better) add
-	// the user to a group and leave this dynamic avoiding hardcoded values,
-	// worst case scenario, if the user belongs to a single group, these tests
-	// would not be testing the cange of ownership but only the fact that it doesn't
-	// fail unexpectedly
+	// If the caller isn't in any groups, there is no way to test changing the
+	// group id
 	if len(callerGroups) == 0 {
 		t.Skip("The current user is not member of any group, cannot Chown, skipping...")
 	}
+
+	// If the caller belongs to one and only one group, the test can not run
+	// properly because DidRender will be false
+	if len(callerGroups) == 1 {
+		t.Skip("This test requires the caller be in at least 2 groups, skipping...")
+	}
+
+	// Using os.Getgid will give us the caller's primary group. We can then use
+	// that value to determine whether or not we take the first or second value
+	// from the callerGroups list. This should allow the test function to remain
+	// dynamic and avoid hardcoded magic values
 	wantedGid := callerGroups[0]
+	if wantedGid == os.Getgid() {
+		wantedGid = callerGroups[1]
+	}
 
 	t.Run("sets-file-ownership-when-file-exists-same-content", func(t *testing.T) {
 		outDir, err := ioutil.TempDir("", "")
@@ -347,6 +362,7 @@ func TestRender_Chown(t *testing.T) {
 			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
+
 		outFile, err := ioutil.TempFile(outDir, "")
 		if err != nil {
 			t.Error(err)

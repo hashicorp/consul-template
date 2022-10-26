@@ -385,7 +385,7 @@ func (c *ClientSet) CreateNomadClient(i *CreateNomadClientInput) error {
 		}
 	}
 
-	// This transport will attempt to keep connections open to the Vault server.
+	// This transport will attempt to keep connections open to the Nomad server.
 	var dialer TransportDialer
 	dialer = &net.Dialer{
 		Timeout:   i.TransportDialTimeout,

@@ -92,7 +92,7 @@ func TestVaultTokenWatcher(t *testing.T) {
 		defer watcher.Stop()
 		// tests
 		select {
-		case <-time.After(time.Millisecond):
+		case <-time.After(50 * time.Millisecond):
 			// XXX remove this timer in hashicat port
 			doneCh <- struct{}{}
 		case err := <-watcher.ErrCh():

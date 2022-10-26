@@ -12,15 +12,20 @@ import (
 )
 
 const (
-	dcRe          = `(@(?P<dc>[[:word:]\.\-\_]+))?`
-	keyRe         = `/?(?P<key>[^@]+)`
-	filterRe      = `(\|(?P<filter>[[:word:]\,]+))?`
-	serviceNameRe = `(?P<name>[[:word:]\-\_]+)`
-	nodeNameRe    = `(?P<name>[[:word:]\.\-\_]+)`
-	nearRe        = `(~(?P<near>[[:word:]\.\-\_]+))?`
-	prefixRe      = `/?(?P<prefix>[^@]+)`
-	tagRe         = `((?P<tag>[[:word:]=:\.\-\_]+)\.)?`
-	regionRe      = `(@(?P<region>[[:word:]\.\-\_]+))?`
+	dcRe           = `(@(?P<dc>[[:word:]\.\-\_]+))?`
+	keyRe          = `/?(?P<key>[^@]+)`
+	filterRe       = `(\|(?P<filter>[[:word:]\,]+))?`
+	serviceNameRe  = `(?P<name>[[:word:]\-\_]+)`
+	nodeNameRe     = `(?P<name>[[:word:]\.\-\_]+)`
+	nearRe         = `(~(?P<near>[[:word:]\.\-\_]+))?`
+	prefixRe       = `/?(?P<prefix>[^@]+)`
+	tagRe          = `((?P<tag>[[:word:]=:\.\-\_]+)\.)?`
+	regionRe       = `(@(?P<region>[[:word:]\.\-\_]+))?`
+	nvPathRe       = `/?(?P<path>[^@]+)`
+	nvNamespaceRe  = `(@(?P<namespace>[[:word:]\-\_]+))?`
+	nvListPrefixRe = `/?(?P<prefix>[^@]*)`
+	nvListNSRe     = `(@(?P<namespace>([[:word:]\-\_]+|\*)))?`
+	nvRegionRe     = `(\.(?P<region>[[:word:]\-\_]+))?`
 )
 
 type Type int

@@ -99,6 +99,10 @@ provides the following functions:
 - [Nomad Functions](#nomad-functions)
   - [nomadServices](#nomadservices)
   - [nomadService](#nomadservice)
+  - [nomadVarList](#nomadvarlist)
+  - [nomadVarListSafe](#nomadvarlistsafe)
+  - [nomadVar](#nomadvar)
+  - [nomadVarExists](#nomadvarexists)
 - [Debugging Functions](#debugging)
   - [spew_dump](#spew_dump)
   - [spew_sdump](#spew_sdump)
@@ -1704,7 +1708,7 @@ For example:
 ## Sprig Functions
 
 Consul-template provides access to the Sprig library
-in templates. To use a Sprig function in your template, prepend `sprig_` to the function name.  A full list of Sprig functions can be found in the [Sprig Function Documentation](http://masterminds.github.io/sprig/)
+in templates. To use a Sprig function in your template, prepend `sprig_` to the function name. A full list of Sprig functions can be found in the [Sprig Function Documentation](http://masterminds.github.io/sprig/)
 
 ---
 
@@ -1819,13 +1823,14 @@ This can also be used with a pipe function.
 ## Nomad Functions
 
 Nomad service registrations can be queried using the `nomadServices` and `nomadService` functions.
+Nomad variables can be queried using the `nomadVarList` and `nomadVar` functions.
 Typically these will be used from within a Nomad [template](https://www.nomadproject.io/docs/job-specification/template#nomad-services) configuration.
 
 ### `nomadServices`
 
 This can be used to query the names of services registered in Nomad.
 
-```nomadServices
+```golang
 {{ range nomadServices }}
   {{ .Name .Tags }}
 {{ end }}
@@ -1835,7 +1840,7 @@ This can be used to query the names of services registered in Nomad.
 
 This can be used to query for additional information about each instance of a service registered in Nomad.
 
-```nomadService
+```golang
 {{ range nomadService "my-app" }}
   {{ .Address }} {{ .Port }}
 {{ end}}
@@ -1847,11 +1852,151 @@ the number of instances desired, a unique but consistent identifier associated w
 
 Typically the unique identifier would be the allocation ID in a Nomad job.
 
-```nomadService
+```golang
 {{$allocID := env "NOMAD_ALLOC_ID" -}}
 {{range nomadService 3 $allocID "redis"}}
   {{.Address}} {{.Port}} | {{.Tags}} @ {{.Datacenter}}
 {{- end}}
+```
+
+## Nomad Variables
+
+Consul-template can access Nomad variables and use their values as output
+to or to control template rendering flow.
+
+### `nomadVarList`
+
+This can be used to list the paths of Nomad variables available to the
+currently running template based on Nomad ACLs. You can provide an optional
+prefix to filter the path list by as a parameter. The value returned is a slice
+of NomadVarMeta objects, which print their `Path` value when used as a string.
+
+```golang
+{{ nomadVarList "<PREFIX>" }}
+```
+
+Example:
+
+```golang
+{{ range nomadVarList }}
+  {{ . }}
+{{ end }}
+```
+
+You can provide a prefix to filter the path list as an optional parameter to the
+`nomadVarList` function.
+
+```golang
+{{ range nomadVarList "path/to/filter"}}
+  {{ . }}
+{{ end }}
+```
+
+### `nomadVarListSafe`
+
+Same as [`nomadVarList`](#nomadvarlist), but refuses to render template if the
+variable list query returns blank/empty data.
+
+#### The `NomadVarMeta` Type
+
+```golang
+type NomadVarMeta struct {
+	Namespace, Path          string
+	CreateIndex, ModifyIndex uint64
+	CreateTime, ModifyTime   nanoTime
+}
+```
+
+The `nanoTime` type contains Unix nanoseconds since the epoch. Its String method
+prints it out as a formatted date/time value. It also has a `Time` method that
+can be used to retrieve a Go `time.Time` for further manipulation.
+
+### `nomadVar`
+
+Query [Nomad][nomad] for the Items at the given variable path. If the path
+does not exist or the caller does not have access to it, Consul Template will
+block rendering until the path is available. To avoid blocking, wrap `nomadVar`
+calls with [`nomadVarExists`](#nomadvarexists).
+
+The `nomadVar` function returns a map of NomadVarItems structs. Each member of the
+map corresponds to a member of the variable's `Items` collection. Each map
+value also contains helper methods to get the variable metadata and a
+link to the parent variable.
+
+```golang
+{{ nomadVar "<PATH>" }}
+```
+
+For example:
+
+Given a variable exists at the path `nomad/jobs/redis`, with a single
+key/value pair in its Items collection—`maxconns`:`15`
+
+```golang
+{{ with nomadVar "nomad/jobs/redis" }}{{ .maxconns }}{{ end }}
+```
+
+renders
+
+```text
+15
+```
+
+#### The `NomadVarItems` Type
+
+Calls to the `nomadVar` function return a value of type `NomadVarItems`. This
+value is a map of `string` to `NomadVarItem` elements. It provides some
+convenience methods:
+
+* `Keys`: produces a sorted list of keys to this `NomadVarItems` map.
+
+* `Values`: produces a key-sorted list.
+
+* `Tuples`: produces a key-sorted list of K,V tuple structs.
+
+* `Metadata`: returns this collection's parent metadata as a `NomadVarMeta`
+
+* `Parent`: returns the consul-template version (NomadVariable) of a full
+    variable, which has the Metadata values and Items collection as peers.
+
+#### The `NomadVarItem` Type
+
+Specific item of a NomadVarItems collection that are directly accessed by name or
+the elements that are obtained while ranging the return of `nomadVar` are of type
+`NomadVarItem`.
+
+```golang
+type NomadVarItem struct {
+	Key, Value string
+}
+```
+
+`NomadVarItem` objects also provide helper methods:
+
+* `Metadata`: returns this item's parent's metadata as a `NomadVarMeta`
+
+* `Parent`: returns the consul-template version (NomadVariable) of the
+    Nomad variable that contains this item.
+
+### `nomadVarExists`
+
+Query [Nomad][nomad] to see if a variable exists at the given path. If
+a variable exists, this will return true, false otherwise. Unlike
+[`nomadVar`](#nomadvar), this function will not block if the variable does not
+exist, which can be useful for controlling flow.
+
+```golang
+{{ nomadVarExists "<PATH>" }}
+```
+
+For example:
+
+```golang
+{{ if nomadVarExists "app/beta_active" }}
+  # ...
+{{ else }}
+  # ...
+{{ end }}
 ```
 
 ## Debugging Functions
@@ -1952,7 +2097,7 @@ map[foo:map[bar:true baz:string theAnswer:42]]
 
 outputs
 
-```
+```golang
 map[foo:map[bar:true baz:string theAnswer:42]]
 ```
 
@@ -1964,7 +2109,7 @@ map[foo:map[bar:true baz:string theAnswer:42]]
 
 outputs
 
-```
+```golang
 map[foo:map[bar:true baz:string theAnswer:42]]
 ```
 
@@ -1976,7 +2121,7 @@ map[foo:map[bar:true baz:string theAnswer:42]]
 
 outputs
 
-```
+```golang
 (map[string]interface {})map[foo:(map[string]interface {})map[bar:(bool)true baz:(string)string theAnswer:(float64)42]]
 ```
 
@@ -1990,7 +2135,7 @@ outputs
 
 outputs
 
-```
+```golang
 (map[string]interface {})map[foo:(map[string]interface {})map[theAnswer:(float64)42 bar:(bool)true baz:(string)string]]
 ```
 
@@ -2008,3 +2153,4 @@ If you would prefer to use format strings with a compacted inline printing style
 [consul]: https://www.consul.io "Consul by HashiCorp"
 [text-template]: https://golang.org/pkg/text/template/ "Go's text/template package"
 [vault]: https://www.vaultproject.io "Vault by HashiCorp"
+[nomad]: https://www.nomadproject.io "Nomad by HashiCorp"
