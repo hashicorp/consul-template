@@ -139,8 +139,9 @@ github.com/hashicorp/go-multierror v1.0.0/go.mod h1:dHtQlpGsu+cZNNAkkCN/P3hoUDHh
 github.com/hashicorp/go-multierror v1.1.0/go.mod h1:spPvp8C1qA32ftKqdAHm4hHTbPw+vmowP0z+KUhOZdA=
 github.com/hashicorp/go-multierror v1.1.1 h1:H5DkEtf6CXdFp0N0Em5UCwQpXMWke8IA0+lD48awMYo=
 github.com/hashicorp/go-multierror v1.1.1/go.mod h1:iw975J/qwKPdAO1clOe2L8331t/9/fmwbPZ6JB6eMoM=
-github.com/hashicorp/go-plugin v1.4.3 h1:DXmvivbWD5qdiBts9TpBC7BYL1Aia5sxbRgQB+v6UZM=
 github.com/hashicorp/go-plugin v1.4.3/go.mod h1:5fGEH17QVwTTcR0zV7yhDPLLmFX9YSZ38b18Udy6vYQ=
+github.com/hashicorp/go-plugin v1.4.5 h1:oTE/oQR4eghggRg8VY7PAz3dr++VwDNBGCcOfIvHpBo=
+github.com/hashicorp/go-plugin v1.4.5/go.mod h1:viDMjcLJuDui6pXb8U4HVfb8AamCWhHGUjr2IrTF67s=
 github.com/hashicorp/go-retryablehttp v0.5.3/go.mod h1:9B5zBasrRhHXnJnui7y6sL7es7NDiJgTc6Er0maI1Xs=
 github.com/hashicorp/go-retryablehttp v0.6.6/go.mod h1:vAew36LZh98gCBJNLH42IQ1ER/9wtLZZ8meHqQvEYWY=
 github.com/hashicorp/go-retryablehttp v0.6.7 h1:8/CAEZt/+F7kR7GevNHulKkUjLht3CPmn7egmhieNKo=
@@ -185,8 +186,8 @@ github.com/hashicorp/nomad/api v0.0.0-20221006174558-2aa7e66bdb52/go.mod h1:1dS8
 github.com/hashicorp/serf v0.9.7 h1:hkdgbqizGQHuU5IPqYM1JdSMV8nKfpuOnZYXssk9muY=
 github.com/hashicorp/serf v0.9.7/go.mod h1:TXZNMjZQijwlDvp+r0b63xZ45H7JmCmgg4gpTwn9UV4=
 github.com/hashicorp/vault/api v1.8.0/go.mod h1:uJrw6D3y9Rv7hhmS17JQC50jbPDAZdjZoTtrCCxxs7E=
-github.com/hashicorp/vault/api v1.8.1 h1:bMieWIe6dAlqAAPReZO/8zYtXaWUg/21umwqGZpEjCI=
-github.com/hashicorp/vault/api v1.8.1/go.mod h1:uJrw6D3y9Rv7hhmS17JQC50jbPDAZdjZoTtrCCxxs7E=
+github.com/hashicorp/vault/api v1.8.2 h1:C7OL9YtOtwQbTKI9ogB0A1wffRbCN+rH/LLCHO3d8HM=
+github.com/hashicorp/vault/api v1.8.2/go.mod h1:ML8aYzBIhY5m1MD1B2Q0JV89cC85YVH4t5kBaZiyVaE=
 github.com/hashicorp/vault/api/auth/kubernetes v0.3.0 h1:HkaCmTKzcgLa2tjdiAid1rbmyQNmQGHfnmvIIM2WorY=
 github.com/hashicorp/vault/api/auth/kubernetes v0.3.0/go.mod h1:l1B4MGtLc+P37MabBQiIhP3qd9agj0vqhETmaQjjC/Y=
 github.com/hashicorp/vault/sdk v0.6.0 h1:6Z+In5DXHiUfZvIZdMx7e2loL1PPyDjA4bVh9ZTIAhs=

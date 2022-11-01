@@ -18,7 +18,7 @@ require (
 	github.com/hashicorp/logutils v1.0.0
 	github.com/hashicorp/nomad/api v0.0.0-20221006174558-2aa7e66bdb52
 	github.com/hashicorp/serf v0.9.7 // indirect
-	github.com/hashicorp/vault/api v1.8.1
+	github.com/hashicorp/vault/api v1.8.2
 	github.com/imdario/mergo v0.3.13
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/hashstructure v1.1.0
@@ -48,7 +48,7 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
-	github.com/hashicorp/go-plugin v1.4.3 // indirect
+	github.com/hashicorp/go-plugin v1.4.5 // indirect
 	github.com/hashicorp/go-retryablehttp v0.6.7 // indirect
 	github.com/hashicorp/go-secure-stdlib/mlock v0.1.1 // indirect
 	github.com/hashicorp/go-secure-stdlib/parseutil v0.1.6 // indirect
