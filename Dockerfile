@@ -33,6 +33,6 @@ COPY ./dist/$TARGETOS/$TARGETARCH/$BIN_NAME /bin/
 COPY ./.release/docker-entrypoint.sh /bin/
 ENTRYPOINT ["/bin/docker-entrypoint.sh"]
 
-USER ${NAME}:${NAME}
+USER ${BIN_NAME}:${BIN_NAME}
 CMD /bin/$BIN_NAME
 
