@@ -1686,6 +1686,17 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"helper_splitToMap",
+			&NewTemplateInput{
+				Contents: `{{ "a:x,b:y,c:z" | splitToMap "," ":" }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"map[a:x b:y c:z]",
+			false,
+		},
+		{
 			"helper_timestamp",
 			&NewTemplateInput{
 				Contents: `{{ timestamp }}`,

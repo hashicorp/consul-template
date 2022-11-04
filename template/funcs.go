@@ -1203,6 +1203,26 @@ func split(sep, s string) ([]string, error) {
 	return strings.Split(s, sep), nil
 }
 
+// splitToMap is a version of strings.Split which splits a second time for each
+// item in the slice generated from the first split, building a map
+func splitToMap(sep1, sep2, s string) (map[string]string, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		emptyMap := make(map[string]string)
+		return emptyMap, nil
+	}
+	s1 := strings.Split(s, sep1)
+	m:=make(map[string]string, len(s1))
+	for i := range s1 {
+		k,v,f:=strings.Cut(s1[i],sep2)
+		if !f {
+			continue
+		}
+		m[k]=v
+	}
+	return m, nil
+}
+
 // timestamp returns the current UNIX timestamp in UTC. If an argument is
 // specified, it will be used to format the timestamp.
 func timestamp(s ...string) (string, error) {
