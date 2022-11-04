@@ -75,6 +75,7 @@ provides the following functions:
   - [sha256Hex](#sha256hex)
   - [md5sum](#md5sum)
   - [split](#split)
+  - [splitToMap](#splitToMap)
   - [timestamp](#timestamp)
   - [toJSON](#tojson)
   - [toJSONPretty](#tojsonpretty)
@@ -1497,6 +1498,14 @@ This can be combined with chained and piped with other functions:
 
 ```golang
 {{ key "foo" | toUpper | split "\n" | join "," }}
+```
+
+### `splitToMap`
+
+Splits the given string on the provided separator and splits each resulting item into a key and value:
+
+```golang
+{{ "foo:bar\nbaz:bat\n" | splitToMap "\n" ":" }}
 ```
 
 ### `timestamp`
