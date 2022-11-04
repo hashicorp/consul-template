@@ -379,6 +379,8 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"toUpper":               toUpper,
 		"toYAML":                toYAML,
 		"split":                 split,
+		"sortByLength":          sortByLength,
+		"reverse":               reverse,
 		"byMeta":                byMeta,
 		"sockaddr":              sockaddr,
 		"writeToFile":           writeToFile,

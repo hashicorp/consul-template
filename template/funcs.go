@@ -1203,6 +1203,28 @@ func split(sep, s string) ([]string, error) {
 	return strings.Split(s, sep), nil
 }
 
+type StringLenSlice []string
+
+func (x StringLenSlice) Len() int           { return len(x) }
+func (x StringLenSlice) Less(i, j int) bool { return len(x[j]) < len(x[i]) }
+func (x StringLenSlice) Swap(i, j int)      { x[i], x[j] = x[j], x[i] }
+
+
+// sortByLength sorts a slice of strings ordering largest to smallest
+func sortByLength(a []string) ([]string, error) {
+	sort.Sort(StringLenSlice(a))
+	return a, nil
+}
+
+// reverse reverses the order of a string slice: TODO: reverse any slice.
+func reverse(a []string) ([]string, error) {
+	b := make([]string, len(a))
+	for i := range a {
+		b[len(a)-i-1] = a[i]
+	}
+	return b, nil
+}
+
 // timestamp returns the current UNIX timestamp in UTC. If an argument is
 // specified, it will be used to format the timestamp.
 func timestamp(s ...string) (string, error) {
