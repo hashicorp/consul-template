@@ -18,7 +18,7 @@ func filterVersionMeta(meta map[string]string) map[string]string {
 	filteredMeta := []string{
 		"raft_version", "serf_protocol_current",
 		"serf_protocol_min", "serf_protocol_max", "version",
-		"non_voter", "read_replica", "grpc_port",
+		"non_voter", "read_replica", "grpc_port", "grpc_tls_port",
 	}
 	return filter(meta, filteredMeta)
 }
