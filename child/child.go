@@ -352,7 +352,7 @@ func (c *Child) start() error {
 			c.stopLock.Lock()
 			defer c.stopLock.Unlock()
 			if c.cmd != nil && c.cmd.Process != nil {
-				c.cmd.Process.Kill()
+				c.signal(os.Kill)
 			}
 
 			return fmt.Errorf(
@@ -433,7 +433,7 @@ func (c *Child) kill(immediately bool) {
 	var exited bool
 	defer func() {
 		if !exited {
-			c.cmd.Process.Kill()
+			c.signal(os.Kill)
 		}
 		c.cmd = nil
 	}()
