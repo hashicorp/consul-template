@@ -161,6 +161,7 @@ func runTestConsul(tb testutil.TestingTB) {
 			c.LogLevel = "warn"
 			c.Stdout = ioutil.Discard
 			c.Stderr = ioutil.Discard
+			c.Ports.GRPCTLS = 0
 		})
 	if err != nil {
 		Fatalf("failed to start consul server: %v", err)
@@ -425,6 +426,7 @@ func (v *nomadServer) CreateVariable(path string, data map[string]string, opts *
 	}
 	return err
 }
+
 func (v *nomadServer) CreateNamespace(name string, opts *nomadapi.WriteOptions) error {
 	ns := nomadapi.Namespace{Name: name}
 	_, err := testClients.Nomad().Namespaces().Register(&ns, opts)

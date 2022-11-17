@@ -7,7 +7,7 @@ require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/davecgh/go-spew v1.1.1
 	github.com/hashicorp/consul/api v1.15.3
-	github.com/hashicorp/consul/sdk v0.11.0
+	github.com/hashicorp/consul/sdk v0.12.0
 	github.com/hashicorp/go-gatedio v0.5.0
 	github.com/hashicorp/go-hclog v1.3.1
 	github.com/hashicorp/go-multierror v1.1.1

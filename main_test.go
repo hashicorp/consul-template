@@ -18,18 +18,19 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	log.SetOutput(ioutil.Discard)
 	tb := &test.TestingTB{}
 	consul, err := testutil.NewTestServerConfigT(tb,
 		func(c *testutil.TestServerConfig) {
 			c.LogLevel = "warn"
 			c.Stdout = ioutil.Discard
 			c.Stderr = ioutil.Discard
+			c.Ports.GRPCTLS = 0
 		})
 	if err != nil {
 		log.Fatal(fmt.Errorf("failed to start consul server: %v", err))
 	}
 	testConsul = consul
+	log.SetOutput(ioutil.Discard)
 
 	clients := dep.NewClientSet()
 	if err := clients.CreateConsulClient(&dep.CreateConsulClientInput{
