@@ -1,4 +1,0 @@
-# release configuration
-
-/.release/                              @hashicorp/release-engineering @hashicorp/github-consul-ecosystem
-/.github/workflows/build.yml            @hashicorp/release-engineering @hashicorp/github-consul-ecosystem
