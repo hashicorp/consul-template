@@ -24,7 +24,6 @@ func TestMain(m *testing.M) {
 			c.LogLevel = "warn"
 			c.Stdout = ioutil.Discard
 			c.Stderr = ioutil.Discard
-			c.Ports.GRPCTLS = 0
 		})
 	if err != nil {
 		log.Fatal(fmt.Errorf("failed to start consul server: %v", err))

@@ -161,7 +161,6 @@ func runTestConsul(tb testutil.TestingTB) {
 			c.LogLevel = "warn"
 			c.Stdout = ioutil.Discard
 			c.Stderr = ioutil.Discard
-			c.Ports.GRPCTLS = 0
 		})
 	if err != nil {
 		Fatalf("failed to start consul server: %v", err)
@@ -355,7 +354,6 @@ func testVaultServer(t *testing.T, secrets_path, version string,
 		Description: "test mount",
 		Options:     map[string]string{"version": version},
 	}); err != nil {
-		fmt.Println(err)
 		t.Fatalf("Error creating secrets engine: %s", err)
 	}
 	return testClients, &vaultServer{secretsPath: secrets_path}

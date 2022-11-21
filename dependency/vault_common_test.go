@@ -131,6 +131,7 @@ func setupVaultPKI(clients *ClientSet) {
 	}
 
 	vc := clients.Vault()
+
 	_, err = vc.Logical().Write("pki/root/generate/internal",
 		map[string]interface{}{
 			"common_name": "example.com",
@@ -139,6 +140,18 @@ func setupVaultPKI(clients *ClientSet) {
 	if err != nil {
 		panic(err)
 	}
+
+	for needCA, count := true, 0; needCA && count < 5; count++ {
+		l, err := vc.Logical().List("pki/keys")
+		if err != nil && !strings.Contains(err.Error(), "connection refused") {
+			panic(err)
+		}
+		if l != nil {
+			needCA = false
+		}
+		time.Sleep(time.Millisecond)
+	}
+
 	_, err = vc.Logical().Write("pki/roles/example-dot-com",
 		map[string]interface{}{
 			"allowed_domains":     "example.com",
