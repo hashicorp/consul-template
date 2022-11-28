@@ -59,7 +59,7 @@ func (d *KVGetQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface{},
 
 	// NOTE that the Consul HTTP KV API returns a 404 on failed gets, but the
 	// Consul Go API Package ignores those for KV Gets, returning nil data and
-	// an error.
+	// a nil error (ie. only qm will have a value).
 	pair, qm, err := clients.Consul().KV().Get(d.key, opts.ToConsulOpts())
 	if err != nil {
 		return nil, nil, errors.Wrap(err, d.String())
