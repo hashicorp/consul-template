@@ -1,3 +1,15 @@
+## v0.29.6 (Nov 30, 2022)
+
+BUG FIXES:
+* Force kill fails to kill the process group in exec mode [[GH-1666](https://github.com/hashicorp/consul-template/issues/1666), [GH-1668](https://github.com/hashicorp/consul-template/pull/1668)]
+* Fix user set in dockerfile [[GH-1662](https://github.com/hashicorp/consul-template/pull/1662)]
+* Module version update to x/text package for CVE-2022-32149, though the CVE didn't impact consul-template [[GH-1655](https://github.com/hashicorp/consul-template/issues/1655)]
+
+IMPROVEMENTS:
+* Update build to use 1.18+ to add template support for continue and break [[GH-1663](https://github.com/hashicorp/consul-template/issues/1663)]
+* Template function 'splitToMap' [[GH-1664](https://github.com/hashicorp/consul-template/pull/1664)]
+* Template function 'mustEnv' [[GH-1657](https://github.com/hashicorp/consul-template/pull/1657)]
+
 ## v0.29.5 (Oct 04, 2022)
 
 BUG FIXES:
