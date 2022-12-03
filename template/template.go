@@ -5,7 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 	"text/template"
 
@@ -134,7 +134,7 @@ func NewTemplate(i *NewTemplateInput) (*Template, error) {
 	t.config = i.Config
 
 	if i.Source != "" {
-		contents, err := ioutil.ReadFile(i.Source)
+		contents, err := os.ReadFile(i.Source)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to read template")
 		}

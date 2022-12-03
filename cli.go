@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
@@ -213,7 +212,7 @@ func (cli *CLI) ParseFlags(args []string) (
 
 	// Parse the flags and options
 	flags := flag.NewFlagSet(version.Name, flag.ContinueOnError)
-	flags.SetOutput(ioutil.Discard)
+	flags.SetOutput(io.Discard)
 	flags.Usage = func() {}
 
 	flags.Var((funcVar)(func(s string) error {

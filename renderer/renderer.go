@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -60,7 +59,7 @@ type RenderResult struct {
 // Render atomically renders a file contents to disk, returning a result of
 // whether it would have rendered and actually did render.
 func Render(i *RenderInput) (*RenderResult, error) {
-	existing, err := ioutil.ReadFile(i.Path)
+	existing, err := os.ReadFile(i.Path)
 	fileExists := !os.IsNotExist(err)
 	if err != nil && fileExists {
 		return nil, errors.Wrap(err, "failed reading file")
@@ -147,7 +146,7 @@ func AtomicWrite(path string, createDestDirs bool, contents []byte, perms os.Fil
 		}
 	}
 
-	f, err := ioutil.TempFile(parent, "")
+	f, err := os.CreateTemp(parent, "")
 	if err != nil {
 		return err
 	}

@@ -3,7 +3,6 @@ package renderer
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -15,12 +14,12 @@ func TestAtomicWrite(t *testing.T) {
 	t.Run("parent_folder_missing", func(t *testing.T) {
 		// Create a TempDir and a TempFile in that TempDir, then remove them to
 		// "simulate" a non-existent folder
-		outDir, err := ioutil.TempDir("", "")
+		outDir, err := os.MkdirTemp("", "")
 		if err != nil {
 			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
-		outFile, err := ioutil.TempFile(outDir, "")
+		outFile, err := os.CreateTemp(outDir, "")
 		if err != nil {
 			t.Error(err)
 		}
@@ -38,12 +37,12 @@ func TestAtomicWrite(t *testing.T) {
 	})
 
 	t.Run("retains_permissions", func(t *testing.T) {
-		outDir, err := ioutil.TempDir("", "")
+		outDir, err := os.MkdirTemp("", "")
 		if err != nil {
 			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
-		outFile, err := ioutil.TempFile(outDir, "")
+		outFile, err := os.CreateTemp(outDir, "")
 		if err != nil {
 			t.Error(err)
 		}
@@ -65,7 +64,7 @@ func TestAtomicWrite(t *testing.T) {
 	})
 
 	t.Run("non_existent", func(t *testing.T) {
-		outDir, err := ioutil.TempDir("", "")
+		outDir, err := os.MkdirTemp("", "")
 		if err != nil {
 			t.Error(err)
 		}
@@ -84,7 +83,7 @@ func TestAtomicWrite(t *testing.T) {
 	})
 
 	t.Run("non_existent_no_create", func(t *testing.T) {
-		outDir, err := ioutil.TempDir("", "")
+		outDir, err := os.MkdirTemp("", "")
 		if err != nil {
 			t.Error(err)
 		}
@@ -99,12 +98,12 @@ func TestAtomicWrite(t *testing.T) {
 	})
 
 	t.Run("backup", func(t *testing.T) {
-		outDir, err := ioutil.TempDir("", "")
+		outDir, err := os.MkdirTemp("", "")
 		if err != nil {
 			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
-		outFile, err := ioutil.TempFile(outDir, "")
+		outFile, err := os.CreateTemp(outDir, "")
 		if err != nil {
 			t.Error(err)
 		}
@@ -119,7 +118,7 @@ func TestAtomicWrite(t *testing.T) {
 			t.Error(err)
 		}
 
-		f, err := ioutil.ReadFile(outFile.Name() + ".bak")
+		f, err := os.ReadFile(outFile.Name() + ".bak")
 		if err != nil {
 			t.Error(err)
 		}
@@ -137,12 +136,12 @@ func TestAtomicWrite(t *testing.T) {
 	})
 
 	t.Run("backup_not_exists", func(t *testing.T) {
-		outDir, err := ioutil.TempDir("", "")
+		outDir, err := os.MkdirTemp("", "")
 		if err != nil {
 			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
-		outFile, err := ioutil.TempFile(outDir, "")
+		outFile, err := os.CreateTemp(outDir, "")
 		if err != nil {
 			t.Error(err)
 		}
@@ -165,12 +164,12 @@ func TestAtomicWrite(t *testing.T) {
 	})
 
 	t.Run("backup_backup", func(t *testing.T) {
-		outDir, err := ioutil.TempDir("", "")
+		outDir, err := os.MkdirTemp("", "")
 		if err != nil {
 			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
-		outFile, err := ioutil.TempFile(outDir, "")
+		outFile, err := os.CreateTemp(outDir, "")
 		if err != nil {
 			t.Error(err)
 		}
@@ -179,7 +178,7 @@ func TestAtomicWrite(t *testing.T) {
 		}
 
 		contains := func(filename, content string) {
-			f, err := ioutil.ReadFile(filename + ".bak")
+			f, err := os.ReadFile(filename + ".bak")
 			if err != nil {
 				t.Error(err)
 			}
@@ -204,12 +203,12 @@ func TestAtomicWrite(t *testing.T) {
 
 func TestRender(t *testing.T) {
 	t.Run("file-exists-same-content", func(t *testing.T) {
-		outDir, err := ioutil.TempDir("", "")
+		outDir, err := os.MkdirTemp("", "")
 		if err != nil {
 			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
-		outFile, err := ioutil.TempFile(outDir, "")
+		outFile, err := os.CreateTemp(outDir, "")
 		if err != nil {
 			t.Error(err)
 		}
@@ -237,12 +236,12 @@ func TestRender(t *testing.T) {
 		}
 	})
 	t.Run("file-exists-diff-content", func(t *testing.T) {
-		outDir, err := ioutil.TempDir("", "")
+		outDir, err := os.MkdirTemp("", "")
 		if err != nil {
 			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
-		outFile, err := ioutil.TempFile(outDir, "")
+		outFile, err := os.CreateTemp(outDir, "")
 		if err != nil {
 			t.Error(err)
 		}
@@ -271,7 +270,7 @@ func TestRender(t *testing.T) {
 		}
 	})
 	t.Run("file-no-exists", func(t *testing.T) {
-		outDir, err := ioutil.TempDir("", "")
+		outDir, err := os.MkdirTemp("", "")
 		if err != nil {
 			t.Error(err)
 		}
@@ -294,7 +293,7 @@ func TestRender(t *testing.T) {
 		}
 	})
 	t.Run("empty-file-no-exists", func(t *testing.T) {
-		outDir, err := ioutil.TempDir("", "")
+		outDir, err := os.MkdirTemp("", "")
 		if err != nil {
 			t.Error(err)
 		}
@@ -357,13 +356,13 @@ func TestRender_Chown(t *testing.T) {
 	}
 
 	t.Run("sets-file-ownership-when-file-exists-same-content", func(t *testing.T) {
-		outDir, err := ioutil.TempDir("", "")
+		outDir, err := os.MkdirTemp("", "")
 		if err != nil {
 			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
 
-		outFile, err := ioutil.TempFile(outDir, "")
+		outFile, err := os.CreateTemp(outDir, "")
 		if err != nil {
 			t.Error(err)
 		}
@@ -402,12 +401,12 @@ func TestRender_Chown(t *testing.T) {
 	})
 
 	t.Run("sets-file-ownership-when-file-exists-diff-content", func(t *testing.T) {
-		outDir, err := ioutil.TempDir("", "")
+		outDir, err := os.MkdirTemp("", "")
 		if err != nil {
 			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
-		outFile, err := ioutil.TempFile(outDir, "")
+		outFile, err := os.CreateTemp(outDir, "")
 		if err != nil {
 			t.Error(err)
 		}
@@ -446,7 +445,7 @@ func TestRender_Chown(t *testing.T) {
 		}
 	})
 	t.Run("sets-file-ownership-when-file-no-exists", func(t *testing.T) {
-		outDir, err := ioutil.TempDir("", "")
+		outDir, err := os.MkdirTemp("", "")
 		if err != nil {
 			t.Error(err)
 		}
@@ -479,7 +478,7 @@ func TestRender_Chown(t *testing.T) {
 		}
 	})
 	t.Run("sets-file-ownership-when-empty-file-no-exists", func(t *testing.T) {
-		outDir, err := ioutil.TempDir("", "")
+		outDir, err := os.MkdirTemp("", "")
 		if err != nil {
 			t.Error(err)
 		}
@@ -513,12 +512,12 @@ func TestRender_Chown(t *testing.T) {
 	})
 
 	t.Run("should-be-noop-when-missing-user", func(t *testing.T) {
-		outDir, err := ioutil.TempDir("", "")
+		outDir, err := os.MkdirTemp("", "")
 		if err != nil {
 			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
-		outFile, err := ioutil.TempFile(outDir, "")
+		outFile, err := os.CreateTemp(outDir, "")
 		if err != nil {
 			t.Error(err)
 		}
@@ -562,12 +561,12 @@ func TestRender_Chown(t *testing.T) {
 	})
 
 	t.Run("should-be-noop-when-missing-group", func(t *testing.T) {
-		outDir, err := ioutil.TempDir("", "")
+		outDir, err := os.MkdirTemp("", "")
 		if err != nil {
 			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
-		outFile, err := ioutil.TempFile(outDir, "")
+		outFile, err := os.CreateTemp(outDir, "")
 		if err != nil {
 			t.Error(err)
 		}
@@ -612,12 +611,12 @@ func TestRender_Chown(t *testing.T) {
 	})
 
 	t.Run("should-be-noop-when-user-and-group-are-both-empty", func(t *testing.T) {
-		outDir, err := ioutil.TempDir("", "")
+		outDir, err := os.MkdirTemp("", "")
 		if err != nil {
 			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
-		outFile, err := ioutil.TempFile(outDir, "")
+		outFile, err := os.CreateTemp(outDir, "")
 		if err != nil {
 			t.Error(err)
 		}
@@ -662,12 +661,12 @@ func TestRender_Chown(t *testing.T) {
 		}
 	})
 	t.Run("should-be-noop-user-only-second-pass", func(t *testing.T) {
-		outDir, err := ioutil.TempDir("", "")
+		outDir, err := os.MkdirTemp("", "")
 		if err != nil {
 			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
-		outFile, err := ioutil.TempFile(outDir, "")
+		outFile, err := os.CreateTemp(outDir, "")
 		if err != nil {
 			t.Error(err)
 		}
@@ -711,12 +710,12 @@ func TestRender_Chown(t *testing.T) {
 		}
 	})
 	t.Run("should-be-noop-group-only-second-pass", func(t *testing.T) {
-		outDir, err := ioutil.TempDir("", "")
+		outDir, err := os.MkdirTemp("", "")
 		if err != nil {
 			t.Error(err)
 		}
 		defer os.RemoveAll(outDir)
-		outFile, err := ioutil.TempFile(outDir, "")
+		outFile, err := os.CreateTemp(outDir, "")
 		if err != nil {
 			t.Error(err)
 		}

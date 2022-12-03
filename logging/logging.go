@@ -3,7 +3,6 @@ package logging
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"path/filepath"
 	"strings"
@@ -138,7 +137,7 @@ func newWriter(config *Config) (io.Writer, error) {
 // we use.
 func newLogFilter(out io.Writer, logLevel logutils.LogLevel) (*logutils.LevelFilter, error) {
 	if out == nil {
-		out = ioutil.Discard
+		out = io.Discard
 	}
 
 	logFilter := &logutils.LevelFilter{

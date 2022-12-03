@@ -1,7 +1,6 @@
 package dependency
 
 import (
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -15,7 +14,7 @@ func TestVaultAgentTokenQuery_Fetch(t *testing.T) {
 	// other tests if run in parallel
 
 	// Set up the Vault token file.
-	tokenFile, err := ioutil.TempFile("", "token1")
+	tokenFile, err := os.CreateTemp("", "token1")
 	if err != nil {
 		t.Fatal(err)
 	}

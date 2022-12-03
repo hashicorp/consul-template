@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"testing"
@@ -22,14 +22,14 @@ func TestMain(m *testing.M) {
 	consul, err := testutil.NewTestServerConfigT(tb,
 		func(c *testutil.TestServerConfig) {
 			c.LogLevel = "warn"
-			c.Stdout = ioutil.Discard
-			c.Stderr = ioutil.Discard
+			c.Stdout = io.Discard
+			c.Stderr = io.Discard
 		})
 	if err != nil {
 		log.Fatal(fmt.Errorf("failed to start consul server: %v", err))
 	}
 	testConsul = consul
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 
 	clients := dep.NewClientSet()
 	if err := clients.CreateConsulClient(&dep.CreateConsulClientInput{

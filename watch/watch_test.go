@@ -2,7 +2,7 @@ package watch
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -31,7 +31,7 @@ func TestMain(m *testing.M) {
 
 // sub-main so I can use defer
 func main(m *testing.M) int {
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	testVault = newTestVault()
 	defer func() { testVault.Stop() }()
 
@@ -70,8 +70,8 @@ func newTestVault() *vaultServer {
 		"-dev-no-store-token",
 	}
 	cmd := exec.Command("vault", args...)
-	cmd.Stdout = ioutil.Discard
-	cmd.Stderr = ioutil.Discard
+	cmd.Stdout = io.Discard
+	cmd.Stderr = io.Discard
 
 	if err := cmd.Start(); err != nil {
 		panic("vault failed to start: " + err.Error())
@@ -188,8 +188,8 @@ func runVaultAgent(clients *dep.ClientSet, role_id string) string {
 		"agent", "-exit-after-auth", "-config=" + vaconf,
 	}
 	cmd := exec.Command("vault", args...)
-	cmd.Stdout = ioutil.Discard
-	cmd.Stderr = ioutil.Discard
+	cmd.Stdout = io.Discard
+	cmd.Stderr = io.Discard
 
 	if err := cmd.Run(); err != nil {
 		panic("vault agent failed to run: " + err.Error())

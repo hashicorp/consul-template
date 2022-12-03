@@ -3,7 +3,7 @@ package dependency
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -32,7 +32,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	nomadFuture := runTestNomad()
 	runTestVault()
 	tb := &test.TestingTB{}
@@ -159,8 +159,8 @@ func runTestConsul(tb testutil.TestingTB) {
 	consul, err := testutil.NewTestServerConfigT(tb,
 		func(c *testutil.TestServerConfig) {
 			c.LogLevel = "warn"
-			c.Stdout = ioutil.Discard
-			c.Stderr = ioutil.Discard
+			c.Stdout = io.Discard
+			c.Stderr = io.Discard
 		})
 	if err != nil {
 		Fatalf("failed to start consul server: %v", err)
@@ -184,8 +184,8 @@ func runTestNomad() <-chan error {
 		"-network-speed=100",
 		"-log-level=error", // We're just discarding it anyway
 	)
-	cmd.Stdout = ioutil.Discard
-	cmd.Stderr = ioutil.Discard
+	cmd.Stdout = io.Discard
+	cmd.Stderr = io.Discard
 
 	if err := cmd.Start(); err != nil {
 		Fatalf("nomad failed to start: %v", err)
@@ -328,8 +328,8 @@ func runTestVault() {
 		"-dev-no-store-token",
 	}
 	cmd := exec.Command("vault", args...)
-	cmd.Stdout = ioutil.Discard
-	cmd.Stderr = ioutil.Discard
+	cmd.Stdout = io.Discard
+	cmd.Stderr = io.Discard
 
 	if err := cmd.Start(); err != nil {
 		Fatalf("vault failed to start: %v", err)
