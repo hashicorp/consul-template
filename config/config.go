@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -369,7 +368,7 @@ func TestConfig(c *Config) *Config {
 // FromFile reads the configuration file at the given path and returns a new
 // Config struct with the data populated.
 func FromFile(path string) (*Config, error) {
-	c, err := ioutil.ReadFile(path)
+	c, err := os.ReadFile(path)
 	if err != nil {
 		return nil, errors.Wrap(err, "from file: "+path)
 	}
@@ -398,7 +397,7 @@ func FromPath(path string) (*Config, error) {
 	// Recursively parse directories, single load files
 	if stat.Mode().IsDir() {
 		// Ensure the given filepath has at least one config file
-		_, err := ioutil.ReadDir(path)
+		_, err := os.ReadDir(path)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed listing dir: "+path)
 		}
@@ -638,7 +637,7 @@ func stringFromEnv(list []string, def string) *string {
 
 func stringFromFile(list []string, def string) *string {
 	for _, s := range list {
-		c, err := ioutil.ReadFile(s)
+		c, err := os.ReadFile(s)
 		if err == nil {
 			return String(strings.TrimSpace(string(c)))
 		}

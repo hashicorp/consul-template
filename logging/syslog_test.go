@@ -1,7 +1,7 @@
 package logging
 
 import (
-	"io/ioutil"
+	"io"
 	"os"
 	"runtime"
 	"testing"
@@ -27,7 +27,7 @@ func TestSyslogFilter(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	filt, err := newLogFilter(ioutil.Discard, logutils.LogLevel("INFO"))
+	filt, err := newLogFilter(io.Discard, logutils.LogLevel("INFO"))
 	if err != nil {
 		t.Fatal(err)
 	}

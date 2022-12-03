@@ -3,7 +3,6 @@ package template
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/user"
 	"reflect"
@@ -20,7 +19,7 @@ import (
 )
 
 func TestNewTemplate(t *testing.T) {
-	f, err := ioutil.TempFile("", "")
+	f, err := os.CreateTemp("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,7 +130,7 @@ func TestNewTemplate(t *testing.T) {
 func TestTemplate_Execute(t *testing.T) {
 	now = func() time.Time { return time.Unix(0, 0).UTC() }
 
-	f, err := ioutil.TempFile("", "")
+	f, err := os.CreateTemp("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2500,7 +2499,7 @@ func Test_writeToFile(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			outDir, err := ioutil.TempDir("", "")
+			outDir, err := os.MkdirTemp("", "")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2508,7 +2507,7 @@ func Test_writeToFile(t *testing.T) {
 
 			var outputFilePath string
 			if tc.filePath == "" {
-				outputFile, err := ioutil.TempFile(outDir, "")
+				outputFile, err := os.CreateTemp(outDir, "")
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -2540,7 +2539,7 @@ func Test_writeToFile(t *testing.T) {
 
 			// Compare generated file content with the expectation.
 			// The function should generate an empty string to the output.
-			_generatedFileContent, err := ioutil.ReadFile(outputFilePath)
+			_generatedFileContent, err := os.ReadFile(outputFilePath)
 			generatedFileContent := string(_generatedFileContent)
 			if err != nil {
 				t.Fatal(err)

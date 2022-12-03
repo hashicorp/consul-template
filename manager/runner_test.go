@@ -3,7 +3,6 @@ package manager
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -388,7 +387,7 @@ func TestRunner_Run(t *testing.T) {
 			"no_command_if_same_template",
 			func(t *testing.T, r *Runner) {
 				r.dry = false
-				if err := ioutil.WriteFile("/tmp/ct-no_command_if_same_template", []byte("hello"), 0o644); err != nil {
+				if err := os.WriteFile("/tmp/ct-no_command_if_same_template", []byte("hello"), 0o644); err != nil {
 					t.Fatal(err)
 				}
 			},
@@ -500,13 +499,13 @@ func TestRunner_Run(t *testing.T) {
 
 func TestRunner_Start(t *testing.T) {
 	t.Run("store_pid", func(t *testing.T) {
-		pid, err := ioutil.TempFile("", "")
+		pid, err := os.CreateTemp("", "")
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer os.Remove(pid.Name())
 
-		out, err := ioutil.TempFile("", "")
+		out, err := os.CreateTemp("", "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -535,7 +534,7 @@ func TestRunner_Start(t *testing.T) {
 		case err := <-r.ErrCh:
 			t.Fatal(err)
 		case <-r.renderedCh:
-			c, err := ioutil.ReadFile(pid.Name())
+			c, err := os.ReadFile(pid.Name())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -548,7 +547,7 @@ func TestRunner_Start(t *testing.T) {
 	})
 
 	t.Run("run_no_deps", func(t *testing.T) {
-		out, err := ioutil.TempFile("", "")
+		out, err := os.CreateTemp("", "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -576,7 +575,7 @@ func TestRunner_Start(t *testing.T) {
 		case err := <-r.ErrCh:
 			t.Fatal(err)
 		case <-r.renderedCh:
-			act, err := ioutil.ReadFile(out.Name())
+			act, err := os.ReadFile(out.Name())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -592,7 +591,7 @@ func TestRunner_Start(t *testing.T) {
 	t.Run("single_dependency", func(t *testing.T) {
 		testConsul.SetKVString(t, "single-dep-foo", "bar")
 
-		out, err := ioutil.TempFile("", "")
+		out, err := os.CreateTemp("", "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -623,7 +622,7 @@ func TestRunner_Start(t *testing.T) {
 		case err := <-r.ErrCh:
 			t.Fatal(err)
 		case <-r.renderedCh:
-			act, err := ioutil.ReadFile(out.Name())
+			act, err := os.ReadFile(out.Name())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -640,7 +639,7 @@ func TestRunner_Start(t *testing.T) {
 		testConsul.SetKVString(t, "multipass-foo", "multipass-bar")
 		testConsul.SetKVString(t, "multipass-bar", "zip")
 
-		out, err := ioutil.TempFile("", "")
+		out, err := os.CreateTemp("", "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -671,7 +670,7 @@ func TestRunner_Start(t *testing.T) {
 		case err := <-r.ErrCh:
 			t.Fatal(err)
 		case <-r.renderedCh:
-			act, err := ioutil.ReadFile(out.Name())
+			act, err := os.ReadFile(out.Name())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -685,7 +684,7 @@ func TestRunner_Start(t *testing.T) {
 	})
 
 	t.Run("exec", func(t *testing.T) {
-		out, err := ioutil.TempFile("", "")
+		out, err := os.CreateTemp("", "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -740,7 +739,7 @@ func TestRunner_Start(t *testing.T) {
 	})
 
 	t.Run("exec_once", func(t *testing.T) {
-		out, err := ioutil.TempFile("", "")
+		out, err := os.CreateTemp("", "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -798,11 +797,11 @@ func TestRunner_Start(t *testing.T) {
 	t.Run("exec-wait", func(t *testing.T) {
 		testConsul.SetKVString(t, "exec-wait-foo", "foo")
 
-		firstOut, err := ioutil.TempFile("", "foo")
+		firstOut, err := os.CreateTemp("", "foo")
 		if err != nil {
 			t.Fatal(err)
 		}
-		os.Remove(firstOut.Name())       // remove ioutil created file
+		os.Remove(firstOut.Name())       // remove os created file
 		defer os.Remove(firstOut.Name()) // remove template created file
 
 		c := config.DefaultConfig().Merge(&config.Config{
@@ -867,12 +866,12 @@ func TestRunner_Start(t *testing.T) {
 		testConsul.SetKVString(t, "multi-exec-wait-foo", "bar")
 		testConsul.SetKVString(t, "multi-exec-wait-bar", "bat")
 
-		firstOut, err := ioutil.TempFile("", "foo")
+		firstOut, err := os.CreateTemp("", "foo")
 		if err != nil {
 			t.Fatal(err)
 		}
 		defer os.Remove(firstOut.Name())
-		secondOut, err := ioutil.TempFile("", "bar")
+		secondOut, err := os.CreateTemp("", "bar")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -993,7 +992,7 @@ func TestRunner_Start(t *testing.T) {
 	})
 
 	t.Run("parse_only", func(t *testing.T) {
-		out, err := ioutil.TempFile("", "")
+		out, err := os.CreateTemp("", "")
 		if err != nil {
 			t.Fatal(err)
 		}

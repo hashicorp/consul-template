@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"reflect"
 	"strings"
@@ -17,7 +16,7 @@ import (
 )
 
 func TestCLI_ParseFlags(t *testing.T) {
-	f, err := ioutil.TempFile("", "")
+	f, err := os.CreateTemp("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -850,7 +849,7 @@ func TestCLI_Run(t *testing.T) {
 	}
 
 	t.Run("once", func(t *testing.T) {
-		f, err := ioutil.TempFile("", "")
+		f, err := os.CreateTemp("", "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -859,7 +858,7 @@ func TestCLI_Run(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		dest, err := ioutil.TempFile("", "")
+		dest, err := os.CreateTemp("", "")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -887,7 +886,7 @@ func TestCLI_Run(t *testing.T) {
 			if status != ExitCodeOK {
 				t.Errorf("\nexp: %#v\nact: %#v", ExitCodeOK, status)
 			}
-			b, err := ioutil.ReadFile(dest.Name())
+			b, err := os.ReadFile(dest.Name())
 			if err != nil {
 				t.Errorf("\nerror reading file: %s\nout: %s", err, out.String())
 			}
@@ -901,7 +900,7 @@ func TestCLI_Run(t *testing.T) {
 	})
 
 	t.Run("reload", func(t *testing.T) {
-		f, err := ioutil.TempFile("", "")
+		f, err := os.CreateTemp("", "")
 		if err != nil {
 			t.Fatal(err)
 		}

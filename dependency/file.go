@@ -2,7 +2,6 @@ package dependency
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -57,7 +56,7 @@ func (d *FileQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, 
 
 		log.Printf("[TRACE] %s: reported change", d)
 
-		data, err := ioutil.ReadFile(d.path)
+		data, err := os.ReadFile(d.path)
 		if err != nil {
 			return "", nil, errors.Wrap(err, d.String())
 		}

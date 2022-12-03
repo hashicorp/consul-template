@@ -2,7 +2,7 @@ package child
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"reflect"
@@ -22,14 +22,14 @@ import (
 const fileWaitSleepDelay = 50 * time.Millisecond
 
 func TestMain(m *testing.M) {
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	os.Exit(m.Run())
 }
 
 func testChild(t *testing.T) *Child {
 	c, err := New(&NewInput{
-		Stdout:       ioutil.Discard,
-		Stderr:       ioutil.Discard,
+		Stdout:       io.Discard,
+		Stderr:       io.Discard,
 		Command:      "echo",
 		Args:         []string{"hello", "world"},
 		ReloadSignal: os.Interrupt,

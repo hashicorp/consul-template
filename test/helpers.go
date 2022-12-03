@@ -1,7 +1,6 @@
 package test
 
 import (
-	"io/ioutil"
 	"os"
 	"strings"
 	"sync"
@@ -17,7 +16,7 @@ import (
 func CreateTempfile(tb testing.TB, b []byte) *os.File {
 	tb.Helper()
 
-	f, err := ioutil.TempFile(os.TempDir(), "")
+	f, err := os.CreateTemp(os.TempDir(), "")
 	require.NoError(tb, err)
 
 	tb.Cleanup(func() {
@@ -54,7 +53,7 @@ func WaitForContents(t *testing.T, d time.Duration, p, c string) {
 			default:
 			}
 
-			actual, err := ioutil.ReadFile(p)
+			actual, err := os.ReadFile(p)
 			if err != nil && !os.IsNotExist(err) {
 				errCh <- err
 				return

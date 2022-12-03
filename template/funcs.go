@@ -8,7 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"os/exec"
 	"os/user"
@@ -1314,7 +1314,7 @@ func toTOML(m map[string]interface{}) (string, error) {
 	if err := enc.Encode(m); err != nil {
 		return "", errors.Wrap(err, "toTOML")
 	}
-	result, err := ioutil.ReadAll(buf)
+	result, err := io.ReadAll(buf)
 	if err != nil {
 		return "", errors.Wrap(err, "toTOML")
 	}
