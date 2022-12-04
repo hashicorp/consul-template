@@ -1214,13 +1214,13 @@ func splitToMap(sep1, sep2, s string) (map[string]string, error) {
 		return emptyMap, nil
 	}
 	s1 := strings.Split(s, sep1)
-	m:=make(map[string]string, len(s1))
+	m := make(map[string]string, len(s1))
 	for i := range s1 {
-		k,v,f:=strings.Cut(s1[i],sep2)
+		k, v, f := strings.Cut(s1[i], sep2)
 		if !f {
 			continue
 		}
-		m[k]=v
+		m[k] = v
 	}
 	return m, nil
 }

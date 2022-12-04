@@ -1206,7 +1206,7 @@ func TestTemplate_Execute(t *testing.T) {
 				Contents: `{{ mustEnv "CT_TEST_NONEXISTENT" }}`,
 			},
 			&ExecuteInput{
-				Brain:  NewBrain(),
+				Brain: NewBrain(),
 			},
 			"",
 			true,
