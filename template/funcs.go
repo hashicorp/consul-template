@@ -28,6 +28,8 @@ import (
 	socktmpl "github.com/hashicorp/go-sockaddr/template"
 	"github.com/imdario/mergo"
 	"github.com/pkg/errors"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -1290,7 +1292,7 @@ func toUnescapedJSONPretty(m map[string]interface{}) (string, error) {
 
 // toTitle converts the given string (usually by a pipe) to titlecase.
 func toTitle(s string) (string, error) {
-	return strings.Title(s), nil
+	return cases.Title(language.Und, cases.NoLower).String(s), nil
 }
 
 // toUpper converts the given string (usually by a pipe) to uppercase.
