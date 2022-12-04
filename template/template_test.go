@@ -1790,6 +1790,17 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"helper_toTitle_unicode",
+			&NewTemplateInput{
+				Contents: `{{ "this is a sentence\u2026and another sentence\u2026with a \xf0\x9f\x9a\x80rocket" | toTitle }}`,
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"This Is A Sentence\u2026And Another Sentence\u2026With A \xf0\x9f\x9a\x80Rocket",
+			false,
+		},
+		{
 			"helper_toTOML",
 			&NewTemplateInput{
 				Contents: `{{ "{\"foo\":\"bar\"}" | parseJSON | toTOML }}`,
