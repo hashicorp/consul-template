@@ -1052,13 +1052,13 @@ func parseBool(s string) (bool, error) {
 	return result, nil
 }
 
-// parseFloat parses a string into a base 10 float
+// parseFloat parses a string into a floating-point number with 64-bit precision
 func parseFloat(s string) (float64, error) {
 	if s == "" {
 		return 0.0, nil
 	}
 
-	result, err := strconv.ParseFloat(s, 10)
+	result, err := strconv.ParseFloat(s, 64)
 	if err != nil {
 		return 0, errors.Wrap(err, "parseFloat")
 	}
