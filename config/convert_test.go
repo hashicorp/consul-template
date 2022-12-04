@@ -602,7 +602,7 @@ func TestTimeDurationVal(t *testing.T) {
 		{
 			"present",
 			TimeDuration(10 * time.Second),
-			time.Duration(10 * time.Second),
+			10 * time.Second,
 		},
 	}
 

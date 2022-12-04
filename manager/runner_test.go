@@ -693,7 +693,7 @@ func TestRunner_Start(t *testing.T) {
 		c := config.DefaultConfig().Merge(&config.Config{
 			Exec: &config.ExecConfig{
 				Command:     []string{`sleep 30`},
-				KillTimeout: config.TimeDuration(time.Duration(10 * time.Second)),
+				KillTimeout: config.TimeDuration(10 * time.Second),
 			},
 			Templates: &config.TemplateConfigs{
 				&config.TemplateConfig{
@@ -974,8 +974,8 @@ func TestRunner_Start(t *testing.T) {
 				}
 			}
 			exp := "foo"
-			if exp != string(act) {
-				t.Errorf("\nexp: %#v\nact: %#v", exp, string(act))
+			if exp != act {
+				t.Errorf("\nexp: %#v\nact: %#v", exp, act)
 			}
 			expOut := "> \nfoo"
 			if expOut != o.String() {
