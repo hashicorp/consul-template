@@ -585,6 +585,9 @@ func TestVaultReadQuery_Fetch_NonSecrets(t *testing.T) {
 		map[string]interface{}{
 			"policy": `path "auth/approle/role/my-approle/role-id" { capabilities = ["read"] }`,
 		})
+	if err != nil {
+		t.Fatal(err)
+	}
 	secret, err := vc.Auth().Token().Create(&api.TokenCreateRequest{
 		Policies: []string{"operator"},
 	})
