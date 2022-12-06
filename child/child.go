@@ -339,11 +339,9 @@ func (c *Child) start() error {
 			if code != 0 {
 				return fmt.Errorf(
 					"command exited with a non-zero exit status:\n"+
-						"\n"+
-						"    %s\n"+
-						"\n"+
-						"This is assumed to be a failure. Please ensure the command\n"+
-						"exits with a zero exit status.",
+						"\n    %s\n\n"+
+						"Please ensure the command exits with a zero (0) "+
+						"exit status to indicate success",
 					c.Command(),
 				)
 			}
@@ -356,16 +354,8 @@ func (c *Child) start() error {
 			}
 
 			return fmt.Errorf(
-				"command did not exit within %q:\n"+
-					"\n"+
-					"    %s\n"+
-					"\n"+
-					"Commands must exit in a timely manner in order for processing to\n"+
-					"continue. Consider using a process supervisor or utilizing the\n"+
-					"built-in exec mode instead.",
-				c.timeout,
-				c.Command(),
-			)
+				"command did not exit within time limit (%q):\n    %s",
+				c.timeout, c.Command())
 		}
 	}
 
