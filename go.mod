@@ -9,7 +9,7 @@ require (
 	github.com/hashicorp/consul/api v1.18.0
 	github.com/hashicorp/consul/sdk v0.13.0
 	github.com/hashicorp/go-gatedio v0.5.0
-	github.com/hashicorp/go-hclog v1.3.1
+	github.com/hashicorp/go-hclog v1.4.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-rootcerts v1.0.2
 	github.com/hashicorp/go-sockaddr v1.0.2
@@ -31,7 +31,10 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 )
 
-require github.com/hashicorp/vault/api/auth/kubernetes v0.3.0
+require (
+	github.com/hashicorp/vault/api/auth/kubernetes v0.3.0
+	golang.org/x/text v0.3.8
+)
 
 require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
@@ -69,7 +72,6 @@ require (
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	golang.org/x/net v0.0.0-20220906165146-f3363e06e74c // indirect
-	golang.org/x/text v0.3.8 // indirect
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
 	google.golang.org/grpc v1.41.0 // indirect
