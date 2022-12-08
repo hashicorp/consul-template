@@ -33,7 +33,7 @@ require (
 
 require (
 	github.com/hashicorp/vault/api/auth/kubernetes v0.3.0
-	golang.org/x/text v0.3.8
+	golang.org/x/text v0.5.0
 )
 
 require (
