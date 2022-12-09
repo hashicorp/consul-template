@@ -20,10 +20,10 @@ submit a pull request.
 ## Make Changes
 
 * In your forked repository, create a topic branch for your upcoming patch.
-	* Usually this is based on the master branch.
-	* Create a branch based on master; `git branch
-	fix/master/my_contribution master` then checkout the new branch with `git
-	checkout fix/master/my_contribution`.  Please avoid working directly on the `master` branch.
+	* Usually this is based on the main branch.
+	* Create a branch based on main; `git branch
+	fix/main/my_contribution main` then checkout the new branch with `git
+	checkout fix/main/my_contribution`.  Please avoid working directly on the `main` branch.
 * Make commits of logical units and describe them properly.
 * Check for unnecessary whitespace with `git diff --check` before committing.
 

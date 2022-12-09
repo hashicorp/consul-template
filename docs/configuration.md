@@ -724,4 +724,5 @@ exec {
 [consul]: https://www.consul.io "Consul by HashiCorp"
 [consul-catalog]: https://www.consul.io/docs/commands/catalog.html "Consul Catalog"
 [consul-kv]: https://www.consul.io/docs/agent/kv.html "Consul KV"
+[nomad]: https://www.nomadproject.io/ "Nomad by HashiCorp"
 [vault]: https://www.vaultproject.io/ "Vault by HashiCorp"

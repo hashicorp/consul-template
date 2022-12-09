@@ -15,7 +15,7 @@ this functionality might prove useful.
 
 ---
 
-**The documentation in this README corresponds to the master branch of Consul Template. It may contain unreleased features or different APIs than the most recently released version.**
+**The documentation in this README corresponds to the main branch of Consul Template. It may contain unreleased features or different APIs than the most recently released version.**
 
 **Please see the [Git tag](https://github.com/hashicorp/consul-template/releases) that corresponds to your version of Consul Template for the proper documentation.**
 
@@ -453,7 +453,7 @@ go test ./... -run SomeTestFunction_name
 
 [consul]: https://www.consul.io "Consul by HashiCorp"
 [connect]: https://www.consul.io/docs/connect/ "Connect"
-[examples]: (https://github.com/hashicorp/consul-template/tree/master/examples) "Consul Template Examples"
+[examples]: (https://github.com/hashicorp/consul-template/tree/main/examples) "Consul Template Examples"
 [releases]: https://releases.hashicorp.com/consul-template "Consul Template Releases"
 [vault]: https://www.vaultproject.io "Vault by HashiCorp"
 [go]: https://golang.org "Go programming language"
