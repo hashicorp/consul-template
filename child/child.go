@@ -211,7 +211,15 @@ func (c *Child) Signal(s os.Signal) error {
 	c.logger.Printf("[INFO] (child) receiving signal %q", s.String())
 	c.RLock()
 	defer c.RUnlock()
-	return c.signal(s)
+	switch s {
+	case c.reloadSignal:
+		return c.reload()
+	case c.killSignal:
+		c.kill(true)
+		return nil
+	default:
+		return c.signal(s)
+	}
 }
 
 // Reload sends the reload signal to the child process and does not wait for a
