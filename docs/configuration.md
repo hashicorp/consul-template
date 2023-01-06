@@ -172,7 +172,8 @@ log_level = "warn"
 template_error_fatal = true
 
 # This will cause consul-template to exit with an error if it fails to
-# successfully fetch a value for a field.
+# successfully fetch a value for a field. Note that the retry logic defined for
+# the services don't apply to this type of error.
 err_on_failed_lookup = true
 
 # This is the quiescence timers; it defines the minimum and maximum amount of
