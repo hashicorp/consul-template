@@ -1,6 +1,7 @@
 package watch
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 	"time"
@@ -171,6 +172,33 @@ func TestFetch_resetRetries(t *testing.T) {
 		t.Error("should not be done")
 	case err := <-errCh:
 		t.Errorf("error while fetching: %s", err)
+	}
+}
+
+func TestFetch_failedLookupError(t *testing.T) {
+	view, err := NewView(&NewViewInput{
+		Dependency:       &TestDepBlock{},
+		FailLookupErrors: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	doneCh := make(chan struct{})
+	successCh := make(chan struct{})
+	errCh := make(chan error)
+
+	go view.fetch(doneCh, successCh, errCh)
+
+	select {
+	case <-time.After(time.Millisecond):
+		t.Errorf("timeout")
+	case <-doneCh:
+		t.Error("should not be done")
+	case err := <-errCh:
+		if !errors.Is(err, errLookup) {
+			t.Errorf("error while fetching: %s", err)
+		}
 	}
 }
 
