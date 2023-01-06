@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"runtime"
 	"time"
 
 	"github.com/hashicorp/consul-template/dependency"
@@ -19,19 +18,19 @@ const (
 
 	// DefaultIdleConnTimeout is the default connection timeout for idle
 	// connections.
-	DefaultIdleConnTimeout = 90 * time.Second
+	DefaultIdleConnTimeout = 5 * time.Second
 
 	// DefaultMaxIdleConns is the default number of maximum idle connections.
-	DefaultMaxIdleConns = 100
+	DefaultMaxIdleConns = 0
+
+	// DefaultMaxIdleConnsPerHost is the default number of idle connections to use
+	// per host.
+	DefaultMaxIdleConnsPerHost = 100
 
 	// DefaultTLSHandshakeTimeout is the amount of time to negotiate the TLS
 	// handshake.
 	DefaultTLSHandshakeTimeout = 10 * time.Second
 )
-
-// DefaultMaxIdleConnsPerHost is the default number of idle connections to use
-// per host.
-var DefaultMaxIdleConnsPerHost = runtime.GOMAXPROCS(0) + 1
 
 // TransportConfig is the configuration to tune low-level APIs for the
 // interactions on the wire.
