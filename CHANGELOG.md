@@ -1,3 +1,13 @@
+## v0.30.0 (Jan 09, 2023)
+
+IMPROVEMENTS:
+* option to exit with an error upon failure to look up data (instead of blocking and waiting for it). [[GH-1695](https://github.com/hashicorp/consul-template/pull/1695), [GH-1637](https://github.com/hashicorp/consul-template/issues/1637)]
+* tweak defaults for performance improvements [[GH-1697](https://github.com/hashicorp/consul-template/pull/1697), [GH-1603](https://github.com/hashicorp/consul-template/issues/1603)]
+
+BUG FIXES:
+* properly respect reload/kill configured signals [[GH-1690](https://github.com/hashicorp/consul-template/pull/1690), [GH-1671](https://github.com/hashicorp/consul-template/issues/1671)]
+* Fix 'toTitle' function for a better support for word boundaries and unicode punctuation [[GH-1678](https://github.com/hashicorp/consul-template/pull/1678)]
+
 ## v0.29.6 (Nov 30, 2022)
 
 BUG FIXES:
