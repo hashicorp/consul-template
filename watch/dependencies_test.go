@@ -157,3 +157,17 @@ func (d *TestDepRetry) Stop() {}
 func (d *TestDepRetry) Type() dep.Type {
 	return dep.TypeLocal
 }
+
+// TestDepBlock is a dependency that think's its blocking
+type TestDepBlock struct {
+	TestDep
+}
+
+func (d *TestDepBlock) Fetch(clients *dep.ClientSet, opts *dep.QueryOptions) (interface{}, *dep.ResponseMetadata, error) {
+	meta := &dep.ResponseMetadata{LastIndex: 100, BlockOnNil: true}
+	return nil, meta, nil
+}
+
+func (d *TestDepBlock) String() string {
+	return fmt.Sprintf("test_dep_block")
+}

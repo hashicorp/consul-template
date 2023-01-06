@@ -171,6 +171,10 @@ log_level = "warn"
 # configuration.
 template_error_fatal = true
 
+# This will cause consul-template to exit with an error if it fails to
+# successfully fetch a value for a field.
+err_on_failed_lookup = true
+
 # This is the quiescence timers; it defines the minimum and maximum amount of
 # time to wait for the cluster to reach a consistent state before rendering a
 # template. This is useful to enable in systems that have a lot of flapping,

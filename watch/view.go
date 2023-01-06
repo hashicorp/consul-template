@@ -1,6 +1,7 @@
 package watch
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
@@ -10,6 +11,8 @@ import (
 
 	dep "github.com/hashicorp/consul-template/dependency"
 )
+
+var errLookup = fmt.Errorf("lookup error")
 
 // View is a representation of a Dependency and the most recent data it has
 // received from Consul.
@@ -36,6 +39,9 @@ type View struct {
 
 	// once determines if this view should receive data exactly once.
 	once bool
+	// failLookupErrors triggers error when a dependency Fetch fails to
+	// return data after the first pass.
+	failLookupErrors bool
 
 	// retryFunc is the function to invoke on failure to determine if a retry
 	// should be attempted.
@@ -64,6 +70,10 @@ type NewViewInput struct {
 	// Once indicates this view should poll for data exactly one time.
 	Once bool
 
+	// FailLookupErrors triggers error when a dependency Fetch fails to
+	// return data after the first pass.
+	FailLookupErrors bool
+
 	// RetryFunc is a function which dictates how this view should retry on
 	// upstream errors.
 	RetryFunc RetryFunc
@@ -77,6 +87,7 @@ func NewView(i *NewViewInput) (*View, error) {
 		blockQueryWaitTime: i.BlockQueryWaitTime,
 		maxStale:           i.MaxStale,
 		once:               i.Once,
+		failLookupErrors:   i.FailLookupErrors,
 		retryFunc:          i.RetryFunc,
 		stopCh:             make(chan struct{}, 1),
 	}, nil
@@ -146,7 +157,7 @@ func (v *View) poll(viewCh chan<- *View, errCh chan<- error) {
 			retries = 0
 			goto WAIT
 		case err := <-fetchErrCh:
-			if v.retryFunc != nil {
+			if !errors.Is(err, errLookup) && v.retryFunc != nil {
 				retry, sleep := v.retryFunc(retries)
 				if retry {
 					log.Printf("[WARN] (view) %s (retry attempt %d after %q)",
@@ -238,6 +249,11 @@ func (v *View) fetch(doneCh, successCh chan<- struct{}, errCh chan<- error) {
 
 		if v.maxStale != 0 {
 			allowStale = true
+		}
+
+		if v.failLookupErrors && !firstLoop && !v.receivedData {
+			errCh <- errLookup
+			return
 		}
 
 		if dur := rateLimiter(start); dur > 1 && !firstLoop {

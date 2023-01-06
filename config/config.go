@@ -104,6 +104,10 @@ type Config struct {
 
 	// BlockQueryWaitTime is amount of time in seconds to do a blocking query for
 	BlockQueryWaitTime *time.Duration `mapstructure:"block_query_wait"`
+
+	// ErrOnFailedLookup, when enabled, will trigger an error if a dependency
+	// fails to return a value.
+	ErrOnFailedLookup bool `mapstructure:"err_on_failed_lookup"`
 }
 
 // Copy returns a deep copy of the current configuration. This is useful because
@@ -168,7 +172,7 @@ func (c *Config) Copy() *Config {
 
 	o.Once = c.Once
 	o.ParseOnly = c.ParseOnly
-
+	o.ErrOnFailedLookup = c.ErrOnFailedLookup
 	o.BlockQueryWaitTime = c.BlockQueryWaitTime
 
 	if c.Nomad != nil {
@@ -260,6 +264,9 @@ func (c *Config) Merge(o *Config) *Config {
 
 	r.Once = o.Once
 	r.ParseOnly = o.ParseOnly
+	if o.ErrOnFailedLookup {
+		r.ErrOnFailedLookup = o.ErrOnFailedLookup
+	}
 
 	if o.Nomad != nil {
 		r.Nomad = r.Nomad.Merge(o.Nomad)
@@ -462,7 +469,8 @@ func (c *Config) GoString() string {
 		"Vault:%#v, "+
 		"Wait:%#v, "+
 		"Once:%#v, "+
-		"BlockQueryWaitTime:%#v"+
+		"BlockQueryWaitTime:%#v, "+
+		"ErrOnFailedLookup:%#v"+
 		"}",
 		c.Consul,
 		c.Dedup,
@@ -481,6 +489,7 @@ func (c *Config) GoString() string {
 		c.Wait,
 		c.Once,
 		TimeDurationGoString(c.BlockQueryWaitTime),
+		c.ErrOnFailedLookup,
 	)
 }
 

@@ -30,6 +30,10 @@ type Watcher struct {
 	// blockQueryWaitTime is amount of time in seconds to do a blocking query for
 	blockQueryWaitTime time.Duration
 
+	// failLookupErrors triggers error when a dependency Fetch fails to
+	// return data after the first pass.
+	failLookupErrors bool
+
 	// depViewMap is a map of Templates to Views. Templates are keyed by
 	// their string.
 	depViewMap map[string]*View
@@ -61,6 +65,10 @@ type NewWatcherInput struct {
 	// WaitTime is amount of time in seconds to do a blocking query for
 	BlockQueryWaitTime time.Duration
 
+	// FailLookupErrors triggers error when a dependency Fetch fails to
+	// return data after the first pass.
+	FailLookupErrors bool
+
 	// RenewVault indicates if this watcher should renew Vault tokens.
 	RenewVault bool
 
@@ -87,6 +95,7 @@ func NewWatcher(i *NewWatcherInput) *Watcher {
 		maxStale:           i.MaxStale,
 		once:               i.Once,
 		blockQueryWaitTime: i.BlockQueryWaitTime,
+		failLookupErrors:   i.FailLookupErrors,
 		retryFuncConsul:    i.RetryFuncConsul,
 		retryFuncDefault:   i.RetryFuncDefault,
 		retryFuncVault:     i.RetryFuncVault,
@@ -146,6 +155,7 @@ func (w *Watcher) Add(d dep.Dependency) (bool, error) {
 		Clients:            w.clients,
 		MaxStale:           w.maxStale,
 		BlockQueryWaitTime: w.blockQueryWaitTime,
+		FailLookupErrors:   w.failLookupErrors,
 		Once:               w.once,
 		RetryFunc:          retryFunc,
 	})
