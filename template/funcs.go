@@ -1258,7 +1258,7 @@ func toJSON(i interface{}) (string, error) {
 
 // toJSONPretty converts the given structure into a deeply nested pretty JSON
 // string.
-func toJSONPretty(m map[string]interface{}) (string, error) {
+func toJSONPretty(m interface{}) (string, error) {
 	result, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {
 		return "", errors.Wrap(err, "toJSONPretty")
@@ -1279,7 +1279,7 @@ func toUnescapedJSON(i interface{}) (string, error) {
 
 // toUnescapedJSONPretty converts the given structure into a deeply nested pretty JSON
 // string without HTML escaping.
-func toUnescapedJSONPretty(m map[string]interface{}) (string, error) {
+func toUnescapedJSONPretty(m interface{}) (string, error) {
 	buf := &bytes.Buffer{}
 	encoder := json.NewEncoder(buf)
 	encoder.SetEscapeHTML(false)
@@ -1301,7 +1301,7 @@ func toUpper(s string) (string, error) {
 }
 
 // toYAML converts the given structure into a deeply nested YAML string.
-func toYAML(m map[string]interface{}) (string, error) {
+func toYAML(m interface{}) (string, error) {
 	result, err := yaml.Marshal(m)
 	if err != nil {
 		return "", errors.Wrap(err, "toYAML")
@@ -1310,7 +1310,7 @@ func toYAML(m map[string]interface{}) (string, error) {
 }
 
 // toTOML converts the given structure into a deeply nested TOML string.
-func toTOML(m map[string]interface{}) (string, error) {
+func toTOML(m interface{}) (string, error) {
 	buf := bytes.NewBuffer([]byte{})
 	enc := toml.NewEncoder(buf)
 	if err := enc.Encode(m); err != nil {
