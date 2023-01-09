@@ -2,6 +2,7 @@
 ---
 # Consul Template
 
+[![Project unmaintained](https://img.shields.io/badge/project-unmaintained-red.svg)](https://github.com/hashicorp/consul-template/issues/1698)
 [![build](https://github.com/hashicorp/consul-template/actions/workflows/build.yml/badge.svg)](https://github.com/hashicorp/consul-template/actions/workflows/build.yml)
 [![ci](https://github.com/hashicorp/consul-template/actions/workflows/ci.yml/badge.svg)](https://github.com/hashicorp/consul-template/actions/workflows/ci.yml)
 [![Go Documentation](http://img.shields.io/badge/go-documentation-%2300acd7)](https://godoc.org/github.com/hashicorp/consul-template)
