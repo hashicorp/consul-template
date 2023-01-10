@@ -1483,7 +1483,7 @@ Takes the argument as a string and compute the sha256_hex value
 Takes a string input as an argument, and returns the hex-encoded md5 hash of the input.
 
 ```golang
-{{ "myString" | md5 }}
+{{ "myString" | md5sum }}
 ```
 
 ### `split`
