@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -49,6 +50,7 @@ type Child struct {
 	timeout time.Duration
 
 	reloadSignal os.Signal
+	reloading    uint32
 
 	killSignal  os.Signal
 	killTimeout time.Duration
@@ -396,7 +398,7 @@ func (c *Child) signal(s os.Signal) error {
 		// kill takes negative pid to indicate that you want to use gpid
 		pid = -(pid)
 	}
-	// cross platform way to signal process/process group
+	// cross-platform way to signal process/process group
 	if p, err := os.FindProcess(pid); err != nil {
 		return err
 	} else {
@@ -405,6 +407,15 @@ func (c *Child) signal(s os.Signal) error {
 }
 
 func (c *Child) reload() error {
+	if !atomic.CompareAndSwapUint32(&c.reloading, 0, 1) {
+		c.logger.Printf("[INFO] (child) reload already in progress")
+		return nil
+	}
+	defer func() {
+		c.logger.Printf("[INFO] (child) reload completed")
+		atomic.StoreUint32(&c.reloading, 0)
+	}()
+
 	select {
 	case <-c.stopCh:
 	case <-c.randomSplay():
