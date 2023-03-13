@@ -1,4 +1,7 @@
 #!/bin/sh
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 
 # Don't use dumb-init as it isn't required and the end-user has the option
 # to set it via the `--init` option.
