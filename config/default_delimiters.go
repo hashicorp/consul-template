@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package config
 
 // DefaultDelims is used to configure the default delimiters used for all templates
