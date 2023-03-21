@@ -86,6 +86,10 @@ type VaultConfig struct {
 	// UnwrapToken unwraps the provided Vault token as a wrapped token.
 	UnwrapToken *bool `mapstructure:"unwrap_token"`
 
+	// ClientUserAgent is the User-Agent header that will be set on the client
+	// when making requests to Vault.
+	ClientUserAgent *string `mapstructure:"client_user_agent""`
+
 	// DefaultLeaseDuration configures the default lease duration when not explicitly
 	// set by vault
 	DefaultLeaseDuration *time.Duration `mapstructure:"default_lease_duration"`
@@ -231,6 +235,10 @@ func (c *VaultConfig) Merge(o *VaultConfig) *VaultConfig {
 
 	if o.VaultAgentTokenFile != nil {
 		r.VaultAgentTokenFile = o.VaultAgentTokenFile
+	}
+
+	if o.ClientUserAgent != nil {
+		r.ClientUserAgent = o.ClientUserAgent
 	}
 
 	if o.Transport != nil {

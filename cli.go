@@ -505,6 +505,11 @@ func (cli *CLI) ParseFlags(args []string) (
 		return nil
 	}), "vault-retry-max-backoff", "")
 
+	flags.Var((funcVar)(func(s string) error {
+		c.Vault.ClientUserAgent = config.String(s)
+		return nil
+	}), "vault-client-user-agent", "")
+
 	flags.Var((funcBoolVar)(func(b bool) error {
 		c.Vault.SSL.Enabled = config.Bool(b)
 		return nil
