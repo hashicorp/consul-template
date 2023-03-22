@@ -12,7 +12,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/Masterminds/sprig"
+	"github.com/Masterminds/sprig/v3"
 	"github.com/hashicorp/consul-template/config"
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/pkg/errors"
@@ -403,7 +403,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 	}
 
 	// Add the Sprig functions to the funcmap
-	for k, v := range sprig.FuncMap() {
+	for k, v := range sprig.TxtFuncMap() {
 		target := "sprig_" + k
 		r[target] = v
 	}
