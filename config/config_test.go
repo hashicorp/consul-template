@@ -1344,6 +1344,18 @@ func TestParse(t *testing.T) {
 			false,
 		},
 		{
+			"vault_user_agent",
+			`vault {
+				client_user_agent = "my-user-agent"
+			}`,
+			&Config{
+				Vault: &VaultConfig{
+					ClientUserAgent: String("my-user-agent"),
+				},
+			},
+			false,
+		},
+		{
 			"vault_token",
 			`vault {
 				token = "token"
