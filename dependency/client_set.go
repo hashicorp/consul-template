@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package dependency
 
 import (
@@ -83,17 +86,18 @@ type CreateConsulClientInput struct {
 
 // CreateVaultClientInput is used as input to the CreateVaultClient function.
 type CreateVaultClientInput struct {
-	Address     string
-	Namespace   string
-	Token       string
-	UnwrapToken bool
-	SSLEnabled  bool
-	SSLVerify   bool
-	SSLCert     string
-	SSLKey      string
-	SSLCACert   string
-	SSLCAPath   string
-	ServerName  string
+	Address         string
+	Namespace       string
+	Token           string
+	UnwrapToken     bool
+	SSLEnabled      bool
+	SSLVerify       bool
+	SSLCert         string
+	SSLKey          string
+	SSLCACert       string
+	SSLCAPath       string
+	ServerName      string
+	ClientUserAgent string
 
 	K8SAuthRoleName            string
 	K8SServiceAccountTokenPath string
@@ -332,6 +336,11 @@ func (c *ClientSet) CreateVaultClient(i *CreateVaultClientInput) error {
 	client, err := vaultapi.NewClient(vaultConfig)
 	if err != nil {
 		return fmt.Errorf("client set: vault: %s", err)
+	}
+
+	if i.ClientUserAgent != "" {
+		client.SetCloneHeaders(true)
+		client.AddHeader("User-Agent", i.ClientUserAgent)
 	}
 
 	// Set the namespace if given.

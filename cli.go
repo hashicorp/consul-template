@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package main
 
 import (
@@ -501,6 +504,11 @@ func (cli *CLI) ParseFlags(args []string) (
 		c.Vault.Retry.MaxBackoff = config.TimeDuration(d)
 		return nil
 	}), "vault-retry-max-backoff", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		c.Vault.ClientUserAgent = config.String(s)
+		return nil
+	}), "vault-client-user-agent", "")
 
 	flags.Var((funcBoolVar)(func(b bool) error {
 		c.Vault.SSL.Enabled = config.Bool(b)

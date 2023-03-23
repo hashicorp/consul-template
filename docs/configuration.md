@@ -381,6 +381,10 @@ vault {
   #
   # This value can also be specified via the environment variable VAULT_NAMESPACE.
   namespace = ""
+  
+  # This is an optional configuration item that, if set, will determine the
+  # User-Agent header to use on all requests to Vault.
+  client_user_agent = "Consul Template"
 
   # This is the token to use when communicating with the Vault server.
   # Like other tools that integrate with Vault, Consul Template makes the
