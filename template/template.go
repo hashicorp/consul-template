@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/consul-template/config"
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/pkg/errors"
+	"golang.org/x/exp/maps"
 )
 
 var (
@@ -30,7 +31,7 @@ var (
 )
 
 // Template is the internal representation of an individual template to process.
-// The template retains the relationship between it's contents and is
+// The template retains the relationship between its contents and is
 // responsible for it's own execution.
 type Template struct {
 	// contents is the string contents for the template. It is either given
@@ -62,7 +63,7 @@ type Template struct {
 	// FuncMap is a map of external functions that this template is
 	// permitted to run. Allows users to add functions to the library
 	// and selectively opaque existing ones.
-	funcMap template.FuncMap
+	extFuncMap template.FuncMap
 
 	// functionDenylist are functions not permitted to be executed
 	// when we render this template
@@ -100,10 +101,10 @@ type NewTemplateInput struct {
 	LeftDelim  string
 	RightDelim string
 
-	// FuncMap is a map of external functions that this template is
+	// ExtFuncMap is a map of external functions that this template is
 	// permitted to run. Allows users to add functions to the library
 	// and selectively opaque existing ones.
-	FuncMap template.FuncMap
+	ExtFuncMap template.FuncMap
 
 	// FunctionDenylist are functions not permitted to be executed
 	// when we render this template
@@ -141,11 +142,14 @@ func NewTemplate(i *NewTemplateInput) (*Template, error) {
 	t.rightDelim = i.RightDelim
 	t.errMissingKey = i.ErrMissingKey
 	t.errFatal = i.ErrFatal
-	t.funcMap = i.FuncMap
+	t.extFuncMap = i.ExtFuncMap
 	t.functionDenylist = i.FunctionDenylist
 	t.sandboxPath = i.SandboxPath
 	t.destination = i.Destination
 	t.config = i.Config
+
+	t.extFuncMap = make(map[string]any, len(i.ExtFuncMap))
+	maps.Copy(t.extFuncMap, i.ExtFuncMap)
 
 	if i.Source != "" {
 		contents, err := os.ReadFile(i.Source)
@@ -241,7 +245,7 @@ func (t *Template) Execute(i *ExecuteInput) (*ExecuteResult, error) {
 		config:           i.Config,
 	}))
 
-	tmpl.Funcs(t.funcMap)
+	tmpl.Funcs(t.extFuncMap)
 
 	if t.errMissingKey {
 		tmpl.Option("missingkey=error")

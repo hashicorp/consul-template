@@ -2270,7 +2270,7 @@ func TestTemplate_Execute(t *testing.T) {
 			"external_func",
 			&NewTemplateInput{
 				Contents: `{{ toUpTest "abCba" }}`,
-				FuncMap: map[string]interface{}{
+				ExtFuncMap: map[string]interface{}{
 					"toUpTest": func(inString string) string {
 						return strings.ToUpper(inString)
 					},
@@ -2626,3 +2626,70 @@ arHERAKScrZMTrYPLt2YqYoeyO//aCuT9YW6YdIa9jPQhzjeMKXywXLetE+Ip18G
 eB01bl42Y5WwHl0IrjfbEevzoW0+uhlUlZ6keZHr7bLn/xuRCUkVfj3PRlMl
 -----END CERTIFICATE-----
 `
+
+func TestTemplate_ExecuteSmall(t *testing.T) {
+	t.Parallel()
+
+	now = func() time.Time { return time.Unix(0, 0).UTC() }
+
+	cases := []struct {
+		name string
+		ti   *NewTemplateInput
+		i    *ExecuteInput
+		e    string
+		err  bool
+	}{
+		{
+			"nil",
+			&NewTemplateInput{
+				Contents: `test`,
+			},
+			nil,
+			"test",
+			false,
+		},
+		{
+			"external_func",
+			&NewTemplateInput{
+				Contents: `{{ toUpTest "abCba" }} {{ toLower "LOWER" }}`,
+				ExtFuncMap: map[string]interface{}{
+					"toUpTest": func(inString string) string {
+						return strings.ToUpper(inString)
+					},
+				},
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"ABCBA lower",
+			false,
+		},
+	}
+
+	//	struct {
+	//		name string
+	//		ti   *NewTemplateInput
+	//		i    *ExecuteInput
+	//		e    string
+	//		err  bool
+	//	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%03d_%s", i, tc.name), func(t *testing.T) {
+			tc := tc
+			t.Parallel()
+			tpl, err := NewTemplate(tc.ti)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			a, err := tpl.Execute(tc.i)
+			if (err != nil) != tc.err {
+				t.Fatal(err)
+			}
+			if a != nil && !bytes.Equal([]byte(tc.e), a.Output) {
+				t.Errorf("\nexp: %#v\nact: %#v", tc.e, string(a.Output))
+			}
+		})
+	}
+}
