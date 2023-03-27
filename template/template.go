@@ -148,8 +148,10 @@ func NewTemplate(i *NewTemplateInput) (*Template, error) {
 	t.destination = i.Destination
 	t.config = i.Config
 
-	t.extFuncMap = make(map[string]any, len(i.ExtFuncMap))
-	maps.Copy(t.extFuncMap, i.ExtFuncMap)
+	if i.ExtFuncMap != nil {
+		t.extFuncMap = make(map[string]any, len(i.ExtFuncMap))
+		maps.Copy(t.extFuncMap, i.ExtFuncMap)
+	}
 
 	if i.Source != "" {
 		contents, err := os.ReadFile(i.Source)
