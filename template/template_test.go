@@ -2627,31 +2627,24 @@ eB01bl42Y5WwHl0IrjfbEevzoW0+uhlUlZ6keZHr7bLn/xuRCUkVfj3PRlMl
 -----END CERTIFICATE-----
 `
 
-func TestTemplate_ExecuteSmall(t *testing.T) {
+func TestTemplate_ExtFuncMap(t *testing.T) {
 	t.Parallel()
 
-	now = func() time.Time { return time.Unix(0, 0).UTC() }
+	type expectedError struct {
+		containsText string
+	}
 
 	cases := []struct {
 		name string
 		ti   *NewTemplateInput
 		i    *ExecuteInput
 		e    string
-		err  bool
+		err  *expectedError
 	}{
 		{
-			"nil",
+			"new_external_func",
 			&NewTemplateInput{
-				Contents: `test`,
-			},
-			nil,
-			"test",
-			false,
-		},
-		{
-			"external_func",
-			&NewTemplateInput{
-				Contents: `{{ toUpTest "abCba" }} {{ toLower "LOWER" }}`,
+				Contents: `{{ toUpTest "abCba" }}`,
 				ExtFuncMap: map[string]interface{}{
 					"toUpTest": func(inString string) string {
 						return strings.ToUpper(inString)
@@ -2661,35 +2654,60 @@ func TestTemplate_ExecuteSmall(t *testing.T) {
 			&ExecuteInput{
 				Brain: NewBrain(),
 			},
-			"ABCBA lower",
-			false,
+			"ABCBA",
+			nil,
+		},
+		{
+			"external_func_opaques_existing",
+			&NewTemplateInput{
+				Contents: `{{ toLower "testValue" }}`,
+				ExtFuncMap: map[string]interface{}{
+					"toLower": func(s string) string {
+						return "opaqued"
+					},
+				},
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"opaqued",
+			nil,
+		},
+		{
+			"denylist_blocks_extfunc",
+			&NewTemplateInput{
+				Contents: `{{ myBadFunc "testValue" }}`,
+				ExtFuncMap: map[string]interface{}{
+					"myBadFunc": func(s string) string {
+						return "BAD"
+					},
+				},
+				FunctionDenylist: []string{"myBadFunc"},
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"",
+			&expectedError{
+				containsText: "error calling myBadFunc: function is disabled",
+			},
 		},
 	}
 
-	//	struct {
-	//		name string
-	//		ti   *NewTemplateInput
-	//		i    *ExecuteInput
-	//		e    string
-	//		err  bool
-	//	}
-
 	for i, tc := range cases {
-		t.Run(fmt.Sprintf("%03d_%s", i, tc.name), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%03d_%s", i+1, tc.name), func(t *testing.T) {
 			tc := tc
 			t.Parallel()
 			tpl, err := NewTemplate(tc.ti)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 
 			a, err := tpl.Execute(tc.i)
-			if (err != nil) != tc.err {
-				t.Fatal(err)
+			if tc.err != nil {
+				require.ErrorContains(t, err, tc.err.containsText)
+				return
 			}
-			if a != nil && !bytes.Equal([]byte(tc.e), a.Output) {
-				t.Errorf("\nexp: %#v\nact: %#v", tc.e, string(a.Output))
-			}
+			require.NotNil(t, a)
+			require.Equal(t, []byte(tc.e), a.Output)
 		})
 	}
 }
