@@ -241,13 +241,12 @@ func (t *Template) Execute(i *ExecuteInput) (*ExecuteResult, error) {
 		env:              i.Env,
 		used:             &used,
 		missing:          &missing,
+		extFuncMap:       t.extFuncMap,
 		functionDenylist: t.functionDenylist,
 		sandboxPath:      t.sandboxPath,
 		destination:      t.destination,
 		config:           i.Config,
 	}))
-
-	tmpl.Funcs(t.extFuncMap)
 
 	if t.errMissingKey {
 		tmpl.Option("missingkey=error")
@@ -297,6 +296,7 @@ type funcMapInput struct {
 	newTmpl          *template.Template
 	brain            *Brain
 	env              []string
+	extFuncMap       map[string]interface{}
 	functionDenylist []string
 	sandboxPath      string
 	destination      string
@@ -425,6 +425,13 @@ func funcMap(i *funcMapInput) template.FuncMap {
 	for k, v := range sprig.TxtFuncMap() {
 		target := "sprig_" + k
 		r[target] = v
+	}
+
+	// Add external functions
+	if i.extFuncMap != nil {
+		for name, fn := range i.extFuncMap {
+			r[name] = fn
+		}
 	}
 
 	for _, bf := range i.functionDenylist {
