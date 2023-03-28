@@ -27,9 +27,9 @@ import (
 )
 
 const (
-	// saneViewLimit is the number of views that we consider "sane" before we
+	// reasonableViewLimit is the number of views that we consider reasonable before we
 	// warn the user that they might be DDoSing their Consul cluster.
-	saneViewLimit = 128
+	reasonableViewLimit = 128
 )
 
 // Runner responsible rendering Templates and invoking Commands.
@@ -276,7 +276,7 @@ func (r *Runner) Start() {
 
 	for {
 		// Warn the user if they are watching too many dependencies.
-		if r.watcher.Size() > saneViewLimit {
+		if r.watcher.Size() > reasonableViewLimit {
 			log.Printf("[WARN] (runner) watching %d dependencies - watching this "+
 				"many dependencies could DDoS your servers", r.watcher.Size())
 		} else {

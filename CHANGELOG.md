@@ -482,7 +482,7 @@ BUG FIXES:
 
 BREAKING CHANGES:
 
-  * Retry now has a sane maximum default. Previous versions of Consul Template
+  * Retry now has a reasonable maximum default. Previous versions of Consul Template
       would retry indefinitely, potentially allowing the time between retries to
       reach days, months, or years due to the exponential nature. Users wishing
       to use the old behavior should set `max_backoff = 0` in their
