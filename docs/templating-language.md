@@ -645,6 +645,18 @@ CA+Chain: {{ .Data.ca_chain }}
 {{ end }}
 ```
 
+The `writeToFile` function can be used with pkiCert to write your Key and Certs
+to separate files from a template.
+
+```golang
+{{- with pkiCert "pki/issue/my-domain-dot-com" "common_name=foo.example.com" -}}
+{{ .Cert }}{{ .CA }}{{ .Key }}
+{{ .Key | writeToFile "/my/path/to/cert.key" "root" "root" "0400" }}
+{{ .CA | writeToFile "/my/path/to/cert.pem" "root" "root" "0644" }}
+{{ .Cert | writeToFile "/my/path/to/cert.pem" "root" "root" "0644" "append" }}
+{{- end -}}
+```
+
 ### `service`
 
 Query [Consul][consul] for services based on their health.
