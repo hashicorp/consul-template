@@ -1,3 +1,5 @@
+
+---
 # Consul Template
 
 [![build](https://github.com/hashicorp/consul-template/actions/workflows/build.yml/badge.svg)](https://github.com/hashicorp/consul-template/actions/workflows/build.yml)

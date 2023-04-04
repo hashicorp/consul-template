@@ -970,6 +970,7 @@ func (r *Runner) init(clients *dep.ClientSet) error {
 			ErrFatal:         config.BoolVal(ctmpl.ErrFatal),
 			LeftDelim:        leftDelim,
 			RightDelim:       rightDelim,
+			ExtFuncMap:       ctmpl.ExtFuncMap,
 			FunctionDenylist: ctmpl.FunctionDenylist,
 			SandboxPath:      config.StringVal(ctmpl.SandboxPath),
 			Destination:      config.StringVal(ctmpl.Destination),

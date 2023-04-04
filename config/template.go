@@ -10,7 +10,10 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
+
+	"golang.org/x/exp/maps"
 )
 
 const (
@@ -104,6 +107,12 @@ type TemplateConfig struct {
 	LeftDelim  *string `mapstructure:"left_delimiter"`
 	RightDelim *string `mapstructure:"right_delimiter"`
 
+	// ExtFuncMap is a map of external functions that this template is
+	// permitted to run. Allows users to add functions to the library
+	// and selectively opaque existing ones. Omitted from json output
+	// to prevent errors when the configuration is marshalled for printing.
+	ExtFuncMap template.FuncMap `json:"-"`
+
 	// FunctionDenylist is a list of functions that this template is not
 	// permitted to run.
 	FunctionDenylist []string `mapstructure:"function_denylist"`
@@ -124,8 +133,9 @@ type TemplateConfig struct {
 // default values.
 func DefaultTemplateConfig() *TemplateConfig {
 	return &TemplateConfig{
-		Exec: DefaultExecConfig(),
-		Wait: DefaultWaitConfig(),
+		Exec:       DefaultExecConfig(),
+		Wait:       DefaultWaitConfig(),
+		ExtFuncMap: make(template.FuncMap),
 	}
 }
 
@@ -174,13 +184,13 @@ func (c *TemplateConfig) Copy() *TemplateConfig {
 	o.LeftDelim = c.LeftDelim
 	o.RightDelim = c.RightDelim
 
-	for _, fun := range c.FunctionDenylist {
-		o.FunctionDenylist = append(o.FunctionDenylist, fun)
+	if c.ExtFuncMap != nil {
+		o.ExtFuncMap = make(template.FuncMap, len(c.ExtFuncMap))
+		maps.Copy(o.ExtFuncMap, c.ExtFuncMap)
 	}
 
-	for _, fun := range c.FunctionDenylistDeprecated {
-		o.FunctionDenylistDeprecated = append(o.FunctionDenylistDeprecated, fun)
-	}
+	o.FunctionDenylist = append(o.FunctionDenylist, c.FunctionDenylist...)
+	o.FunctionDenylistDeprecated = append(o.FunctionDenylistDeprecated, c.FunctionDenylistDeprecated...)
 
 	o.SandboxPath = c.SandboxPath
 
@@ -276,13 +286,17 @@ func (c *TemplateConfig) Merge(o *TemplateConfig) *TemplateConfig {
 		r.RightDelim = o.RightDelim
 	}
 
-	for _, fun := range o.FunctionDenylist {
-		r.FunctionDenylist = append(r.FunctionDenylist, fun)
+	if o.ExtFuncMap != nil {
+		if r.ExtFuncMap == nil {
+			r.ExtFuncMap = make(template.FuncMap, len(o.ExtFuncMap))
+		}
+		for key, fun := range o.ExtFuncMap {
+			r.ExtFuncMap[key] = fun
+		}
 	}
 
-	for _, fun := range o.FunctionDenylistDeprecated {
-		r.FunctionDenylistDeprecated = append(r.FunctionDenylistDeprecated, fun)
-	}
+	r.FunctionDenylist = append(r.FunctionDenylist, o.FunctionDenylist...)
+	r.FunctionDenylistDeprecated = append(r.FunctionDenylistDeprecated, o.FunctionDenylistDeprecated...)
 
 	if o.SandboxPath != nil {
 		r.SandboxPath = o.SandboxPath
@@ -380,6 +394,10 @@ func (c *TemplateConfig) Finalize() {
 		c.SandboxPath = String("")
 	}
 
+	if c.ExtFuncMap == nil {
+		c.ExtFuncMap = make(template.FuncMap, 0)
+	}
+
 	if c.FunctionDenylist == nil && c.FunctionDenylistDeprecated == nil {
 		c.FunctionDenylist = []string{}
 		c.FunctionDenylistDeprecated = []string{}
@@ -409,6 +427,7 @@ func (c *TemplateConfig) GoString() string {
 		"Wait:%#v, "+
 		"LeftDelim:%s, "+
 		"RightDelim:%s, "+
+		"ExtFuncMap:%s, "+
 		"FunctionDenylist:%s, "+
 		"SandboxPath:%s"+
 		"}",
@@ -426,6 +445,7 @@ func (c *TemplateConfig) GoString() string {
 		c.Wait,
 		StringGoString(c.LeftDelim),
 		StringGoString(c.RightDelim),
+		maps.Keys(c.ExtFuncMap),
 		combineLists(c.FunctionDenylist, c.FunctionDenylistDeprecated),
 		StringGoString(c.SandboxPath),
 	)
