@@ -1,3 +1,15 @@
+## v0.31.0 (Apr 05, 2023)
+
+IMPROVEMENTS:
+
+* Added `ExtFuncMap` to allow external functions to be passed to the template. This gives users ability to add functions to the library and selective opaque existing ones. [1708](https://github.com/hashicorp/consul-template/pull/1708)
+* Vault: add new configuration option `vault-client-user-agent`, when set consul-template will use the set `User-Agent` when making requests to vault. This change is being made as part of a broader effort for Vault Agent to send its version as part of a User-Agent string in requests to Vault. Agent will then consume the latest version of consul-template, then use this new config to set the correct `User-Agent`. [GH-1725](https://github.com/hashicorp/consul-template/pull/1725)
+* Upgrade golang.org/x/net from 0.4.0 to 0.7.0. [GH-1711](https://github.com/hashicorp/consul-template/pull/1711)
+* Upgrade Sprig from v2 to v3. [GH-1699](https://github.com/hashicorp/consul-template/pull/1699/files)
+* Upgrage github.com/stretchr/testify from 1.8.1 to 1.8.2 [1726](https://github.com/hashicorp/consul-template/pull/1726)
+* Add copyright headers to file for compliance. [GH-1721](https://github.com/hashicorp/consul-template/pull/1721)
+* Improve use of inclusive language [GH-1731](https://github.com/hashicorp/consul-template/pull/1731)
+
 ## v0.30.0 (Jan 09, 2023)
 
 IMPROVEMENTS:
