@@ -295,6 +295,10 @@ func (c *TemplateConfig) Merge(o *TemplateConfig) *TemplateConfig {
 		r.SandboxPath = o.SandboxPath
 	}
 
+	if o.EnvVar != nil {
+		r.EnvVar = o.EnvVar
+	}
+
 	return r
 }
 
