@@ -118,6 +118,11 @@ type TemplateConfig struct {
 	// and causes an error if a relative path tries to traverse outside that
 	// prefix.
 	SandboxPath *string `mapstructure:"sandbox_path"`
+
+	// EnvVar is the name of the environment variable
+	// this template config should map back to
+	// used when used in a library
+	EnvVar *string `mapstructure:"-"`
 }
 
 // DefaultTemplateConfig returns a configuration that is populated with the
@@ -183,6 +188,8 @@ func (c *TemplateConfig) Copy() *TemplateConfig {
 	}
 
 	o.SandboxPath = c.SandboxPath
+
+	o.EnvVar = c.EnvVar
 
 	return &o
 }
