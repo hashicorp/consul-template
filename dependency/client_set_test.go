@@ -17,6 +17,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const userAgent = "my-user-agent"
+
 func TestClientSet_K8SServiceTokenAuth(t *testing.T) {
 	t.Parallel()
 
@@ -46,6 +48,7 @@ func TestClientSet_K8SServiceTokenAuth(t *testing.T) {
 		clientSet := NewClientSet()
 		err := clientSet.CreateVaultClient(&CreateVaultClientInput{
 			Address:                testServerAddr,
+			ClientUserAgent:        userAgent,
 			K8SAuthRoleName:        "default",
 			K8SServiceAccountToken: "service_token",
 		})
@@ -75,6 +78,7 @@ func TestClientSet_K8SServiceTokenAuth(t *testing.T) {
 		clientSet := NewClientSet()
 		err := clientSet.CreateVaultClient(&CreateVaultClientInput{
 			Address:                    testServerAddr,
+			ClientUserAgent:            userAgent,
 			K8SAuthRoleName:            "default_file",
 			K8SServiceAccountTokenPath: f.Name(),
 		})
@@ -104,6 +108,7 @@ func TestClientSet_K8SServiceTokenAuth(t *testing.T) {
 		clientSet := NewClientSet()
 		err := clientSet.CreateVaultClient(&CreateVaultClientInput{
 			Address:                    testServerAddr,
+			ClientUserAgent:            userAgent,
 			K8SAuthRoleName:            "default",
 			K8SServiceAccountTokenPath: f.Name(),
 			K8SServiceAccountToken:     "service_token_value",
@@ -129,6 +134,7 @@ func TestClientSet_K8SServiceTokenAuth(t *testing.T) {
 		clientSet := NewClientSet()
 		err := clientSet.CreateVaultClient(&CreateVaultClientInput{
 			Address:                testServerAddr,
+			ClientUserAgent:        userAgent,
 			K8SAuthRoleName:        "default",
 			K8SServiceAccountToken: "service_token",
 			K8SServiceMountPath:    "mount_path",
@@ -149,6 +155,7 @@ func TestClientSet_K8SServiceTokenAuth(t *testing.T) {
 		clientSet := NewClientSet()
 		err := clientSet.CreateVaultClient(&CreateVaultClientInput{
 			Address:                testServerAddr,
+			ClientUserAgent:        userAgent,
 			Token:                  vaultToken,
 			K8SAuthRoleName:        "default",
 			K8SServiceAccountToken: "service_token",
@@ -172,6 +179,7 @@ func TestClientSet_K8SServiceTokenAuth(t *testing.T) {
 		clientSet := NewClientSet()
 		err := clientSet.CreateVaultClient(&CreateVaultClientInput{
 			Address:                testServerAddr,
+			ClientUserAgent:        userAgent,
 			K8SAuthRoleName:        "default",
 			K8SServiceAccountToken: "service_token",
 		})
@@ -190,6 +198,10 @@ type vaultMock struct {
 func (m vaultMock) processReq(tb testing.TB, w http.ResponseWriter, r *http.Request) {
 	if m.HandleJSON == nil {
 		return
+	}
+
+	if r.UserAgent() != userAgent {
+		tb.Fatalf("User-Agent header not as expected. Expected %s, got %s. Request was to %s", userAgent, r.UserAgent(), r.RequestURI)
 	}
 
 	var data map[string]interface{}
