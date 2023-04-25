@@ -6,7 +6,6 @@ package dependency
 import (
 	"log"
 	"net/url"
-	"sort"
 	"time"
 
 	"github.com/hashicorp/consul/api"
