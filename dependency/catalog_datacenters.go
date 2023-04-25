@@ -88,8 +88,6 @@ func (d *CatalogDatacentersQuery) Fetch(clients *ClientSet, opts *QueryOptions) 
 
 	log.Printf("[TRACE] %s: returned %d results", d, len(result))
 
-	// sort.Strings(result)
-
 	return respWithMetadata(result)
 }
 
