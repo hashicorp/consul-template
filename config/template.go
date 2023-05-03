@@ -122,8 +122,8 @@ type TemplateConfig struct {
 	// MapToEnvironmentVariable is the name of the environment variable this
 	// template ahouls map to. It is currently only used by Vault Agent and
 	// will be ignored otherwise. When specified, Vault Agent will render the
-	// contents of this template to an environment variable instead of a file.
-	// This field is mutually exclusive with `Destination`.
+	// contents of this template to the given environment variable instead
+	// of a file. This field is mutually exclusive with `Destination`.
 	MapToEnvironmentVariable *string `mapstructure:"-"`
 }
 
