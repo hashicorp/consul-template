@@ -395,6 +395,24 @@ func TestTemplateConfig_Merge(t *testing.T) {
 			&TemplateConfig{RightDelim: String("right_delim")},
 			&TemplateConfig{RightDelim: String("right_delim")},
 		},
+		{
+			"map_to_env_var_empty_one",
+			&TemplateConfig{MapToEnvironmentVariable: String("FOO")},
+			&TemplateConfig{},
+			&TemplateConfig{MapToEnvironmentVariable: String("FOO")},
+		},
+		{
+			"map_to_env_var_empty_two",
+			&TemplateConfig{},
+			&TemplateConfig{MapToEnvironmentVariable: String("FOO")},
+			&TemplateConfig{MapToEnvironmentVariable: String("FOO")},
+		},
+		{
+			"map_to_env_var_override",
+			&TemplateConfig{MapToEnvironmentVariable: String("FOO")},
+			&TemplateConfig{MapToEnvironmentVariable: String("BAR")},
+			&TemplateConfig{MapToEnvironmentVariable: String("BAR")},
+		},
 	}
 
 	for i, tc := range cases {
@@ -454,6 +472,7 @@ func TestTemplateConfig_Finalize(t *testing.T) {
 				FunctionDenylist:           []string{},
 				FunctionDenylistDeprecated: []string{},
 				SandboxPath:                String(""),
+				MapToEnvironmentVariable:   String(""),
 			},
 		},
 	}
@@ -500,6 +519,21 @@ func TestTemplateConfig_Display(t *testing.T) {
 				Destination: String("/var/my.txt"),
 			},
 			`"/var/my.tpl" => "/var/my.txt"`,
+		},
+		{
+			"with_environment_variable",
+			&TemplateConfig{
+				MapToEnvironmentVariable: String("FOO"),
+			},
+			`"" => "FOO"`,
+		},
+		{
+			"with_environment_variable_and_contents",
+			&TemplateConfig{
+				MapToEnvironmentVariable: String("FOO"),
+				Contents:                 String("hello"),
+			},
+			`"(dynamic)" => "FOO"`,
 		},
 	}
 

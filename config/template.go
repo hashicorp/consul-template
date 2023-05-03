@@ -399,6 +399,10 @@ func (c *TemplateConfig) Finalize() {
 	} else {
 		c.FunctionDenylist = combineLists(c.FunctionDenylist, c.FunctionDenylistDeprecated)
 	}
+
+	if c.MapToEnvironmentVariable == nil {
+		c.MapToEnvironmentVariable = String("")
+	}
 }
 
 // GoString defines the printable version of this struct.
