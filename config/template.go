@@ -119,11 +119,11 @@ type TemplateConfig struct {
 	// prefix.
 	SandboxPath *string `mapstructure:"sandbox_path"`
 
-	// MapToEnvironmentVariable When specified, Vault Agent will
-	// interpret this template as an environment variable template
-	// and output its contents to an environment variable rather than a file.
-	// Essentially this field is mutually exclusive with Destination *string.
-	// This field is only applicable used when consul-template is used as a library.
+	// MapToEnvironmentVariable is the name of the environment variable this
+	// template ahouls map to. It is currently only used by Vault Agent and
+	// will be ignored otherwise. When specified, Vault Agent will render the
+	// contents of this template to an environment variable instead of a file.
+	// This field is mutually exclusive with `Destination`.
 	MapToEnvironmentVariable *string `mapstructure:"-"`
 }
 
