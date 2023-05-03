@@ -119,9 +119,9 @@ type TemplateConfig struct {
 	// prefix.
 	SandboxPath *string `mapstructure:"sandbox_path"`
 
-	// MapToEnvironmentVariable is the name of the environment variable
-	// this template config should map back to
-	// only applicable used when consul-template is used as a library
+	// MapToEnvironmentVariable is the name of the environment variable this
+	// template should map to. This field is only applicable used when
+	// consul-template is used as a library.
 	MapToEnvironmentVariable *string `mapstructure:"-"`
 }
 
