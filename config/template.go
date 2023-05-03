@@ -119,10 +119,10 @@ type TemplateConfig struct {
 	// prefix.
 	SandboxPath *string `mapstructure:"sandbox_path"`
 
-	// EnvVar is the name of the environment variable
+	// MapToEnvironmentVariable is the name of the environment variable
 	// this template config should map back to
-	// used when used in a library
-	EnvVar *string `mapstructure:"-"`
+	// only applicable used when consul-template is used as a library
+	MapToEnvironmentVariable *string `mapstructure:"-"`
 }
 
 // DefaultTemplateConfig returns a configuration that is populated with the
@@ -189,7 +189,7 @@ func (c *TemplateConfig) Copy() *TemplateConfig {
 
 	o.SandboxPath = c.SandboxPath
 
-	o.EnvVar = c.EnvVar
+	o.MapToEnvironmentVariable = c.MapToEnvironmentVariable
 
 	return &o
 }
@@ -295,8 +295,8 @@ func (c *TemplateConfig) Merge(o *TemplateConfig) *TemplateConfig {
 		r.SandboxPath = o.SandboxPath
 	}
 
-	if o.EnvVar != nil {
-		r.EnvVar = o.EnvVar
+	if o.MapToEnvironmentVariable != nil {
+		r.MapToEnvironmentVariable = o.MapToEnvironmentVariable
 	}
 
 	return r
@@ -421,7 +421,8 @@ func (c *TemplateConfig) GoString() string {
 		"LeftDelim:%s, "+
 		"RightDelim:%s, "+
 		"FunctionDenylist:%s, "+
-		"SandboxPath:%s"+
+		"SandboxPath:%s "+
+		"MapToEnvironmentVariable:%s"+
 		"}",
 		BoolGoString(c.Backup),
 		c.Command,
@@ -439,6 +440,7 @@ func (c *TemplateConfig) GoString() string {
 		StringGoString(c.RightDelim),
 		combineLists(c.FunctionDenylist, c.FunctionDenylistDeprecated),
 		StringGoString(c.SandboxPath),
+		StringGoString(c.MapToEnvironmentVariable),
 	)
 }
 
@@ -455,9 +457,14 @@ func (c *TemplateConfig) Display() string {
 		source = String("(dynamic)")
 	}
 
+	destination := c.Destination
+	if StringPresent(c.MapToEnvironmentVariable) {
+		destination = c.MapToEnvironmentVariable
+	}
+
 	return fmt.Sprintf("%q => %q",
 		StringVal(source),
-		StringVal(c.Destination),
+		StringVal(destination),
 	)
 }
 
