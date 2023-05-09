@@ -127,6 +127,13 @@ type TemplateConfig struct {
 	// and causes an error if a relative path tries to traverse outside that
 	// prefix.
 	SandboxPath *string `mapstructure:"sandbox_path"`
+
+	// MapToEnvironmentVariable is the name of the environment variable this
+	// template should map to. It is currently only used by Vault Agent and
+	// will be ignored otherwise. When specified, Vault Agent will render the
+	// contents of this template to the given environment variable instead
+	// of a file. This field is mutually exclusive with `Destination`.
+	MapToEnvironmentVariable *string `mapstructure:"-"`
 }
 
 // DefaultTemplateConfig returns a configuration that is populated with the
@@ -193,6 +200,8 @@ func (c *TemplateConfig) Copy() *TemplateConfig {
 	o.FunctionDenylistDeprecated = append(o.FunctionDenylistDeprecated, c.FunctionDenylistDeprecated...)
 
 	o.SandboxPath = c.SandboxPath
+
+	o.MapToEnvironmentVariable = c.MapToEnvironmentVariable
 
 	return &o
 }
@@ -302,6 +311,10 @@ func (c *TemplateConfig) Merge(o *TemplateConfig) *TemplateConfig {
 		r.SandboxPath = o.SandboxPath
 	}
 
+	if o.MapToEnvironmentVariable != nil {
+		r.MapToEnvironmentVariable = o.MapToEnvironmentVariable
+	}
+
 	return r
 }
 
@@ -404,6 +417,10 @@ func (c *TemplateConfig) Finalize() {
 	} else {
 		c.FunctionDenylist = combineLists(c.FunctionDenylist, c.FunctionDenylistDeprecated)
 	}
+
+	if c.MapToEnvironmentVariable == nil {
+		c.MapToEnvironmentVariable = String("")
+	}
 }
 
 // GoString defines the printable version of this struct.
@@ -429,7 +446,8 @@ func (c *TemplateConfig) GoString() string {
 		"RightDelim:%s, "+
 		"ExtFuncMap:%s, "+
 		"FunctionDenylist:%s, "+
-		"SandboxPath:%s"+
+		"SandboxPath:%s "+
+		"MapToEnvironmentVariable:%s"+
 		"}",
 		BoolGoString(c.Backup),
 		c.Command,
@@ -448,6 +466,7 @@ func (c *TemplateConfig) GoString() string {
 		maps.Keys(c.ExtFuncMap),
 		combineLists(c.FunctionDenylist, c.FunctionDenylistDeprecated),
 		StringGoString(c.SandboxPath),
+		StringGoString(c.MapToEnvironmentVariable),
 	)
 }
 
@@ -464,9 +483,14 @@ func (c *TemplateConfig) Display() string {
 		source = String("(dynamic)")
 	}
 
+	destination := c.Destination
+	if StringPresent(c.MapToEnvironmentVariable) {
+		destination = c.MapToEnvironmentVariable
+	}
+
 	return fmt.Sprintf("%q => %q",
 		StringVal(source),
-		StringVal(c.Destination),
+		StringVal(destination),
 	)
 }
 
