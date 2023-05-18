@@ -15,6 +15,36 @@ import (
 	"github.com/hashicorp/vault/api"
 )
 
+func newVaultK8SAuthMethodRefreshTokenWatcher(
+	clients *dep.ClientSet, c *config.VaultConfig, doneCh chan struct{},
+) (*Watcher, error) {
+	isK8SAuthMethod := config.StringVal(c.K8SServiceAccountToken) != "" || config.StringVal(c.K8SServiceAccountTokenPath) != ""
+
+	if !isK8SAuthMethod || !config.BoolVal(c.RenewToken) {
+		return nil, nil
+	}
+
+	watcher := NewWatcher(&NewWatcherInput{
+		Clients:        clients,
+		RetryFuncVault: RetryFunc(c.Retry.RetryFunc()),
+	})
+
+	vaultQuery, err := dep.NewVaultTokenQuery(dep.VaultTokenRefreshCurrent)
+	if err != nil {
+		watcher.Stop()
+
+		return nil, fmt.Errorf("vaultwatcher: %w", err)
+	}
+
+	if _, err := watcher.Add(vaultQuery); err != nil {
+		watcher.Stop()
+
+		return nil, fmt.Errorf("vaultwatcher: %w", err)
+	}
+
+	return watcher, nil
+}
+
 // VaultTokenWatcher monitors the vault token for updates
 func VaultTokenWatcher(
 	clients *dep.ClientSet, c *config.VaultConfig, doneCh chan struct{},
@@ -24,7 +54,7 @@ func VaultTokenWatcher(
 	// tokens are not being used.
 	raw_token := strings.TrimSpace(config.StringVal(c.Token))
 	if raw_token == "" {
-		return nil, nil
+		return newVaultK8SAuthMethodRefreshTokenWatcher(clients, c, doneCh)
 	}
 
 	unwrap := config.BoolVal(c.UnwrapToken)
@@ -76,7 +106,6 @@ func VaultTokenWatcher(
 
 	return watcher, nil
 }
-
 func watchTokenFile(
 	w *Watcher, tokenFile, raw_token string, unwrap bool, doneCh chan struct{},
 ) (func(), error) {
