@@ -1,3 +1,13 @@
+## v0.32.0 (May 18, 2023)
+
+IMPROVEMENTS:
+* Add support for Vault agent environment variables. [GH-1741](https://github.com/hashicorp/consul-template/pull/1741)
+* Upgrade hashicorp/vault/api from 1.8.2 to 1.9.1. [GH-1743](https://github.com/hashicorp/consul-template/pull/1743)
+
+REPO MAINTENANCE:
+* remove repo-specific codeql action, in favor of centralized job. [GH-1740](https://github.com/hashicorp/consul-template/pull/1740/files)
+
+
 ## v0.31.0 (Apr 06, 2023)
 
 IMPROVEMENTS:
