@@ -255,6 +255,15 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"func_hmacSHA256Hex",
+			&NewTemplateInput{
+				Contents: `{{ hmacSHA256Hex "somemessage" "somesecret" }}`,
+			},
+			nil,
+			"64e071cca0eb27a3b12d70efc15c18a52a91d84cf4e91a5943195f1015bf7c34",
+			false,
+		},
+		{
 			"func_datacenters",
 			&NewTemplateInput{
 				Contents: `{{ datacenters }}`,
