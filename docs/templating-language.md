@@ -1489,10 +1489,10 @@ Takes a string input as an argument, and returns the hex-encoded md5 hash of the
 
 ### `hmacSHA256Hex`
 
-Takes a secret and a message as string inputs. Returns a hex-encoded HMAC SHA256 hash of the given parameters.
+Takes a key and a message as string inputs. Returns a hex-encoded HMAC-SHA256 hash with the given parameters.
 
 ```golang
-{{ hmacSHA256Hex "somemessage" "somesecret" }}
+{{ hmacSHA256Hex "somemessage" "somekey" }}
 ```
 
 Or with a pipe function
