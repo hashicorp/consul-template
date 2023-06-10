@@ -1721,9 +1721,10 @@ func md5sum(item string) (string, error) {
 	return fmt.Sprintf("%x", md5.Sum([]byte(item))), nil
 }
 
-// hmacSHA256Hex returns the HMAC SHA256 hex of a string
-func hmacSHA256Hex(message, secret string) (string, error) {
-	h := hmac.New(sha256.New, []byte(secret))
+// hmacSHA256Hex returns the HMAC-SHA256 hash in hexadecimal format of the
+// given message by using the provided key
+func hmacSHA256Hex(message, key string) (string, error) {
+	h := hmac.New(sha256.New, []byte(key))
 	h.Write([]byte(message))
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
