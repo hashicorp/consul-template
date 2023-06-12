@@ -1498,7 +1498,7 @@ Takes a key and a message as string inputs. Returns a hex-encoded HMAC-SHA256 ha
 Or with a pipe function
 
 ```golang
-{{ "somesecret" | hmacSHA256Hex "somemessage" }}
+{{ "somekey" | hmacSHA256Hex "somemessage" }}
 ```
 
 ### `split`
