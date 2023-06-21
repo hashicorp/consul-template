@@ -30,7 +30,7 @@ jobs:
         # looking for just the number, eg. 1.18.3
         run: |
           echo "Building with Go $(go env GOVERSION | tr -d 'go')"
-          echo "::set-output name=go-version::$(go env GOVERSION | tr -d 'go')"
+          echo "go-version=$(go env GOVERSION | tr -d 'go')" >> "$GITHUB_OUTPUT"
 
   get-product-version:
     runs-on: ubuntu-latest
@@ -42,7 +42,7 @@ jobs:
         id: get-product-version
         run: |
           make version
-          echo "::set-output name=product-version::$(make version)"
+          echo "product-version=$(make version)" >> "$GITHUB_OUTPUT"
 
   generate-metadata-file:
     needs: get-product-version
