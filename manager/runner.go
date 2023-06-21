@@ -944,7 +944,7 @@ func (r *Runner) init(clients *dep.ClientSet) error {
 	dep.SetVaultLeaseRenewalThreshold(*r.config.Vault.LeaseRenewalThreshold)
 
 	// Create the watcher
-	r.watcher = newWatcher(r.config, clients, r.config.Once)
+	r.watcher = newWatcher(r.config, clients)
 
 	numTemplates := len(*r.config.Templates)
 	templates := make([]*template.Template, 0, numTemplates)
@@ -1398,7 +1398,7 @@ func NewClientSet(c *config.Config) (*dep.ClientSet, error) {
 }
 
 // newWatcher creates a new watcher.
-func newWatcher(c *config.Config, clients *dep.ClientSet, once bool) *watch.Watcher {
+func newWatcher(c *config.Config, clients *dep.ClientSet) *watch.Watcher {
 	log.Printf("[INFO] (runner) creating watcher")
 
 	return watch.NewWatcher(&watch.NewWatcherInput{

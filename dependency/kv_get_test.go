@@ -223,15 +223,12 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 		dataCh := make(chan interface{}, 1)
 		errCh := make(chan error, 1)
 		go func() {
-			for {
-				data, _, err := d.Fetch(testClients, &QueryOptions{WaitIndex: qm.LastIndex})
-				if err != nil {
-					errCh <- err
-					return
-				}
-				dataCh <- data
+			data, _, err := d.Fetch(testClients, &QueryOptions{WaitIndex: qm.LastIndex})
+			if err != nil {
+				errCh <- err
 				return
 			}
+			dataCh <- data
 		}()
 
 		testConsul.SetKVString(t, "test-kv-get/key", "new-value")

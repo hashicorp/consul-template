@@ -88,7 +88,7 @@ type VaultConfig struct {
 
 	// ClientUserAgent is the User-Agent header that will be set on the client
 	// when making requests to Vault.
-	ClientUserAgent *string `mapstructure:"client_user_agent""`
+	ClientUserAgent *string `mapstructure:"client_user_agent"`
 
 	// DefaultLeaseDuration configures the default lease duration when not explicitly
 	// set by vault

@@ -177,7 +177,8 @@ func New(i *NewInput) (*Child, error) {
 
 // ExitCh returns the current exit channel for this child process. This channel
 // may change if the process is restarted, so implementers must not cache this
-// value.
+// value. To prevent a potential race condition, this function must be invoked
+// strictly after child.Start().
 func (c *Child) ExitCh() <-chan int {
 	c.RLock()
 	defer c.RUnlock()

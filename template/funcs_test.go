@@ -268,3 +268,38 @@ func Test_md5sum(t *testing.T) {
 		})
 	}
 }
+
+func Test_hmacSHA256Hex(t *testing.T) {
+	type args struct {
+		message string
+		key     string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			name: "Should return the proper string",
+			args: args{
+				message: "bladibla",
+				key:     "foobar",
+			},
+			want:    "82cd4c36fa45a1936e93d005ea2fd008350339bb9246a3ba0c8dfecb9d77155b",
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := hmacSHA256Hex(tt.args.message, tt.args.key)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("hmacSHA256Hex() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("hmacSHA256Hex() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
