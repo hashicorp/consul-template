@@ -74,6 +74,7 @@ provides the following functions:
   - [replaceAll](#replaceall)
   - [sha256Hex](#sha256hex)
   - [md5sum](#md5sum)
+  - [hmacSHA256Hex](#hmacSHA256hex)
   - [split](#split)
   - [splitToMap](#splitToMap)
   - [timestamp](#timestamp)
@@ -1496,6 +1497,20 @@ Takes a string input as an argument, and returns the hex-encoded md5 hash of the
 
 ```golang
 {{ "myString" | md5sum }}
+```
+
+### `hmacSHA256Hex`
+
+Takes a key and a message as string inputs. Returns a hex-encoded HMAC-SHA256 hash with the given parameters.
+
+```golang
+{{ hmacSHA256Hex "somemessage" "somekey" }}
+```
+
+Or with a pipe function
+
+```golang
+{{ "somekey" | hmacSHA256Hex "somemessage" }}
 ```
 
 ### `split`
