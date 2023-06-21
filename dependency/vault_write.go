@@ -146,12 +146,6 @@ func sha1Map(m map[string]interface{}) string {
 	return fmt.Sprintf("%.4x", h.Sum(nil))
 }
 
-func (d *VaultWriteQuery) printWarnings(warnings []string) {
-	for _, w := range warnings {
-		log.Printf("[WARN] %s: %s", d, w)
-	}
-}
-
 func (d *VaultWriteQuery) writeSecret(clients *ClientSet, opts *QueryOptions) (*api.Secret, error) {
 	log.Printf("[TRACE] %s: PUT %s", d, &url.URL{
 		Path:     "/v1/" + d.path,

@@ -210,15 +210,12 @@ func TestVaultReadQuery_Fetch_KVv1(t *testing.T) {
 		dataCh := make(chan interface{}, 1)
 		errCh := make(chan error, 1)
 		go func() {
-			for {
-				data, _, err := d.Fetch(clients, &QueryOptions{WaitIndex: qm.LastIndex})
-				if err != nil {
-					errCh <- err
-					return
-				}
-				dataCh <- data
+			data, _, err := d.Fetch(clients, &QueryOptions{WaitIndex: qm.LastIndex})
+			if err != nil {
+				errCh <- err
 				return
 			}
+			dataCh <- data
 		}()
 
 		select {
@@ -495,15 +492,12 @@ func TestVaultReadQuery_Fetch_KVv2(t *testing.T) {
 			dataCh := make(chan interface{}, 1)
 			errCh := make(chan error, 1)
 			go func() {
-				for {
-					data, _, err := d.Fetch(clients, &QueryOptions{WaitIndex: qm.LastIndex})
-					if err != nil {
-						errCh <- err
-						return
-					}
-					dataCh <- data
+				data, _, err := d.Fetch(clients, &QueryOptions{WaitIndex: qm.LastIndex})
+				if err != nil {
+					errCh <- err
 					return
 				}
+				dataCh <- data
 			}()
 
 			select {
