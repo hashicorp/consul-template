@@ -378,6 +378,26 @@ func (cli *CLI) ParseFlags(args []string) (
 		return nil
 	}), "exec-splay", "")
 
+	flags.Var((funcBoolVar)(func(b bool) error {
+		c.Exec.Env.Pristine = config.Bool(b)
+		return nil
+	}), "exec-env-pristine", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		c.Exec.Env.Custom = append(c.Exec.Env.Custom, s)
+		return nil
+	}), "exec-env-custom", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		c.Exec.Env.Allowlist = append(c.Exec.Env.Allowlist, s)
+		return nil
+	}), "exec-env-allowlist", "")
+
+	flags.Var((funcVar)(func(s string) error {
+		c.Exec.Env.Denylist = append(c.Exec.Env.Denylist, s)
+		return nil
+	}), "exec-env-denylist", "")
+
 	flags.Var((funcVar)(func(s string) error {
 		sig, err := signals.Parse(s)
 		if err != nil {
@@ -772,6 +792,27 @@ Options:
 
   -exec-splay=<duration>
       Amount of time to wait before sending signals
+
+  -exec-env-pristine
+      Child process should not inherit the parent process's environment.
+
+  -exec-env-custom
+      Additional custom environment variables to inject into the child's
+      runtime. Even if pristine, allowlist, or denylist is specified, all
+      values in this option are given to the child process. Can be specified
+      multiple times.
+
+  -exec-env-allowlist
+      List of environment variables to exclusively include in the list of
+      environment variables exposed to the child process. Only those environment
+      variables matching the given patterns are exposed to the child process.
+      Wildcards are permitted. Can be specified multiple times.
+
+  -exec-env-denylist
+      List of environment variables to exclusively prohibit in the list of
+      environment variables exposed to the child process. The values in this
+      option take precedence over the values in the allowlist.
+      Wildcards are permitted. Can be specified multiple times.
 
   -kill-signal=<signal>
       Signal to listen to gracefully terminate the process
