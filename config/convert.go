@@ -25,15 +25,6 @@ func BoolVal(b *bool) bool {
 	return *b
 }
 
-// BoolCopy returns a copy of the boolean pointer
-func BoolCopy(b *bool) *bool {
-	if b == nil {
-		return nil
-	}
-
-	return Bool(*b)
-}
-
 // BoolGoString returns the value of the boolean for printing in a string.
 func BoolGoString(b *bool) string {
 	if b == nil {
@@ -124,46 +115,6 @@ func IntPresent(i *int) bool {
 	return *i != 0
 }
 
-// Uint returns a pointer to the given uint.
-func Uint(i uint) *uint {
-	return &i
-}
-
-// UintVal returns the value of the uint at the pointer, or 0 if the pointer is
-// nil.
-func UintVal(i *uint) uint {
-	if i == nil {
-		return 0
-	}
-	return *i
-}
-
-// UintCopy returns a copy of the uint pointer
-func UintCopy(i *uint) *uint {
-	if i == nil {
-		return nil
-	}
-
-	return Uint(*i)
-}
-
-// UintGoString returns the value of the uint for printing in a string.
-func UintGoString(i *uint) string {
-	if i == nil {
-		return "(*uint)(nil)"
-	}
-	return fmt.Sprintf("%d", *i)
-}
-
-// UintPresent returns a boolean indicating if the pointer is nil, or if the
-// pointer is pointing to the zero value.
-func UintPresent(i *uint) bool {
-	if i == nil {
-		return false
-	}
-	return *i != 0
-}
-
 // Signal returns a pointer to the given os.Signal.
 func Signal(s os.Signal) *os.Signal {
 	return &s
@@ -211,15 +162,6 @@ func StringVal(s *string) string {
 	return *s
 }
 
-// StringCopy returns a copy of the string pointer
-func StringCopy(s *string) *string {
-	if s == nil {
-		return nil
-	}
-
-	return String(*s)
-}
-
 // StringGoString returns the value of the string for printing in a string.
 func StringGoString(s *string) string {
 	if s == nil {
@@ -248,15 +190,6 @@ func TimeDurationVal(t *time.Duration) time.Duration {
 		return time.Duration(0)
 	}
 	return *t
-}
-
-// TimeDurationCopy returns a copy of the time.Duration pointer
-func TimeDurationCopy(t *time.Duration) *time.Duration {
-	if t == nil {
-		return nil
-	}
-
-	return TimeDuration(*t)
 }
 
 // TimeDurationGoString returns the value of the time.Duration for printing in a
