@@ -11,11 +11,7 @@ type CounterMetric struct {
 }
 
 func (m *CounterMetric) Add(val float32, labels ...metrics.Label) {
-	if len(labels) == 0 {
-		metrics.IncrCounter(m.Names, val)
-	} else {
-		metrics.IncrCounterWithLabels(m.Names, val, labels)
-	}
+	metrics.IncrCounterWithLabels(m.Names, val, labels)
 }
 
 // Counters
