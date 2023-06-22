@@ -46,7 +46,7 @@ func ConfigureSinks(cfg *config.TelemetryConfig, memSink metrics.MetricSink) (me
 	metricsConf.BlockedPrefixes = cfg.BlockedPrefixes
 
 	var sinks metrics.FanoutSink
-	var errors error
+	var errors *multierror.Error
 	addSink := func(fn func(*config.TelemetryConfig, string) (metrics.MetricSink, error)) {
 		s, err := fn(cfg, metricsConf.HostName)
 		if err != nil {
@@ -79,12 +79,7 @@ func ConfigureSinks(cfg *config.TelemetryConfig, memSink metrics.MetricSink) (me
 		}
 	}
 
-	// if no errors where collected, the method should not return
-	/*if len(errors.Errors) == 0 {
-		errors = nil
-	}*/
-
-	return sinks, errors
+	return sinks, errors.ErrorOrNil()
 }
 
 // Init configures go-metrics based on map of telemetry config
