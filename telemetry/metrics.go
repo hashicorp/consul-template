@@ -44,5 +44,8 @@ func NewLabel(name string, value string) metrics.Label {
 }
 
 func InitMetrics() {
+	CounterDependenciesReceived.Add(0)
+	CounterTemplatesRendered.Add(0)
 	CounterActions.Add(0)
+	CounterCommandExecs.Add(0)
 }
