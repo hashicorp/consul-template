@@ -410,7 +410,7 @@ $ consul-template -log-level debug ...
 
 ## Telemetry
 
-Consul Template uses the [armon/go-metrics](https://github.com/armon/go-metrics) library to implement the Consul Template metric system. It currently supports metrics exported to circonus API, statsd server, statsite server, dogstatsd server, and prometheus endpoint.
+Consul Template uses the [armon/go-metrics](https://github.com/armon/go-metrics) library to implement the Consul Template metrics system. It currently supports metrics exported to circonus API, statsd server, statsite server, dogstatsd server, and prometheus endpoint.
 
 ### Key Metrics
 
