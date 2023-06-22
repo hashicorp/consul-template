@@ -669,32 +669,24 @@ func (r *Runner) Run() error {
 			// Record that there is at least one new render event
 			newRenderEvent = true
 
-			var label string
-
 			// Record that at least one template would have been rendered.
 			if event.WouldRender {
 				wouldRenderAny = true
-				label = "would"
 			}
 
 			// Record that at least one template was rendered.
 			if event.DidRender {
 				renderedAny = true
-				label = "rendered"
 			}
 
-			if event.ForQuiescence {
-				label = "quiescence"
-			}
+			label := getTelemetryLabel(event)
 
 			// Report the template render event
-			if label != "" {
-				telemetry.CounterTemplatesRendered.Add(
-					1,
-					telemetry.NewLabel("id", tmpl.ID()),
-					telemetry.NewLabel("status", label),
-				)
-			}
+			telemetry.CounterTemplatesRendered.Add(
+				1,
+				telemetry.NewLabel("id", tmpl.ID()),
+				telemetry.NewLabel("status", label),
+			)
 		}
 	}
 
@@ -1525,4 +1517,24 @@ func recordDependencyCounts(deps map[string]dep.Dependency) {
 	for _, dep := range deps {
 		types[dep.Type()]++
 	}
+}
+
+func getTelemetryLabel(event *RenderEvent) string {
+	var label string
+
+	// Record that at least one template would have been rendered.
+	if event.WouldRender {
+		label = "would"
+	}
+
+	// Record that at least one template was rendered.
+	if event.DidRender {
+		label = "rendered"
+	}
+
+	if event.ForQuiescence {
+		label = "quiescence"
+	}
+
+	return label
 }
