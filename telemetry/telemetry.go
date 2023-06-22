@@ -7,7 +7,6 @@ package telemetry
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -51,8 +50,6 @@ func ConfigureSinks(cfg *config.TelemetryConfig, memSink metrics.MetricSink) (me
 	addSink := func(fn func(*config.TelemetryConfig, string) (metrics.MetricSink, error)) {
 		s, err := fn(cfg, metricsConf.HostName)
 		if err != nil {
-			log.Println("error!!!")
-			log.Println(err)
 			errors = multierror.Append(errors, err)
 			return
 		}
