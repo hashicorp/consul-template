@@ -240,6 +240,9 @@ func (c *TelemetryConfig) Copy() *TelemetryConfig {
 	}
 }
 
+// Merge combines all values in this configuration with the values in the other
+// configuration, with values in the other configuration taking precedence.
+// Maps and slices are merged, most other values are overwritten.
 func (c *TelemetryConfig) Merge(o *TelemetryConfig) *TelemetryConfig {
 	if c == nil {
 		if o == nil {
