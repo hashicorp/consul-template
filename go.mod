@@ -3,7 +3,7 @@ module github.com/hashicorp/consul-template
 go 1.19
 
 require (
-	github.com/BurntSushi/toml v1.2.1
+	github.com/BurntSushi/toml v1.3.2
 	github.com/davecgh/go-spew v1.1.1
 	github.com/hashicorp/consul/api v1.21.0
 	github.com/hashicorp/consul/sdk v0.13.1
