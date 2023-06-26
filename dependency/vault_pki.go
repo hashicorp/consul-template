@@ -212,10 +212,6 @@ func (d *VaultPKIQuery) fetchPEMs(clients *ClientSet) ([]byte, error) {
 	return pems.Bytes(), nil
 }
 
-func (d *VaultPKIQuery) stopChan() chan struct{} {
-	return d.stopCh
-}
-
 // CanShare returns if this dependency is shareable.
 func (d *VaultPKIQuery) CanShare() bool {
 	return false

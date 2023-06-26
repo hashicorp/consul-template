@@ -100,7 +100,7 @@ func TestVaultWriteSecretKV_Fetch(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		act, err := rq.readSecret(clients, nil)
+		act, err := rq.readSecret(clients)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -134,7 +134,7 @@ func TestVaultWriteSecretKV_Fetch(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		act, err := rq.readSecret(clients, nil)
+		act, err := rq.readSecret(clients)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -166,7 +166,7 @@ func TestVaultWriteSecretKV_Fetch(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		act, err := rq.readSecret(clients, nil)
+		act, err := rq.readSecret(clients)
 		if err != nil {
 			t.Fatal(err)
 		}
