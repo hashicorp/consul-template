@@ -6,6 +6,7 @@ package dependency
 import (
 	"log"
 	"net/url"
+	"sort"
 	"time"
 
 	"github.com/hashicorp/consul/api"
@@ -87,6 +88,8 @@ func (d *CatalogDatacentersQuery) Fetch(clients *ClientSet, opts *QueryOptions) 
 	}
 
 	log.Printf("[TRACE] %s: returned %d results", d, len(result))
+
+	sort.Strings(result)
 
 	return respWithMetadata(result)
 }
