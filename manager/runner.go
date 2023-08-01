@@ -1128,6 +1128,10 @@ func (r *Runner) childEnv() []string {
 		m["VAULT_CACERT"] = config.StringVal(r.config.Vault.SSL.CaCert)
 	}
 
+	if config.StringPresent(r.config.Vault.SSL.CaCertBytes) {
+		m["VAULT_CACERT_BYTES"] = config.StringVal(r.config.Vault.SSL.CaCertBytes)
+	}
+
 	if config.StringPresent(r.config.Vault.SSL.ServerName) {
 		m["VAULT_TLS_SERVER_NAME"] = config.StringVal(r.config.Vault.SSL.ServerName)
 	}
@@ -1350,6 +1354,7 @@ func NewClientSet(c *config.Config) (*dep.ClientSet, error) {
 		SSLCert:                      config.StringVal(c.Vault.SSL.Cert),
 		SSLKey:                       config.StringVal(c.Vault.SSL.Key),
 		SSLCACert:                    config.StringVal(c.Vault.SSL.CaCert),
+		SSLCACertBytes:               config.StringVal(c.Vault.SSL.CaCertBytes),
 		SSLCAPath:                    config.StringVal(c.Vault.SSL.CaPath),
 		ServerName:                   config.StringVal(c.Vault.SSL.ServerName),
 		ClientUserAgent:              config.StringVal(c.Vault.ClientUserAgent),
