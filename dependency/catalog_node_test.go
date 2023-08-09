@@ -99,6 +99,7 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 					},
 					Meta: map[string]string{
 						"consul-network-segment": "",
+						"consul-version":         "1.16.1",
 					},
 				},
 				Services: []*CatalogNodeService{
