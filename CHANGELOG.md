@@ -1,3 +1,22 @@
+## v0.33.0 (August 9, 2023)
+
+IMPROVEMENTS:
+* Add support for setting Vault CA from VAULT_CACERT_BYTES. [GH-1782](https://github.com/hashicorp/consul-template/pull/1782)
+* Add CLI support for exec env configs. [GH-1761](https://github.com/hashicorp/consul-template/pull/1761)
+* Add function for HMAC SHA256. [GH-1760](https://github.com/hashicorp/consul-template/pull/1760)
+* Bump go version from 1.19 to 1.20. [GH-1783](https://github.com/hashicorp/consul-template/pull/1783)
+* Bump hashicorp/consul/api from 1.13.0 to 1.23.0. [GH-1781](https://github.com/hashicorp/consul-template/pull/1781) & [GH-1758](https://github.com/hashicorp/consul-template/pull/1758)
+* Bump BurntSushi/toml from 1.2.1 to 1.3.2. [GH-1766](https://github.com/hashicorp/consul-template/pull/1766)
+* Bump golang.org/x/sys from 0.10.0 to 0.11.0. [GH-1788](https://github.com/hashicorp/consul-template/pull/1788)
+* Bump golang.org/x/net from 0.12.0 to 0.13.0. [GH-1784](https://github.com/hashicorp/consul-template/pull/1784)
+* Bump golang.org/x/text from 0.7.0 to 0.10.0. [GH-1763](https://github.com/hashicorp/consul-template/pull/1763)
+* Bump stretchr/testify from 1.8.2 to 1.8.4. [GH-1757](https://github.com/hashicorp/consul-template/pull/1757)
+* Bump hashicorp/vault/api/auth/kubernetes from 0.3.0 to 0.4.1. [GH-1755](https://github.com/hashicorp/consul-template/pull/1755)
+
+REPO MAINTENANCE:
+* Code quality fixes and various lint improvements. [GH-1762](https://github.com/hashicorp/consul-template/pull/1762)
+
+
 ## v0.32.0 (May 18, 2023)
 
 IMPROVEMENTS:
