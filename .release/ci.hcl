@@ -5,14 +5,17 @@ schema = "1"
 
 project "consul-template" {
   // the team key is not used by CRT currently
-  team = "cat-floss"
+  team = "consul-core"
   slack {
-    notification_channel = "C026W707YHJ"
+    notification_channel = "C9KPKPKRN"
   }
   github {
     organization = "hashicorp"
     repository = "consul-template"
-    release_branches = ["main"]
+    release_branches = [
+      "main",
+      "release/**",
+    ]
   }
 }
 
