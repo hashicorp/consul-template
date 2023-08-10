@@ -1280,10 +1280,8 @@ func (q *quiescence) tick() {
 	if q.timer == nil {
 		q.timer = time.NewTimer(q.min)
 		go func() {
-			select {
-			case <-q.timer.C:
-				q.ch <- q.template
-			}
+			<-q.timer.C
+			q.ch <- q.template
 		}()
 
 		q.deadline = now.Add(q.max)

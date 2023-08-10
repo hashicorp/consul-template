@@ -172,5 +172,5 @@ func (d *TestDepBlock) Fetch(clients *dep.ClientSet, opts *dep.QueryOptions) (in
 }
 
 func (d *TestDepBlock) String() string {
-	return fmt.Sprintf("test_dep_block")
+	return "test_dep_block"
 }
