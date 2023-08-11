@@ -5,8 +5,8 @@ go 1.20
 require (
 	github.com/BurntSushi/toml v1.3.2
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
-	github.com/hashicorp/consul/api v1.23.0
-	github.com/hashicorp/consul/sdk v0.14.0
+	github.com/hashicorp/consul/api v1.24.0
+	github.com/hashicorp/consul/sdk v0.14.1
 	github.com/hashicorp/go-gatedio v0.5.0
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1
