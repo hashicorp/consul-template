@@ -8,6 +8,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/vault/api"
 )
 
 func TestVaultConfig_Copy(t *testing.T) {
@@ -471,11 +473,13 @@ func TestVaultConfig_Merge(t *testing.T) {
 func TestVaultConfig_Finalize(t *testing.T) {
 	cases := []struct {
 		name string
+		env  map[string]string
 		i    *VaultConfig
 		r    *VaultConfig
 	}{
 		{
 			"empty",
+			nil,
 			&VaultConfig{},
 			&VaultConfig{
 				Address:    String(""),
@@ -489,13 +493,14 @@ func TestVaultConfig_Finalize(t *testing.T) {
 					Attempts:   Int(DefaultRetryAttempts),
 				},
 				SSL: &SSLConfig{
-					CaCert:     String(""),
-					CaPath:     String(""),
-					Cert:       String(""),
-					Enabled:    Bool(true),
-					Key:        String(""),
-					ServerName: String(""),
-					Verify:     Bool(true),
+					CaCert:      String(""),
+					CaCertBytes: String(""),
+					CaPath:      String(""),
+					Cert:        String(""),
+					Enabled:     Bool(true),
+					Key:         String(""),
+					ServerName:  String(""),
+					Verify:      Bool(true),
 				},
 				Token: String(""),
 				Transport: &TransportConfig{
@@ -518,6 +523,7 @@ func TestVaultConfig_Finalize(t *testing.T) {
 		},
 		{
 			"with_address",
+			nil,
 			&VaultConfig{
 				Address: String("address"),
 			},
@@ -533,13 +539,14 @@ func TestVaultConfig_Finalize(t *testing.T) {
 					Attempts:   Int(DefaultRetryAttempts),
 				},
 				SSL: &SSLConfig{
-					CaCert:     String(""),
-					CaPath:     String(""),
-					Cert:       String(""),
-					Enabled:    Bool(true),
-					Key:        String(""),
-					ServerName: String(""),
-					Verify:     Bool(true),
+					CaCert:      String(""),
+					CaCertBytes: String(""),
+					CaPath:      String(""),
+					Cert:        String(""),
+					Enabled:     Bool(true),
+					Key:         String(""),
+					ServerName:  String(""),
+					Verify:      Bool(true),
 				},
 				Token: String(""),
 				Transport: &TransportConfig{
@@ -562,6 +569,71 @@ func TestVaultConfig_Finalize(t *testing.T) {
 		},
 		{
 			"with_ssl_config",
+			nil,
+			&VaultConfig{
+				Address: String("address"),
+				SSL: &SSLConfig{
+					CaCert:      String("ca_cert"),
+					CaCertBytes: String("ca_cert_bytes"),
+					CaPath:      String("ca_path"),
+					Cert:        String("cert"),
+					Enabled:     Bool(false),
+					Key:         String("key"),
+					ServerName:  String("server_name"),
+					Verify:      Bool(false),
+				},
+			},
+			&VaultConfig{
+				Address:    String("address"),
+				Enabled:    Bool(true),
+				Namespace:  String(""),
+				RenewToken: Bool(false),
+				Retry: &RetryConfig{
+					Backoff:    TimeDuration(DefaultRetryBackoff),
+					MaxBackoff: TimeDuration(DefaultRetryMaxBackoff),
+					Enabled:    Bool(true),
+					Attempts:   Int(DefaultRetryAttempts),
+				},
+				SSL: &SSLConfig{
+					CaCert:      String("ca_cert"),
+					CaCertBytes: String("ca_cert_bytes"),
+					CaPath:      String("ca_path"),
+					Cert:        String("cert"),
+					Enabled:     Bool(false),
+					Key:         String("key"),
+					ServerName:  String("server_name"),
+					Verify:      Bool(false),
+				},
+				Token: String(""),
+				Transport: &TransportConfig{
+					DialKeepAlive:       TimeDuration(DefaultDialKeepAlive),
+					DialTimeout:         TimeDuration(DefaultDialTimeout),
+					DisableKeepAlives:   Bool(false),
+					IdleConnTimeout:     TimeDuration(DefaultIdleConnTimeout),
+					MaxIdleConns:        Int(DefaultMaxIdleConns),
+					MaxIdleConnsPerHost: Int(DefaultMaxIdleConnsPerHost),
+					TLSHandshakeTimeout: TimeDuration(DefaultTLSHandshakeTimeout),
+				},
+				UnwrapToken:                Bool(DefaultVaultUnwrapToken),
+				DefaultLeaseDuration:       TimeDuration(DefaultVaultLeaseDuration),
+				LeaseRenewalThreshold:      Float64(DefaultLeaseRenewalThreshold),
+				K8SAuthRoleName:            String(""),
+				K8SServiceAccountTokenPath: String(DefaultK8SServiceAccountTokenPath),
+				K8SServiceAccountToken:     String(""),
+				K8SServiceMountPath:        String(DefaultK8SServiceMountPath),
+			},
+		},
+		{
+			"with_ssl_config_env",
+			map[string]string{
+				api.EnvVaultCACert:        "ca_cert",
+				api.EnvVaultCACertBytes:   "ca_cert_bytes",
+				api.EnvVaultCAPath:        "ca_path",
+				api.EnvVaultClientCert:    "cert",
+				api.EnvVaultClientKey:     "key",
+				api.EnvVaultTLSServerName: "server_name",
+				api.EnvVaultSkipVerify:    "true",
+			},
 			&VaultConfig{
 				Address: String("address"),
 			},
@@ -577,13 +649,14 @@ func TestVaultConfig_Finalize(t *testing.T) {
 					Attempts:   Int(DefaultRetryAttempts),
 				},
 				SSL: &SSLConfig{
-					CaCert:     String(""),
-					CaPath:     String(""),
-					Cert:       String(""),
-					Enabled:    Bool(true),
-					Key:        String(""),
-					ServerName: String(""),
-					Verify:     Bool(true),
+					CaCert:      String("ca_cert"),
+					CaCertBytes: String("ca_cert_bytes"),
+					CaPath:      String("ca_path"),
+					Cert:        String("cert"),
+					Enabled:     Bool(true),
+					Key:         String("key"),
+					ServerName:  String("server_name"),
+					Verify:      Bool(false),
 				},
 				Token: String(""),
 				Transport: &TransportConfig{
@@ -606,6 +679,7 @@ func TestVaultConfig_Finalize(t *testing.T) {
 		},
 		{
 			"with_default_lease_duration",
+			nil,
 			&VaultConfig{
 				Address:              String("address"),
 				DefaultLeaseDuration: TimeDuration(1 * time.Minute),
@@ -622,13 +696,14 @@ func TestVaultConfig_Finalize(t *testing.T) {
 					Attempts:   Int(DefaultRetryAttempts),
 				},
 				SSL: &SSLConfig{
-					CaCert:     String(""),
-					CaPath:     String(""),
-					Cert:       String(""),
-					Enabled:    Bool(true),
-					Key:        String(""),
-					ServerName: String(""),
-					Verify:     Bool(true),
+					CaCert:      String(""),
+					CaCertBytes: String(""),
+					CaPath:      String(""),
+					Cert:        String(""),
+					Enabled:     Bool(true),
+					Key:         String(""),
+					ServerName:  String(""),
+					Verify:      Bool(true),
 				},
 				Token: String(""),
 				Transport: &TransportConfig{
@@ -651,6 +726,7 @@ func TestVaultConfig_Finalize(t *testing.T) {
 		},
 		{
 			"with_lease_renewal_threshold",
+			nil,
 			&VaultConfig{
 				Address:               String("address"),
 				LeaseRenewalThreshold: Float64(0.70),
@@ -667,13 +743,14 @@ func TestVaultConfig_Finalize(t *testing.T) {
 					Attempts:   Int(DefaultRetryAttempts),
 				},
 				SSL: &SSLConfig{
-					CaCert:     String(""),
-					CaPath:     String(""),
-					Cert:       String(""),
-					Enabled:    Bool(true),
-					Key:        String(""),
-					ServerName: String(""),
-					Verify:     Bool(true),
+					CaCert:      String(""),
+					CaCertBytes: String(""),
+					CaPath:      String(""),
+					Cert:        String(""),
+					Enabled:     Bool(true),
+					Key:         String(""),
+					ServerName:  String(""),
+					Verify:      Bool(true),
 				},
 				Token: String(""),
 				Transport: &TransportConfig{
@@ -696,6 +773,7 @@ func TestVaultConfig_Finalize(t *testing.T) {
 		},
 		{
 			"with_k8s_settings",
+			nil,
 			&VaultConfig{
 				K8SAuthRoleName:            String("K8SAuthRoleName"),
 				K8SServiceAccountTokenPath: String("K8SServiceAccountTokenPath"),
@@ -714,13 +792,14 @@ func TestVaultConfig_Finalize(t *testing.T) {
 					Attempts:   Int(DefaultRetryAttempts),
 				},
 				SSL: &SSLConfig{
-					CaCert:     String(""),
-					CaPath:     String(""),
-					Cert:       String(""),
-					Enabled:    Bool(true),
-					Key:        String(""),
-					ServerName: String(""),
-					Verify:     Bool(true),
+					CaCert:      String(""),
+					CaCertBytes: String(""),
+					CaPath:      String(""),
+					Cert:        String(""),
+					Enabled:     Bool(true),
+					Key:         String(""),
+					ServerName:  String(""),
+					Verify:      Bool(true),
 				},
 				Token: String(""),
 				Transport: &TransportConfig{
@@ -745,6 +824,11 @@ func TestVaultConfig_Finalize(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			if tc.env != nil {
+				for k, v := range tc.env {
+					t.Setenv(k, v)
+				}
+			}
 			tc.i.Finalize()
 			if !reflect.DeepEqual(tc.r, tc.i) {
 				t.Errorf("\nexp: %#v\nact: %#v", tc.r, tc.i)

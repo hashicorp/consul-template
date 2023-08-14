@@ -12,13 +12,14 @@ const (
 
 // SSLConfig is the configuration for SSL.
 type SSLConfig struct {
-	CaCert     *string `mapstructure:"ca_cert"`
-	CaPath     *string `mapstructure:"ca_path"`
-	Cert       *string `mapstructure:"cert"`
-	Enabled    *bool   `mapstructure:"enabled"`
-	Key        *string `mapstructure:"key"`
-	ServerName *string `mapstructure:"server_name"`
-	Verify     *bool   `mapstructure:"verify"`
+	CaCert      *string `mapstructure:"ca_cert"`
+	CaCertBytes *string `mapstructure:"ca_cert_bytes"`
+	CaPath      *string `mapstructure:"ca_path"`
+	Cert        *string `mapstructure:"cert"`
+	Enabled     *bool   `mapstructure:"enabled"`
+	Key         *string `mapstructure:"key"`
+	ServerName  *string `mapstructure:"server_name"`
+	Verify      *bool   `mapstructure:"verify"`
 }
 
 // DefaultSSLConfig returns a configuration that is populated with the
@@ -35,6 +36,7 @@ func (c *SSLConfig) Copy() *SSLConfig {
 
 	var o SSLConfig
 	o.CaCert = c.CaCert
+	o.CaCertBytes = c.CaCertBytes
 	o.CaPath = c.CaPath
 	o.Cert = c.Cert
 	o.Enabled = c.Enabled
@@ -70,6 +72,10 @@ func (c *SSLConfig) Merge(o *SSLConfig) *SSLConfig {
 		r.CaCert = o.CaCert
 	}
 
+	if o.CaCertBytes != nil {
+		r.CaCertBytes = o.CaCertBytes
+	}
+
 	if o.CaPath != nil {
 		r.CaPath = o.CaPath
 	}
@@ -99,6 +105,7 @@ func (c *SSLConfig) Finalize() {
 		c.Enabled = Bool(false ||
 			StringPresent(c.Cert) ||
 			StringPresent(c.CaCert) ||
+			StringPresent(c.CaCertBytes) ||
 			StringPresent(c.CaPath) ||
 			StringPresent(c.Key) ||
 			StringPresent(c.ServerName) ||
@@ -111,6 +118,10 @@ func (c *SSLConfig) Finalize() {
 
 	if c.CaCert == nil {
 		c.CaCert = String("")
+	}
+
+	if c.CaCertBytes == nil {
+		c.CaCertBytes = String("")
 	}
 
 	if c.CaPath == nil {
@@ -138,6 +149,7 @@ func (c *SSLConfig) GoString() string {
 
 	return fmt.Sprintf("&SSLConfig{"+
 		"CaCert:%s, "+
+		"CaCertBytes:%s, "+
 		"CaPath:%s, "+
 		"Cert:%s, "+
 		"Enabled:%s, "+
@@ -146,6 +158,7 @@ func (c *SSLConfig) GoString() string {
 		"Verify:%s"+
 		"}",
 		StringGoString(c.CaCert),
+		StringGoString(c.CaCertBytes),
 		StringGoString(c.CaPath),
 		StringGoString(c.Cert),
 		BoolGoString(c.Enabled),

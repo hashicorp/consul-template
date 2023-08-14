@@ -1046,7 +1046,7 @@ func TestRunner_quiescence(t *testing.T) {
 		q.tick()
 		select {
 		case <-ch:
-			dur := time.Now().Sub(start)
+			dur := time.Since(start)
 			if dur < q.min || dur > 2*q.min {
 				t.Fatalf("bad duration %9.6f", dur.Seconds())
 			}
@@ -1072,7 +1072,7 @@ func TestRunner_quiescence(t *testing.T) {
 		q.tick()
 		select {
 		case <-ch:
-			dur := time.Now().Sub(start)
+			dur := time.Since(start)
 			if dur < q.min || dur > 2*q.min {
 				t.Fatalf("bad duration %9.6f", dur.Seconds())
 			}
@@ -1092,7 +1092,7 @@ func TestRunner_quiescence(t *testing.T) {
 		// cut off at the max time.
 		fired := false
 		start := time.Now()
-		for !fired && time.Now().Sub(start) < 2*q.max {
+		for !fired && time.Since(start) < 2*q.max {
 			q.tick()
 			time.Sleep(q.min / 2)
 			select {

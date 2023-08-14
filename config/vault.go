@@ -303,6 +303,9 @@ func (c *VaultConfig) Finalize() {
 	if c.SSL.CaCert == nil {
 		c.SSL.CaCert = stringFromEnv([]string{api.EnvVaultCACert}, "")
 	}
+	if c.SSL.CaCertBytes == nil {
+		c.SSL.CaCertBytes = stringFromEnv([]string{api.EnvVaultCACertBytes}, "")
+	}
 	if c.SSL.CaPath == nil {
 		c.SSL.CaPath = stringFromEnv([]string{api.EnvVaultCAPath}, "")
 	}
