@@ -41,6 +41,20 @@ linters-settings:
     exclude_godoc_examples: false
   gofmt:
     simplify: true
+  gomodguard:
+    blocked:
+      # List of blocked modules.
+      modules:
+        # Blocked module.
+        - github.com/hashicorp/go-msgpack:
+            recommendations:
+              - github.com/hashicorp/consul-net-rpc/go-msgpack
+        - github.com/golang/protobuf:
+            recommendations:
+              - google.golang.org/protobuf
+  depguard:
+    list-type: denylist
+    include-go-root: true
 
 run:
   timeout: 10m
