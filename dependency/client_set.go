@@ -95,6 +95,7 @@ type CreateVaultClientInput struct {
 	SSLCert         string
 	SSLKey          string
 	SSLCACert       string
+	SSLCACertBytes  string
 	SSLCAPath       string
 	ServerName      string
 	ClientUserAgent string
@@ -302,10 +303,11 @@ func (c *ClientSet) CreateVaultClient(i *CreateVaultClientInput) error {
 		}
 
 		// Custom CA certificate
-		if i.SSLCACert != "" || i.SSLCAPath != "" {
+		if i.SSLCACert != "" || i.SSLCAPath != "" || i.SSLCACertBytes != "" {
 			rootConfig := &rootcerts.Config{
-				CAFile: i.SSLCACert,
-				CAPath: i.SSLCAPath,
+				CAFile:        i.SSLCACert,
+				CACertificate: []byte(i.SSLCACertBytes),
+				CAPath:        i.SSLCAPath,
 			}
 			if err := rootcerts.ConfigureTLS(&tlsConfig, rootConfig); err != nil {
 				return fmt.Errorf("client set: vault configuring TLS failed: %s", err)
