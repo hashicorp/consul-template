@@ -20,37 +20,6 @@ issues:
   # defined in this file.
   exclude-use-default: false
 
-  exclude-rules:
-    # Temp Ignore SA9004: only the first constant in this group has an explicit type
-    # https://staticcheck.io/docs/checks#SA9004
-    - linters: [staticcheck]
-      text: "SA9004:"
-
-    - linters: [staticcheck]
-      text: 'SA1019: "io/ioutil" has been deprecated since Go 1.16'
-
-    # An argument that always receives the same value is often not a problem.
-    - linters: [unparam]
-      text: "always receives"
-
-    # Often functions will implement an interface that returns an error without
-    # needing to return an error. Sometimes the error return value is unnecessary
-    # but a linter can not tell the difference.
-    - linters: [unparam]
-      text: 'result \d+ \(error\) is always nil'
-
-    # Allow unused parameters to start with an underscore. Arguments with a name
-    # of '_' are already ignored.
-    # Ignoring longer names that start with underscore allow for better
-    # self-documentation than a single underscore by itself.  Underscore arguments
-    # should generally only be used when a function is implementing an interface.
-    - linters: [unparam]
-      text: "`_[^`]*` is unused"
-
-    # Temp ignore some common unused parameters so that unparam can be added
-    # incrementally.
-    - linters: [unparam]
-      text: "`(t|resp|req|entMeta)` is unused"
 
 linters-settings:
   govet:
