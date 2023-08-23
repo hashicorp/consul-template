@@ -19,8 +19,8 @@ import (
 	"github.com/hashicorp/consul-template/child"
 	"github.com/hashicorp/consul-template/config"
 	dep "github.com/hashicorp/consul-template/dependency"
-	"github.com/hashicorp/consul-template/manager/systemd"
 	"github.com/hashicorp/consul-template/renderer"
+	"github.com/hashicorp/consul-template/systemd"
 	"github.com/hashicorp/consul-template/template"
 	"github.com/hashicorp/consul-template/watch"
 
