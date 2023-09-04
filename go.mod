@@ -11,7 +11,7 @@ require (
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-rootcerts v1.0.2
-	github.com/hashicorp/go-sockaddr v1.0.2
+	github.com/hashicorp/go-sockaddr v1.0.4
 	github.com/hashicorp/go-syslog v1.0.0
 	github.com/hashicorp/hcl v1.0.0
 	github.com/hashicorp/logutils v1.0.0
