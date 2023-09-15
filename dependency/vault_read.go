@@ -82,7 +82,7 @@ func (d *VaultReadQuery) Fetch(clients *ClientSet, opts *QueryOptions,
 		}
 	}
 
-	err := d.fetchSecret(clients, opts)
+	err := d.fetchSecret(clients)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, d.String())
 	}
@@ -96,10 +96,8 @@ func (d *VaultReadQuery) Fetch(clients *ClientSet, opts *QueryOptions,
 	return respWithMetadata(d.secret)
 }
 
-func (d *VaultReadQuery) fetchSecret(clients *ClientSet, opts *QueryOptions,
-) error {
-	opts = opts.Merge(&QueryOptions{})
-	vaultSecret, err := d.readSecret(clients, opts)
+func (d *VaultReadQuery) fetchSecret(clients *ClientSet) error {
+	vaultSecret, err := d.readSecret(clients)
 	if err == nil {
 		printVaultWarnings(d, vaultSecret.Warnings)
 		d.vaultSecret = vaultSecret
@@ -140,7 +138,7 @@ func (d *VaultReadQuery) Type() Type {
 	return TypeVault
 }
 
-func (d *VaultReadQuery) readSecret(clients *ClientSet, opts *QueryOptions) (*api.Secret, error) {
+func (d *VaultReadQuery) readSecret(clients *ClientSet) (*api.Secret, error) {
 	vaultClient := clients.Vault()
 
 	// Check whether this secret refers to a KV v2 entry if we haven't yet.
