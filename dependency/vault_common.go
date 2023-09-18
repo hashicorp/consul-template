@@ -81,8 +81,9 @@ func renewSecret(clients *ClientSet, d renewer) error {
 	log.Printf("[TRACE] %s: starting renewer", d)
 
 	secret, vaultSecret := d.secrets()
-	renewer, err := clients.Vault().NewRenewer(&api.RenewerInput{
-		Secret: vaultSecret,
+	renewer, err := clients.Vault().NewLifetimeWatcher(&api.LifetimeWatcherInput{
+		Secret:        vaultSecret,
+		RenewBehavior: api.RenewBehaviorErrorOnErrors,
 	})
 	if err != nil {
 		return err
@@ -303,8 +304,7 @@ func isKVv2(client *api.Client, path string) (string, bool, error) {
 	client.SetOutputCurlString(false)
 	defer client.SetOutputCurlString(currentOutputCurlString)
 
-	r := client.NewRequest("GET", "/v1/sys/internal/ui/mounts/"+path)
-	resp, err := client.RawRequest(r)
+	resp, err := client.Logical().ReadRaw("sys/internal/ui/mounts/" + path)
 	if resp != nil {
 		defer resp.Body.Close()
 	}
