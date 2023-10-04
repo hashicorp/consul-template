@@ -17,7 +17,7 @@ ARG PRODUCT_NAME=$BIN_NAME
 # TARGETARCH and TARGETOS are set automatically when --platform is provided.
 ARG TARGETOS TARGETARCH
 
-LABEL maintainer="John Eikenberry <jae@zhar.net>"
+LABEL maintainer="Consul Team <consul@hashicorp.com>"
 # version label is required for build process
 LABEL version=$PRODUCT_VERSION
 LABEL revision=$PRODUCT_REVISION

@@ -72,3 +72,9 @@ toc:
 dev-tree:
 	@true
 .PHONY: dev-tree
+
+# lint
+lint:
+	@echo "==> Running golangci-lint"
+	GOWORK=off golangci-lint run --build-tags '$(GOTAGS)'
+.PHONY: lint
