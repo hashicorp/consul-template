@@ -15,7 +15,6 @@ project "consul-template" {
     release_branches = [
       "main",
       "release/**",
-      "crt-move-to-prepare-workflow",
     ]
   }
 }
