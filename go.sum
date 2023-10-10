@@ -134,11 +134,10 @@ github.com/hashicorp/nomad/api v0.0.0-20230103221135-ce00d683f9be h1:bJ/jBA5pt/5
 github.com/hashicorp/nomad/api v0.0.0-20230103221135-ce00d683f9be/go.mod h1:EM/2XaEwHziSB4NdWZ6MfE65TcvgWwVawOUBT8kVRqE=
 github.com/hashicorp/serf v0.10.1 h1:Z1H2J60yRKvfDYAOZLd2MU0ND4AH/WDz7xYHDWQsIPY=
 github.com/hashicorp/serf v0.10.1/go.mod h1:yL2t6BqATOLGc5HF7qbFkTfXoPIY0WZdWHfEvMqbG+4=
-github.com/hashicorp/vault/api v1.9.2/go.mod h1:jo5Y/ET+hNyz+JnKDt8XLAdKs+AM0G5W0Vp1IrFI8N8=
 github.com/hashicorp/vault/api v1.10.0 h1:/US7sIjWN6Imp4o/Rj1Ce2Nr5bki/AXi9vAW3p2tOJQ=
 github.com/hashicorp/vault/api v1.10.0/go.mod h1:jo5Y/ET+hNyz+JnKDt8XLAdKs+AM0G5W0Vp1IrFI8N8=
-github.com/hashicorp/vault/api/auth/kubernetes v0.4.1 h1:amFWL1ZhwMWdmqvT51J9phXu835kY25wFfTrY/3yXd0=
-github.com/hashicorp/vault/api/auth/kubernetes v0.4.1/go.mod h1:ikWDT8Adnfvm+8DzKez50vvLD9GWD/unZfJxeqP09sU=
+github.com/hashicorp/vault/api/auth/kubernetes v0.5.0 h1:CXO0fD7M3iCGovP/UApeHhPcH4paDFKcu7AjEXi94rI=
+github.com/hashicorp/vault/api/auth/kubernetes v0.5.0/go.mod h1:afrElBIO9Q4sHFVuVWgNevG4uAs1bT2AZFA9aEiI608=
 github.com/huandu/xstrings v1.3.3/go.mod h1:y5/lhBue+AyNmUVz9RLU9xbLR0o4KIIExikq4ovT0aE=
 github.com/huandu/xstrings v1.4.0 h1:D17IlohoQq4UcpqD7fDk80P7l+lwAmlFaBHgOipl2FU=
 github.com/huandu/xstrings v1.4.0/go.mod h1:y5/lhBue+AyNmUVz9RLU9xbLR0o4KIIExikq4ovT0aE=
