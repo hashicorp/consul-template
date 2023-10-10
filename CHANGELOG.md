@@ -1,3 +1,17 @@
+## v0.34.0 (October 11, 2023)
+
+IMPROVEMENTS:
+* Refactor deprecated Vault calls. [GH-1768](https://github.com/hashicorp/consul-template/pull/1768)
+* Remove explicit math/rand seed. [GH-1793](https://github.com/hashicorp/consul-template/pull/1793)
+* Bump github.com/hashicorp/vault/api/auth/kubernetes from 0.4.1 to 0.5.0. [GH-1805](https://github.com/hashicorp/consul-template/pull/1805)
+* Bump go version from 1.20 to 1.21. [GH-1819](https://github.com/hashicorp/consul-template/pull/1819)
+* Bump golang.org/x/text from 0.11.0 to 0.13.0. [GH-1802](https://github.com/hashicorp/consul-template/pull/1802)
+* Bump golang.org/x/sys from 0.11.0 to 0.13.0. [GH-1816](https://github.com/hashicorp/consul-template/pull/1816)
+* Bump github.com/hashicorp/consul/api from 1.23.0 to 1.25.1. [GH-1787](https://github.com/hashicorp/consul-template/pull/1787) [GH-1815](https://github.com/hashicorp/consul-template/pull/1815)
+* Bump github.com/hashicorp/vault/api from 1.9.2 to 1.10.0. [GH-1806](https://github.com/hashicorp/consul-template/pull/1806)
+* Bump golangci/golangci-lint-action from 3.6.0 to 3.7.0. [GH-1812](https://github.com/hashicorp/consul-template/pull/1812)
+* add golangci-lint. [GH-1773](https://github.com/hashicorp/consul-template/pull/1773) [GH-1774](https://github.com/hashicorp/consul-template/pull/1774/files)
+
 ## v0.33.0 (August 9, 2023)
 
 IMPROVEMENTS:
