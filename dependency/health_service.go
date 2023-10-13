@@ -23,6 +23,10 @@ const (
 	HealthCritical = "critical"
 	HealthMaint    = "maintenance"
 
+	QueryNamespace = "ns"
+	QueryPartition = "partition"
+	QueryPeer      = "peer"
+
 	NodeMaint    = "_node_maintenance"
 	ServiceMaint = "_service_maintenance:"
 )
@@ -32,7 +36,7 @@ var (
 	_ Dependency = (*HealthServiceQuery)(nil)
 
 	// HealthServiceQueryRe is the regular expression to use.
-	HealthServiceQueryRe = regexp.MustCompile(`\A` + tagRe + serviceNameRe + dcRe + nearRe + filterRe + `\z`)
+	HealthServiceQueryRe = regexp.MustCompile(`\A` + tagRe + serviceNameRe + queryRe + dcRe + nearRe + filterRe + `\z`)
 )
 
 func init() {
@@ -62,12 +66,15 @@ type HealthService struct {
 type HealthServiceQuery struct {
 	stopCh chan struct{}
 
-	dc      string
-	filters []string
-	name    string
-	near    string
-	tag     string
-	connect bool
+	dc        string
+	filters   []string
+	name      string
+	near      string
+	tag       string
+	connect   bool
+	partition string
+	peer      string
+	namespace string
 }
 
 // NewHealthServiceQuery processes the strings to build a service dependency.
@@ -110,14 +117,39 @@ func healthServiceQuery(s string, connect bool) (*HealthServiceQuery, error) {
 		filters = []string{HealthPassing}
 	}
 
+	// Parse optional query into key pairs.
+	queryParams := url.Values{}
+	if queryRaw := m["query"]; queryRaw != "" {
+		var err error
+		queryParams, err = url.ParseQuery(queryRaw)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"health.service: invalid query: %q: %s", queryRaw, err)
+		}
+		// Validate keys.
+		for key := range queryParams {
+			switch key {
+			case QueryNamespace,
+				QueryPeer,
+				QueryPartition:
+			default:
+				return nil,
+					fmt.Errorf("health.service: invalid query parameter key %q in query %q: supported keys: %s,%s,%s", key, queryRaw, QueryNamespace, QueryPeer, QueryPartition)
+			}
+		}
+	}
+
 	return &HealthServiceQuery{
-		stopCh:  make(chan struct{}, 1),
-		dc:      m["dc"],
-		filters: filters,
-		name:    m["name"],
-		near:    m["near"],
-		tag:     m["tag"],
-		connect: connect,
+		stopCh:    make(chan struct{}, 1),
+		dc:        m["dc"],
+		filters:   filters,
+		name:      m["name"],
+		near:      m["near"],
+		tag:       m["tag"],
+		connect:   connect,
+		namespace: queryParams.Get(QueryNamespace),
+		peer:      queryParams.Get(QueryPeer),
+		partition: queryParams.Get(QueryPartition),
 	}, nil
 }
 
@@ -131,8 +163,11 @@ func (d *HealthServiceQuery) Fetch(clients *ClientSet, opts *QueryOptions) (inte
 	}
 
 	opts = opts.Merge(&QueryOptions{
-		Datacenter: d.dc,
-		Near:       d.near,
+		Datacenter:      d.dc,
+		Near:            d.near,
+		ConsulNamespace: d.namespace,
+		ConsulPartition: d.partition,
+		ConsulPeer:      d.peer,
 	})
 
 	u := &url.URL{

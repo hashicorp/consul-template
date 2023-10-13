@@ -43,6 +43,17 @@ func TestNewHealthServiceQuery(t *testing.T) {
 			true,
 		},
 		{
+			"query_only",
+			"?ns=foo",
+			nil,
+			true,
+		},
+		{
+			name: "invalid query param (unsupported key)",
+			i:    "name?unsupported=test",
+			err:  true,
+		},
+		{
 			"name",
 			"name",
 			&HealthServiceQuery{
@@ -123,6 +134,85 @@ func TestNewHealthServiceQuery(t *testing.T) {
 				name:    "name",
 				near:    "near",
 				tag:     "tag",
+			},
+			false,
+		},
+		{
+			"name_partition",
+			"name?partition=foo",
+			&HealthServiceQuery{
+				filters:   []string{"passing"},
+				name:      "name",
+				partition: "foo",
+			},
+			false,
+		},
+		{
+			"name_peer",
+			"name?peer=foo",
+			&HealthServiceQuery{
+				filters: []string{"passing"},
+				name:    "name",
+				peer:    "foo",
+			},
+			false,
+		},
+		{
+			"name_ns",
+			"name?ns=foo",
+			&HealthServiceQuery{
+				filters:   []string{"passing"},
+				name:      "name",
+				namespace: "foo",
+			},
+			false,
+		},
+		{
+			"name_ns_peer_partition",
+			"name?ns=foo&peer=bar&partition=baz",
+			&HealthServiceQuery{
+				filters:   []string{"passing"},
+				name:      "name",
+				namespace: "foo",
+				peer:      "bar",
+				partition: "baz",
+			},
+			false,
+		},
+		{
+			"namespace set twice should use first",
+			"name?ns=foo&ns=bar",
+			&HealthServiceQuery{
+				filters:   []string{"passing"},
+				name:      "name",
+				namespace: "foo",
+			},
+			false,
+		},
+		{
+			"empty value in query param",
+			"name?ns=&peer=&partition=",
+			&HealthServiceQuery{
+				filters:   []string{"passing"},
+				name:      "name",
+				namespace: "",
+				peer:      "",
+				partition: "",
+			},
+			false,
+		},
+		{
+			"query with other parameters",
+			"tag.name?peer=foo&ns=bar&partition=baz@dc2~near",
+			&HealthServiceQuery{
+				filters:   []string{"passing"},
+				tag:       "tag",
+				name:      "name",
+				dc:        "dc2",
+				near:      "near",
+				peer:      "foo",
+				namespace: "bar",
+				partition: "baz",
 			},
 			false,
 		},
