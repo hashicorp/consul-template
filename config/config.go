@@ -81,6 +81,9 @@ type Config struct {
 	// Syslog is the configuration for syslog.
 	Syslog *SyslogConfig `mapstructure:"syslog"`
 
+	// Telemetry is the configuration for collecting and emitting telemetry.
+	Telemetry *TelemetryConfig `mapstructure:"telemetry"`
+
 	// Templates is the list of templates.
 	Templates *TemplateConfigs `mapstructure:"template"`
 
@@ -155,6 +158,10 @@ func (c *Config) Copy() *Config {
 
 	if c.Syslog != nil {
 		o.Syslog = c.Syslog.Copy()
+	}
+
+	if c.Telemetry != nil {
+		o.Telemetry = c.Telemetry.Copy()
 	}
 
 	if c.Templates != nil {
@@ -245,6 +252,10 @@ func (c *Config) Merge(o *Config) *Config {
 		r.Syslog = r.Syslog.Merge(o.Syslog)
 	}
 
+	if o.Telemetry != nil {
+		r.Telemetry = r.Telemetry.Merge(o.Telemetry)
+	}
+
 	if o.Templates != nil {
 		r.Templates = r.Templates.Merge(o.Templates)
 	}
@@ -309,6 +320,7 @@ func Parse(s string) (*Config, error) {
 		"nomad.transport",
 		"ssl",
 		"syslog",
+		"telemetry",
 		"vault",
 		"vault.retry",
 		"vault.ssl",
@@ -467,6 +479,7 @@ func (c *Config) GoString() string {
 		"ReloadSignal:%s, "+
 		"FileLog:%#v, "+
 		"Syslog:%#v, "+
+		"Telemetry:%#v, "+
 		"Templates:%#v, "+
 		"TemplateErrFatal:%#v"+
 		"Vault:%#v, "+
@@ -486,6 +499,7 @@ func (c *Config) GoString() string {
 		SignalGoString(c.ReloadSignal),
 		c.FileLog,
 		c.Syslog,
+		c.Telemetry.GoString(),
 		c.Templates,
 		c.TemplateErrFatal,
 		c.Vault,
@@ -534,6 +548,7 @@ func DefaultConfig() *Config {
 		FileLog:       DefaultLogFileConfig(),
 		Nomad:         DefaultNomadConfig(),
 		Syslog:        DefaultSyslogConfig(),
+		Telemetry:     DefaultTelemetryConfig(),
 		Templates:     DefaultTemplateConfigs(),
 		Vault:         DefaultVaultConfig(),
 		Wait:          DefaultWaitConfig(),
@@ -606,6 +621,11 @@ func (c *Config) Finalize() {
 		c.Syslog = DefaultSyslogConfig()
 	}
 	c.Syslog.Finalize()
+
+	if c.Telemetry == nil {
+		c.Telemetry = DefaultTelemetryConfig()
+	}
+	c.Telemetry.Finalize()
 
 	if c.Templates == nil {
 		c.Templates = DefaultTemplateConfigs()
