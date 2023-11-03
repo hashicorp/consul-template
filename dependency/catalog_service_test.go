@@ -164,7 +164,7 @@ func TestCatalogServiceQuery_Fetch(t *testing.T) {
 					},
 					NodeMeta: map[string]string{
 						"consul-network-segment": "",
-						"consul-version":         "1.16.2",
+						"consul-version":         "1.17.0",
 					},
 					ServiceID:      "consul",
 					ServiceName:    "consul",
@@ -189,7 +189,7 @@ func TestCatalogServiceQuery_Fetch(t *testing.T) {
 					},
 					NodeMeta: map[string]string{
 						"consul-network-segment": "",
-						"consul-version":         "1.16.2",
+						"consul-version":         "1.17.0",
 					},
 					ServiceID:      "service-meta",
 					ServiceName:    "service-meta",
