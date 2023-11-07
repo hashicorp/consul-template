@@ -33,7 +33,7 @@ require (
 	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/hashicorp/vault/api/auth/kubernetes v0.5.0
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
-	golang.org/x/text v0.13.0
+	golang.org/x/text v0.14.0
 )
 
 require (
