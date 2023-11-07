@@ -1,3 +1,14 @@
+## v0.35.0 (November 7, 2023)
+
+NEW FEATURES:
+* Add alpha support for Consul namespaces/partitions/peering. [GH-1822](https://github.com/hashicorp/consul-template/pull/1822)
+
+IMPROVEMENTS:
+* Bump golang.org/x/text from 0.13.0 to 0.14.0. [GH-1830](https://github.com/hashicorp/consul-template/pull/1830)
+* Bump golang.org/x/sys from 0.13.0 to 0.14.0. [GH-1829](https://github.com/hashicorp/consul-template/pull/1829)
+* Bump github.com/hashicorp/consul/sdk from 0.14.1 to 0.15.0. [GH-1826](https://github.com/hashicorp/consul-template/pull/1826)
+* Bump github.com/hashicorp/consul/api from 1.25.1 to 1.26.1. [GH-1827](https://github.com/hashicorp/consul-template/pull/1827)
+
 ## v0.34.0 (October 11, 2023)
 
 IMPROVEMENTS:
