@@ -43,6 +43,17 @@ func TestNewHealthServiceQuery(t *testing.T) {
 			true,
 		},
 		{
+			"query_only",
+			"?ns=foo",
+			nil,
+			true,
+		},
+		{
+			name: "invalid query param (unsupported key)",
+			i:    "name?unsupported=test",
+			err:  true,
+		},
+		{
 			"name",
 			"name",
 			&HealthServiceQuery{
@@ -126,6 +137,85 @@ func TestNewHealthServiceQuery(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"name_partition",
+			"name?partition=foo",
+			&HealthServiceQuery{
+				filters:   []string{"passing"},
+				name:      "name",
+				partition: "foo",
+			},
+			false,
+		},
+		{
+			"name_peer",
+			"name?peer=foo",
+			&HealthServiceQuery{
+				filters: []string{"passing"},
+				name:    "name",
+				peer:    "foo",
+			},
+			false,
+		},
+		{
+			"name_ns",
+			"name?ns=foo",
+			&HealthServiceQuery{
+				filters:   []string{"passing"},
+				name:      "name",
+				namespace: "foo",
+			},
+			false,
+		},
+		{
+			"name_ns_peer_partition",
+			"name?ns=foo&peer=bar&partition=baz",
+			&HealthServiceQuery{
+				filters:   []string{"passing"},
+				name:      "name",
+				namespace: "foo",
+				peer:      "bar",
+				partition: "baz",
+			},
+			false,
+		},
+		{
+			"namespace set twice should use first",
+			"name?ns=foo&ns=bar",
+			&HealthServiceQuery{
+				filters:   []string{"passing"},
+				name:      "name",
+				namespace: "foo",
+			},
+			false,
+		},
+		{
+			"empty value in query param",
+			"name?ns=&peer=&partition=",
+			&HealthServiceQuery{
+				filters:   []string{"passing"},
+				name:      "name",
+				namespace: "",
+				peer:      "",
+				partition: "",
+			},
+			false,
+		},
+		{
+			"query with other parameters",
+			"tag.name?peer=foo&ns=bar&partition=baz@dc2~near",
+			&HealthServiceQuery{
+				filters:   []string{"passing"},
+				tag:       "tag",
+				name:      "name",
+				dc:        "dc2",
+				near:      "near",
+				peer:      "foo",
+				namespace: "bar",
+				partition: "baz",
+			},
+			false,
+		},
 	}
 
 	for i, tc := range cases {
@@ -182,7 +272,7 @@ func TestHealthConnectServiceQuery_Fetch(t *testing.T) {
 					Tags:        ServiceTags([]string{}),
 					NodeMeta: map[string]string{
 						"consul-network-segment": "",
-						"consul-version":         "1.16.2",
+						"consul-version":         "1.17.0",
 					},
 					Weights: api.AgentWeights{
 						Passing: 1,
@@ -240,7 +330,7 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 					},
 					NodeMeta: map[string]string{
 						"consul-network-segment": "",
-						"consul-version":         "1.16.2",
+						"consul-version":         "1.17.0",
 					},
 					ServiceMeta: map[string]string{},
 					Address:     testConsul.Config.Bind,
@@ -274,7 +364,7 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 					},
 					NodeMeta: map[string]string{
 						"consul-network-segment": "",
-						"consul-version":         "1.16.2",
+						"consul-version":         "1.17.0",
 					},
 					ServiceMeta: map[string]string{},
 					Address:     testConsul.Config.Bind,
@@ -303,7 +393,7 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 					},
 					NodeMeta: map[string]string{
 						"consul-network-segment": "",
-						"consul-version":         "1.16.2",
+						"consul-version":         "1.17.0",
 					},
 					ServiceMeta: map[string]string{
 						"meta1": "value1",
@@ -333,7 +423,7 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 					},
 					NodeMeta: map[string]string{
 						"consul-network-segment": "",
-						"consul-version":         "1.16.2",
+						"consul-version":         "1.17.0",
 					},
 					ServiceMeta: map[string]string{},
 					Address:     testConsul.Config.Bind,

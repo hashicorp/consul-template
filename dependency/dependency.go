@@ -19,6 +19,7 @@ const (
 	keyRe          = `/?(?P<key>[^@]+)`
 	filterRe       = `(\|(?P<filter>[[:word:]\,]+))?`
 	serviceNameRe  = `(?P<name>[[:word:]\-\_]+)`
+	queryRe        = `(\?(?P<query>[[:word:]\-\_\=\&]+))?`
 	nodeNameRe     = `(?P<name>[[:word:]\.\-\_]+)`
 	nearRe         = `(~(?P<near>[[:word:]\.\-\_]+))?`
 	prefixRe       = `/?(?P<prefix>[^@]+)`
@@ -66,6 +67,9 @@ type QueryOptions struct {
 	VaultGrace        time.Duration
 	WaitIndex         uint64
 	WaitTime          time.Duration
+	ConsulPeer        string
+	ConsulPartition   string
+	ConsulNamespace   string
 }
 
 func (q *QueryOptions) Merge(o *QueryOptions) *QueryOptions {
@@ -117,6 +121,18 @@ func (q *QueryOptions) Merge(o *QueryOptions) *QueryOptions {
 		r.WaitTime = o.WaitTime
 	}
 
+	if o.ConsulNamespace != "" {
+		r.ConsulNamespace = o.ConsulNamespace
+	}
+
+	if o.ConsulPartition != "" {
+		r.ConsulPartition = o.ConsulPartition
+	}
+
+	if o.ConsulPeer != "" {
+		r.ConsulPeer = o.ConsulPeer
+	}
+
 	return &r
 }
 
@@ -124,6 +140,9 @@ func (q *QueryOptions) ToConsulOpts() *consulapi.QueryOptions {
 	return &consulapi.QueryOptions{
 		AllowStale:        q.AllowStale,
 		Datacenter:        q.Datacenter,
+		Namespace:         q.ConsulNamespace,
+		Partition:         q.ConsulPartition,
+		Peer:              q.ConsulPeer,
 		Near:              q.Near,
 		RequireConsistent: q.RequireConsistent,
 		WaitIndex:         q.WaitIndex,
@@ -160,6 +179,18 @@ func (q *QueryOptions) String() string {
 
 	if q.Region != "" {
 		u.Add("region", q.Region)
+	}
+
+	if q.ConsulNamespace != "" {
+		u.Add(QueryNamespace, q.ConsulNamespace)
+	}
+
+	if q.ConsulPeer != "" {
+		u.Add(QueryPeer, q.ConsulPeer)
+	}
+
+	if q.ConsulPartition != "" {
+		u.Add(QueryPartition, q.ConsulPartition)
 	}
 
 	if q.Near != "" {

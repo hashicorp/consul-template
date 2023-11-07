@@ -177,7 +177,7 @@ Query [Consul][consul] for [connect][connect]-capable services based on their
 health.
 
 ```golang
-{{ connect "<TAG>.<NAME>@<DATACENTER>~<NEAR>|<FILTER>" }}
+{{ connect "<TAG>.<NAME>?<QUERY>@<DATACENTER>~<NEAR>|<FILTER>" }}
 ```
 
 Syntax is exactly the same as for the [service](#service) function below.
@@ -663,10 +663,16 @@ to separate files from a template.
 Query [Consul][consul] for services based on their health.
 
 ```golang
-{{ service "<TAG>.<NAME>@<DATACENTER>~<NEAR>|<FILTER>" }}
+{{ service "<TAG>.<NAME>?<QUERY>@<DATACENTER>~<NEAR>|<FILTER>" }}
 ```
 
 The `<TAG>` attribute is optional; if omitted, all nodes will be queried.
+
+The `<QUERY>` attribute is optional; if omitted, the `default` Consul namespace, `default` partition will be queried. `<QUERY>` can be used to set the Consul [namespace](https://developer.hashicorp.com/consul/api-docs/health#ns-2), partition, or [peer](https://developer.hashicorp.com/consul/api-docs/health#peer). `<QUERY>` accepts a url query-parameter format, e.g.:
+
+```golang
+{{ service "service-name?ns=namespace-name&peer=peer-name&partition=partition-name" }}
+```
 
 The `<DATACENTER>` attribute is optional; if omitted, the local datacenter is
 used.
