@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul-template/config"
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul-template/renderer"
+	"github.com/hashicorp/consul-template/systemd"
 	"github.com/hashicorp/consul-template/template"
 	"github.com/hashicorp/consul-template/watch"
 
@@ -31,6 +32,10 @@ const (
 	// warn the user that they might be DDoSing their Consul cluster.
 	viewLimit = 128
 )
+
+type notifier interface {
+	Notify(string) error
+}
 
 // Runner responsible rendering Templates and invoking Commands.
 type Runner struct {
@@ -107,6 +112,12 @@ type Runner struct {
 	// environment.
 	// NOTE this is only used when CT is being used as a library.
 	Env map[string]string
+
+	// notifier is called after all templates have been successfully rendered
+	notifier notifier
+
+	// ready indicates that the runner has rendered each template at least once
+	ready bool
 
 	// stopLock is the lock around checking if the runner can be stopped
 	stopLock sync.Mutex
@@ -377,6 +388,13 @@ func (r *Runner) Start() {
 				r.Stop()
 				return
 			}
+
+			if r.notifier != nil && !r.ready {
+				if notifErr := r.notifier.Notify(systemd.Ready); notifErr != nil {
+					log.Printf("[DEBUG] (runner) systemd notify failed: %v", notifErr)
+				}
+			}
+			r.ready = true
 		}
 
 	OUTER:
@@ -999,6 +1017,9 @@ func (r *Runner) init(clients *dep.ClientSet) error {
 			}
 		}
 	}
+
+	r.notifier = &systemd.Notifier{}
+	r.ready = false
 
 	return nil
 }
