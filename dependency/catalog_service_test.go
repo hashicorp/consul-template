@@ -164,7 +164,6 @@ func TestCatalogServiceQuery_Fetch(t *testing.T) {
 					},
 					NodeMeta: map[string]string{
 						"consul-network-segment": "",
-						"consul-version":         "1.17.0",
 					},
 					ServiceID:      "consul",
 					ServiceName:    "consul",
@@ -189,7 +188,6 @@ func TestCatalogServiceQuery_Fetch(t *testing.T) {
 					},
 					NodeMeta: map[string]string{
 						"consul-network-segment": "",
-						"consul-version":         "1.17.0",
 					},
 					ServiceID:      "service-meta",
 					ServiceName:    "service-meta",
@@ -225,6 +223,8 @@ func TestCatalogServiceQuery_Fetch(t *testing.T) {
 			for i := range act_list {
 				act_list[i].ServiceMeta = filterVersionMeta(
 					act_list[i].ServiceMeta)
+				act_list[i].NodeMeta = filterVersionMeta(
+					act_list[i].NodeMeta)
 			}
 
 			assert.Equal(t, tc.exp, act)

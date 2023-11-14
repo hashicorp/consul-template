@@ -272,7 +272,6 @@ func TestHealthConnectServiceQuery_Fetch(t *testing.T) {
 					Tags:        ServiceTags([]string{}),
 					NodeMeta: map[string]string{
 						"consul-network-segment": "",
-						"consul-version":         "1.17.0",
 					},
 					Weights: api.AgentWeights{
 						Passing: 1,
@@ -305,6 +304,7 @@ func TestHealthConnectServiceQuery_Fetch(t *testing.T) {
 			inst.Checks = nil
 			inst.NodeTaggedAddresses = nil
 			inst.ServiceTaggedAddresses = nil
+			inst.NodeMeta = filterVersionMeta(inst.NodeMeta)
 
 			assert.Equal(t, tc.exp, act)
 		})
@@ -330,7 +330,6 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 					},
 					NodeMeta: map[string]string{
 						"consul-network-segment": "",
-						"consul-version":         "1.17.0",
 					},
 					ServiceMeta: map[string]string{},
 					Address:     testConsul.Config.Bind,
@@ -364,7 +363,6 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 					},
 					NodeMeta: map[string]string{
 						"consul-network-segment": "",
-						"consul-version":         "1.17.0",
 					},
 					ServiceMeta: map[string]string{},
 					Address:     testConsul.Config.Bind,
@@ -393,7 +391,6 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 					},
 					NodeMeta: map[string]string{
 						"consul-network-segment": "",
-						"consul-version":         "1.17.0",
 					},
 					ServiceMeta: map[string]string{
 						"meta1": "value1",
@@ -423,7 +420,6 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 					},
 					NodeMeta: map[string]string{
 						"consul-network-segment": "",
-						"consul-version":         "1.17.0",
 					},
 					ServiceMeta: map[string]string{},
 					Address:     testConsul.Config.Bind,
@@ -470,6 +466,8 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 					v.ServiceMeta = filterVersionMeta(v.ServiceMeta)
 					v.NodeTaggedAddresses = filterAddresses(
 						v.NodeTaggedAddresses)
+					v.NodeMeta = filterVersionMeta(v.NodeMeta)
+
 				}
 			}
 

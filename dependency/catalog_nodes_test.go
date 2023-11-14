@@ -92,7 +92,6 @@ func TestCatalogNodesQuery_Fetch(t *testing.T) {
 					},
 					Meta: map[string]string{
 						"consul-network-segment": "",
-						"consul-version":         "1.17.0",
 					},
 				},
 			},
@@ -115,6 +114,7 @@ func TestCatalogNodesQuery_Fetch(t *testing.T) {
 				for _, n := range act.([]*Node) {
 					n.ID = ""
 					n.TaggedAddresses = filterAddresses(n.TaggedAddresses)
+					n.Meta = filterVersionMeta(n.Meta)
 				}
 			}
 
