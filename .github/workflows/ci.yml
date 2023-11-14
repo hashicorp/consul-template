@@ -1,17 +1,24 @@
 name: ci
 
 on:
-  push:
   pull_request:
+  push:
+    branches:
+      - main
+      - release/**
+
+env:
+  CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
 
 jobs:
   run-tests:
-    name: Run test cases
+    name: Run test cases (with consul${{ matrix.consul-ent-tag }})
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest]
         go: [^1]
+        consul-ent-tag: ["", "-enterprise"]
 
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -21,11 +28,11 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
 
-      - name: Install Consul, Vault and Nomad for integration testing
+      - name: Install Consul${{ matrix.consul-ent-tag }}, Vault and Nomad for integration testing
         run: |
           curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
           sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
-          sudo apt-get update && sudo apt-get install consul vault nomad
+          sudo apt-get update && sudo apt-get install consul${{ matrix.consul-ent-tag }} vault nomad
 
       - name: Run tests
         run: |
