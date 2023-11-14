@@ -99,7 +99,6 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 					},
 					Meta: map[string]string{
 						"consul-network-segment": "",
-						"consul-version":         "1.17.0",
 					},
 				},
 				Services: []*CatalogNodeService{
@@ -157,6 +156,7 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 				if n := act.(*CatalogNode).Node; n != nil {
 					n.ID = ""
 					n.TaggedAddresses = filterAddresses(n.TaggedAddresses)
+					n.Meta = filterVersionMeta(n.Meta)
 				}
 				// delete any version data from ServiceMeta
 				services := act.(*CatalogNode).Services
