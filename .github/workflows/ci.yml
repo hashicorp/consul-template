@@ -18,9 +18,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         go: [^1]
-        consul-version: 
-        - 1.17.0
-        - 1.17.0+ent
+        consul-version: ["", "-enterprise"]
 
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -29,22 +27,12 @@ jobs:
         uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # v4.1.0
         with:
           go-version: ${{ matrix.go }}
-      
-      - name: Install Consul (consul-version=${{ matrix.consul-version }}) for integration testing
-        shell: bash
-        run: |
-          CONSUL_VERSION="${{ matrix.consul-version }}"
-          FILENAME="consul_${CONSUL_VERSION}_linux_amd64.zip"
-          curl -sSLO "https://releases.hashicorp.com/consul/${CONSUL_VERSION}/${FILENAME}" && \
-            unzip "${FILENAME}" -d /usr/local/bin && \
-            rm "${FILENAME}"
-          consul version
 
-      - name: Install Vault and Nomad for integration testing
+      - name: Install Consul${{ matrix.consul-version }}, Vault and Nomad for integration testing
         run: |
           curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
           sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
-          sudo apt-get update && sudo apt-get install vault nomad
+          sudo apt-get update && sudo apt-get install consul${{ matrix.consul-version }} vault nomad
 
       - name: Run tests
         run: |
