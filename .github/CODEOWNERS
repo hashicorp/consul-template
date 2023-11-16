@@ -1,5 +1,5 @@
 # default PR reviews to the team
-* @hashicorp/consul-zts
+* @hashicorp/team-consul-india
 
 # release configuration
 /.release/                              @hashicorp/release-engineering @hashicorp/github-consul-ecosystem
