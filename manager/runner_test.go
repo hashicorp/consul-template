@@ -6,6 +6,7 @@ package manager
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -19,6 +20,13 @@ import (
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul-template/template"
 )
+
+type mockNotifier struct{ s string }
+
+func (n *mockNotifier) Notify(state string) error {
+	n.s = state
+	return nil
+}
 
 func TestRunner_initTemplates(t *testing.T) {
 	c := config.TestConfig(
@@ -543,6 +551,51 @@ func TestRunner_Start(t *testing.T) {
 			}
 			if l := len(c); l == 0 {
 				t.Errorf("\nexp: %#v\nact: %#v", "> 0", l)
+			}
+		case <-time.After(2 * time.Second):
+			t.Fatal("timeout")
+		}
+	})
+
+	t.Run("notify", func(t *testing.T) {
+		t.Parallel()
+
+		out, err := ioutil.TempFile("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.Remove(out.Name())
+
+		c := config.DefaultConfig().Merge(&config.Config{
+			Templates: &config.TemplateConfigs{
+				&config.TemplateConfig{
+					Contents:    config.String(`test`),
+					Destination: config.String(out.Name()),
+				},
+			},
+		})
+		c.Finalize()
+
+		r, err := NewRunner(c, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		notify := &mockNotifier{}
+		r.notifier = notify
+
+		go r.Start()
+		defer r.Stop()
+
+		select {
+		case err := <-r.ErrCh:
+			t.Fatal(err)
+		case <-r.renderedCh:
+			if !r.ready {
+				t.Errorf("\nexp: %#v\nact: %#v", true, r.ready)
+			}
+			if exp, act := "READY=1", notify.s; exp != act {
+				t.Errorf("\nexp: %#v\nact: %#v", exp, act)
 			}
 		case <-time.After(2 * time.Second):
 			t.Fatal("timeout")
