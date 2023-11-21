@@ -19,7 +19,7 @@ var (
 	_ Dependency = (*CatalogServicesQuery)(nil)
 
 	// CatalogServicesQueryRe is the regular expression to use for CatalogNodesQuery.
-	CatalogServicesQueryRe = regexp.MustCompile(`\A` + dcRe + `\z`)
+	CatalogServicesQueryRe = regexp.MustCompile(`\A` + queryRe + dcRe + `\z`)
 )
 
 func init() {
@@ -37,7 +37,9 @@ type CatalogSnippet struct {
 type CatalogServicesQuery struct {
 	stopCh chan struct{}
 
-	dc string
+	dc        string
+	namespace string
+	partition string
 }
 
 // NewCatalogServicesQuery parses a string of the format @dc.
@@ -47,9 +49,16 @@ func NewCatalogServicesQuery(s string) (*CatalogServicesQuery, error) {
 	}
 
 	m := regexpMatch(CatalogServicesQueryRe, s)
+	queryParams, err := GetConsulQueryOpts(m, "catalog.services")
+	if err != nil {
+		return nil, err
+	}
+
 	return &CatalogServicesQuery{
-		stopCh: make(chan struct{}, 1),
-		dc:     m["dc"],
+		stopCh:    make(chan struct{}, 1),
+		dc:        m["dc"],
+		namespace: queryParams.Get(QueryNamespace),
+		partition: queryParams.Get(QueryPartition),
 	}, nil
 }
 
@@ -63,7 +72,9 @@ func (d *CatalogServicesQuery) Fetch(clients *ClientSet, opts *QueryOptions) (in
 	}
 
 	opts = opts.Merge(&QueryOptions{
-		Datacenter: d.dc,
+		Datacenter:      d.dc,
+		ConsulPartition: d.partition,
+		ConsulNamespace: d.namespace,
 	})
 
 	log.Printf("[TRACE] %s: GET %s", d, &url.URL{

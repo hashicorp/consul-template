@@ -24,6 +24,12 @@ func TestNewCatalogServicesQuery(t *testing.T) {
 			false,
 		},
 		{
+			"invalid query param (unsupported key)",
+			"?unsupported=foo",
+			nil,
+			true,
+		},
+		{
 			"node",
 			"node",
 			nil,
@@ -34,6 +40,41 @@ func TestNewCatalogServicesQuery(t *testing.T) {
 			"@dc1",
 			&CatalogServicesQuery{
 				dc: "dc1",
+			},
+			false,
+		},
+		{
+			"namespace",
+			"?ns=foo",
+			&CatalogServicesQuery{
+				namespace: "foo",
+			},
+			false,
+		},
+		{
+			"partition",
+			"?partition=foo",
+			&CatalogServicesQuery{
+				partition: "foo",
+			},
+			false,
+		},
+		{
+			"partition_and_namespace",
+			"?ns=foo&partition=bar",
+			&CatalogServicesQuery{
+				namespace: "foo",
+				partition: "bar",
+			},
+			false,
+		},
+		{
+			"partition_and_namespace_and_dc",
+			"?ns=foo&partition=bar@dc1",
+			&CatalogServicesQuery{
+				namespace: "foo",
+				partition: "bar",
+				dc:        "dc1",
 			},
 			false,
 		},
