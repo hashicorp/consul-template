@@ -261,7 +261,13 @@ exist, Consul Template will block rendering until the key is present. To avoid
 blocking, use [`keyOrDefault`](#keyordefault) or [`keyExists`](#keyexists).
 
 ```golang
-{{ key "<PATH>@<DATACENTER>" }}
+{{ key "<PATH>?<QUERY>@<DATACENTER>" }}
+```
+
+The `<QUERY>` attribute is optional; if omitted, the `default` Consul namespace, `default` partition will be queried. `<QUERY>` can be used to set the Consul [namespace](https://developer.hashicorp.com/consul/api-docs/health#ns-2) or partition. `<QUERY>` accepts a url query-parameter format, e.g.:
+
+```golang
+{{ service "key?ns=namespace-name&partition=partition-name" }}
 ```
 
 The `<DATACENTER>` attribute is optional; if omitted, the local datacenter is

@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"regexp"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
 )
 
@@ -17,7 +18,7 @@ var (
 	_ Dependency = (*KVGetQuery)(nil)
 
 	// KVGetQueryRe is the regular expression to use.
-	KVGetQueryRe = regexp.MustCompile(`\A` + keyRe + dcRe + `\z`)
+	KVGetQueryRe = regexp.MustCompile(`\A` + keyRe + queryRe + dcRe + `\z`)
 )
 
 // KVGetQuery queries the KV store for a single key.
@@ -27,6 +28,8 @@ type KVGetQuery struct {
 	dc         string
 	key        string
 	blockOnNil bool
+	namespace  string
+	partition  string
 }
 
 // NewKVGetQuery parses a string into a dependency.
@@ -36,10 +39,17 @@ func NewKVGetQuery(s string) (*KVGetQuery, error) {
 	}
 
 	m := regexpMatch(KVGetQueryRe, s)
+	spew.Dump(m["key"])
+	queryParams, err := GetConsulQueryOpts(m, "kv.get")
+	if err != nil {
+		return nil, err
+	}
 	return &KVGetQuery{
-		stopCh: make(chan struct{}, 1),
-		dc:     m["dc"],
-		key:    m["key"],
+		stopCh:    make(chan struct{}, 1),
+		dc:        m["dc"],
+		key:       m["key"],
+		namespace: queryParams.Get(QueryNamespace),
+		partition: queryParams.Get(QueryPartition),
 	}, nil
 }
 
@@ -52,7 +62,9 @@ func (d *KVGetQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface{},
 	}
 
 	opts = opts.Merge(&QueryOptions{
-		Datacenter: d.dc,
+		Datacenter:      d.dc,
+		ConsulPartition: d.partition,
+		ConsulNamespace: d.namespace,
 	})
 
 	log.Printf("[TRACE] %s: GET %s", d, &url.URL{

@@ -17,7 +17,7 @@ import (
 
 const (
 	dcRe           = `(@(?P<dc>[[:word:]\.\-\_]+))?`
-	keyRe          = `/?(?P<key>[^@]+)`
+	keyRe          = `/?(?P<key>[^@\?]+)`
 	filterRe       = `(\|(?P<filter>[[:word:]\,]+))?`
 	serviceNameRe  = `(?P<name>[[:word:]\-\_]+)`
 	queryRe        = `(\?(?P<query>[[:word:]\-\_\=\&]+))?`
