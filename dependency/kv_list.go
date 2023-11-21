@@ -19,7 +19,7 @@ var (
 	_ Dependency = (*KVListQuery)(nil)
 
 	// KVListQueryRe is the regular expression to use.
-	KVListQueryRe = regexp.MustCompile(`\A` + prefixRe + dcRe + `\z`)
+	KVListQueryRe = regexp.MustCompile(`\A` + prefixRe + queryRe + dcRe + `\z`)
 )
 
 func init() {
@@ -44,8 +44,10 @@ type KeyPair struct {
 type KVListQuery struct {
 	stopCh chan struct{}
 
-	dc     string
-	prefix string
+	dc        string
+	prefix    string
+	namespace string
+	partition string
 }
 
 // NewKVListQuery parses a string into a dependency.
@@ -55,10 +57,17 @@ func NewKVListQuery(s string) (*KVListQuery, error) {
 	}
 
 	m := regexpMatch(KVListQueryRe, s)
+	queryParams, err := GetConsulQueryOpts(m, "kv.list")
+	if err != nil {
+		return nil, err
+	}
+
 	return &KVListQuery{
-		stopCh: make(chan struct{}, 1),
-		dc:     m["dc"],
-		prefix: m["prefix"],
+		stopCh:    make(chan struct{}, 1),
+		dc:        m["dc"],
+		prefix:    m["prefix"],
+		namespace: queryParams.Get(QueryNamespace),
+		partition: queryParams.Get(QueryPartition),
 	}, nil
 }
 
@@ -71,7 +80,9 @@ func (d *KVListQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 	}
 
 	opts = opts.Merge(&QueryOptions{
-		Datacenter: d.dc,
+		Datacenter:      d.dc,
+		ConsulPartition: d.partition,
+		ConsulNamespace: d.namespace,
 	})
 
 	log.Printf("[TRACE] %s: GET %s", d, &url.URL{

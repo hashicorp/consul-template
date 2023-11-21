@@ -267,7 +267,7 @@ blocking, use [`keyOrDefault`](#keyordefault) or [`keyExists`](#keyexists).
 The `<QUERY>` attribute is optional; if omitted, the `default` Consul namespace, `default` partition will be queried. `<QUERY>` can be used to set the Consul [namespace](https://developer.hashicorp.com/consul/api-docs/health#ns-2) or partition. `<QUERY>` accepts a url query-parameter format, e.g.:
 
 ```golang
-{{ service "key?ns=namespace-name&partition=partition-name" }}
+{{ key "key?ns=namespace-name&partition=partition-name" }}
 ```
 
 The `<DATACENTER>` attribute is optional; if omitted, the local datacenter is
@@ -348,7 +348,15 @@ instead.
 Query [Consul][consul] for all top-level kv pairs at the given key path.
 
 ```golang
-{{ ls "<PATH>@<DATACENTER>" }}
+{{ ls "<PATH>?<QUERY>@<DATACENTER>" }}
+```
+
+The `<QUERY>` attribute is optional; if omitted, the `default` Consul namespace, `default` partition will be queried. `<QUERY>` can be used to set the Consul [namespace](https://developer.hashicorp.com/consul/api-docs/health#ns-2) or partition. `<QUERY>` accepts a url query-parameter format, e.g.:
+
+```golang
+{{ range ls "service/redis?ns=namespace-name&partition=partition-name" }}
+  {{ .Key }}:{{ .Value }}
+{{ end }}
 ```
 
 The `<DATACENTER>` attribute is optional; if omitted, the local datacenter is
@@ -358,7 +366,8 @@ For example:
 
 ```golang
 {{ range ls "service/redis" }}
-{{ .Key }}:{{ .Value }}{{ end }}
+  {{ .Key }}:{{ .Value }}
+{{ end }}
 ```
 
 renders

@@ -23,7 +23,7 @@ const (
 	queryRe        = `(\?(?P<query>[[:word:]\-\_\=\&]+))?`
 	nodeNameRe     = `(?P<name>[[:word:]\.\-\_]+)`
 	nearRe         = `(~(?P<near>[[:word:]\.\-\_]+))?`
-	prefixRe       = `/?(?P<prefix>[^@]+)`
+	prefixRe       = `/?(?P<prefix>[^@\?]+)`
 	tagRe          = `((?P<tag>[[:word:]=:\.\-\_]+)\.)?`
 	regionRe       = `(@(?P<region>[[:word:]\.\-\_]+))?`
 	nvPathRe       = `/?(?P<path>[^@]+)`

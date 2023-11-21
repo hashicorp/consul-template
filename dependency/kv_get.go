@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"regexp"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
 )
 
@@ -39,7 +38,6 @@ func NewKVGetQuery(s string) (*KVGetQuery, error) {
 	}
 
 	m := regexpMatch(KVGetQueryRe, s)
-	spew.Dump(m["key"])
 	queryParams, err := GetConsulQueryOpts(m, "kv.get")
 	if err != nil {
 		return nil, err
