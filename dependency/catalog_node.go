@@ -19,7 +19,7 @@ var (
 	_ Dependency = (*CatalogNodeQuery)(nil)
 
 	// CatalogNodeQueryRe is the regular expression to use.
-	CatalogNodeQueryRe = regexp.MustCompile(`\A` + nodeNameRe + dcRe + `\z`)
+	CatalogNodeQueryRe = regexp.MustCompile(`\A` + nodeNameRe + queryRe + dcRe + `\z`)
 )
 
 func init() {
@@ -31,8 +31,10 @@ func init() {
 type CatalogNodeQuery struct {
 	stopCh chan struct{}
 
-	dc   string
-	name string
+	dc        string
+	name      string
+	namespace string
+	partition string
 }
 
 // CatalogNode is a wrapper around the node and its services.
@@ -60,10 +62,17 @@ func NewCatalogNodeQuery(s string) (*CatalogNodeQuery, error) {
 	}
 
 	m := regexpMatch(CatalogNodeQueryRe, s)
+	queryParams, err := GetConsulQueryOpts(m, "catalog.node")
+	if err != nil {
+		return nil, err
+	}
+
 	return &CatalogNodeQuery{
-		dc:     m["dc"],
-		name:   m["name"],
-		stopCh: make(chan struct{}, 1),
+		dc:        m["dc"],
+		name:      m["name"],
+		stopCh:    make(chan struct{}, 1),
+		namespace: queryParams.Get(QueryNamespace),
+		partition: queryParams.Get(QueryPartition),
 	}, nil
 }
 
@@ -77,7 +86,9 @@ func (d *CatalogNodeQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interf
 	}
 
 	opts = opts.Merge(&QueryOptions{
-		Datacenter: d.dc,
+		Datacenter:      d.dc,
+		ConsulPartition: d.partition,
+		ConsulNamespace: d.namespace,
 	})
 
 	// Grab the name

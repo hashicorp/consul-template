@@ -24,6 +24,12 @@ func TestNewCatalogNodeQuery(t *testing.T) {
 			false,
 		},
 		{
+			"invalid query param (unsupported key)",
+			"key?unsupported=foo",
+			nil,
+			true,
+		},
+		{
 			"bad",
 			"!4d",
 			nil,
@@ -32,6 +38,12 @@ func TestNewCatalogNodeQuery(t *testing.T) {
 		{
 			"dc_only",
 			"@dc1",
+			nil,
+			true,
+		},
+		{
+			"query_only",
+			"?ns=foo",
 			nil,
 			true,
 		},
@@ -49,6 +61,17 @@ func TestNewCatalogNodeQuery(t *testing.T) {
 			&CatalogNodeQuery{
 				name: "node",
 				dc:   "dc1",
+			},
+			false,
+		},
+		{
+			"every_option",
+			"node?ns=foo&partition=bar@dc1",
+			&CatalogNodeQuery{
+				name:      "node",
+				dc:        "dc1",
+				namespace: "foo",
+				partition: "bar",
 			},
 			false,
 		},

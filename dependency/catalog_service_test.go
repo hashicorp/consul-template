@@ -30,6 +30,18 @@ func TestNewCatalogServiceQuery(t *testing.T) {
 			true,
 		},
 		{
+			"query_only",
+			"?ns=foo",
+			nil,
+			true,
+		},
+		{
+			"invalid query param (unsupported key)",
+			"name?unsupported=foo",
+			nil,
+			true,
+		},
+		{
 			"near_only",
 			"~near",
 			nil,
@@ -59,12 +71,31 @@ func TestNewCatalogServiceQuery(t *testing.T) {
 			false,
 		},
 		{
+			"name_query",
+			"name?ns=foo",
+			&CatalogServiceQuery{
+				name:      "name",
+				namespace: "foo",
+			},
+			false,
+		},
+		{
 			"name_dc_near",
 			"name@dc1~near",
 			&CatalogServiceQuery{
 				dc:   "dc1",
 				name: "name",
 				near: "near",
+			},
+			false,
+		},
+		{
+			"name_query_near",
+			"name?ns=foo~near",
+			&CatalogServiceQuery{
+				name:      "name",
+				near:      "near",
+				namespace: "foo",
 			},
 			false,
 		},
@@ -107,13 +138,15 @@ func TestNewCatalogServiceQuery(t *testing.T) {
 			false,
 		},
 		{
-			"tag_name_dc_near",
-			"tag.name@dc~near",
+			"every_option",
+			"tag.name?ns=foo&partition=bar@dc~near",
 			&CatalogServiceQuery{
-				dc:   "dc",
-				name: "name",
-				near: "near",
-				tag:  "tag",
+				dc:        "dc",
+				name:      "name",
+				near:      "near",
+				tag:       "tag",
+				namespace: "foo",
+				partition: "bar",
 			},
 			false,
 		},

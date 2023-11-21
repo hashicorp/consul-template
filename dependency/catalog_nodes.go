@@ -19,7 +19,7 @@ var (
 	_ Dependency = (*CatalogNodesQuery)(nil)
 
 	// CatalogNodesQueryRe is the regular expression to use.
-	CatalogNodesQueryRe = regexp.MustCompile(`\A` + dcRe + nearRe + `\z`)
+	CatalogNodesQueryRe = regexp.MustCompile(`\A` + queryRe + dcRe + nearRe + `\z`)
 )
 
 func init() {
@@ -40,8 +40,10 @@ type Node struct {
 type CatalogNodesQuery struct {
 	stopCh chan struct{}
 
-	dc   string
-	near string
+	dc        string
+	near      string
+	namespace string
+	partition string
 }
 
 // NewCatalogNodesQuery parses the given string into a dependency. If the name is
@@ -52,10 +54,17 @@ func NewCatalogNodesQuery(s string) (*CatalogNodesQuery, error) {
 	}
 
 	m := regexpMatch(CatalogNodesQueryRe, s)
+	queryParams, err := GetConsulQueryOpts(m, "catalog.nodes")
+	if err != nil {
+		return nil, err
+	}
+
 	return &CatalogNodesQuery{
-		dc:     m["dc"],
-		near:   m["near"],
-		stopCh: make(chan struct{}, 1),
+		dc:        m["dc"],
+		near:      m["near"],
+		stopCh:    make(chan struct{}, 1),
+		namespace: queryParams.Get(QueryNamespace),
+		partition: queryParams.Get(QueryPartition),
 	}, nil
 }
 
@@ -69,8 +78,10 @@ func (d *CatalogNodesQuery) Fetch(clients *ClientSet, opts *QueryOptions) (inter
 	}
 
 	opts = opts.Merge(&QueryOptions{
-		Datacenter: d.dc,
-		Near:       d.near,
+		Datacenter:      d.dc,
+		Near:            d.near,
+		ConsulPartition: d.partition,
+		ConsulNamespace: d.namespace,
 	})
 
 	log.Printf("[TRACE] %s: GET %s", d, &url.URL{
