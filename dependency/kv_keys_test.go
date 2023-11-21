@@ -31,6 +31,18 @@ func TestNewKVKeysQuery(t *testing.T) {
 			true,
 		},
 		{
+			"query_only",
+			"?ns=foo",
+			nil,
+			true,
+		},
+		{
+			"invalid query param (unsupported key)",
+			"prefix?unsupported=foo",
+			nil,
+			true,
+		},
+		{
 			"prefix",
 			"prefix",
 			&KVKeysQuery{
@@ -44,6 +56,55 @@ func TestNewKVKeysQuery(t *testing.T) {
 			&KVKeysQuery{
 				prefix: "prefix",
 				dc:     "dc1",
+			},
+			false,
+		},
+		{
+			"partition",
+			"prefix?partition=foo",
+			&KVKeysQuery{
+				prefix:    "prefix",
+				partition: "foo",
+			},
+			false,
+		},
+		{
+			"namespace",
+			"prefix?ns=foo",
+			&KVKeysQuery{
+				prefix:    "prefix",
+				namespace: "foo",
+			},
+			false,
+		},
+		{
+			"namespace_and_partition",
+			"prefix?ns=foo&partition=bar",
+			&KVKeysQuery{
+				prefix:    "prefix",
+				namespace: "foo",
+				partition: "bar",
+			},
+			false,
+		},
+		{
+			"namespace_and_partition_and_dc",
+			"prefix?ns=foo&partition=bar@dc1",
+			&KVKeysQuery{
+				prefix:    "prefix",
+				namespace: "foo",
+				partition: "bar",
+				dc:        "dc1",
+			},
+			false,
+		},
+		{
+			"empty_query",
+			"prefix?ns=&partition=",
+			&KVKeysQuery{
+				prefix:    "prefix",
+				namespace: "",
+				partition: "",
 			},
 			false,
 		},

@@ -18,15 +18,17 @@ var (
 	_ Dependency = (*KVKeysQuery)(nil)
 
 	// KVKeysQueryRe is the regular expression to use.
-	KVKeysQueryRe = regexp.MustCompile(`\A` + prefixRe + dcRe + `\z`)
+	KVKeysQueryRe = regexp.MustCompile(`\A` + prefixRe + queryRe + dcRe + `\z`)
 )
 
 // KVKeysQuery queries the KV store for a single key.
 type KVKeysQuery struct {
 	stopCh chan struct{}
 
-	dc     string
-	prefix string
+	dc        string
+	prefix    string
+	namespace string
+	partition string
 }
 
 // NewKVKeysQuery parses a string into a dependency.
@@ -36,10 +38,17 @@ func NewKVKeysQuery(s string) (*KVKeysQuery, error) {
 	}
 
 	m := regexpMatch(KVKeysQueryRe, s)
+	queryParams, err := GetConsulQueryOpts(m, "kv.keys")
+	if err != nil {
+		return nil, err
+	}
+
 	return &KVKeysQuery{
-		stopCh: make(chan struct{}, 1),
-		dc:     m["dc"],
-		prefix: m["prefix"],
+		stopCh:    make(chan struct{}, 1),
+		dc:        m["dc"],
+		prefix:    m["prefix"],
+		namespace: queryParams.Get(QueryNamespace),
+		partition: queryParams.Get(QueryPartition),
 	}, nil
 }
 
@@ -52,7 +61,9 @@ func (d *KVKeysQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}
 	}
 
 	opts = opts.Merge(&QueryOptions{
-		Datacenter: d.dc,
+		Datacenter:      d.dc,
+		ConsulPartition: d.partition,
+		ConsulNamespace: d.namespace,
 	})
 
 	log.Printf("[TRACE] %s: GET %s", d, &url.URL{
