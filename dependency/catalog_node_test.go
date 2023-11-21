@@ -25,7 +25,7 @@ func TestNewCatalogNodeQuery(t *testing.T) {
 		},
 		{
 			"invalid query param (unsupported key)",
-			"key?unsupported=foo",
+			"node?unsupported=foo",
 			nil,
 			true,
 		},

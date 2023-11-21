@@ -399,10 +399,18 @@ To learn how [`safeLs`](#safels) was born see [CT-1131](https://github.com/hashi
 Query [Consul][consul] for a node in the catalog.
 
 ```golang
-{{node "<NAME>@<DATACENTER>"}}
+{{node "<NAME>?<QUERY>@<DATACENTER>"}}
 ```
 
 The `<NAME>` attribute is optional; if omitted, the local agent node is used.
+
+The `<QUERY>` attribute is optional; if omitted, the `default` Consul namespace, `default` partition will be queried. `<QUERY>` can be used to set the Consul [namespace](https://developer.hashicorp.com/consul/api-docs/health#ns-2) or partition. `<QUERY>` accepts a url query-parameter format, e.g.:
+
+```golang
+{{ with node "node?ns=default&partition=default" }}
+  {{ .Node.Address }}
+{{ end }}
+```
 
 The `<DATACENTER>` attribute is optional; if omitted, the local datacenter is
 used.
@@ -441,7 +449,13 @@ To access map data such as `TaggedAddresses` or `Meta`, use
 Query [Consul][consul] for all nodes in the catalog.
 
 ```golang
-{{ nodes "@<DATACENTER>~<NEAR>" }}
+{{ nodes "?<QUERY>@<DATACENTER>~<NEAR>" }}
+```
+The `<QUERY>` attribute is optional; if omitted, the `default` Consul namespace, `default` partition will be queried. `<QUERY>` can be used to set the Consul [namespace](https://developer.hashicorp.com/consul/api-docs/health#ns-2) or partition. `<QUERY>` accepts a url query-parameter format, e.g.:
+
+```golang
+{{ range nodes "?ns=namespace&partition=partition" }}
+{{ .Address }}{{ end }}
 ```
 
 The `<DATACENTER>` attribute is optional; if omitted, the local datacenter is
@@ -777,7 +791,15 @@ argument instead.
 Query [Consul][consul] for all services in the catalog.
 
 ```golang
-{{ services "@<DATACENTER>" }}
+{{ services "?<QUERY>@<DATACENTER>" }}
+```
+
+The `<QUERY>` attribute is optional; if omitted, the `default` Consul namespace, `default` partition will be queried. `<QUERY>` can be used to set the Consul [namespace](https://developer.hashicorp.com/consul/api-docs/health#ns-2) or partition. `<QUERY>` accepts a url query-parameter format, e.g.:
+
+```golang
+{{ range services "?ns=default&partition=default" }}
+  {{ .Name }}
+{{ end }}
 ```
 
 The `<DATACENTER>` attribute is optional; if omitted, the local datacenter is
