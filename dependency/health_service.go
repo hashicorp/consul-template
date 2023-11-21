@@ -117,26 +117,9 @@ func healthServiceQuery(s string, connect bool) (*HealthServiceQuery, error) {
 		filters = []string{HealthPassing}
 	}
 
-	// Parse optional query into key pairs.
-	queryParams := url.Values{}
-	if queryRaw := m["query"]; queryRaw != "" {
-		var err error
-		queryParams, err = url.ParseQuery(queryRaw)
-		if err != nil {
-			return nil, fmt.Errorf(
-				"health.service: invalid query: %q: %s", queryRaw, err)
-		}
-		// Validate keys.
-		for key := range queryParams {
-			switch key {
-			case QueryNamespace,
-				QueryPeer,
-				QueryPartition:
-			default:
-				return nil,
-					fmt.Errorf("health.service: invalid query parameter key %q in query %q: supported keys: %s,%s,%s", key, queryRaw, QueryNamespace, QueryPeer, QueryPartition)
-			}
-		}
+	queryParams, err := GetConsulQueryOpts(m, "health.service")
+	if err != nil {
+		return nil, err
 	}
 
 	return &HealthServiceQuery{

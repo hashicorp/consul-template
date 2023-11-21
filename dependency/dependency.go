@@ -4,6 +4,7 @@
 package dependency
 
 import (
+	"fmt"
 	"net/url"
 	"regexp"
 	"sort"
@@ -148,6 +149,34 @@ func (q *QueryOptions) ToConsulOpts() *consulapi.QueryOptions {
 		WaitIndex:         q.WaitIndex,
 		WaitTime:          q.WaitTime,
 	}
+}
+
+// GetConsulQueryOpts parses optional consul query params into key pairs.
+// supports namespace, peer and partition params
+func GetConsulQueryOpts(queryMap map[string]string, endpointLabel string) (url.Values, error) {
+	queryParams := url.Values{}
+
+	if queryRaw := queryMap["query"]; queryRaw != "" {
+		var err error
+		queryParams, err = url.ParseQuery(queryRaw)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"%s: invalid query: %q: %s", endpointLabel, queryRaw, err)
+		}
+		// Validate keys.
+		for key := range queryParams {
+			switch key {
+			case QueryNamespace,
+				QueryPeer,
+				QueryPartition:
+			default:
+				return nil,
+					fmt.Errorf("%s: invalid query parameter key %q in query %q: supported keys: %s,%s,%s", endpointLabel, key, queryRaw, QueryNamespace, QueryPeer, QueryPartition)
+			}
+		}
+	}
+
+	return queryParams, nil
 }
 
 func (q *QueryOptions) ToNomadOpts() *nomadapi.QueryOptions {
