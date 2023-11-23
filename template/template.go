@@ -384,6 +384,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"parseJSON":             parseJSON,
 		"parseUint":             parseUint,
 		"parseYAML":             parseYAML,
+		"mergeYAML":             mergeYAML,
 		"plugin":                plugin,
 		"regexReplaceAll":       regexReplaceAll,
 		"regexMatch":            regexMatch,

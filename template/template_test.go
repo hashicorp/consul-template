@@ -1630,6 +1630,24 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"helper_mergeYAML",
+			&NewTemplateInput{
+				Contents: `{{ $in := "baz: hello\nfoo:\n  bar: 42" | parseYAML }}{{ "foo:\n  bar: 21" | parseYAML | mergeYAML $in }}`,
+			},
+			&ExecuteInput{Brain: NewBrain()},
+			"map[baz:hello foo:map[bar:21]]",
+			false,
+		},
+		{
+			"helper_mergeYAML2",
+			&NewTemplateInput{
+				Contents: `{{ $in := "baz: hello" | parseYAML }}{{ "foo:\n  bar: 21" | parseYAML | mergeYAML $in }}`,
+			},
+			&ExecuteInput{Brain: NewBrain()},
+			"map[baz:hello foo:map[bar:21]]",
+			false,
+		},
+		{
 			"helper_plugin",
 			&NewTemplateInput{
 				Contents: `{{ "1" | plugin "echo" }}`,
