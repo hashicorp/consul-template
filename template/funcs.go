@@ -673,6 +673,81 @@ func treeFunc(b *Brain, used, missing *dep.Set, emptyIsSafe bool) func(string) (
 	}
 }
 
+func treeYAML(b *Brain, used, missing *dep.Set, emptyIsSafe bool) func(string) (map[interface{}]interface{}, error) {
+	return func(s string) (map[interface{}]interface{}, error) {
+		s = strings.Trim(s, "/")
+
+		result := make(map[interface{}]interface{})
+
+		d, err := dep.NewKVListQuery(s)
+		if err != nil {
+			return result, err
+		}
+
+		used.Add(d)
+
+		// Only return non-empty top-level keys
+		if value, ok := b.Recall(d); ok {
+			for _, pair := range value.([]*dep.KeyPair) {
+				parts := strings.Split(pair.Key, "/")
+				if parts[len(parts)-1] != "" {
+					//result = append(result, pair)
+					var v interface{}
+					if err := yaml.Unmarshal([]byte(pair.Value), &v); err != nil {
+						return nil, errors.Wrap(err, "treeYAML")
+					}
+
+					result, err = mapInjectHelper(result, parts, v)
+					if err != nil {
+						return nil, err
+					}
+				}
+			}
+
+			if len(result) == 0 {
+				if emptyIsSafe {
+					// Operator used potentially unsafe tree function in the template instead of the safeTree
+					return result, nil
+				}
+			} else {
+				// non empty result is good so we just return the data
+				return result, nil
+			}
+
+			// If we reach this part of the code result is completely empty as value returned no KV pairs
+			// Operator selected to use safeTree on the specific KV prefix so we will refuse to render template
+			// by marking d as missing
+		}
+
+		// b.Recall either returned an error or safeTree entered unsafe case
+		missing.Add(d)
+
+		return result, nil
+	}
+}
+
+func mapInjectHelper(dst map[interface{}]interface{}, path []string, v interface{}) (map[interface{}]interface{}, error) {
+	if len(path) == 0 {
+		return nil, fmt.Errorf("ran out of key parts before finished injection into map")
+	}
+
+	childNode, ok := dst[path[0]]
+	if !ok {
+		if len(path) > 1 {
+			var err error
+			childNode, err = mapInjectHelper(make(map[interface{}]interface{}), path[1:], v)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			childNode = v
+		}
+		dst[path[0]] = childNode
+	}
+
+	return dst, nil
+}
+
 // base64Decode decodes the given string as a base64 string, returning an error
 // if it fails.
 func base64Decode(s string) (string, error) {
