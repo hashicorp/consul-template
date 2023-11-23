@@ -673,6 +673,7 @@ func treeFunc(b *Brain, used, missing *dep.Set, emptyIsSafe bool) func(string) (
 	}
 }
 
+// treeYAML returns tree as YAML data performing type inference or yaml unmarshalling of the data.
 func treeYAML(b *Brain, used, missing *dep.Set, emptyIsSafe bool) func(string) (map[interface{}]interface{}, error) {
 	return func(s string) (map[interface{}]interface{}, error) {
 		s = strings.Trim(s, "/")
@@ -726,6 +727,7 @@ func treeYAML(b *Brain, used, missing *dep.Set, emptyIsSafe bool) func(string) (
 	}
 }
 
+// mapInjectHelper takes a path of YAML leaf node, its value and recursively traverses destination YAML structure to inject the value.
 func mapInjectHelper(dst map[interface{}]interface{}, path []string, v interface{}) (map[interface{}]interface{}, error) {
 	if len(path) == 0 {
 		return nil, fmt.Errorf("ran out of key parts before finished injection into map")

@@ -809,6 +809,36 @@ nested/config/value "value"
 Unlike [`ls`](#ls), [`tree`](#tree) returns **all** keys under the prefix, just like the Unix
 [`tree`](#tree) command.
 
+### `treeYAML`
+
+Similarly to  [`tree`](#tree) query [Consul][consul] for all kv pairs at the given key path. It will interpret loaded kv pairs as YAML values inferring a type or parsing value as YAML structure and return data as a structure suitable for other YAML related methods processing
+
+```golang
+{{ treeYAML "<PATH>" }}
+```
+
+For example with following KV data in Consul:
+
+```
+config/applications/debug = false
+config/applications/ports = "- 8080\n- 8480"
+```
+
+the template:
+
+```golang
+{{ treeYAML "config/applications" | toYAML }}
+```
+
+will render:
+
+```yaml
+debug: false
+ports:
+  - 8080
+  - 8480
+```
+
 ### `safeTree`
 
 Same as [`tree`](#tree), but refuse to render template, if the KV prefix query return blank/empty data.
