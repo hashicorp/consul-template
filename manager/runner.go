@@ -327,6 +327,7 @@ func (r *Runner) Start() {
 						Stdout:       r.outStream,
 						Stderr:       r.errStream,
 						Command:      r.config.Exec.Command,
+						Setpgid:      r.config.Exec.Setpgid,
 						Env:          env.Env(),
 						ReloadSignal: config.SignalVal(r.config.Exec.ReloadSignal),
 						KillSignal:   config.SignalVal(r.config.Exec.KillSignal),
@@ -635,6 +636,7 @@ func (r *Runner) Run() error {
 			Stdout:       r.outStream,
 			Stderr:       r.errStream,
 			Command:      t.Exec.Command,
+			Setpgid:      t.Exec.Setpgid,
 			Env:          env.Env(),
 			Timeout:      config.TimeDurationVal(t.Exec.Timeout),
 			ReloadSignal: config.SignalVal(t.Exec.ReloadSignal),
@@ -1211,6 +1213,7 @@ type spawnChildInput struct {
 	Stdout       io.Writer
 	Stderr       io.Writer
 	Command      []string
+	Setpgid      *bool
 	Timeout      time.Duration
 	Env          []string
 	ReloadSignal os.Signal
@@ -1226,6 +1229,12 @@ func spawnChild(i *spawnChildInput) (*child.Child, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed parsing command")
 	}
+	var Setpgid bool
+	if i.Setpgid == nil {
+		Setpgid = subshell // setpgid for subshells to propagate signals
+	} else {
+		Setpgid = config.BoolVal(i.Setpgid)
+	}
 	child, err := child.New(&child.NewInput{
 		Stdin:        i.Stdin,
 		Stdout:       i.Stdout,
@@ -1238,7 +1247,7 @@ func spawnChild(i *spawnChildInput) (*child.Child, error) {
 		KillSignal:   i.KillSignal,
 		KillTimeout:  i.KillTimeout,
 		Splay:        i.Splay,
-		Setpgid:      subshell, // setpgid for subshells to propagate signals
+		Setpgid:      Setpgid,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating child")

@@ -38,6 +38,9 @@ type ExecConfig struct {
 	// Enabled controls if this exec is enabled.
 	Enabled *bool `mapstructure:"enabled"`
 
+	// Setpgid controls if the ReloadSignal and the KillSignal are propagated to the children of the child processes.
+	Setpgid *bool `mapstructure:"setpgid"`
+
 	// EnvConfig is the environmental customizations.
 	Env *EnvConfig `mapstructure:"env"`
 
@@ -89,6 +92,8 @@ func (c *ExecConfig) Copy() *ExecConfig {
 
 	o.Enabled = c.Enabled
 
+	o.Setpgid = c.Setpgid
+
 	if c.Env != nil {
 		o.Env = c.Env.Copy()
 	}
@@ -130,6 +135,10 @@ func (c *ExecConfig) Merge(o *ExecConfig) *ExecConfig {
 
 	if o.Enabled != nil {
 		r.Enabled = o.Enabled
+	}
+
+	if o.Setpgid != nil {
+		r.Setpgid = o.Setpgid
 	}
 
 	if o.Env != nil {
@@ -204,6 +213,7 @@ func (c *ExecConfig) GoString() string {
 	return fmt.Sprintf("&ExecConfig{"+
 		"Command:%s, "+
 		"Enabled:%s, "+
+		"Setpgid:%s, "+
 		"Env:%#v, "+
 		"KillSignal:%s, "+
 		"KillTimeout:%s, "+
@@ -213,6 +223,7 @@ func (c *ExecConfig) GoString() string {
 		"}",
 		c.Command,
 		BoolGoString(c.Enabled),
+		BoolGoString(c.Setpgid),
 		c.Env,
 		SignalGoString(c.KillSignal),
 		TimeDurationGoString(c.KillTimeout),

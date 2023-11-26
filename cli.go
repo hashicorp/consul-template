@@ -350,6 +350,11 @@ func (cli *CLI) ParseFlags(args []string) (
 		return nil
 	}), "exec", "")
 
+	flags.Var((funcBoolVar)(func(b bool) error {
+		c.Exec.Setpgid = config.Bool(b)
+		return nil
+	}), "exec-setpgid", "")
+
 	flags.Var((funcVar)(func(s string) error {
 		sig, err := signals.Parse(s)
 		if err != nil {
@@ -780,6 +785,10 @@ Options:
       Enable exec mode to run as a supervisor-like process - the given command
       will receive all signals provided to the parent process and will receive a
       signal when templates change
+
+  -exec-setpgid
+	  Enable to send reload and kill signal to children of the child process or not.
+	  If unset, will try to detect the appropriate setting for the flag by examining the command.
 
   -exec-kill-signal=<signal>
       Signal to send when gracefully killing the process

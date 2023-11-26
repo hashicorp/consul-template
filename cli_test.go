@@ -307,6 +307,17 @@ func TestCLI_ParseFlags(t *testing.T) {
 				Exec: &config.ExecConfig{
 					Enabled: config.Bool(true),
 					Command: []string{"command"},
+					Setpgid: nil,
+				},
+			},
+			false,
+		},
+		{
+			"exec-setpgid",
+			[]string{"-exec-setpgid=0"},
+			&config.Config{
+				Exec: &config.ExecConfig{
+					Setpgid: config.Bool(false),
 				},
 			},
 			false,
