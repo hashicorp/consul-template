@@ -24,6 +24,12 @@ func TestNewCatalogNodesQuery(t *testing.T) {
 			false,
 		},
 		{
+			"invalid query param (unsupported key)",
+			"key?unsupported=foo",
+			nil,
+			true,
+		},
+		{
 			"node",
 			"node",
 			nil,
@@ -34,6 +40,41 @@ func TestNewCatalogNodesQuery(t *testing.T) {
 			"@dc1",
 			&CatalogNodesQuery{
 				dc: "dc1",
+			},
+			false,
+		},
+		{
+			"namespace",
+			"?ns=foo",
+			&CatalogNodesQuery{
+				namespace: "foo",
+			},
+			false,
+		},
+		{
+			"partition",
+			"?partition=foo",
+			&CatalogNodesQuery{
+				partition: "foo",
+			},
+			false,
+		},
+		{
+			"namespace_and_partition",
+			"?ns=foo&partition=bar",
+			&CatalogNodesQuery{
+				namespace: "foo",
+				partition: "bar",
+			},
+			false,
+		},
+		{
+			"namespace_and_partition_and_near",
+			"?ns=foo&partition=bar~node1",
+			&CatalogNodesQuery{
+				namespace: "foo",
+				partition: "bar",
+				near:      "node1",
 			},
 			false,
 		},
@@ -51,6 +92,26 @@ func TestNewCatalogNodesQuery(t *testing.T) {
 			&CatalogNodesQuery{
 				dc:   "dc1",
 				near: "node1",
+			},
+			false,
+		},
+		{
+			"query_near",
+			"?ns=foo~node1",
+			&CatalogNodesQuery{
+				namespace: "foo",
+				near:      "node1",
+			},
+			false,
+		},
+		{
+			"every_option",
+			"?ns=foo&partition=bar@dc1~node1",
+			&CatalogNodesQuery{
+				dc:        "dc1",
+				near:      "node1",
+				partition: "bar",
+				namespace: "foo",
 			},
 			false,
 		},

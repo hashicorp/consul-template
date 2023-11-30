@@ -32,6 +32,18 @@ func TestNewKVGetQuery(t *testing.T) {
 			true,
 		},
 		{
+			"query_only",
+			"?ns=foo",
+			nil,
+			true,
+		},
+		{
+			"invalid query param (unsupported key)",
+			"key?unsupported=foo",
+			nil,
+			true,
+		},
+		{
 			"key",
 			"key",
 			&KVGetQuery{
@@ -45,6 +57,55 @@ func TestNewKVGetQuery(t *testing.T) {
 			&KVGetQuery{
 				key: "key",
 				dc:  "dc1",
+			},
+			false,
+		},
+		{
+			"partition",
+			"key?partition=foo",
+			&KVGetQuery{
+				key:       "key",
+				partition: "foo",
+			},
+			false,
+		},
+		{
+			"namespace",
+			"key?ns=foo",
+			&KVGetQuery{
+				key:       "key",
+				namespace: "foo",
+			},
+			false,
+		},
+		{
+			"namespace_and_partition",
+			"key?ns=foo&partition=bar",
+			&KVGetQuery{
+				key:       "key",
+				namespace: "foo",
+				partition: "bar",
+			},
+			false,
+		},
+		{
+			"namespace_and_partition_and_dc",
+			"key?ns=foo&partition=bar@dc1",
+			&KVGetQuery{
+				key:       "key",
+				namespace: "foo",
+				partition: "bar",
+				dc:        "dc1",
+			},
+			false,
+		},
+		{
+			"empty_query",
+			"key?ns=&partition=",
+			&KVGetQuery{
+				key:       "key",
+				namespace: "",
+				partition: "",
 			},
 			false,
 		},

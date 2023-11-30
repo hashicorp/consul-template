@@ -18,7 +18,7 @@ var (
 	_ Dependency = (*CatalogServiceQuery)(nil)
 
 	// CatalogServiceQueryRe is the regular expression to use.
-	CatalogServiceQueryRe = regexp.MustCompile(`\A` + tagRe + serviceNameRe + dcRe + nearRe + `\z`)
+	CatalogServiceQueryRe = regexp.MustCompile(`\A` + tagRe + serviceNameRe + queryRe + dcRe + nearRe + `\z`)
 )
 
 func init() {
@@ -46,10 +46,12 @@ type CatalogService struct {
 type CatalogServiceQuery struct {
 	stopCh chan struct{}
 
-	dc   string
-	name string
-	near string
-	tag  string
+	dc        string
+	name      string
+	near      string
+	tag       string
+	namespace string
+	partition string
 }
 
 // NewCatalogServiceQuery parses a string into a CatalogServiceQuery.
@@ -59,12 +61,19 @@ func NewCatalogServiceQuery(s string) (*CatalogServiceQuery, error) {
 	}
 
 	m := regexpMatch(CatalogServiceQueryRe, s)
+	queryParams, err := GetConsulQueryOpts(m, "catalog.service")
+	if err != nil {
+		return nil, err
+	}
+
 	return &CatalogServiceQuery{
-		stopCh: make(chan struct{}, 1),
-		dc:     m["dc"],
-		name:   m["name"],
-		near:   m["near"],
-		tag:    m["tag"],
+		stopCh:    make(chan struct{}, 1),
+		dc:        m["dc"],
+		name:      m["name"],
+		near:      m["near"],
+		tag:       m["tag"],
+		namespace: queryParams.Get(QueryNamespace),
+		partition: queryParams.Get(QueryPartition),
 	}, nil
 }
 
@@ -78,8 +87,10 @@ func (d *CatalogServiceQuery) Fetch(clients *ClientSet, opts *QueryOptions) (int
 	}
 
 	opts = opts.Merge(&QueryOptions{
-		Datacenter: d.dc,
-		Near:       d.near,
+		Datacenter:      d.dc,
+		Near:            d.near,
+		ConsulPartition: d.partition,
+		ConsulNamespace: d.namespace,
 	})
 
 	u := &url.URL{
