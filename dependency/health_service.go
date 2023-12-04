@@ -23,9 +23,10 @@ const (
 	HealthCritical = "critical"
 	HealthMaint    = "maintenance"
 
-	QueryNamespace = "ns"
-	QueryPartition = "partition"
-	QueryPeer      = "peer"
+	QueryNamespace     = "ns"
+	QueryPartition     = "partition"
+	QueryPeer          = "peer"
+	QuerySamenessGroup = "sg"
 
 	NodeMaint    = "_node_maintenance"
 	ServiceMaint = "_service_maintenance:"
@@ -66,15 +67,16 @@ type HealthService struct {
 type HealthServiceQuery struct {
 	stopCh chan struct{}
 
-	dc        string
-	filters   []string
-	name      string
-	near      string
-	tag       string
-	connect   bool
-	partition string
-	peer      string
-	namespace string
+	dc            string
+	filters       []string
+	name          string
+	near          string
+	tag           string
+	connect       bool
+	partition     string
+	peer          string
+	namespace     string
+	samenessGroup string
 }
 
 // NewHealthServiceQuery processes the strings to build a service dependency.
@@ -131,7 +133,8 @@ func healthServiceQuery(s string, connect bool) (*HealthServiceQuery, error) {
 			switch key {
 			case QueryNamespace,
 				QueryPeer,
-				QueryPartition:
+				QueryPartition,
+				QuerySamenessGroup:
 			default:
 				return nil,
 					fmt.Errorf("health.service: invalid query parameter key %q in query %q: supported keys: %s,%s,%s", key, queryRaw, QueryNamespace, QueryPeer, QueryPartition)
@@ -140,21 +143,35 @@ func healthServiceQuery(s string, connect bool) (*HealthServiceQuery, error) {
 	}
 
 	return &HealthServiceQuery{
-		stopCh:    make(chan struct{}, 1),
-		dc:        m["dc"],
-		filters:   filters,
-		name:      m["name"],
-		near:      m["near"],
-		tag:       m["tag"],
-		connect:   connect,
-		namespace: queryParams.Get(QueryNamespace),
-		peer:      queryParams.Get(QueryPeer),
-		partition: queryParams.Get(QueryPartition),
+		stopCh:        make(chan struct{}, 1),
+		dc:            m["dc"],
+		filters:       filters,
+		name:          m["name"],
+		near:          m["near"],
+		tag:           m["tag"],
+		connect:       connect,
+		namespace:     queryParams.Get(QueryNamespace),
+		peer:          queryParams.Get(QueryPeer),
+		partition:     queryParams.Get(QueryPartition),
+		samenessGroup: queryParams.Get(QuerySamenessGroup),
 	}, nil
+}
+
+type queryLocality struct {
+	// datacenter is the datacenter parsed from a label that has an explicit datacenter part.
+	// Example query: <service>.virtual.<namespace>.ns.<partition>.ap.<datacenter>.dc.consul
+	partition string
+
+	// peer is the peer name parsed from a label that has explicit parts.
+	// Example query: <service>.virtual.<namespace>.ns.<peer>.peer.<partition>.ap.consul
+	peer string
+
+	namespace string
 }
 
 // Fetch queries the Consul API defined by the given client and returns a slice
 // of HealthService objects.
+// When sameness group is specified, fetch all members in sameness group
 func (d *HealthServiceQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
 	select {
 	case <-d.stopCh:
@@ -162,89 +179,125 @@ func (d *HealthServiceQuery) Fetch(clients *ClientSet, opts *QueryOptions) (inte
 	default:
 	}
 
-	opts = opts.Merge(&QueryOptions{
-		Datacenter:      d.dc,
-		Near:            d.near,
-		ConsulNamespace: d.namespace,
-		ConsulPartition: d.partition,
-		ConsulPeer:      d.peer,
-	})
+	list := make([]*HealthService, 0)
+	localities := make([]queryLocality, 0)
+	rm := &ResponseMetadata{}
+	if d.samenessGroup != "" {
+		log.Printf("[TRACE] %s: GET %s", d, &url.URL{
+			Path:     "V1/config/sameness-group/" + d.samenessGroup,
+			RawQuery: opts.String(),
+		})
 
-	u := &url.URL{
-		Path:     "/v1/health/service/" + d.name,
-		RawQuery: opts.String(),
-	}
-	if d.tag != "" {
-		q := u.Query()
-		q.Set("tag", d.tag)
-		u.RawQuery = q.Encode()
-	}
-	log.Printf("[TRACE] %s: GET %s", d, u)
+		// fetch all members in sameness group
+		configEntry, _, err := clients.Consul().ConfigEntries().Get("sameness-group", d.samenessGroup, opts.ToConsulOpts())
+		if err != nil {
+			return nil, nil, errors.Wrap(err, d.String())
+		}
 
-	// Check if a user-supplied filter was given. If so, we may be querying for
-	// more than healthy services, so we need to implement client-side
-	// filtering.
-	passingOnly := len(d.filters) == 1 && d.filters[0] == HealthPassing
+		sgConfigEntry, ok := configEntry.(*api.SamenessGroupConfigEntry)
+		if !ok {
+			return nil, nil, fmt.Errorf("could not convert config ") //todo fix it
+		}
 
-	nodes := clients.Consul().Health().Service
-	if d.connect {
-		nodes = clients.Consul().Health().Connect
-	}
-	entries, qm, err := nodes(d.name, d.tag, passingOnly, opts.ToConsulOpts())
-	if err != nil {
-		return nil, nil, errors.Wrap(err, d.String())
+		for _, sgm := range sgConfigEntry.Members {
+			localities = append(localities, samenessGroupMemberToLocality(sgm, d.namespace, d.partition))
+		}
+
+		// Only one of dc or peer can be used.
+		if d.peer != "" {
+			d.dc = ""
+		}
 	}
 
-	log.Printf("[TRACE] %s: returned %d results", d, len(entries))
+	for _, locality := range localities {
+		opts = opts.Merge(&QueryOptions{
+			Datacenter:      d.dc,
+			Near:            d.near,
+			ConsulNamespace: locality.namespace,
+			ConsulPartition: locality.partition,
+			ConsulPeer:      locality.peer,
+		})
 
-	list := make([]*HealthService, 0, len(entries))
-	for _, entry := range entries {
-		// Get the status of this service from its checks.
-		status := entry.Checks.AggregatedStatus()
+		u := &url.URL{
+			Path:     "/v1/health/service/" + d.name,
+			RawQuery: opts.String(),
+		}
+		if d.tag != "" {
+			q := u.Query()
+			q.Set("tag", d.tag)
+			u.RawQuery = q.Encode()
+		}
+		log.Printf("[TRACE] %s: GET %s", d, u)
 
-		// If we are not checking only healthy services, filter out services
-		// that do not match the given filter.
-		if !acceptStatus(d.filters, status) {
+		// Check if a user-supplied filter was given. If so, we may be querying for
+		// more than healthy services, so we need to implement client-side
+		// filtering.
+		passingOnly := len(d.filters) == 1 && d.filters[0] == HealthPassing
+
+		nodes := clients.Consul().Health().Service
+		if d.connect {
+			nodes = clients.Consul().Health().Connect
+		}
+		entries, qm, err := nodes(d.name, d.tag, passingOnly, opts.ToConsulOpts())
+		if err != nil {
+			return nil, nil, errors.Wrap(err, d.String())
+		}
+
+		log.Printf("[TRACE] %s: returned %d results", d, len(entries))
+
+		if len(entries) == 0 {
 			continue
 		}
+		for _, entry := range entries {
+			// Get the status of this service from its checks.
+			status := entry.Checks.AggregatedStatus()
 
-		// Get the address of the service, falling back to the address of the
-		// node.
-		address := entry.Service.Address
-		if address == "" {
-			address = entry.Node.Address
+			// If we are not checking only healthy services, filter out services
+			// that do not match the given filter.
+			if !acceptStatus(d.filters, status) {
+				continue
+			}
+
+			// Get the address of the service, falling back to the address of the
+			// node.
+			address := entry.Service.Address
+			if address == "" {
+				address = entry.Node.Address
+			}
+
+			list = append(list, &HealthService{
+				Node:                   entry.Node.Node,
+				NodeID:                 entry.Node.ID,
+				NodeAddress:            entry.Node.Address,
+				NodeTaggedAddresses:    entry.Node.TaggedAddresses,
+				NodeMeta:               entry.Node.Meta,
+				ServiceMeta:            entry.Service.Meta,
+				Address:                address,
+				ServiceTaggedAddresses: entry.Service.TaggedAddresses,
+				ID:                     entry.Service.ID,
+				Name:                   entry.Service.Service,
+				Tags: ServiceTags(
+					deepCopyAndSortTags(entry.Service.Tags)),
+				Status:  status,
+				Checks:  entry.Checks,
+				Port:    entry.Service.Port,
+				Weights: entry.Service.Weights,
+			})
 		}
 
-		list = append(list, &HealthService{
-			Node:                   entry.Node.Node,
-			NodeID:                 entry.Node.ID,
-			NodeAddress:            entry.Node.Address,
-			NodeTaggedAddresses:    entry.Node.TaggedAddresses,
-			NodeMeta:               entry.Node.Meta,
-			ServiceMeta:            entry.Service.Meta,
-			Address:                address,
-			ServiceTaggedAddresses: entry.Service.TaggedAddresses,
-			ID:                     entry.Service.ID,
-			Name:                   entry.Service.Service,
-			Tags: ServiceTags(
-				deepCopyAndSortTags(entry.Service.Tags)),
-			Status:  status,
-			Checks:  entry.Checks,
-			Port:    entry.Service.Port,
-			Weights: entry.Service.Weights,
-		})
-	}
+		log.Printf("[TRACE] %s: returned %d results after filtering", d, len(list))
 
-	log.Printf("[TRACE] %s: returned %d results after filtering", d, len(list))
+		// Sort unless the user explicitly asked for nearness
+		if d.near == "" {
+			sort.Stable(ByNodeThenID(list))
+		}
 
-	// Sort unless the user explicitly asked for nearness
-	if d.near == "" {
-		sort.Stable(ByNodeThenID(list))
-	}
+		rm = &ResponseMetadata{
+			LastIndex:   qm.LastIndex,
+			LastContact: qm.LastContact,
+		}
 
-	rm := &ResponseMetadata{
-		LastIndex:   qm.LastIndex,
-		LastContact: qm.LastContact,
+		return list, rm, nil
 	}
 
 	return list, rm, nil
@@ -258,6 +311,34 @@ func (d *HealthServiceQuery) CanShare() bool {
 // Stop halts the dependency's fetch function.
 func (d *HealthServiceQuery) Stop() {
 	close(d.stopCh)
+}
+
+func samenessGroupMemberToLocality(sgm api.SamenessGroupMember, ns string, ap string) queryLocality {
+
+	var locality queryLocality
+	labels := make([]string, 0)
+
+	if sgm.Peer != "" {
+		labels = append(labels, []string{sgm.Peer, "peer"}...)
+		locality.peer = sgm.Peer
+	}
+
+	// If we are looking for a partition member, add that as the ap
+	// otherwise use the provided ap
+	if sgm.Partition != "" {
+		labels = append(labels, []string{sgm.Partition, "ap"}...)
+		locality.partition = sgm.Partition
+	} else if ap != "" {
+		labels = append(labels, []string{ap, "ap"}...)
+		locality.partition = ap
+	}
+
+	if ns != "" {
+		labels = append(labels, []string{ns, "ns"}...)
+		locality.namespace = ns
+	}
+
+	return locality
 }
 
 // String returns the human-friendly version of this dependency.
