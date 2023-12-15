@@ -31,7 +31,11 @@ const (
 	DefaultMaxIdleConnsPerHost = 100
 
 	// DefaultMaxConnsPerHost is the default number of maximum connections to use
-	// per host.
+	// per host. The associated HTTP Transport MaxConnsPerHost is used to limit
+	// the total number of connections per host, including connections in the
+	// dialing, active, and idle states. On limit violation, dials will block.
+	//
+	// Zero means no limit.
 	DefaultMaxConnsPerHost = 0
 
 	// DefaultTLSHandshakeTimeout is the amount of time to negotiate the TLS
