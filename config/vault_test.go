@@ -573,7 +573,7 @@ func TestVaultConfig_Finalize(t *testing.T) {
 			"with_max_conns",
 			nil,
 			&VaultConfig{
-				Address:   String("address"),
+				Address: String("address"),
 				Transport: &TransportConfig{
 					MaxIdleConns:        Int(20),
 					MaxIdleConnsPerHost: Int(5),
