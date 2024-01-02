@@ -209,12 +209,14 @@ func (c *TransportConfig) GoString() string {
 		"DialTimeout:%s, "+
 		"DisableKeepAlives:%t, "+
 		"MaxIdleConnsPerHost:%d, "+
-		"TLSHandshakeTimeout:%s"+
+		"TLSHandshakeTimeout:%s,"+
+		"MaxConnsPerHost:%d"+
 		"}",
 		TimeDurationVal(c.DialKeepAlive),
 		TimeDurationVal(c.DialTimeout),
 		BoolVal(c.DisableKeepAlives),
 		IntVal(c.MaxIdleConnsPerHost),
 		TimeDurationVal(c.TLSHandshakeTimeout),
+		IntVal(c.MaxConnsPerHost),
 	)
 }
