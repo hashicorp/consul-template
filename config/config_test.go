@@ -1444,6 +1444,22 @@ func TestParse(t *testing.T) {
 			false,
 		},
 		{
+			"vault_transport_max_conns_per_host",
+			`vault {
+				transport {
+					max_conns_per_host = 25
+				}
+			}`,
+			&Config{
+				Vault: &VaultConfig{
+					Transport: &TransportConfig{
+						MaxConnsPerHost: Int(25),
+					},
+				},
+			},
+			false,
+		},
+		{
 			"vault_transport_tls_handshake_timeout",
 			`vault {
 				transport {
