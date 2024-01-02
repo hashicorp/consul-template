@@ -112,6 +112,7 @@ type CreateVaultClientInput struct {
 	TransportIdleConnTimeout     time.Duration
 	TransportMaxIdleConns        int
 	TransportMaxIdleConnsPerHost int
+	TransportMaxConnsPerHost     int
 	TransportTLSHandshakeTimeout time.Duration
 }
 
@@ -280,6 +281,7 @@ func (c *ClientSet) CreateVaultClient(i *CreateVaultClientInput) error {
 		MaxIdleConns:        i.TransportMaxIdleConns,
 		IdleConnTimeout:     i.TransportIdleConnTimeout,
 		MaxIdleConnsPerHost: i.TransportMaxIdleConnsPerHost,
+		MaxConnsPerHost:     i.TransportMaxConnsPerHost,
 		TLSHandshakeTimeout: i.TransportTLSHandshakeTimeout,
 	}
 

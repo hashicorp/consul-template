@@ -327,6 +327,7 @@ func TestConsulConfig_Finalize(t *testing.T) {
 					IdleConnTimeout:     TimeDuration(DefaultIdleConnTimeout),
 					MaxIdleConns:        Int(DefaultMaxIdleConns),
 					MaxIdleConnsPerHost: Int(DefaultMaxIdleConnsPerHost),
+					MaxConnsPerHost:     Int(DefaultMaxConnsPerHost),
 					TLSHandshakeTimeout: TimeDuration(DefaultTLSHandshakeTimeout),
 				},
 			},

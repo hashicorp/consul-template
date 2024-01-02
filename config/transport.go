@@ -30,6 +30,14 @@ const (
 	// per host.
 	DefaultMaxIdleConnsPerHost = 100
 
+	// DefaultMaxConnsPerHost is the default number of maximum connections to use
+	// per host. The associated HTTP Transport MaxConnsPerHost is used to limit
+	// the total number of connections per host, including connections in the
+	// dialing, active, and idle states. On limit violation, dials will block.
+	//
+	// Zero means no limit.
+	DefaultMaxConnsPerHost = 0
+
 	// DefaultTLSHandshakeTimeout is the amount of time to negotiate the TLS
 	// handshake.
 	DefaultTLSHandshakeTimeout = 10 * time.Second
@@ -63,6 +71,9 @@ type TransportConfig struct {
 	// host.
 	MaxIdleConnsPerHost *int `mapstructure:"max_idle_conns_per_host"`
 
+	// MaxConns is the maximum number of total connections.
+	MaxConnsPerHost *int `mapstructure:"max_conns_per_host"`
+
 	// TLSHandshakeTimeout is the amount of time to wait to complete the TLS
 	// handshake.
 	TLSHandshakeTimeout *time.Duration `mapstructure:"tls_handshake_timeout"`
@@ -88,6 +99,7 @@ func (c *TransportConfig) Copy() *TransportConfig {
 	o.DisableKeepAlives = c.DisableKeepAlives
 	o.IdleConnTimeout = c.IdleConnTimeout
 	o.MaxIdleConns = c.MaxIdleConns
+	o.MaxConnsPerHost = c.MaxConnsPerHost
 	o.MaxIdleConnsPerHost = c.MaxIdleConnsPerHost
 	o.TLSHandshakeTimeout = c.TLSHandshakeTimeout
 
@@ -140,6 +152,10 @@ func (c *TransportConfig) Merge(o *TransportConfig) *TransportConfig {
 		r.MaxIdleConnsPerHost = o.MaxIdleConnsPerHost
 	}
 
+	if o.MaxConnsPerHost != nil {
+		r.MaxConnsPerHost = o.MaxConnsPerHost
+	}
+
 	if o.TLSHandshakeTimeout != nil {
 		r.TLSHandshakeTimeout = o.TLSHandshakeTimeout
 	}
@@ -173,6 +189,10 @@ func (c *TransportConfig) Finalize() {
 		c.MaxIdleConnsPerHost = Int(DefaultMaxIdleConnsPerHost)
 	}
 
+	if c.MaxConnsPerHost == nil {
+		c.MaxConnsPerHost = Int(DefaultMaxConnsPerHost)
+	}
+
 	if c.TLSHandshakeTimeout == nil {
 		c.TLSHandshakeTimeout = TimeDuration(DefaultTLSHandshakeTimeout)
 	}
@@ -189,12 +209,14 @@ func (c *TransportConfig) GoString() string {
 		"DialTimeout:%s, "+
 		"DisableKeepAlives:%t, "+
 		"MaxIdleConnsPerHost:%d, "+
-		"TLSHandshakeTimeout:%s"+
+		"TLSHandshakeTimeout:%s,"+
+		"MaxConnsPerHost:%d"+
 		"}",
 		TimeDurationVal(c.DialKeepAlive),
 		TimeDurationVal(c.DialTimeout),
 		BoolVal(c.DisableKeepAlives),
 		IntVal(c.MaxIdleConnsPerHost),
 		TimeDurationVal(c.TLSHandshakeTimeout),
+		IntVal(c.MaxConnsPerHost),
 	)
 }

@@ -247,6 +247,7 @@ func TestNomadConfig_Finalize(t *testing.T) {
 					IdleConnTimeout:     TimeDuration(DefaultIdleConnTimeout),
 					MaxIdleConns:        Int(DefaultMaxIdleConns),
 					MaxIdleConnsPerHost: Int(DefaultMaxIdleConnsPerHost),
+					MaxConnsPerHost:     Int(DefaultMaxConnsPerHost),
 					TLSHandshakeTimeout: TimeDuration(DefaultTLSHandshakeTimeout),
 				},
 				Retry: &RetryConfig{
@@ -286,6 +287,7 @@ func TestNomadConfig_Finalize(t *testing.T) {
 					IdleConnTimeout:     TimeDuration(DefaultIdleConnTimeout),
 					MaxIdleConns:        Int(DefaultMaxIdleConns),
 					MaxIdleConnsPerHost: Int(DefaultMaxIdleConnsPerHost),
+					MaxConnsPerHost:     Int(DefaultMaxConnsPerHost),
 					TLSHandshakeTimeout: TimeDuration(DefaultTLSHandshakeTimeout),
 				},
 				Retry: &RetryConfig{
@@ -332,6 +334,7 @@ func TestNomadConfig_Finalize(t *testing.T) {
 					IdleConnTimeout:     TimeDuration(DefaultIdleConnTimeout),
 					MaxIdleConns:        Int(DefaultMaxIdleConns),
 					MaxIdleConnsPerHost: Int(DefaultMaxIdleConnsPerHost),
+					MaxConnsPerHost:     Int(DefaultMaxConnsPerHost),
 					TLSHandshakeTimeout: TimeDuration(DefaultTLSHandshakeTimeout),
 				},
 				Retry: &RetryConfig{
@@ -374,6 +377,7 @@ func TestNomadConfig_Finalize(t *testing.T) {
 					MaxIdleConns:        Int(DefaultMaxIdleConns),
 					MaxIdleConnsPerHost: Int(DefaultMaxIdleConnsPerHost),
 					TLSHandshakeTimeout: TimeDuration(DefaultTLSHandshakeTimeout),
+					MaxConnsPerHost:     Int(DefaultMaxConnsPerHost),
 					CustomDialer:        mockDialer{},
 				},
 				Retry: &RetryConfig{
@@ -418,6 +422,7 @@ func TestNomadConfig_Finalize(t *testing.T) {
 					IdleConnTimeout:     TimeDuration(DefaultIdleConnTimeout),
 					MaxIdleConns:        Int(DefaultMaxIdleConns),
 					MaxIdleConnsPerHost: Int(DefaultMaxIdleConnsPerHost),
+					MaxConnsPerHost:     Int(DefaultMaxConnsPerHost),
 					TLSHandshakeTimeout: TimeDuration(DefaultTLSHandshakeTimeout),
 				},
 				Retry: &RetryConfig{
