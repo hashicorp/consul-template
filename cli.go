@@ -585,6 +585,11 @@ func (cli *CLI) ParseFlags(args []string) (
 		return nil
 	}), "vault-transport-max-idle-conns-per-host", "")
 
+	flags.Var((funcIntVar)(func(i int) error {
+		c.Vault.Transport.MaxConnsPerHost = config.Int(i)
+		return nil
+	}), "vault-transport-max-conns-per-host", "")
+
 	flags.Var((funcDurationVar)(func(d time.Duration) error {
 		c.Vault.Transport.TLSHandshakeTimeout = config.TimeDuration(d)
 		return nil
@@ -919,6 +924,9 @@ Options:
 
   -vault-transport-max-idle-conns-per-host=<int>
       Sets the maximum number of idle connections to permit per host
+
+  -vault-transport-max-conns-per-host=<int>
+      Sets the maximum number of total connections to permit per host
 
   -vault-transport-tls-handshake-timeout=<duration>
       Sets the handshake timeout

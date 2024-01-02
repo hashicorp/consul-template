@@ -806,6 +806,18 @@ func TestCLI_ParseFlags(t *testing.T) {
 			false,
 		},
 		{
+			"vault-transport-max-conns-per-host",
+			[]string{"-vault-transport-max-conns-per-host", "25"},
+			&config.Config{
+				Vault: &config.VaultConfig{
+					Transport: &config.TransportConfig{
+						MaxConnsPerHost: config.Int(25),
+					},
+				},
+			},
+			false,
+		},
+		{
 			"vault-transport-tls-handshake-timeout",
 			[]string{"-vault-transport-tls-handshake-timeout", "30s"},
 			&config.Config{
