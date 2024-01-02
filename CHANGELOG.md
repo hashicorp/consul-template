@@ -1,7 +1,6 @@
 ## v0.36.0 (January 2, 2024)
 
 IMPROVEMENTS:
-* Remove hard coded version data in tests. [GH-1839](https://github.com/hashicorp/consul-template/pull/1839)
 * Support for namespaces, partitions in consul endpoints. [GH-1842](https://github.com/hashicorp/consul-template/pull/1842)
 * Bump github.com/go-jose/go-jose/v3 from 3.0.0 to 3.0.1. [GH-1843](https://github.com/hashicorp/consul-template/pull/1843)
 * Bump golang.org/x/crypto from 0.14.0 to 0.17.0. [GH-1858](https://github.com/hashicorp/consul-template/pull/1858)
