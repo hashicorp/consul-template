@@ -24,8 +24,8 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/crypto v0.14.0 // indirect
-	golang.org/x/sys v0.14.0
+	golang.org/x/crypto v0.17.0 // indirect
+	golang.org/x/sys v0.15.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
