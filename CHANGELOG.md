@@ -1,4 +1,4 @@
-## v0.36.0 (January 2, 2024)
+## v0.36.0 (January 3, 2024)
 
 IMPROVEMENTS:
 * Support for namespaces, partitions in consul endpoints. [GH-1842](https://github.com/hashicorp/consul-template/pull/1842)
