@@ -1,3 +1,11 @@
+## v0.36.0 (January 3, 2024)
+
+IMPROVEMENTS:
+* Support for namespaces, partitions in consul endpoints. [GH-1842](https://github.com/hashicorp/consul-template/pull/1842)
+* Bump github.com/go-jose/go-jose/v3 from 3.0.0 to 3.0.1. [GH-1843](https://github.com/hashicorp/consul-template/pull/1843)
+* Bump golang.org/x/crypto from 0.14.0 to 0.17.0. [GH-1858](https://github.com/hashicorp/consul-template/pull/1858)
+* Add Vault transport configuration option for `MaxConnsPerHost`. [GH-1858](https://github.com/hashicorp/consul-template/pull/1858)
+
 ## v0.35.0 (November 7, 2023)
 
 NEW FEATURES:
