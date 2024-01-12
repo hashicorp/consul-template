@@ -909,6 +909,16 @@ func TestCLI_ParseFlags(t *testing.T) {
 				e.Finalize()
 			}
 
+			// these can't be compared with DeepEqual
+			if e != nil {
+				e.RendererFunc = nil
+				e.ReaderFunc = nil
+			}
+			if a != nil {
+				a.RendererFunc = nil
+				a.ReaderFunc = nil
+			}
+
 			if !reflect.DeepEqual(e, a) {
 				t.Errorf("Config diff: %soutput: %q", e.Diff(a), out)
 			}

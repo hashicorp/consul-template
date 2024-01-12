@@ -8,7 +8,6 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"os"
 	"strings"
 	"text/template"
 
@@ -117,6 +116,9 @@ type NewTemplateInput struct {
 
 	// Config keeps local reference to config struct
 	Config *config.TemplateConfig
+
+	// ReaderFunc is called to read in any source file
+	ReaderFunc config.Reader
 }
 
 // NewTemplate creates and parses a new Consul Template template at the given
@@ -154,7 +156,7 @@ func NewTemplate(i *NewTemplateInput) (*Template, error) {
 	}
 
 	if i.Source != "" {
-		contents, err := os.ReadFile(i.Source)
+		contents, err := i.ReaderFunc(i.Source)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to read template")
 		}

@@ -119,6 +119,9 @@ func TestNewTemplate(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			if tc.i != nil {
+				tc.i.ReaderFunc = os.ReadFile
+			}
 			a, err := NewTemplate(tc.i)
 			if (err != nil) != tc.err {
 				t.Fatal(err)
