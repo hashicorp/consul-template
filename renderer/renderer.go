@@ -59,9 +59,12 @@ type RenderResult struct {
 	Contents []byte
 }
 
+type Renderer func(*RenderInput) (*RenderResult, error)
+
 // Render atomically renders a file contents to disk, returning a result of
 // whether it would have rendered and actually did render.
 func Render(i *RenderInput) (*RenderResult, error) {
+
 	existing, err := os.ReadFile(i.Path)
 	fileExists := !os.IsNotExist(err)
 	if err != nil && fileExists {
