@@ -40,6 +40,7 @@ type VaultPKIQuery struct {
 
 // NewVaultReadQuery creates a new datacenter dependency.
 func NewVaultPKIQuery(urlpath, filepath string, data map[string]interface{}) (*VaultPKIQuery, error) {
+	fmt.Println(filepath)
 	urlpath = strings.TrimSpace(urlpath)
 	urlpath = strings.Trim(urlpath, "/")
 	if urlpath == "" {
@@ -118,26 +119,27 @@ func goodFor(cert *x509.Certificate) (time.Duration, bool) {
 	if cert == nil {
 		return 0, false
 	}
-	// These are all int64's with Seconds since the Epoch, handy for the math
-	start, end := cert.NotBefore.Unix(), cert.NotAfter.Unix()
-	now := time.Now().UTC().Unix()
-	if end <= now { // already expired
+	start, end := cert.NotBefore.UTC(), cert.NotAfter.UTC()
+	now := time.Now().UTC()
+	if end.Before(now) || end.Equal(now) { // already expired
 		return 0, false
 	}
-	lifespan := end - start        // full ttl of cert
-	duration := end - now          // duration remaining
-	gooddur := (duration * 9) / 10 // 90% of duration
-	mindur := (lifespan / 10)      // 10% of lifespan
-	if gooddur <= mindur {
-		return 0, false // almost expired, get a new one
+
+	lifespanDur := end.Sub(start)
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	lifespanMilliseconds := lifespanDur.Milliseconds()
+	// calculate the 'time the certificate should be rotated' by figuring out
+	// 87-93% of the lifespan and adding it to the start
+	rotationTime := start.Add(time.Millisecond * time.Duration(((lifespanMilliseconds*9)/10)+(lifespanMilliseconds*int64(r.Intn(6)-3))/100))
+
+	// after we have the 'time the certificate should be rotated', figure out how
+	// far it is from now to sleep
+	sleepFor := time.Duration(rotationTime.Sub(now))
+	if sleepFor <= 0 {
+		return 0, false
 	}
-	if gooddur > 100 { // 100 seconds
-		// add jitter if big enough for it to matter
-		r := rand.New(rand.NewSource(time.Now().UnixNano()))
-		// between 87% and 93%
-		gooddur = gooddur + ((gooddur / 100) * int64(r.Intn(6)-3))
-	}
-	sleepFor := time.Duration(gooddur * 1e9) // basically: gooddur*time.Second
+
+	fmt.Println("sleeping for ", sleepFor.Seconds())
 	return sleepFor, true
 }
 
