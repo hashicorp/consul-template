@@ -40,7 +40,6 @@ type VaultPKIQuery struct {
 
 // NewVaultReadQuery creates a new datacenter dependency.
 func NewVaultPKIQuery(urlpath, filepath string, data map[string]interface{}) (*VaultPKIQuery, error) {
-	fmt.Println(filepath)
 	urlpath = strings.TrimSpace(urlpath)
 	urlpath = strings.Trim(urlpath, "/")
 	if urlpath == "" {
@@ -139,7 +138,6 @@ func goodFor(cert *x509.Certificate) (time.Duration, bool) {
 		return 0, false
 	}
 
-	fmt.Println("sleeping for ", sleepFor.Seconds())
 	return sleepFor, true
 }
 
