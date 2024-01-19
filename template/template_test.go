@@ -478,6 +478,28 @@ func TestTemplate_Execute(t *testing.T) {
 			false,
 		},
 		{
+			"func_peerings",
+			&NewTemplateInput{
+				Contents: `{{ range peerings }}{{ .Name }}{{ end }}`,
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					b := NewBrain()
+					d, err := dep.NewListPeeringQuery("")
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, []*dep.Peering{
+						{Name: "cluster-01"},
+						{Name: "cluster-02"},
+					})
+					return b
+				}(),
+			},
+			"cluster-01cluster-02",
+			false,
+		},
+		{
 			"func_secret_read",
 			&NewTemplateInput{
 				Contents: `{{ with secret "secret/foo" }}{{ .Data.zip }}{{ end }}`,
