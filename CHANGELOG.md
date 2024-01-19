@@ -1,6 +1,6 @@
 # Unreleased Changes
 
-IMPROVEMENTS:
+NEW FEATURES:
 * Add support for listing Consul peers [NET-6966](https://hashicorp.atlassian.net/browse/NET-6966)
 
 ## v0.36.0 (January 3, 2024)
