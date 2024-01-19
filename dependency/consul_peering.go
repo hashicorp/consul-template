@@ -133,7 +133,7 @@ func toPeering(p *api.Peering) *Peering {
 		Name:                p.Name,
 		Partition:           p.Partition,
 		Meta:                p.Meta,
-		PeeringState:        fmt.Sprintf("%s", p.State),
+		PeeringState:        string(p.State),
 		PeerID:              p.PeerID,
 		PeerServerName:      p.PeerServerName,
 		PeerServerAddresses: p.PeerServerAddresses,
