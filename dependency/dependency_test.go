@@ -4,6 +4,7 @@
 package dependency
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -124,6 +125,11 @@ func TestMain(m *testing.M) {
 		Fatalf("%v", err)
 	}
 
+	err := createConsulPeerings(clients)
+	if err != nil {
+		Fatalf("%v", err)
+	}
+
 	// Wait for Nomad initialization to finish
 	if err := <-nomadFuture; err != nil {
 		testConsul.Stop()
@@ -156,6 +162,22 @@ func TestMain(m *testing.M) {
 	testVault.Stop()
 	testNomad.Stop()
 	os.Exit(exit)
+}
+
+func createConsulPeerings(clients *ClientSet) error {
+	generateReq := api.PeeringGenerateTokenRequest{PeerName: "foo"}
+	_, _, err := clients.consul.client.Peerings().GenerateToken(context.Background(), generateReq, &api.WriteOptions{})
+	if err != nil {
+		return err
+	}
+
+	generateReq = api.PeeringGenerateTokenRequest{PeerName: "bar"}
+	_, _, err = clients.consul.client.Peerings().GenerateToken(context.Background(), generateReq, &api.WriteOptions{})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func runTestConsul(tb testutil.TestingTB) {

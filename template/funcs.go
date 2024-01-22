@@ -363,6 +363,28 @@ func nodesFunc(b *Brain, used, missing *dep.Set) func(...string) ([]*dep.Node, e
 	}
 }
 
+// peeringsFunc returns or accumulates peerings.
+func peeringsFunc(b *Brain, used, missing *dep.Set) func(...string) ([]*dep.Peering, error) {
+	return func(s ...string) ([]*dep.Peering, error) {
+		result := []*dep.Peering{}
+
+		d, err := dep.NewListPeeringQuery(strings.Join(s, ""))
+		if err != nil {
+			return nil, err
+		}
+
+		used.Add(d)
+
+		if value, ok := b.Recall(d); ok {
+			return value.([]*dep.Peering), nil
+		}
+
+		missing.Add(d)
+
+		return result, nil
+	}
+}
+
 // pkiCertFunc returns a PKI cert from Vault
 func pkiCertFunc(b *Brain, used, missing *dep.Set, destPath string) func(...string) (interface{}, error) {
 	return func(s ...string) (interface{}, error) {

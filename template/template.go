@@ -328,6 +328,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"safeLs":       safeLsFunc(i.brain, i.used, i.missing),
 		"node":         nodeFunc(i.brain, i.used, i.missing),
 		"nodes":        nodesFunc(i.brain, i.used, i.missing),
+		"peerings":     peeringsFunc(i.brain, i.used, i.missing),
 		"secret":       secretFunc(i.brain, i.used, i.missing),
 		"secrets":      secretsFunc(i.brain, i.used, i.missing),
 		"service":      serviceFunc(i.brain, i.used, i.missing),

@@ -490,6 +490,39 @@ To query a different data center and order by shortest trip time to ourselves:
 To access map data such as `TaggedAddresses` or `Meta`, use
 [Go's text/template][text-template] map indexing.
 
+### `peerings`
+
+Query [Consul][consul] for all peerings.
+
+```golang
+{{ peerings "?<QUERY>" }}
+```
+The `<QUERY>` attribute is optional; if omitted, `default` partition will be queried. `<QUERY>` can be used to set the Consul partition. `<QUERY>` accepts a url query-parameter format, e.g.:
+
+```golang
+{{ range peerings "?partition=partition" }}
+{{ .Name }}{{ end }}
+```
+For example:
+
+```golang
+{{ range peerings }}
+{{ .Name }}{{ end }}
+```
+
+renders
+
+```text
+foo
+bar
+```
+
+For complete list of available fields, see consul's documentation on [CT-Peerings](https://github.com/hashicorp/consul-template/blob/main/dependency/consul_peering.go#L42)
+
+To access map data such as `Meta` or slice such as `PeerServerAddresses`, use
+[Go's text/template][text-template] map indexing.
+
+
 ### `secret`
 
 #### Format
