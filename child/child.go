@@ -487,8 +487,9 @@ func (c *Child) randomSplay() <-chan time.Time {
 		return time.After(0)
 	}
 
-	ns := c.splay.Nanoseconds()
-	offset := rand.Int63n(ns)
+	max := c.splay.Nanoseconds()
+	min := c.splay.Nanoseconds() / 2
+	offset := rand.Int63n(max-min+1) + min
 	t := time.Duration(offset)
 
 	c.logger.Printf("[DEBUG] (child) waiting %.2fs for random splay", t.Seconds())
