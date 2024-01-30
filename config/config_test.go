@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package config
 
 import (
@@ -1336,6 +1339,18 @@ func TestParse(t *testing.T) {
 			&Config{
 				Vault: &VaultConfig{
 					Address: String("address"),
+				},
+			},
+			false,
+		},
+		{
+			"vault_user_agent",
+			`vault {
+				client_user_agent = "my-user-agent"
+			}`,
+			&Config{
+				Vault: &VaultConfig{
+					ClientUserAgent: String("my-user-agent"),
 				},
 			},
 			false,

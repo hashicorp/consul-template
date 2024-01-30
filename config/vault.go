@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package config
 
 import (
@@ -82,6 +85,10 @@ type VaultConfig struct {
 
 	// UnwrapToken unwraps the provided Vault token as a wrapped token.
 	UnwrapToken *bool `mapstructure:"unwrap_token"`
+
+	// ClientUserAgent is the User-Agent header that will be set on the client
+	// when making requests to Vault.
+	ClientUserAgent *string `mapstructure:"client_user_agent"`
 
 	// DefaultLeaseDuration configures the default lease duration when not explicitly
 	// set by vault
@@ -230,6 +237,10 @@ func (c *VaultConfig) Merge(o *VaultConfig) *VaultConfig {
 		r.VaultAgentTokenFile = o.VaultAgentTokenFile
 	}
 
+	if o.ClientUserAgent != nil {
+		r.ClientUserAgent = o.ClientUserAgent
+	}
+
 	if o.Transport != nil {
 		r.Transport = r.Transport.Merge(o.Transport)
 	}
@@ -291,6 +302,9 @@ func (c *VaultConfig) Finalize() {
 	}
 	if c.SSL.CaCert == nil {
 		c.SSL.CaCert = stringFromEnv([]string{api.EnvVaultCACert}, "")
+	}
+	if c.SSL.CaCertBytes == nil {
+		c.SSL.CaCertBytes = stringFromEnv([]string{api.EnvVaultCACertBytes}, "")
 	}
 	if c.SSL.CaPath == nil {
 		c.SSL.CaPath = stringFromEnv([]string{api.EnvVaultCAPath}, "")

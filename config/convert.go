@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package config
 
 import (
@@ -33,10 +36,7 @@ func BoolGoString(b *bool) string {
 // BoolPresent returns a boolean indicating if the pointer is nil, or if the
 // pointer is pointing to the zero value..
 func BoolPresent(b *bool) bool {
-	if b == nil {
-		return false
-	}
-	return true
+	return b != nil
 }
 
 // FileMode returns a pointer to the given os.FileMode.
@@ -198,7 +198,7 @@ func TimeDurationGoString(t *time.Duration) string {
 	if t == nil {
 		return "(*time.Duration)(nil)"
 	}
-	return fmt.Sprintf("%s", t)
+	return t.String()
 }
 
 // TimeDurationPresent returns a boolean indicating if the pointer is nil, or if the pointer is pointing to the zero value..

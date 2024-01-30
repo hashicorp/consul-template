@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package template
 
 import (
@@ -9,10 +12,11 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/Masterminds/sprig"
+	"github.com/Masterminds/sprig/v3"
 	"github.com/hashicorp/consul-template/config"
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/pkg/errors"
+	"golang.org/x/exp/maps"
 )
 
 var (
@@ -27,7 +31,7 @@ var (
 )
 
 // Template is the internal representation of an individual template to process.
-// The template retains the relationship between it's contents and is
+// The template retains the relationship between its contents and is
 // responsible for it's own execution.
 type Template struct {
 	// contents is the string contents for the template. It is either given
@@ -55,6 +59,11 @@ type Template struct {
 	// errFatal determines whether template errors should cause the process to
 	// exit, or just log and continue.
 	errFatal bool
+
+	// FuncMap is a map of external functions that this template is
+	// permitted to run. Allows users to add functions to the library
+	// and selectively opaque existing ones.
+	extFuncMap template.FuncMap
 
 	// functionDenylist are functions not permitted to be executed
 	// when we render this template
@@ -92,6 +101,11 @@ type NewTemplateInput struct {
 	LeftDelim  string
 	RightDelim string
 
+	// ExtFuncMap is a map of external functions that this template is
+	// permitted to run. Allows users to add functions to the library
+	// and selectively opaque existing ones.
+	ExtFuncMap template.FuncMap
+
 	// FunctionDenylist are functions not permitted to be executed
 	// when we render this template
 	FunctionDenylist []string
@@ -128,10 +142,16 @@ func NewTemplate(i *NewTemplateInput) (*Template, error) {
 	t.rightDelim = i.RightDelim
 	t.errMissingKey = i.ErrMissingKey
 	t.errFatal = i.ErrFatal
+	t.extFuncMap = i.ExtFuncMap
 	t.functionDenylist = i.FunctionDenylist
 	t.sandboxPath = i.SandboxPath
 	t.destination = i.Destination
 	t.config = i.Config
+
+	if i.ExtFuncMap != nil {
+		t.extFuncMap = make(map[string]any, len(i.ExtFuncMap))
+		maps.Copy(t.extFuncMap, i.ExtFuncMap)
+	}
 
 	if i.Source != "" {
 		contents, err := os.ReadFile(i.Source)
@@ -221,6 +241,7 @@ func (t *Template) Execute(i *ExecuteInput) (*ExecuteResult, error) {
 		env:              i.Env,
 		used:             &used,
 		missing:          &missing,
+		extFuncMap:       t.extFuncMap,
 		functionDenylist: t.functionDenylist,
 		sandboxPath:      t.sandboxPath,
 		destination:      t.destination,
@@ -275,6 +296,7 @@ type funcMapInput struct {
 	newTmpl          *template.Template
 	brain            *Brain
 	env              []string
+	extFuncMap       map[string]interface{}
 	functionDenylist []string
 	sandboxPath      string
 	destination      string
@@ -368,6 +390,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"replaceAll":            replaceAll,
 		"sha256Hex":             sha256Hex,
 		"md5sum":                md5sum,
+		"hmacSHA256Hex":         hmacSHA256Hex,
 		"timestamp":             timestamp,
 		"toLower":               toLower,
 		"toJSON":                toJSON,
@@ -400,9 +423,16 @@ func funcMap(i *funcMapInput) template.FuncMap {
 	}
 
 	// Add the Sprig functions to the funcmap
-	for k, v := range sprig.FuncMap() {
+	for k, v := range sprig.TxtFuncMap() {
 		target := "sprig_" + k
 		r[target] = v
+	}
+
+	// Add external functions
+	if i.extFuncMap != nil {
+		for name, fn := range i.extFuncMap {
+			r[name] = fn
+		}
 	}
 
 	for _, bf := range i.functionDenylist {

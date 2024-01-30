@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package dependency
 
 import (
@@ -82,7 +85,7 @@ func (q *QueryOptions) Merge(o *QueryOptions) *QueryOptions {
 		return &r
 	}
 
-	if o.AllowStale != false {
+	if o.AllowStale {
 		r.AllowStale = o.AllowStale
 	}
 
@@ -102,7 +105,7 @@ func (q *QueryOptions) Merge(o *QueryOptions) *QueryOptions {
 		r.Choose = o.Choose
 	}
 
-	if o.RequireConsistent != false {
+	if o.RequireConsistent {
 		r.RequireConsistent = o.RequireConsistent
 	}
 
@@ -194,9 +197,7 @@ type ResponseMetadata struct {
 // sorts and returns the copied result.
 func deepCopyAndSortTags(tags []string) []string {
 	newTags := make([]string, 0, len(tags))
-	for _, tag := range tags {
-		newTags = append(newTags, tag)
-	}
+	newTags = append(newTags, tags...)
 	sort.Strings(newTags)
 	return newTags
 }

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package dependency
 
 import (
@@ -96,6 +99,7 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 					},
 					Meta: map[string]string{
 						"consul-network-segment": "",
+						"consul-version":         "1.16.1",
 					},
 				},
 				Services: []*CatalogNodeService{

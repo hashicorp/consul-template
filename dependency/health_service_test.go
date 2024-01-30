@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package dependency
 
 import (
@@ -179,6 +182,7 @@ func TestHealthConnectServiceQuery_Fetch(t *testing.T) {
 					Tags:        ServiceTags([]string{}),
 					NodeMeta: map[string]string{
 						"consul-network-segment": "",
+						"consul-version":         "1.16.1",
 					},
 					Weights: api.AgentWeights{
 						Passing: 1,
@@ -236,6 +240,7 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 					},
 					NodeMeta: map[string]string{
 						"consul-network-segment": "",
+						"consul-version":         "1.16.1",
 					},
 					ServiceMeta: map[string]string{},
 					Address:     testConsul.Config.Bind,
@@ -269,6 +274,7 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 					},
 					NodeMeta: map[string]string{
 						"consul-network-segment": "",
+						"consul-version":         "1.16.1",
 					},
 					ServiceMeta: map[string]string{},
 					Address:     testConsul.Config.Bind,
@@ -297,6 +303,7 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 					},
 					NodeMeta: map[string]string{
 						"consul-network-segment": "",
+						"consul-version":         "1.16.1",
 					},
 					ServiceMeta: map[string]string{
 						"meta1": "value1",
@@ -326,6 +333,7 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 					},
 					NodeMeta: map[string]string{
 						"consul-network-segment": "",
+						"consul-version":         "1.16.1",
 					},
 					ServiceMeta: map[string]string{},
 					Address:     testConsul.Config.Bind,

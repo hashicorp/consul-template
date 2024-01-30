@@ -1,5 +1,5 @@
 # default PR reviews to the team
-* @hashicorp/cat-core
+* @hashicorp/zts-template-reviewers
 
 # release configuration
 /.release/                              @hashicorp/release-engineering @hashicorp/github-consul-ecosystem

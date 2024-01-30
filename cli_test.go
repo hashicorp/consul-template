@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package main
 
 import (
@@ -344,6 +347,108 @@ func TestCLI_ParseFlags(t *testing.T) {
 			&config.Config{
 				Exec: &config.ExecConfig{
 					Splay: config.TimeDuration(10 * time.Second),
+				},
+			},
+			false,
+		},
+		{
+			"exec-env-pristine",
+			[]string{"-exec-env-pristine"},
+			&config.Config{
+				Exec: &config.ExecConfig{
+					Env: &config.EnvConfig{
+						Pristine: config.Bool(true),
+					},
+				},
+			},
+			false,
+		},
+		{
+			"exec-env-custom",
+			[]string{"-exec-env-custom", "SOME_ENV_VARIABLE=VALUE"},
+			&config.Config{
+				Exec: &config.ExecConfig{
+					Env: &config.EnvConfig{
+						Custom: []string{"SOME_ENV_VARIABLE=VALUE"},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"exec-env-custom-multiple",
+			[]string{
+				"-exec-env-custom", "SOME_ENV_VARIABLE=VALUE",
+				"-exec-env-custom", "ANOTHER_ENV_VARIABLE=VALUE",
+			},
+			&config.Config{
+				Exec: &config.ExecConfig{
+					Env: &config.EnvConfig{
+						Custom: []string{
+							"SOME_ENV_VARIABLE=VALUE",
+							"ANOTHER_ENV_VARIABLE=VALUE",
+						},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"exec-env-allowlist",
+			[]string{"-exec-env-allowlist", "SOME_*"},
+			&config.Config{
+				Exec: &config.ExecConfig{
+					Env: &config.EnvConfig{
+						Allowlist: []string{"SOME_*"},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"exec-env-allowlist-multiple",
+			[]string{
+				"-exec-env-allowlist", "SOME_*",
+				"-exec-env-allowlist", "ANOTHER_*",
+			},
+			&config.Config{
+				Exec: &config.ExecConfig{
+					Env: &config.EnvConfig{
+						Allowlist: []string{
+							"SOME_*",
+							"ANOTHER_*",
+						},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"exec-env-denylist",
+			[]string{"-exec-env-denylist", "VAULT_*"},
+			&config.Config{
+				Exec: &config.ExecConfig{
+					Env: &config.EnvConfig{
+						Denylist: []string{"VAULT_*"},
+					},
+				},
+			},
+			false,
+		},
+		{
+			"exec-env-denylist-multiple",
+			[]string{
+				"-exec-env-denylist", "VAULT_*",
+				"-exec-env-denylist", "CONSUL_*",
+			},
+			&config.Config{
+				Exec: &config.ExecConfig{
+					Env: &config.EnvConfig{
+						Denylist: []string{
+							"VAULT_*",
+							"CONSUL_*",
+						},
+					},
 				},
 			},
 			false,

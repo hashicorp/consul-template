@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package manager
 
 import (
@@ -24,9 +27,9 @@ import (
 )
 
 const (
-	// saneViewLimit is the number of views that we consider "sane" before we
+	// viewLimit is the number of views that we consider reasonable before we
 	// warn the user that they might be DDoSing their Consul cluster.
-	saneViewLimit = 128
+	viewLimit = 128
 )
 
 // Runner responsible rendering Templates and invoking Commands.
@@ -273,7 +276,7 @@ func (r *Runner) Start() {
 
 	for {
 		// Warn the user if they are watching too many dependencies.
-		if r.watcher.Size() > saneViewLimit {
+		if r.watcher.Size() > viewLimit {
 			log.Printf("[WARN] (runner) watching %d dependencies - watching this "+
 				"many dependencies could DDoS your servers", r.watcher.Size())
 		} else {
@@ -941,7 +944,7 @@ func (r *Runner) init(clients *dep.ClientSet) error {
 	dep.SetVaultLeaseRenewalThreshold(*r.config.Vault.LeaseRenewalThreshold)
 
 	// Create the watcher
-	r.watcher = newWatcher(r.config, clients, r.config.Once)
+	r.watcher = newWatcher(r.config, clients)
 
 	numTemplates := len(*r.config.Templates)
 	templates := make([]*template.Template, 0, numTemplates)
@@ -967,6 +970,7 @@ func (r *Runner) init(clients *dep.ClientSet) error {
 			ErrFatal:         config.BoolVal(ctmpl.ErrFatal),
 			LeftDelim:        leftDelim,
 			RightDelim:       rightDelim,
+			ExtFuncMap:       ctmpl.ExtFuncMap,
 			FunctionDenylist: ctmpl.FunctionDenylist,
 			SandboxPath:      config.StringVal(ctmpl.SandboxPath),
 			Destination:      config.StringVal(ctmpl.Destination),
@@ -1124,6 +1128,10 @@ func (r *Runner) childEnv() []string {
 		m["VAULT_CACERT"] = config.StringVal(r.config.Vault.SSL.CaCert)
 	}
 
+	if config.StringPresent(r.config.Vault.SSL.CaCertBytes) {
+		m["VAULT_CACERT_BYTES"] = config.StringVal(r.config.Vault.SSL.CaCertBytes)
+	}
+
 	if config.StringPresent(r.config.Vault.SSL.ServerName) {
 		m["VAULT_TLS_SERVER_NAME"] = config.StringVal(r.config.Vault.SSL.ServerName)
 	}
@@ -1272,10 +1280,8 @@ func (q *quiescence) tick() {
 	if q.timer == nil {
 		q.timer = time.NewTimer(q.min)
 		go func() {
-			select {
-			case <-q.timer.C:
-				q.ch <- q.template
-			}
+			<-q.timer.C
+			q.ch <- q.template
 		}()
 
 		q.deadline = now.Add(q.max)
@@ -1346,8 +1352,10 @@ func NewClientSet(c *config.Config) (*dep.ClientSet, error) {
 		SSLCert:                      config.StringVal(c.Vault.SSL.Cert),
 		SSLKey:                       config.StringVal(c.Vault.SSL.Key),
 		SSLCACert:                    config.StringVal(c.Vault.SSL.CaCert),
+		SSLCACertBytes:               config.StringVal(c.Vault.SSL.CaCertBytes),
 		SSLCAPath:                    config.StringVal(c.Vault.SSL.CaPath),
 		ServerName:                   config.StringVal(c.Vault.SSL.ServerName),
+		ClientUserAgent:              config.StringVal(c.Vault.ClientUserAgent),
 		TransportCustomDialer:        c.Vault.Transport.CustomDialer,
 		TransportDialKeepAlive:       config.TimeDurationVal(c.Vault.Transport.DialKeepAlive),
 		TransportDialTimeout:         config.TimeDurationVal(c.Vault.Transport.DialTimeout),
@@ -1393,7 +1401,7 @@ func NewClientSet(c *config.Config) (*dep.ClientSet, error) {
 }
 
 // newWatcher creates a new watcher.
-func newWatcher(c *config.Config, clients *dep.ClientSet, once bool) *watch.Watcher {
+func newWatcher(c *config.Config, clients *dep.ClientSet) *watch.Watcher {
 	log.Printf("[INFO] (runner) creating watcher")
 
 	return watch.NewWatcher(&watch.NewWatcherInput{

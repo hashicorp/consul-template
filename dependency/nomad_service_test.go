@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package dependency
 
 import (
@@ -175,20 +178,18 @@ func TestNomadServiceQuery_Fetch(t *testing.T) {
 
 			act := actI.([]*NomadService)
 
-			if act != nil {
-				for _, s := range act {
-					// Assert the shape of the randomized fields
-					assert.Regexp(t, "^_nomad-task.+", s.ID)
-					assert.Regexp(t, ".+-.+-.+-.+-.+", s.Node)
-					assert.NotZero(t, s.Port)
-					assert.Regexp(t, ".+-.+-.+-.+-.+", s.AllocID)
+			for _, s := range act {
+				// Assert the shape of the randomized fields
+				assert.Regexp(t, "^_nomad-task.+", s.ID)
+				assert.Regexp(t, ".+-.+-.+-.+-.+", s.Node)
+				assert.NotZero(t, s.Port)
+				assert.Regexp(t, ".+-.+-.+-.+-.+", s.AllocID)
 
-					// Clear randomized fields
-					s.ID = ""
-					s.Node = ""
-					s.Port = 0
-					s.AllocID = ""
-				}
+				// Clear randomized fields
+				s.ID = ""
+				s.Node = ""
+				s.Port = 0
+				s.AllocID = ""
 			}
 
 			assert.Equal(t, tc.exp, act)

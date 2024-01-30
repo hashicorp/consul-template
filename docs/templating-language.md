@@ -74,6 +74,7 @@ provides the following functions:
   - [replaceAll](#replaceall)
   - [sha256Hex](#sha256hex)
   - [md5sum](#md5sum)
+  - [hmacSHA256Hex](#hmacSHA256hex)
   - [split](#split)
   - [splitToMap](#splitToMap)
   - [timestamp](#timestamp)
@@ -643,6 +644,18 @@ Cert Authority: {{ .CA }}
 {{ with secret "pki/cert/ca_chain" }}
 CA+Chain: {{ .Data.ca_chain }}
 {{ end }}
+```
+
+The `writeToFile` function can be used with pkiCert to write your Key and Certs
+to separate files from a template.
+
+```golang
+{{- with pkiCert "pki/issue/my-domain-dot-com" "common_name=foo.example.com" -}}
+{{ .Cert }}{{ .CA }}{{ .Key }}
+{{ .Key | writeToFile "/my/path/to/cert.key" "root" "root" "0400" }}
+{{ .CA | writeToFile "/my/path/to/cert.pem" "root" "root" "0644" }}
+{{ .Cert | writeToFile "/my/path/to/cert.pem" "root" "root" "0644" "append" }}
+{{- end -}}
 ```
 
 ### `service`
@@ -1484,6 +1497,20 @@ Takes a string input as an argument, and returns the hex-encoded md5 hash of the
 
 ```golang
 {{ "myString" | md5sum }}
+```
+
+### `hmacSHA256Hex`
+
+Takes a key and a message as string inputs. Returns a hex-encoded HMAC-SHA256 hash with the given parameters.
+
+```golang
+{{ hmacSHA256Hex "somemessage" "somekey" }}
+```
+
+Or with a pipe function
+
+```golang
+{{ "somekey" | hmacSHA256Hex "somemessage" }}
 ```
 
 ### `split`

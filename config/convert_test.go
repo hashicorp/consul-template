@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package config
 
 import (
@@ -213,7 +216,7 @@ func TestFileModePresent(t *testing.T) {
 		},
 		{
 			"present",
-			FileMode(123),
+			FileMode(0644),
 			true,
 		},
 		{

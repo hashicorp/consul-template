@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package config
 
 import (
@@ -306,13 +309,14 @@ func TestConsulConfig_Finalize(t *testing.T) {
 					Attempts:   Int(DefaultRetryAttempts),
 				},
 				SSL: &SSLConfig{
-					CaCert:     String(""),
-					CaPath:     String(""),
-					Cert:       String(""),
-					Enabled:    Bool(false),
-					Key:        String(""),
-					ServerName: String(""),
-					Verify:     Bool(true),
+					CaCert:      String(""),
+					CaCertBytes: String(""),
+					CaPath:      String(""),
+					Cert:        String(""),
+					Enabled:     Bool(false),
+					Key:         String(""),
+					ServerName:  String(""),
+					Verify:      Bool(true),
 				},
 				Token:     String(""),
 				TokenFile: String(""),
