@@ -221,7 +221,7 @@ func (v *View) fetch(doneCh, successCh chan<- struct{}, errCh chan<- error) {
 			WaitIndex:  v.lastIndex,
 		})
 		if err != nil {
-			if err == dep.ErrStopped {
+			if err.Error() == dep.ErrStopped.Error() {
 				log.Printf("[TRACE] (view) %s reported stop", v.dependency)
 			} else {
 				errCh <- err

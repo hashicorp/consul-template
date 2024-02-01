@@ -5,8 +5,10 @@ package child
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"os"
 	"reflect"
 	"runtime"
@@ -635,5 +637,75 @@ func TestCustomLogger(t *testing.T) {
 	actual = actual[index:]
 	if actual != expected {
 		t.Fatalf("Expected '%s' to be '%s'", actual, expected)
+	}
+}
+
+func TestSplay(t *testing.T) {
+	splay := 5 * time.Second
+	ns := splay.Nanoseconds()
+	offset := rand.Int63n(ns)
+	ti := time.Duration(offset)
+
+	fmt.Println(fmt.Sprintf("[DEBUG] (child) waiting %.2fs for random splay", ti.Seconds()))
+	select {
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for splay")
+	case <-time.After(ti):
+		fmt.Println("received!")
+	}
+}
+
+func TestLeaseRenewal(t *testing.T) {
+	base := int((5 * time.Minute).Seconds())
+	VaultLeaseRenewalThreshold := 0.9
+
+	// Convert to float seconds.
+	sleep := float64(time.Duration(base) * time.Second)
+
+	// If the secret doesn't have a rotation period, this is a non-renewable leased
+	// secret.
+	// For non-renewable leases set the renew duration to use much of the secret
+	// lease as possible. Use a stagger over the configured threshold
+	// fraction of the lease duration so that many clients do not hit
+	// Vault simultaneously.
+	finalFraction := VaultLeaseRenewalThreshold + (rand.Float64()-0.5)*0.1
+	if finalFraction >= 1.0 || finalFraction <= 0.0 {
+		// If the fraction randomly winds up outside of (0.0-1.0), clamp
+		// back down to the VaultLeaseRenewalThreshold provided by the user,
+		// since a) the user picked that value, so they should be
+		// comfortable with it, and b) it should not skew the staggering too
+		// much
+		finalFraction = VaultLeaseRenewalThreshold
+	}
+	sleep = sleep * finalFraction
+
+	fmt.Println(time.Duration(sleep))
+
+	select {
+	case <-time.After(time.Duration(sleep)):
+		fmt.Println("received!")
+	case <-time.After(50 * time.Second):
+		t.Fatal("timed out waiting for splay")
+	}
+}
+
+func TestSelectExit(t *testing.T) {
+
+	sleepCh := make(chan time.Duration, 1)
+	stopCh := make(chan struct{}, 1)
+	sleepCh <- 30 * time.Second
+	go func(ch chan struct{}) {
+		time.Sleep(15 * time.Second)
+		close(ch)
+	}(stopCh)
+	select {
+	case dur := <-sleepCh:
+		select {
+		case <-time.After(dur):
+			fmt.Println("waiting....")
+			break
+		case <-stopCh:
+			fmt.Println("stopped!")
+		}
 	}
 }
