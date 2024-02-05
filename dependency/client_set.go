@@ -274,16 +274,15 @@ func (c *ClientSet) CreateVaultClient(i *CreateVaultClientInput) error {
 		dialer = i.TransportCustomDialer
 	}
 
-	transport := &http.Transport{
-		Proxy:               http.ProxyFromEnvironment,
-		Dial:                dialer.Dial,
-		DisableKeepAlives:   i.TransportDisableKeepAlives,
-		MaxIdleConns:        i.TransportMaxIdleConns,
-		IdleConnTimeout:     i.TransportIdleConnTimeout,
-		MaxIdleConnsPerHost: i.TransportMaxIdleConnsPerHost,
-		MaxConnsPerHost:     i.TransportMaxConnsPerHost,
-		TLSHandshakeTimeout: i.TransportTLSHandshakeTimeout,
-	}
+	transport := vaultConfig.HttpClient.Transport.(*http.Transport)
+	transport.Proxy = http.ProxyFromEnvironment
+	transport.DialContext = dialer.DialContext
+	transport.DisableKeepAlives = i.TransportDisableKeepAlives
+	transport.MaxIdleConns = i.TransportMaxIdleConns
+	transport.IdleConnTimeout = i.TransportIdleConnTimeout
+	transport.MaxIdleConnsPerHost = i.TransportMaxIdleConnsPerHost
+	transport.MaxConnsPerHost = i.TransportMaxConnsPerHost
+	transport.TLSHandshakeTimeout = i.TransportTLSHandshakeTimeout
 
 	// Configure SSL
 	if i.SSLEnabled {

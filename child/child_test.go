@@ -656,8 +656,8 @@ func TestSplay(t *testing.T) {
 }
 
 func TestLeaseRenewal(t *testing.T) {
-	base := int((5 * time.Minute).Seconds())
-	VaultLeaseRenewalThreshold := 0.9
+	base := int((1 * time.Minute).Seconds())
+	//VaultLeaseRenewalThreshold := 0.9
 
 	// Convert to float seconds.
 	sleep := float64(time.Duration(base) * time.Second)
@@ -668,16 +668,16 @@ func TestLeaseRenewal(t *testing.T) {
 	// lease as possible. Use a stagger over the configured threshold
 	// fraction of the lease duration so that many clients do not hit
 	// Vault simultaneously.
-	finalFraction := VaultLeaseRenewalThreshold + (rand.Float64()-0.5)*0.1
-	if finalFraction >= 1.0 || finalFraction <= 0.0 {
-		// If the fraction randomly winds up outside of (0.0-1.0), clamp
-		// back down to the VaultLeaseRenewalThreshold provided by the user,
-		// since a) the user picked that value, so they should be
-		// comfortable with it, and b) it should not skew the staggering too
-		// much
-		finalFraction = VaultLeaseRenewalThreshold
-	}
-	sleep = sleep * finalFraction
+	//finalFraction := VaultLeaseRenewalThreshold + (rand.Float64()-0.5)*0.1
+	//if finalFraction >= 1.0 || finalFraction <= 0.0 {
+	//	// If the fraction randomly winds up outside of (0.0-1.0), clamp
+	//	// back down to the VaultLeaseRenewalThreshold provided by the user,
+	//	// since a) the user picked that value, so they should be
+	//	// comfortable with it, and b) it should not skew the staggering too
+	//	// much
+	//	finalFraction = VaultLeaseRenewalThreshold
+	//}
+	sleep = sleep * (.85 + rand.Float64()*0.1)
 
 	fmt.Println(time.Duration(sleep))
 
@@ -708,4 +708,12 @@ func TestSelectExit(t *testing.T) {
 			fmt.Println("stopped!")
 		}
 	}
+}
+
+func TestRateLimit(t *testing.T) {
+	start := time.Now()
+	minDelayBetweenUpdates := time.Millisecond * 100
+	remaining := minDelayBetweenUpdates - time.Since(start)
+	dither := time.Duration(rand.Int63n(20000000)) // 0-20ms
+	fmt.Println(remaining + dither)
 }
