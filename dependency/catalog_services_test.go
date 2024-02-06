@@ -124,13 +124,41 @@ func TestCatalogServicesQuery_Fetch(t *testing.T) {
 				},
 			},
 		},
+		// no ENT support as of now.
+		//{
+		//	"namespace_bar",
+		//	"?ns=bar&partition=default",
+		//	[]*CatalogSnippet{
+		//		{
+		//			Name: "consul",
+		//			Tags: ServiceTags([]string{}),
+		//		},
+		//		{
+		//			Name: "foobar-sidecar-proxy",
+		//			Tags: ServiceTags([]string{}),
+		//		},
+		//		{
+		//			Name: "service-meta",
+		//			Tags: ServiceTags([]string{"tag1"}),
+		//		},
+		//		{
+		//			Name: "service-taggedAddresses",
+		//			Tags: ServiceTags([]string{}),
+		//		},
+		//	},
+		//},
 	}
 
+	var d *CatalogServicesQuery
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
-			d, err := NewCatalogServicesQuery(tc.i)
-			if err != nil {
-				t.Fatal(err)
+
+			if i == 0 {
+				dq, err := NewCatalogServicesQuery(tc.i)
+				if err != nil {
+					t.Fatal(err)
+				}
+				d = dq
 			}
 
 			act, _, err := d.Fetch(testClients, nil)
