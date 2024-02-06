@@ -100,11 +100,14 @@ func TestCatalogServicesQuery_Fetch(t *testing.T) {
 	cases := []struct {
 		name string
 		i    string
+		opts *QueryOptions
 		exp  []*CatalogSnippet
+		err  bool
 	}{
 		{
 			"all",
 			"",
+			nil,
 			[]*CatalogSnippet{
 				{
 					Name: "consul",
@@ -123,47 +126,33 @@ func TestCatalogServicesQuery_Fetch(t *testing.T) {
 					Tags: ServiceTags([]string{}),
 				},
 			},
+			false,
 		},
-		// no ENT support as of now.
-		//{
-		//	"namespace_bar",
-		//	"?ns=bar&partition=default",
-		//	[]*CatalogSnippet{
-		//		{
-		//			Name: "consul",
-		//			Tags: ServiceTags([]string{}),
-		//		},
-		//		{
-		//			Name: "foobar-sidecar-proxy",
-		//			Tags: ServiceTags([]string{}),
-		//		},
-		//		{
-		//			Name: "service-meta",
-		//			Tags: ServiceTags([]string{"tag1"}),
-		//		},
-		//		{
-		//			Name: "service-taggedAddresses",
-		//			Tags: ServiceTags([]string{}),
-		//		},
-		//	},
-		//},
+		//no ENT support for test cases as of now.
+		{
+			"namespace_bar",
+			"?ns=bar&partition=default",
+			&QueryOptions{ConsulPartition: "default", ConsulNamespace: "bar"},
+			nil,
+			true,
+		},
 	}
 
-	var d *CatalogServicesQuery
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
 
-			if i == 0 {
-				dq, err := NewCatalogServicesQuery(tc.i)
-				if err != nil {
-					t.Fatal(err)
-				}
-				d = dq
-			}
-
-			act, _, err := d.Fetch(testClients, nil)
+			d, err := NewCatalogServicesQuery(tc.i)
 			if err != nil {
 				t.Fatal(err)
+			}
+
+			act, _, err := d.Fetch(testClients, tc.opts)
+			if (err != nil) != tc.err {
+				t.Fatal(err)
+			}
+
+			if act == nil && tc.err {
+				return
 			}
 
 			assert.Equal(t, tc.exp, act)
