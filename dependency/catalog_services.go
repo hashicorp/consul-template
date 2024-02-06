@@ -71,12 +71,8 @@ func (d *CatalogServicesQuery) Fetch(clients *ClientSet, opts *QueryOptions) (in
 	default:
 	}
 
-	// this overrides the query params present in the query
-	// i.e. overrides the namespace and partition params with ones used the first time
-	// while creating NewCatalogServicesQuery
-
+	// this overrides the query params present in the query with ones present while creating the query
 	// see bug [https://github.com/hashicorp/consul-template/pull/1842#issuecomment-1915723565]
-	// it should be other way around.
 	// default to the query params present while creating NewCatalogServicesQuery
 	// and then merge with the query params present in the query
 	defaultOpts := &QueryOptions{
