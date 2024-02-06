@@ -129,13 +129,13 @@ func TestCatalogServicesQuery_Fetch(t *testing.T) {
 			false,
 		},
 		//no ENT support for test cases as of now.
-		{
-			"namespace_bar",
-			"?ns=bar&partition=default",
-			&QueryOptions{ConsulPartition: "default", ConsulNamespace: "bar"},
-			nil,
-			true,
-		},
+		//{
+		//	"namespace_bar",
+		//	"?ns=bar&partition=default",
+		//	&QueryOptions{ConsulPartition: "default", ConsulNamespace: "bar"},
+		//	nil,
+		//	true,
+		//},
 	}
 
 	for i, tc := range cases {
