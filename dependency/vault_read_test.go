@@ -711,3 +711,63 @@ func TestShimKVv2Path(t *testing.T) {
 		})
 	}
 }
+
+// TestDeletedKVv2 tests that deletedKVv2 returns true and false
+// in the correct scenarios.
+func TestDeletedKVv2(t *testing.T) {
+	// Intentionally using string literals here since they are taken
+	// directly from Vault's API.
+	assert.True(t, deletedKVv2(&api.Secret{
+		Data: map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"deletion_time": "2022-06-15T20:23:40.067093Z",
+			},
+		},
+	}))
+	assert.True(t, deletedKVv2(&api.Secret{
+		Data: map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"deletion_time": "2019-06-19T20:56:35.662563Z",
+			},
+		},
+	}))
+
+	// It should work with any RFC3339 formatted string
+	assert.True(t, deletedKVv2(&api.Secret{
+		Data: map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"deletion_time": time.Now().Add(-1 * time.Hour).Format(time.RFC3339),
+			},
+		},
+	}))
+
+	assert.False(t, deletedKVv2(&api.Secret{
+		Data: map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"deletion_time": time.Now().Add(time.Hour).String(),
+			},
+		},
+	}))
+
+	// Edge cases:
+	assert.False(t, deletedKVv2(&api.Secret{}))
+	assert.False(t, deletedKVv2(&api.Secret{
+		Data: map[string]interface{}{
+			"metadata": map[string]interface{}{},
+		},
+	}))
+	assert.False(t, deletedKVv2(&api.Secret{
+		Data: map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"deletion_time": "",
+			},
+		},
+	}))
+	assert.False(t, deletedKVv2(&api.Secret{
+		Data: map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"deletion_time": "foo",
+			},
+		},
+	}))
+}

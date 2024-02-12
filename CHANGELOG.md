@@ -5,6 +5,7 @@ NEW FEATURES:
 
 BUG FIXES:
 * Fetch services query not overriding opts correctly [NET-7571](https://hashicorp.atlassian.net/browse/NET-7571)
+* Consul-template now correctly renders KVv2 secrets with `delete_version_after` set [NET-3777](https://hashicorp.atlassian.net/browse/NET-3777)
 
 ## v0.36.0 (January 3, 2024)
 
