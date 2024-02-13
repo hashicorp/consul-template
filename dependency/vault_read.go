@@ -176,7 +176,20 @@ func (d *VaultReadQuery) readSecret(clients *ClientSet) (*api.Secret, error) {
 func deletedKVv2(s *api.Secret) bool {
 	switch md := s.Data["metadata"].(type) {
 	case map[string]interface{}:
-		return md["deletion_time"] != ""
+		deletionTime, ok := md["deletion_time"].(string)
+		if !ok {
+			// Key not present or not a string, end early
+			return false
+		}
+		t, err := time.Parse(time.RFC3339, deletionTime)
+		if err != nil {
+			// Deletion time is either empty, or not a valid string.
+			return false
+		}
+
+		// If now is 'after' the deletion time, then the secret
+		// should be deleted.
+		return time.Now().After(t)
 	}
 	return false
 }
