@@ -71,8 +71,6 @@ func (d *CatalogServicesQuery) Fetch(clients *ClientSet, opts *QueryOptions) (in
 	default:
 	}
 
-	// this overrides the query params present in the query with ones present while creating the query
-	// see bug [https://github.com/hashicorp/consul-template/pull/1842#issuecomment-1915723565]
 	// default to the query params present while creating NewCatalogServicesQuery
 	// and then merge with the query params present in the query
 	defaultOpts := &QueryOptions{
@@ -120,10 +118,22 @@ func (d *CatalogServicesQuery) CanShare() bool {
 
 // String returns the human-friendly version of this dependency.
 func (d *CatalogServicesQuery) String() string {
+	var name string
 	if d.dc != "" {
-		return fmt.Sprintf("catalog.services(@%s)", d.dc)
+		name = name + "@" + d.dc
 	}
-	return "catalog.services"
+	if d.partition != "" {
+		name = name + "@partition=" + d.partition
+	}
+	if d.namespace != "" {
+		name = name + "@ns=" + d.namespace
+	}
+
+	if len(name) == 0 {
+		return "catalog.services"
+	}
+
+	return fmt.Sprintf("catalog.services(%s)", name)
 }
 
 // Stop halts the dependency's fetch function.
