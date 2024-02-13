@@ -178,7 +178,7 @@ func deletedKVv2(s *api.Secret) bool {
 	case map[string]interface{}:
 		deletionTime, ok := md["deletion_time"].(string)
 		if !ok {
-			// Not a string, end early
+			// Key not present or not a string, end early
 			return false
 		}
 		t, err := time.Parse(time.RFC3339, deletionTime)
