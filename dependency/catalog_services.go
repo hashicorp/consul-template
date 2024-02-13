@@ -122,11 +122,11 @@ func (d *CatalogServicesQuery) String() string {
 	if d.dc != "" {
 		name = name + "@" + d.dc
 	}
-	if d.namespace != "" {
-		name = name + "@" + d.namespace
-	}
 	if d.partition != "" {
-		name = name + "@" + d.partition
+		name = name + "@partition=" + d.partition
+	}
+	if d.namespace != "" {
+		name = name + "@ns=" + d.namespace
 	}
 
 	if len(name) == 0 {

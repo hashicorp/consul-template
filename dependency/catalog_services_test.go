@@ -171,22 +171,22 @@ func TestCatalogServicesQuery_String(t *testing.T) {
 		{
 			"datacenter+namespace",
 			"?ns=bar@dc1",
-			"catalog.services(@dc1@bar)",
+			"catalog.services(@dc1@ns=bar)",
 		},
 		{
 			"datacenter+namespace+partition",
 			"?partition=foo&ns=bar@dc1",
-			"catalog.services(@dc1@bar@foo)",
+			"catalog.services(@dc1@partition=foo@ns=bar)",
 		},
 		{
 			"namespace+partition",
 			"?partition=foo&ns=bar",
-			"catalog.services(@bar@foo)",
+			"catalog.services(@partition=foo@ns=bar)",
 		},
 		{
 			"dc+partition",
 			"?partition=foo@dc1",
-			"catalog.services(@dc1@foo)",
+			"catalog.services(@dc1@partition=foo)",
 		},
 	}
 
