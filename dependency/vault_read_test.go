@@ -770,4 +770,12 @@ func TestDeletedKVv2(t *testing.T) {
 			},
 		},
 	}))
+	assert.False(t, deletedKVv2(&api.Secret{
+		Data: map[string]interface{}{
+			"metadata": "not an interface",
+		},
+	}))
+	assert.False(t, deletedKVv2(&api.Secret{
+		Data: map[string]interface{}{},
+	}))
 }
