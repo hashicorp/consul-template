@@ -120,10 +120,22 @@ func (d *CatalogServicesQuery) CanShare() bool {
 
 // String returns the human-friendly version of this dependency.
 func (d *CatalogServicesQuery) String() string {
+	var name string
 	if d.dc != "" {
-		return fmt.Sprintf("catalog.services(@%s)", d.dc)
+		name = name + "@" + d.dc
 	}
-	return "catalog.services"
+	if d.namespace != "" {
+		name = name + "@" + d.namespace
+	}
+	if d.partition != "" {
+		name = name + "@" + d.partition
+	}
+
+	if len(name) == 0 {
+		return "catalog.services"
+	}
+
+	return fmt.Sprintf("catalog.services(%s)", name)
 }
 
 // Stop halts the dependency's fetch function.
