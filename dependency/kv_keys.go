@@ -104,6 +104,12 @@ func (d *KVKeysQuery) String() string {
 	if d.dc != "" {
 		prefix = prefix + "@" + d.dc
 	}
+	if d.partition != "" {
+		prefix = prefix + "@partition=" + d.partition
+	}
+	if d.namespace != "" {
+		prefix = prefix + "@ns=" + d.namespace
+	}
 	return fmt.Sprintf("kv.keys(%s)", prefix)
 }
 

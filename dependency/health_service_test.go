@@ -5,6 +5,7 @@ package dependency
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"testing"
 
 	"github.com/hashicorp/consul/api"
@@ -12,213 +13,218 @@ import (
 )
 
 func TestNewHealthServiceQuery(t *testing.T) {
-	cases := []struct {
+	type testCase struct {
 		name string
 		i    string
 		exp  *HealthServiceQuery
 		err  bool
-	}{
-		{
-			"empty",
-			"",
-			nil,
-			true,
-		},
-		{
-			"dc_only",
-			"@dc1",
-			nil,
-			true,
-		},
-		{
-			"near_only",
-			"~near",
-			nil,
-			true,
-		},
-		{
-			"tag_only",
-			"tag.",
-			nil,
-			true,
-		},
-		{
-			"query_only",
-			"?ns=foo",
-			nil,
-			true,
-		},
-		{
-			name: "invalid query param (unsupported key)",
-			i:    "name?unsupported=test",
-			err:  true,
-		},
-		{
-			"name",
-			"name",
-			&HealthServiceQuery{
-				filters: []string{"passing"},
-				name:    "name",
-			},
-			false,
-		},
-		{
-			"name_dc",
-			"name@dc1",
-			&HealthServiceQuery{
-				dc:      "dc1",
-				filters: []string{"passing"},
-				name:    "name",
-			},
-			false,
-		},
-		{
-			"name_dc_near",
-			"name@dc1~near",
-			&HealthServiceQuery{
-				dc:      "dc1",
-				filters: []string{"passing"},
-				name:    "name",
-				near:    "near",
-			},
-			false,
-		},
-		{
-			"name_near",
-			"name~near",
-			&HealthServiceQuery{
-				filters: []string{"passing"},
-				name:    "name",
-				near:    "near",
-			},
-			false,
-		},
-		{
-			"tag_name",
-			"tag.name",
-			&HealthServiceQuery{
-				filters: []string{"passing"},
-				name:    "name",
-				tag:     "tag",
-			},
-			false,
-		},
-		{
-			"tag_name_dc",
-			"tag.name@dc",
-			&HealthServiceQuery{
-				dc:      "dc",
-				filters: []string{"passing"},
-				name:    "name",
-				tag:     "tag",
-			},
-			false,
-		},
-		{
-			"tag_name_near",
-			"tag.name~near",
-			&HealthServiceQuery{
-				filters: []string{"passing"},
-				name:    "name",
-				near:    "near",
-				tag:     "tag",
-			},
-			false,
-		},
-		{
-			"tag_name_dc_near",
-			"tag.name@dc~near",
-			&HealthServiceQuery{
-				dc:      "dc",
-				filters: []string{"passing"},
-				name:    "name",
-				near:    "near",
-				tag:     "tag",
-			},
-			false,
-		},
-		{
-			"name_partition",
-			"name?partition=foo",
-			&HealthServiceQuery{
-				filters:   []string{"passing"},
-				name:      "name",
-				partition: "foo",
-			},
-			false,
-		},
-		{
-			"name_peer",
-			"name?peer=foo",
-			&HealthServiceQuery{
-				filters: []string{"passing"},
-				name:    "name",
-				peer:    "foo",
-			},
-			false,
-		},
-		{
-			"name_ns",
-			"name?ns=foo",
-			&HealthServiceQuery{
-				filters:   []string{"passing"},
-				name:      "name",
-				namespace: "foo",
-			},
-			false,
-		},
-		{
-			"name_ns_peer_partition",
-			"name?ns=foo&peer=bar&partition=baz",
-			&HealthServiceQuery{
-				filters:   []string{"passing"},
-				name:      "name",
-				namespace: "foo",
-				peer:      "bar",
-				partition: "baz",
-			},
-			false,
-		},
-		{
-			"namespace set twice should use first",
-			"name?ns=foo&ns=bar",
-			&HealthServiceQuery{
-				filters:   []string{"passing"},
-				name:      "name",
-				namespace: "foo",
-			},
-			false,
-		},
-		{
-			"empty value in query param",
-			"name?ns=&peer=&partition=",
-			&HealthServiceQuery{
-				filters:   []string{"passing"},
-				name:      "name",
-				namespace: "",
-				peer:      "",
-				partition: "",
-			},
-			false,
-		},
-		{
-			"query with other parameters",
-			"tag.name?peer=foo&ns=bar&partition=baz@dc2~near",
-			&HealthServiceQuery{
-				filters:   []string{"passing"},
-				tag:       "tag",
-				name:      "name",
-				dc:        "dc2",
-				near:      "near",
-				peer:      "foo",
-				namespace: "bar",
-				partition: "baz",
-			},
-			false,
-		},
 	}
+	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+		return []interface{}{
+			testCase{
+				tenancyHelper.AppendTenancyInfo("empty", tenancy),
+				"",
+				nil,
+				true,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("dc_only", tenancy),
+				"@dc1",
+				nil,
+				true,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("near_only", tenancy),
+				"~near",
+				nil,
+				true,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("tag_only", tenancy),
+				"tag.",
+				nil,
+				true,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("query_only", tenancy),
+				fmt.Sprintf("?ns=%s", tenancy.Namespace),
+				nil,
+				true,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("invalid query param (unsupported key)", tenancy),
+				"name?unsupported=test",
+				nil,
+				true,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("name", tenancy),
+				"name",
+				&HealthServiceQuery{
+					filters: []string{"passing"},
+					name:    "name",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("name_dc", tenancy),
+				"name@dc1",
+				&HealthServiceQuery{
+					dc:      "dc1",
+					filters: []string{"passing"},
+					name:    "name",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("name_dc_near", tenancy),
+				"name@dc1~near",
+				&HealthServiceQuery{
+					dc:      "dc1",
+					filters: []string{"passing"},
+					name:    "name",
+					near:    "near",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("name_near", tenancy),
+				"name~near",
+				&HealthServiceQuery{
+					filters: []string{"passing"},
+					name:    "name",
+					near:    "near",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("tag_name", tenancy),
+				"tag.name",
+				&HealthServiceQuery{
+					filters: []string{"passing"},
+					name:    "name",
+					tag:     "tag",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("tag_name_dc", tenancy),
+				"tag.name@dc",
+				&HealthServiceQuery{
+					dc:      "dc",
+					filters: []string{"passing"},
+					name:    "name",
+					tag:     "tag",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("tag_name_near", tenancy),
+				"tag.name~near",
+				&HealthServiceQuery{
+					filters: []string{"passing"},
+					name:    "name",
+					near:    "near",
+					tag:     "tag",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("tag_name_dc_near", tenancy),
+				"tag.name@dc~near",
+				&HealthServiceQuery{
+					dc:      "dc",
+					filters: []string{"passing"},
+					name:    "name",
+					near:    "near",
+					tag:     "tag",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("name_partition", tenancy),
+				fmt.Sprintf("name?partition=%s", tenancy.Partition),
+				&HealthServiceQuery{
+					filters:   []string{"passing"},
+					name:      "name",
+					partition: tenancy.Partition,
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("name_peer", tenancy),
+				"name?peer=foo",
+				&HealthServiceQuery{
+					filters: []string{"passing"},
+					name:    "name",
+					peer:    "foo",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("name_ns", tenancy),
+				fmt.Sprintf("name?ns=%s", tenancy.Namespace),
+				&HealthServiceQuery{
+					filters:   []string{"passing"},
+					name:      "name",
+					namespace: tenancy.Namespace,
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("name_ns_peer_partition", tenancy),
+				fmt.Sprintf("name?ns=%s&peer=bar&partition=%s", tenancy.Namespace, tenancy.Partition),
+				&HealthServiceQuery{
+					filters:   []string{"passing"},
+					name:      "name",
+					namespace: tenancy.Namespace,
+					peer:      "bar",
+					partition: tenancy.Partition,
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("namespace set twice should use first", tenancy),
+				fmt.Sprintf("name?ns=%s&ns=random", tenancy.Namespace),
+				&HealthServiceQuery{
+					filters:   []string{"passing"},
+					name:      "name",
+					namespace: tenancy.Namespace,
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("empty value in query param", tenancy),
+				"name?ns=&peer=&partition=",
+				&HealthServiceQuery{
+					filters:   []string{"passing"},
+					name:      "name",
+					namespace: "",
+					peer:      "",
+					partition: "",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("query with other parameters", tenancy),
+				fmt.Sprintf("tag.name?peer=foo&ns=%s&partition=%s@dc2~near", tenancy.Namespace, tenancy.Partition),
+				&HealthServiceQuery{
+					filters:   []string{"passing"},
+					tag:       "tag",
+					name:      "name",
+					dc:        "dc2",
+					near:      "near",
+					peer:      "foo",
+					namespace: tenancy.Namespace,
+					partition: tenancy.Partition,
+				},
+				false,
+			},
+		}
+	})
 
-	for i, tc := range cases {
+	for i, test := range cases {
+		tc := test.(testCase)
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
 			act, err := NewHealthServiceQuery(tc.i)
 			if (err != nil) != tc.err {
@@ -253,35 +259,62 @@ func TestNewHealthServiceQuery(t *testing.T) {
 }
 
 func TestHealthConnectServiceQuery_Fetch(t *testing.T) {
-	cases := []struct {
+	type testCase struct {
 		name string
 		in   string
 		exp  []*HealthService
-	}{
-		{
-			"connect-service",
-			"foo",
-			[]*HealthService{
-				{
-					Name:        "foo-sidecar-proxy",
-					ID:          "foo",
-					Port:        21999,
-					Status:      "passing",
-					Address:     "127.0.0.1",
-					NodeAddress: "127.0.0.1",
-					Tags:        ServiceTags([]string{}),
-					NodeMeta: map[string]string{
-						"consul-network-segment": "",
-					},
-					Weights: api.AgentWeights{
-						Passing: 1,
-						Warning: 1,
+	}
+	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+		return []interface{}{
+			testCase{
+				tenancyHelper.AppendTenancyInfo("connect-service", tenancy),
+				"conn-enabled-service-default-default",
+				[]*HealthService{
+					{
+						Name:        "conn-enabled-service-proxy-default-default",
+						ID:          "conn-enabled-service-proxy-default-default",
+						Port:        21999,
+						Status:      "passing",
+						Address:     "127.0.0.1",
+						NodeAddress: "127.0.0.1",
+						Tags:        ServiceTags([]string{}),
+						NodeMeta:    map[string]string{
+							//"consul-network-segment": "",
+						},
+						Weights: api.AgentWeights{
+							Passing: 1,
+							Warning: 1,
+						},
 					},
 				},
 			},
-		},
-	}
-	for i, tc := range cases {
+			testCase{
+				tenancyHelper.AppendTenancyInfo("connect-service", tenancy),
+				fmt.Sprintf("conn-enabled-service-%s-%s?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace, tenancy.Partition, tenancy.Namespace),
+				[]*HealthService{
+					{
+						Name:        fmt.Sprintf("conn-enabled-service-proxy-%s-%s", tenancy.Partition, tenancy.Namespace),
+						ID:          fmt.Sprintf("conn-enabled-service-proxy-%s-%s", tenancy.Partition, tenancy.Namespace),
+						Port:        21999,
+						Status:      "passing",
+						Address:     "127.0.0.1",
+						NodeAddress: "127.0.0.1",
+						Tags:        ServiceTags([]string{}),
+						NodeMeta:    map[string]string{
+							//"consul-network-segment": "",
+						},
+						Weights: api.AgentWeights{
+							Passing: 1,
+							Warning: 1,
+						},
+					},
+				},
+			},
+		}
+	})
+
+	for i, test := range cases {
+		tc := test.(testCase)
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
 			d, err := NewHealthConnectQuery(tc.in)
 			if err != nil {
@@ -312,141 +345,277 @@ func TestHealthConnectServiceQuery_Fetch(t *testing.T) {
 }
 
 func TestHealthServiceQuery_Fetch(t *testing.T) {
-	cases := []struct {
+	type testCase struct {
 		name string
 		i    string
 		exp  []*HealthService
-	}{
-		{
-			"consul",
-			"consul",
-			[]*HealthService{
-				{
-					Node:        testConsul.Config.NodeName,
-					NodeAddress: testConsul.Config.Bind,
-					NodeTaggedAddresses: map[string]string{
-						"lan": "127.0.0.1",
-						"wan": "127.0.0.1",
-					},
-					NodeMeta: map[string]string{
-						"consul-network-segment": "",
-					},
-					ServiceMeta: map[string]string{},
-					Address:     testConsul.Config.Bind,
-					ID:          "consul",
-					Name:        "consul",
-					Tags:        []string{},
-					Status:      "passing",
-					Port:        testConsul.Config.Ports.Server,
-					Weights: api.AgentWeights{
-						Passing: 1,
-						Warning: 1,
-					},
-				},
-			},
-		},
-		{
-			"filters",
-			"consul|warning",
-			[]*HealthService{},
-		},
-		{
-			"multifilter",
-			"consul|warning,passing",
-			[]*HealthService{
-				{
-					Node:        testConsul.Config.NodeName,
-					NodeAddress: testConsul.Config.Bind,
-					NodeTaggedAddresses: map[string]string{
-						"lan": "127.0.0.1",
-						"wan": "127.0.0.1",
-					},
-					NodeMeta: map[string]string{
-						"consul-network-segment": "",
-					},
-					ServiceMeta: map[string]string{},
-					Address:     testConsul.Config.Bind,
-					ID:          "consul",
-					Name:        "consul",
-					Tags:        []string{},
-					Status:      "passing",
-					Port:        testConsul.Config.Ports.Server,
-					Weights: api.AgentWeights{
-						Passing: 1,
-						Warning: 1,
-					},
-				},
-			},
-		},
-		{
-			"service-meta",
-			"service-meta",
-			[]*HealthService{
-				{
-					Node:        testConsul.Config.NodeName,
-					NodeAddress: testConsul.Config.Bind,
-					NodeTaggedAddresses: map[string]string{
-						"lan": "127.0.0.1",
-						"wan": "127.0.0.1",
-					},
-					NodeMeta: map[string]string{
-						"consul-network-segment": "",
-					},
-					ServiceMeta: map[string]string{
-						"meta1": "value1",
-					},
-					Address: testConsul.Config.Bind,
-					ID:      "service-meta",
-					Name:    "service-meta",
-					Tags:    []string{"tag1"},
-					Status:  "passing",
-					Weights: api.AgentWeights{
-						Passing: 1,
-						Warning: 1,
-					},
-				},
-			},
-		},
-		{
-			"service-taggedAddresses",
-			"service-taggedAddresses",
-			[]*HealthService{
-				{
-					Node:        testConsul.Config.NodeName,
-					NodeAddress: testConsul.Config.Bind,
-					NodeTaggedAddresses: map[string]string{
-						"lan": "127.0.0.1",
-						"wan": "127.0.0.1",
-					},
-					NodeMeta: map[string]string{
-						"consul-network-segment": "",
-					},
-					ServiceMeta: map[string]string{},
-					Address:     testConsul.Config.Bind,
-					ServiceTaggedAddresses: map[string]api.ServiceAddress{
-						"lan": {
-							Address: "192.0.2.1",
-							Port:    80,
-						},
-						"wan": {
-							Address: "192.0.2.2",
-							Port:    443,
-						},
-					},
-					ID:     "service-taggedAddresses",
-					Name:   "service-taggedAddresses",
-					Tags:   []string{},
-					Status: "passing",
-					Weights: api.AgentWeights{
-						Passing: 1,
-						Warning: 1,
-					},
-				},
-			},
-		},
 	}
+	cases := tenancyHelper.GenerateDefaultTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+		return []interface{}{
+			testCase{
+				tenancyHelper.AppendTenancyInfo("consul", tenancy),
+				"consul",
+				[]*HealthService{
+					{
+						Node:                testConsul.Config.NodeName,
+						NodeAddress:         testConsul.Config.Bind,
+						NodeTaggedAddresses: map[string]string{
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
+						},
+						NodeMeta: map[string]string{
+							//"consul-network-segment": "",
+						},
+						ServiceMeta: map[string]string{},
+						Address:     testConsul.Config.Bind,
+						ID:          "consul",
+						Name:        "consul",
+						Tags:        []string{},
+						Status:      "passing",
+						Port:        testConsul.Config.Ports.Server,
+						Weights: api.AgentWeights{
+							Passing: 1,
+							Warning: 1,
+						},
+					},
+				},
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("filters", tenancy),
+				"consul|warning",
+				[]*HealthService{},
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("multifilter", tenancy),
+				"consul|warning,passing",
+				[]*HealthService{
+					{
+						Node:                testConsul.Config.NodeName,
+						NodeAddress:         testConsul.Config.Bind,
+						NodeTaggedAddresses: map[string]string{
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
+						},
+						NodeMeta: map[string]string{
+							//"consul-network-segment": "",
+						},
+						ServiceMeta: map[string]string{},
+						Address:     testConsul.Config.Bind,
+						ID:          "consul",
+						Name:        "consul",
+						Tags:        []string{},
+						Status:      "passing",
+						Port:        testConsul.Config.Ports.Server,
+						Weights: api.AgentWeights{
+							Passing: 1,
+							Warning: 1,
+						},
+					},
+				},
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("service-meta", tenancy),
+				"service-meta-default-default",
+				[]*HealthService{
+					{
+						Node:                testConsul.Config.NodeName,
+						NodeAddress:         testConsul.Config.Bind,
+						NodeTaggedAddresses: map[string]string{
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
+						},
+						NodeMeta: map[string]string{
+							//"consul-network-segment": "",
+						},
+						ServiceMeta: map[string]string{
+							"meta1": "value1",
+						},
+						Address: testConsul.Config.Bind,
+						ID:      "service-meta-default-default",
+						Name:    "service-meta-default-default",
+						Tags:    []string{"tag1"},
+						Status:  "passing",
+						Weights: api.AgentWeights{
+							Passing: 1,
+							Warning: 1,
+						},
+					},
+				},
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("service-taggedAddresses", tenancy),
+				"service-taggedAddresses-default-default",
+				[]*HealthService{
+					{
+						Node:                testConsul.Config.NodeName,
+						NodeAddress:         testConsul.Config.Bind,
+						NodeTaggedAddresses: map[string]string{
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
+						},
+						NodeMeta: map[string]string{
+							//"consul-network-segment": "",
+						},
+						ServiceMeta: map[string]string{},
+						Address:     testConsul.Config.Bind,
+						ServiceTaggedAddresses: map[string]api.ServiceAddress{
+							"lan": {
+								Address: "192.0.2.1",
+								Port:    80,
+							},
+							"wan": {
+								Address: "192.0.2.2",
+								Port:    443,
+							},
+						},
+						ID:     "service-taggedAddresses-default-default",
+						Name:   "service-taggedAddresses-default-default",
+						Tags:   []string{},
+						Status: "passing",
+						Weights: api.AgentWeights{
+							Passing: 1,
+							Warning: 1,
+						},
+					},
+				},
+			},
+		}
+	})
 
-	for i, tc := range cases {
+	cases = append(cases, tenancyHelper.GenerateNonDefaultTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+		return []interface{}{
+			testCase{
+				tenancyHelper.AppendTenancyInfo("consul", tenancy),
+				"consul",
+				[]*HealthService{
+					{
+						Node:                testConsul.Config.NodeName,
+						NodeAddress:         testConsul.Config.Bind,
+						NodeTaggedAddresses: map[string]string{
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
+						},
+						NodeMeta: map[string]string{
+							//"consul-network-segment": "",
+						},
+						ServiceMeta: map[string]string{},
+						Address:     testConsul.Config.Bind,
+						ID:          "consul",
+						Name:        "consul",
+						Tags:        []string{},
+						Status:      "passing",
+						Port:        testConsul.Config.Ports.Server,
+						Weights: api.AgentWeights{
+							Passing: 1,
+							Warning: 1,
+						},
+					},
+				},
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("filters", tenancy),
+				"consul|warning",
+				[]*HealthService{},
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("multifilter", tenancy),
+				"consul|warning,passing",
+				[]*HealthService{
+					{
+						Node:                testConsul.Config.NodeName,
+						NodeAddress:         testConsul.Config.Bind,
+						NodeTaggedAddresses: map[string]string{
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
+						},
+						NodeMeta: map[string]string{
+							//"consul-network-segment": "",
+						},
+						ServiceMeta: map[string]string{},
+						Address:     testConsul.Config.Bind,
+						ID:          "consul",
+						Name:        "consul",
+						Tags:        []string{},
+						Status:      "passing",
+						Port:        testConsul.Config.Ports.Server,
+						Weights: api.AgentWeights{
+							Passing: 1,
+							Warning: 1,
+						},
+					},
+				},
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("service-meta", tenancy),
+				fmt.Sprintf("service-meta-%s-%s?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace, tenancy.Partition, tenancy.Namespace),
+				[]*HealthService{
+					{
+						Node:                testConsul.Config.NodeName,
+						NodeAddress:         testConsul.Config.Bind,
+						NodeTaggedAddresses: map[string]string{
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
+						},
+						NodeMeta: map[string]string{
+							//"consul-network-segment": "",
+						},
+						ServiceMeta: map[string]string{
+							"meta1": "value1",
+						},
+						Address: testConsul.Config.Bind,
+						ID:      fmt.Sprintf("service-meta-%s-%s", tenancy.Partition, tenancy.Namespace),
+						Name:    fmt.Sprintf("service-meta-%s-%s", tenancy.Partition, tenancy.Namespace),
+						Tags:    []string{"tag1"},
+						Status:  "passing",
+						Weights: api.AgentWeights{
+							Passing: 1,
+							Warning: 1,
+						},
+					},
+				},
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("service-taggedAddresses", tenancy),
+				fmt.Sprintf("service-taggedAddresses-%s-%s?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace, tenancy.Partition, tenancy.Namespace),
+				[]*HealthService{
+					{
+						Node:                testConsul.Config.NodeName,
+						NodeAddress:         testConsul.Config.Bind,
+						NodeTaggedAddresses: map[string]string{
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
+						},
+						NodeMeta: map[string]string{
+							//"consul-network-segment": "",
+						},
+						ServiceMeta: map[string]string{},
+						Address:     testConsul.Config.Bind,
+						ServiceTaggedAddresses: map[string]api.ServiceAddress{
+							"lan": {
+								Address: "192.0.2.1",
+								Port:    80,
+							},
+							"wan": {
+								Address: "192.0.2.2",
+								Port:    443,
+							},
+						},
+						ID:     fmt.Sprintf("service-taggedAddresses-%s-%s", tenancy.Partition, tenancy.Namespace),
+						Name:   fmt.Sprintf("service-taggedAddresses-%s-%s", tenancy.Partition, tenancy.Namespace),
+						Tags:   []string{},
+						Status: "passing",
+						Weights: api.AgentWeights{
+							Passing: 1,
+							Warning: 1,
+						},
+					},
+				},
+			},
+		}
+	})...)
+
+	for i, test := range cases {
+		tc := test.(testCase)
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
 			d, err := NewHealthServiceQuery(tc.i)
 			if err != nil {
@@ -477,74 +646,93 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 }
 
 func TestHealthServiceQuery_String(t *testing.T) {
-	cases := []struct {
+	type testCase struct {
 		name string
 		i    string
 		exp  string
-	}{
-		{
-			"name",
-			"name",
-			"health.service(name|passing)",
-		},
-		{
-			"name_dc",
-			"name@dc",
-			"health.service(name@dc|passing)",
-		},
-		{
-			"name_filter",
-			"name|any",
-			"health.service(name|any)",
-		},
-		{
-			"name_multifilter",
-			"name|warning,passing",
-			"health.service(name|passing,warning)",
-		},
-		{
-			"name_near",
-			"name~near",
-			"health.service(name~near|passing)",
-		},
-		{
-			"name_near_filter",
-			"name~near|any",
-			"health.service(name~near|any)",
-		},
-		{
-			"name_dc_near",
-			"name@dc~near",
-			"health.service(name@dc~near|passing)",
-		},
-		{
-			"name_dc_near_filter",
-			"name@dc~near|any",
-			"health.service(name@dc~near|any)",
-		},
-		{
-			"tag_name",
-			"tag.name",
-			"health.service(tag.name|passing)",
-		},
-		{
-			"tag_name_dc",
-			"tag.name@dc",
-			"health.service(tag.name@dc|passing)",
-		},
-		{
-			"tag_name_near",
-			"tag.name~near",
-			"health.service(tag.name~near|passing)",
-		},
-		{
-			"tag_name_dc_near",
-			"tag.name@dc~near",
-			"health.service(tag.name@dc~near|passing)",
-		},
 	}
+	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+		return []interface{}{
+			testCase{
+				tenancyHelper.AppendTenancyInfo("name", tenancy),
+				"name",
+				"health.service(name|passing)",
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("name_dc", tenancy),
+				"name@dc",
+				"health.service(name@dc|passing)",
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("name_filter", tenancy),
+				"name|any",
+				"health.service(name|any)",
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("name_multifilter", tenancy),
+				"name|warning,passing",
+				"health.service(name|passing,warning)",
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("name_near", tenancy),
+				"name~near",
+				"health.service(name~near|passing)",
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("name_near_filter", tenancy),
+				"name~near|any",
+				"health.service(name~near|any)",
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("name_dc_near", tenancy),
+				"name@dc~near",
+				"health.service(name@dc~near|passing)",
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("name_dc_near_filter", tenancy),
+				"name@dc~near|any",
+				"health.service(name@dc~near|any)",
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("tag_name", tenancy),
+				"tag.name",
+				"health.service(tag.name|passing)",
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("tag_name_dc", tenancy),
+				"tag.name@dc",
+				"health.service(tag.name@dc|passing)",
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("tag_name_near", tenancy),
+				"tag.name~near",
+				"health.service(tag.name~near|passing)",
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("tag_name_dc_near", tenancy),
+				"tag.name@dc~near",
+				"health.service(tag.name@dc~near|passing)",
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("tag_name_dc_near_partition", tenancy),
+				fmt.Sprintf("tag.name?partition=%s@dc~near", tenancy.Partition),
+				fmt.Sprintf("health.service(tag.name@dc@partition=%s~near|passing)", tenancy.Partition),
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("tag_name_dc_near_partition_ns", tenancy),
+				fmt.Sprintf("tag.name?partition=%s&ns=%s@dc~near", tenancy.Partition, tenancy.Namespace),
+				fmt.Sprintf("health.service(tag.name@dc@partition=%s@ns=%s~near|passing)", tenancy.Partition, tenancy.Namespace),
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("partition_ns", tenancy),
+				fmt.Sprintf("tag.name?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace),
+				fmt.Sprintf("health.service(tag.name@partition=%s@ns=%s|passing)", tenancy.Partition, tenancy.Namespace),
+			},
+		}
+	})
 
-	for i, tc := range cases {
+	for i, test := range cases {
+		tc := test.(testCase)
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
 			d, err := NewHealthServiceQuery(tc.i)
 			if err != nil {
@@ -556,27 +744,43 @@ func TestHealthServiceQuery_String(t *testing.T) {
 }
 
 func TestHealthServiceQueryConnect_String(t *testing.T) {
-	cases := []struct {
+	type testCase struct {
 		name string
 		fact func(string) (*HealthServiceQuery, error)
 		in   string
 		exp  string
-	}{
-		{
-			"name",
-			NewHealthServiceQuery,
-			"name",
-			"health.service(name|passing)",
-		},
-		{
-			"name",
-			NewHealthConnectQuery,
-			"name",
-			"health.connect(name|passing)",
-		},
 	}
+	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+		return []interface{}{
+			testCase{
+				tenancyHelper.AppendTenancyInfo("name", tenancy),
+				NewHealthServiceQuery,
+				"name",
+				"health.service(name|passing)",
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("name", tenancy),
+				NewHealthConnectQuery,
+				"name",
+				"health.connect(name|passing)",
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("name_ns_partition", tenancy),
+				NewHealthServiceQuery,
+				fmt.Sprintf("name?ns=%s&partition=%s", tenancy.Namespace, tenancy.Partition),
+				fmt.Sprintf("health.service(name@partition=%s@ns=%s|passing)", tenancy.Partition, tenancy.Namespace),
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("name_ns_partition", tenancy),
+				NewHealthConnectQuery,
+				fmt.Sprintf("name?ns=%s&partition=%s", tenancy.Namespace, tenancy.Partition),
+				fmt.Sprintf("health.connect(name@partition=%s@ns=%s|passing)", tenancy.Partition, tenancy.Namespace),
+			},
+		}
+	})
 
-	for i, tc := range cases {
+	for i, test := range cases {
+		tc := test.(testCase)
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
 			d, err := tc.fact(tc.in)
 			if err != nil {

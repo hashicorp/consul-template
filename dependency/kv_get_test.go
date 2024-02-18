@@ -5,6 +5,7 @@ package dependency
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"testing"
 	"time"
 
@@ -12,170 +13,174 @@ import (
 )
 
 func TestNewKVGetQuery(t *testing.T) {
-	cases := []struct {
+	type testCase struct {
 		name string
 		i    string
 		exp  *KVGetQuery
 		err  bool
-	}{
-		{
-			"empty",
-			"",
-			&KVGetQuery{},
-			false,
-		},
-
-		{
-			"dc_only",
-			"@dc1",
-			nil,
-			true,
-		},
-		{
-			"query_only",
-			"?ns=foo",
-			nil,
-			true,
-		},
-		{
-			"invalid query param (unsupported key)",
-			"key?unsupported=foo",
-			nil,
-			true,
-		},
-		{
-			"key",
-			"key",
-			&KVGetQuery{
-				key: "key",
-			},
-			false,
-		},
-		{
-			"dc",
-			"key@dc1",
-			&KVGetQuery{
-				key: "key",
-				dc:  "dc1",
-			},
-			false,
-		},
-		{
-			"partition",
-			"key?partition=foo",
-			&KVGetQuery{
-				key:       "key",
-				partition: "foo",
-			},
-			false,
-		},
-		{
-			"namespace",
-			"key?ns=foo",
-			&KVGetQuery{
-				key:       "key",
-				namespace: "foo",
-			},
-			false,
-		},
-		{
-			"namespace_and_partition",
-			"key?ns=foo&partition=bar",
-			&KVGetQuery{
-				key:       "key",
-				namespace: "foo",
-				partition: "bar",
-			},
-			false,
-		},
-		{
-			"namespace_and_partition_and_dc",
-			"key?ns=foo&partition=bar@dc1",
-			&KVGetQuery{
-				key:       "key",
-				namespace: "foo",
-				partition: "bar",
-				dc:        "dc1",
-			},
-			false,
-		},
-		{
-			"empty_query",
-			"key?ns=&partition=",
-			&KVGetQuery{
-				key:       "key",
-				namespace: "",
-				partition: "",
-			},
-			false,
-		},
-		{
-			"dots",
-			"key.with.dots",
-			&KVGetQuery{
-				key: "key.with.dots",
-			},
-			false,
-		},
-		{
-			"slashes",
-			"key/with/slashes",
-			&KVGetQuery{
-				key: "key/with/slashes",
-			},
-			false,
-		},
-		{
-			"dashes",
-			"key-with-dashes",
-			&KVGetQuery{
-				key: "key-with-dashes",
-			},
-			false,
-		},
-		{
-			"leading_slash",
-			"/leading/slash",
-			&KVGetQuery{
-				key: "leading/slash",
-			},
-			false,
-		},
-		{
-			"trailing_slash",
-			"trailing/slash/",
-			&KVGetQuery{
-				key: "trailing/slash/",
-			},
-			false,
-		},
-		{
-			"underscores",
-			"key_with_underscores",
-			&KVGetQuery{
-				key: "key_with_underscores",
-			},
-			false,
-		},
-		{
-			"special_characters",
-			"config/facet:größe-lf-si",
-			&KVGetQuery{
-				key: "config/facet:größe-lf-si",
-			},
-			false,
-		},
-		{
-			"splat",
-			"config/*/timeouts/",
-			&KVGetQuery{
-				key: "config/*/timeouts/",
-			},
-			false,
-		},
 	}
+	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+		return []interface{}{
+			testCase{
+				tenancyHelper.AppendTenancyInfo("empty", tenancy),
+				"",
+				&KVGetQuery{},
+				false,
+			},
 
-	for i, tc := range cases {
+			testCase{
+				tenancyHelper.AppendTenancyInfo("dc_only", tenancy),
+				"@dc1",
+				nil,
+				true,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("query_only", tenancy),
+				fmt.Sprintf("?ns=%s", tenancy.Namespace),
+				nil,
+				true,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("invalid query param (unsupported key)", tenancy),
+				"key?unsupported=foo",
+				nil,
+				true,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("key", tenancy),
+				"key",
+				&KVGetQuery{
+					key: "key",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("dc", tenancy),
+				"key@dc1",
+				&KVGetQuery{
+					key: "key",
+					dc:  "dc1",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("partition", tenancy),
+				fmt.Sprintf("key?partition=%s", tenancy.Partition),
+				&KVGetQuery{
+					key:       "key",
+					partition: tenancy.Partition,
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("namespace", tenancy),
+				fmt.Sprintf("key?ns=%s", tenancy.Namespace),
+				&KVGetQuery{
+					key:       "key",
+					namespace: tenancy.Namespace,
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("namespace_and_partition", tenancy),
+				fmt.Sprintf("key?ns=%s&partition=%s", tenancy.Namespace, tenancy.Partition),
+				&KVGetQuery{
+					key:       "key",
+					namespace: tenancy.Namespace,
+					partition: tenancy.Partition,
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("namespace_and_partition_and_dc", tenancy),
+				fmt.Sprintf("key?ns=%s&partition=%s@dc1", tenancy.Namespace, tenancy.Partition),
+				&KVGetQuery{
+					key:       "key",
+					namespace: tenancy.Namespace,
+					partition: tenancy.Partition,
+					dc:        "dc1",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("empty_query", tenancy),
+				"key?ns=&partition=",
+				&KVGetQuery{
+					key:       "key",
+					namespace: "",
+					partition: "",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("dots", tenancy),
+				"key.with.dots",
+				&KVGetQuery{
+					key: "key.with.dots",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("slashes", tenancy),
+				"key/with/slashes",
+				&KVGetQuery{
+					key: "key/with/slashes",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("dashes", tenancy),
+				"key-with-dashes",
+				&KVGetQuery{
+					key: "key-with-dashes",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("leading_slash", tenancy),
+				"/leading/slash",
+				&KVGetQuery{
+					key: "leading/slash",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("trailing_slash", tenancy),
+				"trailing/slash/",
+				&KVGetQuery{
+					key: "trailing/slash/",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("underscores", tenancy),
+				"key_with_underscores",
+				&KVGetQuery{
+					key: "key_with_underscores",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("special_characters", tenancy),
+				"config/facet:größe-lf-si",
+				&KVGetQuery{
+					key: "config/facet:größe-lf-si",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("splat", tenancy),
+				"config/*/timeouts/",
+				&KVGetQuery{
+					key: "config/*/timeouts/",
+				},
+				false,
+			},
+		}
+	})
+
+	for i, test := range cases {
+		tc := test.(testCase)
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
 			act, err := NewKVGetQuery(tc.i)
 			if (err != nil) != tc.err {
@@ -192,32 +197,40 @@ func TestNewKVGetQuery(t *testing.T) {
 }
 
 func TestKVGetQuery_Fetch(t *testing.T) {
-	testConsul.SetKVString(t, "test-kv-get/key", "value")
-	testConsul.SetKVString(t, "test-kv-get/key_empty", "")
 
-	cases := []struct {
+	for _, tenancy := range tenancyHelper.TestTenancies() {
+		testConsul.SetKVString(t, fmt.Sprintf("test-kv-get/key?partition=%s&namespace=%s", tenancy.Partition, tenancy.Namespace), fmt.Sprintf("value-%s-%s", tenancy.Partition, tenancy.Namespace))
+		testConsul.SetKVString(t, fmt.Sprintf("test-kv-get/key_empty?partition=%s&namespace=%s", tenancy.Partition, tenancy.Namespace), "")
+	}
+
+	type testCase struct {
 		name string
 		i    string
 		exp  interface{}
-	}{
-		{
-			"exists",
-			"test-kv-get/key",
-			"value",
-		},
-		{
-			"exists_empty_string",
-			"test-kv-get/key_empty",
-			"",
-		},
-		{
-			"no_exist",
-			"test-kv-get/not/a/real/key/like/ever",
-			nil,
-		},
 	}
 
-	for i, tc := range cases {
+	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+		return []interface{}{
+			testCase{
+				tenancyHelper.AppendTenancyInfo("exists", tenancy),
+				fmt.Sprintf("test-kv-get/key?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace),
+				fmt.Sprintf("value-%s-%s", tenancy.Partition, tenancy.Namespace),
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("exists_empty_string", tenancy),
+				fmt.Sprintf("test-kv-get/key_empty?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace),
+				"",
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("no_exist", tenancy),
+				fmt.Sprintf("test-kv-get/not/a/real/key/like/ever?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace),
+				nil,
+			},
+		}
+	})
+
+	for i, test := range cases {
+		tc := test.(testCase)
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
 			d, err := NewKVGetQuery(tc.i)
 			if err != nil {
@@ -233,8 +246,8 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 		})
 	}
 
-	t.Run("stops", func(t *testing.T) {
-		d, err := NewKVGetQuery("test-kv-get/key")
+	tenancyHelper.RunWithTenancies(func(tenancy *pbresource.Tenancy) {
+		d, err := NewKVGetQuery(fmt.Sprintf("test-kv-get/key?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -268,10 +281,10 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 		case <-time.After(100 * time.Millisecond):
 			t.Errorf("did not stop")
 		}
-	})
+	}, t, "stops")
 
-	t.Run("fires_changes", func(t *testing.T) {
-		d, err := NewKVGetQuery("test-kv-get/key")
+	tenancyHelper.RunWithTenancies(func(tenancy *pbresource.Tenancy) {
+		d, err := NewKVGetQuery(fmt.Sprintf("test-kv-get/key?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -292,7 +305,7 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 			dataCh <- data
 		}()
 
-		testConsul.SetKVString(t, "test-kv-get/key", "new-value")
+		testConsul.SetKVString(t, fmt.Sprintf("test-kv-get/key?partition=%s&namespace=%s", tenancy.Partition, tenancy.Namespace), "new-value")
 
 		select {
 		case err := <-errCh:
@@ -300,28 +313,42 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 		case data := <-dataCh:
 			assert.Equal(t, data, "new-value")
 		}
-	})
+	}, t, "fires_changes")
 }
 
 func TestKVGetQuery_String(t *testing.T) {
-	cases := []struct {
+	type testCase struct {
 		name string
 		i    string
 		exp  string
-	}{
-		{
-			"key",
-			"key",
-			"kv.get(key)",
-		},
-		{
-			"dc",
-			"key@dc1",
-			"kv.get(key@dc1)",
-		},
 	}
+	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+		return []interface{}{
+			testCase{
+				tenancyHelper.AppendTenancyInfo("key", tenancy),
+				"key",
+				"kv.get(key)",
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("dc", tenancy),
+				"key@dc1",
+				"kv.get(key@dc1)",
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("dc_and_partition", tenancy),
+				fmt.Sprintf("key?partition=%s@dc1", tenancy.Partition),
+				fmt.Sprintf("kv.get(key@dc1@partition=%s)", tenancy.Partition),
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("dc_and_partition_and_ns", tenancy),
+				fmt.Sprintf("key?partition=%s&ns=%s@dc1", tenancy.Partition, tenancy.Namespace),
+				fmt.Sprintf("kv.get(key@dc1@partition=%s@ns=%s)", tenancy.Partition, tenancy.Namespace),
+			},
+		}
+	})
 
-	for i, tc := range cases {
+	for i, test := range cases {
+		tc := test.(testCase)
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
 			d, err := NewKVGetQuery(tc.i)
 			if err != nil {
