@@ -22,6 +22,7 @@ func filterVersionMeta(meta map[string]string) map[string]string {
 		"raft_version", "serf_protocol_current",
 		"serf_protocol_min", "serf_protocol_max", "version",
 		"non_voter", "read_replica", "grpc_port", "grpc_tls_port", "consul-version",
+		"consul-network-segment",
 	}
 	return filter(meta, filteredMeta)
 }
@@ -29,6 +30,6 @@ func filterVersionMeta(meta map[string]string) map[string]string {
 // filterAddresses filters out consul >1.7 ipv4/ipv6 specific entries
 // from TaggedAddresses entries on nodes, catlog and health services.
 func filterAddresses(addrs map[string]string) map[string]string {
-	ipvKeys := []string{"lan_ipv4", "wan_ipv4", "lan_ipv6", "wan_ipv6"}
+	ipvKeys := []string{"lan_ipv4", "wan_ipv4", "lan_ipv6", "wan_ipv6", "lan", "wan"}
 	return filter(addrs, ipvKeys)
 }
