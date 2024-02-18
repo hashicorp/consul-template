@@ -5,10 +5,11 @@ package dependency
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func TestNewCatalogNodesQuery(t *testing.T) {

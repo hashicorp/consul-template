@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"io"
 	"log"
 	"os"
@@ -19,6 +18,7 @@ import (
 
 	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
 	nomadapi "github.com/hashicorp/nomad/api"
 	vapi "github.com/hashicorp/vault/api"

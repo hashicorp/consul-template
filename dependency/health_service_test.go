@@ -5,10 +5,10 @@ package dependency
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"testing"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/stretchr/testify/assert"
 )
 

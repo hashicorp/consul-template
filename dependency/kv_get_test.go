@@ -5,11 +5,12 @@ package dependency
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func TestNewKVGetQuery(t *testing.T) {
