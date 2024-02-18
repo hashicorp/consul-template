@@ -151,15 +151,15 @@ func TestCatalogNodesQuery_Fetch(t *testing.T) {
 				"",
 				[]*Node{
 					{
-						Node:            testConsul.Config.NodeName,
-						Address:         testConsul.Config.Bind,
-						Datacenter:      "dc1",
+						Node:       testConsul.Config.NodeName,
+						Address:    testConsul.Config.Bind,
+						Datacenter: "dc1",
 						TaggedAddresses: map[string]string{
-							//"lan": "127.0.0.1",
-							//"wan": "127.0.0.1",
+							"lan": "127.0.0.1",
+							"wan": "127.0.0.1",
 						},
 						Meta: map[string]string{
-							//"consul-network-segment": "",
+							"consul-network-segment": "",
 						},
 					},
 				},
@@ -169,15 +169,15 @@ func TestCatalogNodesQuery_Fetch(t *testing.T) {
 				fmt.Sprintf("?partition=%s&ns=%s@dc1", tenancy.Partition, tenancy.Namespace),
 				[]*Node{
 					{
-						Node:            testConsul.Config.NodeName,
-						Address:         testConsul.Config.Bind,
-						Datacenter:      "dc1",
+						Node:       testConsul.Config.NodeName,
+						Address:    testConsul.Config.Bind,
+						Datacenter: "dc1",
 						TaggedAddresses: map[string]string{
-							//"lan": "127.0.0.1",
-							//"wan": "127.0.0.1",
+							"lan": "127.0.0.1",
+							"wan": "127.0.0.1",
 						},
 						Meta: map[string]string{
-							//"consul-network-segment": "",
+							"consul-network-segment": "",
 						},
 					},
 				},
@@ -187,15 +187,15 @@ func TestCatalogNodesQuery_Fetch(t *testing.T) {
 				fmt.Sprintf("?ns=%s@dc1", tenancy.Namespace),
 				[]*Node{
 					{
-						Node:            testConsul.Config.NodeName,
-						Address:         testConsul.Config.Bind,
-						Datacenter:      "dc1",
+						Node:       testConsul.Config.NodeName,
+						Address:    testConsul.Config.Bind,
+						Datacenter: "dc1",
 						TaggedAddresses: map[string]string{
-							//"lan": "127.0.0.1",
-							//"wan": "127.0.0.1",
+							"lan": "127.0.0.1",
+							"wan": "127.0.0.1",
 						},
 						Meta: map[string]string{
-							//"consul-network-segment": "",
+							"consul-network-segment": "",
 						},
 					},
 				},
@@ -205,15 +205,15 @@ func TestCatalogNodesQuery_Fetch(t *testing.T) {
 				fmt.Sprintf("?partition=%s@dc1", tenancy.Partition),
 				[]*Node{
 					{
-						Node:            testConsul.Config.NodeName,
-						Address:         testConsul.Config.Bind,
-						Datacenter:      "dc1",
+						Node:       testConsul.Config.NodeName,
+						Address:    testConsul.Config.Bind,
+						Datacenter: "dc1",
 						TaggedAddresses: map[string]string{
-							//"lan": "127.0.0.1",
-							//"wan": "127.0.0.1",
+							"lan": "127.0.0.1",
+							"wan": "127.0.0.1",
 						},
 						Meta: map[string]string{
-							//"consul-network-segment": "",
+							"consul-network-segment": "",
 						},
 					},
 				},
