@@ -5,11 +5,10 @@ package dependency
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul-template/test"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func TestNewCatalogNodesQuery(t *testing.T) {
@@ -19,7 +18,7 @@ func TestNewCatalogNodesQuery(t *testing.T) {
 		exp  *CatalogNodesQuery
 		err  bool
 	}
-	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("empty", tenancy),
@@ -145,7 +144,7 @@ func TestCatalogNodesQuery_Fetch(t *testing.T) {
 		i    string
 		exp  []*Node
 	}
-	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("all", tenancy),
@@ -254,7 +253,7 @@ func TestCatalogNodesQuery_String(t *testing.T) {
 		i    string
 		exp  string
 	}
-	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("empty", tenancy),

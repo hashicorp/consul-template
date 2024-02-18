@@ -18,7 +18,6 @@ import (
 
 	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
 	nomadapi "github.com/hashicorp/nomad/api"
 	vapi "github.com/hashicorp/vault/api"
@@ -241,7 +240,7 @@ func (c *ClientSet) createConsulTestResources() error {
 	return nil
 }
 
-func (c *ClientSet) createConsulPeerings(tenancy *pbresource.Tenancy) error {
+func (c *ClientSet) createConsulPeerings(tenancy *test.Tenancy) error {
 	generateReq := api.PeeringGenerateTokenRequest{PeerName: "foo", Partition: tenancy.Partition}
 	_, _, err := c.consul.client.Peerings().GenerateToken(context.Background(), generateReq, &api.WriteOptions{})
 	if err != nil {

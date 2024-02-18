@@ -5,12 +5,11 @@ package dependency
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul-template/test"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func TestNewKVListQuery(t *testing.T) {
@@ -20,7 +19,7 @@ func TestNewKVListQuery(t *testing.T) {
 		exp  *KVListQuery
 		err  bool
 	}
-	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("empty", tenancy),
@@ -225,7 +224,7 @@ func TestKVListQuery_Fetch(t *testing.T) {
 		exp  []*KeyPair
 	}
 
-	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				"exists",
@@ -299,7 +298,7 @@ func TestKVListQuery_Fetch(t *testing.T) {
 		})
 	}
 
-	tenancyHelper.RunWithTenancies(func(tenancy *pbresource.Tenancy) {
+	tenancyHelper.RunWithTenancies(func(tenancy *test.Tenancy) {
 		d, err := NewKVListQuery(fmt.Sprintf("test-kv-list/prefix?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace))
 		if err != nil {
 			t.Fatal(err)
@@ -336,7 +335,7 @@ func TestKVListQuery_Fetch(t *testing.T) {
 		}
 	}, t, "stops")
 
-	tenancyHelper.RunWithTenancies(func(tenancy *pbresource.Tenancy) {
+	tenancyHelper.RunWithTenancies(func(tenancy *test.Tenancy) {
 		d, err := NewKVListQuery(fmt.Sprintf("test-kv-list/prefix?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace))
 		if err != nil {
 			t.Fatal(err)
@@ -390,7 +389,7 @@ func TestKVListQuery_String(t *testing.T) {
 		i    string
 		exp  string
 	}
-	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				"prefix",

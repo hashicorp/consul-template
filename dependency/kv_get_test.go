@@ -5,12 +5,11 @@ package dependency
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul-template/test"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func TestNewKVGetQuery(t *testing.T) {
@@ -20,7 +19,7 @@ func TestNewKVGetQuery(t *testing.T) {
 		exp  *KVGetQuery
 		err  bool
 	}
-	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("empty", tenancy),
@@ -210,7 +209,7 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 		exp  interface{}
 	}
 
-	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("exists", tenancy),
@@ -247,7 +246,7 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 		})
 	}
 
-	tenancyHelper.RunWithTenancies(func(tenancy *pbresource.Tenancy) {
+	tenancyHelper.RunWithTenancies(func(tenancy *test.Tenancy) {
 		d, err := NewKVGetQuery(fmt.Sprintf("test-kv-get/key?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace))
 		if err != nil {
 			t.Fatal(err)
@@ -284,7 +283,7 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 		}
 	}, t, "stops")
 
-	tenancyHelper.RunWithTenancies(func(tenancy *pbresource.Tenancy) {
+	tenancyHelper.RunWithTenancies(func(tenancy *test.Tenancy) {
 		d, err := NewKVGetQuery(fmt.Sprintf("test-kv-get/key?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace))
 		if err != nil {
 			t.Fatal(err)
@@ -323,7 +322,7 @@ func TestKVGetQuery_String(t *testing.T) {
 		i    string
 		exp  string
 	}
-	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("key", tenancy),

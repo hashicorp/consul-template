@@ -5,10 +5,10 @@ package dependency
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul-template/test"
 	"testing"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,7 +19,7 @@ func TestNewHealthServiceQuery(t *testing.T) {
 		exp  *HealthServiceQuery
 		err  bool
 	}
-	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("empty", tenancy),
@@ -264,7 +264,7 @@ func TestHealthConnectServiceQuery_Fetch(t *testing.T) {
 		in   string
 		exp  []*HealthService
 	}
-	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("connect-service", tenancy),
@@ -350,7 +350,7 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 		i    string
 		exp  []*HealthService
 	}
-	cases := tenancyHelper.GenerateDefaultTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+	cases := tenancyHelper.GenerateDefaultTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("consul", tenancy),
@@ -482,7 +482,7 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 		}
 	})
 
-	cases = append(cases, tenancyHelper.GenerateNonDefaultTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+	cases = append(cases, tenancyHelper.GenerateNonDefaultTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("consul", tenancy),
@@ -651,7 +651,7 @@ func TestHealthServiceQuery_String(t *testing.T) {
 		i    string
 		exp  string
 	}
-	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("name", tenancy),
@@ -750,7 +750,7 @@ func TestHealthServiceQueryConnect_String(t *testing.T) {
 		in   string
 		exp  string
 	}
-	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("name", tenancy),

@@ -10,8 +10,12 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 )
+
+type Tenancy struct {
+	Partition string
+	Namespace string
+}
 
 type TenancyHelper struct {
 	once               sync.Once
@@ -34,8 +38,8 @@ func NewTenancyHelper(consulClient *api.Client) (*TenancyHelper, error) {
 
 // TestTenancies returns a list of tenancies which represent
 // the namespace and partition combinations that can be used in unit tests
-func (t *TenancyHelper) TestTenancies() []*pbresource.Tenancy {
-	tenancies := []*pbresource.Tenancy{
+func (t *TenancyHelper) TestTenancies() []*Tenancy {
+	tenancies := []*Tenancy{
 		t.Tenancy("default.default"),
 	}
 
@@ -46,29 +50,29 @@ func (t *TenancyHelper) TestTenancies() []*pbresource.Tenancy {
 	return tenancies
 }
 
-// Tenancy constructs a pbresource.Tenancy from a concise string representation
+// Tenancy constructs a Tenancy from a concise string representation
 // suitable for use in unit tests.
 //
 // - ""        : partition=""    namespace=""
 // - "foo"     : partition="foo" namespace=""
 // - "foo.bar" : partition="foo" namespace="bar"
 // - <others>  : partition="BAD" namespace="BAD"
-func (t *TenancyHelper) Tenancy(s string) *pbresource.Tenancy {
+func (t *TenancyHelper) Tenancy(s string) *Tenancy {
 	parts := strings.Split(s, ".")
 	switch len(parts) {
 	case 0:
-		return &pbresource.Tenancy{}
+		return &Tenancy{}
 	case 1:
-		return &pbresource.Tenancy{
+		return &Tenancy{
 			Partition: parts[0],
 		}
 	case 2:
-		return &pbresource.Tenancy{
+		return &Tenancy{
 			Partition: parts[0],
 			Namespace: parts[1],
 		}
 	default:
-		return &pbresource.Tenancy{Partition: "BAD", Namespace: "BAD"}
+		return &Tenancy{Partition: "BAD", Namespace: "BAD"}
 	}
 }
 
@@ -94,11 +98,11 @@ func (t *TenancyHelper) init() error {
 	return versionErr
 }
 
-func (t *TenancyHelper) AppendTenancyInfo(name string, tenancy *pbresource.Tenancy) string {
+func (t *TenancyHelper) AppendTenancyInfo(name string, tenancy *Tenancy) string {
 	return fmt.Sprintf("%s_%s_Namespace_%s_Partition", name, tenancy.Namespace, tenancy.Partition)
 }
 
-func (t *TenancyHelper) RunWithTenancies(testFunc func(tenancy *pbresource.Tenancy), test *testing.T, testName string) {
+func (t *TenancyHelper) RunWithTenancies(testFunc func(tenancy *Tenancy), test *testing.T, testName string) {
 	for _, tenancy := range t.TestTenancies() {
 		test.Run(t.AppendTenancyInfo(testName, tenancy), func(t *testing.T) {
 			testFunc(tenancy)
@@ -106,7 +110,7 @@ func (t *TenancyHelper) RunWithTenancies(testFunc func(tenancy *pbresource.Tenan
 	}
 }
 
-func (t *TenancyHelper) GenerateTenancyTests(generationFunc func(tenancy *pbresource.Tenancy) []interface{}) []interface{} {
+func (t *TenancyHelper) GenerateTenancyTests(generationFunc func(tenancy *Tenancy) []interface{}) []interface{} {
 	cases := make([]interface{}, 0)
 	for _, tenancy := range t.TestTenancies() {
 		cases = append(cases, generationFunc(tenancy)...)
@@ -114,7 +118,7 @@ func (t *TenancyHelper) GenerateTenancyTests(generationFunc func(tenancy *pbreso
 	return cases
 }
 
-func (t *TenancyHelper) GenerateNonDefaultTenancyTests(generationFunc func(tenancy *pbresource.Tenancy) []interface{}) []interface{} {
+func (t *TenancyHelper) GenerateNonDefaultTenancyTests(generationFunc func(tenancy *Tenancy) []interface{}) []interface{} {
 	cases := make([]interface{}, 0)
 	for _, tenancy := range t.TestTenancies() {
 		if tenancy.Partition != "default" || tenancy.Namespace != "default" {
@@ -124,7 +128,7 @@ func (t *TenancyHelper) GenerateNonDefaultTenancyTests(generationFunc func(tenan
 	return cases
 }
 
-func (t *TenancyHelper) GenerateDefaultTenancyTests(generationFunc func(tenancy *pbresource.Tenancy) []interface{}) []interface{} {
+func (t *TenancyHelper) GenerateDefaultTenancyTests(generationFunc func(tenancy *Tenancy) []interface{}) []interface{} {
 	cases := make([]interface{}, 0)
 	for _, tenancy := range t.TestTenancies() {
 		if tenancy.Partition == "default" && tenancy.Namespace == "default" {

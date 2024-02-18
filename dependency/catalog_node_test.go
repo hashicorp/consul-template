@@ -5,11 +5,10 @@ package dependency
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul-template/test"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func TestNewCatalogNodeQuery(t *testing.T) {
@@ -19,7 +18,7 @@ func TestNewCatalogNodeQuery(t *testing.T) {
 		exp  *CatalogNodeQuery
 		err  bool
 	}
-	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("empty", tenancy),
@@ -134,7 +133,7 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 		i    string
 		exp  *CatalogNode
 	}
-	cases := tenancyHelper.GenerateNonDefaultTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+	cases := tenancyHelper.GenerateNonDefaultTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("local", tenancy),
@@ -248,7 +247,7 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 		}
 	})
 
-	cases = append(cases, tenancyHelper.GenerateDefaultTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+	cases = append(cases, tenancyHelper.GenerateDefaultTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("local", tenancy),
@@ -406,7 +405,7 @@ func TestCatalogNodeQuery_String(t *testing.T) {
 		i    string
 		exp  string
 	}
-	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *pbresource.Tenancy) []interface{} {
+	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("empty", tenancy),
