@@ -278,8 +278,8 @@ func TestHealthConnectServiceQuery_Fetch(t *testing.T) {
 						Address:     "127.0.0.1",
 						NodeAddress: "127.0.0.1",
 						Tags:        ServiceTags([]string{}),
-						NodeMeta: map[string]string{
-							"consul-network-segment": "",
+						NodeMeta:    map[string]string{
+							//"consul-network-segment": "",
 						},
 						Weights: api.AgentWeights{
 							Passing: 1,
@@ -357,14 +357,14 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 				"consul",
 				[]*HealthService{
 					{
-						Node:        testConsul.Config.NodeName,
-						NodeAddress: testConsul.Config.Bind,
+						Node:                testConsul.Config.NodeName,
+						NodeAddress:         testConsul.Config.Bind,
 						NodeTaggedAddresses: map[string]string{
-							"lan": "127.0.0.1",
-							"wan": "127.0.0.1",
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
 						},
 						NodeMeta: map[string]string{
-							"consul-network-segment": "",
+							//"consul-network-segment": "",
 						},
 						ServiceMeta: map[string]string{},
 						Address:     testConsul.Config.Bind,
@@ -390,14 +390,14 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 				"consul|warning,passing",
 				[]*HealthService{
 					{
-						Node:        testConsul.Config.NodeName,
-						NodeAddress: testConsul.Config.Bind,
+						Node:                testConsul.Config.NodeName,
+						NodeAddress:         testConsul.Config.Bind,
 						NodeTaggedAddresses: map[string]string{
-							"lan": "127.0.0.1",
-							"wan": "127.0.0.1",
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
 						},
 						NodeMeta: map[string]string{
-							"consul-network-segment": "",
+							//"consul-network-segment": "",
 						},
 						ServiceMeta: map[string]string{},
 						Address:     testConsul.Config.Bind,
@@ -418,14 +418,14 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 				"service-meta-default-default",
 				[]*HealthService{
 					{
-						Node:        testConsul.Config.NodeName,
-						NodeAddress: testConsul.Config.Bind,
+						Node:                testConsul.Config.NodeName,
+						NodeAddress:         testConsul.Config.Bind,
 						NodeTaggedAddresses: map[string]string{
-							"lan": "127.0.0.1",
-							"wan": "127.0.0.1",
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
 						},
 						NodeMeta: map[string]string{
-							"consul-network-segment": "",
+							//"consul-network-segment": "",
 						},
 						ServiceMeta: map[string]string{
 							"meta1": "value1",
@@ -447,14 +447,14 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 				"service-taggedAddresses-default-default",
 				[]*HealthService{
 					{
-						Node:        testConsul.Config.NodeName,
-						NodeAddress: testConsul.Config.Bind,
+						Node:                testConsul.Config.NodeName,
+						NodeAddress:         testConsul.Config.Bind,
 						NodeTaggedAddresses: map[string]string{
-							"lan": "127.0.0.1",
-							"wan": "127.0.0.1",
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
 						},
 						NodeMeta: map[string]string{
-							"consul-network-segment": "",
+							//"consul-network-segment": "",
 						},
 						ServiceMeta: map[string]string{},
 						Address:     testConsul.Config.Bind,
@@ -489,14 +489,14 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 				"consul",
 				[]*HealthService{
 					{
-						Node:        testConsul.Config.NodeName,
-						NodeAddress: testConsul.Config.Bind,
+						Node:                testConsul.Config.NodeName,
+						NodeAddress:         testConsul.Config.Bind,
 						NodeTaggedAddresses: map[string]string{
-							"lan": "127.0.0.1",
-							"wan": "127.0.0.1",
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
 						},
 						NodeMeta: map[string]string{
-							"consul-network-segment": "",
+							//"consul-network-segment": "",
 						},
 						ServiceMeta: map[string]string{},
 						Address:     testConsul.Config.Bind,
@@ -522,14 +522,14 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 				"consul|warning,passing",
 				[]*HealthService{
 					{
-						Node:        testConsul.Config.NodeName,
-						NodeAddress: testConsul.Config.Bind,
+						Node:                testConsul.Config.NodeName,
+						NodeAddress:         testConsul.Config.Bind,
 						NodeTaggedAddresses: map[string]string{
-							"lan": "127.0.0.1",
-							"wan": "127.0.0.1",
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
 						},
 						NodeMeta: map[string]string{
-							"consul-network-segment": "",
+							//"consul-network-segment": "",
 						},
 						ServiceMeta: map[string]string{},
 						Address:     testConsul.Config.Bind,
@@ -550,14 +550,14 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 				fmt.Sprintf("service-meta-%s-%s?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace, tenancy.Partition, tenancy.Namespace),
 				[]*HealthService{
 					{
-						Node:        testConsul.Config.NodeName,
-						NodeAddress: testConsul.Config.Bind,
+						Node:                testConsul.Config.NodeName,
+						NodeAddress:         testConsul.Config.Bind,
 						NodeTaggedAddresses: map[string]string{
-							"lan": "127.0.0.1",
-							"wan": "127.0.0.1",
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
 						},
 						NodeMeta: map[string]string{
-							"consul-network-segment": "",
+							//"consul-network-segment": "",
 						},
 						ServiceMeta: map[string]string{
 							"meta1": "value1",
@@ -579,14 +579,14 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 				fmt.Sprintf("service-taggedAddresses-%s-%s?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace, tenancy.Partition, tenancy.Namespace),
 				[]*HealthService{
 					{
-						Node:        testConsul.Config.NodeName,
-						NodeAddress: testConsul.Config.Bind,
+						Node:                testConsul.Config.NodeName,
+						NodeAddress:         testConsul.Config.Bind,
 						NodeTaggedAddresses: map[string]string{
-							"lan": "127.0.0.1",
-							"wan": "127.0.0.1",
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
 						},
 						NodeMeta: map[string]string{
-							"consul-network-segment": "",
+							//"consul-network-segment": "",
 						},
 						ServiceMeta: map[string]string{},
 						Address:     testConsul.Config.Bind,

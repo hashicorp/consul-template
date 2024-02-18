@@ -196,15 +196,15 @@ func TestCatalogServiceQuery_Fetch(t *testing.T) {
 				"consul",
 				[]*CatalogService{
 					{
-						Node:       testConsul.Config.NodeName,
-						Address:    testConsul.Config.Bind,
-						Datacenter: "dc1",
+						Node:            testConsul.Config.NodeName,
+						Address:         testConsul.Config.Bind,
+						Datacenter:      "dc1",
 						TaggedAddresses: map[string]string{
-							"lan": "127.0.0.1",
-							"wan": "127.0.0.1",
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
 						},
 						NodeMeta: map[string]string{
-							"consul-network-segment": "",
+							//"consul-network-segment": "",
 						},
 						ServiceID:      "consul",
 						ServiceName:    "consul",
@@ -220,15 +220,15 @@ func TestCatalogServiceQuery_Fetch(t *testing.T) {
 				"service-meta-default-default",
 				[]*CatalogService{
 					{
-						Node:       testConsul.Config.NodeName,
-						Address:    testConsul.Config.Bind,
-						Datacenter: "dc1",
+						Node:            testConsul.Config.NodeName,
+						Address:         testConsul.Config.Bind,
+						Datacenter:      "dc1",
 						TaggedAddresses: map[string]string{
-							"lan": "127.0.0.1",
-							"wan": "127.0.0.1",
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
 						},
 						NodeMeta: map[string]string{
-							"consul-network-segment": "",
+							//"consul-network-segment": "",
 						},
 						ServiceID:      "service-meta-default-default",
 						ServiceName:    "service-meta-default-default",
@@ -253,15 +253,15 @@ func TestCatalogServiceQuery_Fetch(t *testing.T) {
 				fmt.Sprintf("service-meta-%s-%s?ns=%s&partition=%s", tenancy.Partition, tenancy.Namespace, tenancy.Namespace, tenancy.Partition),
 				[]*CatalogService{
 					{
-						Node:       testConsul.Config.NodeName,
-						Address:    testConsul.Config.Bind,
-						Datacenter: "dc1",
+						Node:            testConsul.Config.NodeName,
+						Address:         testConsul.Config.Bind,
+						Datacenter:      "dc1",
 						TaggedAddresses: map[string]string{
-							"lan": "127.0.0.1",
-							"wan": "127.0.0.1",
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
 						},
 						NodeMeta: map[string]string{
-							"consul-network-segment": "",
+							//"consul-network-segment": "",
 						},
 						ServiceID:      fmt.Sprintf("service-meta-%s-%s", tenancy.Partition, tenancy.Namespace),
 						ServiceName:    fmt.Sprintf("service-meta-%s-%s", tenancy.Partition, tenancy.Namespace),

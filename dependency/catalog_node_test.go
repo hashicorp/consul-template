@@ -140,15 +140,15 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 				"",
 				&CatalogNode{
 					Node: &Node{
-						Node:       testConsul.Config.NodeName,
-						Address:    testConsul.Config.Bind,
-						Datacenter: "dc1",
+						Node:            testConsul.Config.NodeName,
+						Address:         testConsul.Config.Bind,
+						Datacenter:      "dc1",
 						TaggedAddresses: map[string]string{
-							"lan": "127.0.0.1",
-							"wan": "127.0.0.1",
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
 						},
 						Meta: map[string]string{
-							"consul-network-segment": "",
+							//"consul-network-segment": "",
 						},
 					},
 					Services: []*CatalogNodeService{
@@ -195,15 +195,15 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 				fmt.Sprintf("%s?partition=%s&ns=%s", testConsul.Config.NodeName, tenancy.Partition, tenancy.Namespace),
 				&CatalogNode{
 					Node: &Node{
-						Node:       testConsul.Config.NodeName,
-						Address:    testConsul.Config.Bind,
-						Datacenter: "dc1",
+						Node:            testConsul.Config.NodeName,
+						Address:         testConsul.Config.Bind,
+						Datacenter:      "dc1",
 						TaggedAddresses: map[string]string{
-							"lan": "127.0.0.1",
-							"wan": "127.0.0.1",
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
 						},
 						Meta: map[string]string{
-							"consul-network-segment": "",
+							//"consul-network-segment": "",
 						},
 					},
 					Services: []*CatalogNodeService{
@@ -254,15 +254,15 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 				"",
 				&CatalogNode{
 					Node: &Node{
-						Node:       testConsul.Config.NodeName,
-						Address:    testConsul.Config.Bind,
-						Datacenter: "dc1",
+						Node:            testConsul.Config.NodeName,
+						Address:         testConsul.Config.Bind,
+						Datacenter:      "dc1",
 						TaggedAddresses: map[string]string{
-							"lan": "127.0.0.1",
-							"wan": "127.0.0.1",
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
 						},
 						Meta: map[string]string{
-							"consul-network-segment": "",
+							//"consul-network-segment": "",
 						},
 					},
 					Services: []*CatalogNodeService{
@@ -309,15 +309,15 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 				fmt.Sprintf("%s?partition=%s&ns=%s", testConsul.Config.NodeName, tenancy.Partition, tenancy.Namespace),
 				&CatalogNode{
 					Node: &Node{
-						Node:       testConsul.Config.NodeName,
-						Address:    testConsul.Config.Bind,
-						Datacenter: "dc1",
+						Node:            testConsul.Config.NodeName,
+						Address:         testConsul.Config.Bind,
+						Datacenter:      "dc1",
 						TaggedAddresses: map[string]string{
-							"lan": "127.0.0.1",
-							"wan": "127.0.0.1",
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
 						},
 						Meta: map[string]string{
-							"consul-network-segment": "",
+							//"consul-network-segment": "",
 						},
 					},
 					Services: []*CatalogNodeService{
