@@ -213,19 +213,19 @@ func TestNewKVListQuery(t *testing.T) {
 
 func TestKVListQuery_Fetch(t *testing.T) {
 	for _, tenancy := range tenancyHelper.TestTenancies() {
-		fooKey := fmt.Sprintf("test-kv-list/prefix/foo")
+		fooKey := "test-kv-list/prefix/foo"
 		if tenancyHelper.IsConsulEnterprise() {
 			fooKey += fmt.Sprintf("?partition=%s&namespace=%s", tenancy.Partition, tenancy.Namespace)
 		}
 		testConsul.SetKVString(t, fooKey, fmt.Sprintf("bar-%s-%s", tenancy.Partition, tenancy.Namespace))
 
-		zipKey := fmt.Sprintf("test-kv-list/prefix/zip")
+		zipKey := "test-kv-list/prefix/zip"
 		if tenancyHelper.IsConsulEnterprise() {
 			zipKey += fmt.Sprintf("?partition=%s&namespace=%s", tenancy.Partition, tenancy.Namespace)
 		}
 		testConsul.SetKVString(t, zipKey, fmt.Sprintf("zap-%s-%s", tenancy.Partition, tenancy.Namespace))
 
-		oceanKey := fmt.Sprintf("test-kv-list/prefix/wave/ocean")
+		oceanKey := "test-kv-list/prefix/wave/ocean"
 		if tenancyHelper.IsConsulEnterprise() {
 			oceanKey += fmt.Sprintf("?partition=%s&namespace=%s", tenancy.Partition, tenancy.Namespace)
 		}
@@ -294,7 +294,7 @@ func TestKVListQuery_Fetch(t *testing.T) {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("exists", tenancy),
-				fmt.Sprintf("test-kv-list/prefix"),
+				"test-kv-list/prefix",
 				[]*KeyPair{
 					{
 						Path:  "test-kv-list/prefix/foo",
@@ -315,7 +315,7 @@ func TestKVListQuery_Fetch(t *testing.T) {
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("trailing", tenancy),
-				fmt.Sprintf("test-kv-list/prefix/"),
+				"test-kv-list/prefix/",
 				[]*KeyPair{
 					{
 						Path:  "test-kv-list/prefix/foo",
@@ -336,7 +336,7 @@ func TestKVListQuery_Fetch(t *testing.T) {
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("no_exist", tenancy),
-				fmt.Sprintf("test-kv-list/not/a/real/prefix/like/ever?partition"),
+				"test-kv-list/not/a/real/prefix/like/ever?partition",
 				[]*KeyPair{},
 			},
 		}
@@ -365,7 +365,7 @@ func TestKVListQuery_Fetch(t *testing.T) {
 	}
 
 	tenancyHelper.RunWithTenancies(func(tenancy *test.Tenancy) {
-		kvQuery := fmt.Sprintf("test-kv-list/prefix")
+		kvQuery := "test-kv-list/prefix"
 		if tenancyHelper.IsConsulEnterprise() {
 			kvQuery += fmt.Sprintf("?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace)
 		}
@@ -406,7 +406,7 @@ func TestKVListQuery_Fetch(t *testing.T) {
 	}, t, "stops")
 
 	tenancyHelper.RunWithTenancies(func(tenancy *test.Tenancy) {
-		kvQuery := fmt.Sprintf("test-kv-list/prefix")
+		kvQuery := "test-kv-list/prefix"
 		if tenancyHelper.IsConsulEnterprise() {
 			kvQuery += fmt.Sprintf("?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace)
 		}
@@ -431,7 +431,7 @@ func TestKVListQuery_Fetch(t *testing.T) {
 			dataCh <- data
 		}()
 
-		fooKey := fmt.Sprintf("test-kv-list/prefix/foo")
+		fooKey := "test-kv-list/prefix/foo"
 		if tenancyHelper.IsConsulEnterprise() {
 			fooKey += fmt.Sprintf("?partition=%s&namespace=%s", tenancy.Partition, tenancy.Namespace)
 		}

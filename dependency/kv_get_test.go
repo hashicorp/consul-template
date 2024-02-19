@@ -199,13 +199,13 @@ func TestNewKVGetQuery(t *testing.T) {
 func TestKVGetQuery_Fetch(t *testing.T) {
 
 	for _, tenancy := range tenancyHelper.TestTenancies() {
-		key := fmt.Sprintf("test-kv-get/key")
+		key := "test-kv-get/key"
 		if tenancyHelper.IsConsulEnterprise() {
 			key += fmt.Sprintf("?partition=%s&namespace=%s", tenancy.Partition, tenancy.Namespace)
 		}
 		testConsul.SetKVString(t, key, fmt.Sprintf("value-%s-%s", tenancy.Partition, tenancy.Namespace))
 
-		emptyKey := fmt.Sprintf("test-kv-get/key_empty")
+		emptyKey := "test-kv-get/key_empty"
 		if tenancyHelper.IsConsulEnterprise() {
 			emptyKey += fmt.Sprintf("?partition=%s&namespace=%s", tenancy.Partition, tenancy.Namespace)
 		}
@@ -242,17 +242,17 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("exists", tenancy),
-				fmt.Sprintf("test-kv-get/key"),
+				"test-kv-get/key",
 				fmt.Sprintf("value-%s-%s", tenancy.Partition, tenancy.Namespace),
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("exists_empty_string", tenancy),
-				fmt.Sprintf("test-kv-get/key_empty"),
+				"test-kv-get/key_empty",
 				"",
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("no_exist", tenancy),
-				fmt.Sprintf("test-kv-get/not/a/real/key/like/ever"),
+				"test-kv-get/not/a/real/key/like/ever",
 				nil,
 			},
 		}
@@ -276,7 +276,7 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 	}
 
 	tenancyHelper.RunWithTenancies(func(tenancy *test.Tenancy) {
-		kvQuery := fmt.Sprintf("test-kv-get/key")
+		kvQuery := "test-kv-get/key"
 		if tenancyHelper.IsConsulEnterprise() {
 			kvQuery += fmt.Sprintf("?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace)
 		}
@@ -317,7 +317,7 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 	}, t, "stops")
 
 	tenancyHelper.RunWithTenancies(func(tenancy *test.Tenancy) {
-		kvQuery := fmt.Sprintf("test-kv-get/key")
+		kvQuery := "test-kv-get/key"
 		if tenancyHelper.IsConsulEnterprise() {
 			kvQuery += fmt.Sprintf("?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace)
 		}
