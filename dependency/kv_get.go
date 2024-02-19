@@ -110,6 +110,12 @@ func (d *KVGetQuery) String() string {
 	if d.dc != "" {
 		key = key + "@" + d.dc
 	}
+	if d.partition != "" {
+		key = key + "@partition=" + d.partition
+	}
+	if d.namespace != "" {
+		key = key + "@ns=" + d.namespace
+	}
 
 	if d.blockOnNil {
 		return fmt.Sprintf("kv.block(%s)", key)

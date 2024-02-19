@@ -2,9 +2,11 @@
 
 NEW FEATURES:
 * Add support for listing Consul peers [NET-6966](https://hashicorp.atlassian.net/browse/NET-6966)
+* Add ENT test cases such that all unit tests could run on different combinations of namespace and partition [NET-7377](https://hashicorp.atlassian.net/browse/NET-7377)
 
 BUG FIXES:
 * Fetch services query not overriding opts correctly [NET-7571](https://hashicorp.atlassian.net/browse/NET-7571)
+* All consul resources which support namespace and partition should also have namespace and partition in the key represented by `String` function.[NET-7571](https://hashicorp.atlassian.net/browse/NET-7571)
 * Consul-template now correctly renders KVv2 secrets with `delete_version_after` set [NET-3777](https://hashicorp.atlassian.net/browse/NET-3777)
 
 ## v0.36.0 (January 3, 2024)

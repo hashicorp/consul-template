@@ -5,6 +5,7 @@ package dependency
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul-template/test"
 	"testing"
 	"time"
 
@@ -12,185 +13,189 @@ import (
 )
 
 func TestNewKVListQuery(t *testing.T) {
-	cases := []struct {
+	type testCase struct {
 		name string
 		i    string
 		exp  *KVListQuery
 		err  bool
-	}{
-		{
-			"empty",
-			"",
-			&KVListQuery{},
-			false,
-		},
-		{
-			"dc_only",
-			"@dc1",
-			nil,
-			true,
-		},
-		{
-			"query_only",
-			"?ns=foo",
-			nil,
-			true,
-		},
-		{
-			"invalid query param (unsupported key)",
-			"prefix?unsupported=foo",
-			nil,
-			true,
-		},
-		{
-			"prefix",
-			"prefix",
-			&KVListQuery{
-				prefix: "prefix",
-			},
-			false,
-		},
-		{
-			"dc",
-			"prefix@dc1",
-			&KVListQuery{
-				prefix: "prefix",
-				dc:     "dc1",
-			},
-			false,
-		},
-		{
-			"partition",
-			"prefix?partition=foo",
-			&KVListQuery{
-				prefix:    "prefix",
-				partition: "foo",
-			},
-			false,
-		},
-		{
-			"namespace",
-			"prefix?ns=foo",
-			&KVListQuery{
-				prefix:    "prefix",
-				namespace: "foo",
-			},
-			false,
-		},
-		{
-			"namespace_and_partition",
-			"prefix?ns=foo&partition=bar",
-			&KVListQuery{
-				prefix:    "prefix",
-				namespace: "foo",
-				partition: "bar",
-			},
-			false,
-		},
-		{
-			"namespace_and_partition_and_dc",
-			"prefix?ns=foo&partition=bar@dc1",
-			&KVListQuery{
-				prefix:    "prefix",
-				namespace: "foo",
-				partition: "bar",
-				dc:        "dc1",
-			},
-			false,
-		},
-		{
-			"empty_query",
-			"prefix?ns=&partition=",
-			&KVListQuery{
-				prefix:    "prefix",
-				namespace: "",
-				partition: "",
-			},
-			false,
-		},
-		{
-			"dots",
-			"prefix.with.dots",
-			&KVListQuery{
-				prefix: "prefix.with.dots",
-			},
-			false,
-		},
-		{
-			"slashes",
-			"prefix/with/slashes",
-			&KVListQuery{
-				prefix: "prefix/with/slashes",
-			},
-			false,
-		},
-		{
-			"dashes",
-			"prefix-with-dashes",
-			&KVListQuery{
-				prefix: "prefix-with-dashes",
-			},
-			false,
-		},
-		{
-			"leading_slash",
-			"/leading/slash",
-			&KVListQuery{
-				prefix: "leading/slash",
-			},
-			false,
-		},
-		{
-			"trailing_slash",
-			"trailing/slash/",
-			&KVListQuery{
-				prefix: "trailing/slash/",
-			},
-			false,
-		},
-		{
-			"underscores",
-			"prefix_with_underscores",
-			&KVListQuery{
-				prefix: "prefix_with_underscores",
-			},
-			false,
-		},
-		{
-			"special_characters",
-			"config/facet:größe-lf-si",
-			&KVListQuery{
-				prefix: "config/facet:größe-lf-si",
-			},
-			false,
-		},
-		{
-			"splat",
-			"config/*/timeouts/",
-			&KVListQuery{
-				prefix: "config/*/timeouts/",
-			},
-			false,
-		},
-		{
-			"slash",
-			"/",
-			&KVListQuery{
-				prefix: "/",
-			},
-			false,
-		},
-		{
-			"slash-slash",
-			"//",
-			&KVListQuery{
-				prefix: "/",
-			},
-			false,
-		},
 	}
+	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *test.Tenancy) []interface{} {
+		return []interface{}{
+			testCase{
+				tenancyHelper.AppendTenancyInfo("empty", tenancy),
+				"",
+				&KVListQuery{},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("dc_only", tenancy),
+				"@dc1",
+				nil,
+				true,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("query_only", tenancy),
+				fmt.Sprintf("?ns=%s", tenancy.Namespace),
+				nil,
+				true,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("invalid query param (unsupported key)", tenancy),
+				"prefix?unsupported=foo",
+				nil,
+				true,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("prefix", tenancy),
+				"prefix",
+				&KVListQuery{
+					prefix: "prefix",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("dc", tenancy),
+				"prefix@dc1",
+				&KVListQuery{
+					prefix: "prefix",
+					dc:     "dc1",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("partition", tenancy),
+				fmt.Sprintf("prefix?partition=%s", tenancy.Partition),
+				&KVListQuery{
+					prefix:    "prefix",
+					partition: tenancy.Partition,
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("namespace", tenancy),
+				fmt.Sprintf("prefix?ns=%s", tenancy.Namespace),
+				&KVListQuery{
+					prefix:    "prefix",
+					namespace: tenancy.Namespace,
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("namespace_and_partition", tenancy),
+				fmt.Sprintf("prefix?ns=%s&partition=%s", tenancy.Namespace, tenancy.Partition),
+				&KVListQuery{
+					prefix:    "prefix",
+					namespace: tenancy.Namespace,
+					partition: tenancy.Partition,
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("dc_namespace_and_partition", tenancy),
+				fmt.Sprintf("prefix?ns=%s&partition=%s@dc1", tenancy.Namespace, tenancy.Partition),
+				&KVListQuery{
+					prefix:    "prefix",
+					namespace: tenancy.Namespace,
+					partition: tenancy.Partition,
+					dc:        "dc1",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("empty_query", tenancy),
+				"prefix?ns=&partition=",
+				&KVListQuery{
+					prefix:    "prefix",
+					namespace: "",
+					partition: "",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("dots", tenancy),
+				"prefix.with.dots",
+				&KVListQuery{
+					prefix: "prefix.with.dots",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("slashes", tenancy),
+				"prefix/with/slashes",
+				&KVListQuery{
+					prefix: "prefix/with/slashes",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("dashes", tenancy),
+				"prefix-with-dashes",
+				&KVListQuery{
+					prefix: "prefix-with-dashes",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("leading_slash", tenancy),
+				"/leading/slash",
+				&KVListQuery{
+					prefix: "leading/slash",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("trailing_slash", tenancy),
+				"trailing/slash/",
+				&KVListQuery{
+					prefix: "trailing/slash/",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("underscores", tenancy),
+				"prefix_with_underscores",
+				&KVListQuery{
+					prefix: "prefix_with_underscores",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("special_characters", tenancy),
+				"config/facet:größe-lf-si",
+				&KVListQuery{
+					prefix: "config/facet:größe-lf-si",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("splat", tenancy),
+				"config/*/timeouts/",
+				&KVListQuery{
+					prefix: "config/*/timeouts/",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("slash", tenancy),
+				"/",
+				&KVListQuery{
+					prefix: "/",
+				},
+				false,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("slash-slash", tenancy),
+				"//",
+				&KVListQuery{
+					prefix: "/",
+				},
+				false,
+			},
+		}
+	})
 
-	for i, tc := range cases {
+	for i, test := range cases {
+		tc := test.(testCase)
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
 			act, err := NewKVListQuery(tc.i)
 			if (err != nil) != tc.err {
@@ -207,65 +212,138 @@ func TestNewKVListQuery(t *testing.T) {
 }
 
 func TestKVListQuery_Fetch(t *testing.T) {
-	testConsul.SetKVString(t, "test-kv-list/prefix/foo", "bar")
-	testConsul.SetKVString(t, "test-kv-list/prefix/zip", "zap")
-	testConsul.SetKVString(t, "test-kv-list/prefix/wave/ocean", "sleek")
+	for _, tenancy := range tenancyHelper.TestTenancies() {
+		fooKey := "test-kv-list/prefix/foo"
+		if tenancyHelper.IsConsulEnterprise() {
+			fooKey += fmt.Sprintf("?partition=%s&namespace=%s", tenancy.Partition, tenancy.Namespace)
+		}
+		testConsul.SetKVString(t, fooKey, fmt.Sprintf("bar-%s-%s", tenancy.Partition, tenancy.Namespace))
 
-	cases := []struct {
+		zipKey := "test-kv-list/prefix/zip"
+		if tenancyHelper.IsConsulEnterprise() {
+			zipKey += fmt.Sprintf("?partition=%s&namespace=%s", tenancy.Partition, tenancy.Namespace)
+		}
+		testConsul.SetKVString(t, zipKey, fmt.Sprintf("zap-%s-%s", tenancy.Partition, tenancy.Namespace))
+
+		oceanKey := "test-kv-list/prefix/wave/ocean"
+		if tenancyHelper.IsConsulEnterprise() {
+			oceanKey += fmt.Sprintf("?partition=%s&namespace=%s", tenancy.Partition, tenancy.Namespace)
+		}
+		testConsul.SetKVString(t, oceanKey, fmt.Sprintf("sleek-%s-%s", tenancy.Partition, tenancy.Namespace))
+	}
+
+	type testCase struct {
 		name string
 		i    string
 		exp  []*KeyPair
-	}{
-		{
-			"exists",
-			"test-kv-list/prefix",
-			[]*KeyPair{
-				{
-					Path:  "test-kv-list/prefix/foo",
-					Key:   "foo",
-					Value: "bar",
-				},
-				{
-					Path:  "test-kv-list/prefix/wave/ocean",
-					Key:   "wave/ocean",
-					Value: "sleek",
-				},
-				{
-					Path:  "test-kv-list/prefix/zip",
-					Key:   "zip",
-					Value: "zap",
-				},
-			},
-		},
-		{
-			"trailing",
-			"test-kv-list/prefix/",
-			[]*KeyPair{
-				{
-					Path:  "test-kv-list/prefix/foo",
-					Key:   "foo",
-					Value: "bar",
-				},
-				{
-					Path:  "test-kv-list/prefix/wave/ocean",
-					Key:   "wave/ocean",
-					Value: "sleek",
-				},
-				{
-					Path:  "test-kv-list/prefix/zip",
-					Key:   "zip",
-					Value: "zap",
-				},
-			},
-		},
-		{
-			"no_exist",
-			"test-kv-list/not/a/real/prefix/like/ever",
-			[]*KeyPair{},
-		},
 	}
 
-	for i, tc := range cases {
+	cases := tenancyHelper.GenerateNonDefaultTenancyTests(func(tenancy *test.Tenancy) []interface{} {
+		return []interface{}{
+			testCase{
+				tenancyHelper.AppendTenancyInfo("exists", tenancy),
+				fmt.Sprintf("test-kv-list/prefix?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace),
+				[]*KeyPair{
+					{
+						Path:  "test-kv-list/prefix/foo",
+						Key:   "foo",
+						Value: fmt.Sprintf("bar-%s-%s", tenancy.Partition, tenancy.Namespace),
+					},
+					{
+						Path:  "test-kv-list/prefix/wave/ocean",
+						Key:   "wave/ocean",
+						Value: fmt.Sprintf("sleek-%s-%s", tenancy.Partition, tenancy.Namespace),
+					},
+					{
+						Path:  "test-kv-list/prefix/zip",
+						Key:   "zip",
+						Value: fmt.Sprintf("zap-%s-%s", tenancy.Partition, tenancy.Namespace),
+					},
+				},
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("trailing", tenancy),
+				fmt.Sprintf("test-kv-list/prefix/?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace),
+				[]*KeyPair{
+					{
+						Path:  "test-kv-list/prefix/foo",
+						Key:   "foo",
+						Value: fmt.Sprintf("bar-%s-%s", tenancy.Partition, tenancy.Namespace),
+					},
+					{
+						Path:  "test-kv-list/prefix/wave/ocean",
+						Key:   "wave/ocean",
+						Value: fmt.Sprintf("sleek-%s-%s", tenancy.Partition, tenancy.Namespace),
+					},
+					{
+						Path:  "test-kv-list/prefix/zip",
+						Key:   "zip",
+						Value: fmt.Sprintf("zap-%s-%s", tenancy.Partition, tenancy.Namespace),
+					},
+				},
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("no_exist", tenancy),
+				fmt.Sprintf("test-kv-list/not/a/real/prefix/like/ever?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace),
+				[]*KeyPair{},
+			},
+		}
+	})
+
+	cases = append(cases, tenancyHelper.GenerateDefaultTenancyTests(func(tenancy *test.Tenancy) []interface{} {
+		return []interface{}{
+			testCase{
+				tenancyHelper.AppendTenancyInfo("exists", tenancy),
+				"test-kv-list/prefix",
+				[]*KeyPair{
+					{
+						Path:  "test-kv-list/prefix/foo",
+						Key:   "foo",
+						Value: fmt.Sprintf("bar-%s-%s", tenancy.Partition, tenancy.Namespace),
+					},
+					{
+						Path:  "test-kv-list/prefix/wave/ocean",
+						Key:   "wave/ocean",
+						Value: fmt.Sprintf("sleek-%s-%s", tenancy.Partition, tenancy.Namespace),
+					},
+					{
+						Path:  "test-kv-list/prefix/zip",
+						Key:   "zip",
+						Value: fmt.Sprintf("zap-%s-%s", tenancy.Partition, tenancy.Namespace),
+					},
+				},
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("trailing", tenancy),
+				"test-kv-list/prefix/",
+				[]*KeyPair{
+					{
+						Path:  "test-kv-list/prefix/foo",
+						Key:   "foo",
+						Value: fmt.Sprintf("bar-%s-%s", tenancy.Partition, tenancy.Namespace),
+					},
+					{
+						Path:  "test-kv-list/prefix/wave/ocean",
+						Key:   "wave/ocean",
+						Value: fmt.Sprintf("sleek-%s-%s", tenancy.Partition, tenancy.Namespace),
+					},
+					{
+						Path:  "test-kv-list/prefix/zip",
+						Key:   "zip",
+						Value: fmt.Sprintf("zap-%s-%s", tenancy.Partition, tenancy.Namespace),
+					},
+				},
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("no_exist", tenancy),
+				"test-kv-list/not/a/real/prefix/like/ever?partition",
+				[]*KeyPair{},
+			},
+		}
+	})...)
+
+	for i, test := range cases {
+		tc := test.(testCase)
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
 			d, err := NewKVListQuery(tc.i)
 			if err != nil {
@@ -286,8 +364,12 @@ func TestKVListQuery_Fetch(t *testing.T) {
 		})
 	}
 
-	t.Run("stops", func(t *testing.T) {
-		d, err := NewKVListQuery("test-kv-list/prefix")
+	tenancyHelper.RunWithTenancies(func(tenancy *test.Tenancy) {
+		kvQuery := "test-kv-list/prefix"
+		if tenancyHelper.IsConsulEnterprise() {
+			kvQuery += fmt.Sprintf("?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace)
+		}
+		d, err := NewKVListQuery(kvQuery)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -321,10 +403,14 @@ func TestKVListQuery_Fetch(t *testing.T) {
 		case <-time.After(250 * time.Millisecond):
 			t.Errorf("did not stop")
 		}
-	})
+	}, t, "stops")
 
-	t.Run("fires_changes", func(t *testing.T) {
-		d, err := NewKVListQuery("test-kv-list/prefix/")
+	tenancyHelper.RunWithTenancies(func(tenancy *test.Tenancy) {
+		kvQuery := "test-kv-list/prefix"
+		if tenancyHelper.IsConsulEnterprise() {
+			kvQuery += fmt.Sprintf("?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace)
+		}
+		d, err := NewKVListQuery(kvQuery)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -345,7 +431,11 @@ func TestKVListQuery_Fetch(t *testing.T) {
 			dataCh <- data
 		}()
 
-		testConsul.SetKVString(t, "test-kv-list/prefix/foo", "new-bar")
+		fooKey := "test-kv-list/prefix/foo"
+		if tenancyHelper.IsConsulEnterprise() {
+			fooKey += fmt.Sprintf("?partition=%s&namespace=%s", tenancy.Partition, tenancy.Namespace)
+		}
+		testConsul.SetKVString(t, fooKey, "new-bar")
 
 		select {
 		case err := <-errCh:
@@ -368,28 +458,52 @@ func TestKVListQuery_Fetch(t *testing.T) {
 
 			assert.Equal(t, exp, act)
 		}
-	})
+	}, t, "fires_changes")
 }
 
 func TestKVListQuery_String(t *testing.T) {
-	cases := []struct {
+	type testCase struct {
 		name string
 		i    string
 		exp  string
-	}{
-		{
-			"prefix",
-			"prefix",
-			"kv.list(prefix)",
-		},
-		{
-			"dc",
-			"prefix@dc1",
-			"kv.list(prefix@dc1)",
-		},
 	}
+	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *test.Tenancy) []interface{} {
+		return []interface{}{
+			testCase{
+				"prefix",
+				"prefix",
+				"kv.list(prefix)",
+			},
+			testCase{
+				"dc",
+				"prefix@dc1",
+				"kv.list(prefix@dc1)",
+			},
+			testCase{
+				"dc_partition",
+				fmt.Sprintf("prefix?partition=%s@dc1", tenancy.Partition),
+				fmt.Sprintf("kv.list(prefix@dc1@partition=%s)", tenancy.Partition),
+			},
+			testCase{
+				"dc_namespace",
+				fmt.Sprintf("prefix?ns=%s@dc1", tenancy.Namespace),
+				fmt.Sprintf("kv.list(prefix@dc1@ns=%s)", tenancy.Namespace),
+			},
+			testCase{
+				"dc_partition_namespace",
+				fmt.Sprintf("prefix?partition=%s&ns=%s@dc1", tenancy.Partition, tenancy.Namespace),
+				fmt.Sprintf("kv.list(prefix@dc1@partition=%s@ns=%s)", tenancy.Partition, tenancy.Namespace),
+			},
+			testCase{
+				"partition_namespace",
+				fmt.Sprintf("prefix?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace),
+				fmt.Sprintf("kv.list(prefix@partition=%s@ns=%s)", tenancy.Partition, tenancy.Namespace),
+			},
+		}
+	})
 
-	for i, tc := range cases {
+	for i, test := range cases {
+		tc := test.(testCase)
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
 			d, err := NewKVListQuery(tc.i)
 			if err != nil {

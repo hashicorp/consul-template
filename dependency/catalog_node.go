@@ -165,6 +165,12 @@ func (d *CatalogNodeQuery) String() string {
 	if d.dc != "" {
 		name = name + "@" + d.dc
 	}
+	if d.partition != "" {
+		name = name + "@partition=" + d.partition
+	}
+	if d.namespace != "" {
+		name = name + "@ns=" + d.namespace
+	}
 
 	if name == "" {
 		return "catalog.node"

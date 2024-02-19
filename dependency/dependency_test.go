@@ -29,10 +29,11 @@ const (
 )
 
 var (
-	testConsul  *testutil.TestServer
-	testVault   *vaultServer
-	testNomad   *nomadServer
-	testClients *ClientSet
+	testConsul    *testutil.TestServer
+	testVault     *vaultServer
+	testNomad     *nomadServer
+	testClients   *ClientSet
+	tenancyHelper *test.TenancyHelper
 )
 
 func TestMain(m *testing.M) {
@@ -46,8 +47,20 @@ func TestMain(m *testing.M) {
 		Address: testConsul.HTTPAddr,
 	}); err != nil {
 		testConsul.Stop()
+		testVault.Stop()
+		testNomad.Stop()
 		Fatalf("failed to create consul client: %v\n", err)
 	}
+
+	if t, err := test.NewTenancyHelper(clients.Consul()); err != nil {
+		testConsul.Stop()
+		testVault.Stop()
+		testNomad.Stop()
+		Fatalf("failed to create tenancy helper: %v\n", err)
+	} else {
+		tenancyHelper = t
+	}
+
 	if err := clients.CreateVaultClient(&CreateVaultClientInput{
 		Address: vaultAddr,
 		Token:   vaultToken,
@@ -64,70 +77,30 @@ func TestMain(m *testing.M) {
 		testNomad.Stop()
 		Fatalf("failed to create nomad client: %v\n", err)
 	}
+
 	testClients = clients
+
+	if err := testClients.createConsulPartitions(); err != nil {
+		testConsul.Stop()
+		testVault.Stop()
+		testNomad.Stop()
+		Fatalf("failed to create consul partitions: %v\n", err)
+	}
+
+	if err := testClients.createConsulNs(); err != nil {
+		testConsul.Stop()
+		testVault.Stop()
+		testNomad.Stop()
+		Fatalf("failed to create consul namespaces: %v\n", err)
+	}
 
 	setupVaultPKI(clients)
 
-	consul_agent := testClients.consul.client.Agent()
-	// service with meta data
-	serviceMetaService := &api.AgentServiceRegistration{
-		ID:   "service-meta",
-		Name: "service-meta",
-		Tags: []string{"tag1"},
-		Meta: map[string]string{
-			"meta1": "value1",
-		},
-	}
-	if err := consul_agent.ServiceRegister(serviceMetaService); err != nil {
-		Fatalf("%v", err)
-	}
-	// service with serviceTaggedAddresses
-	serviceTaggedAddressesService := &api.AgentServiceRegistration{
-		ID:   "service-taggedAddresses",
-		Name: "service-taggedAddresses",
-		TaggedAddresses: map[string]api.ServiceAddress{
-			"lan": {
-				Address: "192.0.2.1",
-				Port:    80,
-			},
-			"wan": {
-				Address: "192.0.2.2",
-				Port:    443,
-			},
-		},
-	}
-	if err := consul_agent.ServiceRegister(serviceTaggedAddressesService); err != nil {
-		Fatalf("%v", err)
-	}
-	// connect enabled service
-	testService := &api.AgentServiceRegistration{
-		Name:    "foo",
-		ID:      "foo",
-		Port:    12345,
-		Connect: &api.AgentServiceConnect{},
-	}
-	// this is based on what `consul connect proxy` command does at
-	// consul/command/connect/proxy/register.go (register method)
-	testConnect := &api.AgentServiceRegistration{
-		Kind: api.ServiceKindConnectProxy,
-		Name: "foo-sidecar-proxy",
-		ID:   "foo",
-		Port: 21999,
-		Proxy: &api.AgentServiceConnectProxyConfig{
-			DestinationServiceName: "foo",
-		},
-	}
-
-	if err := consul_agent.ServiceRegister(testService); err != nil {
-		Fatalf("%v", err)
-	}
-	if err := consul_agent.ServiceRegister(testConnect); err != nil {
-		Fatalf("%v", err)
-	}
-
-	err := createConsulPeerings(clients)
-	if err != nil {
-		Fatalf("%v", err)
+	if err := testClients.createConsulTestResources(); err != nil {
+		testConsul.Stop()
+		testVault.Stop()
+		testNomad.Stop()
+		Fatalf("failed to create consul test resources: %v\n", err)
 	}
 
 	// Wait for Nomad initialization to finish
@@ -164,15 +137,124 @@ func TestMain(m *testing.M) {
 	os.Exit(exit)
 }
 
-func createConsulPeerings(clients *ClientSet) error {
-	generateReq := api.PeeringGenerateTokenRequest{PeerName: "foo"}
-	_, _, err := clients.consul.client.Peerings().GenerateToken(context.Background(), generateReq, &api.WriteOptions{})
+func (c *ClientSet) createConsulTestResources() error {
+	catalog := testClients.Consul().Catalog()
+
+	node, err := testClients.Consul().Agent().NodeName()
 	if err != nil {
 		return err
 	}
 
-	generateReq = api.PeeringGenerateTokenRequest{PeerName: "bar"}
-	_, _, err = clients.consul.client.Peerings().GenerateToken(context.Background(), generateReq, &api.WriteOptions{})
+	for _, tenancy := range tenancyHelper.TestTenancies() {
+		partition := ""
+		namespace := ""
+		if tenancyHelper.IsConsulEnterprise() {
+			partition = tenancy.Partition
+			namespace = tenancy.Namespace
+		}
+		// service with meta data
+		serviceMetaService := &api.AgentService{
+			ID:      fmt.Sprintf("service-meta-%s-%s", tenancy.Partition, tenancy.Namespace),
+			Service: fmt.Sprintf("service-meta-%s-%s", tenancy.Partition, tenancy.Namespace),
+			Tags:    []string{"tag1"},
+			Meta: map[string]string{
+				"meta1": "value1",
+			},
+			Partition: partition,
+			Namespace: namespace,
+		}
+		if _, err := catalog.Register(&api.CatalogRegistration{
+			Service:   serviceMetaService,
+			Partition: partition,
+			Node:      node,
+			Address:   "127.0.0.1",
+		}, nil); err != nil {
+			return err
+		}
+		// service with serviceTaggedAddresses
+		serviceTaggedAddressesService := &api.AgentService{
+			ID:      fmt.Sprintf("service-taggedAddresses-%s-%s", tenancy.Partition, tenancy.Namespace),
+			Service: fmt.Sprintf("service-taggedAddresses-%s-%s", tenancy.Partition, tenancy.Namespace),
+			TaggedAddresses: map[string]api.ServiceAddress{
+				"lan": {
+					Address: "192.0.2.1",
+					Port:    80,
+				},
+				"wan": {
+					Address: "192.0.2.2",
+					Port:    443,
+				},
+			},
+			Partition: partition,
+			Namespace: namespace,
+		}
+		if _, err := catalog.Register(&api.CatalogRegistration{
+			Service:   serviceTaggedAddressesService,
+			Partition: partition,
+			Node:      node,
+			Address:   "127.0.0.1",
+		}, nil); err != nil {
+			return err
+		}
+
+		// connect enabled service
+		testService := &api.AgentService{
+			ID:        fmt.Sprintf("conn-enabled-service-%s-%s", tenancy.Partition, tenancy.Namespace),
+			Service:   fmt.Sprintf("conn-enabled-service-%s-%s", tenancy.Partition, tenancy.Namespace),
+			Port:      12345,
+			Connect:   &api.AgentServiceConnect{},
+			Partition: partition,
+			Namespace: namespace,
+		}
+		// this is based on what `consul connect proxy` command does at
+		// consul/command/connect/proxy/register.go (register method)
+		testConnect := &api.AgentService{
+			Kind:    api.ServiceKindConnectProxy,
+			ID:      fmt.Sprintf("conn-enabled-service-proxy-%s-%s", tenancy.Partition, tenancy.Namespace),
+			Service: fmt.Sprintf("conn-enabled-service-proxy-%s-%s", tenancy.Partition, tenancy.Namespace),
+			Port:    21999,
+			Proxy: &api.AgentServiceConnectProxyConfig{
+				DestinationServiceName: fmt.Sprintf("conn-enabled-service-%s-%s", tenancy.Partition, tenancy.Namespace),
+			},
+			Partition: partition,
+			Namespace: namespace,
+		}
+
+		if _, err := catalog.Register(&api.CatalogRegistration{
+			Service:   testService,
+			Partition: partition,
+			Node:      node,
+			Address:   "127.0.0.1",
+		}, nil); err != nil {
+			return err
+		}
+
+		if _, err := catalog.Register(&api.CatalogRegistration{
+			Service:   testConnect,
+			Partition: partition,
+			Node:      node,
+			Address:   "127.0.0.1",
+		}, nil); err != nil {
+			return err
+		}
+
+		if err := testClients.createConsulPeerings(tenancy); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *ClientSet) createConsulPeerings(tenancy *test.Tenancy) error {
+	generateReq := api.PeeringGenerateTokenRequest{PeerName: "foo", Partition: tenancy.Partition}
+	_, _, err := c.consul.client.Peerings().GenerateToken(context.Background(), generateReq, &api.WriteOptions{})
+	if err != nil {
+		return err
+	}
+
+	generateReq = api.PeeringGenerateTokenRequest{PeerName: "bar", Partition: tenancy.Partition}
+	_, _, err = c.consul.client.Peerings().GenerateToken(context.Background(), generateReq, &api.WriteOptions{})
 	if err != nil {
 		return err
 	}
@@ -465,4 +547,32 @@ func (v *nomadServer) DeleteVariable(path string, opts *nomadapi.WriteOptions) e
 		fmt.Println(err)
 	}
 	return err
+}
+
+func (c *ClientSet) createConsulPartitions() error {
+	for p := range tenancyHelper.GetUniquePartitions() {
+		if p.Name != "" && p.Name != "default" {
+			partition := &api.Partition{Name: p.Name}
+			_, _, err := c.Consul().Partitions().Create(context.Background(), partition, nil)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (c *ClientSet) createConsulNs() error {
+	for _, tenancy := range tenancyHelper.TestTenancies() {
+		if tenancy.Namespace != "" && tenancy.Namespace != "default" {
+			ns := &api.Namespace{Name: tenancy.Namespace, Partition: tenancy.Partition}
+			_, _, err := c.Consul().Namespaces().Create(ns, nil)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
