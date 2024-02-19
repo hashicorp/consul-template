@@ -146,6 +146,12 @@ func (c *ClientSet) createConsulTestResources() error {
 	}
 
 	for _, tenancy := range tenancyHelper.TestTenancies() {
+		partition := ""
+		namespace := ""
+		if tenancyHelper.IsConsulEnterprise() {
+			partition = tenancy.Partition
+			namespace = tenancy.Namespace
+		}
 		// service with meta data
 		serviceMetaService := &api.AgentService{
 			ID:      fmt.Sprintf("service-meta-%s-%s", tenancy.Partition, tenancy.Namespace),
@@ -154,12 +160,12 @@ func (c *ClientSet) createConsulTestResources() error {
 			Meta: map[string]string{
 				"meta1": "value1",
 			},
-			Namespace: tenancy.Namespace,
-			Partition: tenancy.Partition,
+			Partition: partition,
+			Namespace: namespace,
 		}
 		if _, err := catalog.Register(&api.CatalogRegistration{
 			Service:   serviceMetaService,
-			Partition: tenancy.Partition,
+			Partition: partition,
 			Node:      node,
 			Address:   "127.0.0.1",
 		}, nil); err != nil {
@@ -179,12 +185,12 @@ func (c *ClientSet) createConsulTestResources() error {
 					Port:    443,
 				},
 			},
-			Namespace: tenancy.Namespace,
-			Partition: tenancy.Partition,
+			Partition: partition,
+			Namespace: namespace,
 		}
 		if _, err := catalog.Register(&api.CatalogRegistration{
 			Service:   serviceTaggedAddressesService,
-			Partition: tenancy.Partition,
+			Partition: partition,
 			Node:      node,
 			Address:   "127.0.0.1",
 		}, nil); err != nil {
@@ -197,8 +203,8 @@ func (c *ClientSet) createConsulTestResources() error {
 			Service:   fmt.Sprintf("conn-enabled-service-%s-%s", tenancy.Partition, tenancy.Namespace),
 			Port:      12345,
 			Connect:   &api.AgentServiceConnect{},
-			Namespace: tenancy.Namespace,
-			Partition: tenancy.Partition,
+			Partition: partition,
+			Namespace: namespace,
 		}
 		// this is based on what `consul connect proxy` command does at
 		// consul/command/connect/proxy/register.go (register method)
@@ -210,13 +216,13 @@ func (c *ClientSet) createConsulTestResources() error {
 			Proxy: &api.AgentServiceConnectProxyConfig{
 				DestinationServiceName: fmt.Sprintf("conn-enabled-service-%s-%s", tenancy.Partition, tenancy.Namespace),
 			},
-			Namespace: tenancy.Namespace,
-			Partition: tenancy.Partition,
+			Partition: partition,
+			Namespace: namespace,
 		}
 
 		if _, err := catalog.Register(&api.CatalogRegistration{
 			Service:   testService,
-			Partition: tenancy.Partition,
+			Partition: partition,
 			Node:      node,
 			Address:   "127.0.0.1",
 		}, nil); err != nil {
@@ -225,7 +231,7 @@ func (c *ClientSet) createConsulTestResources() error {
 
 		if _, err := catalog.Register(&api.CatalogRegistration{
 			Service:   testConnect,
-			Partition: tenancy.Partition,
+			Partition: partition,
 			Node:      node,
 			Address:   "127.0.0.1",
 		}, nil); err != nil {

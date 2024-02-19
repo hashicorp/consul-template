@@ -264,7 +264,7 @@ func TestHealthConnectServiceQuery_Fetch(t *testing.T) {
 		in   string
 		exp  []*HealthService
 	}
-	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *test.Tenancy) []interface{} {
+	cases := tenancyHelper.GenerateNonDefaultTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("connect-service", tenancy),
@@ -312,6 +312,33 @@ func TestHealthConnectServiceQuery_Fetch(t *testing.T) {
 			},
 		}
 	})
+
+	cases = append(cases, tenancyHelper.GenerateDefaultTenancyTests(func(tenancy *test.Tenancy) []interface{} {
+		return []interface{}{
+			testCase{
+				tenancyHelper.AppendTenancyInfo("connect-service", tenancy),
+				"conn-enabled-service-default-default",
+				[]*HealthService{
+					{
+						Name:        "conn-enabled-service-proxy-default-default",
+						ID:          "conn-enabled-service-proxy-default-default",
+						Port:        21999,
+						Status:      "passing",
+						Address:     "127.0.0.1",
+						NodeAddress: "127.0.0.1",
+						Tags:        ServiceTags([]string{}),
+						NodeMeta:    map[string]string{
+							//"consul-network-segment": "",
+						},
+						Weights: api.AgentWeights{
+							Passing: 1,
+							Warning: 1,
+						},
+					},
+				},
+			},
+		}
+	})...)
 
 	for i, test := range cases {
 		tc := test.(testCase)

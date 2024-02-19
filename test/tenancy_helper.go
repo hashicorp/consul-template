@@ -50,6 +50,10 @@ func (t *TenancyHelper) TestTenancies() []*Tenancy {
 	return tenancies
 }
 
+func (t *TenancyHelper) IsConsulEnterprise() bool {
+	return t.isConsulEnterprise
+}
+
 // Tenancy constructs a Tenancy from a concise string representation
 // suitable for use in unit tests.
 //

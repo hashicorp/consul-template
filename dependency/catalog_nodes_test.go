@@ -144,7 +144,7 @@ func TestCatalogNodesQuery_Fetch(t *testing.T) {
 		i    string
 		exp  []*Node
 	}
-	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *test.Tenancy) []interface{} {
+	cases := tenancyHelper.GenerateNonDefaultTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("all", tenancy),
@@ -220,6 +220,29 @@ func TestCatalogNodesQuery_Fetch(t *testing.T) {
 			},
 		}
 	})
+
+	cases = append(cases, tenancyHelper.GenerateDefaultTenancyTests(func(tenancy *test.Tenancy) []interface{} {
+		return []interface{}{
+			testCase{
+				tenancyHelper.AppendTenancyInfo("all", tenancy),
+				"",
+				[]*Node{
+					{
+						Node:            testConsul.Config.NodeName,
+						Address:         testConsul.Config.Bind,
+						Datacenter:      "dc1",
+						TaggedAddresses: map[string]string{
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
+						},
+						Meta: map[string]string{
+							//"consul-network-segment": "",
+						},
+					},
+				},
+			},
+		}
+	})...)
 
 	for i, test := range cases {
 		tc := test.(testCase)

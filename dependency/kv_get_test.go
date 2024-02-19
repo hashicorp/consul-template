@@ -199,8 +199,17 @@ func TestNewKVGetQuery(t *testing.T) {
 func TestKVGetQuery_Fetch(t *testing.T) {
 
 	for _, tenancy := range tenancyHelper.TestTenancies() {
-		testConsul.SetKVString(t, fmt.Sprintf("test-kv-get/key?partition=%s&namespace=%s", tenancy.Partition, tenancy.Namespace), fmt.Sprintf("value-%s-%s", tenancy.Partition, tenancy.Namespace))
-		testConsul.SetKVString(t, fmt.Sprintf("test-kv-get/key_empty?partition=%s&namespace=%s", tenancy.Partition, tenancy.Namespace), "")
+		key := fmt.Sprintf("test-kv-get/key")
+		if tenancyHelper.IsConsulEnterprise() {
+			key += fmt.Sprintf("?partition=%s&namespace=%s", tenancy.Partition, tenancy.Namespace)
+		}
+		testConsul.SetKVString(t, key, fmt.Sprintf("value-%s-%s", tenancy.Partition, tenancy.Namespace))
+
+		emptyKey := fmt.Sprintf("test-kv-get/key_empty")
+		if tenancyHelper.IsConsulEnterprise() {
+			emptyKey += fmt.Sprintf("?partition=%s&namespace=%s", tenancy.Partition, tenancy.Namespace)
+		}
+		testConsul.SetKVString(t, emptyKey, "")
 	}
 
 	type testCase struct {
@@ -209,7 +218,7 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 		exp  interface{}
 	}
 
-	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *test.Tenancy) []interface{} {
+	cases := tenancyHelper.GenerateNonDefaultTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("exists", tenancy),
@@ -229,6 +238,26 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 		}
 	})
 
+	cases = append(cases, tenancyHelper.GenerateDefaultTenancyTests(func(tenancy *test.Tenancy) []interface{} {
+		return []interface{}{
+			testCase{
+				tenancyHelper.AppendTenancyInfo("exists", tenancy),
+				fmt.Sprintf("test-kv-get/key"),
+				fmt.Sprintf("value-%s-%s", tenancy.Partition, tenancy.Namespace),
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("exists_empty_string", tenancy),
+				fmt.Sprintf("test-kv-get/key_empty"),
+				"",
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("no_exist", tenancy),
+				fmt.Sprintf("test-kv-get/not/a/real/key/like/ever"),
+				nil,
+			},
+		}
+	})...)
+
 	for i, test := range cases {
 		tc := test.(testCase)
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
@@ -247,7 +276,11 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 	}
 
 	tenancyHelper.RunWithTenancies(func(tenancy *test.Tenancy) {
-		d, err := NewKVGetQuery(fmt.Sprintf("test-kv-get/key?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace))
+		kvQuery := fmt.Sprintf("test-kv-get/key")
+		if tenancyHelper.IsConsulEnterprise() {
+			kvQuery += fmt.Sprintf("?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace)
+		}
+		d, err := NewKVGetQuery(kvQuery)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -284,7 +317,11 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 	}, t, "stops")
 
 	tenancyHelper.RunWithTenancies(func(tenancy *test.Tenancy) {
-		d, err := NewKVGetQuery(fmt.Sprintf("test-kv-get/key?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace))
+		kvQuery := fmt.Sprintf("test-kv-get/key")
+		if tenancyHelper.IsConsulEnterprise() {
+			kvQuery += fmt.Sprintf("?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace)
+		}
+		d, err := NewKVGetQuery(kvQuery)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -305,7 +342,7 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 			dataCh <- data
 		}()
 
-		testConsul.SetKVString(t, fmt.Sprintf("test-kv-get/key?partition=%s&namespace=%s", tenancy.Partition, tenancy.Namespace), "new-value")
+		testConsul.SetKVString(t, kvQuery, "new-value")
 
 		select {
 		case err := <-errCh:

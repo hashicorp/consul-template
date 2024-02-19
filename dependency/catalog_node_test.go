@@ -305,62 +305,6 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 				},
 			},
 			testCase{
-				tenancyHelper.AppendTenancyInfo("partition and ns", tenancy),
-				fmt.Sprintf("%s?partition=%s&ns=%s", testConsul.Config.NodeName, tenancy.Partition, tenancy.Namespace),
-				&CatalogNode{
-					Node: &Node{
-						Node:            testConsul.Config.NodeName,
-						Address:         testConsul.Config.Bind,
-						Datacenter:      "dc1",
-						TaggedAddresses: map[string]string{
-							//"lan": "127.0.0.1",
-							//"wan": "127.0.0.1",
-						},
-						Meta: map[string]string{
-							//"consul-network-segment": "",
-						},
-					},
-					Services: []*CatalogNodeService{
-						{
-							ID:      fmt.Sprintf("conn-enabled-service-%s-%s", tenancy.Partition, tenancy.Namespace),
-							Service: fmt.Sprintf("conn-enabled-service-%s-%s", tenancy.Partition, tenancy.Namespace),
-							Tags:    ServiceTags([]string{}),
-							Meta:    map[string]string{},
-							Port:    12345,
-						},
-						{
-							ID:      fmt.Sprintf("conn-enabled-service-proxy-%s-%s", tenancy.Partition, tenancy.Namespace),
-							Service: fmt.Sprintf("conn-enabled-service-proxy-%s-%s", tenancy.Partition, tenancy.Namespace),
-							Tags:    ServiceTags([]string{}),
-							Meta:    map[string]string{},
-							Port:    21999,
-						},
-						{
-							ID:      "consul",
-							Service: "consul",
-							Port:    testConsul.Config.Ports.Server,
-							Tags:    ServiceTags([]string{}),
-							Meta:    map[string]string{},
-						},
-						{
-
-							ID:      fmt.Sprintf("service-meta-%s-%s", tenancy.Partition, tenancy.Namespace),
-							Service: fmt.Sprintf("service-meta-%s-%s", tenancy.Partition, tenancy.Namespace),
-							Tags:    ServiceTags([]string{"tag1"}),
-							Meta: map[string]string{
-								"meta1": "value1",
-							},
-						},
-						{
-							ID:      fmt.Sprintf("service-taggedAddresses-%s-%s", tenancy.Partition, tenancy.Namespace),
-							Service: fmt.Sprintf("service-taggedAddresses-%s-%s", tenancy.Partition, tenancy.Namespace),
-							Tags:    ServiceTags([]string{}),
-							Meta:    map[string]string{},
-						},
-					},
-				},
-			},
-			testCase{
 				tenancyHelper.AppendTenancyInfo("unknown", tenancy),
 				"not_a_real_node",
 				&CatalogNode{},
