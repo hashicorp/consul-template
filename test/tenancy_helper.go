@@ -138,10 +138,10 @@ func (t *TenancyHelper) GenerateDefaultTenancyTests(generationFunc func(tenancy 
 	return cases
 }
 
-func (t *TenancyHelper) GetUniquePartitions() map[*api.Partition]interface{} {
-	partitions := make(map[*api.Partition]interface{})
+func (t *TenancyHelper) GetUniquePartitions() map[api.Partition]interface{} {
+	partitions := make(map[api.Partition]interface{})
 	for _, tenancy := range t.TestTenancies() {
-		partitions[&api.Partition{
+		partitions[api.Partition{
 			Name: tenancy.Partition,
 		}] = nil
 	}
