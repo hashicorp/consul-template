@@ -632,6 +632,11 @@ func TestVaultReadQuery_String(t *testing.T) {
 			"path",
 			"vault.read(path)",
 		},
+		{
+			"path_version",
+			"path?version=3",
+			"vault.read(path.v3)",
+		},
 	}
 
 	for i, tc := range cases {
