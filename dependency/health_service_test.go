@@ -5,8 +5,9 @@ package dependency
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul-template/test"
 	"testing"
+
+	"github.com/hashicorp/consul-template/test"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/assert"
@@ -754,6 +755,11 @@ func TestHealthServiceQuery_String(t *testing.T) {
 				tenancyHelper.AppendTenancyInfo("partition_ns", tenancy),
 				fmt.Sprintf("tag.name?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace),
 				fmt.Sprintf("health.service(tag.name@partition=%s@ns=%s|passing)", tenancy.Partition, tenancy.Namespace),
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("peer", tenancy),
+				"tag.name?peer=peer-name",
+				"health.service(tag.name@peer=peer-name|passing)",
 			},
 		}
 	})

@@ -258,6 +258,9 @@ func (d *HealthServiceQuery) String() string {
 	if d.namespace != "" {
 		name = name + "@ns=" + d.namespace
 	}
+	if d.peer != "" {
+		name = name + "@peer=" + d.peer
+	}
 	if d.near != "" {
 		name = name + "~" + d.near
 	}
