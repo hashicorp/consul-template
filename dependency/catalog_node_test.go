@@ -129,20 +129,22 @@ func TestNewCatalogNodeQuery(t *testing.T) {
 
 func TestCatalogNodeQuery_Fetch(t *testing.T) {
 	type testCase struct {
-		name string
-		i    string
-		exp  *CatalogNode
+		name    string
+		i       string
+		tenancy *test.Tenancy
+		exp     *CatalogNode
 	}
 	cases := tenancyHelper.GenerateNonDefaultTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("local", tenancy),
 				"",
+				tenancy,
 				&CatalogNode{
 					Node: &Node{
-						Node:            testConsul.Config.NodeName,
-						Address:         testConsul.Config.Bind,
-						Datacenter:      "dc1",
+						Node:            getTestConsulForTenancy(tenancy).Config.NodeName,
+						Address:         getTestConsulForTenancy(tenancy).Config.Bind,
+						Datacenter:      getTestConsulForTenancy(tenancy).Config.Datacenter,
 						TaggedAddresses: map[string]string{
 							//"lan": "127.0.0.1",
 							//"wan": "127.0.0.1",
@@ -152,52 +154,53 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 						},
 					},
 					Services: []*CatalogNodeService{
-						{
-							ID:      "conn-enabled-service-default-default",
-							Service: "conn-enabled-service-default-default",
-							Tags:    ServiceTags([]string{}),
-							Meta:    map[string]string{},
-							Port:    12345,
-						},
-						{
-							ID:      "conn-enabled-service-proxy-default-default",
-							Service: "conn-enabled-service-proxy-default-default",
-							Tags:    ServiceTags([]string{}),
-							Meta:    map[string]string{},
-							Port:    21999,
-						},
+						//{
+						//	ID:      "conn-enabled-service-default-default",
+						//	Service: "conn-enabled-service-default-default",
+						//	Tags:    ServiceTags([]string{}),
+						//	Meta:    map[string]string{},
+						//	Port:    12345,
+						//},
+						//{
+						//	ID:      "conn-enabled-service-proxy-default-default",
+						//	Service: "conn-enabled-service-proxy-default-default",
+						//	Tags:    ServiceTags([]string{}),
+						//	Meta:    map[string]string{},
+						//	Port:    21999,
+						//},
 						{
 							ID:      "consul",
 							Service: "consul",
-							Port:    testConsul.Config.Ports.Server,
+							Port:    getTestConsulForTenancy(tenancy).Config.Ports.Server,
 							Tags:    ServiceTags([]string{}),
 							Meta:    map[string]string{},
 						},
-						{
-							ID:      "service-meta-default-default",
-							Service: "service-meta-default-default",
-							Tags:    ServiceTags([]string{"tag1"}),
-							Meta: map[string]string{
-								"meta1": "value1",
-							},
-						},
-						{
-							ID:      "service-taggedAddresses-default-default",
-							Service: "service-taggedAddresses-default-default",
-							Tags:    ServiceTags([]string{}),
-							Meta:    map[string]string{},
-						},
+						//{
+						//	ID:      "service-meta-default-default",
+						//	Service: "service-meta-default-default",
+						//	Tags:    ServiceTags([]string{"tag1"}),
+						//	Meta: map[string]string{
+						//		"meta1": "value1",
+						//	},
+						//},
+						//{
+						//	ID:      "service-taggedAddresses-default-default",
+						//	Service: "service-taggedAddresses-default-default",
+						//	Tags:    ServiceTags([]string{}),
+						//	Meta:    map[string]string{},
+						//},
 					},
 				},
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("partition and ns", tenancy),
-				fmt.Sprintf("%s?partition=%s&ns=%s", testConsul.Config.NodeName, tenancy.Partition, tenancy.Namespace),
+				fmt.Sprintf("%s?partition=%s&ns=%s", getTestConsulForTenancy(tenancy).Config.NodeName, tenancy.Partition, tenancy.Namespace),
+				tenancy,
 				&CatalogNode{
 					Node: &Node{
-						Node:            testConsul.Config.NodeName,
-						Address:         testConsul.Config.Bind,
-						Datacenter:      "dc1",
+						Node:            getTestConsulForTenancy(tenancy).Config.NodeName,
+						Address:         getTestConsulForTenancy(tenancy).Config.Bind,
+						Datacenter:      getTestConsulForTenancy(tenancy).Config.Datacenter,
 						TaggedAddresses: map[string]string{
 							//"lan": "127.0.0.1",
 							//"wan": "127.0.0.1",
@@ -242,6 +245,7 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 			testCase{
 				tenancyHelper.AppendTenancyInfo("unknown", tenancy),
 				"not_a_real_node",
+				tenancy,
 				&CatalogNode{},
 			},
 		}
@@ -252,10 +256,11 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 			testCase{
 				tenancyHelper.AppendTenancyInfo("local", tenancy),
 				"",
+				tenancy,
 				&CatalogNode{
 					Node: &Node{
-						Node:            testConsul.Config.NodeName,
-						Address:         testConsul.Config.Bind,
+						Node:            getTestConsulForTenancy(tenancy).Config.NodeName,
+						Address:         getTestConsulForTenancy(tenancy).Config.Bind,
 						Datacenter:      "dc1",
 						TaggedAddresses: map[string]string{
 							//"lan": "127.0.0.1",
@@ -283,7 +288,7 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 						{
 							ID:      "consul",
 							Service: "consul",
-							Port:    testConsul.Config.Ports.Server,
+							Port:    getTestConsulForTenancy(tenancy).Config.Ports.Server,
 							Tags:    ServiceTags([]string{}),
 							Meta:    map[string]string{},
 						},
@@ -307,6 +312,7 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 			testCase{
 				tenancyHelper.AppendTenancyInfo("unknown", tenancy),
 				"not_a_real_node",
+				tenancy,
 				&CatalogNode{},
 			},
 		}
@@ -320,7 +326,7 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			act, _, err := d.Fetch(testClients, nil)
+			act, _, err := d.Fetch(getTestClientsForTenancy(tc.tenancy), nil)
 			if err != nil {
 				t.Fatal(err)
 			}

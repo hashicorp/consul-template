@@ -32,7 +32,7 @@ func TestConnectLeafQuery_Fetch(t *testing.T) {
 	t.Run("empty-service", func(t *testing.T) {
 		d := NewConnectLeafQuery("")
 
-		_, _, err := d.Fetch(testClients, nil)
+		_, _, err := d.Fetch(getDefaultTestClient(), nil)
 		prefix := "Unexpected response code: 500 (URI must be either"
 		if !strings.HasPrefix(errors.Cause(err).Error(), prefix) {
 			t.Fatalf("Unexpected error: %v", err)
@@ -41,7 +41,7 @@ func TestConnectLeafQuery_Fetch(t *testing.T) {
 	t.Run("with-service", func(t *testing.T) {
 		name := uniqueName("foo")
 		d := NewConnectLeafQuery(name)
-		raw, _, err := d.Fetch(testClients, nil)
+		raw, _, err := d.Fetch(getDefaultTestClient(), nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -62,13 +62,13 @@ func TestConnectLeafQuery_Fetch(t *testing.T) {
 	t.Run("double-check", func(t *testing.T) {
 		name := uniqueName("foo")
 		d1 := NewConnectLeafQuery(name)
-		raw1, _, err := d1.Fetch(testClients, nil)
+		raw1, _, err := d1.Fetch(getDefaultTestClient(), nil)
 		if err != nil {
 			t.Fatal(err)
 		}
 		cert1 := raw1.(*api.LeafCert)
 		d2 := NewConnectLeafQuery(name)
-		raw2, _, err := d2.Fetch(testClients, nil)
+		raw2, _, err := d2.Fetch(getDefaultTestClient(), nil)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -71,15 +71,11 @@ func (d *CatalogServicesQuery) Fetch(clients *ClientSet, opts *QueryOptions) (in
 	default:
 	}
 
-	// default to the query params present while creating NewCatalogServicesQuery
-	// and then merge with the query params present in the query
-	defaultOpts := &QueryOptions{
+	opts = opts.Merge(&QueryOptions{
 		Datacenter:      d.dc,
 		ConsulPartition: d.partition,
 		ConsulNamespace: d.namespace,
-	}
-
-	opts = defaultOpts.Merge(opts)
+	})
 
 	log.Printf("[TRACE] %s: GET %s", d, &url.URL{
 		Path:     "/v1/catalog/services",

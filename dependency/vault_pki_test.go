@@ -95,7 +95,7 @@ func Test_VaultPKI_pemsCert(t *testing.T) {
 }
 
 func Test_VaultPKI_fetchPEM(t *testing.T) {
-	clients := testClients
+	clients := getDefaultTestClient()
 
 	data := map[string]interface{}{
 		"common_name": "foo.example.com",
@@ -135,7 +135,7 @@ func Test_VaultPKI_refetch(t *testing.T) {
 	os.Remove(f.Name())
 	defer os.Remove(f.Name())
 
-	clients := testClients
+	clients := getDefaultTestClient()
 	/// above is prep work
 	data := map[string]interface{}{
 		"common_name": "foo.example.com",

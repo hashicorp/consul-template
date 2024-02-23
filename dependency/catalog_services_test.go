@@ -103,17 +103,19 @@ func TestNewCatalogServicesQuery(t *testing.T) {
 
 func TestCatalogServicesQuery_Fetch(t *testing.T) {
 	type testCase struct {
-		name string
-		i    string
-		opts *QueryOptions
-		exp  []*CatalogSnippet
-		err  bool
+		name    string
+		i       string
+		tenancy *test.Tenancy
+		opts    *QueryOptions
+		exp     []*CatalogSnippet
+		err     bool
 	}
 	cases := tenancyHelper.GenerateDefaultTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("all", tenancy),
 				"",
+				tenancy,
 				nil,
 				[]*CatalogSnippet{
 					{
@@ -147,6 +149,7 @@ func TestCatalogServicesQuery_Fetch(t *testing.T) {
 			testCase{
 				tenancyHelper.AppendTenancyInfo("all", tenancy),
 				"",
+				tenancy,
 				nil,
 				[]*CatalogSnippet{
 					{
@@ -175,6 +178,7 @@ func TestCatalogServicesQuery_Fetch(t *testing.T) {
 			testCase{
 				tenancyHelper.AppendTenancyInfo("partition_and_ns", tenancy),
 				fmt.Sprintf("?ns=%s&partition=%s", tenancy.Namespace, tenancy.Partition),
+				tenancy,
 				nil,
 				[]*CatalogSnippet{
 					{
@@ -208,7 +212,7 @@ func TestCatalogServicesQuery_Fetch(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			act, _, err := d.Fetch(testClients, tc.opts)
+			act, _, err := d.Fetch(getTestClientsForTenancy(tc.tenancy), tc.opts)
 			if (err != nil) != tc.err {
 				t.Fatal(err)
 			}

@@ -175,7 +175,7 @@ func TestVaultWriteSecretKV_Fetch(t *testing.T) {
 }
 
 func TestVaultWriteQuery_Fetch(t *testing.T) {
-	clients := testClients
+	clients := getDefaultTestClient()
 
 	if err := clients.Vault().Sys().Mount("transit", &api.MountInput{
 		Type: "transit",

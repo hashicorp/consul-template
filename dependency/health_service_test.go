@@ -260,15 +260,17 @@ func TestNewHealthServiceQuery(t *testing.T) {
 
 func TestHealthConnectServiceQuery_Fetch(t *testing.T) {
 	type testCase struct {
-		name string
-		in   string
-		exp  []*HealthService
+		name    string
+		in      string
+		tenancy *test.Tenancy
+		exp     []*HealthService
 	}
 	cases := tenancyHelper.GenerateNonDefaultTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("connect-service", tenancy),
 				"conn-enabled-service-default-default",
+				tenancy,
 				[]*HealthService{
 					{
 						Name:        "conn-enabled-service-proxy-default-default",
@@ -291,6 +293,7 @@ func TestHealthConnectServiceQuery_Fetch(t *testing.T) {
 			testCase{
 				tenancyHelper.AppendTenancyInfo("connect-service", tenancy),
 				fmt.Sprintf("conn-enabled-service-%s-%s?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace, tenancy.Partition, tenancy.Namespace),
+				tenancy,
 				[]*HealthService{
 					{
 						Name:        fmt.Sprintf("conn-enabled-service-proxy-%s-%s", tenancy.Partition, tenancy.Namespace),
@@ -318,6 +321,7 @@ func TestHealthConnectServiceQuery_Fetch(t *testing.T) {
 			testCase{
 				tenancyHelper.AppendTenancyInfo("connect-service", tenancy),
 				"conn-enabled-service-default-default",
+				tenancy,
 				[]*HealthService{
 					{
 						Name:        "conn-enabled-service-proxy-default-default",
@@ -350,7 +354,7 @@ func TestHealthConnectServiceQuery_Fetch(t *testing.T) {
 			defer func() {
 				d.Stop()
 			}()
-			res, _, err := d.Fetch(testClients, nil)
+			res, _, err := d.Fetch(getTestClientsForTenancy(tc.tenancy), nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -373,19 +377,21 @@ func TestHealthConnectServiceQuery_Fetch(t *testing.T) {
 
 func TestHealthServiceQuery_Fetch(t *testing.T) {
 	type testCase struct {
-		name string
-		i    string
-		exp  []*HealthService
+		name    string
+		i       string
+		tenancy *test.Tenancy
+		exp     []*HealthService
 	}
 	cases := tenancyHelper.GenerateDefaultTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("consul", tenancy),
 				"consul",
+				tenancy,
 				[]*HealthService{
 					{
-						Node:                testConsul.Config.NodeName,
-						NodeAddress:         testConsul.Config.Bind,
+						Node:                getTestConsulForTenancy(tenancy).Config.NodeName,
+						NodeAddress:         getTestConsulForTenancy(tenancy).Config.Bind,
 						NodeTaggedAddresses: map[string]string{
 							//"lan": "127.0.0.1",
 							//"wan": "127.0.0.1",
@@ -394,12 +400,12 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 							//"consul-network-segment": "",
 						},
 						ServiceMeta: map[string]string{},
-						Address:     testConsul.Config.Bind,
+						Address:     getTestConsulForTenancy(tenancy).Config.Bind,
 						ID:          "consul",
 						Name:        "consul",
 						Tags:        []string{},
 						Status:      "passing",
-						Port:        testConsul.Config.Ports.Server,
+						Port:        getTestConsulForTenancy(tenancy).Config.Ports.Server,
 						Weights: api.AgentWeights{
 							Passing: 1,
 							Warning: 1,
@@ -410,15 +416,17 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 			testCase{
 				tenancyHelper.AppendTenancyInfo("filters", tenancy),
 				"consul|warning",
+				tenancy,
 				[]*HealthService{},
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("multifilter", tenancy),
 				"consul|warning,passing",
+				tenancy,
 				[]*HealthService{
 					{
-						Node:                testConsul.Config.NodeName,
-						NodeAddress:         testConsul.Config.Bind,
+						Node:                getTestConsulForTenancy(tenancy).Config.NodeName,
+						NodeAddress:         getTestConsulForTenancy(tenancy).Config.Bind,
 						NodeTaggedAddresses: map[string]string{
 							//"lan": "127.0.0.1",
 							//"wan": "127.0.0.1",
@@ -427,12 +435,12 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 							//"consul-network-segment": "",
 						},
 						ServiceMeta: map[string]string{},
-						Address:     testConsul.Config.Bind,
+						Address:     getTestConsulForTenancy(tenancy).Config.Bind,
 						ID:          "consul",
 						Name:        "consul",
 						Tags:        []string{},
 						Status:      "passing",
-						Port:        testConsul.Config.Ports.Server,
+						Port:        getTestConsulForTenancy(tenancy).Config.Ports.Server,
 						Weights: api.AgentWeights{
 							Passing: 1,
 							Warning: 1,
@@ -443,10 +451,11 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 			testCase{
 				tenancyHelper.AppendTenancyInfo("service-meta", tenancy),
 				"service-meta-default-default",
+				tenancy,
 				[]*HealthService{
 					{
-						Node:                testConsul.Config.NodeName,
-						NodeAddress:         testConsul.Config.Bind,
+						Node:                getTestConsulForTenancy(tenancy).Config.NodeName,
+						NodeAddress:         getTestConsulForTenancy(tenancy).Config.Bind,
 						NodeTaggedAddresses: map[string]string{
 							//"lan": "127.0.0.1",
 							//"wan": "127.0.0.1",
@@ -457,7 +466,7 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 						ServiceMeta: map[string]string{
 							"meta1": "value1",
 						},
-						Address: testConsul.Config.Bind,
+						Address: getTestConsulForTenancy(tenancy).Config.Bind,
 						ID:      "service-meta-default-default",
 						Name:    "service-meta-default-default",
 						Tags:    []string{"tag1"},
@@ -472,10 +481,11 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 			testCase{
 				tenancyHelper.AppendTenancyInfo("service-taggedAddresses", tenancy),
 				"service-taggedAddresses-default-default",
+				tenancy,
 				[]*HealthService{
 					{
-						Node:                testConsul.Config.NodeName,
-						NodeAddress:         testConsul.Config.Bind,
+						Node:                getTestConsulForTenancy(tenancy).Config.NodeName,
+						NodeAddress:         getTestConsulForTenancy(tenancy).Config.Bind,
 						NodeTaggedAddresses: map[string]string{
 							//"lan": "127.0.0.1",
 							//"wan": "127.0.0.1",
@@ -484,7 +494,7 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 							//"consul-network-segment": "",
 						},
 						ServiceMeta: map[string]string{},
-						Address:     testConsul.Config.Bind,
+						Address:     getTestConsulForTenancy(tenancy).Config.Bind,
 						ServiceTaggedAddresses: map[string]api.ServiceAddress{
 							"lan": {
 								Address: "192.0.2.1",
@@ -514,10 +524,11 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 			testCase{
 				tenancyHelper.AppendTenancyInfo("consul", tenancy),
 				"consul",
+				tenancy,
 				[]*HealthService{
 					{
-						Node:                testConsul.Config.NodeName,
-						NodeAddress:         testConsul.Config.Bind,
+						Node:                getTestConsulForTenancy(tenancy).Config.NodeName,
+						NodeAddress:         getTestConsulForTenancy(tenancy).Config.Bind,
 						NodeTaggedAddresses: map[string]string{
 							//"lan": "127.0.0.1",
 							//"wan": "127.0.0.1",
@@ -526,12 +537,12 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 							//"consul-network-segment": "",
 						},
 						ServiceMeta: map[string]string{},
-						Address:     testConsul.Config.Bind,
+						Address:     getTestConsulForTenancy(tenancy).Config.Bind,
 						ID:          "consul",
 						Name:        "consul",
 						Tags:        []string{},
 						Status:      "passing",
-						Port:        testConsul.Config.Ports.Server,
+						Port:        getTestConsulForTenancy(tenancy).Config.Ports.Server,
 						Weights: api.AgentWeights{
 							Passing: 1,
 							Warning: 1,
@@ -542,15 +553,17 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 			testCase{
 				tenancyHelper.AppendTenancyInfo("filters", tenancy),
 				"consul|warning",
+				tenancy,
 				[]*HealthService{},
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("multifilter", tenancy),
 				"consul|warning,passing",
+				tenancy,
 				[]*HealthService{
 					{
-						Node:                testConsul.Config.NodeName,
-						NodeAddress:         testConsul.Config.Bind,
+						Node:                getTestConsulForTenancy(tenancy).Config.NodeName,
+						NodeAddress:         getTestConsulForTenancy(tenancy).Config.Bind,
 						NodeTaggedAddresses: map[string]string{
 							//"lan": "127.0.0.1",
 							//"wan": "127.0.0.1",
@@ -559,12 +572,12 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 							//"consul-network-segment": "",
 						},
 						ServiceMeta: map[string]string{},
-						Address:     testConsul.Config.Bind,
+						Address:     getTestConsulForTenancy(tenancy).Config.Bind,
 						ID:          "consul",
 						Name:        "consul",
 						Tags:        []string{},
 						Status:      "passing",
-						Port:        testConsul.Config.Ports.Server,
+						Port:        getTestConsulForTenancy(tenancy).Config.Ports.Server,
 						Weights: api.AgentWeights{
 							Passing: 1,
 							Warning: 1,
@@ -575,10 +588,11 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 			testCase{
 				tenancyHelper.AppendTenancyInfo("service-meta", tenancy),
 				fmt.Sprintf("service-meta-%s-%s?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace, tenancy.Partition, tenancy.Namespace),
+				tenancy,
 				[]*HealthService{
 					{
-						Node:                testConsul.Config.NodeName,
-						NodeAddress:         testConsul.Config.Bind,
+						Node:                getTestConsulForTenancy(tenancy).Config.NodeName,
+						NodeAddress:         getTestConsulForTenancy(tenancy).Config.Bind,
 						NodeTaggedAddresses: map[string]string{
 							//"lan": "127.0.0.1",
 							//"wan": "127.0.0.1",
@@ -589,7 +603,7 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 						ServiceMeta: map[string]string{
 							"meta1": "value1",
 						},
-						Address: testConsul.Config.Bind,
+						Address: getTestConsulForTenancy(tenancy).Config.Bind,
 						ID:      fmt.Sprintf("service-meta-%s-%s", tenancy.Partition, tenancy.Namespace),
 						Name:    fmt.Sprintf("service-meta-%s-%s", tenancy.Partition, tenancy.Namespace),
 						Tags:    []string{"tag1"},
@@ -604,10 +618,12 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 			testCase{
 				tenancyHelper.AppendTenancyInfo("service-taggedAddresses", tenancy),
 				fmt.Sprintf("service-taggedAddresses-%s-%s?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace, tenancy.Partition, tenancy.Namespace),
+				tenancy,
+
 				[]*HealthService{
 					{
-						Node:                testConsul.Config.NodeName,
-						NodeAddress:         testConsul.Config.Bind,
+						Node:                getTestConsulForTenancy(tenancy).Config.NodeName,
+						NodeAddress:         getTestConsulForTenancy(tenancy).Config.Bind,
 						NodeTaggedAddresses: map[string]string{
 							//"lan": "127.0.0.1",
 							//"wan": "127.0.0.1",
@@ -616,7 +632,7 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 							//"consul-network-segment": "",
 						},
 						ServiceMeta: map[string]string{},
-						Address:     testConsul.Config.Bind,
+						Address:     getTestConsulForTenancy(tenancy).Config.Bind,
 						ServiceTaggedAddresses: map[string]api.ServiceAddress{
 							"lan": {
 								Address: "192.0.2.1",
@@ -649,7 +665,7 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			act, _, err := d.Fetch(testClients, nil)
+			act, _, err := d.Fetch(getTestClientsForTenancy(tc.tenancy), nil)
 			if err != nil {
 				t.Fatal(err)
 			}

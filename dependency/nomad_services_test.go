@@ -80,7 +80,7 @@ func TestNomadServicesQuery_Fetch_1arg(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			act, _, err := d.Fetch(testClients, nil)
+			act, _, err := d.Fetch(getDefaultTestClient(), nil)
 			if err != nil {
 				t.Fatal(err)
 			}

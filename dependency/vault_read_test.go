@@ -512,7 +512,7 @@ func TestVaultReadQuery_Fetch_KVv2(t *testing.T) {
 // TestVaultReadQuery_Fetch_PKI_Anonymous asserts that vault.read can fetch a
 // pki ca public cert even even when running unauthenticated client.
 func TestVaultReadQuery_Fetch_PKI_Anonymous(t *testing.T) {
-	clients := testClients
+	clients := getDefaultTestClient()
 
 	vc := clients.Vault()
 	_, err := vc.Logical().Write("sys/policies/acl/secrets-only",
@@ -563,7 +563,7 @@ func TestVaultReadQuery_Fetch_PKI_Anonymous(t *testing.T) {
 func TestVaultReadQuery_Fetch_NonSecrets(t *testing.T) {
 	var err error
 
-	clients := testClients
+	clients := getDefaultTestClient()
 
 	vc := clients.Vault()
 

@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"io"
 	"log"
 	"os"
@@ -18,7 +19,6 @@ import (
 
 	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil"
 	nomadapi "github.com/hashicorp/nomad/api"
 	vapi "github.com/hashicorp/vault/api"
 )
@@ -28,35 +28,41 @@ const (
 	vaultToken = "a_token"
 )
 
+type tenancyKey struct {
+	partition string
+}
+
 var (
-	testConsul    *testutil.TestServer
+	testConsul    map[tenancyKey]*testutil.TestServer
 	testVault     *vaultServer
 	testNomad     *nomadServer
-	testClients   *ClientSet
+	testClients   map[tenancyKey]*ClientSet
 	tenancyHelper *test.TenancyHelper
 )
 
 func TestMain(m *testing.M) {
 	log.SetOutput(io.Discard)
+
+	testClients = make(map[tenancyKey]*ClientSet)
+	testConsul = make(map[tenancyKey]*testutil.TestServer)
+
 	nomadFuture := runTestNomad()
 	runTestVault()
+
 	tb := &test.TestingTB{}
-	runTestConsul(tb)
+
 	clients := NewClientSet()
+
+	defaultTenancyKey := createTenancyKey(test.GetDefaultTenancy())
+	runTestConsul(tb, defaultTenancyKey)
 	if err := clients.CreateConsulClient(&CreateConsulClientInput{
-		Address: testConsul.HTTPAddr,
+		Address: testConsul[defaultTenancyKey].HTTPAddr,
 	}); err != nil {
-		testConsul.Stop()
-		testVault.Stop()
-		testNomad.Stop()
-		Fatalf("failed to create consul client: %v\n", err)
+		stop("failed to create consul client: %v\n", err)
 	}
 
 	if t, err := test.NewTenancyHelper(clients.Consul()); err != nil {
-		testConsul.Stop()
-		testVault.Stop()
-		testNomad.Stop()
-		Fatalf("failed to create tenancy helper: %v\n", err)
+		stop("failed to create tenancy helper: %v\n", err)
 	} else {
 		tenancyHelper = t
 	}
@@ -65,50 +71,54 @@ func TestMain(m *testing.M) {
 		Address: vaultAddr,
 		Token:   vaultToken,
 	}); err != nil {
-		testConsul.Stop()
-		testVault.Stop()
-		Fatalf("failed to create vault client: %v\n", err)
+		stop("failed to create vault client: %v\n", err)
 	}
+
 	if err := clients.CreateNomadClient(&CreateNomadClientInput{
 		Address: "http://127.0.0.1:4646",
 	}); err != nil {
-		testConsul.Stop()
-		testVault.Stop()
-		testNomad.Stop()
-		Fatalf("failed to create nomad client: %v\n", err)
+		stop("failed to create nomad client: %v\n", err)
 	}
 
-	testClients = clients
+	testClients[defaultTenancyKey] = clients
 
-	if err := testClients.createConsulPartitions(); err != nil {
-		testConsul.Stop()
-		testVault.Stop()
-		testNomad.Stop()
-		Fatalf("failed to create consul partitions: %v\n", err)
+	// now that we have the consul version details, let's create nodes for other partitions
+	// and save them in testcClients as well as testConsul
+	for partition, _ := range tenancyHelper.GetUniquePartitions() {
+		clients := NewClientSet()
+
+		if partition == defaultTenancyKey.partition {
+			continue
+		}
+
+		tKey := createTenancyKey(&test.Tenancy{Partition: partition})
+		runTestConsul(tb, tKey)
+		if err := clients.CreateConsulClient(&CreateConsulClientInput{
+			Address: testConsul[tKey].HTTPAddr,
+		}); err != nil {
+			stop("failed to create consul client: %v, for partition:%s\n", err, tKey.partition)
+		}
+
+		testClients[tKey] = clients
+
+		if err := createConsulTestPartition(partition); err != nil {
+			stop("failed to create consul partition: %v\n", err)
+		}
 	}
 
-	if err := testClients.createConsulNs(); err != nil {
-		testConsul.Stop()
-		testVault.Stop()
-		testNomad.Stop()
-		Fatalf("failed to create consul namespaces: %v\n", err)
+	if err := createConsulTestNs(); err != nil {
+		stop("failed to create consul namespaces: %v\n", err)
 	}
 
 	setupVaultPKI(clients)
 
-	if err := testClients.createConsulTestResources(); err != nil {
-		testConsul.Stop()
-		testVault.Stop()
-		testNomad.Stop()
-		Fatalf("failed to create consul test resources: %v\n", err)
+	if err := createConsulTestResources(); err != nil {
+		stop("failed to create consul test resources: %v\n", err)
 	}
 
 	// Wait for Nomad initialization to finish
 	if err := <-nomadFuture; err != nil {
-		testConsul.Stop()
-		testNomad.Stop()
-		testVault.Stop()
-		Fatalf("failed to start Nomad: %v\n", err)
+		stop("failed to start Nomad: %v\n", err)
 	}
 
 	exitCh := make(chan int, 1)
@@ -118,9 +128,7 @@ func TestMain(m *testing.M) {
 			// stop it, the panic will cause the server to remain running in
 			// the background. Here we catch the panic and the re-raise it.
 			if r := recover(); r != nil {
-				testConsul.Stop()
-				testVault.Stop()
-				testNomad.Stop()
+				stop("", nil)
 				panic(r)
 			}
 		}()
@@ -130,21 +138,11 @@ func TestMain(m *testing.M) {
 
 	exit := <-exitCh
 
-	tb.DoCleanup()
-	testConsul.Stop()
-	testVault.Stop()
-	testNomad.Stop()
+	stop("", nil)
 	os.Exit(exit)
 }
 
-func (c *ClientSet) createConsulTestResources() error {
-	catalog := testClients.Consul().Catalog()
-
-	node, err := testClients.Consul().Agent().NodeName()
-	if err != nil {
-		return err
-	}
-
+func createConsulTestResources() error {
 	for _, tenancy := range tenancyHelper.TestTenancies() {
 		partition := ""
 		namespace := ""
@@ -152,6 +150,15 @@ func (c *ClientSet) createConsulTestResources() error {
 			partition = tenancy.Partition
 			namespace = tenancy.Namespace
 		}
+
+		tKey := createTenancyKey(tenancy)
+		catalog := testClients[tKey].Consul().Catalog()
+
+		node, err := testClients[tKey].Consul().Agent().NodeName()
+		if err != nil {
+			return err
+		}
+
 		// service with meta data
 		serviceMetaService := &api.AgentService{
 			ID:      fmt.Sprintf("service-meta-%s-%s", tenancy.Partition, tenancy.Namespace),
@@ -238,23 +245,25 @@ func (c *ClientSet) createConsulTestResources() error {
 			return err
 		}
 
-		if err := testClients.createConsulPeerings(tenancy); err != nil {
+		if err := createConsulPeerings(tenancy); err != nil {
 			return err
 		}
+		time.Sleep(2 * time.Second)
 	}
 
 	return nil
 }
 
-func (c *ClientSet) createConsulPeerings(tenancy *test.Tenancy) error {
+func createConsulPeerings(tenancy *test.Tenancy) error {
 	generateReq := api.PeeringGenerateTokenRequest{PeerName: "foo", Partition: tenancy.Partition}
-	_, _, err := c.consul.client.Peerings().GenerateToken(context.Background(), generateReq, &api.WriteOptions{})
+	tc := getDefaultTestClient()
+	_, _, err := tc.consul.client.Peerings().GenerateToken(context.Background(), generateReq, &api.WriteOptions{})
 	if err != nil {
 		return err
 	}
 
 	generateReq = api.PeeringGenerateTokenRequest{PeerName: "bar", Partition: tenancy.Partition}
-	_, _, err = c.consul.client.Peerings().GenerateToken(context.Background(), generateReq, &api.WriteOptions{})
+	_, _, err = tc.consul.client.Peerings().GenerateToken(context.Background(), generateReq, &api.WriteOptions{})
 	if err != nil {
 		return err
 	}
@@ -262,17 +271,24 @@ func (c *ClientSet) createConsulPeerings(tenancy *test.Tenancy) error {
 	return nil
 }
 
-func runTestConsul(tb testutil.TestingTB) {
+func runTestConsul(tb testutil.TestingTB, tenancyKey tenancyKey) {
+	datacenter := "dc1"
+	if tenancyKey.partition != "default" {
+		datacenter = tenancyKey.partition
+	}
 	consul, err := testutil.NewTestServerConfigT(tb,
 		func(c *testutil.TestServerConfig) {
 			c.LogLevel = "warn"
 			c.Stdout = io.Discard
 			c.Stderr = io.Discard
+			c.ReadyTimeout = 2 * time.Second
+			c.NodeName = fmt.Sprintf("ct-test-%s", tenancyKey.partition)
+			c.Datacenter = datacenter
 		})
 	if err != nil {
-		Fatalf("failed to start consul server: %v", err)
+		stop("failed to start consul server : %v for %s", err, tenancyKey.partition)
 	}
-	testConsul = consul
+	testConsul[tenancyKey] = consul
 }
 
 // runTestNomad starts a Nomad agent and returns a chan which will block until
@@ -455,7 +471,7 @@ func (v vaultServer) Stop() error {
 
 func testVaultServer(t *testing.T, secrets_path, version string,
 ) (*ClientSet, *vaultServer) {
-	vc := testClients.Vault()
+	vc := getDefaultTestClient().Vault()
 	if err := vc.Sys().Mount(secrets_path, &vapi.MountInput{
 		Type:        "kv",
 		Description: "test mount",
@@ -463,7 +479,7 @@ func testVaultServer(t *testing.T, secrets_path, version string,
 	}); err != nil {
 		t.Fatalf("Error creating secrets engine: %s", err)
 	}
-	return testClients, &vaultServer{secretsPath: secrets_path}
+	return getDefaultTestClient(), &vaultServer{secretsPath: secrets_path}
 }
 
 func (v *vaultServer) CreateSecret(path string, data map[string]interface{},
@@ -472,7 +488,7 @@ func (v *vaultServer) CreateSecret(path string, data map[string]interface{},
 	if err != nil {
 		return err
 	}
-	_, err = q.writeSecret(testClients, &QueryOptions{})
+	_, err = q.writeSecret(getDefaultTestClient(), &QueryOptions{})
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -481,7 +497,7 @@ func (v *vaultServer) CreateSecret(path string, data map[string]interface{},
 
 // deleteSecret lets us delete keys as needed for tests
 func (v *vaultServer) deleteSecret(path string) error {
-	_, err := testClients.Vault().Logical().Delete(v.secretsPath + "/" + path)
+	_, err := getDefaultTestClient().Vault().Logical().Delete(v.secretsPath + "/" + path)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -525,7 +541,7 @@ func (v *nomadServer) CreateVariable(path string, data map[string]string, opts *
 	for k, v := range data {
 		nVar.Items[k] = v
 	}
-	_, _, err := testClients.Nomad().Variables().Update(nVar, opts)
+	_, _, err := getDefaultTestClient().Nomad().Variables().Update(nVar, opts)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -534,7 +550,7 @@ func (v *nomadServer) CreateVariable(path string, data map[string]string, opts *
 
 func (v *nomadServer) CreateNamespace(name string, opts *nomadapi.WriteOptions) error {
 	ns := nomadapi.Namespace{Name: name}
-	_, err := testClients.Nomad().Namespaces().Register(&ns, opts)
+	_, err := getDefaultTestClient().Nomad().Namespaces().Register(&ns, opts)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -542,30 +558,23 @@ func (v *nomadServer) CreateNamespace(name string, opts *nomadapi.WriteOptions) 
 }
 
 func (v *nomadServer) DeleteVariable(path string, opts *nomadapi.WriteOptions) error {
-	_, err := testClients.Nomad().Variables().Delete(path, opts)
+	_, err := getDefaultTestClient().Nomad().Variables().Delete(path, opts)
 	if err != nil {
 		fmt.Println(err)
 	}
 	return err
 }
 
-func (c *ClientSet) createConsulPartitions() error {
-	for p := range tenancyHelper.GetUniquePartitions() {
-		if p.Name != "" && p.Name != "default" {
-			partition := &api.Partition{Name: p.Name}
-			_, _, err := c.Consul().Partitions().Create(context.Background(), partition, nil)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
+func createConsulTestPartition(partition string) error {
+	c := testClients[createTenancyKey(&test.Tenancy{Partition: partition})]
+	_, _, err := c.Consul().Partitions().Create(context.Background(), &api.Partition{Name: partition}, nil)
+	return err
 }
 
-func (c *ClientSet) createConsulNs() error {
+func createConsulTestNs() error {
 	for _, tenancy := range tenancyHelper.TestTenancies() {
-		if tenancy.Namespace != "" && tenancy.Namespace != "default" {
+		if tenancy.Namespace != "" /*&& tenancy.Namespace != "default"*/ {
+			c := testClients[createTenancyKey(tenancy)]
 			ns := &api.Namespace{Name: tenancy.Namespace, Partition: tenancy.Partition}
 			_, _, err := c.Consul().Namespaces().Create(ns, nil)
 			if err != nil {
@@ -575,4 +584,40 @@ func (c *ClientSet) createConsulNs() error {
 	}
 
 	return nil
+}
+
+func stop(errMsg string, err error, args ...interface{}) {
+	if testVault != nil {
+		testVault.Stop()
+	}
+	if testNomad != nil {
+		testNomad.Stop()
+	}
+	for _, consul := range testConsul {
+		consul.Stop()
+	}
+	for _, client := range testClients {
+		client.Stop()
+	}
+	if err != nil {
+		Fatalf(errMsg, err, args)
+	}
+}
+
+func getDefaultTestClient() *ClientSet {
+	return testClients[createTenancyKey(test.GetDefaultTenancy())]
+}
+
+func createTenancyKey(t *test.Tenancy) tenancyKey {
+	return tenancyKey{
+		partition: t.Partition,
+	}
+}
+
+func getTestClientsForTenancy(t *test.Tenancy) *ClientSet {
+	return testClients[createTenancyKey(t)]
+}
+
+func getTestConsulForTenancy(t *test.Tenancy) *testutil.TestServer {
+	return testConsul[createTenancyKey(t)]
 }

@@ -125,7 +125,7 @@ func (t *TenancyHelper) GenerateTenancyTests(generationFunc func(tenancy *Tenanc
 func (t *TenancyHelper) GenerateNonDefaultTenancyTests(generationFunc func(tenancy *Tenancy) []interface{}) []interface{} {
 	cases := make([]interface{}, 0)
 	for _, tenancy := range t.TestTenancies() {
-		if tenancy.Partition != "default" || tenancy.Namespace != "default" {
+		if tenancy.Partition != "default" /*|| tenancy.Namespace != "default"*/ {
 			cases = append(cases, generationFunc(tenancy)...)
 		}
 	}
@@ -135,19 +135,24 @@ func (t *TenancyHelper) GenerateNonDefaultTenancyTests(generationFunc func(tenan
 func (t *TenancyHelper) GenerateDefaultTenancyTests(generationFunc func(tenancy *Tenancy) []interface{}) []interface{} {
 	cases := make([]interface{}, 0)
 	for _, tenancy := range t.TestTenancies() {
-		if tenancy.Partition == "default" && tenancy.Namespace == "default" {
+		if tenancy.Partition == "default" /*&& tenancy.Namespace == "default" */ {
 			cases = append(cases, generationFunc(tenancy)...)
 		}
 	}
 	return cases
 }
 
-func (t *TenancyHelper) GetUniquePartitions() map[api.Partition]interface{} {
-	partitions := make(map[api.Partition]interface{})
+func (t *TenancyHelper) GetUniquePartitions() map[string]interface{} {
+	partitions := make(map[string]interface{})
 	for _, tenancy := range t.TestTenancies() {
-		partitions[api.Partition{
-			Name: tenancy.Partition,
-		}] = nil
+		partitions[tenancy.Partition] = nil
 	}
 	return partitions
+}
+
+func GetDefaultTenancy() *Tenancy {
+	return &Tenancy{
+		Partition: "default",
+		Namespace: "default",
+	}
 }

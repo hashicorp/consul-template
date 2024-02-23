@@ -84,7 +84,7 @@ func TestListPeeringsQuery_Fetch(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			res, _, err := p.Fetch(testClients, nil)
+			res, _, err := p.Fetch(getDefaultTestClient(), nil)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -140,19 +140,21 @@ func TestNewCatalogNodesQuery(t *testing.T) {
 
 func TestCatalogNodesQuery_Fetch(t *testing.T) {
 	type testCase struct {
-		name string
-		i    string
-		exp  []*Node
+		name    string
+		i       string
+		tenancy *test.Tenancy
+		exp     []*Node
 	}
 	cases := tenancyHelper.GenerateNonDefaultTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("all", tenancy),
 				"",
+				tenancy,
 				[]*Node{
 					{
-						Node:            testConsul.Config.NodeName,
-						Address:         testConsul.Config.Bind,
+						Node:            getTestConsulForTenancy(tenancy).Config.NodeName,
+						Address:         getTestConsulForTenancy(tenancy).Config.Bind,
 						Datacenter:      "dc1",
 						TaggedAddresses: map[string]string{
 							//"lan": "127.0.0.1",
@@ -167,10 +169,11 @@ func TestCatalogNodesQuery_Fetch(t *testing.T) {
 			testCase{
 				tenancyHelper.AppendTenancyInfo("partition and namespace", tenancy),
 				fmt.Sprintf("?partition=%s&ns=%s@dc1", tenancy.Partition, tenancy.Namespace),
+				tenancy,
 				[]*Node{
 					{
-						Node:            testConsul.Config.NodeName,
-						Address:         testConsul.Config.Bind,
+						Node:            getTestConsulForTenancy(tenancy).Config.NodeName,
+						Address:         getTestConsulForTenancy(tenancy).Config.Bind,
 						Datacenter:      "dc1",
 						TaggedAddresses: map[string]string{
 							//"lan": "127.0.0.1",
@@ -185,10 +188,11 @@ func TestCatalogNodesQuery_Fetch(t *testing.T) {
 			testCase{
 				tenancyHelper.AppendTenancyInfo("namespace", tenancy),
 				fmt.Sprintf("?ns=%s@dc1", tenancy.Namespace),
+				tenancy,
 				[]*Node{
 					{
-						Node:            testConsul.Config.NodeName,
-						Address:         testConsul.Config.Bind,
+						Node:            getTestConsulForTenancy(tenancy).Config.NodeName,
+						Address:         getTestConsulForTenancy(tenancy).Config.Bind,
 						Datacenter:      "dc1",
 						TaggedAddresses: map[string]string{
 							//"lan": "127.0.0.1",
@@ -203,10 +207,11 @@ func TestCatalogNodesQuery_Fetch(t *testing.T) {
 			testCase{
 				tenancyHelper.AppendTenancyInfo("partition", tenancy),
 				fmt.Sprintf("?partition=%s@dc1", tenancy.Partition),
+				tenancy,
 				[]*Node{
 					{
-						Node:            testConsul.Config.NodeName,
-						Address:         testConsul.Config.Bind,
+						Node:            getTestConsulForTenancy(tenancy).Config.NodeName,
+						Address:         getTestConsulForTenancy(tenancy).Config.Bind,
 						Datacenter:      "dc1",
 						TaggedAddresses: map[string]string{
 							//"lan": "127.0.0.1",
@@ -226,10 +231,11 @@ func TestCatalogNodesQuery_Fetch(t *testing.T) {
 			testCase{
 				tenancyHelper.AppendTenancyInfo("all", tenancy),
 				"",
+				tenancy,
 				[]*Node{
 					{
-						Node:            testConsul.Config.NodeName,
-						Address:         testConsul.Config.Bind,
+						Node:            getTestConsulForTenancy(tenancy).Config.NodeName,
+						Address:         getTestConsulForTenancy(tenancy).Config.Bind,
 						Datacenter:      "dc1",
 						TaggedAddresses: map[string]string{
 							//"lan": "127.0.0.1",
@@ -252,7 +258,7 @@ func TestCatalogNodesQuery_Fetch(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			act, _, err := d.Fetch(testClients, nil)
+			act, _, err := d.Fetch(getTestClientsForTenancy(tc.tenancy), nil)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -185,19 +185,21 @@ func TestNewCatalogServiceQuery(t *testing.T) {
 
 func TestCatalogServiceQuery_Fetch(t *testing.T) {
 	type testCase struct {
-		name string
-		i    string
-		exp  []*CatalogService
+		name    string
+		i       string
+		tenancy *test.Tenancy
+		exp     []*CatalogService
 	}
 	cases := tenancyHelper.GenerateDefaultTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
 				tenancyHelper.AppendTenancyInfo("consul", tenancy),
 				"consul",
+				tenancy,
 				[]*CatalogService{
 					{
-						Node:            testConsul.Config.NodeName,
-						Address:         testConsul.Config.Bind,
+						Node:            getTestConsulForTenancy(tenancy).Config.NodeName,
+						Address:         getTestConsulForTenancy(tenancy).Config.Bind,
 						Datacenter:      "dc1",
 						TaggedAddresses: map[string]string{
 							//"lan": "127.0.0.1",
@@ -211,17 +213,18 @@ func TestCatalogServiceQuery_Fetch(t *testing.T) {
 						ServiceAddress: "",
 						ServiceTags:    ServiceTags([]string{}),
 						ServiceMeta:    map[string]string{},
-						ServicePort:    testConsul.Config.Ports.Server,
+						ServicePort:    getTestConsulForTenancy(tenancy).Config.Ports.Server,
 					},
 				},
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("service-meta", tenancy),
 				"service-meta-default-default",
+				tenancy,
 				[]*CatalogService{
 					{
-						Node:            testConsul.Config.NodeName,
-						Address:         testConsul.Config.Bind,
+						Node:            getTestConsulForTenancy(tenancy).Config.NodeName,
+						Address:         getTestConsulForTenancy(tenancy).Config.Bind,
 						Datacenter:      "dc1",
 						TaggedAddresses: map[string]string{
 							//"lan": "127.0.0.1",
@@ -246,15 +249,17 @@ func TestCatalogServiceQuery_Fetch(t *testing.T) {
 			testCase{
 				tenancyHelper.AppendTenancyInfo("consul", tenancy),
 				fmt.Sprintf("consul?ns=%s&partition=%s", tenancy.Namespace, tenancy.Partition),
+				tenancy,
 				nil,
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("service-meta", tenancy),
 				fmt.Sprintf("service-meta-%s-%s?ns=%s&partition=%s", tenancy.Partition, tenancy.Namespace, tenancy.Namespace, tenancy.Partition),
+				tenancy,
 				[]*CatalogService{
 					{
-						Node:            testConsul.Config.NodeName,
-						Address:         testConsul.Config.Bind,
+						Node:            getTestConsulForTenancy(tenancy).Config.NodeName,
+						Address:         getTestConsulForTenancy(tenancy).Config.Bind,
 						Datacenter:      "dc1",
 						TaggedAddresses: map[string]string{
 							//"lan": "127.0.0.1",
@@ -282,7 +287,7 @@ func TestCatalogServiceQuery_Fetch(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			act, _, err := d.Fetch(testClients, nil)
+			act, _, err := d.Fetch(getTestClientsForTenancy(tc.tenancy), nil)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -62,7 +62,7 @@ func TestCatalogDatacentersQuery_Fetch(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			act, _, err := d.Fetch(testClients, nil)
+			act, _, err := d.Fetch(getDefaultTestClient(), nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -81,7 +81,7 @@ func TestCatalogDatacentersQuery_Fetch(t *testing.T) {
 		errCh := make(chan error, 1)
 		go func() {
 			for {
-				data, _, err := d.Fetch(testClients, &QueryOptions{WaitIndex: 10})
+				data, _, err := d.Fetch(getDefaultTestClient(), &QueryOptions{WaitIndex: 10})
 				if err != nil {
 					errCh <- err
 					return
@@ -114,7 +114,7 @@ func TestCatalogDatacentersQuery_Fetch(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		_, qm, err := d.Fetch(testClients, nil)
+		_, qm, err := d.Fetch(getDefaultTestClient(), nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -122,7 +122,7 @@ func TestCatalogDatacentersQuery_Fetch(t *testing.T) {
 		dataCh := make(chan interface{}, 1)
 		errCh := make(chan error, 1)
 		go func() {
-			data, _, err := d.Fetch(testClients, &QueryOptions{WaitIndex: qm.LastIndex})
+			data, _, err := d.Fetch(getDefaultTestClient(), &QueryOptions{WaitIndex: qm.LastIndex})
 			if err != nil {
 				errCh <- err
 				return

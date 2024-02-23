@@ -171,7 +171,7 @@ func TestNomadServiceQuery_Fetch(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			actI, _, err := d.Fetch(testClients, nil)
+			actI, _, err := d.Fetch(getDefaultTestClient(), nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -229,7 +229,7 @@ func TestNomadServicesQuery_Fetch_3arg(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			actI, _, err := d.Fetch(testClients, nil)
+			actI, _, err := d.Fetch(getDefaultTestClient(), nil)
 			if err != nil {
 				t.Fatal(err)
 			}

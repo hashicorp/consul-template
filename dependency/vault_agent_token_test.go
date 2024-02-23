@@ -29,7 +29,7 @@ func TestVaultAgentTokenQuery_Fetch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	clientSet := testClients
+	clientSet := getDefaultTestClient()
 	token, _, err := d.Fetch(clientSet, nil)
 	if err != nil {
 		t.Fatal(err)
