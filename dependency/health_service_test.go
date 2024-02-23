@@ -5,7 +5,9 @@ package dependency
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
+	"unsafe"
 
 	"github.com/hashicorp/consul-template/test"
 
@@ -821,5 +823,49 @@ func TestHealthServiceQueryConnect_String(t *testing.T) {
 			}
 			assert.Equal(t, tc.exp, d.String())
 		})
+	}
+}
+
+// Test that if new fields are added to the struct, the String() method
+// is also updated. This test uses reflection to iterate over the fields
+// in order to catch the case where someone adds a new field but doesn't
+// know they need to also update String().
+func TestHealthServiceQuery_String_Reflection(t *testing.T) {
+	query := HealthServiceQuery{}
+	val := reflect.ValueOf(&query).Elem()
+	// prev is set to the previous output of String()
+	prev := query.String()
+	// Iterate over each field using reflection.
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		fieldName := val.Type().Field(i).Name
+		// Need to use this to be able to set private fields.
+		field = reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem()
+		setField := false
+		if field.CanSet() {
+			// Set the fields to something, so we can see if String() changes.
+			// If a string or []string, set to field name, if a bool, set to true.
+			switch {
+			case field.Type().Kind() == reflect.String:
+				field.SetString(fieldName)
+				setField = true
+			case field.Type().Kind() == reflect.Bool:
+				field.SetBool(true)
+				setField = true
+			case field.Type() == reflect.TypeOf([]string{}):
+				field.Set(reflect.ValueOf([]string{fieldName}))
+				setField = true
+			}
+		}
+
+		// As new fields are set, the value of String() should change.
+		if setField && prev == query.String() {
+			t.Fatalf("Expected output of String() to change after setting field %q, but got same value as before: %q."+
+				" This likely means you've added a field but haven't updated String(). If the field should change the query, "+
+				"e.g. you add namespace to query a specific Consul namespace, but you don't update String() then other queries"+
+				" using the same function will return the same data because String() is used as the cache key. To fix, update"+
+				" String() to change based on your new field.", fieldName, prev)
+		}
+		prev = query.String()
 	}
 }
