@@ -162,6 +162,18 @@ func TestCatalogNodesQuery_Fetch(t *testing.T) {
 							//"consul-network-segment": "",
 						},
 					},
+					{
+						Node:            "nodedefault",
+						Address:         testConsul.Config.Bind,
+						Datacenter:      "dc1",
+						TaggedAddresses: map[string]string{
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
+						},
+						Meta: map[string]string{
+							//"consul-network-segment": "",
+						},
+					},
 				},
 			},
 			testCase{
@@ -169,7 +181,7 @@ func TestCatalogNodesQuery_Fetch(t *testing.T) {
 				fmt.Sprintf("?partition=%s&ns=%s@dc1", tenancy.Partition, tenancy.Namespace),
 				[]*Node{
 					{
-						Node:            testConsul.Config.NodeName,
+						Node:            "node" + tenancy.Partition,
 						Address:         testConsul.Config.Bind,
 						Datacenter:      "dc1",
 						TaggedAddresses: map[string]string{
@@ -198,6 +210,18 @@ func TestCatalogNodesQuery_Fetch(t *testing.T) {
 							//"consul-network-segment": "",
 						},
 					},
+					{
+						Node:            "nodedefault",
+						Address:         testConsul.Config.Bind,
+						Datacenter:      "dc1",
+						TaggedAddresses: map[string]string{
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
+						},
+						Meta: map[string]string{
+							//"consul-network-segment": "",
+						},
+					},
 				},
 			},
 			testCase{
@@ -205,7 +229,7 @@ func TestCatalogNodesQuery_Fetch(t *testing.T) {
 				fmt.Sprintf("?partition=%s@dc1", tenancy.Partition),
 				[]*Node{
 					{
-						Node:            testConsul.Config.NodeName,
+						Node:            "node" + tenancy.Partition,
 						Address:         testConsul.Config.Bind,
 						Datacenter:      "dc1",
 						TaggedAddresses: map[string]string{
@@ -229,6 +253,108 @@ func TestCatalogNodesQuery_Fetch(t *testing.T) {
 				[]*Node{
 					{
 						Node:            testConsul.Config.NodeName,
+						Address:         testConsul.Config.Bind,
+						Datacenter:      "dc1",
+						TaggedAddresses: map[string]string{
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
+						},
+						Meta: map[string]string{
+							//"consul-network-segment": "",
+						},
+					},
+					{
+						Node:            "node" + tenancy.Partition,
+						Address:         testConsul.Config.Bind,
+						Datacenter:      "dc1",
+						TaggedAddresses: map[string]string{
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
+						},
+						Meta: map[string]string{
+							//"consul-network-segment": "",
+						},
+					},
+				},
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("partition and namespace", tenancy),
+				fmt.Sprintf("?partition=%s&ns=%s@dc1", tenancy.Partition, tenancy.Namespace),
+				[]*Node{
+					{
+						Node:            testConsul.Config.NodeName,
+						Address:         testConsul.Config.Bind,
+						Datacenter:      "dc1",
+						TaggedAddresses: map[string]string{
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
+						},
+						Meta: map[string]string{
+							//"consul-network-segment": "",
+						},
+					},
+					{
+						Node:            "node" + tenancy.Partition,
+						Address:         testConsul.Config.Bind,
+						Datacenter:      "dc1",
+						TaggedAddresses: map[string]string{
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
+						},
+						Meta: map[string]string{
+							//"consul-network-segment": "",
+						},
+					},
+				},
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("namespace", tenancy),
+				fmt.Sprintf("?ns=%s@dc1", tenancy.Namespace),
+				[]*Node{
+					{
+						Node:            testConsul.Config.NodeName,
+						Address:         testConsul.Config.Bind,
+						Datacenter:      "dc1",
+						TaggedAddresses: map[string]string{
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
+						},
+						Meta: map[string]string{
+							//"consul-network-segment": "",
+						},
+					},
+					{
+						Node:            "nodedefault",
+						Address:         testConsul.Config.Bind,
+						Datacenter:      "dc1",
+						TaggedAddresses: map[string]string{
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
+						},
+						Meta: map[string]string{
+							//"consul-network-segment": "",
+						},
+					},
+				},
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("partition", tenancy),
+				fmt.Sprintf("?partition=%s@dc1", tenancy.Partition),
+				[]*Node{
+					{
+						Node:            testConsul.Config.NodeName,
+						Address:         testConsul.Config.Bind,
+						Datacenter:      "dc1",
+						TaggedAddresses: map[string]string{
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
+						},
+						Meta: map[string]string{
+							//"consul-network-segment": "",
+						},
+					},
+					{
+						Node:            "node" + tenancy.Partition,
 						Address:         testConsul.Config.Bind,
 						Datacenter:      "dc1",
 						TaggedAddresses: map[string]string{

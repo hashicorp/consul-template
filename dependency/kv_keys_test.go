@@ -272,18 +272,18 @@ func TestKVKeysQuery_Fetch(t *testing.T) {
 				tenancyHelper.AppendTenancyInfo("exists", tenancy),
 				"test-kv-keys/prefix",
 				[]string{
-					fmt.Sprintf("foo-%s-%s", tenancy.Partition, tenancy.Namespace),
-					fmt.Sprintf("wave/ocean-%s-%s", tenancy.Partition, tenancy.Namespace),
-					fmt.Sprintf("zip-%s-%s", tenancy.Partition, tenancy.Namespace),
+					"foo-default-default",
+					"wave/ocean-default-default",
+					"zip-default-default",
 				},
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("trailing", tenancy),
 				"test-kv-keys/prefix/",
 				[]string{
-					fmt.Sprintf("foo-%s-%s", tenancy.Partition, tenancy.Namespace),
-					fmt.Sprintf("wave/ocean-%s-%s", tenancy.Partition, tenancy.Namespace),
-					fmt.Sprintf("zip-%s-%s", tenancy.Partition, tenancy.Namespace),
+					"foo-default-default",
+					"wave/ocean-default-default",
+					"zip-default-default",
 				},
 			},
 			testCase{

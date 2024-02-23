@@ -136,7 +136,7 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 	cases := tenancyHelper.GenerateNonDefaultTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
-				tenancyHelper.AppendTenancyInfo("local", tenancy),
+				tenancyHelper.AppendTenancyInfo("local", tenancy), // the agent has nothing registered, we use fake node name for registration
 				"",
 				&CatalogNode{
 					Node: &Node{
@@ -153,37 +153,9 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 					},
 					Services: []*CatalogNodeService{
 						{
-							ID:      "conn-enabled-service-default-default",
-							Service: "conn-enabled-service-default-default",
-							Tags:    ServiceTags([]string{}),
-							Meta:    map[string]string{},
-							Port:    12345,
-						},
-						{
-							ID:      "conn-enabled-service-proxy-default-default",
-							Service: "conn-enabled-service-proxy-default-default",
-							Tags:    ServiceTags([]string{}),
-							Meta:    map[string]string{},
-							Port:    21999,
-						},
-						{
 							ID:      "consul",
 							Service: "consul",
 							Port:    testConsul.Config.Ports.Server,
-							Tags:    ServiceTags([]string{}),
-							Meta:    map[string]string{},
-						},
-						{
-							ID:      "service-meta-default-default",
-							Service: "service-meta-default-default",
-							Tags:    ServiceTags([]string{"tag1"}),
-							Meta: map[string]string{
-								"meta1": "value1",
-							},
-						},
-						{
-							ID:      "service-taggedAddresses-default-default",
-							Service: "service-taggedAddresses-default-default",
 							Tags:    ServiceTags([]string{}),
 							Meta:    map[string]string{},
 						},
@@ -192,10 +164,10 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("partition and ns", tenancy),
-				fmt.Sprintf("%s?partition=%s&ns=%s", testConsul.Config.NodeName, tenancy.Partition, tenancy.Namespace),
+				fmt.Sprintf("%s?partition=%s&ns=%s", "node"+tenancy.Partition, tenancy.Partition, tenancy.Namespace),
 				&CatalogNode{
 					Node: &Node{
-						Node:            testConsul.Config.NodeName,
+						Node:            "node" + tenancy.Partition,
 						Address:         testConsul.Config.Bind,
 						Datacenter:      "dc1",
 						TaggedAddresses: map[string]string{
@@ -250,7 +222,7 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 	cases = append(cases, tenancyHelper.GenerateDefaultTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
 			testCase{
-				tenancyHelper.AppendTenancyInfo("local", tenancy),
+				tenancyHelper.AppendTenancyInfo("local", tenancy), // the agent has nothing registered, we use fake node name for registration
 				"",
 				&CatalogNode{
 					Node: &Node{
@@ -267,37 +239,9 @@ func TestCatalogNodeQuery_Fetch(t *testing.T) {
 					},
 					Services: []*CatalogNodeService{
 						{
-							ID:      "conn-enabled-service-default-default",
-							Service: "conn-enabled-service-default-default",
-							Tags:    ServiceTags([]string{}),
-							Meta:    map[string]string{},
-							Port:    12345,
-						},
-						{
-							ID:      "conn-enabled-service-proxy-default-default",
-							Service: "conn-enabled-service-proxy-default-default",
-							Tags:    ServiceTags([]string{}),
-							Meta:    map[string]string{},
-							Port:    21999,
-						},
-						{
 							ID:      "consul",
 							Service: "consul",
 							Port:    testConsul.Config.Ports.Server,
-							Tags:    ServiceTags([]string{}),
-							Meta:    map[string]string{},
-						},
-						{
-							ID:      "service-meta-default-default",
-							Service: "service-meta-default-default",
-							Tags:    ServiceTags([]string{"tag1"}),
-							Meta: map[string]string{
-								"meta1": "value1",
-							},
-						},
-						{
-							ID:      "service-taggedAddresses-default-default",
-							Service: "service-taggedAddresses-default-default",
 							Tags:    ServiceTags([]string{}),
 							Meta:    map[string]string{},
 						},

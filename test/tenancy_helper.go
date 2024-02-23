@@ -125,7 +125,7 @@ func (t *TenancyHelper) GenerateTenancyTests(generationFunc func(tenancy *Tenanc
 func (t *TenancyHelper) GenerateNonDefaultTenancyTests(generationFunc func(tenancy *Tenancy) []interface{}) []interface{} {
 	cases := make([]interface{}, 0)
 	for _, tenancy := range t.TestTenancies() {
-		if tenancy.Partition != "default" || tenancy.Namespace != "default" {
+		if tenancy.Partition != "default" {
 			cases = append(cases, generationFunc(tenancy)...)
 		}
 	}
@@ -135,7 +135,7 @@ func (t *TenancyHelper) GenerateNonDefaultTenancyTests(generationFunc func(tenan
 func (t *TenancyHelper) GenerateDefaultTenancyTests(generationFunc func(tenancy *Tenancy) []interface{}) []interface{} {
 	cases := make([]interface{}, 0)
 	for _, tenancy := range t.TestTenancies() {
-		if tenancy.Partition == "default" && tenancy.Namespace == "default" {
+		if tenancy.Partition == "default" {
 			cases = append(cases, generationFunc(tenancy)...)
 		}
 	}

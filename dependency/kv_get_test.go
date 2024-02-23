@@ -243,7 +243,7 @@ func TestKVGetQuery_Fetch(t *testing.T) {
 			testCase{
 				tenancyHelper.AppendTenancyInfo("exists", tenancy),
 				"test-kv-get/key",
-				fmt.Sprintf("value-%s-%s", tenancy.Partition, tenancy.Namespace),
+				"value-default-default",
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("exists_empty_string", tenancy),

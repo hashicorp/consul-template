@@ -139,12 +139,6 @@ func TestMain(m *testing.M) {
 
 func (c *ClientSet) createConsulTestResources() error {
 	catalog := testClients.Consul().Catalog()
-
-	node, err := testClients.Consul().Agent().NodeName()
-	if err != nil {
-		return err
-	}
-
 	for _, tenancy := range tenancyHelper.TestTenancies() {
 		partition := ""
 		namespace := ""
@@ -152,6 +146,7 @@ func (c *ClientSet) createConsulTestResources() error {
 			partition = tenancy.Partition
 			namespace = tenancy.Namespace
 		}
+		node := "node" + tenancy.Partition
 		// service with meta data
 		serviceMetaService := &api.AgentService{
 			ID:      fmt.Sprintf("service-meta-%s-%s", tenancy.Partition, tenancy.Namespace),
@@ -241,6 +236,7 @@ func (c *ClientSet) createConsulTestResources() error {
 		if err := testClients.createConsulPeerings(tenancy); err != nil {
 			return err
 		}
+		time.Sleep(200 * time.Millisecond)
 	}
 
 	return nil
@@ -562,7 +558,6 @@ func (c *ClientSet) createConsulPartitions() error {
 
 	return nil
 }
-
 func (c *ClientSet) createConsulNs() error {
 	for _, tenancy := range tenancyHelper.TestTenancies() {
 		if tenancy.Namespace != "" && tenancy.Namespace != "default" {
