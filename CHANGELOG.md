@@ -1,3 +1,8 @@
+# 0.37.1 (February 26, 2024)
+BUG FIXES:
+* Fix `peer` not being a part of `String` function in `health_service.go`.
+* Fix flaky ENT test cases [NET-7377](https://hashicorp.atlassian.net/browse/NET-7377).
+
 # 0.37.0 (February 20, 2024)
 
 NEW FEATURES:
