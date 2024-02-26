@@ -448,7 +448,7 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 				"service-meta-default-default",
 				[]*HealthService{
 					{
-						Node:                testConsul.Config.NodeName,
+						Node:                "node" + tenancy.Partition,
 						NodeAddress:         testConsul.Config.Bind,
 						NodeTaggedAddresses: map[string]string{
 							//"lan": "127.0.0.1",
@@ -477,7 +477,7 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 				"service-taggedAddresses-default-default",
 				[]*HealthService{
 					{
-						Node:                testConsul.Config.NodeName,
+						Node:                "node" + tenancy.Partition,
 						NodeAddress:         testConsul.Config.Bind,
 						NodeTaggedAddresses: map[string]string{
 							//"lan": "127.0.0.1",
@@ -580,7 +580,7 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 				fmt.Sprintf("service-meta-%s-%s?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace, tenancy.Partition, tenancy.Namespace),
 				[]*HealthService{
 					{
-						Node:                testConsul.Config.NodeName,
+						Node:                "node" + tenancy.Partition,
 						NodeAddress:         testConsul.Config.Bind,
 						NodeTaggedAddresses: map[string]string{
 							//"lan": "127.0.0.1",
@@ -609,7 +609,7 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 				fmt.Sprintf("service-taggedAddresses-%s-%s?partition=%s&ns=%s", tenancy.Partition, tenancy.Namespace, tenancy.Partition, tenancy.Namespace),
 				[]*HealthService{
 					{
-						Node:                testConsul.Config.NodeName,
+						Node:                "node" + tenancy.Partition,
 						NodeAddress:         testConsul.Config.Bind,
 						NodeTaggedAddresses: map[string]string{
 							//"lan": "127.0.0.1",

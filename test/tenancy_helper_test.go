@@ -144,7 +144,7 @@ func TestGenerateDefaultTenancyTests(t *testing.T) {
 				fakeTest{name: "CE2"},
 			}
 		}},
-		{name: "ENT", isConsulEnterprise: true, expectedTests: 2, input: func(tenancy *Tenancy) []interface{} {
+		{name: "ENT", isConsulEnterprise: true, expectedTests: 4, input: func(tenancy *Tenancy) []interface{} {
 			return []interface{}{
 				fakeTest{name: "ENT1"},
 				fakeTest{name: "ENT2"},
@@ -179,7 +179,7 @@ func TestGenerateNonDefaultTenancyTests(t *testing.T) {
 				fakeTest{name: "CE2"},
 			}
 		}},
-		{name: "ENT", isConsulEnterprise: true, expectedTests: 6, input: func(tenancy *Tenancy) []interface{} {
+		{name: "ENT", isConsulEnterprise: true, expectedTests: 4, input: func(tenancy *Tenancy) []interface{} {
 			return []interface{}{
 				fakeTest{name: "ENT1"},
 				fakeTest{name: "ENT2"},

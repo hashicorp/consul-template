@@ -220,7 +220,7 @@ func TestCatalogServiceQuery_Fetch(t *testing.T) {
 				"service-meta-default-default",
 				[]*CatalogService{
 					{
-						Node:            testConsul.Config.NodeName,
+						Node:            "node" + tenancy.Partition,
 						Address:         testConsul.Config.Bind,
 						Datacenter:      "dc1",
 						TaggedAddresses: map[string]string{
@@ -253,7 +253,7 @@ func TestCatalogServiceQuery_Fetch(t *testing.T) {
 				fmt.Sprintf("service-meta-%s-%s?ns=%s&partition=%s", tenancy.Partition, tenancy.Namespace, tenancy.Namespace, tenancy.Partition),
 				[]*CatalogService{
 					{
-						Node:            testConsul.Config.NodeName,
+						Node:            "node" + tenancy.Partition,
 						Address:         testConsul.Config.Bind,
 						Datacenter:      "dc1",
 						TaggedAddresses: map[string]string{

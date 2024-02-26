@@ -299,17 +299,17 @@ func TestKVListQuery_Fetch(t *testing.T) {
 					{
 						Path:  "test-kv-list/prefix/foo",
 						Key:   "foo",
-						Value: fmt.Sprintf("bar-%s-%s", tenancy.Partition, tenancy.Namespace),
+						Value: "bar-default-default",
 					},
 					{
 						Path:  "test-kv-list/prefix/wave/ocean",
 						Key:   "wave/ocean",
-						Value: fmt.Sprintf("sleek-%s-%s", tenancy.Partition, tenancy.Namespace),
+						Value: "sleek-default-default",
 					},
 					{
 						Path:  "test-kv-list/prefix/zip",
 						Key:   "zip",
-						Value: fmt.Sprintf("zap-%s-%s", tenancy.Partition, tenancy.Namespace),
+						Value: "zap-default-default",
 					},
 				},
 			},
@@ -320,17 +320,17 @@ func TestKVListQuery_Fetch(t *testing.T) {
 					{
 						Path:  "test-kv-list/prefix/foo",
 						Key:   "foo",
-						Value: fmt.Sprintf("bar-%s-%s", tenancy.Partition, tenancy.Namespace),
+						Value: "bar-default-default",
 					},
 					{
 						Path:  "test-kv-list/prefix/wave/ocean",
 						Key:   "wave/ocean",
-						Value: fmt.Sprintf("sleek-%s-%s", tenancy.Partition, tenancy.Namespace),
+						Value: "sleek-default-default",
 					},
 					{
 						Path:  "test-kv-list/prefix/zip",
 						Key:   "zip",
-						Value: fmt.Sprintf("zap-%s-%s", tenancy.Partition, tenancy.Namespace),
+						Value: "zap-default-default",
 					},
 				},
 			},
