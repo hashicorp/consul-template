@@ -114,8 +114,14 @@ type Runner struct {
 	// stopped is a boolean of whether the runner is stopped
 	stopped bool
 
+	// rendererFn is called whenever the template needs to be written, and will
+	// default to renderer.Render. This is intended for use when embedding
+	// Consul Template in another application
 	rendererFn renderer.Renderer
 
+	// readerFn is called whenever the template source is read, and will default
+	// to os.ReadFile. This is intended for use when embedding Consul Template
+	// in another application.
 	readerFn config.Reader
 
 	// finalConfigCopy provides access to a static copy of the finalized

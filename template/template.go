@@ -27,6 +27,10 @@ var (
 	// does not specify either a "source" or "content" argument, which is not
 	// valid.
 	ErrTemplateMissingContentsAndSource = errors.New("template: must specify exactly one of 'source' or 'contents'")
+
+	// ErrMissingReaderFunction is the error returned when the template
+	// configuration is missing a reader function.
+	ErrMissingReaderFunction = errors.New("template: missing a reader function")
 )
 
 // Template is the internal representation of an individual template to process.
@@ -156,6 +160,9 @@ func NewTemplate(i *NewTemplateInput) (*Template, error) {
 	}
 
 	if i.Source != "" {
+		if i.ReaderFunc == nil {
+			return nil, ErrMissingReaderFunction
+		}
 		contents, err := i.ReaderFunc(i.Source)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to read template")

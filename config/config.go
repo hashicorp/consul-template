@@ -118,9 +118,16 @@ type Config struct {
 	// Consul Template in another application
 	RendererFunc renderer.Renderer `mapstructure:"-" json:"-"`
 
+	// ReaderFunc is called whenever the template source is read, and will
+	// default to os.ReadFile. This is intended for use when embedding Consul
+	// Template in another application.
 	ReaderFunc Reader `mapstructure:"-" json:"-"`
 }
 
+// Reader is an interface that is implemented by os.OpenFile. The
+// Config.ReaderFunc requires this interface so that applications that embed
+// Consul Template can have an alternative implementation of os.OpenFile
+// (ex. virtual file, sandboxed reads)
 type Reader func(src string) ([]byte, error)
 
 // Copy returns a deep copy of the current configuration. This is useful because
