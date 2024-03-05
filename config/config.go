@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/hashicorp/consul-template/renderer"
 	"github.com/hashicorp/consul-template/signals"
 	"github.com/hashicorp/hcl"
 	homedir "github.com/mitchellh/go-homedir"
@@ -111,7 +112,23 @@ type Config struct {
 	// ErrOnFailedLookup, when enabled, will trigger an error if a dependency
 	// fails to return a value.
 	ErrOnFailedLookup bool `mapstructure:"err_on_failed_lookup"`
+
+	// RendererFunc is called whenever the template needs to be written, and
+	// will default to renderer.Render. This is intended for use when embedding
+	// Consul Template in another application
+	RendererFunc renderer.Renderer `mapstructure:"-" json:"-"`
+
+	// ReaderFunc is called whenever the template source is read, and will
+	// default to os.ReadFile. This is intended for use when embedding Consul
+	// Template in another application.
+	ReaderFunc Reader `mapstructure:"-" json:"-"`
 }
+
+// Reader is an interface that is implemented by os.OpenFile. The
+// Config.ReaderFunc requires this interface so that applications that embed
+// Consul Template can have an alternative implementation of os.OpenFile
+// (ex. virtual file, sandboxed reads)
+type Reader func(src string) ([]byte, error)
 
 // Copy returns a deep copy of the current configuration. This is useful because
 // the nested data structures may be shared.
@@ -181,6 +198,9 @@ func (c *Config) Copy() *Config {
 	if c.Nomad != nil {
 		o.Nomad = c.Nomad.Copy()
 	}
+
+	o.RendererFunc = c.RendererFunc
+	o.ReaderFunc = c.ReaderFunc
 
 	return &o
 }
@@ -273,6 +293,13 @@ func (c *Config) Merge(o *Config) *Config {
 
 	if o.Nomad != nil {
 		r.Nomad = r.Nomad.Merge(o.Nomad)
+	}
+
+	if o.RendererFunc != nil {
+		r.RendererFunc = o.RendererFunc
+	}
+	if o.ReaderFunc != nil {
+		r.ReaderFunc = o.ReaderFunc
 	}
 
 	return r
@@ -635,6 +662,13 @@ func (c *Config) Finalize() {
 	// defaults WaitTime to 60 seconds
 	if c.BlockQueryWaitTime == nil {
 		c.BlockQueryWaitTime = TimeDuration(DefaultBlockQueryWaitTime)
+	}
+
+	if c.RendererFunc == nil {
+		c.RendererFunc = renderer.Render
+	}
+	if c.ReaderFunc == nil {
+		c.ReaderFunc = os.ReadFile
 	}
 }
 

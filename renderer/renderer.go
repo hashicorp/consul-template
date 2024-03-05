@@ -59,6 +59,8 @@ type RenderResult struct {
 	Contents []byte
 }
 
+type Renderer func(*RenderInput) (*RenderResult, error)
+
 // Render atomically renders a file contents to disk, returning a result of
 // whether it would have rendered and actually did render.
 func Render(i *RenderInput) (*RenderResult, error) {

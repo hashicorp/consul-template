@@ -114,6 +114,16 @@ type Runner struct {
 	// stopped is a boolean of whether the runner is stopped
 	stopped bool
 
+	// rendererFn is called whenever the template needs to be written, and will
+	// default to renderer.Render. This is intended for use when embedding
+	// Consul Template in another application
+	rendererFn renderer.Renderer
+
+	// readerFn is called whenever the template source is read, and will default
+	// to os.ReadFile. This is intended for use when embedding Consul Template
+	// in another application.
+	readerFn config.Reader
+
 	// finalConfigCopy provides access to a static copy of the finalized
 	// Runner config. This prevents risk of data races when reading config for
 	// other elements started by the Runner, like template functions.
@@ -200,6 +210,15 @@ func NewRunner(config *config.Config, dry bool) (*Runner, error) {
 		brain:         template.NewBrain(),
 		quiescenceMap: make(map[string]*quiescence),
 		quiescenceCh:  make(chan *template.Template),
+		rendererFn:    config.RendererFunc,
+		readerFn:      config.ReaderFunc,
+	}
+
+	if runner.rendererFn == nil {
+		runner.rendererFn = renderer.Render
+	}
+	if runner.readerFn == nil {
+		runner.readerFn = os.ReadFile
 	}
 
 	// Create the clientset
@@ -853,7 +872,7 @@ func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*
 		log.Printf("[DEBUG] (runner) rendering %s", templateConfig.Display())
 
 		// Render the template, taking dry mode into account
-		result, err := renderer.Render(&renderer.RenderInput{
+		result, err := r.rendererFn(&renderer.RenderInput{
 			Backup:         config.BoolVal(templateConfig.Backup),
 			Contents:       result.Output,
 			CreateDestDirs: config.BoolVal(templateConfig.CreateDestDirs),
@@ -975,6 +994,7 @@ func (r *Runner) init(clients *dep.ClientSet) error {
 			SandboxPath:      config.StringVal(ctmpl.SandboxPath),
 			Destination:      config.StringVal(ctmpl.Destination),
 			Config:           ctmpl,
+			ReaderFunc:       r.config.ReaderFunc,
 		})
 		if err != nil {
 			return err

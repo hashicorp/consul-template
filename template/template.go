@@ -8,7 +8,6 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"os"
 	"strings"
 	"text/template"
 
@@ -28,6 +27,10 @@ var (
 	// does not specify either a "source" or "content" argument, which is not
 	// valid.
 	ErrTemplateMissingContentsAndSource = errors.New("template: must specify exactly one of 'source' or 'contents'")
+
+	// ErrMissingReaderFunction is the error returned when the template
+	// configuration is missing a reader function.
+	ErrMissingReaderFunction = errors.New("template: missing a reader function")
 )
 
 // Template is the internal representation of an individual template to process.
@@ -117,6 +120,9 @@ type NewTemplateInput struct {
 
 	// Config keeps local reference to config struct
 	Config *config.TemplateConfig
+
+	// ReaderFunc is called to read in any source file
+	ReaderFunc config.Reader
 }
 
 // NewTemplate creates and parses a new Consul Template template at the given
@@ -154,7 +160,10 @@ func NewTemplate(i *NewTemplateInput) (*Template, error) {
 	}
 
 	if i.Source != "" {
-		contents, err := os.ReadFile(i.Source)
+		if i.ReaderFunc == nil {
+			return nil, ErrMissingReaderFunction
+		}
+		contents, err := i.ReaderFunc(i.Source)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to read template")
 		}

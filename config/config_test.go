@@ -2616,6 +2616,12 @@ func TestDefaultConfig(t *testing.T) {
 			c := DefaultConfig()
 			c.Finalize()
 
+			// these can't be compared with DeepEqual
+			c.RendererFunc = nil
+			c.ReaderFunc = nil
+			r.RendererFunc = nil
+			r.ReaderFunc = nil
+
 			if !reflect.DeepEqual(r, c) {
 				t.Errorf("Config diff: %s", r.Diff(c))
 			}
