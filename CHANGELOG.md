@@ -1,3 +1,7 @@
+# 0.37.2 (March 8, 2024)
+IMPROVEMENTS:
+* Add ability to set custom render and reader functions to control behaviour writing and reading files. [GH-1876](https://github.com/hashicorp/consul-template/pull/1876)
+
 # 0.37.1 (February 26, 2024)
 BUG FIXES:
 * Fix `peer` not being a part of `String` function in `health_service.go`.
