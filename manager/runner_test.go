@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -1258,6 +1259,67 @@ func TestRunner_command(t *testing.T) {
 				parseTest(tc)
 				if len(tc.input) > 0 {
 					runTest(tc)
+				}
+			})
+	}
+}
+
+func TestRunner_spawnChildSetpgid(t *testing.T) {
+	type testCase struct {
+		name            string
+		command         []string
+		setpgid         *bool
+		expectedSetpgid bool
+	}
+	for i, tc := range []testCase{
+		{
+			name:            "setpgid flag not set explicitly but because executing in subshell",
+			command:         []string{"echo hi"},
+			setpgid:         nil,
+			expectedSetpgid: true,
+		},
+		{
+			name:            "setpgid flag not set explicitly and not executing in subshell",
+			command:         []string{"echo", "hi"},
+			setpgid:         nil,
+			expectedSetpgid: false,
+		},
+		{
+			name:            "setpgid flag set explicitly to false",
+			command:         []string{"exec echo hi"},
+			setpgid:         config.Bool(false),
+			expectedSetpgid: false,
+		},
+		{
+			name:            "setpgid flag set explicitly to true",
+			command:         []string{"echo", "hi"},
+			setpgid:         config.Bool(true),
+			expectedSetpgid: true,
+		},
+	} {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name),
+			func(t *testing.T) {
+				c, err := spawnChild(&spawnChildInput{
+					Command: tc.command,
+					Setpgid: tc.setpgid,
+				})
+				if err != nil {
+					t.Fatal("error creating child process:", err)
+				}
+				pgid, err := syscall.Getpgid(c.Pid())
+				if err != nil {
+					t.Fatal("Getpgid error:", err)
+				}
+				t.Logf("testcase %#v, setpgid %#v, pid %#v, pgid %#v", tc.name, tc.setpgid, c.Pid(), pgid)
+				if tc.expectedSetpgid && c.Pid() != pgid {
+					t.Fatal("pid and pgid should match")
+				}
+				if !tc.expectedSetpgid && c.Pid() == pgid {
+					t.Fatal("pid and pgid should not match")
+				}
+				defer c.Stop()
+				if err != nil {
+					t.Fatal("error starting child process:", err)
 				}
 			})
 	}
