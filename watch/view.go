@@ -121,7 +121,7 @@ func (v *View) DataAndLastIndex() (interface{}, uint64) {
 // accounts for interrupts on the interrupt channel. This allows the poll
 // function to be fired in a goroutine, but then halted even if the fetch
 // function is in the middle of a blocking query.
-func (v *View) poll(viewCh chan<- *View, errCh chan<- error) {
+func (v *View) poll(viewCh chan<- *View, errCh chan<- error, serverErrCh chan<- error) {
 	var retries int
 
 	for {
@@ -162,6 +162,7 @@ func (v *View) poll(viewCh chan<- *View, errCh chan<- error) {
 		case err := <-fetchErrCh:
 			if !errors.Is(err, errLookup) && v.retryFunc != nil {
 				retry, sleep := v.retryFunc(retries)
+				serverErrCh <- err
 				if retry {
 					log.Printf("[WARN] (view) %s (retry attempt %d after %q)",
 						err, retries+1, sleep)
