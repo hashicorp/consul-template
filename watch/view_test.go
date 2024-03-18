@@ -127,7 +127,7 @@ func TestPoll_once(t *testing.T) {
 	case err := <-errCh:
 		t.Errorf("error while polling: %s", err)
 	case err := <-serverErrCh:
-		t.Errorf("server error while polling : %s", err)
+		t.Errorf("server error while polling: %s", err)
 	case <-view.stopCh:
 		t.Errorf("poll received premature stop")
 	case <-time.After(20 * time.Millisecond):

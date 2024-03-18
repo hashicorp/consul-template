@@ -126,7 +126,7 @@ func (w *Watcher) ErrCh() <-chan error {
 }
 
 // ServerCh returns a read-only channel of errors returned by the server
-// as a response to each Consul instance
+// as a response to each consul-template instance
 func (w *Watcher) ServerCh() <-chan error {
 	if w == nil {
 		return nil
