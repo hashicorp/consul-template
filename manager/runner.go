@@ -453,6 +453,7 @@ func (r *Runner) Start() {
 		case err := <-r.vaultTokenWatcher.ErrCh():
 			// Push the error back up the stack
 			log.Printf("[ERR] (runner): %s", err)
+			r.ErrCh <- err
 			return
 
 		case tmpl := <-r.quiescenceCh:
