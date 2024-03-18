@@ -48,6 +48,9 @@ type Watcher struct {
 	// one time instead of polling infinitely.
 	once bool
 
+	// stopped signals if this watcher should stop adding any new dependencies
+	stopped bool
+
 	// retryFuncs specifies the different ways to retry based on the upstream.
 	retryFuncConsul  RetryFunc
 	retryFuncDefault RetryFunc
@@ -125,13 +128,18 @@ func (w *Watcher) ErrCh() <-chan error {
 // and start the associated view. If the dependency already exists, no action is
 // taken.
 //
-// If the Dependency already existed, it this function will return false. If the
-// view was successfully created, it will return true. If an error occurs while
-// creating the view, it will be returned here (but future errors returned by
-// the view will happen on the channel).
+// If the Dependency already existed or the watcher was concurrently stopped, it
+// this function will return false. If the view was successfully created, it
+// will return true. If an error occurs while creating the view, it will be
+// returned here (but future errors returned by the view will happen on the
+// channel).
 func (w *Watcher) Add(d dep.Dependency) (bool, error) {
 	w.Lock()
 	defer w.Unlock()
+	if w.stopped {
+		log.Printf("[TRACE] (watcher) did not add %s because watcher is stopped", d)
+		return false, nil
+	}
 
 	log.Printf("[DEBUG] (watcher) adding %s", d)
 
@@ -248,4 +256,5 @@ func (w *Watcher) Stop() {
 
 	// Close any idle TCP connections
 	w.clients.Stop()
+	w.stopped = true
 }

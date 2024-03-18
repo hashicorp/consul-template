@@ -46,6 +46,29 @@ func TestAdd_exists(t *testing.T) {
 	}
 }
 
+func TestAdd_stopped(t *testing.T) {
+	w := NewWatcher(&NewWatcherInput{
+		Clients: dep.NewClientSet(),
+		Once:    true,
+	})
+
+	w.Stop()
+
+	d := &TestDep{}
+	added, err := w.Add(d)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if added != false {
+		t.Errorf("expected Add to return false when watcher is stopped")
+	}
+
+	if w.Watching(d) {
+		t.Errorf("expected Add not to add dependency when watcher is stopped")
+	}
+}
+
 func TestAdd_startsViewPoll(t *testing.T) {
 	w := NewWatcher(&NewWatcherInput{
 		Clients: dep.NewClientSet(),
