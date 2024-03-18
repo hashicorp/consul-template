@@ -203,7 +203,7 @@ func NewRunner(config *config.Config, dry bool) (*Runner, error) {
 	runner := &Runner{
 		ErrCh:         make(chan error),
 		DoneCh:        make(chan struct{}),
-		ServerErrCh:   make(chan error),
+		ServerErrCh:   make(chan error, 1),
 		config:        config,
 		dry:           dry,
 		inStream:      os.Stdin,
