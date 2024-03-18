@@ -30,8 +30,8 @@ type Watcher struct {
 	// errCh is the chan where any errors will be published.
 	errCh chan error
 
-	// serverCh is the chan where response errors from the server will be published
-	serverCh chan error
+	// serverErrCh is the chan where response errors from the server will be published
+	serverErrCh chan error
 
 	// blockQueryWaitTime is amount of time in seconds to do a blocking query for
 	blockQueryWaitTime time.Duration
@@ -98,7 +98,7 @@ func NewWatcher(i *NewWatcherInput) *Watcher {
 		depViewMap:         make(map[string]*View),
 		dataCh:             make(chan *View, dataBufferSize),
 		errCh:              make(chan error),
-		serverCh:           make(chan error),
+		serverErrCh:        make(chan error),
 		maxStale:           i.MaxStale,
 		once:               i.Once,
 		blockQueryWaitTime: i.BlockQueryWaitTime,
@@ -125,13 +125,13 @@ func (w *Watcher) ErrCh() <-chan error {
 	return w.errCh
 }
 
-// ServerCh returns a read-only channel of errors returned by the server
+// ServerErrCh returns a read-only channel of errors returned by the server
 // as a response to each consul-template instance
-func (w *Watcher) ServerCh() <-chan error {
+func (w *Watcher) ServerErrCh() <-chan error {
 	if w == nil {
 		return nil
 	}
-	return w.serverCh
+	return w.serverErrCh
 }
 
 // Add adds the given dependency to the list of monitored dependencies
@@ -182,7 +182,7 @@ func (w *Watcher) Add(d dep.Dependency) (bool, error) {
 	log.Printf("[TRACE] (watcher) %s starting", d)
 
 	w.depViewMap[d.String()] = v
-	go v.poll(w.dataCh, w.errCh, w.serverCh)
+	go v.poll(w.dataCh, w.errCh, w.serverErrCh)
 
 	return true, nil
 }
