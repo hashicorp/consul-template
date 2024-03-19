@@ -1,11 +1,13 @@
-module github.com/hashicorp/consul-template
+module consul-template
 
 go 1.22
 
 toolchain go1.22.4
 
 require (
+	dario.cat/mergo v1.0.0
 	github.com/BurntSushi/toml v1.3.2
+	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/hashicorp/consul/api v1.28.3
 	github.com/hashicorp/consul/sdk v0.15.0
@@ -17,15 +19,14 @@ require (
 	github.com/hashicorp/go-syslog v1.0.0
 	github.com/hashicorp/hcl v1.0.0
 	github.com/hashicorp/logutils v1.0.0
-	github.com/hashicorp/nomad/api v0.0.0-20230103221135-ce00d683f9be
-	github.com/hashicorp/serf v0.10.1 // indirect
-	github.com/hashicorp/vault/api v1.10.0
-	github.com/imdario/mergo v0.3.13
+	github.com/hashicorp/nomad/api v0.0.0-20240306165712-3193ac204f65
+	github.com/hashicorp/vault/api v1.12.0
+	github.com/hashicorp/vault/api/auth/kubernetes v0.6.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/hashstructure v1.1.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/pkg/errors v0.9.1
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	golang.org/x/crypto v0.22.0 // indirect
 	golang.org/x/sys v0.20.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -59,6 +60,7 @@ require (
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
+	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/miekg/dns v1.1.50 // indirect

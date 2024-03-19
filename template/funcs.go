@@ -25,11 +25,11 @@ import (
 	"text/template"
 	"time"
 
+	"dario.cat/mergo"
 	"github.com/BurntSushi/toml"
 	spewLib "github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/consul/api"
 	socktmpl "github.com/hashicorp/go-sockaddr/template"
-	"github.com/imdario/mergo"
 	"github.com/pkg/errors"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"

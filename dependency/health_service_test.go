@@ -20,7 +20,7 @@ func TestNewHealthServiceQuery(t *testing.T) {
 		name string
 		i    string
 		exp  *HealthServiceQuery
-		err  bool
+		err  error
 	}
 	cases := tenancyHelper.GenerateTenancyTests(func(tenancy *test.Tenancy) []interface{} {
 		return []interface{}{
@@ -28,37 +28,37 @@ func TestNewHealthServiceQuery(t *testing.T) {
 				tenancyHelper.AppendTenancyInfo("empty", tenancy),
 				"",
 				nil,
-				true,
+				fmt.Errorf(`health.service: invalid format: ""`),
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("dc_only", tenancy),
 				"@dc1",
 				nil,
-				true,
+				fmt.Errorf(`health.service: invalid format: "@dc1"`),
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("near_only", tenancy),
 				"~near",
 				nil,
-				true,
+				fmt.Errorf(`health.service: invalid format: "~near"`),
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("tag_only", tenancy),
 				"tag.",
 				nil,
-				true,
+				fmt.Errorf(`health.service: invalid format: "tag."`),
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("query_only", tenancy),
 				fmt.Sprintf("?ns=%s", tenancy.Namespace),
 				nil,
-				true,
+				fmt.Errorf(`health.service: invalid format: "?ns=default"`),
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("invalid query param (unsupported key)", tenancy),
 				"name?unsupported=test",
 				nil,
-				true,
+				fmt.Errorf(`health.service: invalid query parameter key "unsupported" in query "unsupported=test": supported keys: ns,peer,partition`),
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("name", tenancy),
@@ -67,7 +67,7 @@ func TestNewHealthServiceQuery(t *testing.T) {
 					filters: []string{"passing"},
 					name:    "name",
 				},
-				false,
+				nil,
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("name_dc", tenancy),
@@ -77,7 +77,7 @@ func TestNewHealthServiceQuery(t *testing.T) {
 					filters: []string{"passing"},
 					name:    "name",
 				},
-				false,
+				nil,
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("name_dc_near", tenancy),
@@ -88,7 +88,7 @@ func TestNewHealthServiceQuery(t *testing.T) {
 					name:    "name",
 					near:    "near",
 				},
-				false,
+				nil,
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("name_near", tenancy),
@@ -98,7 +98,7 @@ func TestNewHealthServiceQuery(t *testing.T) {
 					name:    "name",
 					near:    "near",
 				},
-				false,
+				nil,
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("tag_name", tenancy),
@@ -108,7 +108,7 @@ func TestNewHealthServiceQuery(t *testing.T) {
 					name:    "name",
 					tag:     "tag",
 				},
-				false,
+				nil,
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("tag_name_dc", tenancy),
@@ -119,7 +119,7 @@ func TestNewHealthServiceQuery(t *testing.T) {
 					name:    "name",
 					tag:     "tag",
 				},
-				false,
+				nil,
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("tag_name_near", tenancy),
@@ -130,7 +130,7 @@ func TestNewHealthServiceQuery(t *testing.T) {
 					near:    "near",
 					tag:     "tag",
 				},
-				false,
+				nil,
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("tag_name_dc_near", tenancy),
@@ -142,7 +142,7 @@ func TestNewHealthServiceQuery(t *testing.T) {
 					near:    "near",
 					tag:     "tag",
 				},
-				false,
+				nil,
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("name_partition", tenancy),
@@ -152,7 +152,7 @@ func TestNewHealthServiceQuery(t *testing.T) {
 					name:      "name",
 					partition: tenancy.Partition,
 				},
-				false,
+				nil,
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("name_peer", tenancy),
@@ -162,7 +162,7 @@ func TestNewHealthServiceQuery(t *testing.T) {
 					name:    "name",
 					peer:    "foo",
 				},
-				false,
+				nil,
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("name_ns", tenancy),
@@ -172,7 +172,7 @@ func TestNewHealthServiceQuery(t *testing.T) {
 					name:      "name",
 					namespace: tenancy.Namespace,
 				},
-				false,
+				nil,
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("name_ns_peer_partition", tenancy),
@@ -184,7 +184,23 @@ func TestNewHealthServiceQuery(t *testing.T) {
 					peer:      "bar",
 					partition: tenancy.Partition,
 				},
-				false,
+				nil,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("name_samenessgroup", tenancy),
+				"name?sameness-group=sg1",
+				&HealthServiceQuery{
+					filters:       []string{"passing"},
+					name:          "name",
+					samenessGroup: "sg1",
+				},
+				nil,
+			},
+			testCase{
+				tenancyHelper.AppendTenancyInfo("samenessgroup and peer should return error if both set", tenancy),
+				"name?sameness-group=sg1&peer=peer1",
+				nil,
+				fmt.Errorf("health.service: cannot specify both peer and sameness-group"),
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("namespace set twice should use first", tenancy),
@@ -194,7 +210,7 @@ func TestNewHealthServiceQuery(t *testing.T) {
 					name:      "name",
 					namespace: tenancy.Namespace,
 				},
-				false,
+				nil,
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("empty value in query param", tenancy),
@@ -206,7 +222,7 @@ func TestNewHealthServiceQuery(t *testing.T) {
 					peer:      "",
 					partition: "",
 				},
-				false,
+				nil,
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("query with other parameters", tenancy),
@@ -221,7 +237,7 @@ func TestNewHealthServiceQuery(t *testing.T) {
 					namespace: tenancy.Namespace,
 					partition: tenancy.Partition,
 				},
-				false,
+				nil,
 			},
 		}
 	})
@@ -230,9 +246,7 @@ func TestNewHealthServiceQuery(t *testing.T) {
 		tc := test.(testCase)
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
 			act, err := NewHealthServiceQuery(tc.i)
-			if (err != nil) != tc.err {
-				t.Fatal(err)
-			}
+			assert.Equal(t, err, tc.err)
 
 			if act != nil {
 				act.stopCh = nil
@@ -641,6 +655,35 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 					},
 				},
 			},
+			testCase{
+				fmt.Sprintf(`service-meta for sameness group "%s" in partition "%s"`, "service-meta-sameness-group", tenancy.Partition),
+				fmt.Sprintf("service-meta?sameness-group=%s&partition=%s", "service-meta-sameness-group", tenancy.Partition),
+				[]*HealthService{
+					{
+						Node:                "node" + tenancy.Partition,
+						NodeAddress:         testConsul.Config.Bind,
+						NodeTaggedAddresses: map[string]string{
+							//"lan": "127.0.0.1",
+							//"wan": "127.0.0.1",
+						},
+						NodeMeta: map[string]string{
+							//"consul-network-segment": "",
+						},
+						ServiceMeta: map[string]string{
+							"meta1": "value1",
+						},
+						Address: testConsul.Config.Bind,
+						ID:      "service-meta",
+						Name:    "service-meta",
+						Tags:    []string{"tag1"},
+						Status:  "passing",
+						Weights: api.AgentWeights{
+							Passing: 1,
+							Warning: 1,
+						},
+					},
+				},
+			},
 		}
 	})...)
 
@@ -673,6 +716,156 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 			assert.Equal(t, tc.exp, act)
 		})
 	}
+}
+
+func TestHealthServiceQuery_Fetch_SamenessGroup(t *testing.T) {
+	// Arrange - set up test data
+	catalog := testClients.Consul().Catalog()
+
+	fooPartition := "foo"
+	defaultPartition := "default"
+	nodeDefault := "node" + defaultPartition
+	nodeFoo := "node" + fooPartition
+
+	// Register services in foo partition as critical so they will fall back to default partition service
+	testServiceName := "conn-enabled-service"
+	testServiceCheckName := fmt.Sprintf("%s:%s", testServiceName, nodeFoo)
+	testServiceRegistration := &api.CatalogRegistration{
+		Service: &api.AgentService{
+			ID:        testServiceName,
+			Service:   testServiceName,
+			Port:      12345,
+			Partition: fooPartition,
+			Namespace: "default",
+			Connect:   &api.AgentServiceConnect{},
+		},
+		Partition: fooPartition,
+		Node:      nodeFoo,
+		Address:   "127.0.0.1",
+		Checks: api.HealthChecks{
+			&api.HealthCheck{
+				Node:        nodeFoo,
+				CheckID:     testServiceCheckName,
+				Name:        testServiceCheckName,
+				Status:      HealthCritical,
+				ServiceID:   testServiceName,
+				ServiceName: testServiceName,
+			},
+		},
+	}
+
+	testConnectName := "conn-enabled-service-proxy"
+	testConnectCheckName := fmt.Sprintf("%s:%s", testConnectName, nodeFoo)
+	testConnectRegistration := &api.CatalogRegistration{
+		Service: &api.AgentService{
+			Kind:    api.ServiceKindConnectProxy,
+			ID:      testConnectName,
+			Service: testConnectName,
+			Port:    21999,
+			Proxy: &api.AgentServiceConnectProxyConfig{
+				DestinationServiceName: testServiceName,
+			},
+			Partition: fooPartition,
+			Namespace: "default",
+		},
+		Partition: fooPartition,
+		Node:      nodeFoo,
+		Address:   "127.0.0.1",
+		Checks: api.HealthChecks{
+			&api.HealthCheck{
+				Node:        nodeFoo,
+				CheckID:     testConnectCheckName,
+				Name:        testConnectCheckName,
+				Status:      HealthCritical,
+				ServiceID:   testConnectName,
+				ServiceName: testConnectName,
+			},
+		},
+	}
+
+	_, err := catalog.Register(testServiceRegistration, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = catalog.Register(testConnectRegistration, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Register in default partition as passing so it can fall back
+	testServiceRegistration.Service.Partition = defaultPartition
+	testServiceRegistration.Partition = defaultPartition
+	testServiceRegistration.Node = nodeDefault
+	testServiceRegistration.Checks[0].Node = nodeDefault
+	testServiceRegistration.Checks[0].CheckID = fmt.Sprintf("%s:%s", testServiceName, nodeDefault)
+	testServiceRegistration.Checks[0].Name = fmt.Sprintf("%s:%s", testServiceName, nodeDefault)
+	testServiceRegistration.Checks[0].Status = HealthPassing
+
+	_, err = catalog.Register(testServiceRegistration, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	testConnectRegistration.Service.Partition = defaultPartition
+	testConnectRegistration.Partition = defaultPartition
+	testConnectRegistration.Node = nodeDefault
+	testConnectRegistration.Checks[0].Node = nodeDefault
+	testConnectRegistration.Checks[0].CheckID = fmt.Sprintf("%s:%s", testServiceName, nodeDefault)
+	testConnectRegistration.Checks[0].Name = fmt.Sprintf("%s:%s", testServiceName, nodeDefault)
+	testConnectRegistration.Checks[0].Status = HealthPassing
+	_, err = catalog.Register(testConnectRegistration, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Act - fetch the service
+	query := fmt.Sprintf("service-meta?sameness-group=%s&partition=%s", "service-meta-sameness-group", fooPartition)
+	d, err := NewHealthServiceQuery(query)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	act, _, err := d.Fetch(testClients, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if act != nil {
+		for _, v := range act.([]*HealthService) {
+			v.NodeID = ""
+			v.Checks = nil
+			// delete any version data from ServiceMeta
+			v.ServiceMeta = filterVersionMeta(v.ServiceMeta)
+			v.NodeTaggedAddresses = filterAddresses(
+				v.NodeTaggedAddresses)
+			v.NodeMeta = filterVersionMeta(v.NodeMeta)
+
+		}
+	}
+
+	// Assert - verify the results
+	expectedResult := []*HealthService{
+		{
+			Node:        "node" + defaultPartition,
+			NodeAddress: testConsul.Config.Bind,
+			ServiceMeta: map[string]string{
+				"meta1": "value1",
+			},
+			Address:             testConsul.Config.Bind,
+			NodeTaggedAddresses: map[string]string{},
+			NodeMeta:            map[string]string{},
+			ID:                  "service-meta",
+			Name:                "service-meta",
+			Tags:                []string{"tag1"},
+			Status:              "passing",
+			Weights: api.AgentWeights{
+				Passing: 1,
+				Warning: 1,
+			},
+		},
+	}
+	assert.Equal(t, expectedResult, act)
 }
 
 func TestHealthServiceQuery_String(t *testing.T) {

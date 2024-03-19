@@ -61,15 +61,11 @@ func TestMain(m *testing.M) {
 		Address: testConsul.HTTPAddr,
 	}); err != nil {
 		testConsul.Stop()
-		testVault.Stop()
-		testNomad.Stop()
 		Fatalf("failed to create consul client: %v\n", err)
 	}
 
 	if t, err := test.NewTenancyHelper(clients.Consul()); err != nil {
-		testConsul.Stop()
-		testVault.Stop()
-		testNomad.Stop()
+		stopTestClients()
 		Fatalf("failed to create tenancy helper: %v\n", err)
 	} else {
 		tenancyHelper = t
@@ -86,55 +82,62 @@ func TestMain(m *testing.M) {
 	if err := clients.CreateNomadClient(&CreateNomadClientInput{
 		Address: "http://127.0.0.1:4646",
 	}); err != nil {
-		testConsul.Stop()
-		testVault.Stop()
-		testNomad.Stop()
+		stopTestClients()
 		Fatalf("failed to create nomad client: %v\n", err)
 	}
 
 	testClients = clients
 
 	if err := testClients.createConsulPartitions(); err != nil {
-		testConsul.Stop()
-		testVault.Stop()
-		testNomad.Stop()
+		stopTestClients()
 		Fatalf("failed to create consul partitions: %v\n", err)
 	}
 
 	if err := testClients.createConsulNs(); err != nil {
-		testConsul.Stop()
-		testVault.Stop()
-		testNomad.Stop()
+		stopTestClients()
 		Fatalf("failed to create consul namespaces: %v\n", err)
 	}
 
 	setupVaultPKI(clients)
 
 	if err := testClients.createConsulTestResources(); err != nil {
-		testConsul.Stop()
-		testVault.Stop()
-		testNomad.Stop()
+		stopTestClients()
 		Fatalf("failed to create consul test resources: %v\n", err)
+	}
+
+	if err := testClients.createConsulSamenessGroups(); err != nil {
+		stopTestClients()
+		Fatalf("failed to create consul test sameness groups: %v\n", err)
 	}
 
 	// Wait for Nomad initialization to finish
 	if err := <-nomadFuture; err != nil {
-		testConsul.Stop()
-		testNomad.Stop()
-		testVault.Stop()
+		stopTestClients()
 		Fatalf("failed to start Nomad: %v\n", err)
 	}
 
 	exit := m.Run()
 
 	tb.DoCleanup()
-	testConsul.Stop()
-	testVault.Stop()
-	testNomad.Stop()
+	stopTestClients()
 	os.Exit(exit)
 }
 
+func stopTestClients() {
+	testConsul.Stop()
+	testVault.Stop()
+	testNomad.Stop()
+}
+
 func (c *ClientSet) createConsulTestResources() error {
+	err := c.createConsulResourcesForTenancies(false)
+	if err != nil {
+		return err
+	}
+	return c.createConsulResourcesForTenancies(true)
+}
+
+func (c *ClientSet) createConsulResourcesForTenancies(forSamenessGroups bool) error {
 	catalog := testClients.Consul().Catalog()
 	for _, tenancy := range tenancyHelper.TestTenancies() {
 		partition := ""
@@ -143,11 +146,16 @@ func (c *ClientSet) createConsulTestResources() error {
 			partition = tenancy.Partition
 			namespace = tenancy.Namespace
 		}
+		if forSamenessGroups && partition == "" {
+			continue
+		}
+
 		node := "node" + tenancy.Partition
 		// service with meta data
+		metaServiceName := getConsulServiceName("service-meta", tenancy, forSamenessGroups)
 		serviceMetaService := &api.AgentService{
-			ID:      fmt.Sprintf("service-meta-%s-%s", tenancy.Partition, tenancy.Namespace),
-			Service: fmt.Sprintf("service-meta-%s-%s", tenancy.Partition, tenancy.Namespace),
+			ID:      metaServiceName,
+			Service: metaServiceName,
 			Tags:    []string{"tag1"},
 			Meta: map[string]string{
 				"meta1": "value1",
@@ -164,9 +172,10 @@ func (c *ClientSet) createConsulTestResources() error {
 			return err
 		}
 		// service with serviceTaggedAddresses
+		taggedAddressServiceName := getConsulServiceName("service-taggedAddresses", tenancy, forSamenessGroups)
 		serviceTaggedAddressesService := &api.AgentService{
-			ID:      fmt.Sprintf("service-taggedAddresses-%s-%s", tenancy.Partition, tenancy.Namespace),
-			Service: fmt.Sprintf("service-taggedAddresses-%s-%s", tenancy.Partition, tenancy.Namespace),
+			ID:      taggedAddressServiceName,
+			Service: taggedAddressServiceName,
 			TaggedAddresses: map[string]api.ServiceAddress{
 				"lan": {
 					Address: "192.0.2.1",
@@ -190,9 +199,10 @@ func (c *ClientSet) createConsulTestResources() error {
 		}
 
 		// connect enabled service
+		testServiceName := getConsulServiceName("conn-enabled-service", tenancy, forSamenessGroups)
 		testService := &api.AgentService{
-			ID:        fmt.Sprintf("conn-enabled-service-%s-%s", tenancy.Partition, tenancy.Namespace),
-			Service:   fmt.Sprintf("conn-enabled-service-%s-%s", tenancy.Partition, tenancy.Namespace),
+			ID:        testServiceName,
+			Service:   testServiceName,
 			Port:      12345,
 			Connect:   &api.AgentServiceConnect{},
 			Partition: partition,
@@ -200,41 +210,109 @@ func (c *ClientSet) createConsulTestResources() error {
 		}
 		// this is based on what `consul connect proxy` command does at
 		// consul/command/connect/proxy/register.go (register method)
+		testConnectName := getConsulServiceName("conn-enabled-service-proxy", tenancy, forSamenessGroups)
 		testConnect := &api.AgentService{
 			Kind:    api.ServiceKindConnectProxy,
-			ID:      fmt.Sprintf("conn-enabled-service-proxy-%s-%s", tenancy.Partition, tenancy.Namespace),
-			Service: fmt.Sprintf("conn-enabled-service-proxy-%s-%s", tenancy.Partition, tenancy.Namespace),
+			ID:      testConnectName,
+			Service: testConnectName,
 			Port:    21999,
 			Proxy: &api.AgentServiceConnectProxyConfig{
-				DestinationServiceName: fmt.Sprintf("conn-enabled-service-%s-%s", tenancy.Partition, tenancy.Namespace),
+				DestinationServiceName: getConsulServiceName("conn-enabled-service", tenancy, forSamenessGroups),
 			},
 			Partition: partition,
 			Namespace: namespace,
 		}
 
-		if _, err := catalog.Register(&api.CatalogRegistration{
+		testServiceRegistration := &api.CatalogRegistration{
 			Service:   testService,
 			Partition: partition,
 			Node:      node,
 			Address:   "127.0.0.1",
-		}, nil); err != nil {
+		}
+		if _, err := catalog.Register(testServiceRegistration, nil); err != nil {
 			return err
 		}
 
-		if _, err := catalog.Register(&api.CatalogRegistration{
+		testConnectRegistration := &api.CatalogRegistration{
 			Service:   testConnect,
 			Partition: partition,
 			Node:      node,
 			Address:   "127.0.0.1",
-		}, nil); err != nil {
+		}
+		if _, err := catalog.Register(testConnectRegistration, nil); err != nil {
 			return err
 		}
 
-		if err := testClients.createConsulPeerings(tenancy); err != nil {
-			return err
+		if !forSamenessGroups {
+			if err := testClients.createConsulPeerings(tenancy); err != nil {
+				return err
+			}
 		}
 		time.Sleep(200 * time.Millisecond)
 	}
+
+	return nil
+}
+
+func getConsulServiceName(name string, tenancy *test.Tenancy, forSamenessGroups bool) string {
+	if forSamenessGroups {
+		return name
+	}
+	return fmt.Sprintf("%s-%s-%s", name, tenancy.Partition, tenancy.Namespace)
+}
+
+func (c *ClientSet) createConsulSamenessGroups() error {
+	uniquePartitions := tenancyHelper.GetUniquePartitions()
+
+	for partition := range uniquePartitions {
+		members := []api.SamenessGroupMember{}
+		// add local partition first
+		members = append(members, api.SamenessGroupMember{
+			Partition: partition.Name,
+		})
+		//then add the others
+		for p := range uniquePartitions {
+			if p.Name != partition.Name {
+				members = append(members, api.SamenessGroupMember{
+					Partition: p.Name,
+				})
+			}
+		}
+
+		sg := &api.SamenessGroupConfigEntry{
+			Kind:               QuerySamenessGroup,
+			Name:               "test-sameness-group",
+			Partition:          partition.Name,
+			DefaultForFailover: true,
+			Members:            members,
+		}
+		log.Printf("sameness group: %+v", sg)
+		_, _, err := c.consul.client.ConfigEntries().Set(sg, &api.WriteOptions{})
+		if err != nil {
+			return err
+		}
+
+		_, _, err = c.consul.client.ConfigEntries().Set(&api.ServiceIntentionsConfigEntry{
+			Kind: api.ServiceIntentions,
+			Name: "foo",
+			Sources: []*api.SourceIntention{
+				{
+					Name:          "bar",
+					SamenessGroup: "group-1",
+					Action:        api.IntentionActionAllow,
+				},
+			},
+		}, &api.WriteOptions{})
+		if err != nil {
+			return err
+		}
+	}
+
+	sgs, _, err := c.consul.client.ConfigEntries().List(QuerySamenessGroup, &api.QueryOptions{})
+	if err != nil {
+		return err
+	}
+	log.Printf("sameness groups: %+v", sgs)
 
 	return nil
 }
