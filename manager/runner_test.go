@@ -1295,7 +1295,7 @@ func TestRunner_stoppedWatcher(t *testing.T) {
 	t.Cleanup(stopNow)
 
 	// Test server to simulate Vault cluster responses.
-	reqNum := atomic.Uintptr{}
+	reqNum := atomic.Uint64{}
 	vaultServer := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			t.Logf("GET %q", req.URL.Path)
