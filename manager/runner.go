@@ -23,7 +23,7 @@ import (
 	"github.com/hashicorp/consul-template/template"
 	"github.com/hashicorp/consul-template/watch"
 
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-multierror"
 )
 
 const (
@@ -37,6 +37,10 @@ type Runner struct {
 	// ErrCh and DoneCh are channels where errors and finish notifications occur.
 	ErrCh  chan error
 	DoneCh chan struct{}
+
+	// ServerErrCh is a channel to surface error responses from the server up the calling stack
+	// and will only hold a maximum of one error at a time
+	ServerErrCh chan error
 
 	// config is the Config that created this Runner. It is used internally to
 	// construct other objects and pass data.
@@ -199,6 +203,7 @@ func NewRunner(config *config.Config, dry bool) (*Runner, error) {
 	runner := &Runner{
 		ErrCh:         make(chan error),
 		DoneCh:        make(chan struct{}),
+		ServerErrCh:   make(chan error, 1),
 		config:        config,
 		dry:           dry,
 		inStream:      os.Stdin,
@@ -434,7 +439,17 @@ func (r *Runner) Start() {
 			log.Printf("[ERR] (runner) watcher reported error: %s", err)
 			r.ErrCh <- err
 			return
-
+		case err := <-r.watcher.ServerErrCh():
+			// If we got a server error we push the error up the stack
+			log.Printf("[ERR] (runner) sending server error back to caller")
+			// Drain the error channel if anything already exists
+			select {
+			case <-r.ServerErrCh:
+				continue
+			default:
+			}
+			r.ServerErrCh <- err
+			goto OUTER
 		case err := <-r.vaultTokenWatcher.ErrCh():
 			// Push the error back up the stack
 			log.Printf("[ERR] (runner): %s", err)

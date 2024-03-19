@@ -20,8 +20,9 @@ func TestPoll_returnsViewCh(t *testing.T) {
 
 	viewCh := make(chan *View)
 	errCh := make(chan error)
+	serverErrCh := make(chan error)
 
-	go view.poll(viewCh, errCh)
+	go view.poll(viewCh, errCh, serverErrCh)
 	defer view.stop()
 
 	select {
@@ -44,8 +45,9 @@ func TestPoll_returnsErrCh(t *testing.T) {
 
 	viewCh := make(chan *View)
 	errCh := make(chan error)
+	serverErrCh := make(chan error)
 
-	go view.poll(viewCh, errCh)
+	go view.poll(viewCh, errCh, serverErrCh)
 	defer view.stop()
 
 	select {
@@ -53,9 +55,16 @@ func TestPoll_returnsErrCh(t *testing.T) {
 		t.Errorf("expected no data, but got %+v", data)
 	case err := <-errCh:
 		expected := "failed to contact server"
+		select {
+		case <-serverErrCh:
+			t.Errorf("sent server error, expected lookup error")
+		default:
+
+		}
 		if err.Error() != expected {
 			t.Errorf("expected %q to be %q", err.Error(), expected)
 		}
+
 	case <-view.stopCh:
 		t.Errorf("poll received premature stop")
 	}
@@ -71,8 +80,9 @@ func TestPoll_stopsViewStopCh(t *testing.T) {
 
 	viewCh := make(chan *View)
 	errCh := make(chan error)
+	serverErrCh := make(chan error)
 
-	go view.poll(viewCh, errCh)
+	go view.poll(viewCh, errCh, serverErrCh)
 	view.stop()
 
 	select {
@@ -80,6 +90,8 @@ func TestPoll_stopsViewStopCh(t *testing.T) {
 		t.Errorf("expected no data, but received view data")
 	case err := <-errCh:
 		t.Errorf("error while polling: %s", err)
+	case err := <-serverErrCh:
+		t.Errorf("server error while polling : %s", err)
 	case <-time.After(20 * time.Millisecond):
 		// No data was received, test passes
 	}
@@ -95,8 +107,9 @@ func TestPoll_once(t *testing.T) {
 
 	viewCh := make(chan *View)
 	errCh := make(chan error)
+	serverErrCh := make(chan error)
 
-	go view.poll(viewCh, errCh)
+	go view.poll(viewCh, errCh, serverErrCh)
 	defer view.stop()
 
 	select {
@@ -113,6 +126,8 @@ func TestPoll_once(t *testing.T) {
 		t.Errorf("expected no data (should have stopped), but received view data")
 	case err := <-errCh:
 		t.Errorf("error while polling: %s", err)
+	case err := <-serverErrCh:
+		t.Errorf("server error while polling: %s", err)
 	case <-view.stopCh:
 		t.Errorf("poll received premature stop")
 	case <-time.After(20 * time.Millisecond):
@@ -133,8 +148,9 @@ func TestPoll_retries(t *testing.T) {
 
 	viewCh := make(chan *View)
 	errCh := make(chan error)
+	serverErrCh := make(chan error)
 
-	go view.poll(viewCh, errCh)
+	go view.poll(viewCh, errCh, serverErrCh)
 	defer view.stop()
 
 	select {
@@ -142,6 +158,9 @@ func TestPoll_retries(t *testing.T) {
 		t.Errorf("should not have gotten data yet")
 	case <-time.After(100 * time.Millisecond):
 	}
+
+	// need to receive error to avoid timeout
+	<-serverErrCh
 
 	select {
 	case <-viewCh:
@@ -291,14 +310,17 @@ func TestStop_stopsPolling(t *testing.T) {
 
 	viewCh := make(chan *View)
 	errCh := make(chan error)
+	serverErrCh := make(chan error)
 
-	go view.poll(viewCh, errCh)
+	go view.poll(viewCh, errCh, serverErrCh)
 	view.stop()
 
 	select {
 	case v := <-viewCh:
 		t.Errorf("got unexpected view: %#v", v)
 	case err := <-errCh:
+		t.Error(err)
+	case err := <-serverErrCh:
 		t.Error(err)
 	case <-view.stopCh:
 		// Successfully stopped
