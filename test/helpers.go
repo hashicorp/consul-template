@@ -113,3 +113,11 @@ func (t *TestingTB) Cleanup(f func()) {
 		}
 	}
 }
+func (*TestingTB) Error(...any)          {}
+func (*TestingTB) Errorf(string, ...any) {}
+func (*TestingTB) Fail()                 {}
+func (*TestingTB) FailNow()              {}
+func (*TestingTB) Fatal(...any)          {}
+func (*TestingTB) Log(...any)            {}
+func (*TestingTB) Setenv(string, string) {}
+func (*TestingTB) TempDir() string       { return "" }
