@@ -5,6 +5,7 @@ package dependency
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
 	"unsafe"
@@ -722,105 +723,56 @@ func TestHealthServiceQuery_Fetch_SamenessGroup(t *testing.T) {
 	// Arrange - set up test data
 	catalog := testClients.Consul().Catalog()
 
-	fooPartition := "foo"
-	defaultPartition := "default"
-	nodeDefault := "node" + defaultPartition
-	nodeFoo := "node" + fooPartition
+	partitionOne := "sg-partition-1"
+	partitionTwo := "sg-partition-2"
+	nodeOne := "node" + partitionOne
+	nodeTwo := "node" + partitionTwo
+	samenessGroup := "test-sameness-group"
+
+	require.NoError(t, testClients.createConsulPartition(partitionOne))
+	require.NoError(t, testClients.createConsulPartition(partitionTwo))
+	require.NoError(t, testClients.createConsulSamenessGroups(samenessGroup, partitionOne, partitionTwo))
 
 	// Register services in foo partition as critical so they will fall back to default partition service
-	testServiceName := "conn-enabled-service"
-	testServiceCheckName := fmt.Sprintf("%s:%s", testServiceName, nodeFoo)
-	testServiceRegistration := &api.CatalogRegistration{
-		Service: &api.AgentService{
-			ID:        testServiceName,
-			Service:   testServiceName,
-			Port:      12345,
-			Partition: fooPartition,
-			Namespace: "default",
-			Connect:   &api.AgentServiceConnect{},
-		},
-		Partition: fooPartition,
-		Node:      nodeFoo,
-		Address:   "127.0.0.1",
-		Checks: api.HealthChecks{
-			&api.HealthCheck{
-				Node:        nodeFoo,
-				CheckID:     testServiceCheckName,
-				Name:        testServiceCheckName,
-				Status:      HealthCritical,
-				ServiceID:   testServiceName,
-				ServiceName: testServiceName,
+	svcName := "sameness-group-service"
+	registerSvc := func(service, node, partition, status string) {
+		checkName := fmt.Sprintf("%s:%s", service, node)
+		svcRegistration := &api.CatalogRegistration{
+			Service: &api.AgentService{
+				ID:        service,
+				Service:   service,
+				Port:      12345,
+				Partition: partition,
+				Namespace: "default",
+				Connect:   &api.AgentServiceConnect{},
 			},
-		},
-	}
-
-	testConnectName := "conn-enabled-service-proxy"
-	testConnectCheckName := fmt.Sprintf("%s:%s", testConnectName, nodeFoo)
-	testConnectRegistration := &api.CatalogRegistration{
-		Service: &api.AgentService{
-			Kind:    api.ServiceKindConnectProxy,
-			ID:      testConnectName,
-			Service: testConnectName,
-			Port:    21999,
-			Proxy: &api.AgentServiceConnectProxyConfig{
-				DestinationServiceName: testServiceName,
+			Partition: partition,
+			Node:      node,
+			Address:   "127.0.0.1",
+			Checks: api.HealthChecks{
+				&api.HealthCheck{
+					Node:        node,
+					CheckID:     checkName,
+					Name:        checkName,
+					Status:      status,
+					ServiceID:   svcName,
+					ServiceName: svcName,
+				},
 			},
-			Partition: fooPartition,
-			Namespace: "default",
-		},
-		Partition: fooPartition,
-		Node:      nodeFoo,
-		Address:   "127.0.0.1",
-		Checks: api.HealthChecks{
-			&api.HealthCheck{
-				Node:        nodeFoo,
-				CheckID:     testConnectCheckName,
-				Name:        testConnectCheckName,
-				Status:      HealthCritical,
-				ServiceID:   testConnectName,
-				ServiceName: testConnectName,
-			},
-		},
+		}
+
+		_, err := catalog.Register(svcRegistration, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 
-	_, err := catalog.Register(testServiceRegistration, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = catalog.Register(testConnectRegistration, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Register in default partition as passing so it can fall back
-	testServiceRegistration.Service.Partition = defaultPartition
-	testServiceRegistration.Partition = defaultPartition
-	testServiceRegistration.Node = nodeDefault
-	testServiceRegistration.Checks[0].Node = nodeDefault
-	testServiceRegistration.Checks[0].CheckID = fmt.Sprintf("%s:%s", testServiceName, nodeDefault)
-	testServiceRegistration.Checks[0].Name = fmt.Sprintf("%s:%s", testServiceName, nodeDefault)
-	testServiceRegistration.Checks[0].Status = HealthPassing
-
-	_, err = catalog.Register(testServiceRegistration, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	testConnectRegistration.Service.Partition = defaultPartition
-	testConnectRegistration.Partition = defaultPartition
-	testConnectRegistration.Node = nodeDefault
-	testConnectRegistration.Checks[0].Node = nodeDefault
-	testConnectRegistration.Checks[0].CheckID = fmt.Sprintf("%s:%s", testServiceName, nodeDefault)
-	testConnectRegistration.Checks[0].Name = fmt.Sprintf("%s:%s", testServiceName, nodeDefault)
-	testConnectRegistration.Checks[0].Status = HealthPassing
-	_, err = catalog.Register(testConnectRegistration, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	// set up partition one to be unhealthy so that it will fall back to partition two
+	registerSvc(svcName, nodeOne, partitionOne, "critical")
+	registerSvc(svcName, nodeTwo, partitionTwo, "passing")
 
 	// Act - fetch the service
-	query := fmt.Sprintf("service-meta?sameness-group=%s&partition=%s", "service-meta-sameness-group", fooPartition)
+	query := fmt.Sprintf("%s?sameness-group=%s&partition=%s", svcName, samenessGroup, partitionOne)
 	d, err := NewHealthServiceQuery(query)
 	if err != nil {
 		t.Fatal(err)
@@ -847,18 +799,17 @@ func TestHealthServiceQuery_Fetch_SamenessGroup(t *testing.T) {
 	// Assert - verify the results
 	expectedResult := []*HealthService{
 		{
-			Node:        "node" + defaultPartition,
-			NodeAddress: testConsul.Config.Bind,
-			ServiceMeta: map[string]string{
-				"meta1": "value1",
-			},
+			Node:                nodeTwo,
+			NodeAddress:         testConsul.Config.Bind,
+			ServiceMeta:         map[string]string{},
 			Address:             testConsul.Config.Bind,
 			NodeTaggedAddresses: map[string]string{},
 			NodeMeta:            map[string]string{},
-			ID:                  "service-meta",
-			Name:                "service-meta",
-			Tags:                []string{"tag1"},
-			Status:              "passing",
+			Port:                12345,
+			ID:                  svcName,
+			Name:                svcName,
+			Tags:                []string{},
+			Status:              HealthPassing,
 			Weights: api.AgentWeights{
 				Passing: 1,
 				Warning: 1,

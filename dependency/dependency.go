@@ -160,6 +160,7 @@ func (q *QueryOptions) ToConsulOpts() *consulapi.QueryOptions {
 		Datacenter:        q.Datacenter,
 		Namespace:         q.ConsulNamespace,
 		Partition:         q.ConsulPartition,
+		SamenessGroup:     q.ConsulSamenessGroup,
 		Peer:              q.ConsulPeer,
 		Near:              q.Near,
 		RequireConsistent: q.RequireConsistent,
