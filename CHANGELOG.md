@@ -1,3 +1,13 @@
+# 0.37.4 (March 27, 2024)
+IMPROVEMENTS:
+* Add a `ServerErrCh` to the runner that that will surface server errors back to the caller. [GH-1897](https://github.com/hashicorp/consul-template/pull/1897)
+
+BUG FIXES:
+* Fixed a goroutine leak where dependencies could be added after a runner stops. [GH-1898](https://github.com/hashicorp/consul-template/pull/1898)
+
+# 0.37.3 (Unreleased)
+Version 0.37.3 includes all the changes in 0.37.4 but was not officially released.
+
 # 0.37.2 (March 8, 2024)
 IMPROVEMENTS:
 * Add ability to set custom render and reader functions to control behaviour writing and reading files. [GH-1876](https://github.com/hashicorp/consul-template/pull/1876)
@@ -444,16 +454,16 @@ BUG FIXES:
 * The indent function no longer panics on negative spaces variable [GH-1127]
 * Fixed an issue that caused `exec` to not be called with multiple templates and `wait` configured [GH-1043]
 * Fixed an issue where Consul Template did not wait for most of a non-renewable secret's lease before attempting to refresh the secret. [GH-1183]
- 
+
 ## v0.19.5 (June 12, 2018)
 
 BUG FIXES:
 
-  * The de-duplication feature was incorrectly calculating the hash of dependency 
-    values over an unstable encoding of the data. This meant that in most cases 
-    the templates were being re-written to KV and on all watching template 
+  * The de-duplication feature was incorrectly calculating the hash of dependency
+    values over an unstable encoding of the data. This meant that in most cases
+    the templates were being re-written to KV and on all watching template
     instances every minimum update time (i.e. `wait { min = X }`). At best this
-    was a lot of wasted work, in some cases it caused 100% CPU usage when template 
+    was a lot of wasted work, in some cases it caused 100% CPU usage when template
     instance leadership was split. [GH-1099, GH-1095]
   * Fixed an issue where we waited unnecessarily for a child process to exit [GH-1101]
 
@@ -603,7 +613,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
-  * Seed the random generator for splay values  
+  * Seed the random generator for splay values
   * Reset retries counter on successful contact [GH-931]
   * Return a nil slice instead of an error for non-existent maps
       [GH-906, GH-932]
