@@ -201,9 +201,9 @@ func TestNomadConfig_Finalize(t *testing.T) {
 	// This test is envvar sensitive, so there are a whole lot of them that need
 	// to be backed up and reset after the test
 	nomadVars := make(map[string]string)
-	for _, v := range os.Environ() {
-		if strings.HasPrefix(v, "NOMAD_") {
-			k, v, found := strings.Cut(v, "=")
+	for _, envVar := range os.Environ() {
+		if strings.HasPrefix(envVar, "NOMAD_") {
+			k, v, found := strings.Cut(envVar, "=")
 			if found {
 				nomadVars[k] = v
 				os.Unsetenv(k)

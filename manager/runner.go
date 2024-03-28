@@ -768,9 +768,9 @@ func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*
 	// in once mode, and we certainly do not want to re-run any commands.
 	if r.config.Once {
 		r.renderEventsLock.RLock()
-		event, ok := r.renderEvents[tmpl.ID()]
+		onceEvent, ok := r.renderEvents[tmpl.ID()]
 		r.renderEventsLock.RUnlock()
-		if ok && (event.WouldRender || event.DidRender) {
+		if ok && (onceEvent.WouldRender || onceEvent.DidRender) {
 			log.Printf("[DEBUG] (runner) once mode and already rendered")
 			return nil, nil
 		}

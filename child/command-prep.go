@@ -24,8 +24,8 @@ func CommandPrep(command []string) ([]string, bool, error) {
 		if _, err := exec.LookPath(shell); err != nil {
 			shell = ""
 			for _, sh := range []string{"/bin/sh", "/usr/bin/sh"} {
-				if sh, err := exec.LookPath(sh); err == nil {
-					shell = sh
+				if absPath, err := exec.LookPath(sh); err == nil {
+					shell = absPath
 					break
 				}
 			}
