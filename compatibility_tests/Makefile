@@ -58,6 +58,6 @@ test-compat:
 
 clean:
 	@echo "==> running clean"
-	docker system prune -y
+	docker system prune
 
 .PHONY: clean
