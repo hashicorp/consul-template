@@ -7,10 +7,14 @@ package dependency
 
 import (
 	"bytes"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul-template/renderer"
 	"github.com/hashicorp/vault/api"
@@ -49,6 +53,46 @@ func Test_VaultPKI_notGoodFor(t *testing.T) {
 		// but still tests pems time parsing (it'd be 0 if there was an issue)
 		if dur > 0 {
 			t.Errorf("%v: duration shouldn't be positive (old cert)", name)
+		}
+	}
+}
+
+func Test_VaulkPKI_goodFor(t *testing.T) {
+	tests := map[string]struct {
+		CertificateTTL time.Duration
+	}{
+		"one minute": {CertificateTTL: time.Minute},
+		"one hour":   {CertificateTTL: time.Hour},
+		"one day":    {CertificateTTL: time.Hour * 24},
+		"one week":   {CertificateTTL: time.Hour * 24 * 7},
+	}
+	for name, tc := range tests {
+		NotBefore := time.Now()
+		NotAfter := time.Now().Add(tc.CertificateTTL)
+		certificate := x509.Certificate{
+			Subject: pkix.Name{
+				Organization: []string{"Acme Co"},
+			},
+			NotBefore: NotBefore,
+			NotAfter:  NotAfter,
+		}
+
+		dur, ok := goodFor(&certificate)
+		if ok == false {
+			t.Errorf("%v: should be true", name)
+		}
+
+		ratio := dur.Seconds() / (NotAfter.Sub(NotBefore).Seconds())
+		// allow for a .01 epsilon for floating point comparison to prevent flakey tests
+		if ratio < .86 || ratio > .94 {
+			fmt.Println(ratio)
+			t.Errorf(
+				"%v: should be between 87 and 93, but was %.2f. NotBefore: %s, NotAfter: %s",
+				name,
+				ratio,
+				NotBefore,
+				NotAfter,
+			)
 		}
 	}
 }
