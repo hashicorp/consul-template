@@ -7,10 +7,14 @@ package dependency
 
 import (
 	"bytes"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul-template/renderer"
 	"github.com/hashicorp/vault/api"
@@ -49,6 +53,46 @@ func Test_VaultPKI_notGoodFor(t *testing.T) {
 		// but still tests pems time parsing (it'd be 0 if there was an issue)
 		if dur > 0 {
 			t.Errorf("%v: duration shouldn't be positive (old cert)", name)
+		}
+	}
+}
+
+func Test_VaulkPKI_goodFor(t *testing.T) {
+	tests := map[string]struct {
+		CertificateTTL time.Duration
+	}{
+		"one minute": {CertificateTTL: time.Minute},
+		"one hour":   {CertificateTTL: time.Hour},
+		"one day":    {CertificateTTL: time.Hour * 24},
+		"one week":   {CertificateTTL: time.Hour * 24 * 7},
+	}
+	for name, tc := range tests {
+		NotBefore := time.Now()
+		NotAfter := time.Now().Add(tc.CertificateTTL)
+		certificate := x509.Certificate{
+			Subject: pkix.Name{
+				Organization: []string{"Acme Co"},
+			},
+			NotBefore: NotBefore,
+			NotAfter:  NotAfter,
+		}
+
+		dur, ok := goodFor(&certificate)
+		if ok == false {
+			t.Errorf("%v: should be true", name)
+		}
+
+		ratio := dur.Seconds() / (NotAfter.Sub(NotBefore).Seconds())
+		// allow for a .01 epsilon for floating point comparison to prevent flakey tests
+		if ratio < .86 || ratio > .94 {
+			fmt.Println(ratio)
+			t.Errorf(
+				"%v: should be between 87 and 93, but was %.2f. NotBefore: %s, NotAfter: %s",
+				name,
+				ratio,
+				NotBefore,
+				NotAfter,
+			)
 		}
 	}
 }
@@ -136,10 +180,16 @@ func Test_VaultPKI_refetch(t *testing.T) {
 	defer os.Remove(f.Name())
 
 	clients := testClients
+	TTL := "2s"
+	ttlDuration, err := time.ParseDuration(TTL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	/// above is prep work
 	data := map[string]interface{}{
 		"common_name": "foo.example.com",
-		"ttl":         "3s",
+		"ttl":         TTL,
 		"ip_sans":     "127.0.0.1,192.168.2.2",
 	}
 	d, err := NewVaultPKIQuery("pki/issue/example-dot-com", f.Name(), data)
@@ -189,7 +239,10 @@ func Test_VaultPKI_refetch(t *testing.T) {
 		t.Errorf("pemss don't match and should.")
 	}
 
-	// Don't pre-drain here as we want it to get a new pems
+	// forcefully wait the longest the certificate could be good force to ensure
+	// goodFor will always return needs renewal
+	<-d.sleepCh
+	time.Sleep(time.Millisecond * time.Duration(((ttlDuration.Milliseconds()*9)/10)+(ttlDuration.Milliseconds()*int64(3)/100)))
 	act3, rm, err := d.Fetch(clients, nil)
 	if err != nil {
 		t.Fatal(err)
