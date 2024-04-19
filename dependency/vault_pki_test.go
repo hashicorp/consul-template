@@ -180,10 +180,16 @@ func Test_VaultPKI_refetch(t *testing.T) {
 	defer os.Remove(f.Name())
 
 	clients := testClients
+	TTL := "2s"
+	ttlDuration, err := time.ParseDuration(TTL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	/// above is prep work
 	data := map[string]interface{}{
 		"common_name": "foo.example.com",
-		"ttl":         "3s",
+		"ttl":         TTL,
 		"ip_sans":     "127.0.0.1,192.168.2.2",
 	}
 	d, err := NewVaultPKIQuery("pki/issue/example-dot-com", f.Name(), data)
@@ -233,7 +239,10 @@ func Test_VaultPKI_refetch(t *testing.T) {
 		t.Errorf("pemss don't match and should.")
 	}
 
-	// Don't pre-drain here as we want it to get a new pems
+	// forcefully wait the longest the certificate could be good force to ensure
+	// goodFor will always return needs renewal
+	<-d.sleepCh
+	time.Sleep(time.Millisecond * time.Duration(((ttlDuration.Milliseconds()*9)/10)+(ttlDuration.Milliseconds()*int64(3)/100)))
 	act3, rm, err := d.Fetch(clients, nil)
 	if err != nil {
 		t.Fatal(err)
