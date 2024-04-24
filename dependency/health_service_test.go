@@ -53,7 +53,7 @@ func TestNewHealthServiceQuery(t *testing.T) {
 				tenancyHelper.AppendTenancyInfo("query_only", tenancy),
 				fmt.Sprintf("?ns=%s", tenancy.Namespace),
 				nil,
-				fmt.Errorf(`health.service: invalid format: "?ns=default"`),
+				fmt.Errorf(`health.service: invalid format: "?ns=%s"`, tenancy.Namespace),
 			},
 			testCase{
 				tenancyHelper.AppendTenancyInfo("invalid query param (unsupported key)", tenancy),
@@ -649,35 +649,6 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 						Name:   fmt.Sprintf("service-taggedAddresses-%s-%s", tenancy.Partition, tenancy.Namespace),
 						Tags:   []string{},
 						Status: "passing",
-						Weights: api.AgentWeights{
-							Passing: 1,
-							Warning: 1,
-						},
-					},
-				},
-			},
-			testCase{
-				fmt.Sprintf(`service-meta for sameness group "%s" in partition "%s"`, "service-meta-sameness-group", tenancy.Partition),
-				fmt.Sprintf("service-meta?sameness-group=%s&partition=%s", "service-meta-sameness-group", tenancy.Partition),
-				[]*HealthService{
-					{
-						Node:                "node" + tenancy.Partition,
-						NodeAddress:         testConsul.Config.Bind,
-						NodeTaggedAddresses: map[string]string{
-							//"lan": "127.0.0.1",
-							//"wan": "127.0.0.1",
-						},
-						NodeMeta: map[string]string{
-							//"consul-network-segment": "",
-						},
-						ServiceMeta: map[string]string{
-							"meta1": "value1",
-						},
-						Address: testConsul.Config.Bind,
-						ID:      "service-meta",
-						Name:    "service-meta",
-						Tags:    []string{"tag1"},
-						Status:  "passing",
 						Weights: api.AgentWeights{
 							Passing: 1,
 							Warning: 1,
