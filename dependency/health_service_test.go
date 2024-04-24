@@ -247,7 +247,7 @@ func TestNewHealthServiceQuery(t *testing.T) {
 		tc := test.(testCase)
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
 			act, err := NewHealthServiceQuery(tc.i)
-			assert.Equal(t, err, tc.err)
+			assert.Equal(t, tc.err, err)
 
 			if act != nil {
 				act.stopCh = nil
