@@ -1,4 +1,4 @@
-module consul-template
+module github.com/hashicorp/consul-template
 
 go 1.22
 

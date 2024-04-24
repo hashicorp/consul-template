@@ -151,6 +151,10 @@ func (q *QueryOptions) Merge(o *QueryOptions) *QueryOptions {
 		r.ConsulPeer = o.ConsulPeer
 	}
 
+	if o.ConsulSamenessGroup != "" {
+		r.ConsulSamenessGroup = o.ConsulSamenessGroup
+	}
+
 	return &r
 }
 
