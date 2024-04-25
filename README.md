@@ -422,6 +422,7 @@ A: Configuration management tools are designed to be used in unison with Consul 
 | CT v0.36      | ✅            | ✅            | ✅            | N/A               | N/A               |
 | CT v0.35      | ✅            | ✅            | ✅            | N/A               | N/A               |
 | CT v0.34      | ✅            | ✅            | ✅            | N/A               | N/A               |
+
 N/A = ENT tests were not supported before this version
 
 ## Contributing
