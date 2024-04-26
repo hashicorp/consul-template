@@ -10,7 +10,6 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"errors"
-	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -19,6 +18,11 @@ import (
 	"github.com/hashicorp/consul-template/renderer"
 	"github.com/hashicorp/vault/api"
 )
+
+func init() {
+	VaultDefaultLeaseDuration = 0
+	VaultLeaseRenewalThreshold = .90
+}
 
 func Test_VaultPKI_uniqueID(t *testing.T) {
 	d1, _ := NewVaultPKIQuery("pki/issue/example-dot-com", "/unique_1", nil)
@@ -84,8 +88,7 @@ func Test_VaulkPKI_goodFor(t *testing.T) {
 
 		ratio := dur.Seconds() / (NotAfter.Sub(NotBefore).Seconds())
 		// allow for a .01 epsilon for floating point comparison to prevent flakey tests
-		if ratio < .86 || ratio > .94 {
-			fmt.Println(ratio)
+		if ratio < (VaultLeaseRenewalThreshold-.04) || ratio > (VaultLeaseRenewalThreshold+.04) {
 			t.Errorf(
 				"%v: should be between 87 and 93, but was %.2f. NotBefore: %s, NotAfter: %s",
 				name,
@@ -242,7 +245,9 @@ func Test_VaultPKI_refetch(t *testing.T) {
 	// forcefully wait the longest the certificate could be good force to ensure
 	// goodFor will always return needs renewal
 	<-d.sleepCh
-	time.Sleep(time.Millisecond * time.Duration(((ttlDuration.Milliseconds()*9)/10)+(ttlDuration.Milliseconds()*int64(3)/100)))
+	time.Sleep(time.Millisecond * time.Duration(
+		float64(ttlDuration.Milliseconds())*VaultLeaseRenewalThreshold+float64(ttlDuration.Milliseconds()*(int64(4)/100.0)),
+	))
 	act3, rm, err := d.Fetch(clients, nil)
 	if err != nil {
 		t.Fatal(err)
