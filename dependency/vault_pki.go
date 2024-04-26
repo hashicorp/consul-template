@@ -128,7 +128,7 @@ func goodFor(cert *x509.Certificate) (time.Duration, bool) {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	lifespanMilliseconds := lifespanDur.Milliseconds()
 	// calculate the 'time the certificate should be rotated' by figuring out -3%
-	// - 2% + VaultLeaseRenewalThreshold of the lifespan and adding it to the
+	// +3% + VaultLeaseRenewalThreshold of the lifespan and adding it to the
 	// start
 	rotationTime := start.Add(time.Millisecond * time.Duration(
 		float64(lifespanMilliseconds)*VaultLeaseRenewalThreshold+float64(lifespanMilliseconds*(int64(r.Intn(6)-3)/100.0)),
