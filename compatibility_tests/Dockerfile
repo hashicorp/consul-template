@@ -31,7 +31,7 @@ COPY --from=nomad /bin/nomad /bin/nomad
 
 ADD rsyslog.conf /etc/rsyslog.conf
 ADD run_tests.sh /run_tests.sh
-ADD run_nomad.sh /run_nomad.sh
+#ADD run_nomad.sh /run_nomad.sh
 
 RUN chmod +x /run_tests.sh
 RUN chmod +x /run_nomad.sh
