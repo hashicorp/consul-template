@@ -24,8 +24,8 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/crypto v0.19.0 // indirect
-	golang.org/x/sys v0.17.0
+	golang.org/x/crypto v0.22.0 // indirect
+	golang.org/x/sys v0.19.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -65,7 +65,7 @@ require (
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
-	golang.org/x/net v0.17.0 // indirect
+	golang.org/x/net v0.24.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
