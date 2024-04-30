@@ -1,3 +1,13 @@
+# 0.37.5 (April 30, 2024)
+IMPROVEMENTS:
+* Formatting changes [GH-1901]https://github.com/hashicorp/consul-template/pull/1901
+* Use lifespan instead of duration when calculating TTL for PKI certificate renewal [GH-1865]https://github.com/hashicorp/consul-template/pull/1865
+* PKI Certificate renewal time can be configured using the VaultLeaseRenewal threshold value [GH-1908]https://github.com/hashicorp/consul-template/pull/1908
+
+BUG FIXES:
+* Fix linters [GH-1902]https://github.com/hashicorp/consul-template/pull/1902
+
+
 # 0.37.4 (March 27, 2024)
 IMPROVEMENTS:
 * Add a `ServerErrCh` to the runner that that will surface server errors back to the caller. [GH-1897](https://github.com/hashicorp/consul-template/pull/1897)
