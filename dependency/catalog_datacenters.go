@@ -47,7 +47,7 @@ func (d *CatalogDatacentersQuery) Fetch(clients *ClientSet, opts *QueryOptions) 
 		RawQuery: opts.String(),
 	})
 
-	// This is pretty ghetto, but the datacenters endpoint does not support
+	// This is certainly not elegant, but the datacenters endpoint does not support
 	// blocking queries, so we are going to "fake it until we make it". When we
 	// first query, the LastIndex will be "0", meaning we should immediately
 	// return data, but future calls will include a LastIndex. If we have a
