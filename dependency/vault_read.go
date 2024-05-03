@@ -212,7 +212,7 @@ func shimKVv2Path(rawPath, mountPath string) string {
 		// If the raw path contains "/data/", but it's not the prefix of the path
 		// it means the namespace on the Vault client
 		// is different from the namespace prefixing the rawPath. We want to
-		// keep the rawPath as is, and have the Vault client can pass the  namespace as it's header
+		// keep the rawPath as is, and have the Vault client can pass the  namespace as its header
 		// so the concatenation is handled by the Vault server.
 		if strings.Contains(p, "/data/") {
 			return rawPath
