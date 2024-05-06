@@ -721,14 +721,14 @@ func TestShimKVv2Path(t *testing.T) {
 		},
 		{
 			"raw path contains partial namespace, not adjusted",
-			"c/secret",
+			"c/secret/",
 			"a/b/c/secret/",
 			"c/secret/data",
 			"a/b",
 		},
 		{
 			"raw path contains partial namespace, adjusted",
-			"c/secret/data",
+			"c/secret/data/",
 			"a/b/c/secret/",
 			"c/secret/data",
 			"a/b",
