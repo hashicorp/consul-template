@@ -416,7 +416,7 @@ A: The answer is simple: Service Discovery as a first class citizen. You are als
 A: Configuration management tools are designed to be used in unison with Consul Template. Instead of rendering a stale configuration file, use your configuration management software to render a dynamic template that will be populated by [Consul][consul].
 
 
-**Q: How does compatibility with Consul look like?
+**Q: How does compatibility with Consul look like?**<br>
 A: The following table shows the compatibility of Consul Template with Consul versions:
 |               | Consul v1.16  | Consul v1.17  | Consul v1.18  | Consul v1.16+ent  | Consul v1.17+ent  |
 | ------------- | ------------- | ------------- | ------------- | ----------------- | ----------------- |
