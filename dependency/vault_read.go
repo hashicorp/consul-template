@@ -211,7 +211,7 @@ func shimKVv2Path(rawPath, mountPath, clientNamespace string) string {
 
 		// Trim (mount path - client namespace) from the raw path
 		p := strings.TrimPrefix(rawPath, rawPathNsAndMountPath)
-		
+
 		// Only add /data/ prefix to the path if neither /data/ or /metadata/ are
 		// present.
 		if strings.HasPrefix(p, "data/") || strings.HasPrefix(p, "metadata/") {
