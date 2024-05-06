@@ -415,6 +415,19 @@ A: The answer is simple: Service Discovery as a first class citizen. You are als
 **Q: How is this different than Puppet/Chef/Ansible/Salt?**<br>
 A: Configuration management tools are designed to be used in unison with Consul Template. Instead of rendering a stale configuration file, use your configuration management software to render a dynamic template that will be populated by [Consul][consul].
 
+
+**Q: How does compatibility with Consul look like?
+A: The following table shows the compatibility of Consul Template with Consul versions:
+|               | Consul v1.16  | Consul v1.17  | Consul v1.18  | Consul v1.16+ent  | Consul v1.17+ent  |
+| ------------- | ------------- | ------------- | ------------- | ----------------- | ----------------- |
+| CT v0.37      | ✅            | ✅            | ✅            | ✅                | ✅                |
+| CT v0.36      | ✅            | ✅            | ✅            | N/A               | N/A               |
+| CT v0.35      | ✅            | ✅            | ✅            | N/A               | N/A               |
+| CT v0.34      | ✅            | ✅            | ✅            | N/A               | N/A               |
+
+N/A = ENT tests were not supported before this version
+
+
 ## Contributing
 
 To build and install Consul-Template locally, you will need to [install Go][go].
