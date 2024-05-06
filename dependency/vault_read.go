@@ -150,7 +150,7 @@ func (d *VaultReadQuery) readSecret(clients *ClientSet) (*api.Secret, error) {
 			isKVv2 = false
 			d.secretPath = d.rawPath
 		} else if isKVv2 {
-			d.secretPath = shimKVv2Path(d.rawPath, mountPath)
+			d.secretPath = shimKVv2Path(d.rawPath, mountPath, clients.Vault().Namespace())
 		} else {
 			d.secretPath = d.rawPath
 		}
@@ -196,18 +196,28 @@ func deletedKVv2(s *api.Secret) bool {
 
 // shimKVv2Path aligns the supported legacy path to KV v2 specs by inserting
 // /data/ into the path for reading secrets. Paths for metadata are not modified.
-func shimKVv2Path(rawPath, mountPath string) string {
+func shimKVv2Path(rawPath, mountPath, clientNamespace string) string {
 	switch {
 	case rawPath == mountPath, rawPath == strings.TrimSuffix(mountPath, "/"):
 		return path.Join(mountPath, "data")
 	default:
-		p := strings.TrimPrefix(rawPath, mountPath)
+
+		// Canonicalize the client namespace path to always having a '/' suffix
+		if !strings.HasSuffix(clientNamespace, "/") {
+			clientNamespace += "/"
+		}
+		// Extract client namespace from mount path if it exists
+		rawPathNsAndMountPath := strings.TrimPrefix(mountPath, clientNamespace)
+
+		// Trim (mount path - client namespace) from the raw path
+		p := strings.TrimPrefix(rawPath, rawPathNsAndMountPath)
 
 		// Only add /data/ prefix to the path if neither /data/ or /metadata/ are
 		// present.
 		if strings.HasPrefix(p, "data/") || strings.HasPrefix(p, "metadata/") {
 			return rawPath
 		}
-		return path.Join(mountPath, "data", p)
+
+		return path.Join(rawPathNsAndMountPath, "data", p)
 	}
 }
