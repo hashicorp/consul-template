@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"reflect"
 	"testing"
+	"time"
 	"unsafe"
 
 	"github.com/hashicorp/consul-template/test"
@@ -690,6 +691,9 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 	}
 }
 
+// TestHealthServiceQuery_Fetch_SamenessGroup tests fetching services with sameness group
+// and asserts that failover works when a service in the sameness group fails and consul-template
+// reacts to the change.
 func TestHealthServiceQuery_Fetch_SamenessGroup(t *testing.T) {
 	// Arrange - set up test data
 	catalog := testClients.Consul().Catalog()
@@ -738,8 +742,8 @@ func TestHealthServiceQuery_Fetch_SamenessGroup(t *testing.T) {
 		}
 	}
 
-	// set up partition one to be unhealthy so that it will fall back to partition two
-	registerSvc(svcName, nodeOne, partitionOne, "critical")
+	// set up service in each partition
+	registerSvc(svcName, nodeOne, partitionOne, "passing")
 	registerSvc(svcName, nodeTwo, partitionTwo, "passing")
 
 	// Act - fetch the service
@@ -749,45 +753,72 @@ func TestHealthServiceQuery_Fetch_SamenessGroup(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	act, _, err := d.Fetch(testClients, nil)
+	svcs, meta, err := d.Fetch(testClients, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if act != nil {
-		for _, v := range act.([]*HealthService) {
-			v.NodeID = ""
-			v.Checks = nil
-			// delete any version data from ServiceMeta
-			v.ServiceMeta = filterVersionMeta(v.ServiceMeta)
-			v.NodeTaggedAddresses = filterAddresses(
-				v.NodeTaggedAddresses)
-			v.NodeMeta = filterVersionMeta(v.NodeMeta)
+	healthServices := svcs.([]*HealthService)
+	require.True(t, len(healthServices) == 1)
+	require.Equal(t, "node"+partitionOne, healthServices[0].Node)
 
+	// set up blocking query with last index
+	dataCh := make(chan interface{}, 1)
+	errCh := make(chan error, 1)
+	go func() {
+		data, _, err := d.Fetch(testClients, &QueryOptions{WaitIndex: meta.LastIndex})
+		if err != nil {
+			errCh <- err
+			return
 		}
-	}
+		dataCh <- data
+	}()
 
-	// Assert - verify the results
-	expectedResult := []*HealthService{
-		{
-			Node:                nodeTwo,
-			NodeAddress:         testConsul.Config.Bind,
-			ServiceMeta:         map[string]string{},
-			Address:             testConsul.Config.Bind,
-			NodeTaggedAddresses: map[string]string{},
-			NodeMeta:            map[string]string{},
-			Port:                12345,
-			ID:                  svcName,
-			Name:                svcName,
-			Tags:                []string{},
-			Status:              HealthPassing,
-			Weights: api.AgentWeights{
-				Passing: 1,
-				Warning: 1,
+	// update partition one to initiate failover
+	registerSvc(svcName, nodeOne, partitionOne, "critical")
+
+	select {
+	case err := <-errCh:
+		if err != ErrStopped {
+			t.Fatal(err)
+		}
+	case <-time.After(1 * time.Minute):
+		t.Errorf("did not stop")
+	case val := <-dataCh:
+		if val != nil {
+			for _, v := range val.([]*HealthService) {
+				v.NodeID = ""
+				v.Checks = nil
+				// delete any version data from ServiceMeta
+				v.ServiceMeta = filterVersionMeta(v.ServiceMeta)
+				v.NodeTaggedAddresses = filterAddresses(
+					v.NodeTaggedAddresses)
+				v.NodeMeta = filterVersionMeta(v.NodeMeta)
+			}
+		}
+
+		// Assert - verify the results
+		expectedResult := []*HealthService{
+			{
+				Node:                nodeTwo,
+				NodeAddress:         testConsul.Config.Bind,
+				ServiceMeta:         map[string]string{},
+				Address:             testConsul.Config.Bind,
+				NodeTaggedAddresses: map[string]string{},
+				NodeMeta:            map[string]string{},
+				Port:                12345,
+				ID:                  svcName,
+				Name:                svcName,
+				Tags:                []string{},
+				Status:              HealthPassing,
+				Weights: api.AgentWeights{
+					Passing: 1,
+					Warning: 1,
+				},
 			},
-		},
+		}
+		assert.Equal(t, expectedResult, val)
 	}
-	assert.Equal(t, expectedResult, act)
 }
 
 func TestHealthServiceQuery_String(t *testing.T) {
