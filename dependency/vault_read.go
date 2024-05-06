@@ -150,7 +150,7 @@ func (d *VaultReadQuery) readSecret(clients *ClientSet) (*api.Secret, error) {
 			isKVv2 = false
 			d.secretPath = d.rawPath
 		} else if isKVv2 {
-			d.secretPath = shimKVv2Path(d.rawPath, mountPath)
+			d.secretPath = shimKVv2Path(d.rawPath, mountPath, clients.Vault().Namespace())
 		} else {
 			d.secretPath = d.rawPath
 		}
@@ -196,12 +196,23 @@ func deletedKVv2(s *api.Secret) bool {
 
 // shimKVv2Path aligns the supported legacy path to KV v2 specs by inserting
 // /data/ into the path for reading secrets. Paths for metadata are not modified.
-func shimKVv2Path(rawPath, mountPath string) string {
+func shimKVv2Path(rawPath, mountPath, clientNamespace string) string {
 	switch {
 	case rawPath == mountPath, rawPath == strings.TrimSuffix(mountPath, "/"):
 		return path.Join(mountPath, "data")
 	default:
-		p := strings.TrimPrefix(rawPath, mountPath)
+
+		// Canonicalize the client namespace path to always having a '/' suffix
+		if !strings.HasSuffix(clientNamespace, "/") {
+			clientNamespace += "/"
+		}
+		// Extract client namespace from mount path if it exists
+		rawPathNsAndMountPath := strings.TrimPrefix(mountPath, clientNamespace)
+
+		// Trim (mount path - client namespace) from the raw path
+		p := strings.TrimPrefix(rawPath, rawPathNsAndMountPath)
+
+		log.Printf("[ERR] divya modified raw path: %s", p)
 
 		// Only add /data/ prefix to the path if neither /data/ or /metadata/ are
 		// present.
@@ -209,16 +220,6 @@ func shimKVv2Path(rawPath, mountPath string) string {
 			return rawPath
 		}
 
-		// If the raw path contains "/data/", but it's not the prefix of the path
-		// it means the namespace on the Vault client
-		// is different from the namespace prefixing the rawPath. We want to
-		// keep the rawPath as is, and have the Vault client can pass the  namespace as its header
-		// so the concatenation is handled by the Vault server.
-		if strings.Contains(p, "/data/") {
-			return rawPath
-
-		}
-
-		return path.Join(mountPath, "data", p)
+		return path.Join(rawPathNsAndMountPath, "data", p)
 	}
 }

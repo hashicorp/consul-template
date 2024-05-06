@@ -156,7 +156,7 @@ func (d *VaultWriteQuery) writeSecret(clients *ClientSet, opts *QueryOptions) (*
 	data := d.data
 	mountPath, isv2, _ := isKVv2(clients.Vault(), path)
 	if isv2 {
-		path = shimKVv2Path(path, mountPath)
+		path = shimKVv2Path(path, mountPath, clients.Vault().Namespace())
 		data = map[string]interface{}{"data": d.data}
 	}
 

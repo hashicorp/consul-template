@@ -711,7 +711,7 @@ func TestShimKVv2Path(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := shimKVv2Path(tc.path, tc.mountPath)
+			actual := shimKVv2Path(tc.path, tc.mountPath, "")
 			assert.Equal(t, tc.expected, actual)
 		})
 	}
