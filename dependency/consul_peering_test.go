@@ -119,7 +119,7 @@ func TestListPeeringsQuery_Fetch(t *testing.T) {
 		// create another peer
 		err = testClients.createConsulPeerings(tenancy)
 		require.NoError(t, err)
-		
+
 		select {
 		case err := <-errCh:
 			if err != ErrStopped {
