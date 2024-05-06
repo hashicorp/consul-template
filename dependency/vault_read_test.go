@@ -746,6 +746,13 @@ func TestShimKVv2Path(t *testing.T) {
 			"c/secret/data/random/data/here",
 			"a/b",
 		},
+		{
+			"raw path contains partial namespace, nested namespace has same name, adjusted",
+			"a/secret/data",
+			"a/a/secret/",
+			"a/secret/data",
+			"a/",
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
