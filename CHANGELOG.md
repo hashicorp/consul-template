@@ -1,3 +1,7 @@
+# 0.37.5 (May 6, 2024)
+BUG FIXES:
+* Fix shimkv2 concatenation [GH-1921]https://github.com/hashicorp/consul-template/pull/1921/
+
 # 0.37.5 (April 30, 2024)
 IMPROVEMENTS:
 * Formatting changes [GH-1901]https://github.com/hashicorp/consul-template/pull/1901
