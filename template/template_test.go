@@ -2559,6 +2559,28 @@ func Test_writeToFile(t *testing.T) {
 			"after",
 			false,
 		},
+		{
+			"writeToFile_without_permissions",
+			"",
+			"after",
+			"",
+			"",
+			"",
+			"",
+			"after",
+			false,
+		},
+		{
+			"writeToFile_without_permissions_create_directory",
+			"demo/testing.tmp",
+			"after",
+			currentUsername,
+			currentGroupName,
+			"",
+			"",
+			"after",
+			false,
+		},
 	}
 
 	for _, tc := range cases {
@@ -2570,6 +2592,7 @@ func Test_writeToFile(t *testing.T) {
 			defer os.RemoveAll(outDir)
 
 			var outputFilePath string
+			var perm os.FileMode
 			if tc.filePath == "" {
 				outputFile, err := os.CreateTemp(outDir, "")
 				if err != nil {
@@ -2580,8 +2603,12 @@ func Test_writeToFile(t *testing.T) {
 					t.Fatal(err)
 				}
 				outputFilePath = outputFile.Name()
+				// permission for the file created by CreateTemp is 0o600
+				perm = os.FileMode(0o600)
 			} else {
 				outputFilePath = outDir + "/" + tc.filePath
+				// default unmask permission
+				perm = os.FileMode(0o664)
 			}
 
 			templateContent := fmt.Sprintf(
@@ -2619,13 +2646,15 @@ func Test_writeToFile(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			p_u, err := strconv.ParseUint(tc.permissions, 8, 32)
-			if err != nil {
-				t.Fatal(err)
+			if tc.permissions != "" {
+				p_u, err := strconv.ParseUint(tc.permissions, 8, 32)
+				if err != nil {
+					t.Fatal(err)
+				}
+				perm = os.FileMode(p_u)
 			}
-			perm := os.FileMode(p_u)
 			if sts.Mode() != perm {
-				t.Errorf("writeToFile() wrong permissions got = %v, want %v", perm, tc.permissions)
+				t.Errorf("writeToFile() wrong permissions got = %v, want %v", sts.Mode(), perm)
 			}
 
 			stat := sts.Sys().(*syscall.Stat_t)

@@ -1755,9 +1755,12 @@ func hmacSHA256Hex(message, key string) (string, error) {
 // and optional flags to select appending mode or add a newline.
 //
 // The username and group name fields can be left blank to default to the current user and group.
+// The permissions field can be left blank to default to 0644 if the file is created, or the existing
+// permissions if the file is appended to or modified.
 //
 // For example:
 //
+//	key "my/key/path" | writeToFile "/my/file/path.txt"
 //	key "my/key/path" | writeToFile "/my/file/path.txt" "" "" "0644"
 //	key "my/key/path" | writeToFile "/my/file/path.txt" "100" "1000" "0644"
 //	key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644"
@@ -1771,14 +1774,20 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 	}
 	content := args[len(args)-1]
 
-	p_u, err := strconv.ParseUint(permissions, 8, 32)
-	if err != nil {
-		return "", err
+	perm := os.FileMode(0o664) // Default permissions for created files
+	if permissions != "" {
+		p_u, err := strconv.ParseUint(permissions, 8, 32)
+		if err != nil {
+			return "", err
+		}
+		perm = os.FileMode(p_u)
 	}
-	perm := os.FileMode(p_u)
 
 	// Write to file
-	var f *os.File
+	var (
+		f   *os.File
+		err error
+	)
 	shouldAppend := strings.Contains(flags, "append")
 	if shouldAppend {
 		f, err = os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, perm)
@@ -1814,9 +1823,6 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 	// Change ownership and permissions
 	var uid int
 	var gid int
-	if err != nil {
-		return "", err
-	}
 
 	if username == "" {
 		uid = os.Getuid()
@@ -1857,9 +1863,11 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 		}
 	}
 
-	err = os.Chmod(path, perm)
-	if err != nil {
-		return "", err
+	if permissions != "" {
+		err = os.Chmod(path, perm)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	return "", nil
