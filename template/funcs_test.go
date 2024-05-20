@@ -10,6 +10,9 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	dep "github.com/hashicorp/consul-template/dependency"
 )
 
@@ -198,6 +201,97 @@ func Test_byMeta(t *testing.T) {
 			wantIDs := onlyIDs(tt.wantGroups)
 			if !reflect.DeepEqual(gotGroups, tt.wantGroups) {
 				t.Errorf("byMeta() = %v, want %v", gotIDs, wantIDs)
+			}
+		})
+	}
+}
+
+func Test_byPort(t *testing.T) {
+	tests := []struct {
+		name         string
+		services     interface{}
+		wantGroupIDs map[int][]string
+		wantErr      error
+	}{
+		{
+			name: "HealthService",
+			services: []*dep.HealthService{
+				{Port: 8080, ID: "svcA"},
+				{Port: 8080, ID: "svcB"},
+				{Port: 9090, ID: "svcC"},
+			},
+			wantGroupIDs: map[int][]string{
+				8080: {"svcA", "svcB"},
+				9090: {"svcC"},
+			},
+			wantErr: nil,
+		},
+		{
+			name: "CatalogService",
+			services: []*dep.CatalogService{
+				{ServicePort: 8080, ID: "svcA"},
+				{ServicePort: 8080, ID: "svcB"},
+				{ServicePort: 9090, ID: "svcC"},
+			},
+			wantGroupIDs: map[int][]string{
+				8080: {"svcA", "svcB"},
+				9090: {"svcC"},
+			},
+			wantErr: nil,
+		},
+		{
+			name: "NomadService",
+			services: []*dep.NomadService{
+				{Port: 8080, ID: "svcA"},
+				{Port: 8080, ID: "svcB"},
+				{Port: 9090, ID: "svcC"},
+			},
+			wantGroupIDs: map[int][]string{
+				8080: {"svcA", "svcB"},
+				9090: {"svcC"},
+			},
+			wantErr: nil,
+		},
+		{
+			name:         "empty",
+			services:     []*dep.HealthService{},
+			wantGroupIDs: map[int][]string{},
+			wantErr:      nil,
+		},
+		{
+			name: "unsupported type",
+			services: []*dep.CatalogSnippet{
+				{Name: "svcA"},
+			},
+			wantGroupIDs: map[int][]string{},
+			wantErr:      fmt.Errorf("byPort: wrong argument type []*dependency.CatalogSnippet"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotGroups, err := byPort(tt.services)
+			if tt.wantErr == nil {
+				require.NoError(t, err)
+			} else {
+				assert.EqualError(t, err, tt.wantErr.Error())
+			}
+
+			gotGroupIDs := make(map[int][]string)
+			for port, services := range gotGroups {
+				for _, service := range services {
+					switch tService := service.(type) {
+					case *dep.HealthService:
+						gotGroupIDs[port] = append(gotGroupIDs[port], tService.ID)
+					case *dep.CatalogService:
+						gotGroupIDs[port] = append(gotGroupIDs[port], tService.ID)
+					case *dep.NomadService:
+						gotGroupIDs[port] = append(gotGroupIDs[port], tService.ID)
+					}
+				}
+			}
+
+			if !reflect.DeepEqual(gotGroupIDs, tt.wantGroupIDs) {
+				t.Errorf("byTag() = %v, want %v", gotGroupIDs, tt.wantGroupIDs)
 			}
 		})
 	}
