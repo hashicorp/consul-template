@@ -12,10 +12,11 @@ import (
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
-	"github.com/hashicorp/consul-template/config"
-	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/pkg/errors"
 	"golang.org/x/exp/maps"
+
+	"github.com/hashicorp/consul-template/config"
+	dep "github.com/hashicorp/consul-template/dependency"
 )
 
 var (
@@ -366,6 +367,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"base64URLDecode":       base64URLDecode,
 		"base64URLEncode":       base64URLEncode,
 		"byKey":                 byKey,
+		"byPort":                byPort,
 		"byTag":                 byTag,
 		"contains":              contains,
 		"containsAll":           containsSomeFunc(true, true),

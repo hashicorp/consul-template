@@ -27,14 +27,15 @@ import (
 
 	"github.com/BurntSushi/toml"
 	spewLib "github.com/davecgh/go-spew/spew"
-	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul/api"
 	socktmpl "github.com/hashicorp/go-sockaddr/template"
 	"github.com/imdario/mergo"
 	"github.com/pkg/errors"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
+
+	dep "github.com/hashicorp/consul-template/dependency"
 )
 
 // now is function that represents the current time in UTC. This is here
@@ -759,6 +760,35 @@ func byKey(pairs []*dep.KeyPair) (map[string]map[string]*dep.KeyPair, error) {
 		newPair := *pair
 		newPair.Key = key
 		m[top][key] = &newPair
+	}
+
+	return m, nil
+}
+
+// byPort is a template func that takes the provided services and
+// produces a map based on Service Port.
+//
+// The map key is an integer representing the service port. The map value is a
+// slice of Services which have the port assigned.
+func byPort(in interface{}) (map[int][]interface{}, error) {
+	m := make(map[int][]interface{})
+
+	switch typed := in.(type) {
+	case nil:
+	case []*dep.CatalogService:
+		for _, s := range typed {
+			m[s.ServicePort] = append(m[s.ServicePort], s)
+		}
+	case []*dep.HealthService:
+		for _, s := range typed {
+			m[s.Port] = append(m[s.Port], s)
+		}
+	case []*dep.NomadService:
+		for _, s := range typed {
+			m[s.Port] = append(m[s.Port], s)
+		}
+	default:
+		return nil, fmt.Errorf("byPort: wrong argument type %T", in)
 	}
 
 	return m, nil
