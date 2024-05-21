@@ -18,7 +18,7 @@ var (
 	// Ensure implements
 	_ Dependency = (*CatalogServicesQuery)(nil)
 
-	// CatalogServicesQueryRe is the regular expression to use for CatalogNodesQuery.
+	// CatalogServicesQueryRe is the regular expression to use for CatalogServicesQuery.
 	CatalogServicesQueryRe = regexp.MustCompile(`\A` + queryRe + dcRe + `\z`)
 )
 
