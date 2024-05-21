@@ -27,14 +27,15 @@ import (
 
 	"github.com/BurntSushi/toml"
 	spewLib "github.com/davecgh/go-spew/spew"
-	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/consul/api"
 	socktmpl "github.com/hashicorp/go-sockaddr/template"
 	"github.com/imdario/mergo"
 	"github.com/pkg/errors"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
+
+	dep "github.com/hashicorp/consul-template/dependency"
 )
 
 // now is function that represents the current time in UTC. This is here
@@ -58,6 +59,28 @@ func datacentersFunc(b *Brain, used, missing *dep.Set) func(ignore ...bool) ([]s
 		}
 
 		d, err := dep.NewCatalogDatacentersQuery(ignore)
+		if err != nil {
+			return result, err
+		}
+
+		used.Add(d)
+
+		if value, ok := b.Recall(d); ok {
+			return value.([]string), nil
+		}
+
+		missing.Add(d)
+
+		return result, nil
+	}
+}
+
+// partitionsFunc returns or accumulates partition dependencies.
+func partitionsFunc(b *Brain, used, missing *dep.Set) func() ([]string, error) {
+	return func() ([]string, error) {
+		result := []string{}
+
+		d, err := dep.NewListPartitionsQuery()
 		if err != nil {
 			return result, err
 		}

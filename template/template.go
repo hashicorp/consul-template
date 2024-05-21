@@ -12,10 +12,11 @@ import (
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
-	"github.com/hashicorp/consul-template/config"
-	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/pkg/errors"
 	"golang.org/x/exp/maps"
+
+	"github.com/hashicorp/consul-template/config"
+	dep "github.com/hashicorp/consul-template/dependency"
 )
 
 var (
@@ -337,6 +338,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"safeLs":       safeLsFunc(i.brain, i.used, i.missing),
 		"node":         nodeFunc(i.brain, i.used, i.missing),
 		"nodes":        nodesFunc(i.brain, i.used, i.missing),
+		"partitions":   partitionsFunc(i.brain, i.used, i.missing),
 		"peerings":     peeringsFunc(i.brain, i.used, i.missing),
 		"secret":       secretFunc(i.brain, i.used, i.missing),
 		"secrets":      secretsFunc(i.brain, i.used, i.missing),

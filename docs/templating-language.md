@@ -19,6 +19,7 @@ provides the following functions:
   * [`safeLs`](#safels)
   * [`node`](#node)
   * [`nodes`](#nodes)
+  * [`partitions`](#partitions)
   * [`peerings`](#peerings)
   * [`secret`](#secret)
     + [Format](#format)
@@ -505,6 +506,15 @@ To query a different data center and order by shortest trip time to ourselves:
 
 To access map data such as `TaggedAddresses` or `Meta`, use
 [Go's text/template][text-template] map indexing.
+
+### `partitions`
+
+Query [Consul][consul] for all partitions.
+
+```golang
+{{ range partitions }}
+{{ . }}{{ end }}
+```
 
 ### `peerings`
 
