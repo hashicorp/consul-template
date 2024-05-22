@@ -11,6 +11,7 @@ provides the following functions:
   * [`caRoots`](#caroots)
   * [`connect`](#connect)
   * [`datacenters`](#datacenters)
+  * [`exportedServices`](#exportedservices)
   * [`file`](#file)
   * [`key`](#key)
   * [`keyExists`](#keyexists)
@@ -244,6 +245,24 @@ environments where performance is a factor.
 ```golang
 // Ignores datacenters which are inaccessible
 {{ datacenters true }}
+```
+
+### `exportedServices`
+
+Query [Consul][consul] for all exported services in a given partition.
+
+```golang
+{{ exportedServices "<PARTITION>" }}
+```
+
+For example:
+
+```golang
+{{- range $svc := (exportedServices "default") }}
+    {{- range $consumer := .Consumers.Partitions }}
+        {{- $svc.Service }} is exported to the {{ $consumer }} partition
+    {{- end }}
+{{- end }}
 ```
 
 ### `file`
