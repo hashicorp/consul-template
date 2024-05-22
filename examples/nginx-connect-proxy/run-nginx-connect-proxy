@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # This script is here to allow easy testing of the config files embedded in the
-# docucument and to help users try it out.
+# document and to help users try it out.
 
 name=$(basename ${0})
 proxy_connect_document="${name#run-}.md"
