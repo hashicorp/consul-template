@@ -16,11 +16,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	nomadapi "github.com/hashicorp/nomad/api"
 	vapi "github.com/hashicorp/vault/api"
+
+	"github.com/hashicorp/consul-template/test"
 )
 
 const (
