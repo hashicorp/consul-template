@@ -513,8 +513,8 @@ Query [Consul][consul] for all partitions.
 
 ```golang
 {{ range partitions }}
-{{ . }}{{ end }}
-```
+{{ .Name }}
+{{ end }}
 
 ### `peerings`
 
