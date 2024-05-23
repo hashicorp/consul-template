@@ -43,16 +43,33 @@ type ExportedService struct {
 }
 
 type ResolvedConsumers struct {
-	Peers      []string
-	Partitions []string
+	Peers          []string
+	Partitions     []string
+	SamenessGroups []string
 }
 
-func fromConsulExportedService(svc capi.ResolvedExportedService) ExportedService {
+func fromConsulExportedService(svc capi.ExportedService) ExportedService {
+	peers := make([]string, 0, len(svc.Consumers))
+	partitions := make([]string, 0, len(svc.Consumers))
+	samenessGroups := make([]string, 0, len(svc.Consumers))
+	for _, consumer := range svc.Consumers {
+		if consumer.Peer != "" {
+			peers = append(peers, consumer.Peer)
+		}
+		if consumer.Partition != "" {
+			partitions = append(partitions, consumer.Partition)
+		}
+		if consumer.SamenessGroup != "" {
+			samenessGroups = append(samenessGroups, consumer.SamenessGroup)
+		}
+	}
+
 	return ExportedService{
-		Service: svc.Service,
+		Service: svc.Name,
 		Consumers: ResolvedConsumers{
-			Peers:      slices.Clone(svc.Consumers.Peers),
-			Partitions: slices.Clone(svc.Consumers.Partitions),
+			Peers:          peers,
+			Partitions:     partitions,
+			SamenessGroups: samenessGroups,
 		},
 	}
 }
@@ -71,7 +88,7 @@ func (c *ListExportedServicesQuery) Fetch(clients *ClientSet, opts *QueryOptions
 	})
 
 	log.Printf("[TRACE] %s: GET %s", c, &url.URL{
-		Path:     "/v1/exported-services",
+		Path:     "/v1/config/exported-services",
 		RawQuery: opts.String(),
 	})
 
@@ -94,15 +111,17 @@ func (c *ListExportedServicesQuery) Fetch(clients *ClientSet, opts *QueryOptions
 		}
 	}
 
-	// TODO Consider using a proper context
-	consulExportedServices, qm, err := clients.Consul().ExportedServices(opts.ToConsulOpts())
+	consulExportedServices, qm, err := clients.Consul().ConfigEntries().List(capi.ExportedServices, opts.ToConsulOpts())
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, c.String())
 	}
 
 	exportedServices := make([]ExportedService, 0, len(consulExportedServices))
-	for _, svc := range consulExportedServices {
-		exportedServices = append(exportedServices, fromConsulExportedService(svc))
+	for _, cfgEntry := range consulExportedServices {
+		svc := cfgEntry.(*capi.ExportedServicesConfigEntry)
+		for _, svc := range svc.Services {
+			exportedServices = append(exportedServices, fromConsulExportedService(svc))
+		}
 	}
 
 	log.Printf("[TRACE] %s: returned %d results", c, len(exportedServices))

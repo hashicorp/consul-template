@@ -12,7 +12,6 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
-	"runtime"
 	"testing"
 	"time"
 
@@ -514,7 +513,7 @@ func TestDeepCopyAndSortTags(t *testing.T) {
 
 func Fatalf(format string, args ...interface{}) {
 	fmt.Printf(format, args...)
-	runtime.Goexit()
+	os.Exit(1)
 }
 
 func (v *nomadServer) CreateVariable(path string, data map[string]string, opts *nomadapi.WriteOptions) error {
@@ -559,6 +558,7 @@ func (c *ClientSet) createConsulPartitions() error {
 
 	return nil
 }
+
 func (c *ClientSet) createConsulNs() error {
 	for _, tenancy := range tenancyHelper.TestTenancies() {
 		if tenancy.Namespace != "" && tenancy.Namespace != "default" {
