@@ -137,20 +137,17 @@ func TestListExportedServicesQuery_Fetch(t *testing.T) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			q := &ListExportedServicesQuery{
-				stopCh:    make(chan struct{}),
-				partition: tc.partition,
-			}
+			q, err := NewListExportedServicesQuery(tc.partition)
+			require.NoError(t, err)
 
 			actual, _, err := q.Fetch(testClients, nil)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
+			require.NoError(t, err)
 
 			require.ElementsMatch(t, tc.expected, actual)
 
 			// need to clean up because we use a single shared consul instance
 			_, err = testClients.Consul().ConfigEntries().Delete(capi.ExportedServices, tc.exportedServices.Name, &capi.WriteOptions{Partition: tc.partition})
+			require.NoError(t, err)
 		})
 	}
 }

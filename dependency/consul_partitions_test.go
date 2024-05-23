@@ -44,24 +44,22 @@ func TestNewListPartitionsQuery(t *testing.T) {
 }
 
 func TestListPartitionsQuery_Fetch(t *testing.T) {
-	cases := []struct {
-		name string
-		exp  []Partition
-	}{
+	expected := []*Partition{
 		{
-			"default",
-			[]Partition{{Name: "dc1", Description: "dc1"}},
+			Name:        "default",
+			Description: "Builtin Default Partition",
+		},
+
+		{
+			Name:        "foo",
+			Description: "",
 		},
 	}
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			d, err := NewListPartitionsQuery()
-			require.NoError(t, err)
+	d, err := NewListPartitionsQuery()
+	require.NoError(t, err)
 
-			act, _, err := d.Fetch(nil, nil)
-			require.NoError(t, err)
-			assert.Equal(t, tc.exp, act)
-		})
-	}
+	act, _, err := d.Fetch(testClients, nil)
+	require.NoError(t, err)
+	assert.Equal(t, expected, act)
 }

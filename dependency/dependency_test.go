@@ -43,6 +43,20 @@ func TestMain(m *testing.M) {
 	tb := &test.TestingTB{}
 	runTestConsul(tb)
 	clients := NewClientSet()
+
+	defer func() {
+		// Attempt to recover from a panic and stop the server. If we don't
+		// stop it, the panic will cause the server to remain running in
+		// the background. Here we catch the panic and the re-raise it.
+		// This doesn't do anything if we get panics in individual test cases
+		if r := recover(); r != nil {
+			testConsul.Stop()
+			testVault.Stop()
+			testNomad.Stop()
+			panic(r)
+		}
+	}()
+
 	if err := clients.CreateConsulClient(&CreateConsulClientInput{
 		Address: testConsul.HTTPAddr,
 	}); err != nil {
@@ -111,24 +125,7 @@ func TestMain(m *testing.M) {
 		Fatalf("failed to start Nomad: %v\n", err)
 	}
 
-	exitCh := make(chan int, 1)
-	func() {
-		defer func() {
-			// Attempt to recover from a panic and stop the server. If we don't
-			// stop it, the panic will cause the server to remain running in
-			// the background. Here we catch the panic and the re-raise it.
-			if r := recover(); r != nil {
-				testConsul.Stop()
-				testVault.Stop()
-				testNomad.Stop()
-				panic(r)
-			}
-		}()
-
-		exitCh <- m.Run()
-	}()
-
-	exit := <-exitCh
+	exit := m.Run()
 
 	tb.DoCleanup()
 	testConsul.Stop()
