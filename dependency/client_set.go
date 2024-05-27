@@ -10,11 +10,16 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
+	httptransport "github.com/go-openapi/runtime/client"
 	consulapi "github.com/hashicorp/consul/api"
 	rootcerts "github.com/hashicorp/go-rootcerts"
+	secretspreview "github.com/hashicorp/hcp-sdk-go/clients/cloud-vault-secrets/preview/2023-11-28/client/secret_service"
+	hcpconf "github.com/hashicorp/hcp-sdk-go/config"
+	"github.com/hashicorp/hcp-sdk-go/httpclient"
 	nomadapi "github.com/hashicorp/nomad/api"
 	vaultapi "github.com/hashicorp/vault/api"
 	vaultkubernetesauth "github.com/hashicorp/vault/api/auth/kubernetes"
@@ -28,6 +33,7 @@ type ClientSet struct {
 	vault  *vaultClient
 	consul *consulClient
 	nomad  *nomadClient
+	hcpvs  *hcpvsClient
 }
 
 // consulClient is a wrapper around a real Consul API client.
@@ -46,6 +52,11 @@ type vaultClient struct {
 type nomadClient struct {
 	client     *nomadapi.Client
 	httpClient *http.Client
+}
+
+type hcpvsClient struct {
+	client    secretspreview.ClientService
+	transport *httptransport.Runtime
 }
 
 // TransportDialer is an interface that allows passing a custom dialer function
@@ -481,6 +492,36 @@ func (c *ClientSet) CreateNomadClient(i *CreateNomadClientInput) error {
 	c.nomad = &nomadClient{
 		client:     client,
 		httpClient: conf.HttpClient,
+	}
+	c.Unlock()
+
+	return nil
+}
+
+func (c *ClientSet) CreateHCPVaultSecretsClient() error {
+	prdeSvcName := os.Getenv("PRDE_SERVICE_NAME")
+	if prdeSvcName == "" {
+		return fmt.Errorf("env var PRDE_SERVICE_NAME unset, can't authenticated to HCP")
+	}
+	opts := []hcpconf.HCPConfigOption{
+		hcpconf.FromEnv(),
+		hcpconf.WithoutBrowserLogin(),
+		hcpconf.WithAuth(fmt.Sprintf("https://%s.dev.pedp-remote.hashicorp.services", prdeSvcName), nil),
+	}
+	hcp, err := hcpconf.NewHCPConfig(opts...)
+	if err != nil {
+		return fmt.Errorf("error creating HCP config: %v", err)
+	}
+
+	transport, err := httpclient.New(httpclient.Config{HCPConfig: hcp})
+	if err != nil {
+		return fmt.Errorf("error creating HTTP transport for HCP: %v", err)
+	}
+
+	c.Lock()
+	c.hcpvs = &hcpvsClient{
+		client:    secretspreview.New(transport, nil),
+		transport: transport,
 	}
 	c.Unlock()
 
