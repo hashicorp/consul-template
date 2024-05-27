@@ -358,6 +358,10 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"nomadVar":         nomadVariableItemsFunc(i.brain, i.used, i.missing, nomadNS),
 		"nomadVarExists":   nomadVariableExistsFunc(i.brain, i.used, i.missing, nomadNS),
 
+		// HCP Vault Secrets functions
+		"hvsSecrets": hcpvsSecretsFunc(i.brain, i.used, i.missing),
+		"hvsSecret":  hcpvsSecretFunc(i.brain, i.used, i.missing),
+
 		// Scratch
 		"scratch": func() *Scratch { return &scratch },
 

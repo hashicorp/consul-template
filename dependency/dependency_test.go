@@ -19,12 +19,13 @@ import (
 	"github.com/hashicorp/consul-template/test"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
+	secretspreview "github.com/hashicorp/hcp-sdk-go/clients/cloud-vault-secrets/preview/2023-11-28/client/secret_service"
 	nomadapi "github.com/hashicorp/nomad/api"
 	vapi "github.com/hashicorp/vault/api"
 )
 
 const (
-	vaultAddr  = "http://127.0.0.1:8200"
+	vaultAddr  = "http://127.0.0.2:8200"
 	vaultToken = "a_token"
 )
 
@@ -70,12 +71,19 @@ func TestMain(m *testing.M) {
 		Fatalf("failed to create vault client: %v\n", err)
 	}
 	if err := clients.CreateNomadClient(&CreateNomadClientInput{
-		Address: "http://127.0.0.1:4646",
+		Address: "http://127.0.0.2:4646",
 	}); err != nil {
 		testConsul.Stop()
 		testVault.Stop()
 		testNomad.Stop()
 		Fatalf("failed to create nomad client: %v\n", err)
+	}
+
+	if err := clients.CreateHCPVaultSecretsClient(); err != nil {
+		testConsul.Stop()
+		testVault.Stop()
+		testNomad.Stop()
+		Fatalf("failed to create HCP vault secrets client: %v\n", err)
 	}
 
 	testClients = clients
@@ -286,6 +294,7 @@ func runTestNomad() <-chan error {
 		"-consul-client-auto-join=false", "-consul-server-auto-join=false",
 		"-network-speed=100",
 		"-log-level=error", // We're just discarding it anyway
+		"-bind=127.0.0.2",
 	)
 	cmd.Stdout = io.Discard
 	cmd.Stderr = io.Discard
@@ -321,6 +330,7 @@ func initTestNomad(errCh chan<- error) {
 	}
 
 	config := nomadapi.DefaultConfig()
+	config.Address = "http://127.0.0.2:4646"
 	client, err := nomadapi.NewClient(config)
 	if err != nil {
 		errCh <- fmt.Errorf("failed to create nomad client: %w", err)
@@ -428,7 +438,7 @@ func runTestVault() {
 	}
 	args := []string{
 		"server", "-dev", "-dev-root-token-id", vaultToken,
-		"-dev-no-store-token",
+		"-dev-no-store-token", "-dev-listen-address=127.0.0.2:8200",
 	}
 	cmd := exec.Command("vault", args...)
 	cmd.Stdout = io.Discard
@@ -570,4 +580,27 @@ func (c *ClientSet) createConsulNs() error {
 	}
 
 	return nil
+}
+
+func testHCPVS(t *testing.T, appName string) *ClientSet {
+	{
+		p := secretspreview.NewDeleteAppParams()
+		p.Name = appName
+		_, err := testClients.hcpvs.client.DeleteApp(p, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	{
+		p := secretspreview.NewCreateAppParams()
+		p.Body = secretspreview.CreateAppBody{
+			Name: appName,
+		}
+		_, err := testClients.hcpvs.client.CreateApp(p, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	return testClients
 }

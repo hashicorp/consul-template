@@ -1912,3 +1912,55 @@ func spewPrintf(format string, args ...interface{}) (string, error) {
 	spewLib.Printf(format, args...)
 	return "", nil
 }
+
+func hcpvsSecretsFunc(b *Brain, used, missing *dep.Set) func(string) ([]string, error) {
+	return func(s string) ([]string, error) {
+		var result []string
+
+		if len(s) == 0 {
+			return result, nil
+		}
+
+		d, err := dep.NewHCPVSListQuery(s)
+		if err != nil {
+			return nil, err
+		}
+
+		used.Add(d)
+
+		if value, ok := b.Recall(d); ok {
+			result = value.([]string)
+			return result, nil
+		}
+
+		missing.Add(d)
+
+		return result, nil
+	}
+}
+
+func hcpvsSecretFunc(b *Brain, used, missing *dep.Set) func(string) (interface{}, error) {
+	return func(path string) (interface{}, error) {
+		pieces := strings.SplitN(path, "/", 2)
+		if len(pieces) != 2 {
+			return nil, nil
+		}
+
+		appName, secretName := pieces[0], pieces[1]
+		d, err := dep.NewHCPVSOpenSecretQuery(appName, secretName)
+
+		if err != nil {
+			return nil, err
+		}
+
+		used.Add(d)
+
+		if value, ok := b.Recall(d); ok {
+			return value.(string), nil
+		}
+
+		missing.Add(d)
+
+		return nil, nil
+	}
+}

@@ -40,6 +40,7 @@ const (
 	TypeVault
 	TypeLocal
 	TypeNomad
+	TypeHCPVS
 )
 
 const (
