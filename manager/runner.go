@@ -1433,6 +1433,9 @@ func NewClientSet(c *config.Config) (*dep.ClientSet, error) {
 		return nil, fmt.Errorf("runner: %s", err)
 	}
 
+	if err := clients.CreateHCPVaultSecretsClient(); err != nil {
+		return nil, fmt.Errorf("runner: %s", err)
+	}
 	return clients, nil
 }
 
