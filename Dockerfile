@@ -16,11 +16,13 @@ ARG PRODUCT_REVISION
 ARG PRODUCT_NAME=$BIN_NAME
 # TARGETARCH and TARGETOS are set automatically when --platform is provided.
 ARG TARGETOS TARGETARCH
+ENV PRODUCT_NAME=$BIN_NAME
 
 LABEL maintainer="Consul Team <consul@hashicorp.com>"
 # version label is required for build process
 LABEL version=$PRODUCT_VERSION
 LABEL revision=$PRODUCT_REVISION
+LABEL licenses="MPL-2.0"
 
 # These are the defaults, this makes them explicit and overridable.
 ARG UID=100
@@ -31,6 +33,7 @@ RUN addgroup -g ${GID} ${BIN_NAME} \
 
 # where the build system stores the builds
 COPY ./dist/$TARGETOS/$TARGETARCH/$BIN_NAME /bin/
+COPY LICENSE /usr/share/doc/$PRODUCT_NAME/LICENSE.txt
 
 # entrypoint
 COPY ./.release/docker-entrypoint.sh /bin/
