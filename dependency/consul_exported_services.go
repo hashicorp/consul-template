@@ -1,22 +1,15 @@
 package dependency
 
 import (
+	"fmt"
 	"log"
 	"net/url"
 	"slices"
-	"time"
 
 	capi "github.com/hashicorp/consul/api"
-	"github.com/pkg/errors"
 )
 
-const (
-	exportedServicesEndpointLabel = "list.exportedServices"
-
-	// ListExportedServicesQuerySleepTime is the amount of time to sleep between
-	// queries, since the endpoint does not support blocking queries.
-	ListExportedServicesQuerySleepTime = 15 * time.Second
-)
+const exportedServicesEndpointLabel = "list.exportedServices"
 
 // Ensure implements
 var _ Dependency = (*ListExportedServicesQuery)(nil)
@@ -77,12 +70,18 @@ func fromConsulExportedService(svc capi.ExportedService) ExportedService {
 // NewListExportedServicesQuery parses a string of the format @dc.
 func NewListExportedServicesQuery(s string) (*ListExportedServicesQuery, error) {
 	return &ListExportedServicesQuery{
-		stopCh:    make(chan struct{}, 1),
+		stopCh:    make(chan struct{}),
 		partition: s,
 	}, nil
 }
 
 func (c *ListExportedServicesQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface{}, *ResponseMetadata, error) {
+	select {
+	case <-c.stopCh:
+		return nil, nil, ErrStopped
+	default:
+	}
+
 	opts = opts.Merge(&QueryOptions{
 		ConsulPartition: c.partition,
 	})
@@ -92,28 +91,9 @@ func (c *ListExportedServicesQuery) Fetch(clients *ClientSet, opts *QueryOptions
 		RawQuery: opts.String(),
 	})
 
-	// This is certainly not elegant, but the partitions endpoint does not support
-	// blocking queries, so we are going to "fake it until we make it". When we
-	// first query, the LastIndex will be "0", meaning we should immediately
-	// return data, but future calls will include a LastIndex. If we have a
-	// LastIndex in the query metadata, sleep for 15 seconds before asking Consul
-	// again.
-	//
-	// This is probably okay given the frequency in which partitions actually
-	// change, but is technically not edge-triggering.
-	if opts.WaitIndex != 0 {
-		log.Printf("[TRACE] %s: long polling for %s", c, ListExportedServicesQuerySleepTime)
-
-		select {
-		case <-c.stopCh:
-			return nil, nil, ErrStopped
-		case <-time.After(ListExportedServicesQuerySleepTime):
-		}
-	}
-
 	consulExportedServices, qm, err := clients.Consul().ConfigEntries().List(capi.ExportedServices, opts.ToConsulOpts())
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, c.String())
+		return nil, nil, fmt.Errorf("%s: %w", c.String(), err)
 	}
 
 	exportedServices := make([]ExportedService, 0, len(consulExportedServices))
@@ -143,8 +123,7 @@ func (c *ListExportedServicesQuery) Fetch(clients *ClientSet, opts *QueryOptions
 	return exportedServices, rm, nil
 }
 
-// CanShare returns if this dependency is shareable.
-// TODO What is this?
+// CanShare returns if this dependency is shareable when consul-template is running in de-duplication mode.
 func (c *ListExportedServicesQuery) CanShare() bool {
 	return true
 }

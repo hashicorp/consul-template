@@ -2,6 +2,7 @@ package dependency
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/url"
 	"slices"
@@ -9,16 +10,15 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/pkg/errors"
 )
 
+// Ensure implements
 var (
-	// Ensure implements
 	_ Dependency = (*ListPartitionsQuery)(nil)
 
 	// ListPartitionsQuerySleepTime is the amount of time to sleep between
 	// queries, since the endpoint does not support blocking queries.
-	ListPartitionsQuerySleepTime = 15 * time.Second
+	ListPartitionsQuerySleepTime = DefaultNonBlockingQuerySleepTime
 )
 
 // Partition is a partition in Consul.
@@ -66,10 +66,13 @@ func (c *ListPartitionsQuery) Fetch(clients *ClientSet, opts *QueryOptions) (int
 		}
 	}
 
-	// TODO Consider using a proper context
 	partitions, _, err := clients.Consul().Partitions().List(context.Background(), opts.ToConsulOpts())
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, c.String())
+		if strings.Contains(err.Error(), "Invalid URL path") {
+			return nil, nil, fmt.Errorf("%s: Partitions are an enterprise feature: %w", c.String(), err)
+		}
+
+		return nil, nil, fmt.Errorf("%s: %w", c.String(), err)
 	}
 
 	log.Printf("[TRACE] %s: returned %d results", c, len(partitions))
@@ -93,8 +96,7 @@ func (c *ListPartitionsQuery) Fetch(clients *ClientSet, opts *QueryOptions) (int
 	return respWithMetadata(resp)
 }
 
-// CanShare returns if this dependency is shareable.
-// TODO What is this?
+// CanShare returns if this dependency is shareable when consul-template is running in de-duplication mode.
 func (c *ListPartitionsQuery) CanShare() bool {
 	return true
 }
