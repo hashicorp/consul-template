@@ -31,6 +31,8 @@ const (
 	nvListPrefixRe = `/?(?P<prefix>[^@]*)`
 	nvListNSRe     = `(@(?P<namespace>([[:word:]\-\_]+|\*)))?`
 	nvRegionRe     = `(\.(?P<region>[[:word:]\-\_]+))?`
+
+	DefaultNonBlockingQuerySleepTime = 15 * time.Second
 )
 
 type Type int

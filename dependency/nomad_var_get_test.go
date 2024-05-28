@@ -121,7 +121,6 @@ func TestNewNVGetQuery(t *testing.T) {
 			assert.Equal(t, tc.exp, act)
 		})
 	}
-	fmt.Println("done")
 }
 
 func TestNVGetQuery_Fetch(t *testing.T) {

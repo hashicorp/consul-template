@@ -19,7 +19,7 @@ var (
 
 	// CatalogDatacentersQuerySleepTime is the amount of time to sleep between
 	// queries, since the endpoint does not support blocking queries.
-	CatalogDatacentersQuerySleepTime = 15 * time.Second
+	CatalogDatacentersQuerySleepTime = DefaultNonBlockingQuerySleepTime
 )
 
 // CatalogDatacentersQuery is the dependency to query all datacenters

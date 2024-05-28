@@ -75,6 +75,54 @@ func datacentersFunc(b *Brain, used, missing *dep.Set) func(ignore ...bool) ([]s
 	}
 }
 
+// partitionsFunc returns or accumulates partition dependencies.
+func partitionsFunc(b *Brain, used, missing *dep.Set) func() ([]*dep.Partition, error) {
+	return func() ([]*dep.Partition, error) {
+		result := []*dep.Partition{}
+
+		d, err := dep.NewListPartitionsQuery()
+		if err != nil {
+			return result, err
+		}
+
+		used.Add(d)
+
+		if value, ok := b.Recall(d); ok {
+			return value.([]*dep.Partition), nil
+		}
+
+		missing.Add(d)
+
+		return result, nil
+	}
+}
+
+// exportedServicesFunc returns or accumulates partition dependencies.
+func exportedServicesFunc(b *Brain, used, missing *dep.Set) func(...string) ([]dep.ExportedService, error) {
+	return func(s ...string) ([]dep.ExportedService, error) {
+		result := []dep.ExportedService{}
+
+		if len(s) > 1 {
+			return result, errors.New("exportedServices: wrong number of arguments, expected 0 or 1")
+		}
+
+		d, err := dep.NewListExportedServicesQuery(strings.Join(s, ""))
+		if err != nil {
+			return result, err
+		}
+
+		used.Add(d)
+
+		if value, ok := b.Recall(d); ok {
+			return value.([]dep.ExportedService), nil
+		}
+
+		missing.Add(d)
+
+		return result, nil
+	}
+}
+
 // envFunc returns a function which checks the value of an environment variable.
 // Invokers can specify their own environment, which takes precedences over any
 // real environment variables

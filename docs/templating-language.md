@@ -11,6 +11,7 @@ provides the following functions:
   * [`caRoots`](#caroots)
   * [`connect`](#connect)
   * [`datacenters`](#datacenters)
+  * [`exportedServices`](#exportedservices)
   * [`file`](#file)
   * [`key`](#key)
   * [`keyExists`](#keyexists)
@@ -19,6 +20,7 @@ provides the following functions:
   * [`safeLs`](#safels)
   * [`node`](#node)
   * [`nodes`](#nodes)
+  * [`partitions`](#partitions)
   * [`peerings`](#peerings)
   * [`secret`](#secret)
     + [Format](#format)
@@ -243,6 +245,24 @@ environments where performance is a factor.
 ```golang
 // Ignores datacenters which are inaccessible
 {{ datacenters true }}
+```
+
+### `exportedServices`
+
+Query [Consul][consul] for all exported services in a given partition.
+
+```golang
+{{ exportedServices "<PARTITION>" }}
+```
+
+For example:
+
+```golang
+{{- range $svc := (exportedServices "default") }}
+    {{- range $consumer := .Consumers.Partitions }}
+        {{- $svc.Service }} is exported to the {{ $consumer }} partition
+    {{- end }}
+{{- end }}
 ```
 
 ### `file`
@@ -505,6 +525,15 @@ To query a different data center and order by shortest trip time to ourselves:
 
 To access map data such as `TaggedAddresses` or `Meta`, use
 [Go's text/template][text-template] map indexing.
+
+### `partitions`
+
+Query [Consul][consul] for all partitions.
+
+```golang
+{{ range partitions }}
+{{ .Name }}
+{{ end }}
 
 ### `peerings`
 

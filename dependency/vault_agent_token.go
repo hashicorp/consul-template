@@ -17,7 +17,7 @@ var _ Dependency = (*VaultAgentTokenQuery)(nil)
 const (
 	// VaultAgentTokenSleepTime is the amount of time to sleep between queries, since
 	// the fsnotify library is not compatible with solaris and other OSes yet.
-	VaultAgentTokenSleepTime = 15 * time.Second
+	VaultAgentTokenSleepTime = DefaultNonBlockingQuerySleepTime
 )
 
 // VaultAgentTokenQuery is the dependency to Vault Agent token
