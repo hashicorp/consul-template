@@ -17,6 +17,8 @@ import (
 	httptransport "github.com/go-openapi/runtime/client"
 	consulapi "github.com/hashicorp/consul/api"
 	rootcerts "github.com/hashicorp/go-rootcerts"
+	"github.com/hashicorp/hcp-sdk-go/auth"
+	"github.com/hashicorp/hcp-sdk-go/auth/workload"
 	secretspreview "github.com/hashicorp/hcp-sdk-go/clients/cloud-vault-secrets/preview/2023-11-28/client/secret_service"
 	hcpconf "github.com/hashicorp/hcp-sdk-go/config"
 	"github.com/hashicorp/hcp-sdk-go/httpclient"
@@ -498,16 +500,25 @@ func (c *ClientSet) CreateNomadClient(i *CreateNomadClientInput) error {
 	return nil
 }
 
-func (c *ClientSet) CreateHCPVaultSecretsClient() error {
-	prdeSvcName := os.Getenv("PRDE_SERVICE_NAME")
-	if prdeSvcName == "" {
-		return fmt.Errorf("env var PRDE_SERVICE_NAME unset, can't authenticated to HCP")
-	}
+func (c *ClientSet) CreateHCPVaultSecretsClient(nomadToken string) error {
 	opts := []hcpconf.HCPConfigOption{
-		hcpconf.FromEnv(),
+		//hcpconf.FromEnv(),
 		hcpconf.WithoutBrowserLogin(),
-		hcpconf.WithAuth(fmt.Sprintf("https://%s.dev.pedp-remote.hashicorp.services", prdeSvcName), nil),
 	}
+	os.Setenv("NOMAD_TOKEN", nomadToken)
+	cf := &auth.CredentialFile{
+		Scheme: "workload",
+		Workload: &workload.IdentityProviderConfig{
+			ProviderResourceName: "iam/project/19d26ea7-0086-4085-8330-d1fe1b61dddf/service-principal/my-app-runtime/workload-identity-provider/nomadproject.io",
+			EnvironmentVariable: &workload.EnvironmentVariableCredentialSource{
+				Var: "NOMAD_TOKEN",
+			},
+		},
+	}
+	opts = append(opts, hcpconf.WithCredentialFile(cf))
+	//if creds := os.Getenv("HCP_CREDENTIALS_FILE"); creds != "" {
+	//	opts = append(opts, hcpconf.WithCredentialFilePath(creds))
+	//}
 	hcp, err := hcpconf.NewHCPConfig(opts...)
 	if err != nil {
 		return fmt.Errorf("error creating HCP config: %v", err)

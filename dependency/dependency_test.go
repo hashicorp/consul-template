@@ -79,7 +79,7 @@ func TestMain(m *testing.M) {
 		Fatalf("failed to create nomad client: %v\n", err)
 	}
 
-	if err := clients.CreateHCPVaultSecretsClient(); err != nil {
+	if err := clients.CreateHCPVaultSecretsClient(""); err != nil {
 		testConsul.Stop()
 		testVault.Stop()
 		testNomad.Stop()
