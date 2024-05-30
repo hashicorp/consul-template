@@ -44,6 +44,12 @@ const (
 // homePath is the location to the user's home directory.
 var homePath, _ = homedir.Dir()
 
+type HCPVSConfig struct {
+	OrgID   string
+	ProjID  string
+	WIPName string
+}
+
 // Config is used to configure Consul Template
 type Config struct {
 	// Consul is the configuration for connecting to a Consul cluster.
@@ -91,6 +97,8 @@ type Config struct {
 
 	// Vault is the configuration for connecting to a vault server.
 	Vault *VaultConfig `mapstructure:"vault"`
+
+	HCPVS *HCPVSConfig
 
 	// Nomad is the configuration for connecting to a Nomad agent.
 	Nomad *NomadConfig `mapstructure:"nomad"`

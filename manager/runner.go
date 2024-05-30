@@ -1434,7 +1434,7 @@ func NewClientSet(c *config.Config) (*dep.ClientSet, error) {
 	}
 
 	if c.Nomad.Token != nil {
-		if err := clients.CreateHCPVaultSecretsClient(*c.Nomad.Token); err != nil {
+		if err := clients.CreateHCPVaultSecretsClient(*c.Nomad.Token, c.HCPVS); err != nil {
 			return nil, fmt.Errorf("runner: %s", err)
 		}
 	}

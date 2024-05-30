@@ -15,6 +15,7 @@ import (
 	"time"
 
 	httptransport "github.com/go-openapi/runtime/client"
+	"github.com/hashicorp/consul-template/config"
 	consulapi "github.com/hashicorp/consul/api"
 	rootcerts "github.com/hashicorp/go-rootcerts"
 	"github.com/hashicorp/hcp-sdk-go/auth"
@@ -502,7 +503,7 @@ func (c *ClientSet) CreateNomadClient(i *CreateNomadClientInput) error {
 	return nil
 }
 
-func (c *ClientSet) CreateHCPVaultSecretsClient(nomadToken string) error {
+func (c *ClientSet) CreateHCPVaultSecretsClient(nomadToken string, hcpvs *config.HCPVSConfig) error {
 	opts := []hcpconf.HCPConfigOption{
 		//hcpconf.FromEnv(),
 		hcpconf.WithoutBrowserLogin(),
@@ -511,7 +512,7 @@ func (c *ClientSet) CreateHCPVaultSecretsClient(nomadToken string) error {
 	cf := &auth.CredentialFile{
 		Scheme: "workload",
 		Workload: &workload.IdentityProviderConfig{
-			ProviderResourceName: "iam/project/523d5512-8564-4bd0-8601-95bfa2a8de45/service-principal/my-app-runtime/workload-identity-provider/nomadproject.io",
+			ProviderResourceName: hcpvs.WIPName,
 			EnvironmentVariable: &workload.EnvironmentVariableCredentialSource{
 				Var: "NOMAD_TOKEN",
 			},
@@ -535,8 +536,8 @@ func (c *ClientSet) CreateHCPVaultSecretsClient(nomadToken string) error {
 	c.hcpvs = &hcpvsClient{
 		client:    secretspreview.New(transport, nil),
 		transport: transport,
-		projID:    "523d5512-8564-4bd0-8601-95bfa2a8de45",
-		orgID:     "4f691779-b7e0-42cc-8dfb-e18033d7f99b",
+		projID:    hcpvs.ProjID,
+		orgID:     hcpvs.OrgID,
 	}
 	c.Unlock()
 
