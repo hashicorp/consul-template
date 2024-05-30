@@ -15,7 +15,6 @@ import (
 	"time"
 
 	httptransport "github.com/go-openapi/runtime/client"
-	"github.com/hashicorp/consul-template/config"
 	consulapi "github.com/hashicorp/consul/api"
 	rootcerts "github.com/hashicorp/go-rootcerts"
 	"github.com/hashicorp/hcp-sdk-go/auth"
@@ -155,6 +154,13 @@ type CreateNomadClientInput struct {
 	TransportMaxIdleConns        int
 	TransportMaxIdleConnsPerHost int
 	TransportTLSHandshakeTimeout time.Duration
+}
+
+type CreateHVSClientInput struct {
+	JWTToken string
+	WIPName  string
+	OrgID    string
+	ProjID   string
 }
 
 // NewClientSet creates a new client set that is ready to accept clients.
@@ -503,16 +509,16 @@ func (c *ClientSet) CreateNomadClient(i *CreateNomadClientInput) error {
 	return nil
 }
 
-func (c *ClientSet) CreateHCPVaultSecretsClient(nomadToken string, hcpvs *config.HCPVSConfig) error {
+func (c *ClientSet) CreateHCPVaultSecretsClient(i *CreateHVSClientInput) error {
 	opts := []hcpconf.HCPConfigOption{
 		//hcpconf.FromEnv(),
 		hcpconf.WithoutBrowserLogin(),
 	}
-	os.Setenv("NOMAD_TOKEN", nomadToken)
+	os.Setenv("NOMAD_TOKEN", i.JWTToken)
 	cf := &auth.CredentialFile{
 		Scheme: "workload",
 		Workload: &workload.IdentityProviderConfig{
-			ProviderResourceName: hcpvs.WIPName,
+			ProviderResourceName: i.WIPName,
 			EnvironmentVariable: &workload.EnvironmentVariableCredentialSource{
 				Var: "NOMAD_TOKEN",
 			},
@@ -536,8 +542,8 @@ func (c *ClientSet) CreateHCPVaultSecretsClient(nomadToken string, hcpvs *config
 	c.hcpvs = &hcpvsClient{
 		client:    secretspreview.New(transport, nil),
 		transport: transport,
-		projID:    hcpvs.ProjID,
-		orgID:     hcpvs.OrgID,
+		projID:    i.ProjID,
+		orgID:     i.OrgID,
 	}
 	c.Unlock()
 

@@ -1434,7 +1434,12 @@ func NewClientSet(c *config.Config) (*dep.ClientSet, error) {
 	}
 
 	if c.Nomad.Token != nil {
-		if err := clients.CreateHCPVaultSecretsClient(*c.Nomad.Token, c.HCPVS); err != nil {
+		if err := clients.CreateHCPVaultSecretsClient(&dep.CreateHVSClientInput{
+			JWTToken: *c.Nomad.Token,
+			WIPName:  c.HCPVS.WIPName,
+			OrgID:    c.HCPVS.OrgID,
+			ProjID:   c.HCPVS.ProjID,
+		}); err != nil {
 			return nil, fmt.Errorf("runner: %s", err)
 		}
 	}
