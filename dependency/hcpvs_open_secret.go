@@ -49,6 +49,8 @@ func (d *HCPVSOpenSecretQuery) Fetch(clients *ClientSet, opts *QueryOptions) (in
 
 	p := secret_service.NewOpenAppSecretParams()
 	p.AppName, p.SecretName = d.appName, d.secretName
+	p.OrganizationID = clients.hcpvs.orgID
+	p.ProjectID = clients.hcpvs.projID
 	res, err := clients.hcpvs.client.OpenAppSecret(p, nil)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, d.String())

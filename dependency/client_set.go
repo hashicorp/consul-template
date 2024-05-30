@@ -59,6 +59,8 @@ type nomadClient struct {
 type hcpvsClient struct {
 	client    secretspreview.ClientService
 	transport *httptransport.Runtime
+	orgID     string
+	projID    string
 }
 
 // TransportDialer is an interface that allows passing a custom dialer function
@@ -509,7 +511,7 @@ func (c *ClientSet) CreateHCPVaultSecretsClient(nomadToken string) error {
 	cf := &auth.CredentialFile{
 		Scheme: "workload",
 		Workload: &workload.IdentityProviderConfig{
-			ProviderResourceName: "iam/project/19d26ea7-0086-4085-8330-d1fe1b61dddf/service-principal/my-app-runtime/workload-identity-provider/nomadproject.io",
+			ProviderResourceName: "iam/project/523d5512-8564-4bd0-8601-95bfa2a8de45/service-principal/my-app-runtime/workload-identity-provider/nomadproject.io",
 			EnvironmentVariable: &workload.EnvironmentVariableCredentialSource{
 				Var: "NOMAD_TOKEN",
 			},
@@ -533,6 +535,8 @@ func (c *ClientSet) CreateHCPVaultSecretsClient(nomadToken string) error {
 	c.hcpvs = &hcpvsClient{
 		client:    secretspreview.New(transport, nil),
 		transport: transport,
+		projID:    "523d5512-8564-4bd0-8601-95bfa2a8de45",
+		orgID:     "4f691779-b7e0-42cc-8dfb-e18033d7f99b",
 	}
 	c.Unlock()
 
