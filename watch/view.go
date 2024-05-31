@@ -305,7 +305,7 @@ func (v *View) fetch(doneCh, successCh chan<- struct{}, errCh chan<- error) {
 	}
 }
 
-const minDelayBetweenUpdates = time.Millisecond * 100
+const minDelayBetweenUpdates = time.Millisecond * 1000
 
 // return a duration to sleep to limit the frequency of upstream calls
 func rateLimiter(start time.Time) time.Duration {
