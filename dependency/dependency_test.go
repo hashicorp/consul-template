@@ -236,23 +236,16 @@ func (c *ClientSet) createConsulSamenessGroups(name, partition, failoverPartitio
 		Partition: failoverPartition,
 	})
 	sg := &api.SamenessGroupConfigEntry{
-		Kind:               QuerySamenessGroup,
+		Kind:               api.SamenessGroup,
 		Name:               name,
 		Partition:          partition,
 		DefaultForFailover: true,
 		Members:            members,
 	}
-	log.Printf("sameness group: %+v", sg)
 	_, _, err := c.consul.client.ConfigEntries().Set(sg, &api.WriteOptions{})
 	if err != nil {
 		return err
 	}
-
-	sgs, _, err := c.consul.client.ConfigEntries().List(QuerySamenessGroup, &api.QueryOptions{})
-	if err != nil {
-		return err
-	}
-	log.Printf("sameness groups: %+v", sgs)
 
 	return nil
 }
@@ -563,9 +556,9 @@ func (v *nomadServer) DeleteVariable(path string, opts *nomadapi.WriteOptions) e
 func (c *ClientSet) createConsulPartitions() error {
 	for p := range tenancyHelper.GetUniquePartitions() {
 		if p.Name != "" && p.Name != "default" {
-			err2 := c.createConsulPartition(p.Name)
-			if err2 != nil {
-				return err2
+			err := c.createConsulPartition(p.Name)
+			if err != nil {
+				return err
 			}
 		}
 	}

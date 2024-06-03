@@ -708,7 +708,7 @@ func TestHealthServiceQuery_Fetch_SamenessGroup(t *testing.T) {
 	require.NoError(t, testClients.createConsulPartition(partitionTwo))
 	require.NoError(t, testClients.createConsulSamenessGroups(samenessGroup, partitionOne, partitionTwo))
 
-	// Register services in foo partition as critical so they will fall back to default partition service
+	// Register services with the same name in partionOne and partitionTwo and them to a sameness group so that we can test failover.
 	svcName := "sameness-group-service"
 	registerSvc := func(service, node, partition, status string) {
 		checkName := fmt.Sprintf("%s:%s", service, node)

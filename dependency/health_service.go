@@ -124,6 +124,10 @@ func healthServiceQuery(s string, connect bool) (*HealthServiceQuery, error) {
 		return nil, err
 	}
 
+	if queryParams.Get(QuerySamenessGroup) != "" && queryParams.Get(QueryPeer) != "" {
+		return nil, fmt.Errorf("health.service: cannot specify both peer and sameness-group")
+	}
+
 	qry := &HealthServiceQuery{
 		stopCh:        make(chan struct{}, 1),
 		dc:            m["dc"],
@@ -136,10 +140,6 @@ func healthServiceQuery(s string, connect bool) (*HealthServiceQuery, error) {
 		peer:          queryParams.Get(QueryPeer),
 		partition:     queryParams.Get(QueryPartition),
 		samenessGroup: queryParams.Get(QuerySamenessGroup),
-	}
-
-	if qry.samenessGroup != "" && qry.peer != "" {
-		return nil, fmt.Errorf("health.service: cannot specify both peer and sameness-group")
 	}
 
 	return qry, nil
