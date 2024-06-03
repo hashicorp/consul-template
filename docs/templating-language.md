@@ -775,10 +775,14 @@ Query [Consul][consul] for services based on their health.
 
 The `<TAG>` attribute is optional; if omitted, all nodes will be queried.
 
-The `<QUERY>` attribute is optional; if omitted, the `default` Consul namespace, `default` partition will be queried. `<QUERY>` can be used to set the Consul [namespace](https://developer.hashicorp.com/consul/api-docs/health#ns-2), partition, or [peer](https://developer.hashicorp.com/consul/api-docs/health#peer). `<QUERY>` accepts a url query-parameter format, e.g.:
+The `<QUERY>` attribute is optional; if omitted, the `default` Consul namespace, `default` partition will be queried. `<QUERY>` can be used to set the Consul [namespace](https://developer.hashicorp.com/consul/api-docs/health#ns-2), partition, sameness group, or [peer](https://developer.hashicorp.com/consul/api-docs/health#peer). `<QUERY>` accepts a url query-parameter format, e.g.:
 
 ```golang
 {{ service "service-name?ns=namespace-name&peer=peer-name&partition=partition-name" }}
+```
+
+```golang
+{{ service "service-name?sameness-group=sameness-group-name" }}
 ```
 
 The `<DATACENTER>` attribute is optional; if omitted, the local datacenter is
@@ -872,10 +876,16 @@ Query [Consul][consul] for all services in the catalog.
 {{ services "?<QUERY>@<DATACENTER>" }}
 ```
 
-The `<QUERY>` attribute is optional; if omitted, the `default` Consul namespace, `default` partition will be queried. `<QUERY>` can be used to set the Consul [namespace](https://developer.hashicorp.com/consul/api-docs/health#ns-2) or partition. `<QUERY>` accepts a url query-parameter format, e.g.:
+The `<QUERY>` attribute is optional; if omitted, the `default` Consul namespace, `default` partition will be queried. `<QUERY>` can be used to set the Consul [namespace](https://developer.hashicorp.com/consul/api-docs/health#ns-2), sameness-group, or partition. `<QUERY>` accepts a url query-parameter format, e.g.:
 
 ```golang
 {{ range services "?ns=default&partition=default" }}
+  {{ .Name }}
+{{ end }}
+```
+
+```golang
+{{ range services "?sameness-group=sameness-group-name" }}
   {{ .Name }}
 {{ end }}
 ```
