@@ -194,7 +194,7 @@ func GetConsulQueryOpts(queryMap map[string]string, endpointLabel string) (url.V
 				QuerySamenessGroup:
 			default:
 				return nil,
-					fmt.Errorf("%s: invalid query parameter key %q in query %q: supported keys: %s,%s,%s", endpointLabel, key, queryRaw, QueryNamespace, QueryPeer, QueryPartition)
+					fmt.Errorf("%s: invalid query parameter key %q in query %q: supported keys: %s,%s,%s,%s", endpointLabel, key, queryRaw, QueryNamespace, QueryPeer, QueryPartition, QuerySamenessGroup)
 			}
 		}
 	}
