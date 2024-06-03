@@ -272,7 +272,7 @@ func (d *HealthServiceQuery) String() string {
 		name = name + "@peer=" + d.peer
 	}
 	if d.samenessGroup != "" {
-		name = name + "@samenessGroup=" + d.samenessGroup
+		name = name + "@sameness-group=" + d.samenessGroup
 	}
 	if d.near != "" {
 		name = name + "~" + d.near
