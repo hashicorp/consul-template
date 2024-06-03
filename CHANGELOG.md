@@ -1,3 +1,10 @@
+# 0.38.0 (June 3, 2024)
+
+NEW FEATURES:
+* Add support for listing Consul partitions [[GH-1940](https://github.com/hashicorp/consul-template/pull/1940)]
+* Add support for listing exported services in a Consul partition [[GH-1940](https://github.com/hashicorp/consul-template/pull/1940)]
+* Add support for grouping Consul services by port [[GH-1939](https://github.com/hashicorp/consul-template/pull/1939)]
+
 # 0.37.6 (May 6, 2024)
 BUG FIXES:
 * Fix shimkv2 concatenation [GH-1921]https://github.com/hashicorp/consul-template/pull/1921/
