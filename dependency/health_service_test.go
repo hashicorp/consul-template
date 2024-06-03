@@ -691,9 +691,9 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 	}
 }
 
-// TestHealthServiceQuery_Fetch_SamenessGroup tests fetching services with sameness group
-// and asserts that failover works when a service in the sameness group fails and consul-template
-// reacts to the change.
+// TestHealthServiceQuery_Fetch_SamenessGroup ensures that consul-template re-runs when the blocking query updates.
+// The different behaviors of the blocking query, e.g. "when a service becomes unhealthy it should failover,
+// when it becomes healthy again it should fail back", are tested in the Consul codebase.
 func TestHealthServiceQuery_Fetch_SamenessGroup(t *testing.T) {
 	// Arrange - set up test data
 	catalog := testClients.Consul().Catalog()
