@@ -758,6 +758,9 @@ func TestHealthServiceQuery_Fetch_SamenessGroup(t *testing.T) {
 		t.Fatal(err)
 	}
 
+        // Assert that the service instance returned is from the first listed partition.
+        // This is expected because the service is healthy so it shouldn't failover
+        // to other partitions.
 	healthServices := svcs.([]*HealthService)
 	require.True(t, len(healthServices) == 1)
 	require.Equal(t, "node"+partitionOne, healthServices[0].Node)
@@ -800,6 +803,7 @@ func TestHealthServiceQuery_Fetch_SamenessGroup(t *testing.T) {
 		// Assert - verify the results
 		expectedResult := []*HealthService{
 			{
+                                 // The instance should now be from the failover partition.
 				Node:                nodeTwo,
 				NodeAddress:         testConsul.Config.Bind,
 				ServiceMeta:         map[string]string{},
