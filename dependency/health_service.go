@@ -125,7 +125,7 @@ func healthServiceQuery(s string, connect bool) (*HealthServiceQuery, error) {
 	}
 
 	if queryParams.Get(QuerySamenessGroup) != "" && queryParams.Get(QueryPeer) != "" {
-		return nil, fmt.Errorf("health.service: cannot specify both peer and sameness-group")
+		return nil, fmt.Errorf("health.service: cannot specify both %s and %s", QueryPeer, QuerySamenessGroup)
 	}
 
 	qry := &HealthServiceQuery{
