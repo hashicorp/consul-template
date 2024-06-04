@@ -781,9 +781,22 @@ The `<QUERY>` attribute is optional; if omitted, the `default` Consul namespace,
 {{ service "service-name?ns=namespace-name&peer=peer-name&partition=partition-name" }}
 ```
 
+When using the `sameness-group` query parameter, the following rules are applied to use with other query parameters:
+- `partition` is used to denote where the Sameness Group Config Entry is stored.
+- `ns` is ignored.
+- Either `peer` or `partition` can be used, but not both.
+
 ```golang
 {{ service "service-name?sameness-group=sameness-group-name" }}
 ```
+When using the `sameness-group` query parameter, the result will be based on the following rules:
+- The Sameness Group Config Entry will be retrieved using the `partition` and the `sameness-group` parameters.
+- The `<service-name` will be used to search in each of Members (peers or partitions) of the Sameness Group Config Entry.
+- The first healthy service found in the Sameness Group Members will be returned.
+- If the Config Entry is updated with a change to the members in either the order of which members are present, the query will be re-run and the service will be queried based on the new set of Members.
+- If the current member service's health changes to unhealthy, the query will be re-run and the query will return the next healthy service found in the list of Sameness Group members.
+- If the health of a service in a member that is higher in the list of Sameness Group member changes from unhealthy to healthy, the query will be re-run and the query will return the next first health service found in the list of Sameness Group members, likely the changed member service.
+- If the Sameness Group Config Entry is deleted, the query will return an error that the name was not found.
 
 The `<DATACENTER>` attribute is optional; if omitted, the local datacenter is
 used.
@@ -876,16 +889,10 @@ Query [Consul][consul] for all services in the catalog.
 {{ services "?<QUERY>@<DATACENTER>" }}
 ```
 
-The `<QUERY>` attribute is optional; if omitted, the `default` Consul namespace, `default` partition will be queried. `<QUERY>` can be used to set the Consul [namespace](https://developer.hashicorp.com/consul/api-docs/health#ns-2), sameness-group, or partition. `<QUERY>` accepts a url query-parameter format, e.g.:
+The `<QUERY>` attribute is optional; if omitted, the `default` Consul namespace, `default` partition will be queried. `<QUERY>` can be used to set the Consul [namespace](https://developer.hashicorp.com/consul/api-docs/health#ns-2) or partition. `<QUERY>` accepts a url query-parameter format, e.g.:
 
 ```golang
 {{ range services "?ns=default&partition=default" }}
-  {{ .Name }}
-{{ end }}
-```
-
-```golang
-{{ range services "?sameness-group=sameness-group-name" }}
   {{ .Name }}
 {{ end }}
 ```
