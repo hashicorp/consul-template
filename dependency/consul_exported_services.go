@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/url"
 	"slices"
+	"strings"
 
 	capi "github.com/hashicorp/consul/api"
 )
@@ -36,35 +37,28 @@ type ExportedService struct {
 }
 
 type ResolvedConsumers struct {
-	Peers          []string
-	Partitions     []string
-	SamenessGroups []string
+	Peers      []string
+	Partitions []string
 }
 
-func fromConsulExportedService(svc capi.ExportedService) ExportedService {
-	peers := make([]string, 0, len(svc.Consumers))
-	partitions := make([]string, 0, len(svc.Consumers))
-	samenessGroups := make([]string, 0, len(svc.Consumers))
-	for _, consumer := range svc.Consumers {
-		if consumer.Peer != "" {
-			peers = append(peers, consumer.Peer)
-		}
-		if consumer.Partition != "" {
-			partitions = append(partitions, consumer.Partition)
-		}
-		if consumer.SamenessGroup != "" {
-			samenessGroups = append(samenessGroups, consumer.SamenessGroup)
-		}
-	}
-
-	return ExportedService{
-		Service: svc.Name,
+func fromConsulExportedService(svc capi.ResolvedExportedService) ExportedService {
+	exportedService := ExportedService{
+		Service: svc.Service,
 		Consumers: ResolvedConsumers{
-			Peers:          peers,
-			Partitions:     partitions,
-			SamenessGroups: samenessGroups,
+			Partitions: []string{},
+			Peers:      []string{},
 		},
 	}
+
+	if len(svc.Consumers.Partitions) > 0 {
+		exportedService.Consumers.Partitions = slices.Clone(svc.Consumers.Partitions)
+	}
+
+	if len(svc.Consumers.Peers) > 0 {
+		exportedService.Consumers.Peers = slices.Clone(svc.Consumers.Peers)
+	}
+
+	return exportedService
 }
 
 // NewListExportedServicesQuery parses a string of the format @dc.
@@ -87,32 +81,24 @@ func (c *ListExportedServicesQuery) Fetch(clients *ClientSet, opts *QueryOptions
 	})
 
 	log.Printf("[TRACE] %s: GET %s", c, &url.URL{
-		Path:     "/v1/config/exported-services",
+		Path:     "/v1/exported-services",
 		RawQuery: opts.String(),
 	})
 
-	consulExportedServices, qm, err := clients.Consul().ConfigEntries().List(capi.ExportedServices, opts.ToConsulOpts())
+	consulExportedServices, qm, err := clients.Consul().ExportedServices(opts.ToConsulOpts())
 	if err != nil {
 		return nil, nil, fmt.Errorf("%s: %w", c.String(), err)
 	}
 
 	exportedServices := make([]ExportedService, 0, len(consulExportedServices))
-	for _, cfgEntry := range consulExportedServices {
-		svc := cfgEntry.(*capi.ExportedServicesConfigEntry)
-		for _, svc := range svc.Services {
-			exportedServices = append(exportedServices, fromConsulExportedService(svc))
-		}
+	for _, exportedService := range consulExportedServices {
+		exportedServices = append(exportedServices, fromConsulExportedService(exportedService))
 	}
 
 	log.Printf("[TRACE] %s: returned %d results", c, len(exportedServices))
 
 	slices.SortStableFunc(exportedServices, func(i, j ExportedService) int {
-		if i.Service < j.Service {
-			return -1
-		} else if i.Service > j.Service {
-			return 1
-		}
-		return 0
+		return strings.Compare(i.Service, j.Service)
 	})
 
 	rm := &ResponseMetadata{

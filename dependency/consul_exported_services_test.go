@@ -3,6 +3,7 @@ package dependency
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	capi "github.com/hashicorp/consul/api"
@@ -41,9 +42,8 @@ func TestListExportedServicesQuery_Fetch(t *testing.T) {
 				{
 					Service: "service1",
 					Consumers: ResolvedConsumers{
-						Peers:          []string{},
-						Partitions:     []string{"foo"},
-						SamenessGroups: []string{},
+						Peers:      []string{},
+						Partitions: []string{"foo"},
 					},
 				},
 			},
@@ -77,17 +77,15 @@ func TestListExportedServicesQuery_Fetch(t *testing.T) {
 				{
 					Service: "service1",
 					Consumers: ResolvedConsumers{
-						Peers:          []string{},
-						Partitions:     []string{"foo"},
-						SamenessGroups: []string{},
+						Peers:      []string{},
+						Partitions: []string{"foo"},
 					},
 				},
 				{
 					Service: "service2",
 					Consumers: ResolvedConsumers{
-						Peers:          []string{},
-						Partitions:     []string{"foo"},
-						SamenessGroups: []string{},
+						Peers:      []string{},
+						Partitions: []string{"foo"},
 					},
 				},
 			},
@@ -121,17 +119,15 @@ func TestListExportedServicesQuery_Fetch(t *testing.T) {
 				{
 					Service: "service1",
 					Consumers: ResolvedConsumers{
-						Peers:          []string{},
-						Partitions:     []string{"default"},
-						SamenessGroups: []string{},
+						Peers:      []string{},
+						Partitions: []string{"default"},
 					},
 				},
 				{
 					Service: "service2",
 					Consumers: ResolvedConsumers{
-						Peers:          []string{},
-						Partitions:     []string{"default"},
-						SamenessGroups: []string{},
+						Peers:      []string{},
+						Partitions: []string{"default"},
 					},
 				},
 			},
@@ -157,9 +153,8 @@ func TestListExportedServicesQuery_Fetch(t *testing.T) {
 				{
 					Service: "service1",
 					Consumers: ResolvedConsumers{
-						Peers:          []string{"another"},
-						Partitions:     []string{},
-						SamenessGroups: []string{},
+						Peers:      []string{"another"},
+						Partitions: []string{},
 					},
 				},
 			},
@@ -193,17 +188,15 @@ func TestListExportedServicesQuery_Fetch(t *testing.T) {
 				{
 					Service: "service1",
 					Consumers: ResolvedConsumers{
-						Peers:          []string{"another"},
-						Partitions:     []string{},
-						SamenessGroups: []string{},
+						Peers:      []string{"another"},
+						Partitions: []string{},
 					},
 				},
 				{
 					Service: "service2",
 					Consumers: ResolvedConsumers{
-						Peers:          []string{"another"},
-						Partitions:     []string{},
-						SamenessGroups: []string{},
+						Peers:      []string{"another"},
+						Partitions: []string{},
 					},
 				},
 			},
@@ -220,9 +213,7 @@ func TestListExportedServicesQuery_Fetch(t *testing.T) {
 
 			if tc.exportedServices != nil {
 				_, _, err := testClients.Consul().ConfigEntries().Set(tc.exportedServices, opts)
-				if err != nil {
-					t.Fatalf("unexpected error: %v", err)
-				}
+				require.NoError(t, err)
 			}
 
 			q, err := NewListExportedServicesQuery(tc.partition)
@@ -230,8 +221,7 @@ func TestListExportedServicesQuery_Fetch(t *testing.T) {
 
 			actual, _, err := q.Fetch(testClients, nil)
 			require.NoError(t, err)
-
-			require.ElementsMatch(t, tc.expected, actual)
+			assert.ElementsMatch(t, tc.expected, actual)
 
 			if tc.exportedServices != nil {
 				// need to clean up because we use a single shared consul instance
