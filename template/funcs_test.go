@@ -397,3 +397,21 @@ func Test_hmacSHA256Hex(t *testing.T) {
 		})
 	}
 }
+
+// Test_exportedServicesFunc verifies that calling exportedServices w/ a
+// different partition tracks an additional dependency
+func Test_exportedServicesFunc(t *testing.T) {
+	var used, missing dep.Set
+
+	f := exportedServicesFunc(NewBrain(), &used, &missing)
+
+	_, err := f("default")
+	require.NoError(t, err)
+	assert.Equal(t, "list.exportedServices(default)", used.String())
+	assert.Equal(t, "list.exportedServices(default)", missing.String())
+
+	_, err = f("ap1")
+	require.NoError(t, err)
+	assert.Equal(t, "list.exportedServices(default), list.exportedServices(ap1)", used.String())
+	assert.Equal(t, "list.exportedServices(default), list.exportedServices(ap1)", missing.String())
+}

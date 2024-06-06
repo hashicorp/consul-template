@@ -54,7 +54,16 @@ const (
 type Dependency interface {
 	Fetch(*ClientSet, *QueryOptions) (interface{}, *ResponseMetadata, error)
 	CanShare() bool
+
+	// String is used to uniquely identify a dependency. If a dependency receives arguments and
+	// may be used multiple times w/ different args, then it should make sure to differentiate
+	// itself based on those args; otherwise, only one instance of the dependency will be created.
+	//
+	// For example: Calling the exportedServices func multiple times in a template for different
+	// partitions will result in the first partition provided being used repeatedly - regardless of the
+	// partition provided in later calls - if the partition name is not included in the output of String.
 	String() string
+
 	Stop()
 	Type() Type
 }

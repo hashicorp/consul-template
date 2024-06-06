@@ -115,7 +115,7 @@ func (c *ListExportedServicesQuery) CanShare() bool {
 }
 
 func (c *ListExportedServicesQuery) String() string {
-	return exportedServicesEndpointLabel
+	return fmt.Sprintf("%s(%s)", exportedServicesEndpointLabel, c.partition)
 }
 
 func (c *ListExportedServicesQuery) Stop() {
