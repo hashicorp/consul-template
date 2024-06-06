@@ -1,3 +1,11 @@
+# 0.38.1 (June 6, 2024)
+
+IMPROVEMENTS:
+* Return expanded list for exportedServices instead of wildcard from configuration entry [[GH-1948](https://github.com/hashicorp/consul-template/pull/1948)]
+
+BUG FIXES:
+* Return the correct value for exportedServices when called multiple times with different partitions [[GH-1949](https://github.com/hashicorp/consul-template/pull/1949)]
+
 # 0.38.0 (June 3, 2024)
 
 NEW FEATURES:
