@@ -76,6 +76,8 @@ func (s *Scratch) MapSetX(k, mk string, v interface{}) (string, error) {
 
 // mapSet is sets the value in the map, overwriting if o is true. This function
 // does not perform locking; callers should lock before invoking.
+//
+//nolint:unparam
 func (s *Scratch) mapSet(k, mk string, v interface{}, o bool) (string, error) {
 	if _, ok := s.values[k]; !ok {
 		s.values[k] = make(map[string]interface{})
