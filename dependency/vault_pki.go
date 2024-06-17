@@ -65,10 +65,13 @@ type VaultPKIQuery struct {
 	pkiPath  string
 	data     map[string]interface{}
 	filePath string
+	// we have a var here for passing the private key to the class functions
+	// for the cases when we intend to use sign instead of issue
+	privateKey *string
 }
 
 // NewVaultReadQuery creates a new datacenter dependency.
-func NewVaultPKIQuery(urlpath, filepath string, data map[string]interface{}) (*VaultPKIQuery, error) {
+func NewVaultPKIQuery(urlpath, filepath string, data map[string]interface{}, privateKey *string) (*VaultPKIQuery, error) {
 	urlpath = strings.TrimSpace(urlpath)
 	urlpath = strings.Trim(urlpath, "/")
 	if urlpath == "" {
@@ -81,11 +84,12 @@ func NewVaultPKIQuery(urlpath, filepath string, data map[string]interface{}) (*V
 	}
 
 	return &VaultPKIQuery{
-		stopCh:   make(chan struct{}, 1),
-		sleepCh:  make(chan time.Duration, 1),
-		pkiPath:  secretURL.Path,
-		data:     data,
-		filePath: filepath,
+		stopCh:     make(chan struct{}, 1),
+		sleepCh:    make(chan time.Duration, 1),
+		pkiPath:    secretURL.Path,
+		data:       data,
+		filePath:   filepath,
+		privateKey: privateKey,
 	}, nil
 }
 
@@ -135,6 +139,11 @@ func (d *VaultPKIQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface
 		}
 	default:
 		return PemEncoded{}, nil, err
+	}
+	// In the case that we are using sign vault endpoint we wont have an private key in the response
+	// so we should pass the one the we generated
+	if encPems.Key == "" && d.privateKey != nil {
+		encPems.Key = *d.privateKey
 	}
 	return respWithMetadata(encPems)
 }

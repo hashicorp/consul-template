@@ -29,6 +29,7 @@ provides the following functions:
     + [Write (and Read back)](#write-and-read-back)
   * [`secrets`](#secrets)
   * [`pkiCert`](#pkicert)
+  * [`pkiSign`](#pkisign)
   * [`service`](#service)
   * [`services`](#services)
   * [`tree`](#tree)
@@ -763,6 +764,57 @@ to separate files from a template.
 {{ .CA | writeToFile "/my/path/to/cert.pem" "root" "root" "0644" }}
 {{ .Cert | writeToFile "/my/path/to/cert.pem" "root" "root" "0644" "append" }}
 {{- end -}}
+```
+
+### pkiSign
+
+Query [Vault][vault] for a PKI certificate. This is pretty similar to `pkiCert`
+however, instead of using the `issue` api endpoint it uses the `sign`. This also 
+means, the private key generation is happening on the consul template side, this
+can be quite useful if one generates a high number of certificates with low ttl
+which can put high load on the vault servers.
+
+The templating behaviour is the same as we have in `pkiCert` with a few special 
+attributes. You also need to pass `key_type=rsa|ec|ed25519` in alignment with your
+role on vault server. If you have `use_csr_common_name` and/or `use_csr_sans` as true
+on in your role, you should also pass them here, so the CSR will be appended with those
+values (they can have any value `use_csr_sans=value` or `use_csr_common_name=value` the 
+code only check for the key). 
+
+
+```golang
+{{ with pkiSign "pki/sign/my-domain-dot-com" "common_name=foo.example.com" }}
+Certificate: {{ .Cert }}
+Private Key: {{ .Key }}
+Cert Authority: {{ .CA }}
+{{ end }}
+```
+
+If the pki role has use_csr_common_name=true and use_csr_sans=true
+```golang
+{{ with pkiSign "pki/sign/my-domain-dot-com" "common_name=foo.example.com" "use_csr_common_name=some" "use_csr_sans=thing" }}
+Certificate: {{ .Cert }}
+Private Key: {{ .Key }}
+Cert Authority: {{ .CA }}
+{{ end }}
+```
+
+If the pki role has `ec` key 
+```golang
+{{ with pkiSign "pki/sign/my-domain-dot-com" "common_name=foo.example.com" key_type="ec" key_bits="521" }}
+Certificate: {{ .Cert }}
+Private Key: {{ .Key }}
+Cert Authority: {{ .CA }}
+{{ end }}
+```
+
+If the pki role has `ed25519` key 
+```golang
+{{ with pkiSign "pki/sign/my-domain-dot-com" "common_name=foo.example.com" key_type="ed25519" }}
+Certificate: {{ .Cert }}
+Private Key: {{ .Key }}
+Cert Authority: {{ .CA }}
+{{ end }}
 ```
 
 ### `service`
