@@ -695,6 +695,9 @@ func TestHealthServiceQuery_Fetch(t *testing.T) {
 // The different behaviors of the blocking query, e.g. "when a service becomes unhealthy it should failover,
 // when it becomes healthy again it should fail back", are tested in the Consul codebase.
 func TestHealthServiceQuery_Fetch_SamenessGroup(t *testing.T) {
+	if !tenancyHelper.IsConsulEnterprise() {
+		t.Skip("Enterprise only test")
+	}
 	// Arrange - set up test data
 	catalog := testClients.Consul().Catalog()
 
