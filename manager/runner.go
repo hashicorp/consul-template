@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/consul-template/template"
 	"github.com/hashicorp/consul-template/watch"
 
+	"github.com/coreos/go-systemd/v22/daemon"
 	"github.com/hashicorp/go-multierror"
 )
 
@@ -311,6 +312,12 @@ func (r *Runner) Start() {
 			log.Printf("[DEBUG] (runner) all templates rendered")
 			// Enable quiescence for all templates if we have specified wait
 			// intervals.
+
+			_, err := daemon.SdNotify(false, daemon.SdNotifyReady)
+			if err != nil {
+				log.Printf("[WARN] (runner) failed to signal readiness to systemd: %v", err)
+			}
+
 		NEXT_Q:
 			for _, t := range r.templates {
 				if _, ok := r.quiescenceMap[t.ID()]; ok {
