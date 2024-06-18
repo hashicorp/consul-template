@@ -75,18 +75,19 @@ type ServiceTags []string
 // client-agnostic, and the dependency determines which, if any, of the options
 // to use.
 type QueryOptions struct {
-	AllowStale        bool
-	Datacenter        string
-	Region            string
-	Near              string
-	Choose            string
-	RequireConsistent bool
-	VaultGrace        time.Duration
-	WaitIndex         uint64
-	WaitTime          time.Duration
-	ConsulPeer        string
-	ConsulPartition   string
-	ConsulNamespace   string
+	AllowStale          bool
+	Datacenter          string
+	Region              string
+	Near                string
+	Choose              string
+	RequireConsistent   bool
+	VaultGrace          time.Duration
+	WaitIndex           uint64
+	WaitTime            time.Duration
+	ConsulPeer          string
+	ConsulPartition     string
+	ConsulNamespace     string
+	ConsulSamenessGroup string
 }
 
 func (q *QueryOptions) Merge(o *QueryOptions) *QueryOptions {
@@ -150,6 +151,10 @@ func (q *QueryOptions) Merge(o *QueryOptions) *QueryOptions {
 		r.ConsulPeer = o.ConsulPeer
 	}
 
+	if o.ConsulSamenessGroup != "" {
+		r.ConsulSamenessGroup = o.ConsulSamenessGroup
+	}
+
 	return &r
 }
 
@@ -159,6 +164,7 @@ func (q *QueryOptions) ToConsulOpts() *consulapi.QueryOptions {
 		Datacenter:        q.Datacenter,
 		Namespace:         q.ConsulNamespace,
 		Partition:         q.ConsulPartition,
+		SamenessGroup:     q.ConsulSamenessGroup,
 		Peer:              q.ConsulPeer,
 		Near:              q.Near,
 		RequireConsistent: q.RequireConsistent,
@@ -184,10 +190,11 @@ func GetConsulQueryOpts(queryMap map[string]string, endpointLabel string) (url.V
 			switch key {
 			case QueryNamespace,
 				QueryPeer,
-				QueryPartition:
+				QueryPartition,
+				QuerySamenessGroup:
 			default:
 				return nil,
-					fmt.Errorf("%s: invalid query parameter key %q in query %q: supported keys: %s,%s,%s", endpointLabel, key, queryRaw, QueryNamespace, QueryPeer, QueryPartition)
+					fmt.Errorf("%s: invalid query parameter key %q in query %q: supported keys: %s,%s,%s,%s", endpointLabel, key, queryRaw, QueryNamespace, QueryPeer, QueryPartition, QuerySamenessGroup)
 			}
 		}
 	}

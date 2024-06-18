@@ -61,15 +61,11 @@ func TestMain(m *testing.M) {
 		Address: testConsul.HTTPAddr,
 	}); err != nil {
 		testConsul.Stop()
-		testVault.Stop()
-		testNomad.Stop()
 		Fatalf("failed to create consul client: %v\n", err)
 	}
 
 	if t, err := test.NewTenancyHelper(clients.Consul()); err != nil {
-		testConsul.Stop()
-		testVault.Stop()
-		testNomad.Stop()
+		stopTestClients()
 		Fatalf("failed to create tenancy helper: %v\n", err)
 	} else {
 		tenancyHelper = t
@@ -86,52 +82,46 @@ func TestMain(m *testing.M) {
 	if err := clients.CreateNomadClient(&CreateNomadClientInput{
 		Address: "http://127.0.0.1:4646",
 	}); err != nil {
-		testConsul.Stop()
-		testVault.Stop()
-		testNomad.Stop()
+		stopTestClients()
 		Fatalf("failed to create nomad client: %v\n", err)
 	}
 
 	testClients = clients
 
 	if err := testClients.createConsulPartitions(); err != nil {
-		testConsul.Stop()
-		testVault.Stop()
-		testNomad.Stop()
+		stopTestClients()
 		Fatalf("failed to create consul partitions: %v\n", err)
 	}
 
 	if err := testClients.createConsulNs(); err != nil {
-		testConsul.Stop()
-		testVault.Stop()
-		testNomad.Stop()
+		stopTestClients()
 		Fatalf("failed to create consul namespaces: %v\n", err)
 	}
 
 	setupVaultPKI(clients)
 
 	if err := testClients.createConsulTestResources(); err != nil {
-		testConsul.Stop()
-		testVault.Stop()
-		testNomad.Stop()
+		stopTestClients()
 		Fatalf("failed to create consul test resources: %v\n", err)
 	}
 
 	// Wait for Nomad initialization to finish
 	if err := <-nomadFuture; err != nil {
-		testConsul.Stop()
-		testNomad.Stop()
-		testVault.Stop()
+		stopTestClients()
 		Fatalf("failed to start Nomad: %v\n", err)
 	}
 
 	exit := m.Run()
 
 	tb.DoCleanup()
+	stopTestClients()
+	os.Exit(exit)
+}
+
+func stopTestClients() {
 	testConsul.Stop()
 	testVault.Stop()
 	testNomad.Stop()
-	os.Exit(exit)
 }
 
 func (c *ClientSet) createConsulTestResources() error {
@@ -234,6 +224,27 @@ func (c *ClientSet) createConsulTestResources() error {
 			return err
 		}
 		time.Sleep(200 * time.Millisecond)
+	}
+
+	return nil
+}
+
+func (c *ClientSet) createConsulSamenessGroups(name, partition, failoverPartition string) error {
+	members := append([]api.SamenessGroupMember{}, api.SamenessGroupMember{
+		Partition: partition,
+	}, api.SamenessGroupMember{
+		Partition: failoverPartition,
+	})
+	sg := &api.SamenessGroupConfigEntry{
+		Kind:               api.SamenessGroup,
+		Name:               name,
+		Partition:          partition,
+		DefaultForFailover: true,
+		Members:            members,
+	}
+	_, _, err := c.consul.client.ConfigEntries().Set(sg, &api.WriteOptions{})
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -545,14 +556,22 @@ func (v *nomadServer) DeleteVariable(path string, opts *nomadapi.WriteOptions) e
 func (c *ClientSet) createConsulPartitions() error {
 	for p := range tenancyHelper.GetUniquePartitions() {
 		if p.Name != "" && p.Name != "default" {
-			partition := &api.Partition{Name: p.Name}
-			_, _, err := c.Consul().Partitions().Create(context.Background(), partition, nil)
+			err := c.createConsulPartition(p.Name)
 			if err != nil {
 				return err
 			}
 		}
 	}
 
+	return nil
+}
+
+func (c *ClientSet) createConsulPartition(name string) error {
+	partition := &api.Partition{Name: name}
+	_, _, err := c.Consul().Partitions().Create(context.Background(), partition, nil)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

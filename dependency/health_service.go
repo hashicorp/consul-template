@@ -23,9 +23,10 @@ const (
 	HealthCritical = "critical"
 	HealthMaint    = "maintenance"
 
-	QueryNamespace = "ns"
-	QueryPartition = "partition"
-	QueryPeer      = "peer"
+	QueryNamespace     = "ns"
+	QueryPartition     = "partition"
+	QueryPeer          = "peer"
+	QuerySamenessGroup = "sameness-group"
 
 	NodeMaint    = "_node_maintenance"
 	ServiceMaint = "_service_maintenance:"
@@ -66,15 +67,16 @@ type HealthService struct {
 type HealthServiceQuery struct {
 	stopCh chan struct{}
 
-	dc        string
-	filters   []string
-	name      string
-	near      string
-	tag       string
-	connect   bool
-	partition string
-	peer      string
-	namespace string
+	dc            string
+	filters       []string
+	name          string
+	near          string
+	tag           string
+	connect       bool
+	partition     string
+	peer          string
+	namespace     string
+	samenessGroup string
 }
 
 // NewHealthServiceQuery processes the strings to build a service dependency.
@@ -122,18 +124,25 @@ func healthServiceQuery(s string, connect bool) (*HealthServiceQuery, error) {
 		return nil, err
 	}
 
-	return &HealthServiceQuery{
-		stopCh:    make(chan struct{}, 1),
-		dc:        m["dc"],
-		filters:   filters,
-		name:      m["name"],
-		near:      m["near"],
-		tag:       m["tag"],
-		connect:   connect,
-		namespace: queryParams.Get(QueryNamespace),
-		peer:      queryParams.Get(QueryPeer),
-		partition: queryParams.Get(QueryPartition),
-	}, nil
+	if queryParams.Get(QuerySamenessGroup) != "" && queryParams.Get(QueryPeer) != "" {
+		return nil, fmt.Errorf("health.service: cannot specify both %s and %s", QueryPeer, QuerySamenessGroup)
+	}
+
+	qry := &HealthServiceQuery{
+		stopCh:        make(chan struct{}, 1),
+		dc:            m["dc"],
+		filters:       filters,
+		name:          m["name"],
+		near:          m["near"],
+		tag:           m["tag"],
+		connect:       connect,
+		namespace:     queryParams.Get(QueryNamespace),
+		peer:          queryParams.Get(QueryPeer),
+		partition:     queryParams.Get(QueryPartition),
+		samenessGroup: queryParams.Get(QuerySamenessGroup),
+	}
+
+	return qry, nil
 }
 
 // Fetch queries the Consul API defined by the given client and returns a slice
@@ -146,11 +155,12 @@ func (d *HealthServiceQuery) Fetch(clients *ClientSet, opts *QueryOptions) (inte
 	}
 
 	opts = opts.Merge(&QueryOptions{
-		Datacenter:      d.dc,
-		Near:            d.near,
-		ConsulNamespace: d.namespace,
-		ConsulPartition: d.partition,
-		ConsulPeer:      d.peer,
+		Datacenter:          d.dc,
+		Near:                d.near,
+		ConsulNamespace:     d.namespace,
+		ConsulPartition:     d.partition,
+		ConsulPeer:          d.peer,
+		ConsulSamenessGroup: d.samenessGroup,
 	})
 
 	u := &url.URL{
@@ -260,6 +270,9 @@ func (d *HealthServiceQuery) String() string {
 	}
 	if d.peer != "" {
 		name = name + "@peer=" + d.peer
+	}
+	if d.samenessGroup != "" {
+		name = name + "@sameness-group=" + d.samenessGroup
 	}
 	if d.near != "" {
 		name = name + "~" + d.near
