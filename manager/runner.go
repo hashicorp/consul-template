@@ -310,14 +310,15 @@ func (r *Runner) Start() {
 
 		if r.allTemplatesRendered() {
 			log.Printf("[DEBUG] (runner) all templates rendered")
-			// Enable quiescence for all templates if we have specified wait
-			// intervals.
 
+			// Send a signal to systemd that we are ready.
 			_, err := daemon.SdNotify(false, daemon.SdNotifyReady)
 			if err != nil {
 				log.Printf("[WARN] (runner) failed to signal readiness to systemd: %v", err)
 			}
 
+			// Enable quiescence for all templates if we have specified wait
+			// intervals.
 		NEXT_Q:
 			for _, t := range r.templates {
 				if _, ok := r.quiescenceMap[t.ID()]; ok {
