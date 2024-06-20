@@ -1,3 +1,8 @@
+# 0.39.0 (June 20, 2024)
+
+NEW FEATURES:
+* Add support for support for sameness groups [[GH-1899](https://github.com/hashicorp/consul-template/pull/1899)]
+
 # 0.38.1 (June 6, 2024)
 
 IMPROVEMENTS:
