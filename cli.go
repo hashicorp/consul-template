@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -13,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/coreos/go-systemd/v22/daemon"
 	"github.com/hashicorp/consul-template/config"
 	"github.com/hashicorp/consul-template/logging"
 	"github.com/hashicorp/consul-template/manager"
@@ -105,11 +107,38 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeOK
 	}
 
+	// Create a context with cancellation
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Create a channel for signaling readiness to the systemd init system.
+	readyCh := make(chan struct{})
+
+	// Start a goroutine that listens for signals on the readyCh channel.
+	// When a signal (an empty struct) is received, it notifies systemd that
+	// the application is ready by calling daemon.SdNotify with SdNotifyReady.
+	// If an error occurs during the notification, it logs a warning message.
+	go func() {
+		for {
+			select {
+			case <-readyCh:
+				_, err := daemon.SdNotify(false, daemon.SdNotifyReady)
+				if err != nil {
+					log.Printf("[WARN] failed to signal readiness to systemd: %v", err)
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
 	// Initial runner
 	runner, err := manager.NewRunner(config, dry)
 	if err != nil {
 		return logError(err, ExitCodeRunnerError)
 	}
+
+	runner.SetReadyChannel(readyCh)
 	go runner.Start()
 
 	// Listen for monitored signals
@@ -137,6 +166,7 @@ func (cli *CLI) Run(args []string) int {
 		case <-service_os.Shutdown_Channel():
 			fmt.Fprintf(cli.errStream, "Cleaning up...\n")
 			runner.StopImmediately()
+			cancel() // Cancel the context to stop the readyCh goroutine
 			return ExitCodeInterrupt
 		case s := <-cli.signalCh:
 			log.Printf("[DEBUG] (cli) receiving signal %q", s)
@@ -163,6 +193,7 @@ func (cli *CLI) Run(args []string) int {
 				if err != nil {
 					return logError(err, ExitCodeRunnerError)
 				}
+				runner.SetReadyChannel(readyCh)
 				go runner.Start()
 			case *config.KillSignal:
 				fmt.Fprintf(cli.errStream, "Cleaning up...\n")

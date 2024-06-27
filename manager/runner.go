@@ -132,6 +132,12 @@ type Runner struct {
 	// Runner config. This prevents risk of data races when reading config for
 	// other elements started by the Runner, like template functions.
 	finalConfigCopy config.Config
+
+	// readyCh is a channel used to signal readiness to the systemd init system.
+	// When a struct{} is sent on this channel, it triggers a notification to systemd
+	// that the application is ready. This helps in managing application state and
+	// integration with systemd's readiness protocol.
+	readyCh chan struct{}
 }
 
 // RenderEvent captures the time and events that occurred for a template
@@ -309,6 +315,14 @@ func (r *Runner) Start() {
 
 		if r.allTemplatesRendered() {
 			log.Printf("[DEBUG] (runner) all templates rendered")
+
+			// If the readyCh channel is not nil, send an empty struct to signal readiness.
+			// This will notify the systemd init system that the application is ready to
+			// handle requests. This mechanism integrates with systemd's readiness protocol.
+			if r.readyCh != nil {
+				r.readyCh <- struct{}{}
+			}
+
 			// Enable quiescence for all templates if we have specified wait
 			// intervals.
 		NEXT_Q:
@@ -720,6 +734,13 @@ func (r *Runner) Run() error {
 	}
 
 	return nil
+}
+
+// SetReadyChannel sets the readyCh channel which is used to signal readiness to the systemd init system.
+// The channel should be a struct{} channel, and when an empty struct is sent on this channel,
+// it will trigger a notification to systemd that the application is ready.
+func (r *Runner) SetReadyChannel(ch chan struct{}) {
+	r.readyCh = ch
 }
 
 type templateRunCtx struct {
