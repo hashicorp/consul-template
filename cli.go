@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -106,6 +107,10 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeOK
 	}
 
+	// Create a context with cancellation
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// Create a channel for signaling readiness to the systemd init system.
 	readyCh := make(chan struct{})
 
@@ -114,10 +119,15 @@ func (cli *CLI) Run(args []string) int {
 	// the application is ready by calling daemon.SdNotify with SdNotifyReady.
 	// If an error occurs during the notification, it logs a warning message.
 	go func() {
-		for range readyCh {
-			_, err := daemon.SdNotify(false, daemon.SdNotifyReady)
-			if err != nil {
-				log.Printf("[WARN] failed to signal readiness to systemd: %v", err)
+		for {
+			select {
+			case <-readyCh:
+				_, err := daemon.SdNotify(false, daemon.SdNotifyReady)
+				if err != nil {
+					log.Printf("[WARN] failed to signal readiness to systemd: %v", err)
+				}
+			case <-ctx.Done():
+				return
 			}
 		}
 	}()
@@ -156,6 +166,7 @@ func (cli *CLI) Run(args []string) int {
 		case <-service_os.Shutdown_Channel():
 			fmt.Fprintf(cli.errStream, "Cleaning up...\n")
 			runner.StopImmediately()
+			cancel() // Cancel the context to stop the readyCh goroutine
 			return ExitCodeInterrupt
 		case s := <-cli.signalCh:
 			log.Printf("[DEBUG] (cli) receiving signal %q", s)
@@ -187,12 +198,14 @@ func (cli *CLI) Run(args []string) int {
 			case *config.KillSignal:
 				fmt.Fprintf(cli.errStream, "Cleaning up...\n")
 				runner.StopImmediately()
+				cancel() // Cancel the context to stop the readyCh goroutine
 				return ExitCodeInterrupt
 			default:
 				// Propagate the signal to the child process
 				runner.Signal(s)
 			}
 		case <-cli.stopCh:
+			cancel() // Cancel the context to stop the readyCh goroutine
 			return ExitCodeOK
 		}
 	}
