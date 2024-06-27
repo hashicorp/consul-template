@@ -198,14 +198,12 @@ func (cli *CLI) Run(args []string) int {
 			case *config.KillSignal:
 				fmt.Fprintf(cli.errStream, "Cleaning up...\n")
 				runner.StopImmediately()
-				cancel() // Cancel the context to stop the readyCh goroutine
 				return ExitCodeInterrupt
 			default:
 				// Propagate the signal to the child process
 				runner.Signal(s)
 			}
 		case <-cli.stopCh:
-			cancel() // Cancel the context to stop the readyCh goroutine
 			return ExitCodeOK
 		}
 	}
