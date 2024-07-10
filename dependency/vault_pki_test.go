@@ -238,7 +238,8 @@ func Test_VaultPKI_refetch(t *testing.T) {
 		t.Fatalf("expected a pems but found: %s", pems2)
 	}
 	// using cached copy, so should be a match
-	if pems1 != pems2 {
+
+	if !pems1.Equals(pems2) {
 		t.Errorf("pemss don't match and should.")
 	}
 
@@ -261,7 +262,7 @@ func Test_VaultPKI_refetch(t *testing.T) {
 		t.Fatalf("expected a pems but found: %s", pems2)
 	}
 
-	if pems2 == pems3 {
+	if pems2.Equals(pems3) {
 		t.Errorf("pemss match and shouldn't.")
 	}
 }
