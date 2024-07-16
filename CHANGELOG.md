@@ -1,3 +1,8 @@
+# 0.39.1 (July 16, 2024)
+
+IMPROVEMENTS:
+* Enhance pkiCert template to return full CA chain [[GH-1962](https://github.com/hashicorp/consul-template/pull/1962)]
+
 # 0.39.0 (June 20, 2024)
 
 NEW FEATURES:
