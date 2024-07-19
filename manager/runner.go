@@ -1393,6 +1393,7 @@ func NewClientSet(c *config.Config) (*dep.ClientSet, error) {
 		TransportIdleConnTimeout:     config.TimeDurationVal(c.Consul.Transport.IdleConnTimeout),
 		TransportMaxIdleConns:        config.IntVal(c.Consul.Transport.MaxIdleConns),
 		TransportMaxIdleConnsPerHost: config.IntVal(c.Consul.Transport.MaxIdleConnsPerHost),
+		TransportMaxConnsPerHost:     config.IntVal(c.Consul.Transport.MaxConnsPerHost),
 		TransportTLSHandshakeTimeout: config.TimeDurationVal(c.Consul.Transport.TLSHandshakeTimeout),
 	}); err != nil {
 		return nil, fmt.Errorf("runner: %s", err)
@@ -1449,6 +1450,7 @@ func NewClientSet(c *config.Config) (*dep.ClientSet, error) {
 		TransportIdleConnTimeout:     config.TimeDurationVal(c.Nomad.Transport.IdleConnTimeout),
 		TransportMaxIdleConns:        config.IntVal(c.Nomad.Transport.MaxIdleConns),
 		TransportMaxIdleConnsPerHost: config.IntVal(c.Nomad.Transport.MaxIdleConnsPerHost),
+		TransportMaxConnsPerHost:     config.IntVal(c.Nomad.Transport.MaxConnsPerHost),
 		TransportTLSHandshakeTimeout: config.TimeDurationVal(c.Nomad.Transport.TLSHandshakeTimeout),
 	}); err != nil {
 		return nil, fmt.Errorf("runner: %s", err)
