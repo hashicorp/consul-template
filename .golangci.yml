@@ -63,6 +63,7 @@ linters-settings:
         # List of allowed packages.
         allow:
           - $gostd
+          - github.com/armon/go-metrics
           - github.com/BurntSushi/toml
           - github.com/Masterminds/sprig/v3
           - github.com/davecgh/go-spew/spew
