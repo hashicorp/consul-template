@@ -633,6 +633,13 @@ for use in a configuration file.
 {{.Auth.ClientToken}}{{ end }}
 ```
 
+An example of writing to a secret, with an empty payload:
+
+```golang
+{{with secret "auth/approle/role/agent-role/secret-id" ""}}
+{{.Data}}{{ end }}
+```
+
 The parameters must be `key=value` pairs, and each pair must be its own argument
 to the function:
 
