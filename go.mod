@@ -1,8 +1,8 @@
 module github.com/hashicorp/consul-template
 
-go 1.22
+go 1.23.1
 
-toolchain go1.22.4
+toolchain go1.23.1
 
 require (
 	github.com/BurntSushi/toml v1.3.2
