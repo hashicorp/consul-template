@@ -81,6 +81,7 @@ type CreateConsulClientInput struct {
 	TransportIdleConnTimeout     time.Duration
 	TransportMaxIdleConns        int
 	TransportMaxIdleConnsPerHost int
+	TransportMaxConnsPerHost     int
 	TransportTLSHandshakeTimeout time.Duration
 }
 
@@ -138,6 +139,7 @@ type CreateNomadClientInput struct {
 	TransportIdleConnTimeout     time.Duration
 	TransportMaxIdleConns        int
 	TransportMaxIdleConnsPerHost int
+	TransportMaxConnsPerHost     int
 	TransportTLSHandshakeTimeout time.Duration
 }
 
@@ -184,6 +186,7 @@ func (c *ClientSet) CreateConsulClient(i *CreateConsulClientInput) error {
 		MaxIdleConns:        i.TransportMaxIdleConns,
 		IdleConnTimeout:     i.TransportIdleConnTimeout,
 		MaxIdleConnsPerHost: i.TransportMaxIdleConnsPerHost,
+		MaxConnsPerHost:     i.TransportMaxConnsPerHost,
 		TLSHandshakeTimeout: i.TransportTLSHandshakeTimeout,
 	}
 
@@ -416,6 +419,7 @@ func (c *ClientSet) CreateNomadClient(i *CreateNomadClientInput) error {
 		MaxIdleConns:        i.TransportMaxIdleConns,
 		IdleConnTimeout:     i.TransportIdleConnTimeout,
 		MaxIdleConnsPerHost: i.TransportMaxIdleConnsPerHost,
+		MaxConnsPerHost:     i.TransportMaxConnsPerHost,
 		TLSHandshakeTimeout: i.TransportTLSHandshakeTimeout,
 	}
 
