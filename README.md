@@ -91,34 +91,34 @@ This short example assumes Consul is installed locally.
 
 1. Start a Consul cluster in dev mode:
 
-  ```shell
-  $ consul agent -dev
-  ```
+   ```shell
+   consul agent -dev
+   ```
 
-2. Author a template `in.tpl` to query the kv store:
+1. Author a template `in.tpl` to query the kv store:
 
-  ```liquid
-  {{ key "foo" }}
-  ```
+   ```liquid
+   {{ key "foo" }}
+   ```
 
-3. Start Consul Template:
+1. Start Consul Template:
 
-  ```shell
-  $ consul-template -template "in.tpl:out.txt" -once
-  ```
+   ```shell
+   consul-template -template "in.tpl:out.txt" -once
+   ```
 
-4. Write data to the key in Consul:
+1. Write data to the key in Consul:
 
-  ```shell
-  $ consul kv put foo bar
-  ```
+   ```shell
+   consul kv put foo bar
+   ```
 
-5. Observe Consul Template has written the file `out.txt`:
+1. Observe Consul Template has written the file `out.txt`:
 
-  ```shell
-  $ cat out.txt
-  bar
-  ```
+   ```shell
+   $ cat out.txt
+   bar
+   ```
 
 For more examples and use cases, please see the [examples folder][examples] in
 this repository.
