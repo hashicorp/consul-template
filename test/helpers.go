@@ -4,6 +4,7 @@
 package test
 
 import (
+	"log"
 	"os"
 	"strings"
 	"sync"
@@ -97,11 +98,14 @@ func (t *TestingTB) DoCleanup() {
 	t.cleanup()
 }
 
-func (*TestingTB) Failed() bool                  { return false }
-func (*TestingTB) Logf(string, ...interface{})   {}
-func (*TestingTB) Fatalf(string, ...interface{}) {}
-func (*TestingTB) Name() string                  { return "TestingTB" }
-func (*TestingTB) Helper()                       {}
+func (*TestingTB) Failed() bool { return false }
+func (*TestingTB) Logf(format string, v ...interface{}) {
+	log.Printf(format, v...)
+}
+func (*TestingTB) Fatalf(format string, v ...interface{}) {
+	log.Fatalf(format, v...)
+}
+func (*TestingTB) Name() string { return "TestingTB" }
 func (t *TestingTB) Cleanup(f func()) {
 	t.Lock()
 	defer t.Unlock()
@@ -121,3 +125,4 @@ func (*TestingTB) Fatal(...any)          {}
 func (*TestingTB) Log(...any)            {}
 func (*TestingTB) Setenv(string, string) {}
 func (*TestingTB) TempDir() string       { return "" }
+func (*TestingTB) Helper()               {}
