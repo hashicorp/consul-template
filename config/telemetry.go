@@ -335,6 +335,12 @@ func (c *TelemetryConfig) GoString() string {
 	if c == nil {
 		return "(*TelemetryConfig)(nil)"
 	}
+
+	circonusAPITokenState := "<empty>"
+	if c.CirconusAPIToken != "" {
+		circonusAPITokenState = "<configured>"
+	}
+
 	return fmt.Sprintf("&TelemetryConfig{"+
 		"Disable:%v, "+
 		"CirconusAPIApp:%s, "+
@@ -363,7 +369,7 @@ func (c *TelemetryConfig) GoString() string {
 		"PrometheusRetentionTime:%s}",
 		c.Disable,
 		c.CirconusAPIApp,
-		c.CirconusAPIToken,
+		circonusAPITokenState,
 		c.CirconusAPIURL,
 		c.CirconusBrokerID,
 		c.CirconusBrokerSelectTag,
