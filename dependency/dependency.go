@@ -50,11 +50,18 @@ const (
 )
 
 func (t Type) String() string {
-	if t > 2 {
+	switch t {
+	case TypeConsul:
+		return "consul"
+	case TypeVault:
+		return "vault"
+	case TypeLocal:
+		return "local"
+	case TypeNomad:
+		return "nomad"
+	default:
 		return "unknown"
 	}
-
-	return []string{"consul", "vault", "local"}[t]
 }
 
 // Dependency is an interface for a dependency that Consul Template is capable
