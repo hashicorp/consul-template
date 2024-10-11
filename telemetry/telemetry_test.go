@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -97,13 +98,9 @@ func TestPrometheusMetrics(t *testing.T) {
 
 	missingActualMetrics := []string{}
 
+	prefixes := []string{"# HELP go_", "#TYPE go", "go_", "# HELP process_", "# TYPE process_", "process_"}
 	for _, actualMetric := range actualMetrics {
-		if strings.HasPrefix(actualMetric, "# HELP go_") ||
-			strings.HasPrefix(actualMetric, "# TYPE go_") ||
-			strings.HasPrefix(actualMetric, "go_") ||
-			strings.HasPrefix(actualMetric, "# HELP process_") ||
-			strings.HasPrefix(actualMetric, "# TYPE process_") ||
-			strings.HasPrefix(actualMetric, "process_") ||
+		if slices.ContainsFunc(prefixes, func(p string) bool { return strings.HasPrefix(actualMetric, p) }) ||
 			actualMetric == "" {
 			continue
 		}
