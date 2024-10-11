@@ -125,3 +125,12 @@ func TestTelemetryFullConfigMerge(t *testing.T) {
 
 	assert.Equal(t, configB, configA.Merge(configB))
 }
+
+func TestTelemetryConfigGoString(t *testing.T) {
+	config := &TelemetryConfig{
+		PrometheusRetentionTime: 1 * time.Minute,
+	}
+	expected := "&TelemetryConfig{Disable:false, CirconusAPIApp:, CirconusAPIToken:<empty>, CirconusAPIURL:, CirconusBrokerID:, CirconusBrokerSelectTag:, CirconusCheckDisplayName:, CirconusCheckForceMetricActivation:false, CirconusCheckID:, CirconusCheckInstanceID:, CirconusCheckSearchTag:, CirconusCheckTags:, CirconusSubmissionInterval:, CirconusSubmissionURL:, DisableHostname:false, DogstatsdAddr:, DogstatsdTags:[], FilterDefault:false, AllowedPrefixes:[], BlockedPrefixes:[], MetricsPrefix:, StatsdAddr:, StatsiteAddr:, PrometheusPort:0, PrometheusRetentionTime:1m0s}"
+
+	assert.Equal(t, expected, config.GoString())
+}
