@@ -25,7 +25,7 @@ func circonusSink(cfg *config.TelemetryConfig, hostname string) (metrics.MetricS
 	conf.CheckManager.API.URL = cfg.CirconusAPIURL
 	conf.CheckManager.Check.SubmissionURL = url
 	conf.CheckManager.Check.ID = cfg.CirconusCheckID
-	conf.CheckManager.Check.ForceMetricActivation = cfg.CirconusCheckForceMetricActivation
+	conf.CheckManager.Check.ForceMetricActivation = cfg.GetCirconusCheckForceMetricActivation()
 	conf.CheckManager.Check.InstanceID = cfg.CirconusCheckInstanceID
 	conf.CheckManager.Check.SearchTag = cfg.CirconusCheckSearchTag
 	conf.CheckManager.Check.DisplayName = cfg.CirconusCheckDisplayName

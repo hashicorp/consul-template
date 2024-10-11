@@ -7,6 +7,7 @@ package config
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -92,7 +93,7 @@ type TelemetryConfig struct {
 	// Default: "false"
 	//
 	// hcl: telemetry { circonus_check_metrics_activation = (true|false)
-	CirconusCheckForceMetricActivation string `json:"circonus_check_force_metric_activation,omitempty" mapstructure:"circonus_check_force_metric_activation"`
+	CirconusCheckForceMetricActivation bool `json:"circonus_check_force_metric_activation,omitempty" mapstructure:"circonus_check_force_metric_activation"`
 
 	// CirconusCheckID is the check id (not check bundle id) from a previously created
 	// HTTPTRAP check. The numeric portion of the check._cid field.
@@ -276,9 +277,7 @@ func (c *TelemetryConfig) Merge(o *TelemetryConfig) *TelemetryConfig {
 	if o.CirconusCheckDisplayName != "" {
 		r.CirconusCheckDisplayName = o.CirconusCheckDisplayName
 	}
-	if o.CirconusCheckForceMetricActivation != "" {
-		r.CirconusCheckForceMetricActivation = o.CirconusCheckForceMetricActivation
-	}
+	r.CirconusCheckForceMetricActivation = o.CirconusCheckForceMetricActivation
 	if o.CirconusCheckID != "" {
 		r.CirconusCheckID = o.CirconusCheckID
 	}
@@ -374,7 +373,7 @@ func (c *TelemetryConfig) GoString() string {
 		c.CirconusBrokerID,
 		c.CirconusBrokerSelectTag,
 		c.CirconusCheckDisplayName,
-		c.CirconusCheckForceMetricActivation,
+		c.GetCirconusCheckForceMetricActivation(),
 		c.CirconusCheckID,
 		c.CirconusCheckInstanceID,
 		c.CirconusCheckSearchTag,
@@ -408,4 +407,8 @@ func (c *TelemetryConfig) Finalize() {
 	if c.PrometheusRetentionTime.Nanoseconds() < 1 {
 		c.PrometheusRetentionTime = 60 * time.Second
 	}
+}
+
+func (c *TelemetryConfig) GetCirconusCheckForceMetricActivation() string {
+	return strconv.FormatBool(c.CirconusCheckForceMetricActivation)
 }
