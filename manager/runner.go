@@ -693,10 +693,6 @@ func (r *Runner) Run() error {
 	// Perform the diff and update the known dependencies.
 	r.diffAndUpdateDeps(runCtx.depsMap)
 
-	// Record dependency counts on runCtx instead of runner.dependencies
-	// to avoid blocking the locks
-	recordDependencyCounts(runCtx.depsMap)
-
 	// Execute each command in sequence, collecting any errors that occur - this
 	// ensures all commands execute at least once.
 	var errs []error
@@ -1510,13 +1506,6 @@ func newWatcher(c *config.Config, clients *dep.ClientSet) *watch.Watcher {
 		VaultToken:       clients.Vault().Token(),
 		RetryFuncNomad:   watch.RetryFunc(c.Nomad.Retry.RetryFunc()),
 	})
-}
-
-func recordDependencyCounts(deps map[string]dep.Dependency) {
-	types := make(map[dep.Type]float32)
-	for _, dep := range deps {
-		types[dep.Type()]++
-	}
 }
 
 func getTelemetryLabel(event *RenderEvent) string {
