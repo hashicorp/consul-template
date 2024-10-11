@@ -58,7 +58,7 @@ type TelemetryConfig struct {
 	// Default: "https://api.circonus.com/v2"
 	//
 	// hcl: telemetry { circonus_api_url = string }
-	CirconusAPIURL string `json:"circonus_apiurl,omitempty" mapstructure:"circonus_apiurl"`
+	CirconusAPIURL string `json:"circonus_api_url,omitempty" mapstructure:"circonus_api_url"`
 
 	// CirconusBrokerID is an explicit broker to use when creating a new check. The numeric portion
 	// of broker._cid. If metric management is enabled and neither a Submission URL nor Check ID
