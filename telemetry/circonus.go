@@ -11,7 +11,7 @@ import (
     https://github.com/hashicorp/consul/blob/main/lib/telemetry.go#L274
 */
 
-func circonusSink(cfg *config.TelemetryConfig, hostname string) (metrics.MetricSink, error) {
+func circonusSink(cfg *config.TelemetryConfig, _ string) (metrics.MetricSink, error) {
 	token := cfg.CirconusAPIToken
 	url := cfg.CirconusSubmissionURL
 	if token == "" && url == "" {

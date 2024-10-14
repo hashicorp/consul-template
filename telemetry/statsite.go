@@ -10,7 +10,7 @@ import (
     https://github.com/hashicorp/consul/blob/main/lib/telemetry.go#L232
 */
 
-func statsiteSink(cfg *config.TelemetryConfig, hostname string) (metrics.MetricSink, error) {
+func statsiteSink(cfg *config.TelemetryConfig, _ string) (metrics.MetricSink, error) {
 	addr := cfg.StatsiteAddr
 	if addr == "" {
 		return nil, nil

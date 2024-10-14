@@ -17,7 +17,7 @@ import (
     https://github.com/hashicorp/consul/blob/main/lib/telemetry.go#L261
 */
 
-func PrometheusSink(cfg *config.TelemetryConfig, hostname string) (metrics.MetricSink, error) {
+func PrometheusSink(cfg *config.TelemetryConfig, _ string) (metrics.MetricSink, error) {
 	if cfg.PrometheusPort == 0 {
 		return nil, nil
 	}

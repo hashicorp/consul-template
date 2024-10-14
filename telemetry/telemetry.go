@@ -8,7 +8,6 @@ package telemetry
 import (
 	"context"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/armon/go-metrics"
@@ -25,30 +24,29 @@ type MetricsHandler interface {
 
 type Telemetry struct {
 	Handler  MetricsHandler
-	mu       sync.Mutex
 	cancelFn context.CancelFunc
 }
 
 func (tel *Telemetry) Stop() {
-	tel.mu.Lock()
-	defer tel.mu.Unlock()
-
 	if tel.cancelFn != nil {
 		tel.cancelFn()
 	}
 }
 
-func ConfigureSinks(cfg *config.TelemetryConfig, memSink metrics.MetricSink) (metrics.FanoutSink, error) {
-	metricsConf := metrics.DefaultConfig(cfg.MetricsPrefix)
-	metricsConf.EnableHostname = !cfg.DisableHostname
-	metricsConf.FilterDefault = cfg.FilterDefault
-	metricsConf.AllowedPrefixes = cfg.AllowedPrefixes
-	metricsConf.BlockedPrefixes = cfg.BlockedPrefixes
+func computeMetricsConfig(telemetryConf *config.TelemetryConfig) *metrics.Config {
+	metricsConf := metrics.DefaultConfig(telemetryConf.MetricsPrefix)
+	metricsConf.EnableHostname = !telemetryConf.DisableHostname
+	metricsConf.FilterDefault = telemetryConf.FilterDefault
+	metricsConf.AllowedPrefixes = telemetryConf.AllowedPrefixes
+	metricsConf.BlockedPrefixes = telemetryConf.BlockedPrefixes
+	return metricsConf
+}
 
+func setupSinks(telemetryConf *config.TelemetryConfig, hostname string) (metrics.FanoutSink, error) {
 	var sinks metrics.FanoutSink
 	var errors *multierror.Error
 	addSink := func(fn func(*config.TelemetryConfig, string) (metrics.MetricSink, error)) {
-		s, err := fn(cfg, metricsConf.HostName)
+		s, err := fn(telemetryConf, hostname)
 		if err != nil {
 			errors = multierror.Append(errors, err)
 			return
@@ -63,20 +61,6 @@ func ConfigureSinks(cfg *config.TelemetryConfig, memSink metrics.MetricSink) (me
 	addSink(dogstatdSink)
 	addSink(circonusSink)
 	addSink(PrometheusSink)
-
-	if len(sinks) > 0 {
-		sinks = append(sinks, memSink)
-		_, err := metrics.NewGlobal(metricsConf, sinks)
-		if err != nil {
-			errors = multierror.Append(errors, err)
-		}
-	} else {
-		metricsConf.EnableHostname = false
-		_, err := metrics.NewGlobal(metricsConf, memSink)
-		if err != nil {
-			errors = multierror.Append(errors, err)
-		}
-	}
 
 	return sinks, errors.ErrorOrNil()
 }
@@ -93,14 +77,22 @@ func Init(cfg *config.TelemetryConfig) (*Telemetry, error) {
 	memSink := metrics.NewInmemSink(10*time.Second, time.Minute)
 	metrics.DefaultInmemSignal(memSink)
 
-	telemetry := &Telemetry{
-		Handler: memSink,
-	}
+	metricsConf := computeMetricsConfig(cfg)
 
-	_, errs := ConfigureSinks(cfg, memSink)
-
+	sinks, errs := setupSinks(cfg, metricsConf.HostName)
 	if errs != nil {
 		return nil, errs
+	}
+	sinks = append(sinks, memSink)
+
+	metricsServer, err := metrics.NewGlobal(metricsConf, sinks)
+	if err != nil {
+		return nil, err
+	}
+
+	telemetry := &Telemetry{
+		Handler:  memSink,
+		cancelFn: metricsServer.Shutdown,
 	}
 
 	return telemetry, nil
