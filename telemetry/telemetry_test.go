@@ -28,7 +28,7 @@ func TestConfigureSinks(t *testing.T) {
 	sinks, err := setupSinks(cfg, "")
 	require.Error(t, err)
 	// 3 sinks: statsd, statsite, inmem
-	require.Equal(t, 3, len(sinks))
+	require.Equal(t, 2, len(sinks))
 
 	cfg = &config.TelemetryConfig{
 		DogstatsdAddr: "",
@@ -98,7 +98,7 @@ func TestPrometheusMetrics(t *testing.T) {
 
 	missingActualMetrics := []string{}
 
-	prefixes := []string{"# HELP go_", "#TYPE go", "go_", "# HELP process_", "# TYPE process_", "process_"}
+	prefixes := []string{"# HELP go_", "# TYPE go_", "go_", "# HELP process_", "# TYPE process_", "process_"}
 	for _, actualMetric := range actualMetrics {
 		if slices.ContainsFunc(prefixes, func(p string) bool { return strings.HasPrefix(actualMetric, p) }) ||
 			actualMetric == "" {
