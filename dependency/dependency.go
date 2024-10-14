@@ -49,6 +49,21 @@ const (
 	DefaultContextTimeout = 60 * time.Second
 )
 
+func (t Type) String() string {
+	switch t {
+	case TypeConsul:
+		return "consul"
+	case TypeVault:
+		return "vault"
+	case TypeLocal:
+		return "local"
+	case TypeNomad:
+		return "nomad"
+	default:
+		return "unknown"
+	}
+}
+
 // Dependency is an interface for a dependency that Consul Template is capable
 // of watching.
 type Dependency interface {

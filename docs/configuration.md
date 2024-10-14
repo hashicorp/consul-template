@@ -735,3 +735,52 @@ exec {
 [consul-kv]: https://www.consul.io/docs/agent/kv.html "Consul KV"
 [nomad]: https://www.nomadproject.io/ "Nomad by HashiCorp"
 [vault]: https://www.vaultproject.io/ "Vault by HashiCorp"
+
+## Telemetry
+
+This block is an HCL mapping to OpenTelemetry configurations for
+various exporters. Configuring telemetry is only supported in
+configuration files and not as CLI flags. Only one metric provider can
+be used at a given time. More details on the metrics collected can be found
+in the Telemetry section.
+
+```hcl
+# These are example configurations for monitoring Consul Template metrics.
+telemetry {
+  # General configuration
+  disable_hostname = true
+  filter_default = true
+  allowed_prefixes = ["consul_template."]
+  blocked_prefixes = ["go."]
+  metrics_prefix = "consul_template"
+
+  # If you use Circonus
+  circonus_api_app = "consul"
+  circonus_api_token = "Your token"
+  circonus_api_url = "https://api.circonus.com/v2"
+  circonus_broker_id = "Your broker ID"
+  circonus_broker_select_tag = "dc:sfo"
+  circonus_check_display_name = "Your chosen display name"
+  circonus_check_force_metric_activation = false
+  circonus_check_id = "Your check ID"
+  circonus_check_instance_id = "hostname:app"
+  circonus_check_search_tag = "service:consul"
+  circonus_check_tags = "service:consul"
+  circonus_submission_interval = "10s"
+  circonus_submission_url = "https://a.circonus.submission.url.com"
+
+  # If you use DogStatsD
+  dogstatsd_addr = "udp://127.0.0.1:8125"
+  dogstatsd_tags = ["my_tag_name:my_tag_value"]
+
+  # If you use statsd
+  statsd_address = "statsd.company.local:8125"
+  
+  # If you use statsite
+  statsite_address = "statsite.company.local:8125"
+
+  # If you use Prometheus
+  prometheus_retention_time =  ""
+  prometheus_port = 8888
+}
+```
