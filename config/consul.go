@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package config
 
 import "fmt"
@@ -33,16 +30,50 @@ type ConsulConfig struct {
 
 	// Transport configures the low-level network connection details.
 	Transport *TransportConfig `mapstructure:"transport"`
+
+	// AntiEntropy is the configuration for anti-entropy principles.
+	AntiEntropy *AntiEntropyConfig `mapstructure:"anti_entropy"`
+
+	// SeQUenCE is the configuration for SeQUenCE.
+	SeQUenCE *SeQUenCEConfig `mapstructure:"sequence"`
+}
+
+// AntiEntropyConfig defines the configuration options for anti-entropy principles.
+type AntiEntropyConfig struct {
+	Enabled *bool `mapstructure:"enabled"`
+}
+
+// SeQUenCEConfig defines the configuration options for SeQUenCE.
+type SeQUenCEConfig struct {
+	Enabled *bool `mapstructure:"enabled"`
 }
 
 // DefaultConsulConfig returns a configuration that is populated with the
 // default values.
 func DefaultConsulConfig() *ConsulConfig {
 	return &ConsulConfig{
-		Auth:      DefaultAuthConfig(),
-		Retry:     DefaultRetryConfig(),
-		SSL:       DefaultSSLConfig(),
-		Transport: DefaultTransportConfig(),
+		Auth:        DefaultAuthConfig(),
+		Retry:       DefaultRetryConfig(),
+		SSL:         DefaultSSLConfig(),
+		Transport:   DefaultTransportConfig(),
+		AntiEntropy: DefaultAntiEntropyConfig(),
+		SeQUenCE:    DefaultSeQUenCEConfig(),
+	}
+}
+
+// DefaultAntiEntropyConfig returns a configuration that is populated with the
+// default values for anti-entropy principles.
+func DefaultAntiEntropyConfig() *AntiEntropyConfig {
+	return &AntiEntropyConfig{
+		Enabled: Bool(false),
+	}
+}
+
+// DefaultSeQUenCEConfig returns a configuration that is populated with the
+// default values for SeQUenCE.
+func DefaultSeQUenCEConfig() *SeQUenCEConfig {
+	return &SeQUenCEConfig{
+		Enabled: Bool(false),
 	}
 }
 
@@ -76,6 +107,40 @@ func (c *ConsulConfig) Copy() *ConsulConfig {
 	if c.Transport != nil {
 		o.Transport = c.Transport.Copy()
 	}
+
+	if c.AntiEntropy != nil {
+		o.AntiEntropy = c.AntiEntropy.Copy()
+	}
+
+	if c.SeQUenCE != nil {
+		o.SeQUenCE = c.SeQUenCE.Copy()
+	}
+
+	return &o
+}
+
+// Copy returns a deep copy of this configuration.
+func (c *AntiEntropyConfig) Copy() *AntiEntropyConfig {
+	if c == nil {
+		return nil
+	}
+
+	var o AntiEntropyConfig
+
+	o.Enabled = c.Enabled
+
+	return &o
+}
+
+// Copy returns a deep copy of this configuration.
+func (c *SeQUenCEConfig) Copy() *SeQUenCEConfig {
+	if c == nil {
+		return nil
+	}
+
+	var o SeQUenCEConfig
+
+	o.Enabled = c.Enabled
 
 	return &o
 }
@@ -130,6 +195,64 @@ func (c *ConsulConfig) Merge(o *ConsulConfig) *ConsulConfig {
 		r.Transport = r.Transport.Merge(o.Transport)
 	}
 
+	if o.AntiEntropy != nil {
+		r.AntiEntropy = r.AntiEntropy.Merge(o.AntiEntropy)
+	}
+
+	if o.SeQUenCE != nil {
+		r.SeQUenCE = r.SeQUenCE.Merge(o.SeQUenCE)
+	}
+
+	return r
+}
+
+// Merge combines all values in this configuration with the values in the other
+// configuration, with values in the other configuration taking precedence.
+// Maps and slices are merged, most other values are overwritten. Complex
+// structs define their own merge functionality.
+func (c *AntiEntropyConfig) Merge(o *AntiEntropyConfig) *AntiEntropyConfig {
+	if c == nil {
+		if o == nil {
+			return nil
+		}
+		return o.Copy()
+	}
+
+	if o == nil {
+		return c.Copy()
+	}
+
+	r := c.Copy()
+
+	if o.Enabled != nil {
+		r.Enabled = o.Enabled
+	}
+
+	return r
+}
+
+// Merge combines all values in this configuration with the values in the other
+// configuration, with values in the other configuration taking precedence.
+// Maps and slices are merged, most other values are overwritten. Complex
+// structs define their own merge functionality.
+func (c *SeQUenCEConfig) Merge(o *SeQUenCEConfig) *SeQUenCEConfig {
+	if c == nil {
+		if o == nil {
+			return nil
+		}
+		return o.Copy()
+	}
+
+	if o == nil {
+		return c.Copy()
+	}
+
+	r := c.Copy()
+
+	if o.Enabled != nil {
+		r.Enabled = o.Enabled
+	}
+
 	return r
 }
 
@@ -178,6 +301,30 @@ func (c *ConsulConfig) Finalize() {
 		c.Transport = DefaultTransportConfig()
 	}
 	c.Transport.Finalize()
+
+	if c.AntiEntropy == nil {
+		c.AntiEntropy = DefaultAntiEntropyConfig()
+	}
+	c.AntiEntropy.Finalize()
+
+	if c.SeQUenCE == nil {
+		c.SeQUenCE = DefaultSeQUenCEConfig()
+	}
+	c.SeQUenCE.Finalize()
+}
+
+// Finalize ensures there no nil pointers.
+func (c *AntiEntropyConfig) Finalize() {
+	if c.Enabled == nil {
+		c.Enabled = Bool(false)
+	}
+}
+
+// Finalize ensures there no nil pointers.
+func (c *SeQUenCEConfig) Finalize() {
+	if c.Enabled == nil {
+		c.Enabled = Bool(false)
+	}
 }
 
 // GoString defines the printable version of this struct.
@@ -194,7 +341,9 @@ func (c *ConsulConfig) GoString() string {
 		"SSL:%#v, "+
 		"Token:%t, "+
 		"TokenFile:%s, "+
-		"Transport:%#v"+
+		"Transport:%#v, "+
+		"AntiEntropy:%#v, "+
+		"SeQUenCE:%#v"+
 		"}",
 		StringGoString(c.Address),
 		StringGoString(c.Namespace),
@@ -204,5 +353,33 @@ func (c *ConsulConfig) GoString() string {
 		StringPresent(c.Token),
 		StringGoString(c.TokenFile),
 		c.Transport,
+		c.AntiEntropy,
+		c.SeQUenCE,
+	)
+}
+
+// GoString defines the printable version of this struct.
+func (c *AntiEntropyConfig) GoString() string {
+	if c == nil {
+		return "(*AntiEntropyConfig)(nil)"
+	}
+
+	return fmt.Sprintf("&AntiEntropyConfig{"+
+		"Enabled:%s"+
+		"}",
+		BoolGoString(c.Enabled),
+	)
+}
+
+// GoString defines the printable version of this struct.
+func (c *SeQUenCEConfig) GoString() string {
+	if c == nil {
+		return "(*SeQUenCEConfig)(nil)"
+	}
+
+	return fmt.Sprintf("&SeQUenCEConfig{"+
+		"Enabled:%s"+
+		"}",
+		BoolGoString(c.Enabled),
 	)
 }

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package config
 
 import "fmt"
@@ -35,12 +32,46 @@ type NomadConfig struct {
 
 	// Retry is the configuration for specifying how to behave on failure.
 	Retry *RetryConfig `mapstructure:"retry"`
+
+	// AntiEntropy is the configuration for anti-entropy principles.
+	AntiEntropy *AntiEntropyConfig `mapstructure:"anti_entropy"`
+
+	// SeQUenCE is the configuration for SeQUenCE.
+	SeQUenCE *SeQUenCEConfig `mapstructure:"sequence"`
+}
+
+// AntiEntropyConfig defines the configuration options for anti-entropy principles.
+type AntiEntropyConfig struct {
+	Enabled *bool `mapstructure:"enabled"`
+}
+
+// SeQUenCEConfig defines the configuration options for SeQUenCE.
+type SeQUenCEConfig struct {
+	Enabled *bool `mapstructure:"enabled"`
 }
 
 func DefaultNomadConfig() *NomadConfig {
 	return &NomadConfig{
-		SSL:       DefaultSSLConfig(),
-		Transport: DefaultTransportConfig(),
+		SSL:         DefaultSSLConfig(),
+		Transport:   DefaultTransportConfig(),
+		AntiEntropy: DefaultAntiEntropyConfig(),
+		SeQUenCE:    DefaultSeQUenCEConfig(),
+	}
+}
+
+// DefaultAntiEntropyConfig returns a configuration that is populated with the
+// default values for anti-entropy principles.
+func DefaultAntiEntropyConfig() *AntiEntropyConfig {
+	return &AntiEntropyConfig{
+		Enabled: Bool(false),
+	}
+}
+
+// DefaultSeQUenCEConfig returns a configuration that is populated with the
+// default values for SeQUenCE.
+func DefaultSeQUenCEConfig() *SeQUenCEConfig {
+	return &SeQUenCEConfig{
+		Enabled: Bool(false),
 	}
 }
 
@@ -61,6 +92,34 @@ func (n *NomadConfig) Copy() *NomadConfig {
 	o.AuthPassword = n.AuthPassword
 	o.Transport = n.Transport.Copy()
 	o.Retry = n.Retry.Copy()
+	o.AntiEntropy = n.AntiEntropy.Copy()
+	o.SeQUenCE = n.SeQUenCE.Copy()
+
+	return &o
+}
+
+// Copy returns a deep copy of this configuration.
+func (c *AntiEntropyConfig) Copy() *AntiEntropyConfig {
+	if c == nil {
+		return nil
+	}
+
+	var o AntiEntropyConfig
+
+	o.Enabled = c.Enabled
+
+	return &o
+}
+
+// Copy returns a deep copy of this configuration.
+func (c *SeQUenCEConfig) Copy() *SeQUenCEConfig {
+	if c == nil {
+		return nil
+	}
+
+	var o SeQUenCEConfig
+
+	o.Enabled = c.Enabled
 
 	return &o
 }
@@ -119,6 +178,64 @@ func (n *NomadConfig) Merge(o *NomadConfig) *NomadConfig {
 		r.Retry = r.Retry.Merge(o.Retry)
 	}
 
+	if o.AntiEntropy != nil {
+		r.AntiEntropy = r.AntiEntropy.Merge(o.AntiEntropy)
+	}
+
+	if o.SeQUenCE != nil {
+		r.SeQUenCE = r.SeQUenCE.Merge(o.SeQUenCE)
+	}
+
+	return r
+}
+
+// Merge combines all values in this configuration with the values in the other
+// configuration, with values in the other configuration taking precedence.
+// Maps and slices are merged, most other values are overwritten. Complex
+// structs define their own merge functionality.
+func (c *AntiEntropyConfig) Merge(o *AntiEntropyConfig) *AntiEntropyConfig {
+	if c == nil {
+		if o == nil {
+			return nil
+		}
+		return o.Copy()
+	}
+
+	if o == nil {
+		return c.Copy()
+	}
+
+	r := c.Copy()
+
+	if o.Enabled != nil {
+		r.Enabled = o.Enabled
+	}
+
+	return r
+}
+
+// Merge combines all values in this configuration with the values in the other
+// configuration, with values in the other configuration taking precedence.
+// Maps and slices are merged, most other values are overwritten. Complex
+// structs define their own merge functionality.
+func (c *SeQUenCEConfig) Merge(o *SeQUenCEConfig) *SeQUenCEConfig {
+	if c == nil {
+		if o == nil {
+			return nil
+		}
+		return o.Copy()
+	}
+
+	if o == nil {
+		return c.Copy()
+	}
+
+	r := c.Copy()
+
+	if o.Enabled != nil {
+		r.Enabled = o.Enabled
+	}
+
 	return r
 }
 
@@ -165,6 +282,16 @@ func (n *NomadConfig) Finalize() {
 		n.Retry = DefaultRetryConfig()
 	}
 	n.Retry.Finalize()
+
+	if n.AntiEntropy == nil {
+		n.AntiEntropy = DefaultAntiEntropyConfig()
+	}
+	n.AntiEntropy.Finalize()
+
+	if n.SeQUenCE == nil {
+		n.SeQUenCE = DefaultSeQUenCEConfig()
+	}
+	n.SeQUenCE.Finalize()
 }
 
 func (n *NomadConfig) GoString() string {
@@ -182,6 +309,8 @@ func (n *NomadConfig) GoString() string {
 		"AuthPassword:%s, "+
 		"Transport:%#v, "+
 		"Retry:%#v, "+
+		"AntiEntropy:%#v, "+
+		"SeQUenCE:%#v"+
 		"}",
 		StringGoString(n.Address),
 		BoolGoString(n.Enabled),
@@ -192,5 +321,21 @@ func (n *NomadConfig) GoString() string {
 		StringGoString(n.AuthPassword),
 		n.Transport,
 		n.Retry,
+		n.AntiEntropy,
+		n.SeQUenCE,
 	)
+}
+
+// Finalize ensures there no nil pointers.
+func (c *AntiEntropyConfig) Finalize() {
+	if c.Enabled == nil {
+		c.Enabled = Bool(false)
+	}
+}
+
+// Finalize ensures there no nil pointers.
+func (c *SeQUenCEConfig) Finalize() {
+	if c.Enabled == nil {
+		c.Enabled = Bool(false)
+	}
 }

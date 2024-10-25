@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package config
 
 import (
@@ -126,6 +123,22 @@ type VaultConfig struct {
 	//
 	// This can also be set via the VAULT_K8S_SERVICE_MOUNT_PATH.
 	K8SServiceMountPath *string `mapstructure:"k8s_service_mount_path"`
+
+	// AntiEntropy is the configuration for anti-entropy principles.
+	AntiEntropy *AntiEntropyConfig `mapstructure:"anti_entropy"`
+
+	// SeQUenCE is the configuration for SeQUenCE.
+	SeQUenCE *SeQUenCEConfig `mapstructure:"sequence"`
+}
+
+// AntiEntropyConfig defines the configuration options for anti-entropy principles.
+type AntiEntropyConfig struct {
+	Enabled *bool `mapstructure:"enabled"`
+}
+
+// SeQUenCEConfig defines the configuration options for SeQUenCE.
+type SeQUenCEConfig struct {
+	Enabled *bool `mapstructure:"enabled"`
 }
 
 // DefaultVaultConfig returns a configuration that is populated with the
@@ -135,12 +148,30 @@ func DefaultVaultConfig() *VaultConfig {
 		Retry:     DefaultRetryConfig(),
 		SSL:       DefaultSSLConfig(),
 		Transport: DefaultTransportConfig(),
+		AntiEntropy: DefaultAntiEntropyConfig(),
+		SeQUenCE:    DefaultSeQUenCEConfig(),
 	}
 
 	// Force SSL when communicating with Vault.
 	v.SSL.Enabled = Bool(true)
 
 	return v
+}
+
+// DefaultAntiEntropyConfig returns a configuration that is populated with the
+// default values for anti-entropy principles.
+func DefaultAntiEntropyConfig() *AntiEntropyConfig {
+	return &AntiEntropyConfig{
+		Enabled: Bool(false),
+	}
+}
+
+// DefaultSeQUenCEConfig returns a configuration that is populated with the
+// default values for SeQUenCE.
+func DefaultSeQUenCEConfig() *SeQUenCEConfig {
+	return &SeQUenCEConfig{
+		Enabled: Bool(false),
+	}
 }
 
 // Copy returns a deep copy of this configuration.
@@ -183,6 +214,40 @@ func (c *VaultConfig) Copy() *VaultConfig {
 	o.K8SServiceAccountToken = c.K8SServiceAccountToken
 	o.K8SServiceAccountTokenPath = c.K8SServiceAccountTokenPath
 	o.K8SServiceMountPath = c.K8SServiceMountPath
+
+	if c.AntiEntropy != nil {
+		o.AntiEntropy = c.AntiEntropy.Copy()
+	}
+
+	if c.SeQUenCE != nil {
+		o.SeQUenCE = c.SeQUenCE.Copy()
+	}
+
+	return &o
+}
+
+// Copy returns a deep copy of this configuration.
+func (c *AntiEntropyConfig) Copy() *AntiEntropyConfig {
+	if c == nil {
+		return nil
+	}
+
+	var o AntiEntropyConfig
+
+	o.Enabled = c.Enabled
+
+	return &o
+}
+
+// Copy returns a deep copy of this configuration.
+func (c *SeQUenCEConfig) Copy() *SeQUenCEConfig {
+	if c == nil {
+		return nil
+	}
+
+	var o SeQUenCEConfig
+
+	o.Enabled = c.Enabled
 
 	return &o
 }
@@ -271,6 +336,64 @@ func (c *VaultConfig) Merge(o *VaultConfig) *VaultConfig {
 
 	if o.K8SServiceMountPath != nil {
 		r.K8SServiceMountPath = o.K8SServiceMountPath
+	}
+
+	if o.AntiEntropy != nil {
+		r.AntiEntropy = r.AntiEntropy.Merge(o.AntiEntropy)
+	}
+
+	if o.SeQUenCE != nil {
+		r.SeQUenCE = r.SeQUenCE.Merge(o.SeQUenCE)
+	}
+
+	return r
+}
+
+// Merge combines all values in this configuration with the values in the other
+// configuration, with values in the other configuration taking precedence.
+// Maps and slices are merged, most other values are overwritten. Complex
+// structs define their own merge functionality.
+func (c *AntiEntropyConfig) Merge(o *AntiEntropyConfig) *AntiEntropyConfig {
+	if c == nil {
+		if o == nil {
+			return nil
+		}
+		return o.Copy()
+	}
+
+	if o == nil {
+		return c.Copy()
+	}
+
+	r := c.Copy()
+
+	if o.Enabled != nil {
+		r.Enabled = o.Enabled
+	}
+
+	return r
+}
+
+// Merge combines all values in this configuration with the values in the other
+// configuration, with values in the other configuration taking precedence.
+// Maps and slices are merged, most other values are overwritten. Complex
+// structs define their own merge functionality.
+func (c *SeQUenCEConfig) Merge(o *SeQUenCEConfig) *SeQUenCEConfig {
+	if c == nil {
+		if o == nil {
+			return nil
+		}
+		return o.Copy()
+	}
+
+	if o == nil {
+		return c.Copy()
+	}
+
+	r := c.Copy()
+
+	if o.Enabled != nil {
+		r.Enabled = o.Enabled
 	}
 
 	return r
@@ -403,6 +526,30 @@ func (c *VaultConfig) Finalize() {
 			"VAULT_K8S_SERVICE_MOUNT_PATH",
 		}, DefaultK8SServiceMountPath)
 	}
+
+	if c.AntiEntropy == nil {
+		c.AntiEntropy = DefaultAntiEntropyConfig()
+	}
+	c.AntiEntropy.Finalize()
+
+	if c.SeQUenCE == nil {
+		c.SeQUenCE = DefaultSeQUenCEConfig()
+	}
+	c.SeQUenCE.Finalize()
+}
+
+// Finalize ensures there no nil pointers.
+func (c *AntiEntropyConfig) Finalize() {
+	if c.Enabled == nil {
+		c.Enabled = Bool(false)
+	}
+}
+
+// Finalize ensures there no nil pointers.
+func (c *SeQUenCEConfig) Finalize() {
+	if c.Enabled == nil {
+		c.Enabled = Bool(false)
+	}
 }
 
 // GoString defines the printable version of this struct.
@@ -428,6 +575,8 @@ func (c *VaultConfig) GoString() string {
 		"K8SServiceAccountToken:%s, "+
 		"K8SServiceAccountTokenPath:%s, "+
 		"K8SServiceMountPath:%s, "+
+		"AntiEntropy:%#v, "+
+		"SeQUenCE:%#v"+
 		"}",
 		StringGoString(c.Address),
 		BoolGoString(c.Enabled),
@@ -445,5 +594,33 @@ func (c *VaultConfig) GoString() string {
 		StringGoString(c.K8SServiceAccountToken),
 		StringGoString(c.K8SServiceAccountTokenPath),
 		StringGoString(c.K8SServiceMountPath),
+		c.AntiEntropy,
+		c.SeQUenCE,
+	)
+}
+
+// GoString defines the printable version of this struct.
+func (c *AntiEntropyConfig) GoString() string {
+	if c == nil {
+		return "(*AntiEntropyConfig)(nil)"
+	}
+
+	return fmt.Sprintf("&AntiEntropyConfig{"+
+		"Enabled:%s"+
+		"}",
+		BoolGoString(c.Enabled),
+	)
+}
+
+// GoString defines the printable version of this struct.
+func (c *SeQUenCEConfig) GoString() string {
+	if c == nil {
+		return "(*SeQUenCEConfig)(nil)"
+	}
+
+	return fmt.Sprintf("&SeQUenCEConfig{"+
+		"Enabled:%s"+
+		"}",
+		BoolGoString(c.Enabled),
 	)
 }

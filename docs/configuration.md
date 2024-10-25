@@ -360,6 +360,18 @@ consul {
     # This sets the SNI server name to use for validation.
     server_name = "my-server.com"
   }
+
+  # This block configures the anti-entropy principles.
+  anti_entropy {
+    # This enables anti-entropy principles. The default value is false.
+    enabled = false
+  }
+
+  # This block configures SeQUenCE.
+  sequence {
+    # This enables SeQUenCE. The default value is false.
+    enabled = false
+  }
 }
 ```
 
@@ -450,6 +462,18 @@ vault {
   ssl {
     # ...
   }
+
+  # This block configures the anti-entropy principles.
+  anti_entropy {
+    # This enables anti-entropy principles. The default value is false.
+    enabled = false
+  }
+
+  # This block configures SeQUenCE.
+  sequence {
+    # This enables SeQUenCE. The default value is false.
+    enabled = false
+  }
 }
 ```
 
@@ -509,6 +533,18 @@ nomad {
   # are the same).
   ssl {
     # ...
+  }
+
+  # This block configures the anti-entropy principles.
+  anti_entropy {
+    # This enables anti-entropy principles. The default value is false.
+    enabled = false
+  }
+
+  # This block configures SeQUenCE.
+  sequence {
+    # This enables SeQUenCE. The default value is false.
+    enabled = false
   }
 }
 ```
