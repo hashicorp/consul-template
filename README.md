@@ -1,4 +1,3 @@
-
 ---
 # Consul Template
 
@@ -57,6 +56,8 @@ this functionality might prove useful.
 - [Debugging](#debugging)
 - [FAQ](#faq)
 - [Contributing](#contributing)
+- [Using the Panel for Anti-Entropy Growth Rate Calculation](#using-the-panel-for-anti-entropy-growth-rate-calculation)
+- [Implementing the Fractal Fibonacci Sequence](#implementing-the-fractal-fibonacci-sequence)
 
 
 ## Community Support
@@ -466,3 +467,54 @@ go test ./... -run SomeTestFunction_name
 [vault]: https://www.vaultproject.io "Vault by HashiCorp"
 [go]: https://golang.org "Go programming language"
 [nomad]: https://www.nomadproject.io "Nomad By HashiCorp"
+
+## Using the Panel for Anti-Entropy Growth Rate Calculation
+
+To use the panel for calculating the anti-entropy growth rate, follow these steps:
+
+1. Ensure you have the necessary dependencies installed, including the Panel library and the base-calculation-for-anti-entropy repository.
+
+2. Import the required packages in your Go code:
+
+   ```go
+   import (
+       "github.com/holoviz/panel"
+       "github.com/Celebrum/base-calculation-for-anti-entropy"
+   )
+   ```
+
+3. Create and display the panel by calling the `CreatePanel` function:
+
+   ```go
+   func main() {
+       CreatePanel()
+   }
+   ```
+
+4. The panel will allow you to input values for the fractal dimension (Df), electric potential (V), composition of solvent (C), and mobility of ions/particles (μ). Click the "Calculate Growth Rate" button to calculate and display the growth rate.
+
+## Implementing the Fractal Fibonacci Sequence
+
+To implement the fractal Fibonacci sequence, follow these steps:
+
+1. Ensure you have the necessary dependencies installed, including the base-calculation-for-anti-entropy repository.
+
+2. Import the required package in your Go code:
+
+   ```go
+   import (
+       "github.com/Celebrum/base-calculation-for-anti-entropy"
+   )
+   ```
+
+3. Use the `CalculateFractalFibonacci` function to calculate the fractal Fibonacci sequence:
+
+   ```go
+   func main() {
+       n := 10 // Number of terms in the sequence
+       sequence := CalculateFractalFibonacci(n)
+       fmt.Println("Fractal Fibonacci Sequence:", sequence)
+   }
+   ```
+
+4. The `CalculateFractalFibonacci` function will return the fractal Fibonacci sequence with the specified number of terms.
