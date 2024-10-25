@@ -448,7 +448,7 @@ $ make dev
 This will compile the `consul-template` binary into `bin/consul-template` as
 well as your `$GOPATH` and run the test suite.
 
-If you want to run the tests, first install [consul](https://www.consul.io/docs/install/index.html), [nomad](https://learn.hashicorp.com/tutorials/nomad/get-started-install) and [vault](https://www.vaultproject.io/docs/install/) locally, then:
+If you want to run the tests, first install [consul](https://www.consul.io/docs/install/index.html), [nomad](https://learn.hashicorp.com/tutorials/nomad/schedule-edge-services) and [vault](https://www.vaultproject.io/docs/install/) locally, then:
 
 ```shell
 $ make test

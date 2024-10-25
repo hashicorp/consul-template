@@ -128,6 +128,9 @@ type Config struct {
 
 	// Panel is the configuration for the Panel library.
 	Panel *PanelConfig `mapstructure:"panel"`
+
+	// BaseCalculation is the configuration for the base-calculation-for-anti-entropy repository.
+	BaseCalculation *BaseCalculationConfig `mapstructure:"base_calculation"`
 }
 
 // Reader is an interface that is implemented by os.OpenFile. The
@@ -218,6 +221,10 @@ func (c *Config) Copy() *Config {
 
 	if c.Panel != nil {
 		o.Panel = c.Panel.Copy()
+	}
+
+	if c.BaseCalculation != nil {
+		o.BaseCalculation = c.BaseCalculation.Copy()
 	}
 
 	return &o
@@ -332,6 +339,10 @@ func (c *Config) Merge(o *Config) *Config {
 		r.Panel = r.Panel.Merge(o.Panel)
 	}
 
+	if o.BaseCalculation != nil {
+		r.BaseCalculation = r.BaseCalculation.Merge(o.BaseCalculation)
+	}
+
 	return r
 }
 
@@ -372,6 +383,7 @@ func Parse(s string) (*Config, error) {
 		"vault.transport",
 		"wait",
 		"panel",
+		"base_calculation",
 	})
 
 	// FlattenFlatten keys belonging to the templates. We cannot do this above
@@ -535,6 +547,7 @@ func (c *Config) GoString() string {
 		"AntiEntropy:%#v, "+
 		"SeQUenCE:%#v"+
 		"Panel:%#v"+
+		"BaseCalculation:%#v"+
 		"}",
 		c.Consul,
 		c.Dedup,
@@ -557,6 +570,7 @@ func (c *Config) GoString() string {
 		c.AntiEntropy,
 		c.SeQUenCE,
 		c.Panel,
+		c.BaseCalculation,
 	)
 }
 
@@ -604,6 +618,7 @@ func DefaultConfig() *Config {
 		AntiEntropy:   DefaultAntiEntropyConfig(),
 		SeQUenCE:      DefaultSeQUenCEConfig(),
 		Panel:         DefaultPanelConfig(),
+		BaseCalculation: DefaultBaseCalculationConfig(),
 	}
 }
 
@@ -725,6 +740,11 @@ func (c *Config) Finalize() {
 		c.Panel = DefaultPanelConfig()
 	}
 	c.Panel.Finalize()
+
+	if c.BaseCalculation == nil {
+		c.BaseCalculation = DefaultBaseCalculationConfig()
+	}
+	c.BaseCalculation.Finalize()
 }
 
 func stringFromEnv(list []string, def string) *string {
@@ -828,6 +848,11 @@ type PanelConfig struct {
 	Enabled *bool `mapstructure:"enabled"`
 }
 
+// BaseCalculationConfig defines the configuration options for the base-calculation-for-anti-entropy repository.
+type BaseCalculationConfig struct {
+	Enabled *bool `mapstructure:"enabled"`
+}
+
 // DefaultAntiEntropyConfig returns a configuration that is populated with the
 // default values for anti-entropy principles.
 func DefaultAntiEntropyConfig() *AntiEntropyConfig {
@@ -848,6 +873,14 @@ func DefaultSeQUenCEConfig() *SeQUenCEConfig {
 // default values for the Panel library.
 func DefaultPanelConfig() *PanelConfig {
 	return &PanelConfig{
+		Enabled: Bool(false),
+	}
+}
+
+// DefaultBaseCalculationConfig returns a configuration that is populated with the
+// default values for the base-calculation-for-anti-entropy repository.
+func DefaultBaseCalculationConfig() *BaseCalculationConfig {
+	return &BaseCalculationConfig{
 		Enabled: Bool(false),
 	}
 }
@@ -885,6 +918,19 @@ func (c *PanelConfig) Copy() *PanelConfig {
 	}
 
 	var o PanelConfig
+
+	o.Enabled = c.Enabled
+
+	return &o
+}
+
+// Copy returns a deep copy of this configuration.
+func (c *BaseCalculationConfig) Copy() *BaseCalculationConfig {
+	if c == nil {
+		return nil
+	}
+
+	var o BaseCalculationConfig
 
 	o.Enabled = c.Enabled
 
@@ -966,6 +1012,31 @@ func (c *PanelConfig) Merge(o *PanelConfig) *PanelConfig {
 	return r
 }
 
+// Merge combines all values in this configuration with the values in the other
+// configuration, with values in the other configuration taking precedence.
+// Maps and slices are merged, most other values are overwritten. Complex
+// structs define their own merge functionality.
+func (c *BaseCalculationConfig) Merge(o *BaseCalculationConfig) *BaseCalculationConfig {
+	if c == nil {
+		if o == nil {
+			return nil
+		}
+		return o.Copy()
+	}
+
+	if o == nil {
+		return c.Copy()
+	}
+
+	r := c.Copy()
+
+	if o.Enabled != nil {
+		r.Enabled = o.Enabled
+	}
+
+	return r
+}
+
 // Finalize ensures there no nil pointers.
 func (c *AntiEntropyConfig) Finalize() {
 	if c.Enabled == nil {
@@ -982,6 +1053,13 @@ func (c *SeQUenCEConfig) Finalize() {
 
 // Finalize ensures there no nil pointers.
 func (c *PanelConfig) Finalize() {
+	if c.Enabled == nil {
+		c.Enabled = Bool(false)
+	}
+}
+
+// Finalize ensures there no nil pointers.
+func (c *BaseCalculationConfig) Finalize() {
 	if c.Enabled == nil {
 		c.Enabled = Bool(false)
 	}
