@@ -56,8 +56,8 @@ this functionality might prove useful.
 - [Debugging](#debugging)
 - [FAQ](#faq)
 - [Contributing](#contributing)
-- [Using the Panel for Anti-Entropy Growth Rate Calculation](#using-the-panel-for-anti-entropy-growth-rate-calculation)
-- [Implementing the Fractal Fibonacci Sequence](#implementing-the-fractal-fibonacci-sequence)
+- [Using Heimdall for Visualizing and Manipulating the Connectome](#using-heimdall-for-visualizing-and-manipulating-the-connectome)
+- [Controlling Fractal Growth and Managing Applications](#controlling-fractal-growth-and-managing-applications)
 
 
 ## Community Support
@@ -468,53 +468,52 @@ go test ./... -run SomeTestFunction_name
 [go]: https://golang.org "Go programming language"
 [nomad]: https://www.nomadproject.io "Nomad By HashiCorp"
 
-## Using the Panel for Anti-Entropy Growth Rate Calculation
+## Using Heimdall for Visualizing and Manipulating the Connectome
 
-To use the panel for calculating the anti-entropy growth rate, follow these steps:
+To use Heimdall for visualizing and manipulating the connectome, follow these steps:
 
-1. Ensure you have the necessary dependencies installed, including the Panel library and the base-calculation-for-anti-entropy repository.
+1. Ensure you have the necessary dependencies installed, including the Heimdall repository and the Panel library.
 
 2. Import the required packages in your Go code:
 
    ```go
    import (
        "github.com/holoviz/panel"
-       "github.com/Celebrum/base-calculation-for-anti-entropy"
+       "github.com/Celebrum/Heimdall"
    )
    ```
 
-3. Create and display the panel by calling the `CreatePanel` function:
+3. Create and display the Heimdall panel by calling the `CreateHeimdallPanel` function:
 
    ```go
    func main() {
-       CreatePanel()
+       CreateHeimdallPanel()
    }
    ```
 
 4. The panel will allow you to input values for the fractal dimension (Df), electric potential (V), composition of solvent (C), and mobility of ions/particles (μ). Click the "Calculate Growth Rate" button to calculate and display the growth rate.
 
-## Implementing the Fractal Fibonacci Sequence
+## Controlling Fractal Growth and Managing Applications
 
-To implement the fractal Fibonacci sequence, follow these steps:
+To control fractal growth and manage applications like NeuUuR-o, GlIaBoT, and NeUrObOt, follow these steps:
 
-1. Ensure you have the necessary dependencies installed, including the base-calculation-for-anti-entropy repository.
+1. Ensure you have the necessary dependencies installed, including the Heimdall repository and the Panel library.
 
-2. Import the required package in your Go code:
+2. Import the required packages in your Go code:
 
    ```go
    import (
-       "github.com/Celebrum/base-calculation-for-anti-entropy"
+       "github.com/holoviz/panel"
+       "github.com/Celebrum/Heimdall"
    )
    ```
 
-3. Use the `CalculateFractalFibonacci` function to calculate the fractal Fibonacci sequence:
+3. Use the `ManageApplications` function to manage applications like NeuUuR-o, GlIaBoT, and NeUrObOt:
 
    ```go
    func main() {
-       n := 10 // Number of terms in the sequence
-       sequence := CalculateFractalFibonacci(n)
-       fmt.Println("Fractal Fibonacci Sequence:", sequence)
+       ManageApplications()
    }
    ```
 
-4. The `CalculateFractalFibonacci` function will return the fractal Fibonacci sequence with the specified number of terms.
+4. The `ManageApplications` function will handle the management of applications, including controlling fractal growth and visualizing the connectome.

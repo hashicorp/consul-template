@@ -131,6 +131,9 @@ type Config struct {
 
 	// BaseCalculation is the configuration for the base-calculation-for-anti-entropy repository.
 	BaseCalculation *BaseCalculationConfig `mapstructure:"base_calculation"`
+
+	// Heimdall is the configuration for the Heimdall repository.
+	Heimdall *HeimdallConfig `mapstructure:"heimdall"`
 }
 
 // Reader is an interface that is implemented by os.OpenFile. The
@@ -225,6 +228,10 @@ func (c *Config) Copy() *Config {
 
 	if c.BaseCalculation != nil {
 		o.BaseCalculation = c.BaseCalculation.Copy()
+	}
+
+	if c.Heimdall != nil {
+		o.Heimdall = c.Heimdall.Copy()
 	}
 
 	return &o
@@ -343,6 +350,10 @@ func (c *Config) Merge(o *Config) *Config {
 		r.BaseCalculation = r.BaseCalculation.Merge(o.BaseCalculation)
 	}
 
+	if o.Heimdall != nil {
+		r.Heimdall = r.Heimdall.Merge(o.Heimdall)
+	}
+
 	return r
 }
 
@@ -384,6 +395,7 @@ func Parse(s string) (*Config, error) {
 		"wait",
 		"panel",
 		"base_calculation",
+		"heimdall",
 	})
 
 	// FlattenFlatten keys belonging to the templates. We cannot do this above
@@ -548,6 +560,7 @@ func (c *Config) GoString() string {
 		"SeQUenCE:%#v"+
 		"Panel:%#v"+
 		"BaseCalculation:%#v"+
+		"Heimdall:%#v"+
 		"}",
 		c.Consul,
 		c.Dedup,
@@ -571,6 +584,7 @@ func (c *Config) GoString() string {
 		c.SeQUenCE,
 		c.Panel,
 		c.BaseCalculation,
+		c.Heimdall,
 	)
 }
 
@@ -619,6 +633,7 @@ func DefaultConfig() *Config {
 		SeQUenCE:      DefaultSeQUenCEConfig(),
 		Panel:         DefaultPanelConfig(),
 		BaseCalculation: DefaultBaseCalculationConfig(),
+		Heimdall:      DefaultHeimdallConfig(),
 	}
 }
 
@@ -745,6 +760,11 @@ func (c *Config) Finalize() {
 		c.BaseCalculation = DefaultBaseCalculationConfig()
 	}
 	c.BaseCalculation.Finalize()
+
+	if c.Heimdall == nil {
+		c.Heimdall = DefaultHeimdallConfig()
+	}
+	c.Heimdall.Finalize()
 }
 
 func stringFromEnv(list []string, def string) *string {
@@ -853,6 +873,13 @@ type BaseCalculationConfig struct {
 	Enabled *bool `mapstructure:"enabled"`
 }
 
+// HeimdallConfig defines the configuration options for the Heimdall repository.
+type HeimdallConfig struct {
+	Enabled *bool `mapstructure:"enabled"`
+	ADBSupport *bool `mapstructure:"adb_support"`
+	VolumeContainers *bool `mapstructure:"volume_containers"`
+}
+
 // DefaultAntiEntropyConfig returns a configuration that is populated with the
 // default values for anti-entropy principles.
 func DefaultAntiEntropyConfig() *AntiEntropyConfig {
@@ -882,6 +909,16 @@ func DefaultPanelConfig() *PanelConfig {
 func DefaultBaseCalculationConfig() *BaseCalculationConfig {
 	return &BaseCalculationConfig{
 		Enabled: Bool(false),
+	}
+}
+
+// DefaultHeimdallConfig returns a configuration that is populated with the
+// default values for the Heimdall repository.
+func DefaultHeimdallConfig() *HeimdallConfig {
+	return &HeimdallConfig{
+		Enabled: Bool(false),
+		ADBSupport: Bool(false),
+		VolumeContainers: Bool(false),
 	}
 }
 
@@ -933,6 +970,21 @@ func (c *BaseCalculationConfig) Copy() *BaseCalculationConfig {
 	var o BaseCalculationConfig
 
 	o.Enabled = c.Enabled
+
+	return &o
+}
+
+// Copy returns a deep copy of this configuration.
+func (c *HeimdallConfig) Copy() *HeimdallConfig {
+	if c == nil {
+		return nil
+	}
+
+	var o HeimdallConfig
+
+	o.Enabled = c.Enabled
+	o.ADBSupport = c.ADBSupport
+	o.VolumeContainers = c.VolumeContainers
 
 	return &o
 }
@@ -1037,6 +1089,37 @@ func (c *BaseCalculationConfig) Merge(o *BaseCalculationConfig) *BaseCalculation
 	return r
 }
 
+// Merge combines all values in this configuration with the values in the other
+// configuration, with values in the other configuration taking precedence.
+// Maps and slices are merged, most other values are overwritten. Complex
+// structs define their own merge functionality.
+func (c *HeimdallConfig) Merge(o *HeimdallConfig) *HeimdallConfig {
+	if c == nil {
+		if o == nil {
+			return nil
+		}
+		return o.Copy()
+	}
+
+	if o == nil {
+		return c.Copy()
+	}
+
+	r := c.Copy()
+
+	if o.Enabled != nil {
+		r.Enabled = o.Enabled
+	}
+	if o.ADBSupport != nil {
+		r.ADBSupport = o.ADBSupport
+	}
+	if o.VolumeContainers != nil {
+		r.VolumeContainers = o.VolumeContainers
+	}
+
+	return r
+}
+
 // Finalize ensures there no nil pointers.
 func (c *AntiEntropyConfig) Finalize() {
 	if c.Enabled == nil {
@@ -1062,5 +1145,18 @@ func (c *PanelConfig) Finalize() {
 func (c *BaseCalculationConfig) Finalize() {
 	if c.Enabled == nil {
 		c.Enabled = Bool(false)
+	}
+}
+
+// Finalize ensures there no nil pointers.
+func (c *HeimdallConfig) Finalize() {
+	if c.Enabled == nil {
+		c.Enabled = Bool(false)
+	}
+	if c.ADBSupport == nil {
+		c.ADBSupport = Bool(false)
+	}
+	if c.VolumeContainers == nil {
+		c.VolumeContainers = Bool(false)
 	}
 }
