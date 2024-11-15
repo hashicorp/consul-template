@@ -1,5 +1,5 @@
 # default PR reviews to the team
-* @hashicorp/team-consul-india @hashicorp/consul-selfmanage-maintainers
+* @hashicorp/consul-selfmanage-maintainers
 
 # release configuration
 /.release/                              @hashicorp/team-selfmanaged-releng @hashicorp/consul-selfmanage-maintainers
