@@ -1,6 +1,6 @@
 # default PR reviews to the team
-* @hashicorp/team-consul-india
+* @hashicorp/consul-selfmanage-maintainers
 
 # release configuration
-/.release/                              @hashicorp/release-engineering @hashicorp/github-consul-ecosystem
-/.github/workflows/build.yml            @hashicorp/release-engineering @hashicorp/github-consul-ecosystem
+/.release/                              @hashicorp/team-selfmanaged-releng @hashicorp/consul-selfmanage-maintainers
+/.github/workflows/build.yml            @hashicorp/team-selfmanaged-releng @hashicorp/consul-selfmanage-maintainers
