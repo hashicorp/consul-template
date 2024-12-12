@@ -942,6 +942,122 @@ func TestRunner_Start(t *testing.T) {
 		}
 	})
 
+	t.Run("multi-template-no-render-cycle", func(t *testing.T) {
+		testConsul.SetKVString(t, "multi-template-no-cycle-foo", "bar")
+
+		out1, err := os.CreateTemp("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.Remove(out1.Name())
+
+		out2, err := os.CreateTemp("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.Remove(out2.Name())
+
+		minWait := 1 * time.Second
+		maxWait := 10 * time.Second
+
+		c := config.DefaultConfig().Merge(&config.Config{
+			Wait: &config.WaitConfig{
+				Min: &minWait,
+				Max: &maxWait,
+			},
+			Consul: &config.ConsulConfig{
+				Address: config.String(testConsul.HTTPAddr),
+			},
+			Templates: &config.TemplateConfigs{
+				&config.TemplateConfig{
+					Contents:    config.String(`{{ key "multi-template-no-cycle-foo" }}`),
+					Destination: config.String(out1.Name()),
+				},
+				&config.TemplateConfig{
+					Contents:    config.String(`foobar`),
+					Destination: config.String(out2.Name()),
+				},
+			},
+		})
+		c.Finalize()
+
+		r, err := NewRunner(c, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		go r.Start()
+		defer r.Stop()
+
+		// The template with no deps will be available first
+		select {
+		case err := <-r.ErrCh:
+			t.Fatal(err)
+		case <-r.renderedCh:
+			act, err := os.ReadFile(out2.Name())
+			if err != nil {
+				t.Fatal(err)
+			}
+			exp := "foobar"
+			if exp != string(act) {
+				t.Errorf("\nexp: %#v\nact: %#v", exp, string(act))
+			}
+		case <-time.After(2 * time.Second):
+			t.Fatal("timeout")
+		}
+
+		// The consul key will finally render
+		select {
+		case err := <-r.ErrCh:
+			t.Fatal(err)
+		case <-r.renderedCh:
+			act, err := os.ReadFile(out1.Name())
+			if err != nil {
+				t.Fatal(err)
+			}
+			exp := "bar"
+			if exp != string(act) {
+				t.Errorf("\nexp: %#v\nact: %#v", exp, string(act))
+			}
+		case <-time.After(2 * time.Second):
+			t.Fatal("timeout")
+		}
+
+		// Update the value we are watching, it should update after the quiescence timer fires
+		testConsul.SetKVString(t, "multi-template-no-cycle-foo", "bar_again")
+
+	OUTER:
+		// Wait for the quiescence timer to fire and the value to actually render to disk
+		for {
+			select {
+			case err := <-r.ErrCh:
+				t.Fatal(err)
+			case <-r.renderedCh:
+				act, err := os.ReadFile(out1.Name())
+				if err != nil {
+					t.Fatal(err)
+				}
+				exp := "bar_again"
+				if exp != string(act) {
+					continue
+				}
+				break OUTER
+			case <-time.After(2 * time.Second):
+				t.Fatal("timeout")
+			}
+
+		}
+
+		// Once it updates, it should not render again
+		select {
+		case err := <-r.ErrCh:
+			t.Fatal(err)
+		case <-r.renderedCh:
+			t.Fatal("No more renders should occur, there may be a render cycle")
+		case <-time.After(2 * minWait):
+		}
+	})
+
 	t.Run("render_in_memory", func(t *testing.T) {
 		testConsul.SetKVString(t, "render-in-memory", "foo")
 
