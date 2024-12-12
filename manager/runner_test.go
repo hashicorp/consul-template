@@ -945,17 +945,9 @@ func TestRunner_Start(t *testing.T) {
 	t.Run("multi-template-no-render-cycle", func(t *testing.T) {
 		testConsul.SetKVString(t, "multi-template-no-cycle-foo", "bar")
 
-		out1, err := os.CreateTemp("", "")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.Remove(out1.Name())
-
-		out2, err := os.CreateTemp("", "")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.Remove(out2.Name())
+		tmpDir := t.TempDir()
+		out1 := filepath.Join(tmpDir, "out1")
+		out2 := filepath.Join(tmpDir, "out2")
 
 		minWait := 1 * time.Second
 		maxWait := 10 * time.Second
@@ -971,11 +963,11 @@ func TestRunner_Start(t *testing.T) {
 			Templates: &config.TemplateConfigs{
 				&config.TemplateConfig{
 					Contents:    config.String(`{{ key "multi-template-no-cycle-foo" }}`),
-					Destination: config.String(out1.Name()),
+					Destination: config.String(out1),
 				},
 				&config.TemplateConfig{
 					Contents:    config.String(`foobar`),
-					Destination: config.String(out2.Name()),
+					Destination: config.String(out2),
 				},
 			},
 		})
@@ -994,7 +986,7 @@ func TestRunner_Start(t *testing.T) {
 		case err := <-r.ErrCh:
 			t.Fatal(err)
 		case <-r.renderedCh:
-			act, err := os.ReadFile(out2.Name())
+			act, err := os.ReadFile(out2)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1011,7 +1003,7 @@ func TestRunner_Start(t *testing.T) {
 		case err := <-r.ErrCh:
 			t.Fatal(err)
 		case <-r.renderedCh:
-			act, err := os.ReadFile(out1.Name())
+			act, err := os.ReadFile(out1)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -1026,6 +1018,7 @@ func TestRunner_Start(t *testing.T) {
 		// Update the value we are watching, it should update after the quiescence timer fires
 		testConsul.SetKVString(t, "multi-template-no-cycle-foo", "bar_again")
 
+		renderCount := 0
 	OUTER:
 		// Wait for the quiescence timer to fire and the value to actually render to disk
 		for {
@@ -1033,12 +1026,13 @@ func TestRunner_Start(t *testing.T) {
 			case err := <-r.ErrCh:
 				t.Fatal(err)
 			case <-r.renderedCh:
-				act, err := os.ReadFile(out1.Name())
-				if err != nil {
-					t.Fatal(err)
-				}
-				exp := "bar_again"
-				if exp != string(act) {
+				// Run() will be called a total of 3 times when the dep is updated.
+				// The first run will tick both the templates quiescence timers, and return
+				// early without sending a render event. The next 2 runs will be from both the
+				// templates quiescence timers firing. We don't want to move on until both of
+				// those take place.
+				renderCount++
+				if renderCount < 2 {
 					continue
 				}
 				break OUTER
