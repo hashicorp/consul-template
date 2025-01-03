@@ -313,6 +313,36 @@ func (r *Runner) Start() {
 			log.Printf("[DEBUG] (runner) watching %d dependencies", r.watcher.Size())
 		}
 
+		// Enable quiescence for all templates if we have specified wait
+		// intervals. Those sould be parsed regardless of the allTemplatesRendered.
+		// In certain cases, due to dependencies, allTemplatesRendered is never
+		// reached, or reached much further down the runtime, leading to
+		// template rendering overflow, especially on templates receiving
+		// frequent updates.
+	NEXT_Q:
+		for _, t := range r.templates {
+			if _, ok := r.quiescenceMap[t.ID()]; ok {
+				continue NEXT_Q
+			}
+
+			c := r.templateConfigFor(t)
+			if *c.Wait.Enabled {
+				log.Printf("[DEBUG] (runner) enabling template-specific "+
+					"quiescence for %q", t.ID())
+				r.quiescenceMap[t.ID()] = newQuiescence(
+					r.quiescenceCh, *c.Wait.Min, *c.Wait.Max, t)
+				continue NEXT_Q
+			}
+
+			if *r.config.Wait.Enabled {
+				log.Printf("[DEBUG] (runner) enabling global quiescence for %q",
+					t.ID())
+				r.quiescenceMap[t.ID()] = newQuiescence(
+					r.quiescenceCh, *r.config.Wait.Min, *r.config.Wait.Max, t)
+				continue NEXT_Q
+			}
+		}
+
 		if r.allTemplatesRendered() {
 			log.Printf("[DEBUG] (runner) all templates rendered")
 
@@ -321,32 +351,6 @@ func (r *Runner) Start() {
 			// handle requests. This mechanism integrates with systemd's readiness protocol.
 			if r.readyCh != nil {
 				r.readyCh <- struct{}{}
-			}
-
-			// Enable quiescence for all templates if we have specified wait
-			// intervals.
-		NEXT_Q:
-			for _, t := range r.templates {
-				if _, ok := r.quiescenceMap[t.ID()]; ok {
-					continue NEXT_Q
-				}
-
-				c := r.templateConfigFor(t)
-				if *c.Wait.Enabled {
-					log.Printf("[DEBUG] (runner) enabling template-specific "+
-						"quiescence for %q", t.ID())
-					r.quiescenceMap[t.ID()] = newQuiescence(
-						r.quiescenceCh, *c.Wait.Min, *c.Wait.Max, t)
-					continue NEXT_Q
-				}
-
-				if *r.config.Wait.Enabled {
-					log.Printf("[DEBUG] (runner) enabling global quiescence for %q",
-						t.ID())
-					r.quiescenceMap[t.ID()] = newQuiescence(
-						r.quiescenceCh, *r.config.Wait.Min, *r.config.Wait.Max, t)
-					continue NEXT_Q
-				}
 			}
 
 			// If an exec command was given and a command is not currently running,
