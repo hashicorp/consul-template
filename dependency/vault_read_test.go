@@ -706,7 +706,22 @@ func TestShimKVv2Path(t *testing.T) {
 			"secret/",
 			"secret/data/foometadata/foo/bar",
 			"",
-		}, {
+		},
+		{
+			"prefix not added to subkeys",
+			"/secret/subkeys/foo",
+			"secret/",
+			"secret/subkeys/foo",
+			"",
+		},
+		{
+			"prefix added with subkeys* in subpath",
+			"/secret/subkeysfoo/foo/bar",
+			"secret/",
+			"secret/data/subkeysfoo/foo/bar",
+			"",
+		},
+		{
 			"prefix added to mount path",
 			"secret/",
 			"secret/",
