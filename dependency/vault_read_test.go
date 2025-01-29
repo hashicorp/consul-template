@@ -709,14 +709,14 @@ func TestShimKVv2Path(t *testing.T) {
 		},
 		{
 			"prefix not added to subkeys",
-			"/secret/subkeys/foo",
+			"secret/subkeys/foo",
 			"secret/",
 			"secret/subkeys/foo",
 			"",
 		},
 		{
 			"prefix added with subkeys* in subpath",
-			"/secret/subkeysfoo/foo/bar",
+			"secret/subkeysfoo/foo/bar",
 			"secret/",
 			"secret/data/subkeysfoo/foo/bar",
 			"",
