@@ -298,7 +298,7 @@ func redactinator(used *dep.Set, b *Brain, err error) error {
 			}
 		}
 	}
-	return fmt.Errorf(strings.NewReplacer(pairs...).Replace(err.Error()))
+	return errors.New(strings.NewReplacer(pairs...).Replace(err.Error()))
 }
 
 // funcMapInput is input to the funcMap, which builds the template functions.
