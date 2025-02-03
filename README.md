@@ -55,6 +55,7 @@ this functionality might prove useful.
   - [Multiple Commands](#multiple-commands)
 - [Multi-phase Execution](#multi-phase-execution)
 - [Debugging](#debugging)
+- [Telemetry](#telemetry)
 - [FAQ](#faq)
 - [Contributing](#contributing)
 
@@ -405,6 +406,71 @@ $ consul-template -log-level debug ...
 <timestamp> [INFO] (cli) invoking Runner
 <timestamp> [DEBUG] (service redis) querying Consul with &{...}
 # ...
+```
+
+## Telemetry
+
+Consul Template uses the [armon/go-metrics](https://github.com/armon/go-metrics) library to implement the Consul Template metrics system. It currently supports metrics exported to circonus API, statsd server, statsite server, dogstatsd server, and prometheus endpoint.
+
+### Key Metrics
+
+These metrics offer insight into Consul Template and capture subprocess activities. The number of dependencies are aggregated from the configured templates, and metrics are collected around a dependency when it is updated from source. This is useful to correlate any upstream changes to downstream actions originating from Consul Template.
+
+Metrics are monitored around template rendering and execution of template commands. These
+metrics indicate the rendering status of a template and how long commands for a template takes
+to provide insight on performance of the templates.
+
+| Metric Name | Labels | Description |
+|-|:-:|-|
+| `consul-template.dependencies_received` | type=(consul\|vault\|local), id=dependencyString | A counter of dependencies received from monitoring value changes |
+| `consul-template.templates_rendered` | id=templateID, status=(rendered\|would\|quiescence) | A counter of templates rendered |
+| `consul-template.runner_actions` | action=(start\|stop\|run) | A count of runner actions |
+| `consul-template.commands_exec` | status=(success\|error) | The number of commands executed after rendering templates |
+
+#### Metrics yet to be implemented
+
+The current metrics were implemented by takin as reference the [previous metric-related PR](https://github.com/hashicorp/consul-template/pull/1378/files#diff-d980d9aed26114a3414812b58d45770a201c1f29b7f67ddc0ef0891a8f1b7736), but as the `armon/go-metrics` library doesn't implement all types of metrics yet, histogram metrics could not be implemented.
+
+Said metrics are described as below:
+
+| Metric Name | Labels | Description |
+|-|:-:|-|
+| `consul-template.dependencies` | type=(consul\|vault\|local) | The number of dependencies grouped by types |
+| `consul-template.templates` | | The number of templates configured |
+| `consul-template.commands_exec_time` | id=tmplDestination | The execution time (seconds) of a template command |
+
+
+### Metric Samples
+
+#### DogStatsD
+
+```
+2020-05-05 11:57:46.143979 consul-template.runner_actions:1|c|#action:start
+consul-template.runner_actions:2|c|#action:run
+consul-template.dependencies_received:1|c|#id:kv.block(hello),type:consul
+consul-template.templates_rendered:1|c|#id:aadcafd7f28f1d9fc5e76ab2e029f844,status:rendered
+consul-template.commands_exec:1|c|#status:success
+consul-template.commands_exec:0|c|#status:error
+```
+
+#### Prometheus
+
+```
+$ curl localhost:8888/metrics
+# HELP consul_template_commands_exec The number of commands executed with labels status=(success|error)
+# TYPE consul_template_commands_exec counter
+consul_template_commands_exec{status="error"} 0
+consul_template_commands_exec{status="success"} 1
+# HELP consul_template_dependencies_received A counter of dependencies received with labels type=(consul|vault|local) and id=dependencyString
+# TYPE consul_template_dependencies_received counter
+consul_template_dependencies_received{id="kv.block(hello)",type="consul"} 1
+# HELP consul_template_runner_actions A count of runner actions with labels action=(start|stop|run)
+# TYPE consul_template_runner_actions counter
+consul_template_runner_actions{action="run"} 2
+consul_template_runner_actions{action="start"} 1
+# HELP consul_template_templates_rendered A counter of templates rendered with labels id=templateID and status=(rendered|would|quiescence)
+# TYPE consul_template_templates_rendered counter
+consul_template_templates_rendered{id="aadcafd7f28f1d9fc5e76ab2e029f844",status="rendered"} 1
 ```
 
 ## FAQ

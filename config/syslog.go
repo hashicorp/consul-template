@@ -99,7 +99,7 @@ func (c *SyslogConfig) GoString() string {
 
 	return fmt.Sprintf("&SyslogConfig{"+
 		"Enabled:%s, "+
-		"Facility:%s"+
+		"Facility:%s, "+
 		"Name:%s"+
 		"}",
 		BoolGoString(c.Enabled),

@@ -63,6 +63,7 @@ linters-settings:
         # List of allowed packages.
         allow:
           - $gostd
+          - github.com/armon/go-metrics
           - github.com/BurntSushi/toml
           - github.com/Masterminds/sprig/v3
           - github.com/davecgh/go-spew/spew
@@ -84,6 +85,7 @@ linters-settings:
           - github.com/mitchellh/hashstructure
           - github.com/mitchellh/mapstructure
           - github.com/pkg/errors
+          - github.com/prometheus/client_golang/prometheus
           - github.com/stretchr/testify/assert
           - github.com/stretchr/testify/require
           - github.com/coreos/go-systemd
