@@ -99,7 +99,7 @@ func (d *CatalogNodeQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interf
 		var err error
 		name, err = clients.Consul().Agent().NodeName()
 		if err != nil {
-			return nil, nil, errors.Wrapf(err, d.String())
+			return nil, nil, errors.Wrap(err, d.String())
 		}
 	}
 

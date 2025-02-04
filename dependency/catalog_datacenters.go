@@ -68,7 +68,7 @@ func (d *CatalogDatacentersQuery) Fetch(clients *ClientSet, opts *QueryOptions) 
 
 	result, err := clients.Consul().Catalog().Datacenters()
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, d.String())
+		return nil, nil, errors.Wrap(err, d.String())
 	}
 
 	// If the user opted in for skipping "down" datacenters, figure out which
