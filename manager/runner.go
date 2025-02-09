@@ -99,8 +99,12 @@ type Runner struct {
 	// quiescenceMap is the map of templates to their quiescence timers.
 	// quiescenceCh is the channel where templates report returns from quiescence
 	// fires.
+	// quiescenceRun is the template that was triggered to render via
+	// its respective timer. This flag is an optimization used to avoid infinite
+	// rendering when multiple templates exist.
 	quiescenceMap map[string]*quiescence
 	quiescenceCh  chan *template.Template
+	quiescenceRun *template.Template
 
 	// dedup is the deduplication manager if enabled
 	dedup *DedupManager
@@ -474,6 +478,7 @@ func (r *Runner) Start() {
 			// Remove the quiescence for this template from the map. This will force
 			// the upcoming Run call to actually evaluate and render the template.
 			log.Printf("[DEBUG] (runner) received template %q from quiescence", tmpl.ID())
+			r.quiescenceRun = tmpl
 			delete(r.quiescenceMap, tmpl.ID())
 
 		case c := <-childExitCh:
@@ -666,6 +671,9 @@ func (r *Runner) Run() error {
 			}
 		}
 	}
+
+	// Always reset quiescenceRun in case this run was triggered by a quiescence timer
+	r.quiescenceRun = nil
 
 	// Perform the diff and update the known dependencies.
 	r.diffAndUpdateDeps(runCtx.depsMap)
@@ -890,6 +898,13 @@ func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*
 		if err := r.dedup.UpdateDeps(tmpl, used.List()); err != nil {
 			log.Printf("[ERR] (runner) failed to update dependency data for de-duplication: %v", err)
 		}
+	}
+
+	if r.quiescenceRun != nil && r.quiescenceRun != tmpl {
+		// During a run triggered via quiescence, mark any template not corresponding to
+		// the quiescence timer as ForQuiescence, signaling it was purposefully skipped.
+		event.ForQuiescence = true
+		return event, nil
 	}
 
 	// If quiescence is activated, start/update the timers and loop back around.
@@ -1393,6 +1408,7 @@ func NewClientSet(c *config.Config) (*dep.ClientSet, error) {
 		TransportIdleConnTimeout:     config.TimeDurationVal(c.Consul.Transport.IdleConnTimeout),
 		TransportMaxIdleConns:        config.IntVal(c.Consul.Transport.MaxIdleConns),
 		TransportMaxIdleConnsPerHost: config.IntVal(c.Consul.Transport.MaxIdleConnsPerHost),
+		TransportMaxConnsPerHost:     config.IntVal(c.Consul.Transport.MaxConnsPerHost),
 		TransportTLSHandshakeTimeout: config.TimeDurationVal(c.Consul.Transport.TLSHandshakeTimeout),
 	}); err != nil {
 		return nil, fmt.Errorf("runner: %s", err)
@@ -1449,6 +1465,7 @@ func NewClientSet(c *config.Config) (*dep.ClientSet, error) {
 		TransportIdleConnTimeout:     config.TimeDurationVal(c.Nomad.Transport.IdleConnTimeout),
 		TransportMaxIdleConns:        config.IntVal(c.Nomad.Transport.MaxIdleConns),
 		TransportMaxIdleConnsPerHost: config.IntVal(c.Nomad.Transport.MaxIdleConnsPerHost),
+		TransportMaxConnsPerHost:     config.IntVal(c.Nomad.Transport.MaxConnsPerHost),
 		TransportTLSHandshakeTimeout: config.TimeDurationVal(c.Nomad.Transport.TLSHandshakeTimeout),
 	}); err != nil {
 		return nil, fmt.Errorf("runner: %s", err)
