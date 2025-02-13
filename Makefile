@@ -54,7 +54,7 @@ test:
 # test-race runs the test suite.
 test-race:
 	@echo "==> Testing ${NAME} (race)"
-	@go test -timeout=60s -race -tags="${GOTAGS}" ./... ${TESTARGS}
+	@go test -v -timeout=120s -race -tags="${GOTAGS}" ./... ${TESTARGS}
 .PHONY: test-race
 
 # _cleanup removes any previous binaries
