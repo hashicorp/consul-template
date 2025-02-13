@@ -768,18 +768,18 @@ to separate files from a template.
 
 ### pkiSign
 
-Query [Vault][vault] for a PKI certificate. This is pretty similar to `pkiCert`
-however, instead of using the `issue` api endpoint it uses the `sign`. This also 
-means, the private key generation is happening on the consul template side, this
-can be quite useful if one generates a high number of certificates with low ttl
-which can put high load on the vault servers.
+Query [Vault][vault] for a PKI certificate. This is quite similar to `pkiCert`;
+however, instead of using the `issue` API endpoint, it uses the `sign`. This also 
+means that the private key generation happens on the Consul template side. This
+can be particularly useful when generating a high number of certificates with a low 
+TTL, which can put a high load on the Vault servers.
 
-The templating behaviour is the same as we have in `pkiCert` with a few special 
-attributes. You also need to pass `key_type=rsa|ec|ed25519` in alignment with your
-role on vault server. If you have `use_csr_common_name` and/or `use_csr_sans` as true
-on in your role, you should also pass them here, so the CSR will be appended with those
-values (they can have any value `use_csr_sans=value` or `use_csr_common_name=value` the 
-code only check for the key). 
+The templating behavior is the same as in `pkiCert`, with a few special attributes.
+You also need to pass `key_type=rsa|ec|ed25519` in alignment with your
+role on the Vault server. If you have `use_csr_common_name` and/or `use_csr_sans`
+to`true` in your role, you should also pass them here so the CSR is appended with those
+values. They can have any value (`use_csr_sans=value` or `use_csr_common_name=value`),
+as the code only check for the key. 
 
 
 ```golang
