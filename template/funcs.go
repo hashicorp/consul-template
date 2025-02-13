@@ -537,9 +537,9 @@ func pkiSignFunc(b *Brain, used, missing *dep.Set, destPath string) func(...stri
 
 		var csrTemplate x509.CertificateRequest
 
-		// if we passed use_csr_common_name, that means serverside will expect the commonname from the csr
-		// so besides adding that param to the csr template, we also remove it from the map we pass later
-		// to vault, this way we spare a warning from the server side
+		// if we passed use_csr_common_name, serverside will expect the commonname from the csr
+		// so besides adding that param to the csr template, we also remove it from the map and pass it later
+		// to vault; this way, we spare a warning from the server side
 		if useCSRCommonName {
 			commonName, ok := data["common_name"]
 			if ok {
