@@ -65,8 +65,7 @@ type VaultPKIQuery struct {
 	pkiPath  string
 	data     map[string]interface{}
 	filePath string
-	// we have a var here for passing the private key to the class functions
-	// for the cases when we intend to use sign instead of issue
+	// private key to use sign api instead of issue
 	privateKey *string
 }
 
