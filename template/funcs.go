@@ -479,7 +479,7 @@ func pkiCertFunc(b *Brain, used, missing *dep.Set, destPath string) func(...stri
 	}
 }
 
-// pkiSignFunc generates a privatekey and csr, sends the latter to Vault to sign
+// pkiSignFunc generates a private key and csr, and sends the latter to Vault to sign
 func pkiSignFunc(b *Brain, used, missing *dep.Set, destPath string) func(...string) (interface{}, error) {
 	return func(s ...string) (interface{}, error) {
 		if len(s) == 0 {
