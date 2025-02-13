@@ -32,10 +32,10 @@ func Test_VaultPKI_uniqueID(t *testing.T) {
 	if id1 == id2 {
 		t.Errorf("IDs should be unique.\n%s\n%s", id1, id2)
 	}
-	d3, _ := NewVaultPKIQuery("pki/sign/example-dot-com", "/unique_1", nil, nil)
+	d3, _ := NewVaultPKIQuery("pki/sign/example-dot-com", "/unique_3", nil, nil)
 	id3 := d3.String()
-	if id1 == id3 {
-		t.Errorf("IDs should be unique.\n%s\n%s", id1, id3)
+	if id1 == id3 || id1 == id2 {
+		t.Errorf("IDs should be unique.\n%s\n%s\n%s", id1, id3, id2)
 	}
 }
 
