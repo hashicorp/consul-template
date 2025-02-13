@@ -491,8 +491,7 @@ func pkiSignFunc(b *Brain, used, missing *dep.Set, destPath string) func(...stri
 
 		var privateKey any
 		var rawKey string
-		var useCSRCommonName bool
-		var useCSRSans bool
+		var useCSRCommonName, useCSRSans bool
 
 		path, rest := s[0], s[1:]
 		data := make(map[string]interface{})
