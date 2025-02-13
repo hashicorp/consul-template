@@ -139,8 +139,8 @@ func (d *VaultPKIQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface
 	default:
 		return PemEncoded{}, nil, err
 	}
-	// In the case that we are using sign vault endpoint we wont have an private key in the response
-	// so we should pass the one the we generated
+	// when using the sign Vault endpoint, the response will not include a private key
+	// therefore, we should pass the one we generated
 	if encPems.Key == "" && d.privateKey != nil {
 		encPems.Key = *d.privateKey
 	}
