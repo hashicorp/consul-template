@@ -1,4 +1,4 @@
-# 0.39.2 (February 13, 2025)
+# 0.40.0 (February 14, 2025)
 
 IMPROVEMENTS:
 * Bump github.com/hashicorp/go-retryablehttp from v0.7.2 to v0.7.7 due to CVE [GH-1967](https://github.com/hashicorp/consul-template/pull/1967)
