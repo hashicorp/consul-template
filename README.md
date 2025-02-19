@@ -119,7 +119,18 @@ This short example assumes Consul is installed locally.
   $ cat out.txt
   bar
   ```
+1. Similarly, test for nomad and vault writes:
 
+  ```shell
+  $ nomad job run examples/nomad.hcl
+  $ vault kv put secret/foo bar=baz
+  ```
+  
+  ```shell
+  $ consul-template -template "in.tpl:out.txt" -once
+  $ cat out.txt
+  baz
+  ```
 For more examples and use cases, please see the [examples folder][examples] in
 this repository.
 
