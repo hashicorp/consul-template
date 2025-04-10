@@ -44,11 +44,6 @@ const (
 	TypeNomad
 )
 
-const (
-	// DefaultContextTimeout context wait timeout for blocking queries.
-	DefaultContextTimeout = 60 * time.Second
-)
-
 // Dependency is an interface for a dependency that Consul Template is capable
 // of watching.
 type Dependency interface {

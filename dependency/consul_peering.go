@@ -99,12 +99,7 @@ func (l *ListPeeringQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interf
 		RawQuery: opts.String(),
 	})
 
-	// list peering is a blocking API, so making sure the ctx passed while calling it
-	// times out after the default wait time.
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultContextTimeout)
-	defer cancel()
-
-	p, meta, err := clients.Consul().Peerings().List(ctx, opts.ToConsulOpts())
+	p, meta, err := clients.Consul().Peerings().List(context.Background(), opts.ToConsulOpts())
 	if err != nil {
 		return nil, nil, errors.Wrap(err, l.String())
 	}
