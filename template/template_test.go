@@ -2745,3 +2745,54 @@ func TestTemplate_ExtFuncMap(t *testing.T) {
 		})
 	}
 }
+
+// TestTemplate_HermeticSprigFunctions tests that hermetic Sprig functions
+// are available, but non-hermetic ones are not.
+func TestTemplate_HermeticSprigFunctions(t *testing.T) {
+	cases := []struct {
+		name     string
+		contents string
+		expected string
+		wantErr  bool
+	}{
+		{
+			"hermetic function",
+			`{{ sprig_upper "hello" }}`,
+			"HELLO",
+			false,
+		},
+		{
+			"generic function not available",
+			`{{ sprig_repeat "hello" 3 }}`,
+			"",
+			true,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			tpl, err := NewTemplate(&NewTemplateInput{
+				Contents: tc.contents,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			result, err := tpl.Execute(nil)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("expected error for %s, but got nil", tc.name)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if !bytes.Equal(result.Output, []byte(tc.expected)) {
+				t.Errorf("\nexpected: %q\nactual:   %q", tc.expected, result.Output)
+			}
+		})
+	}
+}
