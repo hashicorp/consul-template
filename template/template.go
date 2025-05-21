@@ -351,6 +351,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"caRoots":          connectCARootsFunc(i.brain, i.used, i.missing),
 		"caLeaf":           connectLeafFunc(i.brain, i.used, i.missing),
 		"pkiCert":          pkiCertFunc(i.brain, i.used, i.missing, i.destination),
+		"pkiSign":          pkiSignFunc(i.brain, i.used, i.missing, i.destination),
 
 		// Nomad Functions.
 		"nomadServices":    nomadServicesFunc(i.brain, i.used, i.missing),
