@@ -1277,7 +1277,7 @@ func plugin(name string, args ...string) (string, error) {
 // replaceAll replaces all occurrences of a value in a string with the given
 // replacement value.
 func replaceAll(f, t, s string) (string, error) {
-	return strings.Replace(s, f, t, -1), nil
+	return strings.ReplaceAll(s, f, t), nil
 }
 
 // regexReplaceAll replaces all occurrences of a regular expression with

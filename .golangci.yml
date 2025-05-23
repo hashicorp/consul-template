@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 version: "2"
 run:
   concurrency: 4
@@ -21,6 +24,11 @@ linters:
           allow:
             - $gostd
             - github.com/BurntSushi/toml
+            - golang.org/x/sys/unix
+            - golang.org/x/exp/maps
+            - golang.org/x/text/cases
+            - golang.org/x/text/language
+            - gopkg.in/yaml.v2
             - github.com/Masterminds/sprig/v3
             - github.com/davecgh/go-spew/spew
             - github.com/hashicorp/consul-template

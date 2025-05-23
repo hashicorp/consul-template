@@ -525,7 +525,7 @@ func TestSetsid(t *testing.T) {
 		}
 		defer c.Stop()
 
-		var sid int = -1
+		var sid = -1
 
 		os := runtime.GOOS
 
