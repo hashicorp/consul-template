@@ -146,8 +146,8 @@ func shimKvV2ListPath(rawPath, mountPath string) string {
 		return rawPath
 	}
 
-	switch {
-	case rawPath == mountPath:
+	switch rawPath {
+	case mountPath:
 		return path.Join(mountPath, "metadata")
 	default:
 		rawPath = strings.TrimPrefix(rawPath, mountPath)

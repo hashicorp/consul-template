@@ -1235,7 +1235,7 @@ func (r *Runner) storePid() error {
 	defer f.Close()
 
 	pid := os.Getpid()
-	_, err = f.WriteString(fmt.Sprintf("%d", pid))
+	_, err = fmt.Fprintf(f, "%d", pid)
 	if err != nil {
 		return fmt.Errorf("runner: could not write to pid file: %s", err)
 	}
