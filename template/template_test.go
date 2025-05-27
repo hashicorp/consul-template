@@ -1678,6 +1678,18 @@ func TestTemplate_Execute(t *testing.T) {
 			true,
 		},
 		{
+			"sprig_reverse_disabled",
+			&NewTemplateInput{
+				Contents:         `{{ "abcde" | sprig_reverse }}`,
+				FunctionDenylist: []string{"sprig*"},
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"",
+			true,
+		},
+		{
 			"helper_regexMatch",
 			&NewTemplateInput{
 				Contents: `{{ "foo" | regexMatch "[a-z]+" }}`,

@@ -8,6 +8,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"regexp"
 	"strings"
 	"text/template"
 
@@ -449,9 +450,20 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		}
 	}
 
+	// Support denylist patterns like "foo", "foo*", "*foo" or "ba*ar".
 	for _, bf := range i.functionDenylist {
-		if _, ok := r[bf]; ok {
-			r[bf] = denied
+		// Escape regex special chars except '*'
+		pattern := regexp.QuoteMeta(bf)
+		// Replace '*' with '.*' for regex matching
+		pattern = strings.ReplaceAll(pattern, "\\*", ".*")
+		re, err := regexp.Compile("^" + pattern + "$")
+		if err != nil {
+			continue // skip invalid patterns
+		}
+		for name := range r {
+			if re.MatchString(name) {
+				r[name] = denied
+			}
 		}
 	}
 
