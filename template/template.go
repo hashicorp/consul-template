@@ -34,6 +34,19 @@ var (
 	ErrMissingReaderFunction = errors.New("template: missing a reader function")
 )
 
+var (
+	sprigFuncMap template.FuncMap
+)
+
+func init() {
+	sprigFuncMap = make(template.FuncMap, len(sprig.HermeticTxtFuncMap()))
+	// Add the Sprig functions to the funcmap
+	for k, v := range sprig.HermeticTxtFuncMap() {
+		target := "sprig_" + k
+		sprigFuncMap[target] = v
+	}
+}
+
 // Template is the internal representation of an individual template to process.
 // The template retains the relationship between its contents and is
 // responsible for it's own execution.
@@ -436,10 +449,9 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"spew_sprintf": spewSprintf,
 	}
 
-	// Add the Sprig functions to the funcmap
-	for k, v := range sprig.TxtFuncMap() {
-		target := "sprig_" + k
-		r[target] = v
+	// Add the pre-computed Sprig functions to the funcmap
+	for k, v := range sprigFuncMap {
+		r[k] = v
 	}
 
 	// Add external functions
