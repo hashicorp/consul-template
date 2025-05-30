@@ -450,7 +450,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		}
 	}
 
-	// Support denylist patterns like "foo", "foo*", "*foo" or "ba*ar" using go-glob.
+	// Support glob denylist patterns (eg: sprig_* to deny all sprig functions)
 	for _, bf := range i.functionDenylist {
 		for name := range r {
 			if glob.Glob(bf, name) {
