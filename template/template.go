@@ -8,12 +8,12 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"regexp"
 	"strings"
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/pkg/errors"
+	"github.com/ryanuber/go-glob"
 	"golang.org/x/exp/maps"
 
 	"github.com/hashicorp/consul-template/config"
@@ -450,18 +450,10 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		}
 	}
 
-	// Support denylist patterns like "foo", "foo*", "*foo" or "ba*ar".
+	// Support denylist patterns like "foo", "foo*", "*foo" or "ba*ar" using go-glob.
 	for _, bf := range i.functionDenylist {
-		// Escape regex special chars except '*'
-		pattern := regexp.QuoteMeta(bf)
-		// Replace '*' with '.*' for regex matching
-		pattern = strings.ReplaceAll(pattern, "\\*", ".*")
-		re, err := regexp.Compile("^" + pattern + "$")
-		if err != nil {
-			continue // skip invalid patterns
-		}
 		for name := range r {
-			if re.MatchString(name) {
+			if glob.Glob(bf, name) {
 				r[name] = denied
 			}
 		}

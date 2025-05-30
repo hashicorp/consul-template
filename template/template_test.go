@@ -1681,7 +1681,7 @@ func TestTemplate_Execute(t *testing.T) {
 			"sprig_reverse_disabled",
 			&NewTemplateInput{
 				Contents:         `{{ "abcde" | sprig_reverse }}`,
-				FunctionDenylist: []string{"sprig*"},
+				FunctionDenylist: []string{"sprig_*"},
 			},
 			&ExecuteInput{
 				Brain: NewBrain(),
