@@ -83,6 +83,7 @@ linters-settings:
           - github.com/mitchellh/go-homedir
           - github.com/mitchellh/hashstructure
           - github.com/mitchellh/mapstructure
+          - github.com/ryanuber/go-glob
           - github.com/pkg/errors
           - github.com/stretchr/testify/assert
           - github.com/stretchr/testify/require
