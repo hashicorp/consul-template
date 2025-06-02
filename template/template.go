@@ -13,6 +13,7 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/pkg/errors"
+	"github.com/ryanuber/go-glob"
 	"golang.org/x/exp/maps"
 
 	"github.com/hashicorp/consul-template/config"
@@ -461,9 +462,12 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		}
 	}
 
+	// Support glob denylist patterns (eg: sprig_* to deny all sprig functions)
 	for _, bf := range i.functionDenylist {
-		if _, ok := r[bf]; ok {
-			r[bf] = denied
+		for name := range r {
+			if glob.Glob(bf, name) {
+				r[name] = denied
+			}
 		}
 	}
 
