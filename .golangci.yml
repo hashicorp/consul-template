@@ -49,6 +49,7 @@ linters:
             - github.com/mitchellh/hashstructure
             - github.com/mitchellh/mapstructure
             - github.com/pkg/errors
+            - github.com/ryanuber/go-glob
             - github.com/stretchr/testify/assert
             - github.com/stretchr/testify/require
             - github.com/coreos/go-systemd
