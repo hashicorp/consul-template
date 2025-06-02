@@ -13,6 +13,7 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/pkg/errors"
+	"github.com/ryanuber/go-glob"
 	"golang.org/x/exp/maps"
 
 	"github.com/hashicorp/consul-template/config"
@@ -33,6 +34,19 @@ var (
 	// configuration is missing a reader function.
 	ErrMissingReaderFunction = errors.New("template: missing a reader function")
 )
+
+var (
+	sprigFuncMap template.FuncMap
+)
+
+func init() {
+	sprigFuncMap = make(template.FuncMap, len(sprig.HermeticTxtFuncMap()))
+	// Add the Sprig functions to the funcmap
+	for k, v := range sprig.HermeticTxtFuncMap() {
+		target := "sprig_" + k
+		sprigFuncMap[target] = v
+	}
+}
 
 // Template is the internal representation of an individual template to process.
 // The template retains the relationship between its contents and is
@@ -436,10 +450,9 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"spew_sprintf": spewSprintf,
 	}
 
-	// Add the Sprig functions to the funcmap
-	for k, v := range sprig.TxtFuncMap() {
-		target := "sprig_" + k
-		r[target] = v
+	// Add the pre-computed Sprig functions to the funcmap
+	for k, v := range sprigFuncMap {
+		r[k] = v
 	}
 
 	// Add external functions
@@ -449,9 +462,12 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		}
 	}
 
+	// Support glob denylist patterns (eg: sprig_* to deny all sprig functions)
 	for _, bf := range i.functionDenylist {
-		if _, ok := r[bf]; ok {
-			r[bf] = denied
+		for name := range r {
+			if glob.Glob(bf, name) {
+				r[name] = denied
+			}
 		}
 	}
 
