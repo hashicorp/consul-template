@@ -2058,7 +2058,7 @@ func TestFinalize(t *testing.T) {
 				}
 			default:
 				if eq, err := tc.isEqual(tc.test, tc.expt); !eq {
-					t.Error(err.Error())
+					t.Errorf("%s", err.Error())
 				}
 			}
 		})

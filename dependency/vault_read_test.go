@@ -531,8 +531,8 @@ func TestVaultReadQuery_Fetch_PKI_Anonymous(t *testing.T) {
 	_, err = anonClient.vault.client.Auth().Token().LookupSelf()
 	// 'missing client token' vault <1.9.7, 'permission denied' vault >1.10.0
 	if err == nil ||
-		!(strings.Contains(err.Error(), "missing client token") ||
-			strings.Contains(err.Error(), "permission denied")) {
+		(!strings.Contains(err.Error(), "missing client token") &&
+			!strings.Contains(err.Error(), "permission denied")) {
 		// check environment for VAULT_TOKEN
 		t.Fatalf("expected a 'missing client token' (vault < 1.10) or 'permission denied' error but found: %v", err)
 	}
