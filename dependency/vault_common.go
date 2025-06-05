@@ -138,13 +138,13 @@ func leaseCheckWait(s *Secret) time.Duration {
 		}
 	}
 
-	// Handle if this is a secret with a rotation period.  If this is a rotating secret,
+	// Handle if this is a secret with a ttl but without a lease. If this is a secret with a ttl,
 	// the rotating secret's TTL will be the duration to sleep before rendering the new secret.
 	var rotatingSecret bool
-	if _, ok := s.Data["rotation_period"]; ok && s.LeaseID == "" {
+	if s.LeaseID == "" {
 		if ttlInterface, ok := s.Data["ttl"]; ok {
 			if ttlData, err := ttlInterface.(json.Number).Int64(); err == nil {
-				log.Printf("[DEBUG] Found rotation_period and set lease duration to %d seconds", ttlData)
+				log.Printf("[DEBUG] Found ttl and set lease duration to %d seconds", ttlData)
 				// Add a second for cushion
 				base = int(ttlData) + 1
 				rotatingSecret = true
