@@ -1,3 +1,16 @@
+# 0.41.0 (June 5, 2025)
+
+IMPROVEMENTS:
+* feat: Pre-compute Sprig template functions during package init [GH-2052](https://github.com/hashicorp/consul-template/pull/2052)
+* update: go version to 1.24.3 [GH-2063](https://github.com/hashicorp/consul-template/pull/2063)
+* security: go-jose/v4 to v4.1.0 to fix CVE-2025-27144 [GH-2063](https://github.com/hashicorp/consul-template/pull/2063)
+* update: github.com/hashicorp/consul/api to v1.32.1 [GH-2063](https://github.com/hashicorp/consul-template/pull/2063)
+* update: github.com/hashicorp/vault/api to v1.16.0 [GH-2063](https://github.com/hashicorp/consul-template/pull/2063)
+
+BUG FIXES:
+* fix: timeout issues for list.peerings [GH-2042](https://github.com/hashicorp/consul-template/pull/2042)
+* fix: use 3.21 instead of latest for alpine in Dockerfile [GH-2064](https://github.com/hashicorp/consul-template/pull/2064)
+
 # 0.40.0 (February 14, 2025)
 
 IMPROVEMENTS:
