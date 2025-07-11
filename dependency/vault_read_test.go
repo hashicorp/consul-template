@@ -770,17 +770,31 @@ func TestShimKVv2Path(t *testing.T) {
 		},
 		{
 			"raw path contains namespace with same name as mount path",
-			"secret/secret/data/foo",
+			"secret/data/foo",
 			"secret/secret/",
 			"secret/secret/data/foo",
 			"secret/",
 		},
 		{
 			"raw path contains namespace with same name as mount path without 'data'",
-			"secret/secret/foo",
+			"secret/foo",
 			"secret/secret/",
 			"secret/secret/data/foo",
 			"secret/",
+		},
+		{
+			"raw path contains namespace with same name as mount path without 'data', no client ns",
+			"secret/secret/foo",
+			"secret/secret/",
+			"secret/secret/data/foo",
+			"",
+		},
+		{
+			"raw path contains namespace with same name as mount path without 'data', no client ns, no with data",
+			"secret/secret/data/foo",
+			"secret/secret/",
+			"secret/secret/data/foo",
+			"",
 		},
 	}
 	for _, tc := range cases {
