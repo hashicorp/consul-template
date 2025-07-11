@@ -207,9 +207,8 @@ func shimKVv2Path(rawPath, mountPath, clientNamespace string) string {
 			clientNamespace += "/"
 		}
 
-		log.Printf("[INFO] VioletLog rawPath='%s' clientNamespace='%s' mountPath='%s' to avoid the namespace being prepended twice", rawPath, clientNamespace, mountPath)
-
 		rawPathNsAndMountPath := mountPath
+
 		// Extract client namespace from mount path if it exists.
 		// If the mount path only contains one /, then it will _just_ contain the mount path
 		// and as a result, we don't need to do any trimming.
@@ -222,8 +221,6 @@ func shimKVv2Path(rawPath, mountPath, clientNamespace string) string {
 			}
 		}
 
-		log.Printf("[INFO] VioletLog2 rawPathNsAndMountPath='%s'", rawPathNsAndMountPath)
-
 		// Trim (mount path - client namespace) from the raw path
 		p := strings.TrimPrefix(rawPath, rawPathNsAndMountPath)
 
@@ -233,7 +230,6 @@ func shimKVv2Path(rawPath, mountPath, clientNamespace string) string {
 			return rawPath
 		}
 
-		log.Printf("[INFO] VioletLog3 expected='%s'", path.Join(rawPathNsAndMountPath, "data", p))
 		return path.Join(rawPathNsAndMountPath, "data", p)
 	}
 }
