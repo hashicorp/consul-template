@@ -1,3 +1,11 @@
+# 0.41.1 (July 24, 2025)
+
+IMPROVEMENTS:
+* update: go version to 1.24.4 to address [CVE-2025-22874](https://github.com/advisories/GHSA-6f52-wpx2-hvf2)
+
+BUG FIXES:
+* fix: consul-template handling of secret reads when namespace equals mount path
+
 # 0.41.0 (June 5, 2025)
 
 IMPROVEMENTS:
