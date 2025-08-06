@@ -1943,6 +1943,17 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 	return "", nil
 }
 
+// fileContents reads the contents of a file and returns it as a string.
+//
+// If the file does not exist or cannot be read, it returns an empty string.
+// This behavior makes it safe to use in templates with functions like sprig_default,
+// regexMatch, or conditional logic (`if ne`, etc.).
+//
+// For example:
+//
+//	fileContents "/etc/service/config.yaml"
+//	fileContents "/etc/haproxy/certs/example.com.crt" | default "MISSING"
+//	if ne (fileContents "/path/to/file") "expected content"
 func fileContents() func(string) string {
 	return func(path string) string {
 		if path == "" {
