@@ -1943,6 +1943,19 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 	return "", nil
 }
 
+func fileContents() func(string) string {
+	return func(path string) string {
+		if path == "" {
+			return ""
+		}
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return ""
+		}
+		return string(b)
+	}
+}
+
 func spewSdump(args ...interface{}) (string, error) {
 	return spewLib.Sdump(args...), nil
 }
