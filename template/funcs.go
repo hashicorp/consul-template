@@ -215,11 +215,18 @@ func fileFunc(b *Brain, used, missing *dep.Set, sandboxPath string) func(string)
 		if len(s) == 0 {
 			return "", nil
 		}
-		err := pathInSandbox(sandboxPath, s)
+
+		// Normalize and resolve symlinks BEFORE both sandbox check and file query
+		normalized := strings.TrimSpace(s)
+		resolved, err := filepath.EvalSymlinks(filepath.Clean(normalized))
 		if err != nil {
 			return "", err
 		}
-		d, err := dep.NewFileQuery(s)
+		err = pathInSandbox(sandboxPath, resolved)
+		if err != nil {
+			return "", err
+		}
+		d, err := dep.NewFileQuery(resolved)
 		if err != nil {
 			return "", err
 		}
@@ -1782,19 +1789,39 @@ func denied(...string) (string, error) {
 // pathInSandbox returns an error if the provided path doesn't fall within the
 // sandbox or if the file can't be evaluated (missing, invalid symlink, etc.)
 func pathInSandbox(sandbox, path string) error {
-	if sandbox != "" {
-		s, err := filepath.EvalSymlinks(path)
-		if err != nil {
-			return err
-		}
-		s, err = filepath.Rel(sandbox, s)
-		if err != nil {
-			return err
-		}
-		if strings.HasPrefix(s, "..") {
-			return fmt.Errorf("'%s' is outside of sandbox", path)
-		}
+	if sandbox == "" {
+		return nil
 	}
+
+	// Clean and resolve symlinks for both paths
+	sandboxResolved, err := filepath.EvalSymlinks(filepath.Clean(sandbox))
+	if err != nil {
+		return fmt.Errorf("failed to resolve sandbox path: %w", err)
+	}
+	targetResolved, err := filepath.EvalSymlinks(filepath.Clean(path))
+	if err != nil {
+		return fmt.Errorf("failed to resolve target path: %w", err)
+	}
+
+	// Get absolute paths
+	sandboxAbs, err := filepath.Abs(sandboxResolved)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute sandbox path: %w", err)
+	}
+	targetAbs, err := filepath.Abs(targetResolved)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute target path: %w", err)
+	}
+
+	// Check containment
+	rel, err := filepath.Rel(sandboxAbs, targetAbs)
+	if err != nil {
+		return fmt.Errorf("failed to get relative path: %w", err)
+	}
+	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return fmt.Errorf("'%s' is outside of sandbox", path)
+	}
+
 	return nil
 }
 
