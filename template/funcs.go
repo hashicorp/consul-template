@@ -218,7 +218,7 @@ func fileFunc(b *Brain, used, missing *dep.Set, sandboxPath string) func(string)
 
 		// Normalize and resolve symlinks BEFORE both sandbox check and file query
 		normalized := strings.TrimSpace(s)
-		err := pathInSandbox(normalized, s)
+		err := pathInSandbox(sandboxPath, normalized)
 		if err != nil {
 			return "", err
 		}
