@@ -324,12 +324,12 @@ func TestTemplate_Execute(t *testing.T) {
 		{
 			"func_file",
 			&NewTemplateInput{
-				Contents: `{{ file "/path/to/file" }}`,
+				Contents: fmt.Sprintf(`{{ file "%s" }}`, f.Name()),
 			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
-					d, err := dep.NewFileQuery("/path/to/file")
+					d, err := dep.NewFileQuery(f.Name())
 					if err != nil {
 						t.Fatal(err)
 					}

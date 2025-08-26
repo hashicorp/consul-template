@@ -218,15 +218,11 @@ func fileFunc(b *Brain, used, missing *dep.Set, sandboxPath string) func(string)
 
 		// Normalize and resolve symlinks BEFORE both sandbox check and file query
 		normalized := strings.TrimSpace(s)
-		resolved, err := filepath.EvalSymlinks(filepath.Clean(normalized))
+		err := pathInSandbox(normalized, s)
 		if err != nil {
 			return "", err
 		}
-		err = pathInSandbox(sandboxPath, resolved)
-		if err != nil {
-			return "", err
-		}
-		d, err := dep.NewFileQuery(resolved)
+		d, err := dep.NewFileQuery(s)
 		if err != nil {
 			return "", err
 		}
@@ -1803,18 +1799,8 @@ func pathInSandbox(sandbox, path string) error {
 		return fmt.Errorf("failed to resolve target path: %w", err)
 	}
 
-	// Get absolute paths
-	sandboxAbs, err := filepath.Abs(sandboxResolved)
-	if err != nil {
-		return fmt.Errorf("failed to get absolute sandbox path: %w", err)
-	}
-	targetAbs, err := filepath.Abs(targetResolved)
-	if err != nil {
-		return fmt.Errorf("failed to get absolute target path: %w", err)
-	}
-
 	// Check containment
-	rel, err := filepath.Rel(sandboxAbs, targetAbs)
+	rel, err := filepath.Rel(sandboxResolved, targetResolved)
 	if err != nil {
 		return fmt.Errorf("failed to get relative path: %w", err)
 	}
