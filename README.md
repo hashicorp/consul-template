@@ -1,6 +1,6 @@
 
 ---
-# Consul Template
+# Consul Template Test
 
 [![build](https://github.com/hashicorp/consul-template/actions/workflows/build.yml/badge.svg)](https://github.com/hashicorp/consul-template/actions/workflows/build.yml)
 [![ci](https://github.com/hashicorp/consul-template/actions/workflows/ci.yml/badge.svg)](https://github.com/hashicorp/consul-template/actions/workflows/ci.yml)
