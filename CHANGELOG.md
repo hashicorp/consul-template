@@ -1,8 +1,8 @@
 # 0.41.2 (September 19, 2025)
 
 IMPROVEMENTS:
-* Enhance File Sandbox Security [GH-2083](https://github.com/hashicorp/consul-template/pull/2052)
-* update: go version to 1.25 [GH-2089](https://github.com/hashicorp/consul-template/pull/2052)
+* Enhance File Sandbox Security [GH-2083](https://github.com/hashicorp/consul-template/pull/2083)
+* update: go version to 1.25 [GH-2089](https://github.com/hashicorp/consul-template/pull/2089)
 
 # 0.41.0 (June 5, 2025)
 
