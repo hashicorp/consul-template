@@ -5,6 +5,13 @@ container {
 	dependencies = true
 	alpine_secdb = true
 	secrets      = true
+	triage {
+		suppress {
+			vulnerabilites = [
+				"CVE-2024-58251",	# fix unavailable at time of writing
+			]
+		}
+	}
 }
 
 binary {
