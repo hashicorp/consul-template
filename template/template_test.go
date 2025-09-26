@@ -5,6 +5,8 @@ package template
 
 import (
 	"bytes"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"os/user"
@@ -72,7 +74,10 @@ func TestNewTemplate(t *testing.T) {
 			&Template{
 				contents: "test",
 				source:   f.Name(),
-				hexMD5:   "098f6bcd4621d373cade4e832627b4f6",
+				hexMD5: func() string {
+					hash := md5.Sum([]byte(f.Name() + "test"))
+					return hex.EncodeToString(hash[:])
+				}(),
 			},
 			false,
 		},
@@ -127,7 +132,7 @@ func TestNewTemplate(t *testing.T) {
 				t.Fatal(err)
 			}
 			if !reflect.DeepEqual(tc.e, a) {
-				t.Errorf("\nexp: %#v\nact: %#v", tc.e, a)
+				t.Errorf("\nexp: %#v\nact: %#v (test: %s)", tc.e, a, tc.name)
 			}
 		})
 	}
@@ -2806,5 +2811,30 @@ func TestTemplate_HermeticSprigFunctions(t *testing.T) {
 				t.Errorf("\nexpected: %q\nactual:   %q", tc.expected, result.Output)
 			}
 		})
+	}
+}
+
+// TestIdenticalTemplateContentsDifferentHash covers an edge case where more
+// then 1 template has exactly the same body but different destination and
+// should thus get a separate ID.
+func TestIdenticalTemplateContentsDifferentHash(t *testing.T) {
+	tpl1, err := NewTemplate(&NewTemplateInput{
+		Contents:    "foo",
+		Destination: "foo_dst",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tpl2, err := NewTemplate(&NewTemplateInput{
+		Contents:    "foo",
+		Destination: "bar_dst",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if tpl1.ID() == tpl2.ID() {
+		t.Fatal("expected these templates to have different IDs")
 	}
 }

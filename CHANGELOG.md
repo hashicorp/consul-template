@@ -1,3 +1,8 @@
+## UNRELEASED
+
+IMPROVEMENTS:
+* Distinguish templates with identical contents but different destinations or sources
+
 # 0.41.2 (September 19, 2025)
 
 IMPROVEMENTS:

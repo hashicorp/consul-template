@@ -186,7 +186,7 @@ func NewTemplate(i *NewTemplateInput) (*Template, error) {
 	}
 
 	// Compute the MD5, encode as hex
-	hash := md5.Sum([]byte(t.contents))
+	hash := md5.Sum([]byte(t.source + t.contents + t.destination))
 	t.hexMD5 = hex.EncodeToString(hash[:])
 
 	return &t, nil
