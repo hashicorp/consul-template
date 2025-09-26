@@ -1,7 +1,7 @@
 ## UNRELEASED
 
 IMPROVEMENTS:
-* Distinguish templates with identical contents but different destinations or sources
+* Distinguish templates with identical contents but different destinations or sources [GH-2096](https://github.com/hashicorp/consul-template/pull/2096)
 
 # 0.41.2 (September 19, 2025)
 
