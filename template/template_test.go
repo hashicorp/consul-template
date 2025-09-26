@@ -5,7 +5,7 @@ package template
 
 import (
 	"bytes"
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"os"
@@ -74,8 +74,8 @@ func TestNewTemplate(t *testing.T) {
 			&Template{
 				contents: "test",
 				source:   f.Name(),
-				hexMD5: func() string {
-					hash := md5.Sum([]byte(f.Name() + "test"))
+				hash: func() string {
+					hash := sha256.Sum256([]byte(f.Name() + "\x00" + "test" + "\x00"))
 					return hex.EncodeToString(hash[:])
 				}(),
 			},
@@ -88,7 +88,7 @@ func TestNewTemplate(t *testing.T) {
 			},
 			&Template{
 				contents: "test",
-				hexMD5:   "098f6bcd4621d373cade4e832627b4f6",
+				hash:     "0e8bb2625b57f046dcb29b91d0b649449537437f7ed7e79568a9bb02e6c584b1",
 			},
 			false,
 		},
@@ -101,7 +101,7 @@ func TestNewTemplate(t *testing.T) {
 			},
 			&Template{
 				contents:   "test",
-				hexMD5:     "098f6bcd4621d373cade4e832627b4f6",
+				hash:       "0e8bb2625b57f046dcb29b91d0b649449537437f7ed7e79568a9bb02e6c584b1",
 				leftDelim:  "<<",
 				rightDelim: ">>",
 			},
@@ -115,7 +115,7 @@ func TestNewTemplate(t *testing.T) {
 			},
 			&Template{
 				contents:      "test",
-				hexMD5:        "098f6bcd4621d373cade4e832627b4f6",
+				hash:          "0e8bb2625b57f046dcb29b91d0b649449537437f7ed7e79568a9bb02e6c584b1",
 				errMissingKey: true,
 			},
 			false,

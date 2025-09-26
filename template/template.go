@@ -5,7 +5,7 @@ package template
 
 import (
 	"bytes"
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"strings"
@@ -67,8 +67,8 @@ type Template struct {
 	leftDelim  string
 	rightDelim string
 
-	// hexMD5 stores the hex version of the MD5
-	hexMD5 string
+	// hash stores the hex version of the sha
+	hash string
 
 	// errMissingKey causes the template processing to exit immediately if a map
 	// is indexed with a key that does not exist.
@@ -185,16 +185,16 @@ func NewTemplate(i *NewTemplateInput) (*Template, error) {
 		t.contents = string(contents)
 	}
 
-	// Compute the MD5, encode as hex
-	hash := md5.Sum([]byte(t.source + t.contents + t.destination))
-	t.hexMD5 = hex.EncodeToString(hash[:])
+	// Compute the sha256, encode as hex
+	hash := sha256.Sum256([]byte(t.source + "\x00" + t.contents + "\x00" + t.destination))
+	t.hash = hex.EncodeToString(hash[:])
 
 	return &t, nil
 }
 
 // ID returns the identifier for this template.
 func (t *Template) ID() string {
-	return t.hexMD5
+	return t.hash
 }
 
 // Contents returns the raw contents of the template.
