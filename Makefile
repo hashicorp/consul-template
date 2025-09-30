@@ -39,7 +39,7 @@ dev:
 
 # dev docker builds
 docker:
-	@env CGO_ENABLED="0" go build -ldflags "${LD_FLAGS}" -o $(NAME)
+	@env CGO_ENABLED="0" go build -buildvcs=false -ldflags "${LD_FLAGS}" -o $(NAME)
 	mkdir -p dist/linux/amd64/
 	cp consul-template dist/linux/amd64/
 	env DOCKER_BUILDKIT=1 docker build -t consul-template .
