@@ -570,6 +570,18 @@ func TestParseTemplateConfig(t *testing.T) {
 			true,
 		},
 		{
+			"colon_only",
+			":",
+			nil,
+			true,
+		},
+		{
+			"multiple_colons_only",
+			":::",
+			nil,
+			true,
+		},
+		{
 			"default",
 			"/tmp/a.txt:/tmp/b.txt:command",
 			&TemplateConfig{
