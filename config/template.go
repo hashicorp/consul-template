@@ -572,6 +572,8 @@ func ParseTemplateConfig(s string) (*TemplateConfig, error) {
 	parts := configTemplateRe.FindAllString(s, -1)
 
 	switch len(parts) {
+	case 0:
+		return nil, ErrTemplateStringEmpty
 	case 1:
 		source = parts[0]
 	case 2:
