@@ -101,7 +101,7 @@ jobs:
         run: |
           mkdir dist out
           cp LICENSE dist/LICENSE.txt
-          go build -o dist/ -ldflags "-s -w -X $(go list -m)/version.GitCommit=$(git rev-parse --short HEAD)" .
+          go build -buildvcs=false -o dist/ -ldflags "-s -w -X $(go list -m)/version.GitCommit=$(git rev-parse --short HEAD)" .
           zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -144,7 +144,7 @@ jobs:
         run: |
           mkdir dist out
           cp LICENSE dist/LICENSE.txt
-          go build -o dist/ -ldflags "-s -w -X $(go list -m)/version.GitCommit=$(git rev-parse --short HEAD)" .
+          go build -buildvcs=false -o dist/ -ldflags "-s -w -X $(go list -m)/version.GitCommit=$(git rev-parse --short HEAD)" .
           zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

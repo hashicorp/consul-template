@@ -4,6 +4,12 @@
 /vendor
 consul-template
 
+### Build artifacts that can make git status dirty
+dist/LICENSE
+dist/LICENSE.txt
+*.zip
+out/
+
 ### Golang ###
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
 *.o
