@@ -39,24 +39,26 @@ jobs:
           go-version: ${{ matrix.go }}
           cache: false
 
-      - name: Install specific Consul version ${{ matrix.consul-version }}${{ matrix.consul-ent-tag }}
+      - name: Setup HashiCorp apt repository
         run: |
-          # Download specific Consul version
-          if [ "${{ matrix.consul-ent-tag }}" = "-enterprise" ]; then
-            CONSUL_URL="https://releases.hashicorp.com/consul/${{ matrix.consul-version }}+ent/consul_${{ matrix.consul-version }}+ent_linux_amd64.zip"
-          else
-            CONSUL_URL="https://releases.hashicorp.com/consul/${{ matrix.consul-version }}/consul_${{ matrix.consul-version }}_linux_amd64.zip"
-          fi
-          
-          curl -L "$CONSUL_URL" -o consul.zip
-          unzip consul.zip
-          sudo mv consul /usr/local/bin/consul
-          sudo chmod +x /usr/local/bin/consul
-          
-          # Install Vault and Nomad from apt (latest versions are fine for testing)
           curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
           sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
-          sudo apt-get update && sudo apt-get install vault nomad
+          sudo apt-get update
+
+      - name: Install specific Consul version ${{ matrix.consul-version }}${{ matrix.consul-ent-tag }}
+        run: |
+          # Install specific Consul version via apt
+          if [ "${{ matrix.consul-ent-tag }}" = "-enterprise" ]; then
+            CONSUL_PACKAGE="consul=${{ matrix.consul-version }}+ent-1"
+          else
+            CONSUL_PACKAGE="consul=${{ matrix.consul-version }}-1"
+          fi
+          
+          echo "Installing Consul package: $CONSUL_PACKAGE"
+          sudo apt-get install -y "$CONSUL_PACKAGE"
+          
+          # Also install Vault and Nomad (latest versions are fine for testing)
+          sudo apt-get install -y vault nomad
 
       - name: Setup consul-template version ${{ matrix.ct-version }}
         run: |
@@ -65,18 +67,20 @@ jobs:
             make dev
             echo "Using current consul-template version from source"
           else
-            # Download specific released version
-            CT_URL="https://releases.hashicorp.com/consul-template/${{ matrix.ct-version }}/consul-template_${{ matrix.ct-version }}_linux_amd64.zip"
-            curl -L "$CT_URL" -o consul-template.zip
-            unzip consul-template.zip
-            chmod +x consul-template
-            echo "Downloaded consul-template ${{ matrix.ct-version }}"
+            # Install specific released version via apt
+            CT_PACKAGE="consul-template=${{ matrix.ct-version }}-1"
+            echo "Installing consul-template package: $CT_PACKAGE"
+            sudo apt-get install -y "$CT_PACKAGE"
           fi
 
       - name: Verify versions
         run: |
           consul version
-          ./consul-template -version
+          if [ "${{ matrix.ct-version }}" = "current" ]; then
+            ./bin/consul-template -version
+          else
+            consul-template -version
+          fi
           echo "Testing consul-template ${{ matrix.ct-version }} with Consul ${{ matrix.consul-version }}${{ matrix.consul-ent-tag }}"
 
       - name: Run integration tests with race detection
@@ -94,40 +98,3 @@ jobs:
             *.log
             test-results/
           retention-days: 7
-
-  consul-compatibility-test:
-    name: Test Consul Compatibility
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        consul_version: ["1.22.0", "1.21.5", "1.20.11"]
-    
-    steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - name: Set up Go
-        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
-        with:
-          go-version: ^1
-          cache: false
-
-      - name: Build consul-template
-        run: make dev
-
-      - name: Test compatibility with Consul ${{ matrix.consul_version }}
-        run: |
-          if [ -f test/compatibility/quick-test.sh ]; then
-            cd test/compatibility
-            ./quick-test.sh ${{ matrix.consul_version }}
-          else
-            echo "Compatibility test framework not found, skipping..."
-          fi
-
-      - name: Upload compatibility test results
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: compatibility-results-${{ matrix.consul_version }}
-          path: test/compatibility/results/
-          retention-days: 30
