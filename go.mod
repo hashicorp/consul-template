@@ -1,6 +1,6 @@
 module github.com/hashicorp/consul-template
 
-go 1.25.0
+go 1.25.3
 
 require (
 	dario.cat/mergo v1.0.2
