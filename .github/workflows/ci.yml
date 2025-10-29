@@ -20,7 +20,7 @@ jobs:
         os: [ubuntu-latest]
         go: [^1]
         consul-ent-tag: ["", "-enterprise"]
-        consul-version: ["1.18.15", "1.20.11", "1.21.5", "1.22.0"]
+        consul-version: ["1.18.2", "1.20.6", "1.21.5", "1.22.0"]
         ct-version: ["current", "0.40.0", "0.39.1"]
         exclude:
           # Don't test every combination - too many jobs
@@ -55,6 +55,14 @@ jobs:
           fi
           
           echo "Installing Consul package: $CONSUL_PACKAGE"
+          
+          # Check if package is available first
+          if ! apt-cache show "$CONSUL_PACKAGE" >/dev/null 2>&1; then
+            echo "Package $CONSUL_PACKAGE not found. Available consul versions:"
+            apt-cache madison consul | head -10
+            exit 1
+          fi
+          
           sudo apt-get install -y "$CONSUL_PACKAGE"
           
           # Also install Vault and Nomad (latest versions are fine for testing)
@@ -77,7 +85,9 @@ jobs:
         run: |
           consul version
           if [ "${{ matrix.ct-version }}" = "current" ]; then
-            ./bin/consul-template -version
+            # For current version built with make dev, binary is in $GOPATH/bin
+            GOPATH=$(go env GOPATH)
+            $GOPATH/bin/consul-template -version
           else
             consul-template -version
           fi
