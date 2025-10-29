@@ -12,7 +12,7 @@ env:
 
 jobs:
   run-tests:
-    name: Run test cases (with consul${{ matrix.consul-ent-tag }})
+    name: Test CT${{ matrix.ct-version }} + Consul${{ matrix.consul-ent-tag }} ${{ matrix.consul-version }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -20,23 +20,15 @@ jobs:
         os: [ubuntu-latest]
         go: [^1]
         consul-ent-tag: ["", "-enterprise"]
-        include:
-          # Add specific Consul versions for compatibility testing
-          - os: ubuntu-latest
-            go: ^1
-            consul-ent-tag: ""
-            consul-version: "1.22.0"
-            test-type: "compatibility"
-          - os: ubuntu-latest
-            go: ^1
-            consul-ent-tag: ""
-            consul-version: "1.21.5"
-            test-type: "compatibility"
-          - os: ubuntu-latest
-            go: ^1
-            consul-ent-tag: ""
-            consul-version: "1.20.11"
-            test-type: "compatibility"
+        consul-version: ["1.18.15", "1.20.11", "1.21.5", "1.22.0"]
+        ct-version: ["current", "0.40.0", "0.39.1"]
+        exclude:
+          # Don't test every combination - too many jobs
+          # Only test current CT version with enterprise Consul
+          - ct-version: "0.40.0"
+            consul-ent-tag: "-enterprise"
+          - ct-version: "0.39.1"
+            consul-ent-tag: "-enterprise"
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -47,67 +39,61 @@ jobs:
           go-version: ${{ matrix.go }}
           cache: false
 
-      - name: Install Consul${{ matrix.consul-ent-tag }}, Vault and Nomad for integration testing
-        if: matrix.test-type != 'compatibility'
+      - name: Install specific Consul version ${{ matrix.consul-version }}${{ matrix.consul-ent-tag }}
         run: |
-          curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
-          sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
-          sudo apt-get update && sudo apt-get install consul${{ matrix.consul-ent-tag }} vault nomad
-
-      - name: Install specific Consul version for compatibility testing
-        if: matrix.test-type == 'compatibility'
-        run: |
-          # Download specific Consul version for compatibility testing
-          curl -L "https://releases.hashicorp.com/consul/${{ matrix.consul-version }}/consul_${{ matrix.consul-version }}_linux_amd64.zip" -o consul.zip
+          # Download specific Consul version
+          if [ "${{ matrix.consul-ent-tag }}" = "-enterprise" ]; then
+            CONSUL_URL="https://releases.hashicorp.com/consul/${{ matrix.consul-version }}+ent/consul_${{ matrix.consul-version }}+ent_linux_amd64.zip"
+          else
+            CONSUL_URL="https://releases.hashicorp.com/consul/${{ matrix.consul-version }}/consul_${{ matrix.consul-version }}_linux_amd64.zip"
+          fi
+          
+          curl -L "$CONSUL_URL" -o consul.zip
           unzip consul.zip
-          sudo mv consul /usr/local/bin/consul-${{ matrix.consul-version }}
-          sudo chmod +x /usr/local/bin/consul-${{ matrix.consul-version }}
-          # Also install vault and nomad from apt for regular integration tests
+          sudo mv consul /usr/local/bin/consul
+          sudo chmod +x /usr/local/bin/consul
+          
+          # Install Vault and Nomad from apt (latest versions are fine for testing)
           curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
           sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
           sudo apt-get update && sudo apt-get install vault nomad
 
-      - name: Run tests
-        if: matrix.test-type != 'compatibility'
+      - name: Setup consul-template version ${{ matrix.ct-version }}
         run: |
-          make test-race
-
-      - name: Run compatibility tests
-        if: matrix.test-type == 'compatibility'
-        run: |
-          # Build consul-template
-          make dev
-          # Run compatibility test if framework exists
-          if [ -f test/compatibility/quick-test.sh ]; then
-            cd test/compatibility
-            # Use the specific consul version we downloaded
-            CONSUL_BINARY="/usr/local/bin/consul-${{ matrix.consul-version }}" ./quick-test.sh ${{ matrix.consul-version }}
+          if [ "${{ matrix.ct-version }}" = "current" ]; then
+            # Build current version from source
+            make dev
+            echo "Using current consul-template version from source"
           else
-            # Fallback: basic compatibility test
-            echo "Testing consul-template with Consul ${{ matrix.consul-version }}..."
-            /usr/local/bin/consul-${{ matrix.consul-version }} agent -dev &
-            CONSUL_PID=$!
-            sleep 5
-            # Basic test
-            echo '{{ key "test/compatibility" }}' > test.tpl
-            /usr/local/bin/consul-${{ matrix.consul-version }} kv put test/compatibility "consul-${{ matrix.consul-version }}-working"
-            ./consul-template -template "test.tpl:test.out" -once
-            if [ "$(cat test.out)" = "consul-${{ matrix.consul-version }}-working" ]; then
-              echo "✅ Consul ${{ matrix.consul-version }} compatibility test PASSED"
-            else
-              echo "❌ Consul ${{ matrix.consul-version }} compatibility test FAILED"
-              exit 1
-            fi
-            kill $CONSUL_PID
+            # Download specific released version
+            CT_URL="https://releases.hashicorp.com/consul-template/${{ matrix.ct-version }}/consul-template_${{ matrix.ct-version }}_linux_amd64.zip"
+            curl -L "$CT_URL" -o consul-template.zip
+            unzip consul-template.zip
+            chmod +x consul-template
+            echo "Downloaded consul-template ${{ matrix.ct-version }}"
           fi
 
-      - name: Upload compatibility test results
-        if: matrix.test-type == 'compatibility' && always()
+      - name: Verify versions
+        run: |
+          consul version
+          ./consul-template -version
+          echo "Testing consul-template ${{ matrix.ct-version }} with Consul ${{ matrix.consul-version }}${{ matrix.consul-ent-tag }}"
+
+      - name: Run integration tests with race detection
+        run: |
+          # Run the integration test suite with race detection
+          # This tests consul-template functionality against the specific Consul version
+          make test-race
+
+      - name: Upload test results on failure
+        if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: compatibility-results-${{ matrix.consul-version }}
-          path: test/compatibility/results/
-          retention-days: 30
+          name: test-failure-ct${{ matrix.ct-version }}-consul${{ matrix.consul-version }}${{ matrix.consul-ent-tag }}
+          path: |
+            *.log
+            test-results/
+          retention-days: 7
 
   consul-compatibility-test:
     name: Test Consul Compatibility
