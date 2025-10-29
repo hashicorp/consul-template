@@ -49,7 +49,7 @@ jobs:
         run: |
           # Install specific Consul version via apt
           if [ "${{ matrix.consul-ent-tag }}" = "-enterprise" ]; then
-            CONSUL_PACKAGE="consul=${{ matrix.consul-version }}+ent-1"
+            CONSUL_PACKAGE="consul-enterprise=${{ matrix.consul-version }}+ent-1"
           else
             CONSUL_PACKAGE="consul=${{ matrix.consul-version }}-1"
           fi
@@ -59,7 +59,11 @@ jobs:
           # Check if package is available first
           if ! apt-cache show "$CONSUL_PACKAGE" >/dev/null 2>&1; then
             echo "Package $CONSUL_PACKAGE not found. Available consul versions:"
-            apt-cache madison consul | head -10
+            if [ "${{ matrix.consul-ent-tag }}" = "-enterprise" ]; then
+              apt-cache madison consul-enterprise | head -10
+            else
+              apt-cache madison consul | head -10
+            fi
             exit 1
           fi
           
