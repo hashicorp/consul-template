@@ -20,6 +20,23 @@ jobs:
         os: [ubuntu-latest]
         go: [^1]
         consul-ent-tag: ["", "-enterprise"]
+        include:
+          # Add specific Consul versions for compatibility testing
+          - os: ubuntu-latest
+            go: ^1
+            consul-ent-tag: ""
+            consul-version: "1.22.0"
+            test-type: "compatibility"
+          - os: ubuntu-latest
+            go: ^1
+            consul-ent-tag: ""
+            consul-version: "1.21.5"
+            test-type: "compatibility"
+          - os: ubuntu-latest
+            go: ^1
+            consul-ent-tag: ""
+            consul-version: "1.20.11"
+            test-type: "compatibility"
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -31,11 +48,100 @@ jobs:
           cache: false
 
       - name: Install Consul${{ matrix.consul-ent-tag }}, Vault and Nomad for integration testing
+        if: matrix.test-type != 'compatibility'
         run: |
           curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
           sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
           sudo apt-get update && sudo apt-get install consul${{ matrix.consul-ent-tag }} vault nomad
 
+      - name: Install specific Consul version for compatibility testing
+        if: matrix.test-type == 'compatibility'
+        run: |
+          # Download specific Consul version for compatibility testing
+          curl -L "https://releases.hashicorp.com/consul/${{ matrix.consul-version }}/consul_${{ matrix.consul-version }}_linux_amd64.zip" -o consul.zip
+          unzip consul.zip
+          sudo mv consul /usr/local/bin/consul-${{ matrix.consul-version }}
+          sudo chmod +x /usr/local/bin/consul-${{ matrix.consul-version }}
+          # Also install vault and nomad from apt for regular integration tests
+          curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+          sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+          sudo apt-get update && sudo apt-get install vault nomad
+
       - name: Run tests
+        if: matrix.test-type != 'compatibility'
         run: |
           make test-race
+
+      - name: Run compatibility tests
+        if: matrix.test-type == 'compatibility'
+        run: |
+          # Build consul-template
+          make dev
+          # Run compatibility test if framework exists
+          if [ -f test/compatibility/quick-test.sh ]; then
+            cd test/compatibility
+            # Use the specific consul version we downloaded
+            CONSUL_BINARY="/usr/local/bin/consul-${{ matrix.consul-version }}" ./quick-test.sh ${{ matrix.consul-version }}
+          else
+            # Fallback: basic compatibility test
+            echo "Testing consul-template with Consul ${{ matrix.consul-version }}..."
+            /usr/local/bin/consul-${{ matrix.consul-version }} agent -dev &
+            CONSUL_PID=$!
+            sleep 5
+            # Basic test
+            echo '{{ key "test/compatibility" }}' > test.tpl
+            /usr/local/bin/consul-${{ matrix.consul-version }} kv put test/compatibility "consul-${{ matrix.consul-version }}-working"
+            ./consul-template -template "test.tpl:test.out" -once
+            if [ "$(cat test.out)" = "consul-${{ matrix.consul-version }}-working" ]; then
+              echo "✅ Consul ${{ matrix.consul-version }} compatibility test PASSED"
+            else
+              echo "❌ Consul ${{ matrix.consul-version }} compatibility test FAILED"
+              exit 1
+            fi
+            kill $CONSUL_PID
+          fi
+
+      - name: Upload compatibility test results
+        if: matrix.test-type == 'compatibility' && always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: compatibility-results-${{ matrix.consul-version }}
+          path: test/compatibility/results/
+          retention-days: 30
+
+  consul-compatibility-test:
+    name: Test Consul Compatibility
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        consul_version: ["1.22.0", "1.21.5", "1.20.11"]
+    
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Set up Go
+        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        with:
+          go-version: ^1
+          cache: false
+
+      - name: Build consul-template
+        run: make dev
+
+      - name: Test compatibility with Consul ${{ matrix.consul_version }}
+        run: |
+          if [ -f test/compatibility/quick-test.sh ]; then
+            cd test/compatibility
+            ./quick-test.sh ${{ matrix.consul_version }}
+          else
+            echo "Compatibility test framework not found, skipping..."
+          fi
+
+      - name: Upload compatibility test results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: compatibility-results-${{ matrix.consul_version }}
+          path: test/compatibility/results/
+          retention-days: 30
