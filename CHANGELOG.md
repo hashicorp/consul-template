@@ -1,7 +1,11 @@
-## UNRELEASED
+# 0.41.3
 
 IMPROVEMENTS:
 * Distinguish templates with identical contents but different destinations or sources [GH-2096](https://github.com/hashicorp/consul-template/pull/2096)
+* upgrade go version to latest patch (1.25.3) to fix CVE-2025-47910 [GH-2103](https://github.com/hashicorp/consul-template/pull/2103)
+
+BUG FIXES:
+* fix(config): handle empty regex matches in ParseTemplateConfig - fixes SECVULN-14566 [GH-2099](https://github.com/hashicorp/consul-template/pull/2099)
 
 # 0.41.2 (September 19, 2025)
 
