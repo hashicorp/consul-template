@@ -5,6 +5,8 @@ package template
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"os/user"
@@ -72,7 +74,10 @@ func TestNewTemplate(t *testing.T) {
 			&Template{
 				contents: "test",
 				source:   f.Name(),
-				hexMD5:   "098f6bcd4621d373cade4e832627b4f6",
+				hash: func() string {
+					hash := sha256.Sum256([]byte(f.Name() + "\x00" + "test" + "\x00"))
+					return hex.EncodeToString(hash[:])
+				}(),
 			},
 			false,
 		},
@@ -83,7 +88,7 @@ func TestNewTemplate(t *testing.T) {
 			},
 			&Template{
 				contents: "test",
-				hexMD5:   "098f6bcd4621d373cade4e832627b4f6",
+				hash:     "0e8bb2625b57f046dcb29b91d0b649449537437f7ed7e79568a9bb02e6c584b1",
 			},
 			false,
 		},
@@ -96,7 +101,7 @@ func TestNewTemplate(t *testing.T) {
 			},
 			&Template{
 				contents:   "test",
-				hexMD5:     "098f6bcd4621d373cade4e832627b4f6",
+				hash:       "0e8bb2625b57f046dcb29b91d0b649449537437f7ed7e79568a9bb02e6c584b1",
 				leftDelim:  "<<",
 				rightDelim: ">>",
 			},
@@ -110,7 +115,7 @@ func TestNewTemplate(t *testing.T) {
 			},
 			&Template{
 				contents:      "test",
-				hexMD5:        "098f6bcd4621d373cade4e832627b4f6",
+				hash:          "0e8bb2625b57f046dcb29b91d0b649449537437f7ed7e79568a9bb02e6c584b1",
 				errMissingKey: true,
 			},
 			false,
@@ -127,7 +132,7 @@ func TestNewTemplate(t *testing.T) {
 				t.Fatal(err)
 			}
 			if !reflect.DeepEqual(tc.e, a) {
-				t.Errorf("\nexp: %#v\nact: %#v", tc.e, a)
+				t.Errorf("\nexp: %#v\nact: %#v (test: %s)", tc.e, a, tc.name)
 			}
 		})
 	}
@@ -324,12 +329,12 @@ func TestTemplate_Execute(t *testing.T) {
 		{
 			"func_file",
 			&NewTemplateInput{
-				Contents: `{{ file "/path/to/file" }}`,
+				Contents: fmt.Sprintf(`{{ file "%s" }}`, f.Name()),
 			},
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
-					d, err := dep.NewFileQuery("/path/to/file")
+					d, err := dep.NewFileQuery(f.Name())
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -1678,6 +1683,18 @@ func TestTemplate_Execute(t *testing.T) {
 			true,
 		},
 		{
+			"sprig_reverse_disabled",
+			&NewTemplateInput{
+				Contents:         `{{ "abcde" | sprig_reverse }}`,
+				FunctionDenylist: []string{"sprig_*"},
+			},
+			&ExecuteInput{
+				Brain: NewBrain(),
+			},
+			"",
+			true,
+		},
+		{
 			"helper_regexMatch",
 			&NewTemplateInput{
 				Contents: `{{ "foo" | regexMatch "[a-z]+" }}`,
@@ -2743,5 +2760,81 @@ func TestTemplate_ExtFuncMap(t *testing.T) {
 			require.NotNil(t, a)
 			require.Equal(t, []byte(tc.e), a.Output)
 		})
+	}
+}
+
+// TestTemplate_HermeticSprigFunctions tests that hermetic Sprig functions
+// are available, but non-hermetic ones are not.
+func TestTemplate_HermeticSprigFunctions(t *testing.T) {
+	cases := []struct {
+		name     string
+		contents string
+		expected string
+		wantErr  bool
+	}{
+		{
+			"hermetic function",
+			`{{ sprig_upper "hello" }}`,
+			"HELLO",
+			false,
+		},
+		{
+			"generic function not available",
+			`{{ sprig_repeat "hello" 3 }}`,
+			"",
+			true,
+		},
+	}
+
+	for i, tc := range cases {
+		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
+			tpl, err := NewTemplate(&NewTemplateInput{
+				Contents: tc.contents,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			result, err := tpl.Execute(nil)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("expected error for %s, but got nil", tc.name)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if !bytes.Equal(result.Output, []byte(tc.expected)) {
+				t.Errorf("\nexpected: %q\nactual:   %q", tc.expected, result.Output)
+			}
+		})
+	}
+}
+
+// TestIdenticalTemplateContentsDifferentHash covers an edge case where more
+// then 1 template has exactly the same body but different destination and
+// should thus get a separate ID.
+func TestIdenticalTemplateContentsDifferentHash(t *testing.T) {
+	tpl1, err := NewTemplate(&NewTemplateInput{
+		Contents:    "foo",
+		Destination: "foo_dst",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tpl2, err := NewTemplate(&NewTemplateInput{
+		Contents:    "foo",
+		Destination: "bar_dst",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if tpl1.ID() == tpl2.ID() {
+		t.Fatal("expected these templates to have different IDs")
 	}
 }

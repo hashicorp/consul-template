@@ -6,7 +6,7 @@
 #   Release image
 #
 # ===================================
-FROM alpine:latest AS release-default
+FROM alpine:3.21 AS release-default
 
 ARG BIN_NAME=consul-template
 # Export BIN_NAME for the CMD below, it can't see ARGs directly.

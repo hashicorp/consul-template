@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -32,7 +31,6 @@ type FileQuery struct {
 
 // NewFileQuery creates a file dependency from the given path.
 func NewFileQuery(s string) (*FileQuery, error) {
-	s = strings.TrimSpace(s)
 	if s == "" {
 		return nil, fmt.Errorf("file: invalid format: %q", s)
 	}

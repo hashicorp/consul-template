@@ -5,7 +5,7 @@ package template
 
 import (
 	"bytes"
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"strings"
@@ -13,6 +13,7 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/pkg/errors"
+	"github.com/ryanuber/go-glob"
 	"golang.org/x/exp/maps"
 
 	"github.com/hashicorp/consul-template/config"
@@ -34,6 +35,19 @@ var (
 	ErrMissingReaderFunction = errors.New("template: missing a reader function")
 )
 
+var (
+	sprigFuncMap template.FuncMap
+)
+
+func init() {
+	sprigFuncMap = make(template.FuncMap, len(sprig.HermeticTxtFuncMap()))
+	// Add the Sprig functions to the funcmap
+	for k, v := range sprig.HermeticTxtFuncMap() {
+		target := "sprig_" + k
+		sprigFuncMap[target] = v
+	}
+}
+
 // Template is the internal representation of an individual template to process.
 // The template retains the relationship between its contents and is
 // responsible for it's own execution.
@@ -53,8 +67,8 @@ type Template struct {
 	leftDelim  string
 	rightDelim string
 
-	// hexMD5 stores the hex version of the MD5
-	hexMD5 string
+	// hash stores the hex version of the sha
+	hash string
 
 	// errMissingKey causes the template processing to exit immediately if a map
 	// is indexed with a key that does not exist.
@@ -171,16 +185,16 @@ func NewTemplate(i *NewTemplateInput) (*Template, error) {
 		t.contents = string(contents)
 	}
 
-	// Compute the MD5, encode as hex
-	hash := md5.Sum([]byte(t.contents))
-	t.hexMD5 = hex.EncodeToString(hash[:])
+	// Compute the sha256, encode as hex
+	hash := sha256.Sum256([]byte(t.source + "\x00" + t.contents + "\x00" + t.destination))
+	t.hash = hex.EncodeToString(hash[:])
 
 	return &t, nil
 }
 
 // ID returns the identifier for this template.
 func (t *Template) ID() string {
-	return t.hexMD5
+	return t.hash
 }
 
 // Contents returns the raw contents of the template.
@@ -436,10 +450,9 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"spew_sprintf": spewSprintf,
 	}
 
-	// Add the Sprig functions to the funcmap
-	for k, v := range sprig.TxtFuncMap() {
-		target := "sprig_" + k
-		r[target] = v
+	// Add the pre-computed Sprig functions to the funcmap
+	for k, v := range sprigFuncMap {
+		r[k] = v
 	}
 
 	// Add external functions
@@ -449,9 +462,12 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		}
 	}
 
+	// Support glob denylist patterns (eg: sprig_* to deny all sprig functions)
 	for _, bf := range i.functionDenylist {
-		if _, ok := r[bf]; ok {
-			r[bf] = denied
+		for name := range r {
+			if glob.Glob(bf, name) {
+				r[name] = denied
+			}
 		}
 	}
 

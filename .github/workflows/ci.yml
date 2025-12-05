@@ -15,6 +15,7 @@ jobs:
     name: Run test cases (with consul${{ matrix.consul-ent-tag }})
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest]
         go: [^1]
@@ -27,6 +28,7 @@ jobs:
         uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
         with:
           go-version: ${{ matrix.go }}
+          cache: false
 
       - name: Install Consul${{ matrix.consul-ent-tag }}, Vault and Nomad for integration testing
         run: |

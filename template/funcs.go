@@ -215,7 +215,10 @@ func fileFunc(b *Brain, used, missing *dep.Set, sandboxPath string) func(string)
 		if len(s) == 0 {
 			return "", nil
 		}
-		err := pathInSandbox(sandboxPath, s)
+
+		// Normalize and resolve symlinks BEFORE both sandbox check and file query
+		normalized := strings.TrimSpace(s)
+		err := pathInSandbox(sandboxPath, normalized)
 		if err != nil {
 			return "", err
 		}
@@ -1277,7 +1280,7 @@ func plugin(name string, args ...string) (string, error) {
 // replaceAll replaces all occurrences of a value in a string with the given
 // replacement value.
 func replaceAll(f, t, s string) (string, error) {
-	return strings.Replace(s, f, t, -1), nil
+	return strings.ReplaceAll(s, f, t), nil
 }
 
 // regexReplaceAll replaces all occurrences of a regular expression with
@@ -1782,19 +1785,29 @@ func denied(...string) (string, error) {
 // pathInSandbox returns an error if the provided path doesn't fall within the
 // sandbox or if the file can't be evaluated (missing, invalid symlink, etc.)
 func pathInSandbox(sandbox, path string) error {
-	if sandbox != "" {
-		s, err := filepath.EvalSymlinks(path)
-		if err != nil {
-			return err
-		}
-		s, err = filepath.Rel(sandbox, s)
-		if err != nil {
-			return err
-		}
-		if strings.HasPrefix(s, "..") {
-			return fmt.Errorf("'%s' is outside of sandbox", path)
-		}
+	if sandbox == "" {
+		return nil
 	}
+
+	// Clean and resolve symlinks for both paths
+	sandboxResolved, err := filepath.EvalSymlinks(filepath.Clean(sandbox))
+	if err != nil {
+		return fmt.Errorf("failed to resolve sandbox path: %w", err)
+	}
+	targetResolved, err := filepath.EvalSymlinks(filepath.Clean(path))
+	if err != nil {
+		return fmt.Errorf("failed to resolve target path: %w", err)
+	}
+
+	// Check containment
+	rel, err := filepath.Rel(sandboxResolved, targetResolved)
+	if err != nil {
+		return fmt.Errorf("failed to get relative path: %w", err)
+	}
+	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return fmt.Errorf("'%s' is outside of sandbox", path)
+	}
+
 	return nil
 }
 

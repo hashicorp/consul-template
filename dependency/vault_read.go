@@ -158,6 +158,7 @@ func (d *VaultReadQuery) readSecret(clients *ClientSet) (*api.Secret, error) {
 	}
 
 	queryString := d.queryValues.Encode()
+
 	log.Printf("[TRACE] %s: GET %s", d, &url.URL{
 		Path:     "/v1/" + d.secretPath,
 		RawQuery: queryString,
@@ -201,13 +202,24 @@ func shimKVv2Path(rawPath, mountPath, clientNamespace string) string {
 	case rawPath == mountPath, rawPath == strings.TrimSuffix(mountPath, "/"):
 		return path.Join(mountPath, "data")
 	default:
-
 		// Canonicalize the client namespace path to always having a '/' suffix
 		if !strings.HasSuffix(clientNamespace, "/") {
 			clientNamespace += "/"
 		}
-		// Extract client namespace from mount path if it exists
-		rawPathNsAndMountPath := strings.TrimPrefix(mountPath, clientNamespace)
+
+		rawPathNsAndMountPath := mountPath
+
+		// Extract client namespace from mount path if it exists.
+		// If the mount path only contains one /, then it will _just_ contain the mount path
+		// and as a result, we don't need to do any trimming.
+		// Similarly, we only want to trim here if the trimming will leave a remaining string.
+		// Trimming to 'nothing' is wrong.
+		if strings.Count(mountPath, "/") > 1 && (len(mountPath) > len(clientNamespace)) {
+			rawPathNsAndMountPath = strings.TrimPrefix(mountPath, clientNamespace)
+			if rawPathNsAndMountPath != mountPath {
+				log.Printf("[TRACE] trimmed '%s' from '%s' to avoid the namespace being prepended twice", clientNamespace, mountPath)
+			}
+		}
 
 		// Trim (mount path - client namespace) from the raw path
 		p := strings.TrimPrefix(rawPath, rawPathNsAndMountPath)

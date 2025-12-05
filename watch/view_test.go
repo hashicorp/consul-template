@@ -332,7 +332,7 @@ func TestRateLimiter(t *testing.T) {
 	elapsed := minDelayBetweenUpdates / 2 // simulate time passing
 	start := time.Now().Add(-elapsed)     // add negative to subtract
 	dur := rateLimiter(start)             // should close to elapsed
-	if !(dur > 0) {
+	if dur <= 0 {
 		t.Errorf("rate limiting duration should be > 0, found: %v", dur)
 	}
 	if dur > minDelayBetweenUpdates {

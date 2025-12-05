@@ -39,7 +39,7 @@ dev:
 
 # dev docker builds
 docker:
-	@env CGO_ENABLED="0" go build -ldflags "${LD_FLAGS}" -o $(NAME)
+	@env CGO_ENABLED="0" go build -buildvcs=false -ldflags "${LD_FLAGS}" -o $(NAME)
 	mkdir -p dist/linux/amd64/
 	cp consul-template dist/linux/amd64/
 	env DOCKER_BUILDKIT=1 docker build -t consul-template .
@@ -54,7 +54,7 @@ test:
 # test-race runs the test suite.
 test-race:
 	@echo "==> Testing ${NAME} (race)"
-	@go test -timeout=60s -race -tags="${GOTAGS}" ./... ${TESTARGS}
+	@go test -v -timeout=120s -race -tags="${GOTAGS}" ./... ${TESTARGS}
 .PHONY: test-race
 
 # _cleanup removes any previous binaries

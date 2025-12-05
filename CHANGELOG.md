@@ -1,3 +1,47 @@
+# 0.41.3
+
+IMPROVEMENTS:
+* Distinguish templates with identical contents but different destinations or sources [GH-2096](https://github.com/hashicorp/consul-template/pull/2096)
+* upgrade go version to latest patch (1.25.3) to fix CVE-2025-47910 [GH-2103](https://github.com/hashicorp/consul-template/pull/2103)
+
+BUG FIXES:
+* fix(config): handle empty regex matches in ParseTemplateConfig - fixes SECVULN-14566 [GH-2099](https://github.com/hashicorp/consul-template/pull/2099)
+
+# 0.41.2 (September 19, 2025)
+
+IMPROVEMENTS:
+* Enhance File Sandbox Security [GH-2083](https://github.com/hashicorp/consul-template/pull/2083)
+* update: go version to 1.25 [GH-2089](https://github.com/hashicorp/consul-template/pull/2089)
+
+# 0.41.0 (June 5, 2025)
+
+IMPROVEMENTS:
+* feat: Pre-compute Sprig template functions during package init [GH-2052](https://github.com/hashicorp/consul-template/pull/2052)
+* update: go version to 1.24.3 [GH-2063](https://github.com/hashicorp/consul-template/pull/2063)
+* security: go-jose/v4 to v4.1.0 to fix CVE-2025-27144 [GH-2063](https://github.com/hashicorp/consul-template/pull/2063)
+* update: github.com/hashicorp/consul/api to v1.32.1 [GH-2063](https://github.com/hashicorp/consul-template/pull/2063)
+* update: github.com/hashicorp/vault/api to v1.16.0 [GH-2063](https://github.com/hashicorp/consul-template/pull/2063)
+
+BUG FIXES:
+* fix: timeout issues for list.peerings [GH-2042](https://github.com/hashicorp/consul-template/pull/2042)
+* fix: use 3.21 instead of latest for alpine in Dockerfile [GH-2064](https://github.com/hashicorp/consul-template/pull/2064)
+
+# 0.40.0 (February 14, 2025)
+
+IMPROVEMENTS:
+* Bump github.com/hashicorp/go-retryablehttp from v0.7.2 to v0.7.7 due to CVE [GH-1967](https://github.com/hashicorp/consul-template/pull/1967)
+* Bump golang.org/x/net to v0.34.0 from v0.24.0 [GH-2017](https://github.com/hashicorp/consul-template/pull/2017)
+* Bump golang.org/x/crypto to v0.32.0 from v0.22.0 [GH-2017](https://github.com/hashicorp/consul-template/pull/2017)
+* Bump golang.org/x/sys to v0.29.0 from v0.20.0 [GH-2017](https://github.com/hashicorp/consul-template/pull/2017)
+* Bump golang.org/x/text to v0.21.0 from v0.14.0 [GH-2017](https://github.com/hashicorp/consul-template/pull/2017)
+* Add support for the Vault KV subkeys API path [GH-2016](https://github.com/hashicorp/consul-template/pull/2016)
+
+REPO MAINTENANCE:
+* Update code owner file [GH-2006](https://github.com/hashicorp/consul-template/pull/2006)
+
+BUG FIXES:
+* Add quiescence run flag to avoid render loops among multiple templates [GH-2010](https://github.com/hashicorp/consul-template/pull/2010)
+
 # 0.39.1 (July 16, 2024)
 
 IMPROVEMENTS:
