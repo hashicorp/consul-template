@@ -1,7 +1,6 @@
 module github.com/hashicorp/consul-template
 
-go 1.25.3
-go 1.23.5
+go 1.25.5
 
 require (
 	github.com/BurntSushi/toml v1.3.2
@@ -64,10 +63,10 @@ require (
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/ryanuber/go-glob v1.0.0 // indirect
+	github.com/ryanuber/go-glob v1.0.0
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
-	golang.org/x/net v0.34.0
+	golang.org/x/net v0.34.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
