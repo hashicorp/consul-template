@@ -123,6 +123,32 @@ func exportedServicesFunc(b *Brain, used, missing *dep.Set) func(...string) ([]d
 	}
 }
 
+// importedServicesFunc returns or accumulates imported services dependencies for a partition.
+func importedServicesFunc(b *Brain, used, missing *dep.Set) func(string) ([]dep.ImportedService, error) {
+	return func(partition string) ([]dep.ImportedService, error) {
+		result := []dep.ImportedService{}
+
+		if partition == "" {
+			return result, errors.New("importedServices: partition name is required")
+		}
+
+		d, err := dep.NewListImportedServicesQuery(partition)
+		if err != nil {
+			return result, err
+		}
+
+		used.Add(d)
+
+		if value, ok := b.Recall(d); ok {
+			return value.([]dep.ImportedService), nil
+		}
+
+		missing.Add(d)
+
+		return result, nil
+	}
+}
+
 // envFunc returns a function which checks the value of an environment variable.
 // Invokers can specify their own environment, which takes precedences over any
 // real environment variables
