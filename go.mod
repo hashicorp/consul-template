@@ -1,14 +1,14 @@
 module github.com/hashicorp/consul-template
 
-go 1.25.4
+go 1.25.5
 
 require (
 	dario.cat/mergo v1.0.2
 	github.com/BurntSushi/toml v1.5.0
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
-	github.com/hashicorp/consul/api v1.32.1
-	github.com/hashicorp/consul/sdk v0.17.0
+	github.com/hashicorp/consul/api v1.33.2
+	github.com/hashicorp/consul/sdk v0.17.1
 	github.com/hashicorp/go-gatedio v0.5.0
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-multierror v1.1.1
@@ -69,6 +69,3 @@ require (
 	golang.org/x/time v0.12.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-// Replace with local consul-enterprise for development of imported-services feature
-replace github.com/hashicorp/consul/api => /Users/lakshminarayanan/go/src/hashicorp/consul-enterprise/api

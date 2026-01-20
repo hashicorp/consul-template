@@ -69,19 +69,14 @@ func (c *ListImportedServicesQuery) Fetch(clients *ClientSet, opts *QueryOptions
 		RawQuery: opts.String(),
 	})
 
-	consulImportedServicesResp, qm, err := clients.Consul().ImportedServices(opts.ToConsulOpts())
+	consulImportedServices, qm, err := clients.Consul().ImportedServices(opts.ToConsulOpts())
 	if err != nil {
 		return nil, nil, fmt.Errorf("%s: %w", c.String(), err)
 	}
 
-	var importedServices []ImportedService
-	if consulImportedServicesResp != nil && consulImportedServicesResp.ImportedServices != nil {
-		importedServices = make([]ImportedService, 0, len(consulImportedServicesResp.ImportedServices))
-		for _, importedService := range consulImportedServicesResp.ImportedServices {
-			importedServices = append(importedServices, fromConsulImportedService(importedService))
-		}
-	} else {
-		importedServices = make([]ImportedService, 0)
+	importedServices := make([]ImportedService, 0, len(consulImportedServices))
+	for _, importedService := range consulImportedServices {
+		importedServices = append(importedServices, fromConsulImportedService(importedService))
 	}
 
 	log.Printf("[TRACE] %s: returned %d results", c, len(importedServices))
