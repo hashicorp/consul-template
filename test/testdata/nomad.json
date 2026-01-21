@@ -38,8 +38,8 @@
           "Driver": "raw_exec",
           "Name": "redis",
           "Resources": {
-            "CPU": 100,
-            "MemoryMB": 100
+            "CPU": 10,
+            "MemoryMB": 32
           }
         }
       ]

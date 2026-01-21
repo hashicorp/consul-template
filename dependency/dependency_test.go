@@ -352,14 +352,41 @@ func initTestNomad(errCh chan<- error) {
 	}
 
 	// Register a job
-	if _, _, err := client.Jobs().Register(&job, nil); err != nil {
+	resp, _, err := client.Jobs().Register(&job, nil)
+	if err != nil {
 		errCh <- fmt.Errorf("failed registering nomad job: %w", err)
 		return
 	}
 
-	// Wait for it start
-	var allocs []*nomadapi.AllocationListStub
+	// Wait for evaluation to complete
 	for e := time.Now().Add(30 * time.Second); time.Now().Before(e); {
+		var eval *nomadapi.Evaluation
+		eval, _, err = client.Evaluations().Info(resp.EvalID, nil)
+		if err != nil {
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+		if eval.Status == "complete" || eval.Status == "failed" || eval.Status == "blocked" {
+			if eval.Status == "failed" {
+				errCh <- fmt.Errorf("evaluation failed: %s", eval.StatusDescription)
+				return
+			}
+			if eval.Status == "blocked" {
+				errCh <- fmt.Errorf("evaluation blocked: %s, failures: %v", eval.StatusDescription, eval.FailedTGAllocs)
+				return
+			}
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	if err != nil {
+		errCh <- fmt.Errorf("failed to wait for evaluation: %w", err)
+		return
+	}
+
+	// Wait for it start (increased timeout for race detector)
+	var allocs []*nomadapi.AllocationListStub
+	for e := time.Now().Add(60 * time.Second); time.Now().Before(e); {
 		allocs, _, err = client.Jobs().Allocations(*job.ID, true, nil)
 		if err != nil {
 			time.Sleep(100 * time.Millisecond)
