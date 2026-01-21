@@ -345,6 +345,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		// API functions
 		"datacenters":      datacentersFunc(i.brain, i.used, i.missing),
 		"exportedServices": exportedServicesFunc(i.brain, i.used, i.missing),
+		"importedServices": importedServicesFunc(i.brain, i.used, i.missing),
 		"file":             fileFunc(i.brain, i.used, i.missing, i.sandboxPath),
 		"key":              keyFunc(i.brain, i.used, i.missing),
 		"keyExists":        keyExistsFunc(i.brain, i.used, i.missing),

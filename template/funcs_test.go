@@ -433,3 +433,33 @@ func Test_exportedServicesFunc(t *testing.T) {
 	assert.Equal(t, "list.exportedServices(default), list.exportedServices(ap1)", used.String())
 	assert.Equal(t, "list.exportedServices(default), list.exportedServices(ap1)", missing.String())
 }
+
+// Test_importedServicesFunc verifies that calling importedServices w/ a
+// different partition tracks an additional dependency
+func Test_importedServicesFunc(t *testing.T) {
+	var used, missing dep.Set
+
+	f := importedServicesFunc(NewBrain(), &used, &missing)
+
+	_, err := f("downstream")
+	require.NoError(t, err)
+	assert.Equal(t, "list.importedServices(downstream)", used.String())
+	assert.Equal(t, "list.importedServices(downstream)", missing.String())
+
+	_, err = f("ap1")
+	require.NoError(t, err)
+	assert.Equal(t, "list.importedServices(downstream), list.importedServices(ap1)", used.String())
+	assert.Equal(t, "list.importedServices(downstream), list.importedServices(ap1)", missing.String())
+}
+
+// Test_importedServicesFunc_emptyPartition verifies that calling importedServices
+// with an empty partition name returns an error
+func Test_importedServicesFunc_emptyPartition(t *testing.T) {
+	var used, missing dep.Set
+
+	f := importedServicesFunc(NewBrain(), &used, &missing)
+
+	_, err := f("")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "partition name is required")
+}

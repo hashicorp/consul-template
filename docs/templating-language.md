@@ -12,6 +12,7 @@ provides the following functions:
   * [`connect`](#connect)
   * [`datacenters`](#datacenters)
   * [`exportedServices`](#exportedservices)
+  * [`importedServices`](#importedservices)
   * [`file`](#file)
   * [`key`](#key)
   * [`keyExists`](#keyexists)
@@ -262,6 +263,38 @@ For example:
     {{- range $consumer := .Consumers.Partitions }}
         {{- $svc.Service }} is exported to the {{ $consumer }} partition
     {{- end }}
+{{- end }}
+```
+
+### `importedServices`
+
+Query [Consul][consul] for all services imported into a partition from other partitions
+in the same datacenter. This is useful for automatically discovering which services
+are available to consume from other partitions.
+
+```golang
+{{ importedServices "<PARTITION>" }}
+```
+
+For example:
+
+```golang
+{{- range $svc := (importedServices "downstream") }}
+Service: {{ $svc.Service }}
+  Namespace: {{ $svc.Namespace }}
+  Source Partition: {{ $svc.SourcePartition }}
+{{- end }}
+```
+
+Example HAProxy configuration using imported services:
+
+```golang
+{{- range $svc := importedServices "downstream" }}
+# Route {{ $svc.Service }} from {{ $svc.SourcePartition }}
+use_backend {{ $svc.Service }}-backend if { req.hdr(host) -i {{ $svc.Service }}.{{ $svc.SourcePartition }} }
+
+backend {{ $svc.Service }}-backend
+  server gateway grid-gateway.{{ $svc.SourcePartition }}:443 check ssl verify none
 {{- end }}
 ```
 
