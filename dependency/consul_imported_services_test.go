@@ -21,9 +21,10 @@ func TestListImportedServicesQuery_Fetch(t *testing.T) {
 		expected            []ImportedService
 	}{
 		"no services": {
-			partition:        "downstream",
-			exportedServices: nil,
-			expected:         []ImportedService{},
+			partition:           "downstream",
+			skipIfNonEnterprise: !tenancyHelper.IsConsulEnterprise(),
+			exportedServices:    nil,
+			expected:            []ImportedService{},
 		},
 		"downstream partition - imports from upstream": {
 			partition:           "downstream",
@@ -209,6 +210,19 @@ func TestListImportedServicesQuery_Fetch(t *testing.T) {
 					opts := &capi.WriteOptions{Partition: entry.Partition}
 					_, err = testClients.Consul().ConfigEntries().Delete(capi.ExportedServices, entry.Name, opts)
 					require.NoError(t, err)
+				}
+			}
+
+			// Clean up partitions created during test
+			if tenancyHelper.IsConsulEnterprise() {
+				partitionsToDelete := []string{"upstream", "downstream"}
+				for _, partName := range partitionsToDelete {
+					_, err := testClients.Consul().Partitions().Delete(context.TODO(), partName, nil)
+					// Ignore error if partition doesn't exist or can't be deleted
+					if err != nil {
+						// Log but don't fail the test for cleanup issues
+						t.Logf("Warning: failed to delete partition %q: %v", partName, err)
+					}
 				}
 			}
 		})
