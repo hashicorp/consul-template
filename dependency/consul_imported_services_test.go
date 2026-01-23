@@ -4,7 +4,6 @@
 package dependency
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -21,25 +20,25 @@ func TestListImportedServicesQuery_Fetch(t *testing.T) {
 		expected            []ImportedService
 	}{
 		"no services": {
-			partition:           "test-downstream",
-			skipIfNonEnterprise: !tenancyHelper.IsConsulEnterprise(),
+			partition:           defaultOrEmtpyString(),
+			skipIfNonEnterprise: false,
 			exportedServices:    nil,
 			expected:            []ImportedService{},
 		},
-		"downstream partition - imports from upstream": {
-			partition:           "test-downstream",
+		"foo partition - imports from default": {
+			partition:           "foo",
 			skipIfNonEnterprise: !tenancyHelper.IsConsulEnterprise(),
 			exportedServices: []*capi.ExportedServicesConfigEntry{
 				{
-					Name:      "test-upstream",
-					Partition: "test-upstream",
+					Name:      "default",
+					Partition: "default",
 					Services: []capi.ExportedService{
 						{
 							Name:      "web",
 							Namespace: "default",
 							Consumers: []capi.ServiceConsumer{
 								{
-									Partition: "test-downstream",
+									Partition: "foo",
 								},
 							},
 						},
@@ -50,39 +49,33 @@ func TestListImportedServicesQuery_Fetch(t *testing.T) {
 				{
 					Service:         "web",
 					Namespace:       "default",
-					SourcePartition: "test-upstream",
+					SourcePartition: "default",
 				},
 			},
 		},
-		"downstream partition - imports from multiple partitions": {
-			partition:           "test-downstream",
+		"foo partition - multiple services from same partition": {
+			partition:           "foo",
 			skipIfNonEnterprise: !tenancyHelper.IsConsulEnterprise(),
 			exportedServices: []*capi.ExportedServicesConfigEntry{
 				{
-					Name:      "test-upstream",
-					Partition: "test-upstream",
+					Name:      "default",
+					Partition: "default",
 					Services: []capi.ExportedService{
 						{
 							Name:      "web",
 							Namespace: "default",
 							Consumers: []capi.ServiceConsumer{
 								{
-									Partition: "test-downstream",
+									Partition: "foo",
 								},
 							},
 						},
-					},
-				},
-				{
-					Name:      "default",
-					Partition: "default",
-					Services: []capi.ExportedService{
 						{
 							Name:      "api",
 							Namespace: "default",
 							Consumers: []capi.ServiceConsumer{
 								{
-									Partition: "test-downstream",
+									Partition: "foo",
 								},
 							},
 						},
@@ -98,66 +91,24 @@ func TestListImportedServicesQuery_Fetch(t *testing.T) {
 				{
 					Service:         "web",
 					Namespace:       "default",
-					SourcePartition: "test-upstream",
+					SourcePartition: "default",
 				},
 			},
 		},
-		"downstream partition - multiple services from same partition": {
-			partition:           "test-downstream",
+		"default partition - no imports (exports only)": {
+			partition:           "default",
 			skipIfNonEnterprise: !tenancyHelper.IsConsulEnterprise(),
 			exportedServices: []*capi.ExportedServicesConfigEntry{
 				{
-					Name:      "test-upstream",
-					Partition: "test-upstream",
+					Name:      "default",
+					Partition: "default",
 					Services: []capi.ExportedService{
 						{
 							Name:      "web",
 							Namespace: "default",
 							Consumers: []capi.ServiceConsumer{
 								{
-									Partition: "test-downstream",
-								},
-							},
-						},
-						{
-							Name:      "api",
-							Namespace: "default",
-							Consumers: []capi.ServiceConsumer{
-								{
-									Partition: "test-downstream",
-								},
-							},
-						},
-					},
-				},
-			},
-			expected: []ImportedService{
-				{
-					Service:         "api",
-					Namespace:       "default",
-					SourcePartition: "test-upstream",
-				},
-				{
-					Service:         "web",
-					Namespace:       "default",
-					SourcePartition: "test-upstream",
-				},
-			},
-		},
-		"upstream partition - no imports (exports only)": {
-			partition:           "test-upstream",
-			skipIfNonEnterprise: !tenancyHelper.IsConsulEnterprise(),
-			exportedServices: []*capi.ExportedServicesConfigEntry{
-				{
-					Name:      "test-upstream",
-					Partition: "test-upstream",
-					Services: []capi.ExportedService{
-						{
-							Name:      "web",
-							Namespace: "default",
-							Consumers: []capi.ServiceConsumer{
-								{
-									Partition: "test-downstream",
+									Partition: "foo",
 								},
 							},
 						},
@@ -172,19 +123,6 @@ func TestListImportedServicesQuery_Fetch(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			if tc.skipIfNonEnterprise {
 				t.Skipf("skipping test %q as Consul is not enterprise", name)
-			}
-
-			// Create partitions if they don't exist
-			if tenancyHelper.IsConsulEnterprise() {
-				partitionsToCreate := []string{"test-upstream", "test-downstream"}
-				for _, partName := range partitionsToCreate {
-					partition := capi.Partition{Name: partName}
-					_, _, err := testClients.Consul().Partitions().Create(context.TODO(), &partition, nil)
-					// Ignore error if partition already exists
-					if err != nil && !isAlreadyExistsError(err) {
-						require.NoError(t, err)
-					}
-				}
 			}
 
 			// Set up exported services config entries
@@ -208,6 +146,7 @@ func TestListImportedServicesQuery_Fetch(t *testing.T) {
 			if tc.exportedServices != nil {
 				for _, entry := range tc.exportedServices {
 					opts := &capi.WriteOptions{Partition: entry.Partition}
+					// need to clean up because we use a single shared consul instance
 					_, err = testClients.Consul().ConfigEntries().Delete(capi.ExportedServices, entry.Name, opts)
 					require.NoError(t, err)
 				}
@@ -222,8 +161,7 @@ func TestListImportedServicesQuery_String(t *testing.T) {
 		expected  string
 	}{
 		{"default", "list.importedServices(default)"},
-		{"upstream", "list.importedServices(upstream)"},
-		{"downstream", "list.importedServices(downstream)"},
+		{"foo", "list.importedServices(foo)"},
 	}
 
 	for _, tc := range testCases {
@@ -233,27 +171,4 @@ func TestListImportedServicesQuery_String(t *testing.T) {
 			assert.Equal(t, tc.expected, q.String())
 		})
 	}
-}
-
-// Helper function to check if error is "already exists"
-func isAlreadyExistsError(err error) bool {
-	if err == nil {
-		return false
-	}
-	// Check if error message contains "already exists" or similar
-	errMsg := err.Error()
-	return contains(errMsg, "already exists") || contains(errMsg, "Partition already exists")
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && (s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || indexString(s, substr) >= 0))
-}
-
-func indexString(s, substr string) int {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return i
-		}
-	}
-	return -1
 }
