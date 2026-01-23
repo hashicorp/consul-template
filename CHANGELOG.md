@@ -1,3 +1,8 @@
+# 0.41.4
+
+IMPROVEMENTS:
+* Add support for Consul's imported services API via `importedServices` template function [GH-2107](https://github.com/hashicorp/consul-template/pull/2120)
+
 # 0.41.3
 
 IMPROVEMENTS:
