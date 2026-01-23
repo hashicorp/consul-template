@@ -21,25 +21,25 @@ func TestListImportedServicesQuery_Fetch(t *testing.T) {
 		expected            []ImportedService
 	}{
 		"no services": {
-			partition:           "downstream",
+			partition:           "test-downstream",
 			skipIfNonEnterprise: !tenancyHelper.IsConsulEnterprise(),
 			exportedServices:    nil,
 			expected:            []ImportedService{},
 		},
 		"downstream partition - imports from upstream": {
-			partition:           "downstream",
+			partition:           "test-downstream",
 			skipIfNonEnterprise: !tenancyHelper.IsConsulEnterprise(),
 			exportedServices: []*capi.ExportedServicesConfigEntry{
 				{
-					Name:      "upstream",
-					Partition: "upstream",
+					Name:      "test-upstream",
+					Partition: "test-upstream",
 					Services: []capi.ExportedService{
 						{
 							Name:      "web",
 							Namespace: "default",
 							Consumers: []capi.ServiceConsumer{
 								{
-									Partition: "downstream",
+									Partition: "test-downstream",
 								},
 							},
 						},
@@ -50,24 +50,24 @@ func TestListImportedServicesQuery_Fetch(t *testing.T) {
 				{
 					Service:         "web",
 					Namespace:       "default",
-					SourcePartition: "upstream",
+					SourcePartition: "test-upstream",
 				},
 			},
 		},
 		"downstream partition - imports from multiple partitions": {
-			partition:           "downstream",
+			partition:           "test-downstream",
 			skipIfNonEnterprise: !tenancyHelper.IsConsulEnterprise(),
 			exportedServices: []*capi.ExportedServicesConfigEntry{
 				{
-					Name:      "upstream",
-					Partition: "upstream",
+					Name:      "test-upstream",
+					Partition: "test-upstream",
 					Services: []capi.ExportedService{
 						{
 							Name:      "web",
 							Namespace: "default",
 							Consumers: []capi.ServiceConsumer{
 								{
-									Partition: "downstream",
+									Partition: "test-downstream",
 								},
 							},
 						},
@@ -82,7 +82,7 @@ func TestListImportedServicesQuery_Fetch(t *testing.T) {
 							Namespace: "default",
 							Consumers: []capi.ServiceConsumer{
 								{
-									Partition: "downstream",
+									Partition: "test-downstream",
 								},
 							},
 						},
@@ -98,24 +98,24 @@ func TestListImportedServicesQuery_Fetch(t *testing.T) {
 				{
 					Service:         "web",
 					Namespace:       "default",
-					SourcePartition: "upstream",
+					SourcePartition: "test-upstream",
 				},
 			},
 		},
 		"downstream partition - multiple services from same partition": {
-			partition:           "downstream",
+			partition:           "test-downstream",
 			skipIfNonEnterprise: !tenancyHelper.IsConsulEnterprise(),
 			exportedServices: []*capi.ExportedServicesConfigEntry{
 				{
-					Name:      "upstream",
-					Partition: "upstream",
+					Name:      "test-upstream",
+					Partition: "test-upstream",
 					Services: []capi.ExportedService{
 						{
 							Name:      "web",
 							Namespace: "default",
 							Consumers: []capi.ServiceConsumer{
 								{
-									Partition: "downstream",
+									Partition: "test-downstream",
 								},
 							},
 						},
@@ -124,7 +124,7 @@ func TestListImportedServicesQuery_Fetch(t *testing.T) {
 							Namespace: "default",
 							Consumers: []capi.ServiceConsumer{
 								{
-									Partition: "downstream",
+									Partition: "test-downstream",
 								},
 							},
 						},
@@ -135,29 +135,29 @@ func TestListImportedServicesQuery_Fetch(t *testing.T) {
 				{
 					Service:         "api",
 					Namespace:       "default",
-					SourcePartition: "upstream",
+					SourcePartition: "test-upstream",
 				},
 				{
 					Service:         "web",
 					Namespace:       "default",
-					SourcePartition: "upstream",
+					SourcePartition: "test-upstream",
 				},
 			},
 		},
 		"upstream partition - no imports (exports only)": {
-			partition:           "upstream",
+			partition:           "test-upstream",
 			skipIfNonEnterprise: !tenancyHelper.IsConsulEnterprise(),
 			exportedServices: []*capi.ExportedServicesConfigEntry{
 				{
-					Name:      "upstream",
-					Partition: "upstream",
+					Name:      "test-upstream",
+					Partition: "test-upstream",
 					Services: []capi.ExportedService{
 						{
 							Name:      "web",
 							Namespace: "default",
 							Consumers: []capi.ServiceConsumer{
 								{
-									Partition: "downstream",
+									Partition: "test-downstream",
 								},
 							},
 						},
@@ -176,7 +176,7 @@ func TestListImportedServicesQuery_Fetch(t *testing.T) {
 
 			// Create partitions if they don't exist
 			if tenancyHelper.IsConsulEnterprise() {
-				partitionsToCreate := []string{"upstream", "downstream"}
+				partitionsToCreate := []string{"test-upstream", "test-downstream"}
 				for _, partName := range partitionsToCreate {
 					partition := capi.Partition{Name: partName}
 					_, _, err := testClients.Consul().Partitions().Create(context.TODO(), &partition, nil)
@@ -210,19 +210,6 @@ func TestListImportedServicesQuery_Fetch(t *testing.T) {
 					opts := &capi.WriteOptions{Partition: entry.Partition}
 					_, err = testClients.Consul().ConfigEntries().Delete(capi.ExportedServices, entry.Name, opts)
 					require.NoError(t, err)
-				}
-			}
-
-			// Clean up partitions created during test
-			if tenancyHelper.IsConsulEnterprise() {
-				partitionsToDelete := []string{"upstream", "downstream"}
-				for _, partName := range partitionsToDelete {
-					_, err := testClients.Consul().Partitions().Delete(context.TODO(), partName, nil)
-					// Ignore error if partition doesn't exist or can't be deleted
-					if err != nil {
-						// Log but don't fail the test for cleanup issues
-						t.Logf("Warning: failed to delete partition %q: %v", partName, err)
-					}
 				}
 			}
 		})
