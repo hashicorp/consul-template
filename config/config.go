@@ -332,6 +332,7 @@ func Parse(s string) (*Config, error) {
 		"exec.env",
 		"log_file",
 		"nomad",
+		"nomad.retry",
 		"nomad.ssl",
 		"nomad.transport",
 		"ssl",
