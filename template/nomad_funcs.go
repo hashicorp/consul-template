@@ -82,15 +82,15 @@ func nomadServiceFunc(b *Brain, used, missing *dep.Set) func(...interface{}) ([]
 
 // nomadVariableItemsFunc returns a given variable rooted at the
 // items map.
-func nomadVariableItemsFunc(b *Brain, used, missing *dep.Set, defaultNS string) func(string) (*dep.NomadVarItems, error) {
-	return func(s string) (*dep.NomadVarItems, error) {
+func nomadVariableItemsFunc(b *Brain, used, missing *dep.Set, defaultNS string) func(string) (dep.NomadVarItems, error) {
+	return func(s string) (dep.NomadVarItems, error) {
 		if len(s) == 0 {
-			return nil, nil
+			return dep.NomadVarItems(nil), nil
 		}
 
 		d, err := dep.NewNVGetQuery(defaultNS, s)
 		if err != nil {
-			return nil, err
+			return dep.NomadVarItems(nil), err
 		}
 		d.EnableBlocking()
 
@@ -98,14 +98,15 @@ func nomadVariableItemsFunc(b *Brain, used, missing *dep.Set, defaultNS string) 
 
 		if value, ok := b.Recall(d); ok {
 			if value == nil {
-				return nil, nil
+				return dep.NomadVarItems(nil), nil
 			}
-			return value.(*dep.NomadVarItems), nil
+			// Stored values in the Brain are pointers to NomadVarItems; return a value
+			return *value.(*dep.NomadVarItems), nil
 		}
 
 		missing.Add(d)
 
-		return nil, nil
+		return dep.NomadVarItems(nil), nil
 	}
 }
 
