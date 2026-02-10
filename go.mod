@@ -7,8 +7,8 @@ require (
 	github.com/BurntSushi/toml v1.5.0
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
-	github.com/hashicorp/consul/api v1.33.0
-	github.com/hashicorp/consul/sdk v0.17.0
+	github.com/hashicorp/consul/api v1.33.2
+	github.com/hashicorp/consul/sdk v0.17.1
 	github.com/hashicorp/go-gatedio v0.5.0
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/go-multierror v1.1.1
@@ -24,12 +24,14 @@ require (
 	github.com/mitchellh/hashstructure v1.1.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/pkg/errors v0.9.1
-	github.com/stretchr/testify v1.11.1
-	golang.org/x/exp v0.0.0-20251125195548-87e1e737ad39
+	github.com/stretchr/testify v1.10.0
+	golang.org/x/exp v0.0.0-20250808145144-a408d31f581a
 	golang.org/x/sys v0.38.0
 	golang.org/x/text v0.31.0
 	gopkg.in/yaml.v2 v2.4.0
 )
+
+require github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 
 require (
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect

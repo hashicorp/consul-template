@@ -34,10 +34,10 @@ func (s *Scratch) Get(k string) interface{} {
 // Set stores the value v at the key k. It will overwrite an existing value
 // if present.
 func (s *Scratch) Set(k string, v interface{}) string {
-	s.init()
-
 	s.Lock()
 	defer s.Unlock()
+
+	s.init()
 	s.values[k] = v
 	return ""
 }
@@ -45,10 +45,10 @@ func (s *Scratch) Set(k string, v interface{}) string {
 // SetX behaves the same as Set, except it will not overwrite existing keys if
 // already present.
 func (s *Scratch) SetX(k string, v interface{}) string {
-	s.init()
-
 	s.Lock()
 	defer s.Unlock()
+
+	s.init()
 	if _, ok := s.values[k]; !ok {
 		s.values[k] = v
 	}
@@ -57,20 +57,20 @@ func (s *Scratch) SetX(k string, v interface{}) string {
 
 // MapSet stores the value v into a key mk in the map named k.
 func (s *Scratch) MapSet(k, mk string, v interface{}) (string, error) {
-	s.init()
-
 	s.Lock()
 	defer s.Unlock()
+
+	s.init()
 	return s.mapSet(k, mk, v, true)
 }
 
 // MapSetX behaves the same as MapSet, except it will not overwrite the map
 // key if it already exists.
 func (s *Scratch) MapSetX(k, mk string, v interface{}) (string, error) {
-	s.init()
-
 	s.Lock()
 	defer s.Unlock()
+	s.init()
+
 	return s.mapSet(k, mk, v, false)
 }
 
@@ -96,10 +96,10 @@ func (s *Scratch) mapSet(k, mk string, v interface{}, o bool) (string, error) {
 
 // MapValues returns the list of values in the map sorted by key.
 func (s *Scratch) MapValues(k string) ([]interface{}, error) {
-	s.init()
-
 	s.Lock()
 	defer s.Unlock()
+	s.init()
+
 	if s.values == nil {
 		return nil, nil
 	}
