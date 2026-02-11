@@ -144,10 +144,13 @@ func leaseCheckWait(s *Secret) time.Duration {
 	if _, ok := s.Data["rotation_period"]; ok && s.LeaseID == "" {
 		if ttlInterface, ok := s.Data["ttl"]; ok {
 			if ttlData, err := ttlInterface.(json.Number).Int64(); err == nil {
-				log.Printf("[DEBUG] Found rotation_period and set lease duration to %d seconds", ttlData)
-				// Add a second for cushion
-				base = int(ttlData) + 1
-				rotatingSecret = true
+				// FIX: When TTL is 0, don't treat as rotating secret so it uses the lease duration
+				if ttlData > 0 {
+					log.Printf("[DEBUG] Found rotation_period and set lease duration to %d seconds", ttlData)
+					// Add a second for cushion
+					base = int(ttlData) + 1
+					rotatingSecret = true
+				}
 			}
 		}
 	}

@@ -57,6 +57,22 @@ func TestVaultRenewDuration(t *testing.T) {
 		t.Fatalf("renewable duration is not 6: %f", nonRenewableRotatedDur)
 	}
 
+	// Test rotating secret with TTL=0 should not be treated as rotating
+	// and should use the original LeaseDuration with non-renewable lease logic
+	data = map[string]interface{}{
+		"rotation_period": json.Number("60"),
+		"ttl":             json.Number("0"),
+	}
+
+	nonRenewableRotatedZeroTTL := Secret{LeaseDuration: 100, Data: data}
+	nonRenewableRotatedZeroTTLDur := leaseCheckWait(&nonRenewableRotatedZeroTTL).Seconds()
+
+	// When TTL is 0, it should NOT be treated as a rotating secret,
+	// so it uses the LeaseDuration (100) with the non-renewable threshold (80-95%)
+	if nonRenewableRotatedZeroTTLDur < 80 || nonRenewableRotatedZeroTTLDur > 95 {
+		t.Fatalf("rotating secret with TTL=0 duration is not within 80%% to 95%% of lease duration: %f", nonRenewableRotatedZeroTTLDur)
+	}
+
 	rawExpiration := time.Now().Unix() + 100
 	expiration := strconv.FormatInt(rawExpiration, 10)
 
