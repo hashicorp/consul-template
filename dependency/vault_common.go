@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"log"
 	"math/big"
-	mathrand "math/rand"
 	"sync"
 	"time"
 
@@ -187,7 +186,7 @@ func leaseCheckWait(s *Secret, retryCount int) time.Duration {
 		sleep = sleep / 3.0
 
 		// Use some randomness so many clients do not hit Vault simultaneously.
-		sleep = sleep * (mathrand.Float64() + 1) / 2.0
+		sleep = sleep * (secureRandomFloat64() + 1) / 2.0
 	} else if !rotatingSecret {
 		// If the secret doesn't have a rotation period, this is a non-renewable leased
 		// secret.
@@ -195,7 +194,7 @@ func leaseCheckWait(s *Secret, retryCount int) time.Duration {
 		// lease as possible. Use a stagger over the configured threshold
 		// fraction of the lease duration so that many clients do not hit
 		// Vault simultaneously.
-		finalFraction := VaultLeaseRenewalThreshold + (mathrand.Float64()-0.5)*0.1
+		finalFraction := VaultLeaseRenewalThreshold + (secureRandomFloat64()-0.5)*0.1
 		if finalFraction >= 1.0 || finalFraction <= 0.0 {
 			// If the fraction randomly winds up outside of (0.0-1.0), clamp
 			// back down to the VaultLeaseRenewalThreshold provided by the user,
@@ -210,19 +209,24 @@ func leaseCheckWait(s *Secret, retryCount int) time.Duration {
 	return time.Duration(sleep)
 }
 
-// jitter adds randomness to a duration to prevent thundering herd.
-// It reduces the duration by up to maxJitter (10%) randomly using crypto/rand.
-// using this to fix CWE-338: Use of Cryptographically Secure Pseudo-Random Number Generator (CSPRNG)
-func jitter(t time.Duration) time.Duration {
-	// Generate cryptographically secure random value between 0.0 and 1.0
+// secureRandomFloat64 generates a cryptographically secure random float64 in [0.0, 1.0).
+// This is thread-safe and used to fix CWE-338.
+func secureRandomFloat64() float64 {
 	max := big.NewInt(1000000)
 	n, err := cryptorand.Int(cryptorand.Reader, max)
 	if err != nil {
-		// Fallback to no jitter if crypto/rand fails
-		log.Printf("[WARN] Failed to generate secure random jitter: %v", err)
-		return t
+		// Fallback to 0.5 if crypto/rand fails (rare but possible)
+		log.Printf("[WARN] Failed to generate secure random number: %v", err)
+		return 0.5
 	}
-	randomFloat := float64(n.Int64()) / 1000000.0
+	return float64(n.Int64()) / 1000000.0
+}
+
+// jitter adds randomness to a duration to prevent thundering herd.
+// It reduces the duration by up to maxJitter (10%) randomly using crypto/rand.
+// This function is thread-safe.
+func jitter(t time.Duration) time.Duration {
+	randomFloat := secureRandomFloat64()
 	f := float64(t) * (1.0 - maxJitter*randomFloat)
 	return time.Duration(f)
 }
