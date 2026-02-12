@@ -32,6 +32,9 @@ type VaultWriteQuery struct {
 
 	// vaultSecret is the actual Vault secret which we are renewing
 	vaultSecret *api.Secret
+
+	// retryCount tracks the number of retries for exponential backoff
+	retryCount int
 }
 
 // NewVaultWriteQuery creates a new datacenter dependency.
@@ -91,9 +94,13 @@ func (d *VaultWriteQuery) Fetch(clients *ClientSet, opts *QueryOptions,
 	d.secret = transformSecret(vaultSecret)
 
 	if !vaultSecretRenewable(d.secret) {
-		dur := leaseCheckWait(d.secret)
-		log.Printf("[TRACE] %s: non-renewable secret, set sleep for %s", d, dur)
+		dur := leaseCheckWait(d.secret, d.retryCount)
+		log.Printf("[TRACE] %s: non-renewable secret, set sleep for %s (retry %d)", d, dur, d.retryCount)
+		d.retryCount++
 		d.sleepCh <- dur
+	} else {
+		// Reset retry count on successful renewable secret
+		d.retryCount = 0
 	}
 
 	return respWithMetadata(d.secret)

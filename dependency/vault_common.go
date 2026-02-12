@@ -22,6 +22,8 @@ var (
 	onceVaultLeaseRenewalThreshold sync.Once
 )
 
+const maxJitter = 0.1
+
 // Secret is the structure returned for every secret within Vault.
 type Secret struct {
 	// The request ID that generated this response
@@ -109,9 +111,9 @@ func renewSecret(clients *ClientSet, d renewer) error {
 	}
 }
 
-// leaseCheckWait accepts a secret and returns the recommended amount of
-// time to sleep.
-func leaseCheckWait(s *Secret) time.Duration {
+// leaseCheckWait accepts a secret and retry count, returns the recommended amount of
+// time to sleep. For rotating secrets with ttl=0, implements exponential backoff.
+func leaseCheckWait(s *Secret, retryCount int) time.Duration {
 	// Handle whether this is an auth or a regular secret.
 	base := s.LeaseDuration
 	if s.Auth != nil && s.Auth.LeaseDuration > 0 {
@@ -144,12 +146,26 @@ func leaseCheckWait(s *Secret) time.Duration {
 	if _, ok := s.Data["rotation_period"]; ok && s.LeaseID == "" {
 		if ttlInterface, ok := s.Data["ttl"]; ok {
 			if ttlData, err := ttlInterface.(json.Number).Int64(); err == nil {
-				// FIX: When TTL is 0, don't treat as rotating secret so it uses the lease duration
 				if ttlData > 0 {
 					log.Printf("[DEBUG] Found rotation_period and set lease duration to %d seconds", ttlData)
 					// Add a second for cushion
 					base = int(ttlData) + 1
 					rotatingSecret = true
+				} else if ttlData == 0 {
+					// FIX: When TTL is 0, implement exponential backoff with jitter
+					// Start at 5s, double each time, max is VaultDefaultLeaseDuration or 300s
+					backoff := 5 * (1 << uint(retryCount)) // 5s, 10s, 20s, 40s, 80s...
+					maxBackoff := int(VaultDefaultLeaseDuration.Seconds())
+					if maxBackoff <= 0 {
+						maxBackoff = 300 // Default max of 300 seconds if not configured
+					}
+					if backoff > maxBackoff {
+						backoff = maxBackoff
+					}
+					backoffDur := time.Duration(backoff) * time.Second
+					backoffWithJitter := jitter(backoffDur)
+					log.Printf("[DEBUG] Found rotation_period with ttl=0, using exponential backoff: %s with jitter %s (retry %d)", backoffDur, backoffWithJitter, retryCount)
+					return backoffWithJitter
 				}
 			}
 		}
@@ -190,6 +206,13 @@ func leaseCheckWait(s *Secret) time.Duration {
 	}
 
 	return time.Duration(sleep)
+}
+
+// jitter adds randomness to a duration to prevent thundering herd.
+// It reduces the duration by up to maxJitter (10%) randomly.
+func jitter(t time.Duration) time.Duration {
+	f := float64(t) * (1.0 - maxJitter*rand.Float64())
+	return time.Duration(f)
 }
 
 // printVaultWarnings prints warnings for a given dependency.
