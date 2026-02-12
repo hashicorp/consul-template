@@ -4,10 +4,11 @@
 package dependency
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"log"
-	"math/rand"
+	"math/big"
 	"sync"
 	"time"
 
@@ -185,7 +186,8 @@ func leaseCheckWait(s *Secret, retryCount int) time.Duration {
 		sleep = sleep / 3.0
 
 		// Use some randomness so many clients do not hit Vault simultaneously.
-		sleep = sleep * (rand.Float64() + 1) / 2.0
+		randVal := secureRandomFloat64()
+		sleep = sleep * (randVal + 1) / 2.0
 	} else if !rotatingSecret {
 		// If the secret doesn't have a rotation period, this is a non-renewable leased
 		// secret.
@@ -193,7 +195,7 @@ func leaseCheckWait(s *Secret, retryCount int) time.Duration {
 		// lease as possible. Use a stagger over the configured threshold
 		// fraction of the lease duration so that many clients do not hit
 		// Vault simultaneously.
-		finalFraction := VaultLeaseRenewalThreshold + (rand.Float64()-0.5)*0.1
+		finalFraction := VaultLeaseRenewalThreshold + (secureRandomFloat64()-0.5)*0.1
 		if finalFraction >= 1.0 || finalFraction <= 0.0 {
 			// If the fraction randomly winds up outside of (0.0-1.0), clamp
 			// back down to the VaultLeaseRenewalThreshold provided by the user,
@@ -208,10 +210,26 @@ func leaseCheckWait(s *Secret, retryCount int) time.Duration {
 	return time.Duration(sleep)
 }
 
+// secureRandomFloat64 returns a cryptographically secure random float64 in [0.0, 1.0)
+func secureRandomFloat64() float64 {
+	// Generate a random 53-bit integer (mantissa precision of float64)
+	// Use crypto/rand for secure random generation (CWE-338 fix)
+
+	max := big.NewInt(1 << 53)
+	n, err := rand.Int(rand.Reader, max)
+	if err != nil {
+		// Fallback to 0.5 on error (middle of range)
+		log.Printf("[WARN] failed to generate secure random number: %v", err)
+		return 0.5
+	}
+	return float64(n.Int64()) / float64(max.Int64())
+}
+
 // jitter adds randomness to a duration to prevent thundering herd.
 // It reduces the duration by up to maxJitter (10%) randomly.
 func jitter(t time.Duration) time.Duration {
-	f := float64(t) * (1.0 - maxJitter*rand.Float64())
+	randVal := secureRandomFloat64()
+	f := float64(t) * (1.0 - maxJitter*randVal)
 	return time.Duration(f)
 }
 
