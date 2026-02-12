@@ -4,12 +4,11 @@
 package child
 
 import (
-	cryptorand "crypto/rand"
 	"errors"
 	"fmt"
 	"io"
 	"log"
-	"math/big"
+	"math/rand"
 	"os"
 	"os/exec"
 	"strings"
@@ -476,15 +475,7 @@ func (c *Child) randomSplay() <-chan time.Time {
 	}
 
 	ns := c.splay.Nanoseconds()
-	// Use crypto/rand for secure random generation (CWE-338 fix)
-	max := big.NewInt(ns)
-	n, err := cryptorand.Int(cryptorand.Reader, max)
-	if err != nil {
-		// Fallback to no splay if crypto/rand fails
-		log.Printf("[WARN] (child) failed to generate secure random splay: %v", err)
-		return time.After(0)
-	}
-	t := time.Duration(n.Int64())
+	t := time.Duration(rand.Int63n(ns))
 
 	c.logger.Printf("[DEBUG] (child) waiting %.2fs for random splay", t.Seconds())
 
