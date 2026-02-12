@@ -137,7 +137,7 @@ func TestFileQuery_Fetch(t *testing.T) {
 		}
 	})
 
-	syncWriteFile := func(name string, data []byte, perm os.FileMode) error {
+	syncWriteFile := func(name string, data []byte, _ os.FileMode) error {
 		// Write to a temporary file in the same directory to ensure atomic rename
 		dir := filepath.Dir(name)
 		tmpFile, err := os.CreateTemp(dir, ".syncwrite-*")
