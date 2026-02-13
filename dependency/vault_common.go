@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"math/rand"
+	"math/rand" // TODO: Replace with crypto/rand to fix CWE-338 (cryptographically weak PRNG)
 	"sync"
 	"time"
 
@@ -185,6 +185,7 @@ func leaseCheckWait(s *Secret, retryCount int) time.Duration {
 		sleep = sleep / 3.0
 
 		// Use some randomness so many clients do not hit Vault simultaneously.
+		// TODO: Replace math/rand.Float64 with crypto/rand to fix CWE-338
 		sleep = sleep * (rand.Float64() + 1) / 2.0
 	} else if !rotatingSecret {
 		// If the secret doesn't have a rotation period, this is a non-renewable leased
@@ -193,6 +194,7 @@ func leaseCheckWait(s *Secret, retryCount int) time.Duration {
 		// lease as possible. Use a stagger over the configured threshold
 		// fraction of the lease duration so that many clients do not hit
 		// Vault simultaneously.
+		// TODO: Replace math/rand.Float64 with crypto/rand to fix CWE-338
 		finalFraction := VaultLeaseRenewalThreshold + (rand.Float64()-0.5)*0.1
 		if finalFraction >= 1.0 || finalFraction <= 0.0 {
 			// If the fraction randomly winds up outside of (0.0-1.0), clamp
@@ -211,6 +213,7 @@ func leaseCheckWait(s *Secret, retryCount int) time.Duration {
 // jitter adds randomness to a duration to prevent thundering herd.
 // It reduces the duration by up to maxJitter (10%) randomly.
 func jitter(t time.Duration) time.Duration {
+	// TODO: Replace math/rand.Float64 with crypto/rand to fix CWE-338
 	f := float64(t) * (1.0 - maxJitter*rand.Float64())
 	return time.Duration(f)
 }

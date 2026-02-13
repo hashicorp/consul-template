@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math/rand"
+	"math/rand" // TODO: Replace with crypto/rand to fix CWE-338 (cryptographically weak PRNG)
 	"os"
 	"os/exec"
 	"strings"
@@ -475,6 +475,8 @@ func (c *Child) randomSplay() <-chan time.Time {
 	}
 
 	ns := c.splay.Nanoseconds()
+	// TODO: Replace math/rand.Int63n with crypto/rand.Int to fix CWE-338
+	// Use: nBig, err := rand.Int(rand.Reader, big.NewInt(ns))
 	offset := rand.Int63n(ns)
 	t := time.Duration(offset)
 

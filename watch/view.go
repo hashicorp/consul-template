@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"math/rand"
+	"math/rand" // TODO: Replace with crypto/rand to fix CWE-338 (cryptographically weak PRNG)
 	"reflect"
 	"sync"
 	"time"
@@ -311,6 +311,7 @@ const minDelayBetweenUpdates = time.Millisecond * 100
 func rateLimiter(start time.Time) time.Duration {
 	remaining := minDelayBetweenUpdates - time.Since(start)
 	if remaining > 0 {
+		// TODO: Replace math/rand.Int63n with crypto/rand.Int to fix CWE-338
 		dither := time.Duration(rand.Int63n(20000000)) // 0-20ms
 		return remaining + dither
 	}
