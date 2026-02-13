@@ -6,7 +6,6 @@ package dependency
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -137,39 +136,15 @@ func TestFileQuery_Fetch(t *testing.T) {
 		}
 	})
 
-	syncWriteFile := func(name string, data []byte, _ os.FileMode) error {
-		// Write to a temporary file in the same directory to ensure atomic rename
-		dir := filepath.Dir(name)
-		tmpFile, err := os.CreateTemp(dir, ".syncwrite-*")
-		if err != nil {
-			return err
-		}
-		tmpName := tmpFile.Name()
-		defer os.Remove(tmpName)
-
-		_, err = tmpFile.Write(data)
+	syncWriteFile := func(name string, data []byte, perm os.FileMode) error {
+		f, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC|os.O_SYNC, perm)
 		if err == nil {
-			err = tmpFile.Sync()
+			_, err = f.Write(data)
+			if err1 := f.Close(); err1 != nil && err == nil {
+				err = err1
+			}
 		}
-		if err1 := tmpFile.Close(); err1 != nil && err == nil {
-			err = err1
-		}
-		if err != nil {
-			return err
-		}
-
-		// Atomically rename the temp file to the target file
-		if err := os.Rename(tmpName, name); err != nil {
-			return err
-		}
-
-		// Ensure the directory entry is synced (best effort)
-		if dirFile, err := os.Open(dir); err == nil {
-			dirFile.Sync()
-			dirFile.Close()
-		}
-
-		return nil
+		return err
 	}
 	t.Run("fires_changes", func(t *testing.T) {
 		f, err := os.CreateTemp("", "")
