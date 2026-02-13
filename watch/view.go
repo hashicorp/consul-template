@@ -4,10 +4,11 @@
 package watch
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"log"
-	"math/rand"
+	"math/big"
 	"reflect"
 	"sync"
 	"time"
@@ -311,7 +312,13 @@ const minDelayBetweenUpdates = time.Millisecond * 100
 func rateLimiter(start time.Time) time.Duration {
 	remaining := minDelayBetweenUpdates - time.Since(start)
 	if remaining > 0 {
-		dither := time.Duration(rand.Int63n(20000000)) // 0-20ms
+		// Use crypto/rand for secure random generation (CWE-338 fix)
+		n, err := rand.Int(rand.Reader, big.NewInt(20000000))
+		if err != nil {
+			// Fallback to no dither on error
+			return remaining
+		}
+		dither := time.Duration(n.Int64()) // 0-20ms in nanoseconds
 		return remaining + dither
 	}
 	return 0

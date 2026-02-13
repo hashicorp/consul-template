@@ -4,10 +4,11 @@
 package dependency
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"log"
-	"math/rand"
+	"math/big"
 	"sync"
 	"time"
 
@@ -75,6 +76,21 @@ type renewer interface {
 	Dependency
 	stopChan() chan struct{}
 	secrets() (*Secret, *api.Secret)
+}
+
+// cryptoRandFloat64 generates a cryptographically secure random float64 in [0.0, 1.0)
+func cryptoRandFloat64() float64 {
+	// Generate a random 53-bit integer (mantissa precision of float64)
+	max := big.NewInt(1 << 53)
+	n, err := rand.Int(rand.Reader, max)
+	if err != nil {
+		// Fallback to a reasonable default if crypto/rand fails
+		// This should never happen in practice
+		log.Printf("[WARN] crypto/rand failed, using 0.5 as fallback: %v", err)
+		return 0.5
+	}
+	// Convert to float64 in range [0.0, 1.0)
+	return float64(n.Int64()) / float64(max.Int64())
 }
 
 func renewSecret(clients *ClientSet, d renewer) error {
@@ -166,7 +182,7 @@ func leaseCheckWait(s *Secret) time.Duration {
 		sleep = sleep / 3.0
 
 		// Use some randomness so many clients do not hit Vault simultaneously.
-		sleep = sleep * (rand.Float64() + 1) / 2.0
+		sleep = sleep * (cryptoRandFloat64() + 1) / 2.0
 	} else if !rotatingSecret {
 		// If the secret doesn't have a rotation period, this is a non-renewable leased
 		// secret.
@@ -174,7 +190,7 @@ func leaseCheckWait(s *Secret) time.Duration {
 		// lease as possible. Use a stagger over the configured threshold
 		// fraction of the lease duration so that many clients do not hit
 		// Vault simultaneously.
-		finalFraction := VaultLeaseRenewalThreshold + (rand.Float64()-0.5)*0.1
+		finalFraction := VaultLeaseRenewalThreshold + (cryptoRandFloat64()-0.5)*0.1
 		if finalFraction >= 1.0 || finalFraction <= 0.0 {
 			// If the fraction randomly winds up outside of (0.0-1.0), clamp
 			// back down to the VaultLeaseRenewalThreshold provided by the user,
