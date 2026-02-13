@@ -21,6 +21,8 @@ var (
 	onceVaultDefaultLeaseDuration  sync.Once
 	VaultLeaseRenewalThreshold     float64
 	onceVaultLeaseRenewalThreshold sync.Once
+	// maxRandFloat is the maximum value for cryptographically secure random float64 generation
+	maxRandFloat = big.NewInt(1 << 53)
 )
 
 // Secret is the structure returned for every secret within Vault.
@@ -78,11 +80,10 @@ type renewer interface {
 	secrets() (*Secret, *api.Secret)
 }
 
-// cryptoRandFloat64 generates a cryptographically secure random float64 in [0.0, 1.0)
+// cryptoRandFloat64 generates a cryptographically secure random float64 in [0.0, 1.0) (CWE-338 fix)
 func cryptoRandFloat64() float64 {
 	// Generate a random 53-bit integer (mantissa precision of float64)
-	max := big.NewInt(1 << 53)
-	n, err := rand.Int(rand.Reader, max)
+	n, err := rand.Int(rand.Reader, maxRandFloat)
 	if err != nil {
 		// Fallback to a reasonable default if crypto/rand fails
 		// This should never happen in practice
@@ -90,7 +91,7 @@ func cryptoRandFloat64() float64 {
 		return 0.5
 	}
 	// Convert to float64 in range [0.0, 1.0)
-	return float64(n.Int64()) / float64(max.Int64())
+	return float64(n.Int64()) / float64(maxRandFloat.Int64())
 }
 
 func renewSecret(clients *ClientSet, d renewer) error {
