@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/hashicorp/vault/api"
 )
 
@@ -21,8 +22,6 @@ var (
 	VaultLeaseRenewalThreshold     float64
 	onceVaultLeaseRenewalThreshold sync.Once
 )
-
-const maxJitter = 0.1
 
 // Secret is the structure returned for every secret within Vault.
 type Secret struct {
@@ -152,20 +151,35 @@ func leaseCheckWait(s *Secret, retryCount int) time.Duration {
 					base = int(ttlData) + 1
 					rotatingSecret = true
 				} else if ttlData == 0 {
-					// FIX: When TTL is 0, implement exponential backoff with jitter
-					// Start at 5s, double each time, max is VaultDefaultLeaseDuration or 300s
-					backoff := 5 * (1 << uint(retryCount)) // 5s, 10s, 20s, 40s, 80s...
-					maxBackoff := int(VaultDefaultLeaseDuration.Seconds())
+					// FIX: To address the case where Vault responds with a TTL of 0 when there's
+					// been an error rotating the secret on the Vault side, so this is effectively
+					// retrying an error condition. When TTL is 0, implement exponential backoff
+					// Start at 2s, double each time, max is VaultDefaultLeaseDuration or 300s
+					maxBackoff := VaultDefaultLeaseDuration
 					if maxBackoff <= 0 {
-						maxBackoff = 300 // Default max of 300 seconds if not configured
+						maxBackoff = 300 * time.Second // Default max of 300 seconds if not configured
 					}
-					if backoff > maxBackoff {
-						backoff = maxBackoff
+
+					expBackoff := backoff.NewExponentialBackOff()
+					expBackoff.InitialInterval = 2 * time.Second
+					expBackoff.Multiplier = 2.0
+					expBackoff.MaxInterval = maxBackoff
+					expBackoff.MaxElapsedTime = 0 // Never stop retrying
+					// Keep default RandomizationFactor (0.5) for jitter to prevent thundering herd
+					expBackoff.Reset()
+
+					// Calculate backoff for the current retry attempt
+					// NextBackOff() must be called retryCount+1 times to get the correct interval
+					var backoffDur time.Duration
+					for i := 0; i <= retryCount; i++ {
+						backoffDur = expBackoff.NextBackOff()
 					}
-					backoffDur := time.Duration(backoff) * time.Second
-					backoffWithJitter := jitter(backoffDur)
-					log.Printf("[DEBUG] Found rotation_period with ttl=0, using exponential backoff: %s with jitter %s (retry %d)", backoffDur, backoffWithJitter, retryCount)
-					return backoffWithJitter
+					if backoffDur == backoff.Stop {
+						backoffDur = maxBackoff
+					}
+
+					log.Printf("[DEBUG] Found rotation_period with ttl=0, using exponential backoff: %s (retry %d)", backoffDur, retryCount)
+					return backoffDur
 				}
 			}
 		}
@@ -208,14 +222,6 @@ func leaseCheckWait(s *Secret, retryCount int) time.Duration {
 	}
 
 	return time.Duration(sleep)
-}
-
-// jitter adds randomness to a duration to prevent thundering herd.
-// It reduces the duration by up to maxJitter (10%) randomly.
-func jitter(t time.Duration) time.Duration {
-	// TODO: Replace math/rand.Float64 with crypto/rand to fix CWE-338
-	f := float64(t) * (1.0 - maxJitter*rand.Float64())
-	return time.Duration(f)
 }
 
 // printVaultWarnings prints warnings for a given dependency.

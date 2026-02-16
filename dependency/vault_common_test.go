@@ -65,14 +65,15 @@ func TestVaultRenewDuration(t *testing.T) {
 
 	nonRenewableRotatedZeroTTL := Secret{LeaseDuration: 100, Data: data}
 
-	// Test exponential backoff with jitter: 5s, 10s, 20s, 40s, 80s, 160s (max 300s)
-	// Jitter reduces by up to 10%, so we check the range
-	expectedBackoffs := []float64{5, 10, 20, 40, 80, 160}
+	// Test exponential backoff: 2s, 4s, 8s, 16s, 32s, 64s, 128s, 256s (max 300s)
+	// Using cenkalti/backoff with default RandomizationFactor (0.5) for jitter
+	// This means the actual interval will be [0.5*interval, 1.5*interval]
+	expectedBackoffs := []float64{2, 4, 8, 16, 32, 64, 128, 256}
 	for i, expected := range expectedBackoffs {
 		dur := leaseCheckWait(&nonRenewableRotatedZeroTTL, i).Seconds()
-		// With jitter, duration should be between 90% and 100% of expected
-		minExpected := expected * 0.9
-		maxExpected := expected
+		// With RandomizationFactor=0.5, allow 50% variance: [0.5*expected, 1.5*expected]
+		minExpected := expected * 0.5
+		maxExpected := expected * 1.5
 		if dur < minExpected || dur > maxExpected {
 			t.Fatalf("retry %d: expected between %f and %f seconds, got %f", i, minExpected, maxExpected, dur)
 		}

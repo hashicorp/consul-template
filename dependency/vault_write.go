@@ -5,6 +5,7 @@ package dependency
 
 import (
 	"crypto/sha1"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -94,9 +95,25 @@ func (d *VaultWriteQuery) Fetch(clients *ClientSet, opts *QueryOptions,
 	d.secret = transformSecret(vaultSecret)
 
 	if !vaultSecretRenewable(d.secret) {
+		// Check if this is a successful rotation (ttl > 0)
+		shouldResetRetry := false
+		if _, ok := d.secret.Data["rotation_period"]; ok && d.secret.LeaseID == "" {
+			if ttlInterface, ok := d.secret.Data["ttl"]; ok {
+				if ttlData, err := ttlInterface.(json.Number).Int64(); err == nil && ttlData > 0 {
+					shouldResetRetry = true
+				}
+			}
+		}
+
 		dur := leaseCheckWait(d.secret, d.retryCount)
 		log.Printf("[TRACE] %s: non-renewable secret, set sleep for %s (retry %d)", d, dur, d.retryCount)
-		d.retryCount++
+
+		if shouldResetRetry {
+			// Reset retry count on successful rotation
+			d.retryCount = 0
+		} else {
+			d.retryCount++
+		}
 		d.sleepCh <- dur
 	} else {
 		// Reset retry count on successful renewable secret
