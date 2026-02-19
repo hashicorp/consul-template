@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	dep "github.com/hashicorp/consul-template/dependency"
 )
 
@@ -166,17 +167,26 @@ func (v *View) poll(viewCh chan<- *View, errCh chan<- error, serverErrCh chan<- 
 
 				// Check if this is a TTL=0 error and use custom retry logic
 				if _, isTTLZeroErr := err.(*dep.VaultTTLZeroError); isTTLZeroErr {
-					// Use custom TTL=0 retry configuration
+					// Use custom TTL=0 retry configuration with exponential backoff
 					if dep.VaultTTLZeroMaxRetries > 0 && retries >= dep.VaultTTLZeroMaxRetries {
 						retry = false
 						sleep = 0
 					} else {
 						retry = true
-						// Calculate exponential backoff: 250ms * 2^retry
-						baseSleep := 250 * time.Millisecond
-						sleep = time.Duration(1<<uint(retries)) * baseSleep
-						// Cap at max backoff
-						if dep.VaultTTLZeroMaxBackoff > 0 && sleep > dep.VaultTTLZeroMaxBackoff {
+						// Use cenkalti/backoff for exponential backoff calculation
+						b := backoff.NewExponentialBackOff()
+						b.InitialInterval = 250 * time.Millisecond
+						b.MaxInterval = dep.VaultTTLZeroMaxBackoff
+						b.Multiplier = 2.0
+						b.RandomizationFactor = 0.5 // Add jitter to prevent thundering herd
+						b.MaxElapsedTime = 0        // No time limit, only retry count matters
+						b.Reset()
+
+						// Calculate backoff for current retry attempt
+						for i := 0; i < retries; i++ {
+							sleep = b.NextBackOff()
+						}
+						if sleep == backoff.Stop {
 							sleep = dep.VaultTTLZeroMaxBackoff
 						}
 					}
