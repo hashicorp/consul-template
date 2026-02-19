@@ -161,7 +161,30 @@ func (v *View) poll(viewCh chan<- *View, errCh chan<- error, serverErrCh chan<- 
 			goto WAIT
 		case err := <-fetchErrCh:
 			if !errors.Is(err, errLookup) && v.retryFunc != nil {
-				retry, sleep := v.retryFunc(retries)
+				var retry bool
+				var sleep time.Duration
+
+				// Check if this is a TTL=0 error and use custom retry logic
+				if _, isTTLZeroErr := err.(*dep.VaultTTLZeroError); isTTLZeroErr {
+					// Use custom TTL=0 retry configuration
+					if dep.VaultTTLZeroMaxRetries > 0 && retries >= dep.VaultTTLZeroMaxRetries {
+						retry = false
+						sleep = 0
+					} else {
+						retry = true
+						// Calculate exponential backoff: 250ms * 2^retry
+						baseSleep := 250 * time.Millisecond
+						sleep = time.Duration(1<<uint(retries)) * baseSleep
+						// Cap at max backoff
+						if dep.VaultTTLZeroMaxBackoff > 0 && sleep > dep.VaultTTLZeroMaxBackoff {
+							sleep = dep.VaultTTLZeroMaxBackoff
+						}
+					}
+				} else {
+					// All other errors use standard retry configuration
+					retry, sleep = v.retryFunc(retries)
+				}
+
 				serverErrCh <- err
 				if retry {
 					log.Printf("[WARN] (view) %s (retry attempt %d after %q)",
