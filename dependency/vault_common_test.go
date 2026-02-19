@@ -76,8 +76,8 @@ func TestVaultRenewDuration(t *testing.T) {
 	}
 	nonRenewableRotatedZero := Secret{LeaseDuration: 100, Data: data}
 	_, err = leaseCheckWait(&nonRenewableRotatedZero)
-	if err != ErrVaultTTLZero {
-		t.Fatalf("expected ErrVaultTTLZero for ttl=0, got: %v", err)
+	if _, ok := err.(*VaultTTLZeroError); !ok {
+		t.Fatalf("expected VaultTTLZeroError for ttl=0, got: %v", err)
 	}
 
 	rawExpiration := time.Now().Unix() + 100
