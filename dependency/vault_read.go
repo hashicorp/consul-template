@@ -88,7 +88,11 @@ func (d *VaultReadQuery) Fetch(clients *ClientSet, opts *QueryOptions,
 	}
 
 	if !vaultSecretRenewable(d.secret) {
-		dur := leaseCheckWait(d.secret)
+		dur, err := leaseCheckWait(d.secret)
+		if err != nil {
+			// TTL=0 case - return error to trigger retry mechanism
+			return nil, nil, err
+		}
 		log.Printf("[TRACE] %s: non-renewable secret, set sleep for %s", d, dur)
 		d.sleepCh <- dur
 	}
