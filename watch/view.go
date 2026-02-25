@@ -162,7 +162,6 @@ func (v *View) poll(viewCh chan<- *View, errCh chan<- error, serverErrCh chan<- 
 		case err := <-fetchErrCh:
 			if !errors.Is(err, errLookup) && v.retryFunc != nil {
 				retry, sleep := v.retryFunc(retries)
-
 				serverErrCh <- err
 				if retry {
 					log.Printf("[WARN] (view) %s (retry attempt %d after %q)",
