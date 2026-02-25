@@ -12,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cenkalti/backoff/v4"
 	dep "github.com/hashicorp/consul-template/dependency"
 )
 
@@ -162,38 +161,7 @@ func (v *View) poll(viewCh chan<- *View, errCh chan<- error, serverErrCh chan<- 
 			goto WAIT
 		case err := <-fetchErrCh:
 			if !errors.Is(err, errLookup) && v.retryFunc != nil {
-				var retry bool
-				var sleep time.Duration
-
-				// Check if this is a TTL=0 error and use custom retry logic
-				if _, isTTLZeroErr := err.(*dep.VaultTTLZeroError); isTTLZeroErr {
-					// Use custom TTL=0 retry configuration with exponential backoff
-					if dep.VaultTTLZeroMaxRetries > 0 && retries >= dep.VaultTTLZeroMaxRetries {
-						retry = false
-						sleep = 0
-					} else {
-						retry = true
-						// Use cenkalti/backoff for exponential backoff calculation
-						b := backoff.NewExponentialBackOff()
-						b.InitialInterval = 250 * time.Millisecond
-						b.MaxInterval = dep.VaultTTLZeroMaxBackoff
-						b.Multiplier = 2.0
-						b.RandomizationFactor = 0.5 // Add jitter to prevent thundering herd
-						b.MaxElapsedTime = 0        // No time limit, only retry count matters
-						b.Reset()
-
-						// Calculate backoff for current retry attempt
-						for i := 0; i < retries; i++ {
-							sleep = b.NextBackOff()
-						}
-						if sleep == backoff.Stop {
-							sleep = dep.VaultTTLZeroMaxBackoff
-						}
-					}
-				} else {
-					// All other errors use standard retry configuration
-					retry, sleep = v.retryFunc(retries)
-				}
+				retry, sleep := v.retryFunc(retries)
 
 				serverErrCh <- err
 				if retry {

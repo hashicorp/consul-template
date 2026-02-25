@@ -20,22 +20,7 @@ var (
 	onceVaultDefaultLeaseDuration  sync.Once
 	VaultLeaseRenewalThreshold     float64
 	onceVaultLeaseRenewalThreshold sync.Once
-
-	// VaultTTLZeroMaxRetries is the maximum number of retries for TTL=0 cases
-	// Set to 0 for unlimited retries. Default: 0 (unlimited)
-	VaultTTLZeroMaxRetries = 0
-
-	// VaultTTLZeroMaxBackoff is the maximum backoff time for TTL=0 retries
-	// Default: 5 minutes
-	VaultTTLZeroMaxBackoff = 5 * time.Minute
 )
-
-// VaultTTLZeroError is returned when a rotating secret has TTL=0
-type VaultTTLZeroError struct{}
-
-func (e *VaultTTLZeroError) Error() string {
-	return "vault rotating secret returned ttl=0, will retry"
-}
 
 // Secret is the structure returned for every secret within Vault.
 type Secret struct {
@@ -166,7 +151,7 @@ func leaseCheckWait(s *Secret) (time.Duration, error) {
 			} else if err == nil && ttlData == 0 {
 				// TTL is 0, return error to trigger retry mechanism
 				log.Printf("[DEBUG] Found rotation_period with ttl=0, returning error to trigger retry")
-				return 0, &VaultTTLZeroError{}
+				return 0, fmt.Errorf("vault rotating secret returned ttl=0, will retry")
 			}
 		}
 	}
