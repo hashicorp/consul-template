@@ -24,7 +24,7 @@ func TestVaultRenewDuration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if renewableDur.Seconds() < 16 || renewableDur.Seconds() >= 34 {
+	if renewableDur < 16*time.Second || renewableDur >= 34*time.Second {
 		t.Fatalf("renewable duration is not within 1/6 to 1/3 of lease duration: %f", renewableDur.Seconds())
 	}
 
