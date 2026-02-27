@@ -5,14 +5,22 @@ package template
 
 import (
 	"bytes"
+	"crypto/ecdsa"
+	"crypto/ed25519"
+	"crypto/elliptic"
 	"crypto/hmac"
 	"crypto/md5"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"os/user"
@@ -485,7 +493,192 @@ func pkiCertFunc(b *Brain, used, missing *dep.Set, destPath string) func(...stri
 			data[k] = v
 		}
 
-		d, err := dep.NewVaultPKIQuery(path, destPath, data)
+		d, err := dep.NewVaultPKIQuery(path, destPath, data, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		used.Add(d)
+		if value, ok := b.Recall(d); ok {
+			return value, nil
+		}
+		missing.Add(d)
+
+		return nil, nil
+	}
+}
+
+// pkiSignFunc generates a private key and csr, and sends the latter to Vault to sign
+func pkiSignFunc(b *Brain, used, missing *dep.Set, destPath string) func(...string) (interface{}, error) {
+	return func(s ...string) (interface{}, error) {
+		if len(s) == 0 {
+			return nil, nil
+		}
+
+		keyType := "rsa"
+		keyBits := 2048
+
+		var privateKey any
+		var rawKey string
+		var useCSRCommonName, useCSRSans bool
+
+		path, rest := s[0], s[1:]
+		data := make(map[string]interface{})
+		for _, str := range rest {
+			if len(str) == 0 {
+				continue
+			}
+			parts := strings.SplitN(str, "=", 2)
+			if len(parts) != 2 {
+				return nil, fmt.Errorf("not k=v pair %q", str)
+			}
+
+			k, v := strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
+			// since we are generating the private key on our end we should not send
+			// key_type and key_bits to Vault
+			// use_csr_common_name and use_csr_sans here are meant to mirror the settings on the
+			// vault role side, so we can configure on our end accordingly
+			if k != "key_type" && k != "key_bits" && k != "use_csr_common_name" && k != "use_csr_sans" {
+				data[k] = v
+			}
+			// if we passed a key_type and the value is either rsa, ec or ed25519 we override the default value
+			if k == "key_type" && (v == "rsa" || v == "ed25519" || v == "ec") {
+				keyType = v
+			}
+			// if we passed key_bits we override the default value
+			if k == "key_bits" {
+				keyBit, err := strconv.Atoi(v)
+				if err != nil {
+					return nil, err
+				}
+				keyBits = keyBit
+			}
+			// check if we passed use_csr_common_name for later usage
+			if k == "use_csr_common_name" {
+				useCSRCommonName = true
+			}
+			// check if we passed use_csr_sans for later usage
+			if k == "use_csr_sans" {
+				useCSRSans = true
+			}
+		}
+
+		var csrTemplate x509.CertificateRequest
+
+		// if we passed use_csr_common_name, serverside will expect the commonname from the csr
+		// so besides adding that param to the csr template, we also remove it from the map and pass it later
+		// to vault; this way, we spare a warning from the server side
+		if useCSRCommonName {
+			commonName, ok := data["common_name"]
+			if ok {
+				csrTemplate.Subject.CommonName = commonName.(string)
+			}
+			delete(data, "common_name")
+		}
+		// if we passed use_csr_sans, that means serverside will expect the subject alternate names from the csr
+		// so besides adding that param to the csr template, we also remove it from the map we pass later
+		if useCSRSans {
+			subjectAltNames, ok := data["uri_sans"]
+			if ok {
+				csrTemplate.DNSNames = strings.Split(subjectAltNames.(string), ",")
+			}
+			subjectAltIPs, ok := data["ip_sans"]
+			if ok {
+				for _, ip := range strings.Split(subjectAltIPs.(string), ",") {
+					parsedIP := net.ParseIP(ip)
+					csrTemplate.IPAddresses = append(csrTemplate.IPAddresses, parsedIP)
+				}
+			}
+			delete(data, "uri_sans")
+			delete(data, "ip_sans")
+		}
+
+		// generating private keys and also pem encode them for later usage
+		if keyType == "rsa" {
+			key, err := rsa.GenerateKey(rand.Reader, keyBits)
+			if err != nil {
+				return nil, err
+			}
+			privateKey = key
+			csrTemplate.SignatureAlgorithm = x509.SHA512WithRSA
+			marshaledKey := x509.MarshalPKCS1PrivateKey(key)
+			if err != nil {
+				return nil, err
+			}
+			keyPEMBlock := &pem.Block{
+				Type:  "RSA PRIVATE KEY",
+				Bytes: marshaledKey,
+			}
+			rawKey = strings.TrimSpace(string(pem.EncodeToMemory(keyPEMBlock)))
+		}
+		if keyType == "ed25519" {
+			_, key, err := ed25519.GenerateKey(rand.Reader)
+			if err != nil {
+				return nil, err
+			}
+			privateKey = key
+			csrTemplate.SignatureAlgorithm = x509.PureEd25519
+			marshaledKey, err := x509.MarshalPKCS8PrivateKey(key)
+			if err != nil {
+				return nil, err
+			}
+			keyPEMBlock := &pem.Block{
+				Type:  "PRIVATE KEY",
+				Bytes: marshaledKey,
+			}
+			rawKey = strings.TrimSpace(string(pem.EncodeToMemory(keyPEMBlock)))
+		}
+		if keyType == "ec" {
+			if keyBits == 2048 {
+				keyBits = 256
+			}
+			var err error
+			var key *ecdsa.PrivateKey
+			switch keyBits {
+			case 224:
+				key, err = ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
+			case 256:
+				key, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+			case 384:
+				key, err = ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+			case 521:
+				key, err = ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
+			default:
+				err = errors.New("Got unknown ec< key bits: " + fmt.Sprintf("%d", keyBits))
+			}
+			if err != nil {
+				return nil, err
+			}
+			privateKey = key
+			csrTemplate.SignatureAlgorithm = x509.ECDSAWithSHA512
+			marshaledKey, err := x509.MarshalECPrivateKey(key)
+			if err != nil {
+				return nil, err
+			}
+			keyPEMBlock := &pem.Block{
+				Type:  "EC PRIVATE KEY",
+				Bytes: marshaledKey,
+			}
+			rawKey = strings.TrimSpace(string(pem.EncodeToMemory(keyPEMBlock)))
+		}
+
+		csr, err := x509.CreateCertificateRequest(rand.Reader, &csrTemplate, privateKey)
+		if err != nil {
+			return nil, err
+		}
+
+		pemBlock := &pem.Block{
+			Type:    "CERTIFICATE REQUEST",
+			Headers: nil,
+			Bytes:   csr,
+		}
+		pemCsr := string(pem.EncodeToMemory(pemBlock))
+
+		// we need to pass the actual csr to the sign endpoint
+		data["csr"] = pemCsr
+
+		// we pass also the private key that we have generated
+		d, err := dep.NewVaultPKIQuery(path, destPath, data, &rawKey)
 		if err != nil {
 			return nil, err
 		}

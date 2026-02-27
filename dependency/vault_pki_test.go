@@ -25,12 +25,17 @@ func init() {
 }
 
 func Test_VaultPKI_uniqueID(t *testing.T) {
-	d1, _ := NewVaultPKIQuery("pki/issue/example-dot-com", "/unique_1", nil)
+	d1, _ := NewVaultPKIQuery("pki/issue/example-dot-com", "/unique_1", nil, nil)
 	id1 := d1.String()
-	d2, _ := NewVaultPKIQuery("pki/issue/example-dot-com", "/unique_2", nil)
+	d2, _ := NewVaultPKIQuery("pki/issue/example-dot-com", "/unique_2", nil, nil)
 	id2 := d2.String()
 	if id1 == id2 {
 		t.Errorf("IDs should be unique.\n%s\n%s", id1, id2)
+	}
+	d3, _ := NewVaultPKIQuery("pki/sign/example-dot-com", "/unique_3", nil, nil)
+	id3 := d3.String()
+	if id1 == id3 || id1 == id2 {
+		t.Errorf("IDs should be unique.\n%s\n%s\n%s", id1, id3, id2)
 	}
 }
 
@@ -149,7 +154,7 @@ func Test_VaultPKI_fetchPEM(t *testing.T) {
 		"ttl":         "2h",
 		"ip_sans":     "127.0.0.1,192.168.2.2",
 	}
-	d, err := NewVaultPKIQuery("pki/issue/example-dot-com", "/dev/null", data)
+	d, err := NewVaultPKIQuery("pki/issue/example-dot-com", "/dev/null", data, nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -161,7 +166,7 @@ func Test_VaultPKI_fetchPEM(t *testing.T) {
 		t.Errorf("pemsificate not fetched, got: %s", string(encPEM))
 	}
 	// test path error
-	d, err = NewVaultPKIQuery("pki/issue/does-not-exist", "/dev/null", data)
+	d, err = NewVaultPKIQuery("pki/issue/does-not-exist", "/dev/null", data, nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -195,7 +200,7 @@ func Test_VaultPKI_refetch(t *testing.T) {
 		"ttl":         TTL,
 		"ip_sans":     "127.0.0.1,192.168.2.2",
 	}
-	d, err := NewVaultPKIQuery("pki/issue/example-dot-com", f.Name(), data)
+	d, err := NewVaultPKIQuery("pki/issue/example-dot-com", f.Name(), data, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

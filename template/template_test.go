@@ -2076,7 +2076,7 @@ func TestTemplate_Execute(t *testing.T) {
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
-					d, err := dep.NewVaultPKIQuery("pki/issue/egs-dot-com", "/dev/null", nil)
+					d, err := dep.NewVaultPKIQuery("pki/issue/egs-dot-com", "/dev/null", nil, nil)
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -2096,7 +2096,7 @@ func TestTemplate_Execute(t *testing.T) {
 			&ExecuteInput{
 				Brain: func() *Brain {
 					b := NewBrain()
-					d, err := dep.NewVaultPKIQuery("pki/issue/egs-dot-com", "/dev/null", nil)
+					d, err := dep.NewVaultPKIQuery("pki/issue/egs-dot-com", "/dev/null", nil, nil)
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -2105,6 +2105,27 @@ func TestTemplate_Execute(t *testing.T) {
 				}(),
 			},
 			testCert,
+			false,
+		},
+		{
+			"func_pkiSign_Data_compat",
+			&NewTemplateInput{
+				Contents:    `{{ with pkiSign "pki/sign/egs-dot-com" }}{{.Data.Cert}}{{.Data.Key}}{{end}}`,
+				Destination: "/dev/null",
+			},
+			&ExecuteInput{
+				Brain: func() *Brain {
+					pkey := testSignPrivateKey
+					b := NewBrain()
+					d, err := dep.NewVaultPKIQuery("pki/sign/egs-dot-com", "/dev/null", nil, &pkey)
+					if err != nil {
+						t.Fatal(err)
+					}
+					b.Remember(d, dep.PemEncoded{Cert: testSignCert, Key: testSignPrivateKey})
+					return b
+				}(),
+			},
+			testSignCert + testSignPrivateKey,
 			false,
 		},
 		{
@@ -2676,6 +2697,58 @@ EJylY99VsC/bZKPCheZQnC/LtFBC31WEGYb8rnB7gQxmH99H91+JxnJzYhT1a6lw
 arHERAKScrZMTrYPLt2YqYoeyO//aCuT9YW6YdIa9jPQhzjeMKXywXLetE+Ip18G
 eB01bl42Y5WwHl0IrjfbEevzoW0+uhlUlZ6keZHr7bLn/xuRCUkVfj3PRlMl
 -----END CERTIFICATE-----
+`
+
+const testSignCert = `
+-----BEGIN CERTIFICATE-----
+MIIDXDCCAkSgAwIBAgIUDOLMfkSa8soQs1jdq//N96Du/J4wDQYJKoZIhvcNAQEL
+BQAwLTErMCkGA1UEAxMiZXhhbXBsZS5jb20gSW50ZXJtZWRpYXRlIEF1dGhvcml0
+eTAeFw0yNDA0MDMxMTM4NTVaFw0yNDA1MDMxMTM5MjVaMBYxFDASBgNVBAMTC2V4
+YW1wbGUuY29tMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAww7QC89+
+KKeZBsol2rlAVH/fUvnC0lJi5kpAWMYO+FzNerDHrXfaba4TUdQ9Aj/HonAfSCTM
+f6WLP0s1K+eTvzpei+iopKwPjQVWUEs23YYSlBB+tN9m0cH7Csfzq4RA0JMD/ZHV
+IjOjTAflmPEMCLhn8afFgk1fDadFL5PLL8Aa57qT3LaaAkRccE+CMo4dnqDjNJPY
+H4EWsYx4SqkrQG+m6xTXNiHEpE9KXaApbWpMmgCeDZACkoLk2XRtfAaOk9mrbgrU
+BQB5tottNlPHBRP7H/RCov2Z6yZVgv8P/h5xiAEcsoVbJvdZNasWLGlQ2RqIneIC
+yFF1+RzlwthgyQIDAQABo4GKMIGHMA4GA1UdDwEB/wQEAwIDqDAdBgNVHSUEFjAU
+BggrBgEFBQcDAQYIKwYBBQUHAwIwHQYDVR0OBBYEFGzZmJBb45E34LF+qHAZQkAt
+chH4MB8GA1UdIwQYMBaAFIotMVSvUCx7z8O2xoxHF4THOLycMBYGA1UdEQQPMA2C
+C2V4YW1wbGUuY29tMA0GCSqGSIb3DQEBCwUAA4IBAQCn4Sdw7S+Pt3oZ7BIa0vBv
+JHXZkvD3jOtN0/zGxZ4xFmpV8YZpp+lv/BIe1+s+B/mlK2oZb4ECibGe8Tr8vONN
+kTOqjfWfC913bmDWK16PGrV9Uwe5TRXhtNLFyY9uoqyZzisJ0VJz+4pxaOiL7akG
+R/bHUTHM7FxpKzhBLXuvZzwG0HIJQFq+h4XLv8iQ8UyLoigOInTecjtCeTftPBqw
+QiMV0ol8ezs49D28MhdOb4N37XG5L2ZIxZzLeEFZmkmHvlXJoyBbOEACl4Ql9fXd
+dshkFzxFdBaW8sAPreT9yEUlg7Qud9VOY7NQoWFTPJ+KE4wsFGzdxgj+fvsZrVGB
+-----END CERTIFICATE-----
+`
+const testSignPrivateKey = `
+-----BEGIN RSA PRIVATE KEY-----
+MIIEowIBAAKCAQEAww7QC89+KKeZBsol2rlAVH/fUvnC0lJi5kpAWMYO+FzNerDH
+rXfaba4TUdQ9Aj/HonAfSCTMf6WLP0s1K+eTvzpei+iopKwPjQVWUEs23YYSlBB+
+tN9m0cH7Csfzq4RA0JMD/ZHVIjOjTAflmPEMCLhn8afFgk1fDadFL5PLL8Aa57qT
+3LaaAkRccE+CMo4dnqDjNJPYH4EWsYx4SqkrQG+m6xTXNiHEpE9KXaApbWpMmgCe
+DZACkoLk2XRtfAaOk9mrbgrUBQB5tottNlPHBRP7H/RCov2Z6yZVgv8P/h5xiAEc
+soVbJvdZNasWLGlQ2RqIneICyFF1+RzlwthgyQIDAQABAoIBAQCf+GH/jag1x13l
+B5yMCSoNIuIQtu1keFTL8VFcfPKCFfofCSR5y7XEBeOqVJnEYnJjcfj1vdhJR4cv
+3Yo5+65cQo6Px7unccU/LoVfTJAulWpfLDf+NsmodaJhcSMSI2DUrf2z1AosBpWC
+IWfXSrlH3ZTBx4pgFvxBwlEnd9pHyaJZ4Tu6dKa3j1fq0JcICeCsmsNdnqKSm8cT
+bssw1+0EAWnYnkll7rIM919DT14XFu9ll0SQhUEN6hUBkGqhhqvl4S9K9dFPclYy
+qEj3+UCoom2wHyCRen4o6wd2rKQpb/KdBAQCwXvAOrB3z4NEaqxcmWmyTpBi5z+W
+PG/1j4gBAoGBANVZB1zHCLTHOHAK2kTEq6nP2QPnpVIFA8rPBT5E5fsqmPiP4IY6
+kh9HBhoA88rFXkB6W/7gs01PEUydAxQXrt+iX3DksMiuHwrtpA85tdD+zMaFKfO0
+wmh/4YFZhZEsF2Dvl3oLMxSjX3QXIDDQpYVCMbQWJhCnxVHGWYTbmU1BAoGBAOoN
+uIrDEYzZF1GlkKp1yWoxmwFYKa3SGaWpOvfzzP2eAoK3wfn4wpJaLHUlQgjaqbpU
+150F/NdQJ8r5EY4xyqx2wlp8X0NiS1pzooP0uA8gOyw1rZgHnN+rlRLL5CwgGgVt
+JwGOi/2dCPbrwBfYo/52Ib8KgUWzYcb4bR7IpsmJAoGAI1SkAHxBd9aKBRv2+25q
+UyvFb30cBpIoB5zy7FXyk/6A6KDC+NeYPS/A1euUc97tddYNiA7kAoh2f+58hQZL
+AmPcVFC66fDT2TZzdcYD0wFvHe0NfntPuoh66rXNhbX8hSQIPMDAC8nmU85EmXDk
+CEZm/sCwOw/dgGZNis/m+kECgYBwywH3JUCs7uXU/AP2keLp4VQA1trnIIwpkJ+R
+ZJWSV3aARkwdyisCWqB4J+dl2vLWkBKEYqFRphg3McarDwXMDUNmVe+WyqTjxzw3
+eVTGPVMm4Atza5/HDqo9r7KbLTE9EjgtAOQn6Wirjjs5gratZ4KlzUs1KthhCdGU
+d0AheQKBgFQdsm3j+f7b7orauSABSKgDI7f6vO6/tX3w4VoTPrdOPAdzOniKYUIn
+BXyBNLIkUPZcW2llF1Oi7OzYOnai6xcbNdEbGcd1LL1opEVXZxOmdeCFQMdLRKrz
+IcxtksB16A3xxxydRw3ENvHbZvjj1DHYJEGl0IXhkirnwMVn9hcE
+-----END RSA PRIVATE KEY-----
 `
 
 func TestTemplate_ExtFuncMap(t *testing.T) {
