@@ -119,7 +119,9 @@ func newWriter(config *Config) (io.Writer, error) {
 		if err := logFile.openNew(); err != nil {
 			return nil, fmt.Errorf("error setting up log_file logging : %w", err)
 		}
-		logOutput = io.MultiWriter(logOutput, logFile)
+		// Wrap the log file with timestamp formatting to match console output
+		logFileWithTimestamp := logWriter{out: logFile}
+		logOutput = io.MultiWriter(logOutput, logFileWithTimestamp)
 	}
 
 	if config.Syslog {
