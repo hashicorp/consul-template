@@ -137,7 +137,7 @@ They are not required and will fallback to default values when omitted.
 
 ```hcl
 # This denotes the start of the configuration section for Consul Template.
-# All values contained in this section pertain to Vault.
+# All values contained in this section pertain to Consul Template.
 
 # This is the signal to listen for to trigger a reload event. The default
 # value is shown below. Setting this value to the empty string will cause CT
