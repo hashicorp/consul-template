@@ -1910,6 +1910,20 @@ For example:
 {{ key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644" "append,newline" }}
 ```
 
+### `fileContents`
+
+Reads the contents of a file and returns it as a string. 
+
+If the file does not exist or cannot be read, it returns an empty string. This makes it safe to use in templates with other functions like `default`, `regexMatch`, or conditionals (`if ne`, etc.). It is especially useful for scenarios where rendering logic depends on comparing existing file content to new values.
+
+```golang
+{{ fileContents "/etc/service/config.yaml" }}
+{{ fileContents "/etc/haproxy/certs/example.com.crt" | default "MISSING" }}
+{{ if ne (fileContents "/tmp/config.yaml") (key "desired/config") }}updated{{ end }}
+```
+
+
+
 ---
 
 ## Sprig Functions

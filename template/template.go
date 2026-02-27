@@ -435,6 +435,7 @@ func funcMap(i *funcMapInput) template.FuncMap {
 		"byMeta":                byMeta,
 		"sockaddr":              sockaddr,
 		"writeToFile":           writeToFile,
+		"fileContents":          fileContents(),
 
 		// Math functions
 		"add":      add,
