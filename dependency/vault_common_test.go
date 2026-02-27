@@ -22,13 +22,13 @@ func TestVaultRenewDuration(t *testing.T) {
 	renewable := Secret{LeaseDuration: 100, Renewable: true}
 	renewableDur, _ := leaseCheckWait(&renewable)
 	if renewableDur < 16*time.Second || renewableDur >= 34*time.Second {
-		t.Fatalf("renewable duration is not within 1/6 to 1/3 of lease duration: %s", renewableDur)
+		t.Fatalf("renewable duration is not within 1/6 to 1/3 of lease duration: %f", renewableDur.Seconds())
 	}
 
 	nonRenewable := Secret{LeaseDuration: 100}
 	nonRenewableDur, _ := leaseCheckWait(&nonRenewable)
 	if nonRenewableDur < 80*time.Second || nonRenewableDur > 95*time.Second {
-		t.Fatalf("renewable duration is not within 80%% to 95%% of lease duration: %s", nonRenewableDur)
+		t.Fatalf("renewable duration is not within 80%% to 95%% of lease duration: %f", nonRenewableDur.Seconds())
 	}
 
 	data := map[string]interface{}{
