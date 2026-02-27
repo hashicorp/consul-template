@@ -110,8 +110,8 @@ func renewSecret(clients *ClientSet, d renewer) error {
 }
 
 // leaseCheckWait accepts a secret and returns the recommended amount of
-// time to sleep.
-func leaseCheckWait(s *Secret) time.Duration {
+// time to sleep. Returns an error if TTL=0 to trigger retry mechanism.
+func leaseCheckWait(s *Secret) (time.Duration, error) {
 	// Handle whether this is an auth or a regular secret.
 	base := s.LeaseDuration
 	if s.Auth != nil && s.Auth.LeaseDuration > 0 {
@@ -143,11 +143,15 @@ func leaseCheckWait(s *Secret) time.Duration {
 	var rotatingSecret bool
 	if _, ok := s.Data["rotation_period"]; ok && s.LeaseID == "" {
 		if ttlInterface, ok := s.Data["ttl"]; ok {
-			if ttlData, err := ttlInterface.(json.Number).Int64(); err == nil {
+			if ttlData, err := ttlInterface.(json.Number).Int64(); err == nil && ttlData > 0 {
 				log.Printf("[DEBUG] Found rotation_period and set lease duration to %d seconds", ttlData)
 				// Add a second for cushion
 				base = int(ttlData) + 1
 				rotatingSecret = true
+			} else if err == nil && ttlData == 0 {
+				// TTL is 0, return error to trigger retry mechanism
+				log.Printf("[DEBUG] Found rotation_period with ttl=0, returning error to trigger retry")
+				return 0, fmt.Errorf("vault rotating secret returned ttl=0, will retry")
 			}
 		}
 	}
@@ -186,7 +190,7 @@ func leaseCheckWait(s *Secret) time.Duration {
 		sleep = sleep * finalFraction
 	}
 
-	return time.Duration(sleep)
+	return time.Duration(sleep), nil
 }
 
 // printVaultWarnings prints warnings for a given dependency.
