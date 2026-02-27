@@ -21,14 +21,17 @@ func init() {
 func TestVaultRenewDuration(t *testing.T) {
 	renewable := Secret{LeaseDuration: 100, Renewable: true}
 	renewableDur, _ := leaseCheckWait(&renewable)
-	if renewableDur < 16*time.Second || renewableDur >= 34*time.Second {
-		t.Fatalf("renewable duration is not within 1/6 to 1/3 of lease duration: %f", renewableDur.Seconds())
+	renewableDurSec := renewableDur.Seconds()
+	if renewableDurSec < 16 || renewableDurSec >= 34 {
+		t.Fatalf("renewable duration is not within 1/6 to 1/3 of lease duration: %f", renewableDurSec)
 	}
 
 	nonRenewable := Secret{LeaseDuration: 100}
 	nonRenewableDur, _ := leaseCheckWait(&nonRenewable)
-	if nonRenewableDur < 80*time.Second || nonRenewableDur > 95*time.Second {
-		t.Fatalf("renewable duration is not within 80%% to 95%% of lease duration: %f", nonRenewableDur.Seconds())
+	nonRenewableDurSec := nonRenewableDur.Seconds()
+
+	if nonRenewableDurSec < 80 || nonRenewableDurSec > 95 {
+		t.Fatalf("renewable duration is not within 80%% to 95%% of lease duration: %f", nonRenewableDurSec)
 	}
 
 	data := map[string]interface{}{
@@ -38,9 +41,10 @@ func TestVaultRenewDuration(t *testing.T) {
 
 	nonRenewableRotated := Secret{LeaseDuration: 100, Data: data}
 	nonRenewableRotatedDur, _ := leaseCheckWait(&nonRenewableRotated)
+	nonRenewableRotatedDurSec := nonRenewableRotatedDur.Seconds()
 	// We expect a 1 second cushion
-	if nonRenewableRotatedDur != 31*time.Second {
-		t.Fatalf("renewable duration is not 31: %f", nonRenewableRotatedDur.Seconds())
+	if nonRenewableRotatedDurSec != 31 {
+		t.Fatalf("renewable duration is not 31: %f", nonRenewableRotatedDurSec)
 	}
 
 	data = map[string]interface{}{
@@ -50,9 +54,10 @@ func TestVaultRenewDuration(t *testing.T) {
 
 	nonRenewableRotated = Secret{LeaseDuration: 100, Data: data}
 	nonRenewableRotatedDur, _ = leaseCheckWait(&nonRenewableRotated)
+	nonRenewableRotatedDurSeconds := nonRenewableRotatedDur.Seconds()
 	// We expect a 1 second cushion
-	if nonRenewableRotatedDur != 6*time.Second {
-		t.Fatalf("renewable duration is not 6: %f", nonRenewableRotatedDur.Seconds())
+	if nonRenewableRotatedDurSeconds != 6 {
+		t.Fatalf("renewable duration is not 6: %f", nonRenewableRotatedDurSeconds)
 	}
 	// Test TTL=0 case - should return error
 	data = map[string]interface{}{
@@ -78,8 +83,10 @@ func TestVaultRenewDuration(t *testing.T) {
 
 	nonRenewableCert := Secret{LeaseDuration: 100, Data: data}
 	nonRenewableCertDur, _ := leaseCheckWait(&nonRenewableCert)
-	if nonRenewableCertDur < 80*time.Second || nonRenewableCertDur > 95*time.Second {
-		t.Fatalf("non renewable certificate duration is not within 80%% to 95%%: %f", nonRenewableCertDur.Seconds())
+	nonRenewableCertDurSec := nonRenewableCertDur.Seconds()
+
+	if nonRenewableCertDurSec < 80 || nonRenewableCertDurSec > 95 {
+		t.Fatalf("non renewable certificate duration is not within 80%% to 95%%: %f", nonRenewableCertDurSec)
 	}
 
 	t.Run("secret ID handling", func(t *testing.T) {
@@ -92,10 +99,10 @@ func TestVaultRenewDuration(t *testing.T) {
 
 			nonRenewableSecretID := Secret{LeaseDuration: 100, Data: data}
 			nonRenewableSecretIDDur, _ := leaseCheckWait(&nonRenewableSecretID)
-			secs := nonRenewableSecretIDDur.Seconds()
+			nonRenewableSecretIDDurSec := nonRenewableSecretIDDur.Seconds()
 
-			if secs < 0.80*(60+1) || secs > 0.95*(60+1) {
-				t.Fatalf("renewable duration is not within 80%% to 95%% of lease duration: %f", secs)
+			if nonRenewableSecretIDDurSec < 0.80*(60+1) || nonRenewableSecretIDDurSec > 0.95*(60+1) {
+				t.Fatalf("renewable duration is not within 80%% to 95%% of lease duration: %f", nonRenewableSecretIDDurSec)
 			}
 		})
 
@@ -109,10 +116,10 @@ func TestVaultRenewDuration(t *testing.T) {
 
 			nonRenewableSecretID := Secret{LeaseDuration: leaseDuration, Data: data}
 			nonRenewableSecretIDDur, _ := leaseCheckWait(&nonRenewableSecretID)
-			secs := nonRenewableSecretIDDur.Seconds()
+			nonRenewableSecretIDDurSec := nonRenewableSecretIDDur.Seconds()
 
-			if secs < 0.80*(leaseDuration+1) || secs > 0.95*(leaseDuration+1) {
-				t.Fatalf("renewable duration is not within 80%% to 95%% of lease duration: %f", secs)
+			if nonRenewableSecretIDDurSec < 0.80*(leaseDuration+1) || nonRenewableSecretIDDurSec > 0.95*(leaseDuration+1) {
+				t.Fatalf("renewable duration is not within 80%% to 95%% of lease duration: %f", nonRenewableSecretIDDurSec)
 			}
 		})
 
@@ -125,10 +132,10 @@ func TestVaultRenewDuration(t *testing.T) {
 
 			nonRenewableSecretID := Secret{LeaseDuration: leaseDuration, Data: data}
 			nonRenewableSecretIDDur, _ := leaseCheckWait(&nonRenewableSecretID)
-			secs := nonRenewableSecretIDDur.Seconds()
+			nonRenewableSecretIDDurSec := nonRenewableSecretIDDur.Seconds()
 
-			if secs < 0.80*(leaseDuration+1) || secs > 0.95*(leaseDuration+1) {
-				t.Fatalf("renewable duration is not within 80%% to 95%% of lease duration: %f", secs)
+			if nonRenewableSecretIDDurSec < 0.80*(leaseDuration+1) || nonRenewableSecretIDDurSec > 0.95*(leaseDuration+1) {
+				t.Fatalf("renewable duration is not within 80%% to 95%% of lease duration: %f", nonRenewableSecretIDDurSec)
 			}
 		})
 	})
