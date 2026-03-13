@@ -1252,6 +1252,72 @@ func parseYAML(s string) (interface{}, error) {
 	return data, nil
 }
 
+// mergeYAML merges 2 YAML objects recursively overwriting only leaf values and returns the result.
+// Inputs are not modified.
+func mergeYAML(base, override interface{}) (map[interface{}]interface{}, error) {
+	baseV := make(map[interface{}]interface{})
+	overrideV := make(map[interface{}]interface{})
+
+	switch baseT := base.(type) {
+	case map[interface{}]interface{}:
+		baseV = base.(map[interface{}]interface{})
+	case map[string]interface{}:
+		for k, v := range baseT {
+			baseV[k] = v
+		}
+	default:
+		return nil, fmt.Errorf("wrong value type for base input %t", baseT)
+	}
+
+	switch overrideT := override.(type) {
+	case map[interface{}]interface{}:
+		overrideV = override.(map[interface{}]interface{})
+	case map[string]interface{}:
+		for k, v := range overrideT {
+			overrideV[k] = v
+		}
+	default:
+		return nil, fmt.Errorf("wrong value type for base input %t", overrideT)
+	}
+
+	result := recursiveYamlMergeHelper(baseV, overrideV)
+
+	return result, nil
+}
+
+// recursiveYamlMergeHelper performs recursive merge of 2 maps overriding only leaf values.
+// Lists are considered leaf values for this purpose.
+func recursiveYamlMergeHelper(base, override map[interface{}]interface{}) map[interface{}]interface{} {
+	result := make(map[interface{}]interface{})
+
+	for key, value := range base {
+		overrideValue, ok := override[key]
+		if !ok {
+			result[key] = value
+			continue
+		}
+		switch valueT := value.(type) {
+		case map[interface{}]interface{}:
+			switch overrideValueT := overrideValue.(type) {
+			case map[interface{}]interface{}:
+				result[key] = recursiveYamlMergeHelper(valueT, overrideValueT)
+			default:
+				result[key] = overrideValue
+			}
+		default:
+			result[key] = overrideValue
+		}
+	}
+
+	for key, value := range override {
+		if _, ok := result[key]; !ok {
+			result[key] = value
+		}
+	}
+
+	return result
+}
+
 // plugin executes a subprocess as the given command string. It is assumed the
 // resulting command returns JSON which is then parsed and returned as the
 // value for use in the template.
