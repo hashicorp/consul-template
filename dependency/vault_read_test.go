@@ -92,8 +92,8 @@ func TestVaultReadQuery_Fetch_KVv1(t *testing.T) {
 	secretsPath := vault.secretsPath
 	// Enable v1 kv for versioned secrets
 	vc := clients.Vault()
-	if err := vc.Sys().TuneMount(secretsPath, api.MountConfigInput{
-		Options: map[string]string{
+	if err := vc.Sys().TuneMountAllowNil(secretsPath, api.TuneMountConfigInput{
+		Options: &map[string]string{
 			"version": "1",
 		},
 	}); err != nil {

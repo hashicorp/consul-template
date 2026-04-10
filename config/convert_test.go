@@ -255,7 +255,7 @@ func TestInt(t *testing.T) {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
 			a := Int(tc.i)
 			if tc.i != *a {
-				t.Errorf("\nexp: %q\nact: %q", tc.i, *a)
+				t.Errorf("\nexp: %d\nact: %d", tc.i, *a)
 			}
 		})
 	}
@@ -283,7 +283,7 @@ func TestIntVal(t *testing.T) {
 		t.Run(fmt.Sprintf("%d_%s", i, tc.name), func(t *testing.T) {
 			a := IntVal(tc.i)
 			if tc.e != a {
-				t.Errorf("\nexp: %q\nact: %q", tc.e, a)
+				t.Errorf("\nexp: %d\nact: %d", tc.e, a)
 			}
 		})
 	}
