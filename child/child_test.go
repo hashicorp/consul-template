@@ -155,7 +155,7 @@ func TestPid_noProcess(t *testing.T) {
 	c := testChild(t)
 	pid := c.Pid()
 	if pid != 0 {
-		t.Errorf("expected %q to be 0", pid)
+		t.Errorf("expected %d to be 0", pid)
 	}
 }
 
