@@ -8,8 +8,6 @@ container {
 	triage {
 		suppress {
 			vulnerabilites = [
-				"CVE-2024-58251",	# fix unavailable at time of writing
-                "CVE-2025-46394",   # fix unavailable at time of writing
 			]
 		}
 	}
