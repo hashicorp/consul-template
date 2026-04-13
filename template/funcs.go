@@ -242,13 +242,11 @@ func fileFunc(b *Brain, used, missing *dep.Set, sandboxPath string) func(string)
 			return "", nil
 		}
 
-		// Normalize and resolve symlinks BEFORE both sandbox check and file query
-		normalized := strings.TrimSpace(s)
-		err := pathInSandbox(sandboxPath, normalized)
+		resolvedPath, err := resolveSandboxedPath(sandboxPath, strings.TrimSpace(s))
 		if err != nil {
 			return "", err
 		}
-		d, err := dep.NewFileQuery(s)
+		d, err := dep.NewFileQuery(resolvedPath)
 		if err != nil {
 			return "", err
 		}
@@ -1811,30 +1809,35 @@ func denied(...string) (string, error) {
 // pathInSandbox returns an error if the provided path doesn't fall within the
 // sandbox or if the file can't be evaluated (missing, invalid symlink, etc.)
 func pathInSandbox(sandbox, path string) error {
+	_, err := resolveSandboxedPath(sandbox, path)
+	return err
+}
+
+func resolveSandboxedPath(sandbox, path string) (string, error) {
 	if sandbox == "" {
-		return nil
+		return filepath.Clean(path), nil
 	}
 
 	// Clean and resolve symlinks for both paths
 	sandboxResolved, err := filepath.EvalSymlinks(filepath.Clean(sandbox))
 	if err != nil {
-		return fmt.Errorf("failed to resolve sandbox path: %w", err)
+		return "", fmt.Errorf("failed to resolve sandbox path: %w", err)
 	}
 	targetResolved, err := filepath.EvalSymlinks(filepath.Clean(path))
 	if err != nil {
-		return fmt.Errorf("failed to resolve target path: %w", err)
+		return "", fmt.Errorf("failed to resolve target path: %w", err)
 	}
 
 	// Check containment
 	rel, err := filepath.Rel(sandboxResolved, targetResolved)
 	if err != nil {
-		return fmt.Errorf("failed to get relative path: %w", err)
+		return "", fmt.Errorf("failed to get relative path: %w", err)
 	}
 	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-		return fmt.Errorf("'%s' is outside of sandbox", path)
+		return "", fmt.Errorf("'%s' is outside of sandbox", path)
 	}
 
-	return nil
+	return targetResolved, nil
 }
 
 // sockaddr wraps go-sockaddr templating

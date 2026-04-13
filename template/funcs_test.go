@@ -463,3 +463,45 @@ func Test_importedServicesFunc_emptyPartition(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "partition name is required")
 }
+
+func TestFileFunc_SandboxSymlinkRestoreShouldNotReuseCachedDependencyOutsideContents(t *testing.T) {
+	sandboxDir := t.TempDir()
+	outsideDir := t.TempDir()
+
+	safePath := filepath.Join(sandboxDir, "safe.txt")
+	require.NoError(t, os.WriteFile(safePath, []byte("safe"), 0o644))
+
+	secretPath := filepath.Join(outsideDir, "secret.txt")
+	secret := "outside-sandbox-secret"
+	require.NoError(t, os.WriteFile(secretPath, []byte(secret), 0o644))
+
+	linkPath := filepath.Join(sandboxDir, "watched.txt")
+	if err := os.Symlink(safePath, linkPath); err != nil {
+		t.Skipf("skipping symlink test: %v", err)
+	}
+
+	brain := NewBrain()
+	used := &dep.Set{}
+	missing := &dep.Set{}
+	file := fileFunc(brain, used, missing, sandboxDir)
+
+	_, err := file(linkPath)
+	require.NoError(t, err)
+
+	d := used.List()[0]
+
+	require.NoError(t, os.Remove(linkPath))
+	require.NoError(t, os.Symlink(secretPath, linkPath))
+
+	fetched, _, err := d.Fetch(nil, nil)
+	require.NoError(t, err)
+	brain.Remember(d, fetched)
+
+	require.NoError(t, os.Remove(linkPath))
+	require.NoError(t, os.Symlink(safePath, linkPath))
+	require.NoError(t, pathInSandbox(sandboxDir, linkPath))
+
+	value, err := file(linkPath)
+	require.NoError(t, err)
+	require.NotEqual(t, secret, value)
+}
