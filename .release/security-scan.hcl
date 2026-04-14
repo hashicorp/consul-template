@@ -8,6 +8,7 @@ container {
 	triage {
 		suppress {
 			vulnerabilites = [
+				"CVE-2026-27171",
 			]
 		}
 	}
