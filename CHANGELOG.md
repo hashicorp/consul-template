@@ -1,3 +1,15 @@
+# 0.42.0
+
+IMPROVEMENTS:
+* update: go version to 1.26.2 [GH-2144](https://github.com/hashicorp/consul-template/pull/2144)
+* cve: fix sandbox path bypass in file helper through symlink attack [GH-2143](https://github.com/hashicorp/consul-template/pull/2143)
+* nomadVar: return map values instead of pointers when reading map items [GH-2133](https://github.com/hashicorp/consul-template/pull/2133)
+* update: Bump github.com/go-jose/go-jose/v4 from 4.1.1 to 4.1.4 [GH-2146](https://github.com/hashicorp/consul-template/pull/2146)
+
+BUG FIXES:
+* fix: Ensure initialization occurs before value assignments in Scratch methods [GH-2125](https://github.com/hashicorp/consul-template/pull/2125)
+* fix: send err back to fetch to trigger backoff retry [GH-2136](https://github.com/hashicorp/consul-template/pull/2136)
+
 # 0.41.4
 
 IMPROVEMENTS:
