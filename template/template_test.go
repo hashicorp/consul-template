@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/user"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -2652,6 +2653,44 @@ func Test_writeToFile(t *testing.T) {
 				t.Errorf("writeToFile() owner = %v:%v, wanted %v:%v", u, g, currentUser.Uid, currentUser.Gid)
 			}
 		})
+	}
+}
+
+func Test_fileContents(t *testing.T) {
+	// Create a temporary directory
+	dir := t.TempDir()
+
+	// Define expected content
+	expectedContent := "test content for fileContents function"
+
+	// Create a temporary file with expected content
+	tmpFile := filepath.Join(dir, "testfile.txt")
+	err := os.WriteFile(tmpFile, []byte(expectedContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write temp file: %v", err)
+	}
+
+	// Get the fileContents function
+	readFn := fileContents()
+
+	// Call it with the path to the temp file
+	content := readFn(tmpFile)
+
+	// Check that content matches
+	if strings.TrimSpace(content) != expectedContent {
+		t.Errorf("fileContents() = %q, want %q", content, expectedContent)
+	}
+
+	// Test with an empty string input
+	content = readFn("")
+	if content != "" {
+		t.Errorf("fileContents(\"\") = %q, want empty string", content)
+	}
+
+	// Test with non-existent file
+	content = readFn("/non/existent/path.txt")
+	if content != "" {
+		t.Errorf("fileContents(non-existent) = %q, want empty string", content)
 	}
 }
 
