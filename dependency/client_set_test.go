@@ -4,6 +4,7 @@
 package dependency
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -247,4 +248,72 @@ func newVaultMockReversedProxy(tb testing.TB, mocks ...vaultMock) string {
 	tb.Cleanup(testServer.Close)
 
 	return testServer.URL
+}
+
+func TestClientSet_CreateVaultClient_TLSConfig(t *testing.T) {
+	t.Parallel()
+
+	// Create a test server
+	testServerAddr := newVaultMockReversedProxy(t, vaultMock{
+		HandleCond: func(r *http.Request) bool {
+			return r.URL.Path == "/v1/sys/health"
+		},
+		HandleJSON: func(_ *http.Request, _ map[string]interface{}) interface{} {
+			return map[string]interface{}{
+				"initialized": true,
+				"sealed":      false,
+			}
+		},
+	})
+
+	t.Run("with_tlsconfig", func(t *testing.T) {
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: true,
+		}
+
+		clientSet := NewClientSet()
+		err := clientSet.CreateVaultClient(&CreateVaultClientInput{
+			Address:   testServerAddr,
+			Token:     vaultToken,
+			TLSConfig: tlsConfig,
+		})
+		require.NoError(t, err)
+
+		// Verify client was created and can communicate
+		client := clientSet.Vault()
+		require.NotNil(t, client)
+
+		// Make a simple API call to verify it works
+		health, err := client.Sys().Health()
+		require.NoError(t, err)
+		require.NotNil(t, health)
+	})
+
+	t.Run("tlsconfig_precedence_over_ssl", func(t *testing.T) {
+		// This test verifies that when TLSConfig is provided,
+		// SSL fields are ignored (even if they would cause errors)
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: true,
+		}
+
+		clientSet := NewClientSet()
+		err := clientSet.CreateVaultClient(&CreateVaultClientInput{
+			Address:    testServerAddr,
+			Token:      vaultToken,
+			TLSConfig:  tlsConfig,
+			SSLEnabled: true,
+			SSLVerify:  true,
+			SSLCert:    "/invalid/path/to/cert.pem", // This should be ignored
+			SSLKey:     "/invalid/path/to/key.pem",  // This should be ignored
+		})
+		require.NoError(t, err)
+
+		// Verify client works despite invalid SSL fields
+		client := clientSet.Vault()
+		require.NotNil(t, client)
+
+		health, err := client.Sys().Health()
+		require.NoError(t, err)
+		require.NotNil(t, health)
+	})
 }

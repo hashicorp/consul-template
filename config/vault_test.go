@@ -4,6 +4,7 @@
 package config
 
 import (
+	"crypto/tls"
 	"fmt"
 	"reflect"
 	"testing"
@@ -960,4 +961,179 @@ func TestVaultConfig_TokenRenew(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestVaultConfig_Copy_TLSConfig(t *testing.T) {
+	t.Parallel()
+
+	tlsConfig := &tls.Config{InsecureSkipVerify: true}
+	c := &VaultConfig{TLSConfig: tlsConfig}
+	o := c.Copy()
+
+	if o.TLSConfig != tlsConfig {
+		t.Errorf("expected TLSConfig to be copied (same pointer)")
+	}
+}
+
+func TestVaultConfig_Merge_TLSConfig(t *testing.T) {
+	t.Parallel()
+
+	tlsConfig1 := &tls.Config{InsecureSkipVerify: true}
+	tlsConfig2 := &tls.Config{InsecureSkipVerify: false}
+
+	cases := []struct {
+		name string
+		a    *VaultConfig
+		b    *VaultConfig
+		r    *VaultConfig
+	}{
+		{
+			"nil_a",
+			nil,
+			&VaultConfig{TLSConfig: tlsConfig1},
+			&VaultConfig{TLSConfig: tlsConfig1},
+		},
+		{
+			"nil_b",
+			&VaultConfig{TLSConfig: tlsConfig1},
+			nil,
+			&VaultConfig{TLSConfig: tlsConfig1},
+		},
+		{
+			"nil_both",
+			nil,
+			nil,
+			nil,
+		},
+		{
+			"empty",
+			&VaultConfig{},
+			&VaultConfig{},
+			&VaultConfig{},
+		},
+		{
+			"tlsconfig_overrides",
+			&VaultConfig{TLSConfig: tlsConfig1},
+			&VaultConfig{TLSConfig: tlsConfig2},
+			&VaultConfig{TLSConfig: tlsConfig2},
+		},
+		{
+			"tlsconfig_empty",
+			&VaultConfig{TLSConfig: tlsConfig1},
+			&VaultConfig{},
+			&VaultConfig{TLSConfig: tlsConfig1},
+		},
+		{
+			"tlsconfig_empty_one",
+			&VaultConfig{},
+			&VaultConfig{TLSConfig: tlsConfig1},
+			&VaultConfig{TLSConfig: tlsConfig1},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := tc.a.Merge(tc.b)
+			if tc.r == nil {
+				if r != nil {
+					t.Errorf("\nexp: %#v\nact: %#v", tc.r, r)
+				}
+			} else {
+				if r.TLSConfig != tc.r.TLSConfig {
+					t.Errorf("\nexp: %#v\nact: %#v", tc.r.TLSConfig, r.TLSConfig)
+				}
+			}
+		})
+	}
+}
+
+func TestVaultConfig_Finalize_TLSConfig(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name      string
+		c         *VaultConfig
+		expectErr bool
+	}{
+		{
+			"tlsconfig_only",
+			&VaultConfig{
+				TLSConfig: &tls.Config{InsecureSkipVerify: true},
+			},
+			false,
+		},
+		{
+			"ssl_only",
+			&VaultConfig{
+				SSL: &SSLConfig{
+					Enabled: Bool(true),
+					Verify:  Bool(true),
+				},
+			},
+			false,
+		},
+		{
+			"both_tlsconfig_and_ssl_enabled",
+			&VaultConfig{
+				TLSConfig: &tls.Config{},
+				SSL: &SSLConfig{
+					Enabled: Bool(true),
+					Verify:  Bool(true),
+				},
+			},
+			true,
+		},
+		{
+			"both_but_ssl_disabled",
+			&VaultConfig{
+				TLSConfig: &tls.Config{},
+				SSL: &SSLConfig{
+					Enabled: Bool(false),
+				},
+			},
+			false,
+		},
+		{
+			"both_but_ssl_nil_enabled",
+			&VaultConfig{
+				TLSConfig: &tls.Config{},
+				SSL: &SSLConfig{
+					Verify: Bool(true),
+				},
+			},
+			false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.c.Finalize()
+			if tc.expectErr && err == nil {
+				t.Fatal("expected error when both TLSConfig and SSL are set")
+			}
+			if !tc.expectErr && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if tc.expectErr && err != nil {
+				if !contains(err.Error(), "cannot specify both") {
+					t.Errorf("unexpected error message: %v", err)
+				}
+			}
+		})
+	}
+}
+
+// Helper function to check if a string contains a substring
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||
+		(len(s) > 0 && len(substr) > 0 && findSubstring(s, substr)))
+}
+
+func findSubstring(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
 }

@@ -101,6 +101,10 @@ type CreateVaultClientInput struct {
 	ServerName      string
 	ClientUserAgent string
 
+	// TLSConfig allows direct configuration of TLS settings.
+	// When present, this takes precedence over SSL* fields.
+	TLSConfig *tls.Config
+
 	K8SAuthRoleName            string
 	K8SServiceAccountTokenPath string
 	K8SServiceAccountToken     string
@@ -288,8 +292,12 @@ func (c *ClientSet) CreateVaultClient(i *CreateVaultClientInput) error {
 		TLSHandshakeTimeout: i.TransportTLSHandshakeTimeout,
 	}
 
-	// Configure SSL
-	if i.SSLEnabled {
+	// Configure TLS
+	if i.TLSConfig != nil {
+		// Use the provided TLS config directly
+		transport.TLSClientConfig = i.TLSConfig
+	} else if i.SSLEnabled {
+		// Build TLS config from SSL fields
 		var tlsConfig tls.Config
 
 		// Custom certificate or certificate and key
