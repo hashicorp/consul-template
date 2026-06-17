@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/user"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -2653,6 +2654,100 @@ func Test_writeToFile(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_writeToFile_symlink_rejection(t *testing.T) {
+	if os.Getuid() == 0 {
+		t.Skip("skipping symlink-rejection tests when running as root")
+	}
+
+	setup := func(t *testing.T) (outDir, targetPath, sensitiveFile string) {
+		t.Helper()
+		outDir = t.TempDir()
+		targetPath = filepath.Join(outDir, "output.txt")
+		sensitiveFile = filepath.Join(t.TempDir(), "sensitive.txt")
+		require.NoError(t, os.WriteFile(sensitiveFile, []byte("secret"), 0o600))
+		return
+	}
+
+	execTemplate := func(t *testing.T, destPath string) error {
+		t.Helper()
+		tmplStr := fmt.Sprintf(`{{ "data" | writeToFile %q "" "" "0644" }}`, destPath)
+		tpl, err := NewTemplate(&NewTemplateInput{Contents: tmplStr})
+		require.NoError(t, err)
+		_, err = tpl.Execute(nil)
+		return err
+	}
+
+	t.Run("rejects_final_component_symlink", func(t *testing.T) {
+		outDir, _, sensitiveFile := setup(t)
+		symlinkPath := filepath.Join(outDir, "output.txt")
+		if err := os.Symlink(sensitiveFile, symlinkPath); err != nil {
+			t.Skipf("skipping: could not create symlink: %v", err)
+		}
+
+		err := execTemplate(t, symlinkPath)
+		require.Error(t, err, "writeToFile should refuse to write through a symlink at the final path component")
+		require.Contains(t, err.Error(), "refusing to write to symlink")
+
+		// The sensitive file must be unmodified.
+		content, readErr := os.ReadFile(sensitiveFile)
+		require.NoError(t, readErr)
+		require.Equal(t, "secret", string(content), "sensitive file must not be overwritten")
+	})
+
+	t.Run("rejects_directory_component_symlink", func(t *testing.T) {
+		redirectDir := t.TempDir()
+		parentDir := t.TempDir()
+
+		// Create a real output file in redirectDir to verify it is not clobbered.
+		redirectTarget := filepath.Join(redirectDir, "output.txt")
+		require.NoError(t, os.WriteFile(redirectTarget, []byte("secret"), 0o600))
+
+		// Make parentDir/subdir a symlink pointing to redirectDir.
+		symlinkDir := filepath.Join(parentDir, "subdir")
+		if err := os.Symlink(redirectDir, symlinkDir); err != nil {
+			t.Skipf("skipping: could not create symlink: %v", err)
+		}
+
+		destPath := filepath.Join(symlinkDir, "output.txt")
+		err := execTemplate(t, destPath)
+		require.Error(t, err, "writeToFile should refuse to write through a symlinked directory component")
+		require.Contains(t, err.Error(), "refusing to write through symlinked directory")
+
+		// The file in the redirect target directory must be unmodified.
+		content, readErr := os.ReadFile(redirectTarget)
+		require.NoError(t, readErr)
+		require.Equal(t, "secret", string(content), "redirect target file must not be overwritten")
+	})
+
+	t.Run("allows_normal_path", func(t *testing.T) {
+		_, targetPath, _ := setup(t)
+		err := execTemplate(t, targetPath)
+		require.NoError(t, err, "writeToFile should succeed for a plain non-symlink path")
+		content, readErr := os.ReadFile(targetPath)
+		require.NoError(t, readErr)
+		require.Equal(t, "data", string(content))
+	})
+
+	t.Run("append_rejects_final_component_symlink", func(t *testing.T) {
+		outDir, _, sensitiveFile := setup(t)
+		symlinkPath := filepath.Join(outDir, "output.txt")
+		if err := os.Symlink(sensitiveFile, symlinkPath); err != nil {
+			t.Skipf("skipping: could not create symlink: %v", err)
+		}
+
+		tmplStr := fmt.Sprintf(`{{ "data" | writeToFile %q "" "" "0644" "append" }}`, symlinkPath)
+		tpl, err := NewTemplate(&NewTemplateInput{Contents: tmplStr})
+		require.NoError(t, err)
+		_, err = tpl.Execute(nil)
+		require.Error(t, err, "writeToFile with append flag should refuse to write through a symlink")
+		require.Contains(t, err.Error(), "refusing to write to symlink")
+
+		content, readErr := os.ReadFile(sensitiveFile)
+		require.NoError(t, readErr)
+		require.Equal(t, "secret", string(content), "sensitive file must not be modified by append")
+	})
 }
 
 const testCert = `

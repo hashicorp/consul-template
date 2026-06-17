@@ -1897,25 +1897,51 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 	}
 	perm := os.FileMode(p_u)
 
+	// Validate the write path to prevent symlink redirection attacks.
+	//
+	// os.Lstat does not follow the final path component, so it reveals whether
+	// that component is itself a symlink. We check both the immediate parent
+	// directory and the final file component:
+	//   - parent directory symlink: e.g. /secrets -> /attacker/ redirects the
+	//     write to /attacker/cert.key.
+	//   - final component symlink: e.g. /secrets/cert.key -> /etc/backdoor
+	//     overwrites an unintended file.
+	// Note: symlinks in ancestor directories above the direct parent are not
+	// checked here because writeToFile has no sandbox boundary to enforce, and
+	// checking every ancestor would produce false positives for OS-managed
+	// symlinks (e.g. /var -> /private/var on macOS).
+	cleanPath := filepath.Clean(path)
+	dirPath := filepath.Dir(cleanPath)
+
+	if _, err := os.Stat(dirPath); err != nil {
+		if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+			return "", err
+		}
+	}
+
+	dirInfo, err := os.Lstat(dirPath)
+	if err != nil {
+		return "", fmt.Errorf("writeToFile: failed to stat directory %q: %w", dirPath, err)
+	}
+	if dirInfo.Mode()&os.ModeSymlink != 0 {
+		return "", fmt.Errorf("writeToFile: refusing to write through symlinked directory in path %q", path)
+	}
+
+	resolvedPath := filepath.Join(dirPath, filepath.Base(cleanPath))
+	if fi, lErr := os.Lstat(resolvedPath); lErr == nil && fi.Mode()&os.ModeSymlink != 0 {
+		return "", fmt.Errorf("writeToFile: refusing to write to symlink %q", path)
+	}
+
 	// Write to file
 	var f *os.File
 	shouldAppend := strings.Contains(flags, "append")
 	if shouldAppend {
-		f, err = os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, perm)
+		f, err = os.OpenFile(resolvedPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, perm)
 		if err != nil {
 			return "", err
 		}
 	} else {
-		dirPath := filepath.Dir(path)
-
-		if _, err := os.Stat(dirPath); err != nil {
-			err := os.MkdirAll(dirPath, os.ModePerm)
-			if err != nil {
-				return "", err
-			}
-		}
-
-		f, err = os.Create(path)
+		f, err = os.Create(resolvedPath)
 		if err != nil {
 			return "", err
 		}
@@ -1971,13 +1997,13 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 
 	// Avoid the chown call altogether if using current user and group.
 	if username != "" || groupName != "" {
-		err = os.Chown(path, uid, gid)
+		err = os.Chown(resolvedPath, uid, gid)
 		if err != nil {
 			return "", err
 		}
 	}
 
-	err = os.Chmod(path, perm)
+	err = os.Chmod(resolvedPath, perm)
 	if err != nil {
 		return "", err
 	}
