@@ -1932,16 +1932,18 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 		return "", fmt.Errorf("writeToFile: refusing to write to symlink %q", path)
 	}
 
-	// Write to file
+	// Write to file. O_NOFOLLOW makes the open fail if the final path component
+	// is a symlink, closing the TOCTOU window between the symlink pre-check
+	// above and the open below (no-op on Windows, which lacks O_NOFOLLOW).
 	var f *os.File
 	shouldAppend := strings.Contains(flags, "append")
 	if shouldAppend {
-		f, err = os.OpenFile(resolvedPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, perm)
+		f, err = os.OpenFile(resolvedPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE|openNoFollow, perm)
 		if err != nil {
 			return "", err
 		}
 	} else {
-		f, err = os.Create(resolvedPath)
+		f, err = os.OpenFile(resolvedPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC|openNoFollow, perm)
 		if err != nil {
 			return "", err
 		}
@@ -1996,14 +1998,17 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 	}
 
 	// Avoid the chown call altogether if using current user and group.
+	// Operate on the open file descriptor (f.Chown/f.Chmod) rather than the
+	// path, so ownership and permissions always target the file we opened even
+	// if the path is swapped after the open.
 	if username != "" || groupName != "" {
-		err = os.Chown(resolvedPath, uid, gid)
+		err = f.Chown(uid, gid)
 		if err != nil {
 			return "", err
 		}
 	}
 
-	err = os.Chmod(resolvedPath, perm)
+	err = f.Chmod(perm)
 	if err != nil {
 		return "", err
 	}
