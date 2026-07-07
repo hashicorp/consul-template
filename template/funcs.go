@@ -1930,7 +1930,11 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 	}
 
 	resolvedPath := filepath.Join(dirPath, filepath.Base(cleanPath))
-	if fi, lErr := os.Lstat(resolvedPath); lErr == nil && fi.Mode()&os.ModeSymlink != 0 {
+	fi, lErr := os.Lstat(resolvedPath)
+	if lErr != nil && !os.IsNotExist(lErr) {
+		return "", fmt.Errorf("writeToFile: failed to stat %q: %w", resolvedPath, lErr)
+	}
+	if lErr == nil && fi.Mode()&os.ModeSymlink != 0 {
 		return "", fmt.Errorf("writeToFile: refusing to write to symlink %q", path)
 	}
 
