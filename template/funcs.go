@@ -1913,10 +1913,12 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 	cleanPath := filepath.Clean(path)
 	dirPath := filepath.Dir(cleanPath)
 
-	if _, err := os.Stat(dirPath); err != nil {
+	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
 		if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
 			return "", err
 		}
+	} else if err != nil {
+		return "", err
 	}
 
 	dirInfo, err := os.Lstat(dirPath)
