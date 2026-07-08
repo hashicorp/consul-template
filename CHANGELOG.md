@@ -1,3 +1,10 @@
+# 0.42.1
+
+IMPROVEMENTS:
+* cve: fix path redirection and unintended file overwrite in `writeToFile` helper through symlink attack [GH-2156](https://github.com/hashicorp/consul-template/pull/2156)
+* update: go version to 1.26.4 [GH-2155](https://github.com/hashicorp/consul-template/pull/2155)
+* update: Bump github.com/hashicorp/consul/api v1.34.0 to 1.34.4 [GH-2155](https://github.com/hashicorp/consul-template/pull/2155)
+
 # 0.42.0
 
 IMPROVEMENTS:
