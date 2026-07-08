@@ -1897,25 +1897,59 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 	}
 	perm := os.FileMode(p_u)
 
-	// Write to file
+	// Validate the write path to prevent symlink redirection attacks.
+	//
+	// os.Lstat does not follow the final path component, so it reveals whether
+	// that component is itself a symlink. We check both the immediate parent
+	// directory and the final file component:
+	//   - parent directory symlink: e.g. /secrets -> /attacker/ redirects the
+	//     write to /attacker/cert.key.
+	//   - final component symlink: e.g. /secrets/cert.key -> /etc/backdoor
+	//     overwrites an unintended file.
+	// Note: symlinks in ancestor directories above the direct parent are not
+	// checked here because writeToFile has no sandbox boundary to enforce, and
+	// checking every ancestor would produce false positives for OS-managed
+	// symlinks (e.g. /var -> /private/var on macOS).
+	cleanPath := filepath.Clean(path)
+	dirPath := filepath.Dir(cleanPath)
+
+	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+		if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+			return "", err
+		}
+	} else if err != nil {
+		return "", err
+	}
+
+	dirInfo, err := os.Lstat(dirPath)
+	if err != nil {
+		return "", fmt.Errorf("writeToFile: failed to stat directory %q: %w", dirPath, err)
+	}
+	if dirInfo.Mode()&os.ModeSymlink != 0 {
+		return "", fmt.Errorf("writeToFile: refusing to write through symlinked directory in path %q", path)
+	}
+
+	resolvedPath := filepath.Join(dirPath, filepath.Base(cleanPath))
+	fi, lErr := os.Lstat(resolvedPath)
+	if lErr != nil && !os.IsNotExist(lErr) {
+		return "", fmt.Errorf("writeToFile: failed to stat %q: %w", resolvedPath, lErr)
+	}
+	if lErr == nil && fi.Mode()&os.ModeSymlink != 0 {
+		return "", fmt.Errorf("writeToFile: refusing to write to symlink %q", path)
+	}
+
+	// Write to file. O_NOFOLLOW makes the open fail if the final path component
+	// is a symlink, closing the TOCTOU window between the symlink pre-check
+	// above and the open below (no-op on Windows, which lacks O_NOFOLLOW).
 	var f *os.File
 	shouldAppend := strings.Contains(flags, "append")
 	if shouldAppend {
-		f, err = os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, perm)
+		f, err = os.OpenFile(resolvedPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE|openNoFollow, perm)
 		if err != nil {
 			return "", err
 		}
 	} else {
-		dirPath := filepath.Dir(path)
-
-		if _, err := os.Stat(dirPath); err != nil {
-			err := os.MkdirAll(dirPath, os.ModePerm)
-			if err != nil {
-				return "", err
-			}
-		}
-
-		f, err = os.Create(path)
+		f, err = os.OpenFile(resolvedPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC|openNoFollow, perm)
 		if err != nil {
 			return "", err
 		}
@@ -1970,14 +2004,17 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 	}
 
 	// Avoid the chown call altogether if using current user and group.
+	// Operate on the open file descriptor (f.Chown/f.Chmod) rather than the
+	// path, so ownership and permissions always target the file we opened even
+	// if the path is swapped after the open.
 	if username != "" || groupName != "" {
-		err = os.Chown(path, uid, gid)
+		err = f.Chown(uid, gid)
 		if err != nil {
 			return "", err
 		}
 	}
 
-	err = os.Chmod(path, perm)
+	err = f.Chmod(perm)
 	if err != nil {
 		return "", err
 	}
