@@ -195,6 +195,18 @@ func leaseCheckWait(s *Secret) (time.Duration, error) {
 		sleep = sleep * finalFraction
 	}
 
+	// Discount the time this response has already spent in a cache. A cached
+	// lease reports its duration measured from when the lease was issued, and
+	// the Age header says how long ago that was, so that much of the wait has
+	// already elapsed. Without this the sleep runs from now rather than from
+	// issuance, and the client wakes after the credential has already expired.
+	if s.LeaseID != "" && s.Age > 0 {
+		sleep -= float64(s.Age)
+		if sleep < 0 {
+			sleep = 0
+		}
+	}
+
 	return time.Duration(sleep), nil
 }
 
