@@ -48,6 +48,11 @@ type Secret struct {
 	// cubbyhole of the given token (which has a TTL of the given number of
 	// seconds)
 	WrapInfo *SecretWrapInfo
+
+	// Age reports how long this response was held by an intermediate cache
+	// before reaching the client. It is zero for a response served directly by
+	// Vault. The lifetime a lease has left is its LeaseDuration less its Age.
+	Age time.Duration
 }
 
 // SecretAuth is the structure containing auth information if we have it.
