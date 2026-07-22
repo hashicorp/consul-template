@@ -250,6 +250,11 @@ func updateSecret(ours *Secret, theirs *api.Secret) {
 		ours.LeaseDuration = theirs.LeaseDuration
 	}
 
+	// Age is how long this response sat in a cache before arriving, a property
+	// of the response rather than the secret, so it is set directly rather than
+	// preserved across renewals like the fields above.
+	ours.Age = theirs.Age
+
 	if theirs.Renewable {
 		ours.Renewable = theirs.Renewable
 	}
