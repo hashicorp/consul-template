@@ -645,10 +645,14 @@ func (r *Runner) Run() error {
 		depsMap: make(map[string]dep.Dependency),
 	}
 
+	var templateErrs []error
+
 	for _, tmpl := range r.templates {
 		event, err := r.runTemplate(tmpl, runCtx)
 		if err != nil {
-			return err
+			log.Printf("[ERR] (runner) template %s failed: %s", tmpl.ID(), err)
+			templateErrs = append(templateErrs, err)
+			continue
 		}
 
 		// If there was a render event store it
@@ -739,6 +743,21 @@ func (r *Runner) Run() error {
 			result = multierror.Append(result, err)
 		}
 		return result.ErrorOrNil()
+	}
+
+	// Return any template errors if all commands succeeded
+	if len(templateErrs) != 0 {
+		// Suppress the run-level error when all templates failed — the caller
+		// will see individual template errors in their render events and can
+		// decide whether to stop or continue on the next iteration.
+		if wouldRenderAny || renderedAny {
+			// At least one template rendered successfully, so don't stop the
+			// runner — just log and continue.
+			log.Printf("[WARN] (runner) %d template(s) failed, but %d rendered successfully",
+				len(templateErrs), len(r.templates)-len(templateErrs))
+			return nil
+		}
+		return fmt.Errorf("%d template(s) failed to render", len(templateErrs))
 	}
 
 	return nil
