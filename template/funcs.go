@@ -1943,6 +1943,16 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 	// above and the open below (no-op on Windows, which lacks O_NOFOLLOW).
 	var f *os.File
 	shouldAppend := strings.Contains(flags, "append")
+	// Guard: when content is empty and we are not in append mode, do not
+	// truncate an existing non-empty file.  This prevents Vault Agent from
+	// blanking a pkiCert side-file (e.g. the private key) when it restarts
+	// within a lease TTL and consul-template re-executes the template body
+	// without re-rendering the destination file (VAULT-38287).
+	if !shouldAppend && content == "" {
+		if existing, err := os.ReadFile(resolvedPath); err == nil && len(existing) > 0 {
+			return "", nil
+		}
+	}
 	if shouldAppend {
 		f, err = os.OpenFile(resolvedPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE|openNoFollow, perm)
 		if err != nil {

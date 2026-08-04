@@ -2656,6 +2656,87 @@ func Test_writeToFile(t *testing.T) {
 	}
 }
 
+// Test_writeToFile_empty_content_guard verifies the VAULT-38287 fix: when
+// writeToFile is called with empty content and the destination file already
+// contains data, the existing file must not be truncated.  It also confirms
+// that empty content to a new (non-existent) file still creates the file.
+func Test_writeToFile_empty_content_guard(t *testing.T) {
+	t.Run("empty_content_does_not_overwrite_existing_file", func(t *testing.T) {
+		outDir, err := os.MkdirTemp("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(outDir)
+
+		// Create a pre-existing file containing a "private key" payload.
+		existing, err := os.CreateTemp(outDir, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		const originalContent = "-----BEGIN RSA PRIVATE KEY-----\nbefore\n-----END RSA PRIVATE KEY-----\n"
+		if _, err = existing.WriteString(originalContent); err != nil {
+			t.Fatal(err)
+		}
+		if err = existing.Close(); err != nil {
+			t.Fatal(err)
+		}
+		outputFilePath := existing.Name()
+
+		// Execute a template that pipes an empty string into writeToFile.
+		templateContent := fmt.Sprintf(
+			`{{ "" | writeToFile "%s" "" "" "0644" }}`,
+			outputFilePath)
+		tpl, err := NewTemplate(&NewTemplateInput{Contents: templateContent})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err = tpl.Execute(nil); err != nil {
+			t.Fatal(err)
+		}
+
+		got, err := os.ReadFile(outputFilePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(got) != originalContent {
+			t.Errorf("writeToFile() with empty content overwrote existing file: got %q, want %q",
+				string(got), originalContent)
+		}
+	})
+
+	t.Run("empty_content_creates_new_file", func(t *testing.T) {
+		outDir, err := os.MkdirTemp("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(outDir)
+
+		// Path that does not yet exist.
+		outputFilePath := outDir + "/new_file.key"
+
+		templateContent := fmt.Sprintf(
+			`{{ "" | writeToFile "%s" "" "" "0644" }}`,
+			outputFilePath)
+		tpl, err := NewTemplate(&NewTemplateInput{Contents: templateContent})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err = tpl.Execute(nil); err != nil {
+			t.Fatal(err)
+		}
+
+		got, err := os.ReadFile(outputFilePath)
+		if err != nil {
+			t.Fatalf("writeToFile() with empty content to new path did not create file: %v", err)
+		}
+		if len(got) != 0 {
+			t.Errorf("writeToFile() with empty content to new path: got %q, want empty file", string(got))
+		}
+	})
+}
+
+
+
 func Test_writeToFile_symlink_rejection(t *testing.T) {
 	if os.Getuid() == 0 {
 		t.Skip("skipping symlink-rejection tests when running as root")
