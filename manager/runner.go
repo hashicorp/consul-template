@@ -1428,6 +1428,7 @@ func NewClientSet(c *config.Config) (*dep.ClientSet, error) {
 		SSLCAPath:                    config.StringVal(c.Vault.SSL.CaPath),
 		ServerName:                   config.StringVal(c.Vault.SSL.ServerName),
 		ClientUserAgent:              config.StringVal(c.Vault.ClientUserAgent),
+		TLSConfig:                    c.Vault.TLSConfig,
 		TransportCustomDialer:        c.Vault.Transport.CustomDialer,
 		TransportDialKeepAlive:       config.TimeDurationVal(c.Vault.Transport.DialKeepAlive),
 		TransportDialTimeout:         config.TimeDurationVal(c.Vault.Transport.DialTimeout),

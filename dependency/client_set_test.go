@@ -4,14 +4,18 @@
 package dependency
 
 import (
+	"crypto/tls"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul-template/test"
+	"github.com/hashicorp/go-rootcerts"
 	"github.com/hashicorp/vault/api"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -204,12 +208,17 @@ func (m vaultMock) processReq(tb testing.TB, w http.ResponseWriter, r *http.Requ
 		tb.Fatalf("User-Agent header not as expected. Expected %s, got %s. Request was to %s", userAgent, r.UserAgent(), r.RequestURI)
 	}
 
-	var data map[string]interface{}
-	err := json.NewDecoder(r.Body).Decode(&data)
-	if !assert.NoError(tb, err) {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	body, err := io.ReadAll(r.Body)
+	assert.NoError(tb, err)
 
-		return
+	var data map[string]interface{}
+	if len(body) > 0 {
+		err := json.NewDecoder(strings.NewReader(string(body))).Decode(&data)
+		if !assert.NoError(tb, err) {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+
+			return
+		}
 	}
 
 	tb.Logf("%s: %s: %+v", r.Method, r.URL, data)
@@ -247,4 +256,60 @@ func newVaultMockReversedProxy(tb testing.TB, mocks ...vaultMock) string {
 	tb.Cleanup(testServer.Close)
 
 	return testServer.URL
+}
+
+func TestClientSet_CreateVaultClient_TLSConfig(t *testing.T) {
+	t.Parallel()
+
+	tlsConfig := &tls.Config{}
+	rootConfig := &rootcerts.Config{
+		CAFile: testVaultTLS.caPemPath,
+	}
+	require.NoError(t, rootcerts.ConfigureTLS(tlsConfig, rootConfig))
+
+	t.Run("with_tlsconfig", func(t *testing.T) {
+		clientSet := NewClientSet()
+		err := clientSet.CreateVaultClient(&CreateVaultClientInput{
+			ClientUserAgent: userAgent,
+			Address:         vaultHttpsAddr,
+			Token:           vaultToken,
+			TLSConfig:       tlsConfig,
+		})
+		require.NoError(t, err)
+
+		// Verify client was created and can communicate
+		client := clientSet.Vault()
+		require.NotNil(t, client)
+
+		// Make a simple API call to verify it works
+		health, err := client.Sys().Health()
+		require.NoError(t, err)
+		require.NotNil(t, health)
+	})
+
+	t.Run("tlsconfig_precedence_over_ssl", func(t *testing.T) {
+		// This test verifies that when TLSConfig is provided,
+		// SSL fields are ignored (even if they would cause errors)
+
+		clientSet := NewClientSet()
+		err := clientSet.CreateVaultClient(&CreateVaultClientInput{
+			ClientUserAgent: userAgent,
+			Address:         vaultHttpsAddr,
+			Token:           vaultToken,
+			TLSConfig:       tlsConfig,
+			SSLEnabled:      true,
+			SSLVerify:       true,
+			SSLCert:         "/invalid/path/to/cert.pem", // This should be ignored
+			SSLKey:          "/invalid/path/to/key.pem",  // This should be ignored
+		})
+		require.NoError(t, err)
+
+		// Verify client works despite invalid SSL fields
+		client := clientSet.Vault()
+		require.NotNil(t, client)
+
+		health, err := client.Sys().Health()
+		require.NoError(t, err)
+		require.NotNil(t, health)
+	})
 }
