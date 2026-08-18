@@ -240,7 +240,7 @@ func (c *VaultConfig) Merge(o *VaultConfig) *VaultConfig {
 	}
 
 	if o.TLSConfig != nil {
-		r.TLSConfig = o.TLSConfig
+		r.TLSConfig = o.TLSConfig.Clone()
 	}
 
 	if o.Token != nil {
