@@ -36,6 +36,9 @@ func TestVaultConfig_Copy(t *testing.T) {
 				Retry:      &RetryConfig{Enabled: Bool(true)},
 				SSL:        &SSLConfig{Enabled: Bool(true)},
 				Token:      String("token"),
+				TLSConfig: &tls.Config{
+					ServerName: "server",
+				},
 				Transport: &TransportConfig{
 					DialKeepAlive: TimeDuration(20 * time.Second),
 				},
@@ -963,18 +966,6 @@ func TestVaultConfig_TokenRenew(t *testing.T) {
 	}
 }
 
-func TestVaultConfig_Copy_TLSConfig(t *testing.T) {
-	t.Parallel()
-
-	tlsConfig := &tls.Config{InsecureSkipVerify: true}
-	c := &VaultConfig{TLSConfig: tlsConfig}
-	o := c.Copy()
-
-	if o.TLSConfig != tlsConfig {
-		t.Errorf("expected TLSConfig to be copied (same pointer)")
-	}
-}
-
 func TestVaultConfig_Merge_TLSConfig(t *testing.T) {
 	t.Parallel()
 
@@ -1039,94 +1030,12 @@ func TestVaultConfig_Merge_TLSConfig(t *testing.T) {
 					t.Errorf("\nexp: %#v\nact: %#v", tc.r, r)
 				}
 			} else {
-				if r.TLSConfig != tc.r.TLSConfig {
+				if !reflect.DeepEqual(r.TLSConfig, tc.r.TLSConfig) {
 					t.Errorf("\nexp: %#v\nact: %#v", tc.r.TLSConfig, r.TLSConfig)
 				}
 			}
 		})
 	}
-}
-
-func TestVaultConfig_Finalize_TLSConfig(t *testing.T) {
-	t.Parallel()
-
-	cases := []struct {
-		name      string
-		c         *VaultConfig
-		expectErr bool
-	}{
-		{
-			"tlsconfig_only",
-			&VaultConfig{
-				TLSConfig: &tls.Config{InsecureSkipVerify: true},
-			},
-			false,
-		},
-		{
-			"ssl_only",
-			&VaultConfig{
-				SSL: &SSLConfig{
-					Enabled: Bool(true),
-					Verify:  Bool(true),
-				},
-			},
-			false,
-		},
-		{
-			"both_tlsconfig_and_ssl_enabled",
-			&VaultConfig{
-				TLSConfig: &tls.Config{},
-				SSL: &SSLConfig{
-					Enabled: Bool(true),
-					Verify:  Bool(true),
-				},
-			},
-			true,
-		},
-		{
-			"both_but_ssl_disabled",
-			&VaultConfig{
-				TLSConfig: &tls.Config{},
-				SSL: &SSLConfig{
-					Enabled: Bool(false),
-				},
-			},
-			false,
-		},
-		{
-			"both_but_ssl_nil_enabled",
-			&VaultConfig{
-				TLSConfig: &tls.Config{},
-				SSL: &SSLConfig{
-					Verify: Bool(true),
-				},
-			},
-			false,
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			err := tc.c.Finalize()
-			if tc.expectErr && err == nil {
-				t.Fatal("expected error when both TLSConfig and SSL are set")
-			}
-			if !tc.expectErr && err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if tc.expectErr && err != nil {
-				if !contains(err.Error(), "cannot specify both") {
-					t.Errorf("unexpected error message: %v", err)
-				}
-			}
-		})
-	}
-}
-
-// Helper function to check if a string contains a substring
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||
-		(len(s) > 0 && len(substr) > 0 && findSubstring(s, substr)))
 }
 
 func findSubstring(s, substr string) bool {

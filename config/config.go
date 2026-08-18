@@ -647,11 +647,7 @@ func (c *Config) Finalize() {
 	if c.Vault == nil {
 		c.Vault = DefaultVaultConfig()
 	}
-	if err := c.Vault.Finalize(); err != nil {
-		log.Printf("[ERR] (config) %s", err)
-		// Set Vault to disabled state to prevent client creation
-		c.Vault.Enabled = Bool(false)
-	}
+	c.Vault.Finalize()
 
 	if c.Wait == nil {
 		c.Wait = DefaultWaitConfig()

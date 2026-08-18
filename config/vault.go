@@ -240,7 +240,6 @@ func (c *VaultConfig) Merge(o *VaultConfig) *VaultConfig {
 
 	if o.TLSConfig != nil {
 		r.TLSConfig = o.TLSConfig
-		//r.SSL = nil
 	}
 
 	if o.Token != nil {
@@ -291,7 +290,7 @@ func (c *VaultConfig) Merge(o *VaultConfig) *VaultConfig {
 }
 
 // Finalize ensures there no nil pointers.
-func (c *VaultConfig) Finalize() error {
+func (c *VaultConfig) Finalize() {
 	if c.Address == nil {
 		c.Address = stringFromEnv([]string{
 			api.EnvVaultAddress,
@@ -417,8 +416,6 @@ func (c *VaultConfig) Finalize() error {
 			"VAULT_K8S_SERVICE_MOUNT_PATH",
 		}, DefaultK8SServiceMountPath)
 	}
-
-	return nil
 }
 
 // GoString defines the printable version of this struct.
