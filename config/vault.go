@@ -173,7 +173,7 @@ func (c *VaultConfig) Copy() *VaultConfig {
 		o.SSL = c.SSL.Copy()
 	}
 
-	o.TLSConfig = c.TLSConfig
+	o.TLSConfig = c.TLSConfig.Clone()
 
 	o.Token = c.Token
 
@@ -292,11 +292,6 @@ func (c *VaultConfig) Merge(o *VaultConfig) *VaultConfig {
 
 // Finalize ensures there no nil pointers.
 func (c *VaultConfig) Finalize() error {
-	// Validate that both TLSConfig and SSL are not configured simultaneously
-	if c.TLSConfig != nil && c.SSL != nil && c.SSL.Enabled != nil && *c.SSL.Enabled {
-		return fmt.Errorf("vault config: cannot specify both TLSConfig and SSL configuration")
-	}
-
 	if c.Address == nil {
 		c.Address = stringFromEnv([]string{
 			api.EnvVaultAddress,
