@@ -117,14 +117,6 @@ func TestMain(m *testing.M) {
 		Fatalf("failed to start Nomad: %v\n", err)
 	}
 
-	if err := clients.CreateVaultClient(&CreateVaultClientInput{
-		Address:   vaultHttpsAddr,
-		Token:     vaultToken,
-		SSLCACert: testVaultTLS.caPemPath,
-	}); err != nil {
-		Fatalf("failed to create TLS vault client: %v\n", err)
-	}
-
 	exit := m.Run()
 
 	tb.DoCleanup()
