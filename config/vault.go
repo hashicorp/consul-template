@@ -173,8 +173,9 @@ func (c *VaultConfig) Copy() *VaultConfig {
 		o.SSL = c.SSL.Copy()
 	}
 
-	o.TLSConfig = c.TLSConfig.Clone()
-
+	if c.TLSConfig != nil {
+		o.TLSConfig = c.TLSConfig.Clone()
+	}
 	o.Token = c.Token
 
 	o.VaultAgentTokenFile = c.VaultAgentTokenFile
