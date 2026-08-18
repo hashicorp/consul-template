@@ -4,6 +4,7 @@
 package config
 
 import (
+	"crypto/tls"
 	"fmt"
 	"reflect"
 	"testing"
@@ -35,6 +36,9 @@ func TestVaultConfig_Copy(t *testing.T) {
 				Retry:      &RetryConfig{Enabled: Bool(true)},
 				SSL:        &SSLConfig{Enabled: Bool(true)},
 				Token:      String("token"),
+				TLSConfig: &tls.Config{
+					ServerName: "server",
+				},
 				Transport: &TransportConfig{
 					DialKeepAlive: TimeDuration(20 * time.Second),
 				},
@@ -960,4 +964,85 @@ func TestVaultConfig_TokenRenew(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestVaultConfig_Merge_TLSConfig(t *testing.T) {
+	t.Parallel()
+
+	tlsConfig1 := &tls.Config{InsecureSkipVerify: true}
+	tlsConfig2 := &tls.Config{InsecureSkipVerify: false}
+
+	cases := []struct {
+		name string
+		a    *VaultConfig
+		b    *VaultConfig
+		r    *VaultConfig
+	}{
+		{
+			"nil_a",
+			nil,
+			&VaultConfig{TLSConfig: tlsConfig1},
+			&VaultConfig{TLSConfig: tlsConfig1},
+		},
+		{
+			"nil_b",
+			&VaultConfig{TLSConfig: tlsConfig1},
+			nil,
+			&VaultConfig{TLSConfig: tlsConfig1},
+		},
+		{
+			"nil_both",
+			nil,
+			nil,
+			nil,
+		},
+		{
+			"empty",
+			&VaultConfig{},
+			&VaultConfig{},
+			&VaultConfig{},
+		},
+		{
+			"tlsconfig_overrides",
+			&VaultConfig{TLSConfig: tlsConfig1},
+			&VaultConfig{TLSConfig: tlsConfig2},
+			&VaultConfig{TLSConfig: tlsConfig2},
+		},
+		{
+			"tlsconfig_empty",
+			&VaultConfig{TLSConfig: tlsConfig1},
+			&VaultConfig{},
+			&VaultConfig{TLSConfig: tlsConfig1},
+		},
+		{
+			"tlsconfig_empty_one",
+			&VaultConfig{},
+			&VaultConfig{TLSConfig: tlsConfig1},
+			&VaultConfig{TLSConfig: tlsConfig1},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := tc.a.Merge(tc.b)
+			if tc.r == nil {
+				if r != nil {
+					t.Errorf("\nexp: %#v\nact: %#v", tc.r, r)
+				}
+			} else {
+				if !reflect.DeepEqual(r.TLSConfig, tc.r.TLSConfig) {
+					t.Errorf("\nexp: %#v\nact: %#v", tc.r.TLSConfig, r.TLSConfig)
+				}
+			}
+		})
+	}
+}
+
+func findSubstring(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
 }

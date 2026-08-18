@@ -4,6 +4,7 @@
 package config
 
 import (
+	"crypto/tls"
 	"fmt"
 	"time"
 
@@ -67,6 +68,12 @@ type VaultConfig struct {
 
 	// SSL indicates we should use a secure connection while talking to Vault.
 	SSL *SSLConfig `mapstructure:"ssl"`
+
+	// TLSConfig allows direct configuration of TLS settings for the Vault client.
+	// This is intended for programmatic use only and cannot be set via configuration files.
+	// When present, this takes precedence over the SSL field configuration.
+	// It is an error to set both TLSConfig and SSL fields.
+	TLSConfig *tls.Config `mapstructure:"-" json:"-"`
 
 	// Token is the Vault token to communicate with for requests. It may be
 	// a wrapped token or a real token. This can also be set via the VAULT_TOKEN
@@ -166,6 +173,9 @@ func (c *VaultConfig) Copy() *VaultConfig {
 		o.SSL = c.SSL.Copy()
 	}
 
+	if c.TLSConfig != nil {
+		o.TLSConfig = c.TLSConfig.Clone()
+	}
 	o.Token = c.Token
 
 	o.VaultAgentTokenFile = c.VaultAgentTokenFile
@@ -227,6 +237,10 @@ func (c *VaultConfig) Merge(o *VaultConfig) *VaultConfig {
 
 	if o.SSL != nil {
 		r.SSL = r.SSL.Merge(o.SSL)
+	}
+
+	if o.TLSConfig != nil {
+		r.TLSConfig = o.TLSConfig.Clone()
 	}
 
 	if o.Token != nil {
@@ -418,6 +432,7 @@ func (c *VaultConfig) GoString() string {
 		"RenewToken:%s, "+
 		"Retry:%#v, "+
 		"SSL:%#v, "+
+		"TLSConfig:%t, "+
 		"Token:%t, "+
 		"VaultAgentTokenFile:%t, "+
 		"Transport:%#v, "+
@@ -435,6 +450,7 @@ func (c *VaultConfig) GoString() string {
 		BoolGoString(c.RenewToken),
 		c.Retry,
 		c.SSL,
+		c.TLSConfig != nil,
 		StringPresent(c.Token),
 		StringPresent(c.VaultAgentTokenFile),
 		c.Transport,

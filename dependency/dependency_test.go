@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"reflect"
 	"testing"
 	"time"
@@ -24,13 +25,16 @@ import (
 )
 
 const (
-	vaultAddr  = "http://127.0.0.1:8200"
-	vaultToken = "a_token"
+	vaultAddr        = "http://127.0.0.1:8200"
+	vaultHttpsListen = "127.0.0.1:8210"
+	vaultHttpsAddr   = "https://" + vaultHttpsListen
+	vaultToken       = "a_token"
 )
 
 var (
 	testConsul    *testutil.TestServer
 	testVault     *vaultServer
+	testVaultTLS  *vaultServer
 	testNomad     *nomadServer
 	testClients   *ClientSet
 	tenancyHelper *test.TenancyHelper
@@ -40,6 +44,7 @@ func TestMain(m *testing.M) {
 	log.SetOutput(io.Discard)
 	nomadFuture := runTestNomad()
 	runTestVault()
+	runTestVaultTLS()
 	tb := &test.TestingTB{}
 	runTestConsul(tb)
 	clients := NewClientSet()
@@ -52,6 +57,7 @@ func TestMain(m *testing.M) {
 		if r := recover(); r != nil {
 			testConsul.Stop()
 			testVault.Stop()
+			testVaultTLS.Stop()
 			testNomad.Stop()
 			panic(r)
 		}
@@ -121,6 +127,7 @@ func TestMain(m *testing.M) {
 func stopTestClients() {
 	testConsul.Stop()
 	testVault.Stop()
+	testVaultTLS.Stop()
 	testNomad.Stop()
 }
 
@@ -426,6 +433,7 @@ func (n *nomadServer) Stop() error {
 
 type vaultServer struct {
 	secretsPath string
+	caPemPath   string
 	cmd         *exec.Cmd
 }
 
@@ -447,6 +455,36 @@ func runTestVault() {
 	}
 	testVault = &vaultServer{
 		cmd: cmd,
+	}
+}
+
+func runTestVaultTLS() {
+	path, err := exec.LookPath("vault")
+	if err != nil || path == "" {
+		Fatalf("vault not found on $PATH")
+	}
+
+	tmpDir, err := os.MkdirTemp("", "")
+	if err != nil {
+		Fatalf("error creating temp dir: %v", err)
+	}
+
+	args := []string{
+		"server", "-dev", "-dev-root-token-id", vaultToken,
+		"-dev-listen-address", vaultHttpsListen,
+		"-dev-no-store-token", "-dev-tls", "-dev-tls-cert-dir", tmpDir,
+	}
+	cmd := exec.Command("vault", args...)
+	cmd.Stdout = io.Discard
+	cmd.Stderr = io.Discard
+
+	fmt.Println("tpmdir", tmpDir)
+	if err := cmd.Start(); err != nil {
+		Fatalf("vault failed to start: %v", err)
+	}
+	testVaultTLS = &vaultServer{
+		cmd:       cmd,
+		caPemPath: filepath.Join(tmpDir, "vault-ca.pem"),
 	}
 }
 
