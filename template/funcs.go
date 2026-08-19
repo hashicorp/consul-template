@@ -1943,36 +1943,42 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 	// above and the open below (no-op on Windows, which lacks O_NOFOLLOW).
 	var f *os.File
 	shouldAppend := strings.Contains(flags, "append")
-	// Guard: when content is empty and we are not in append mode, do not
-	// truncate an existing non-empty file.  This prevents Vault Agent from
-	// blanking a pkiCert side-file (e.g. the private key) when it restarts
-	// within a lease TTL and consul-template re-executes the template body
-	// without re-rendering the destination file (VAULT-38287).
-	if !shouldAppend && content == "" {
-		if existing, err := os.ReadFile(resolvedPath); err == nil && len(existing) > 0 {
-			return "", nil
-		}
-	}
-	if shouldAppend {
-		f, err = os.OpenFile(resolvedPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE|openNoFollow, perm)
-		if err != nil {
-			return "", err
-		}
-	} else {
-		f, err = os.OpenFile(resolvedPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC|openNoFollow, perm)
-		if err != nil {
-			return "", err
-		}
-	}
-	defer f.Close()
+	shouldPreserveOnEmpty := strings.Contains(flags, "preserve_on_empty")
 
-	writingContent := []byte(content)
-	shouldAddNewLine := strings.Contains(flags, "newline")
-	if shouldAddNewLine {
-		writingContent = append(writingContent, []byte("\n")...)
+	// When preserve_on_empty is set and content is empty, skip the write to
+	// protect an existing non-empty file from being truncated (VAULT-38287).
+	// The newline flag is intentionally not applied when content is empty and
+	// preserve_on_empty is set — a "\n"-only write should not bypass the guard.
+	// Ownership and permissions are still applied below regardless.
+	skipWrite := false
+	if shouldPreserveOnEmpty && content == "" {
+		if existing, err := os.ReadFile(resolvedPath); err == nil && len(existing) > 0 {
+			skipWrite = true
+		}
 	}
-	if _, err = f.Write(writingContent); err != nil {
-		return "", err
+
+	if !skipWrite {
+		if shouldAppend {
+			f, err = os.OpenFile(resolvedPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE|openNoFollow, perm)
+			if err != nil {
+				return "", err
+			}
+		} else {
+			f, err = os.OpenFile(resolvedPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC|openNoFollow, perm)
+			if err != nil {
+				return "", err
+			}
+		}
+		defer f.Close()
+
+		writingContent := []byte(content)
+		shouldAddNewLine := strings.Contains(flags, "newline")
+		if shouldAddNewLine {
+			writingContent = append(writingContent, []byte("\n")...)
+		}
+		if _, err = f.Write(writingContent); err != nil {
+			return "", err
+		}
 	}
 
 	// Change ownership and permissions
@@ -2013,20 +2019,28 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 		}
 	}
 
-	// Avoid the chown call altogether if using current user and group.
-	// Operate on the open file descriptor (f.Chown/f.Chmod) rather than the
-	// path, so ownership and permissions always target the file we opened even
-	// if the path is swapped after the open.
-	if username != "" || groupName != "" {
-		err = f.Chown(uid, gid)
-		if err != nil {
+	// Apply ownership and permissions. When the write was skipped (skipWrite),
+	// use path-based calls since there is no open file descriptor. Otherwise
+	// operate on the open fd so ownership/permissions target the file we
+	// opened even if the path is swapped after the open.
+	if skipWrite {
+		if username != "" || groupName != "" {
+			if err = os.Lchown(resolvedPath, uid, gid); err != nil {
+				return "", err
+			}
+		}
+		if err = os.Chmod(resolvedPath, perm); err != nil {
 			return "", err
 		}
-	}
-
-	err = f.Chmod(perm)
-	if err != nil {
-		return "", err
+	} else {
+		if username != "" || groupName != "" {
+			if err = f.Chown(uid, gid); err != nil {
+				return "", err
+			}
+		}
+		if err = f.Chmod(perm); err != nil {
+			return "", err
+		}
 	}
 
 	return "", nil
