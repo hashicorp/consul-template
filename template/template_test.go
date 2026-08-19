@@ -2786,8 +2786,6 @@ func Test_writeToFile_preserve_on_empty(t *testing.T) {
 	})
 }
 
-
-
 func Test_writeToFile_symlink_rejection(t *testing.T) {
 	if os.Getuid() == 0 {
 		t.Skip("skipping symlink-rejection tests when running as root")
