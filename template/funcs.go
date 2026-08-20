@@ -1945,32 +1945,38 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 	shouldAppend := strings.Contains(flags, "append")
 	shouldPreserveOnEmpty := strings.Contains(flags, "preserve_on_empty")
 
-	// When preserve_on_empty is set and content is empty, skip the write to
-	// protect an existing non-empty file from being truncated (VAULT-38287).
+	// When preserve_on_empty is set and content is empty, open the file
+	// without O_TRUNC to preserve existing content (VAULT-38287).
 	// The newline flag is intentionally not applied when content is empty and
 	// preserve_on_empty is set — a "\n"-only write should not bypass the guard.
-	// Ownership and permissions are still applied below regardless.
-	skipWrite := false
-	if shouldPreserveOnEmpty && content == "" {
-		if existing, err := os.ReadFile(resolvedPath); err == nil && len(existing) > 0 {
-			skipWrite = true
+	// In all cases we open via O_NOFOLLOW so the fd-based chown/chmod below
+	// remains protected against symlink races.
+	preserveContent := shouldPreserveOnEmpty && content == "" &&
+		func() bool {
+			existing, err := os.ReadFile(resolvedPath)
+			return err == nil && len(existing) > 0
+		}()
+
+	if shouldAppend {
+		f, err = os.OpenFile(resolvedPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE|openNoFollow, perm)
+		if err != nil {
+			return "", err
+		}
+	} else if preserveContent {
+		// Open without O_TRUNC — content stays intact, fd used for chown/chmod.
+		f, err = os.OpenFile(resolvedPath, os.O_RDWR|openNoFollow, perm)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		f, err = os.OpenFile(resolvedPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC|openNoFollow, perm)
+		if err != nil {
+			return "", err
 		}
 	}
+	defer f.Close()
 
-	if !skipWrite {
-		if shouldAppend {
-			f, err = os.OpenFile(resolvedPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE|openNoFollow, perm)
-			if err != nil {
-				return "", err
-			}
-		} else {
-			f, err = os.OpenFile(resolvedPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC|openNoFollow, perm)
-			if err != nil {
-				return "", err
-			}
-		}
-		defer f.Close()
-
+	if !preserveContent {
 		writingContent := []byte(content)
 		shouldAddNewLine := strings.Contains(flags, "newline")
 		if shouldAddNewLine {
@@ -2019,28 +2025,15 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 		}
 	}
 
-	// Apply ownership and permissions. When the write was skipped (skipWrite),
-	// use path-based calls since there is no open file descriptor. Otherwise
-	// operate on the open fd so ownership/permissions target the file we
-	// opened even if the path is swapped after the open.
-	if skipWrite {
-		if username != "" || groupName != "" {
-			if err = os.Lchown(resolvedPath, uid, gid); err != nil {
-				return "", err
-			}
-		}
-		if err = os.Chmod(resolvedPath, perm); err != nil {
+	// Operate on the open file descriptor so ownership and permissions always
+	// target the file we opened, even if the path is swapped after the open.
+	if username != "" || groupName != "" {
+		if err = f.Chown(uid, gid); err != nil {
 			return "", err
 		}
-	} else {
-		if username != "" || groupName != "" {
-			if err = f.Chown(uid, gid); err != nil {
-				return "", err
-			}
-		}
-		if err = f.Chmod(perm); err != nil {
-			return "", err
-		}
+	}
+	if err = f.Chmod(perm); err != nil {
+		return "", err
 	}
 
 	return "", nil
