@@ -82,8 +82,11 @@ func renewSecret(clients *ClientSet, d renewer) error {
 
 	secret, vaultSecret := d.secrets()
 	renewer, err := clients.Vault().NewLifetimeWatcher(&api.LifetimeWatcherInput{
-		Secret:        vaultSecret,
-		RenewBehavior: api.RenewBehaviorErrorOnErrors,
+		Secret: vaultSecret,
+		// RenewBehaviorIgnoreErrors retries transient renewal failures with
+		// exponential backoff (10s→5m) until the original lease expires,
+		// rather than exiting the watcher immediately on the first error.
+		RenewBehavior: api.RenewBehaviorIgnoreErrors,
 	})
 	if err != nil {
 		return err
