@@ -276,7 +276,7 @@ type renewalTestDep struct {
 	stopCh      chan struct{}
 }
 
-func (d *renewalTestDep) stopChan() chan struct{}          { return d.stopCh }
+func (d *renewalTestDep) stopChan() chan struct{}         { return d.stopCh }
 func (d *renewalTestDep) secrets() (*Secret, *api.Secret) { return d.secret, d.vaultSecret }
 func (d *renewalTestDep) CanShare() bool                  { return false }
 func (d *renewalTestDep) Fetch(*ClientSet, *QueryOptions) (interface{}, *ResponseMetadata, error) {
