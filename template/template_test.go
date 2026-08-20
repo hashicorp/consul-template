@@ -2656,6 +2656,136 @@ func Test_writeToFile(t *testing.T) {
 	}
 }
 
+// Test_writeToFile_preserve_on_empty verifies the preserve_on_empty flag
+// (VAULT-38287): when the flag is set and content is empty, an existing
+// non-empty file must not be truncated, but ownership and permissions are
+// still applied. Default behaviour (no flag) must be unchanged.
+func Test_writeToFile_preserve_on_empty(t *testing.T) {
+	const originalContent = "-----BEGIN RSA PRIVATE KEY-----\nbefore\n-----END RSA PRIVATE KEY-----\n"
+
+	// helper creates a temp dir with a pre-existing file containing originalContent.
+	setup := func(t *testing.T) (outDir, filePath string) {
+		t.Helper()
+		outDir, err := os.MkdirTemp("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		f, err := os.CreateTemp(outDir, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err = f.WriteString(originalContent); err != nil {
+			t.Fatal(err)
+		}
+		if err = f.Close(); err != nil {
+			t.Fatal(err)
+		}
+		return outDir, f.Name()
+	}
+
+	t.Run("preserve_on_empty_preserves_existing_file", func(t *testing.T) {
+		outDir, filePath := setup(t)
+		defer os.RemoveAll(outDir)
+
+		tmpl := fmt.Sprintf(`{{ "" | writeToFile "%s" "" "" "0644" "preserve_on_empty" }}`, filePath)
+		tpl, err := NewTemplate(&NewTemplateInput{Contents: tmpl})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err = tpl.Execute(nil); err != nil {
+			t.Fatal(err)
+		}
+
+		got, err := os.ReadFile(filePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(got) != originalContent {
+			t.Errorf("preserve_on_empty: file overwritten, got %q, want %q", string(got), originalContent)
+		}
+		// Permissions must still be applied even though write was skipped.
+		info, err := os.Stat(filePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if info.Mode() != 0644 {
+			t.Errorf("preserve_on_empty: permissions not applied, got %v, want 0644", info.Mode())
+		}
+	})
+
+	t.Run("preserve_on_empty_creates_new_file", func(t *testing.T) {
+		outDir, err := os.MkdirTemp("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(outDir)
+
+		filePath := outDir + "/new_file.key"
+		tmpl := fmt.Sprintf(`{{ "" | writeToFile "%s" "" "" "0644" "preserve_on_empty" }}`, filePath)
+		tpl, err := NewTemplate(&NewTemplateInput{Contents: tmpl})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err = tpl.Execute(nil); err != nil {
+			t.Fatal(err)
+		}
+
+		got, err := os.ReadFile(filePath)
+		if err != nil {
+			t.Fatalf("preserve_on_empty: new file not created: %v", err)
+		}
+		if len(got) != 0 {
+			t.Errorf("preserve_on_empty: new file not empty, got %q", string(got))
+		}
+	})
+
+	t.Run("preserve_on_empty_with_newline_preserves_existing_file", func(t *testing.T) {
+		outDir, filePath := setup(t)
+		defer os.RemoveAll(outDir)
+
+		// newline flag must not bypass the preserve guard when content is empty.
+		tmpl := fmt.Sprintf(`{{ "" | writeToFile "%s" "" "" "0644" "preserve_on_empty,newline" }}`, filePath)
+		tpl, err := NewTemplate(&NewTemplateInput{Contents: tmpl})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err = tpl.Execute(nil); err != nil {
+			t.Fatal(err)
+		}
+
+		got, err := os.ReadFile(filePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(got) != originalContent {
+			t.Errorf("preserve_on_empty+newline: file overwritten, got %q, want %q", string(got), originalContent)
+		}
+	})
+
+	t.Run("no_flag_empty_content_overwrites_existing_file", func(t *testing.T) {
+		outDir, filePath := setup(t)
+		defer os.RemoveAll(outDir)
+
+		// Default behaviour unchanged: no preserve_on_empty → empty content truncates.
+		tmpl := fmt.Sprintf(`{{ "" | writeToFile "%s" "" "" "0644" }}`, filePath)
+		tpl, err := NewTemplate(&NewTemplateInput{Contents: tmpl})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err = tpl.Execute(nil); err != nil {
+			t.Fatal(err)
+		}
+
+		got, err := os.ReadFile(filePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(got) != 0 {
+			t.Errorf("no flag: expected file truncated to empty, got %q", string(got))
+		}
+	})
+}
+
 func Test_writeToFile_symlink_rejection(t *testing.T) {
 	if os.Getuid() == 0 {
 		t.Skip("skipping symlink-rejection tests when running as root")
