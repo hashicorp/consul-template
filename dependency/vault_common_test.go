@@ -5,8 +5,12 @@ package dependency
 
 import (
 	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -186,3 +190,98 @@ func setupVaultPKI(clients *ClientSet) {
 		panic(err)
 	}
 }
+
+// TestRenewSecretBoundedOnRenewalFailure verifies that renewSecret does not
+// return immediately when every renewal attempt fails with HTTP 400. The
+// LifetimeWatcher must block via exponential backoff for the duration of the
+// lease rather than exiting on the first error and triggering a new credential
+// fetch on each iteration.
+func TestRenewSecretBoundedOnRenewalFailure(t *testing.T) {
+	var renewAttempts int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPut && r.URL.Path == "/v1/sys/leases/renew" {
+			atomic.AddInt32(&renewAttempts, 1)
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintln(w, `{"errors":["failed to renew entry: bad renew_statement"]}`)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintln(w, `{}`)
+	}))
+	defer srv.Close()
+
+	cfg := api.DefaultConfig()
+	cfg.Address = srv.URL
+	client, err := api.NewClient(cfg)
+	if err != nil {
+		t.Fatalf("failed to create vault client: %v", err)
+	}
+	client.SetToken("test-token")
+
+	clients := &ClientSet{
+		vault: &vaultClient{
+			client:     client,
+			httpClient: cfg.HttpClient,
+		},
+	}
+
+	// 60s TTL — typical database credential lease.
+	vaultSecret := &api.Secret{
+		LeaseID:       "database/creds/my-role/abc123",
+		LeaseDuration: 60,
+		Renewable:     true,
+	}
+	secret := transformSecret(vaultSecret)
+	stopCh := make(chan struct{})
+	d := &renewalTestDep{
+		secret:      secret,
+		vaultSecret: vaultSecret,
+		stopCh:      stopCh,
+	}
+
+	// Simulate the Fetch() loop: call renewSecret in a tight loop and count
+	// returns. The watcher should block via backoff — 0 returns expected in 5s.
+	var returns int32
+	go func() {
+		for {
+			select {
+			case <-stopCh:
+				return
+			default:
+			}
+			renewSecret(clients, d) //nolint:errcheck
+			atomic.AddInt32(&returns, 1)
+		}
+	}()
+
+	time.Sleep(5 * time.Second)
+	close(stopCh)
+
+	got := int(atomic.LoadInt32(&returns))
+	t.Logf("renewSecret returned %d times, renew endpoint hit %d times in 5s (TTL=60s)",
+		got, atomic.LoadInt32(&renewAttempts))
+
+	if got > 0 {
+		t.Errorf("renewSecret returned %d times in 5s with a 60s TTL and failing renewals "+
+			"(want 0); RenewBehaviorIgnoreErrors backoff is not working — "+
+			"credential creation would be unbounded on renewal failure", got)
+	}
+}
+
+// renewalTestDep is a minimal implementation of the renewer interface for
+// use in TestRenewSecretBoundedOnRenewalFailure.
+type renewalTestDep struct {
+	secret      *Secret
+	vaultSecret *api.Secret
+	stopCh      chan struct{}
+}
+
+func (d *renewalTestDep) stopChan() chan struct{}          { return d.stopCh }
+func (d *renewalTestDep) secrets() (*Secret, *api.Secret) { return d.secret, d.vaultSecret }
+func (d *renewalTestDep) CanShare() bool                  { return false }
+func (d *renewalTestDep) Fetch(*ClientSet, *QueryOptions) (interface{}, *ResponseMetadata, error) {
+	return nil, nil, nil
+}
+func (d *renewalTestDep) Stop()          {}
+func (d *renewalTestDep) String() string { return "test.renewal" }
+func (d *renewalTestDep) Type() Type     { return TypeVault }
