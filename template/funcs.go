@@ -1871,6 +1871,103 @@ func hmacSHA256Hex(message, key string) (string, error) {
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
+// updateFileOwnership changes the owner, group, and permissions of the file at
+// the given path. Used by writeToFile on the content-skip path where we don't
+// have an open file descriptor.
+func updateFileOwnership(path, username, groupName string, perm os.FileMode) error {
+	var uid int
+	var gid int
+
+	if username == "" {
+		uid = os.Getuid()
+	} else {
+		u, err := user.Lookup(username)
+		if err != nil {
+			uid, err = strconv.Atoi(username)
+			if err != nil {
+				return err
+			}
+		} else {
+			uid, _ = strconv.Atoi(u.Uid)
+		}
+	}
+
+	if groupName == "" {
+		gid = os.Getgid()
+	} else {
+		g, err := user.LookupGroup(groupName)
+		if err != nil {
+			gid, err = strconv.Atoi(groupName)
+			if err != nil {
+				return err
+			}
+		} else {
+			gid, _ = strconv.Atoi(g.Gid)
+		}
+	}
+
+	// Avoid the chown call altogether if using current user and group.
+	if username != "" || groupName != "" {
+		if err := os.Chown(path, uid, gid); err != nil {
+			return err
+		}
+	}
+
+	if err := os.Chmod(path, perm); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// updateFileOwnershipFd is like updateFileOwnership but operates on an open
+// file descriptor, which is safer against TOCTOU races.
+func updateFileOwnershipFd(f *os.File, username, groupName string, perm os.FileMode) error {
+	var uid int
+	var gid int
+
+	if username == "" {
+		uid = os.Getuid()
+	} else {
+		u, err := user.Lookup(username)
+		if err != nil {
+			uid, err = strconv.Atoi(username)
+			if err != nil {
+				return err
+			}
+		} else {
+			uid, _ = strconv.Atoi(u.Uid)
+		}
+	}
+
+	if groupName == "" {
+		gid = os.Getgid()
+	} else {
+		g, err := user.LookupGroup(groupName)
+		if err != nil {
+			gid, err = strconv.Atoi(groupName)
+			if err != nil {
+				return err
+			}
+		} else {
+			gid, _ = strconv.Atoi(g.Gid)
+		}
+	}
+
+	// Avoid the chown call altogether if using current user and group.
+	if username != "" || groupName != "" {
+		if err := f.Chown(uid, gid); err != nil {
+			return err
+		}
+	}
+
+	if err := f.Chmod(perm); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // writeToFile writes the content to a file with permissions, username (or UID), group name (or GID),
 // and optional flags to select appending mode or add a newline.
 //
@@ -1943,6 +2040,28 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 	// above and the open below (no-op on Windows, which lacks O_NOFOLLOW).
 	var f *os.File
 	shouldAppend := strings.Contains(flags, "append")
+	shouldAddNewLine := strings.Contains(flags, "newline")
+
+	writingContent := []byte(content)
+	if shouldAddNewLine {
+		writingContent = append(writingContent, []byte("\n")...)
+	}
+
+	// In non-append mode, check if the file already has the same content.
+	// If it does, skip the write to avoid unnecessary file modification time
+	// updates, which can trigger spurious file watcher notifications.
+	if !shouldAppend {
+		existingContent, readErr := os.ReadFile(resolvedPath)
+		if readErr == nil && bytes.Equal(existingContent, writingContent) {
+			// Content is identical — skip the write. Still update ownership
+			// and permissions since they may have changed independently.
+			if err := updateFileOwnership(resolvedPath, username, groupName, perm); err != nil {
+				return "", err
+			}
+			return "", nil
+		}
+	}
+
 	if shouldAppend {
 		f, err = os.OpenFile(resolvedPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE|openNoFollow, perm)
 		if err != nil {
@@ -1956,66 +2075,15 @@ func writeToFile(path, username, groupName, permissions string, args ...string) 
 	}
 	defer f.Close()
 
-	writingContent := []byte(content)
-	shouldAddNewLine := strings.Contains(flags, "newline")
-	if shouldAddNewLine {
-		writingContent = append(writingContent, []byte("\n")...)
-	}
 	if _, err = f.Write(writingContent); err != nil {
 		return "", err
 	}
 
 	// Change ownership and permissions
-	var uid int
-	var gid int
-	if err != nil {
-		return "", err
-	}
-
-	if username == "" {
-		uid = os.Getuid()
-	} else {
-		var convErr error
-		u, err := user.Lookup(username)
-		if err != nil {
-			// Check if username string is already a UID
-			uid, convErr = strconv.Atoi(username)
-			if convErr != nil {
-				return "", err
-			}
-		} else {
-			uid, _ = strconv.Atoi(u.Uid)
-		}
-	}
-
-	if groupName == "" {
-		gid = os.Getgid()
-	} else {
-		var convErr error
-		g, err := user.LookupGroup(groupName)
-		if err != nil {
-			gid, convErr = strconv.Atoi(groupName)
-			if convErr != nil {
-				return "", err
-			}
-		} else {
-			gid, _ = strconv.Atoi(g.Gid)
-		}
-	}
-
-	// Avoid the chown call altogether if using current user and group.
 	// Operate on the open file descriptor (f.Chown/f.Chmod) rather than the
 	// path, so ownership and permissions always target the file we opened even
 	// if the path is swapped after the open.
-	if username != "" || groupName != "" {
-		err = f.Chown(uid, gid)
-		if err != nil {
-			return "", err
-		}
-	}
-
-	err = f.Chmod(perm)
-	if err != nil {
+	if err := updateFileOwnershipFd(f, username, groupName, perm); err != nil {
 		return "", err
 	}
 

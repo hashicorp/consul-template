@@ -2656,6 +2656,210 @@ func Test_writeToFile(t *testing.T) {
 	}
 }
 
+func Test_writeToFile_skips_write_when_content_unchanged(t *testing.T) {
+	currentUser, err := user.Current()
+	if err != nil {
+		t.Fatal(err)
+	}
+	currentUsername := currentUser.Username
+	currentGroup, err := user.LookupGroupId(currentUser.Gid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	currentGroupName := currentGroup.Name
+
+	t.Run("skips write when content is identical", func(t *testing.T) {
+		outDir, err := os.MkdirTemp("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(outDir)
+
+		// Create a file with initial content
+		outputFile, err := os.CreateTemp(outDir, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = outputFile.WriteString("content")
+		if err != nil {
+			t.Fatal(err)
+		}
+		outputFilePath := outputFile.Name()
+		outputFile.Close()
+
+		// Record the initial modification time
+		initialStat, err := os.Stat(outputFilePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		initialModTime := initialStat.ModTime()
+
+		// Write the same content via template
+		templateContent := fmt.Sprintf(
+			"{{ \"content\" | writeToFile \"%s\" \"%s\" \"%s\" \"0644\" }}",
+			outputFilePath, currentUsername, currentGroupName)
+		ti := &NewTemplateInput{Contents: templateContent}
+		tpl, err := NewTemplate(ti)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = tpl.Execute(nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Modification time should NOT have changed
+		finalStat, err := os.Stat(outputFilePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		finalModTime := finalStat.ModTime()
+		if !finalModTime.Equal(initialModTime) {
+			t.Errorf("modification time changed from %v to %v — write should have been skipped", initialModTime, finalModTime)
+		}
+
+		// Content should still be correct
+		content, err := os.ReadFile(outputFilePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(content) != "content" {
+			t.Errorf("got content %q, want %q", string(content), "content")
+		}
+	})
+
+	t.Run("does write when content is different", func(t *testing.T) {
+		outDir, err := os.MkdirTemp("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(outDir)
+
+		outputFile, err := os.CreateTemp(outDir, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = outputFile.WriteString("old")
+		if err != nil {
+			t.Fatal(err)
+		}
+		outputFilePath := outputFile.Name()
+		outputFile.Close()
+
+		// Write different content
+		templateContent := fmt.Sprintf(
+			"{{ \"new\" | writeToFile \"%s\" \"%s\" \"%s\" \"0644\" }}",
+			outputFilePath, currentUsername, currentGroupName)
+		ti := &NewTemplateInput{Contents: templateContent}
+		tpl, err := NewTemplate(ti)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = tpl.Execute(nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Content should be updated
+		content, err := os.ReadFile(outputFilePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(content) != "new" {
+			t.Errorf("got content %q, want %q", string(content), "new")
+		}
+	})
+
+	t.Run("skips write with newline flag when content matches", func(t *testing.T) {
+		outDir, err := os.MkdirTemp("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(outDir)
+
+		outputFile, err := os.CreateTemp(outDir, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = outputFile.WriteString("content\n")
+		if err != nil {
+			t.Fatal(err)
+		}
+		outputFilePath := outputFile.Name()
+		outputFile.Close()
+
+		initialStat, err := os.Stat(outputFilePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		initialModTime := initialStat.ModTime()
+
+		// Write same content with newline flag
+		templateContent := fmt.Sprintf(
+			"{{ \"content\" | writeToFile \"%s\" \"%s\" \"%s\" \"0644\" \"newline\" }}",
+			outputFilePath, currentUsername, currentGroupName)
+		ti := &NewTemplateInput{Contents: templateContent}
+		tpl, err := NewTemplate(ti)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = tpl.Execute(nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Modification time should NOT have changed
+		finalStat, err := os.Stat(outputFilePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !finalStat.ModTime().Equal(initialModTime) {
+			t.Errorf("modification time changed — write should have been skipped")
+		}
+	})
+
+	t.Run("does not skip append when content is same", func(t *testing.T) {
+		outDir, err := os.MkdirTemp("", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(outDir)
+
+		outputFile, err := os.CreateTemp(outDir, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = outputFile.WriteString("content")
+		if err != nil {
+			t.Fatal(err)
+		}
+		outputFilePath := outputFile.Name()
+		outputFile.Close()
+
+		// Append the same content — should still append
+		templateContent := fmt.Sprintf(
+			"{{ \"content\" | writeToFile \"%s\" \"%s\" \"%s\" \"0644\" \"append\" }}",
+			outputFilePath, currentUsername, currentGroupName)
+		ti := &NewTemplateInput{Contents: templateContent}
+		tpl, err := NewTemplate(ti)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = tpl.Execute(nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		content, err := os.ReadFile(outputFilePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(content) != "contentcontent" {
+			t.Errorf("got %q, want %q", string(content), "contentcontent")
+		}
+	})
+}
+
 func Test_writeToFile_symlink_rejection(t *testing.T) {
 	if os.Getuid() == 0 {
 		t.Skip("skipping symlink-rejection tests when running as root")
