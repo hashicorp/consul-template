@@ -648,7 +648,8 @@ func (r *Runner) Run() error {
 	for _, tmpl := range r.templates {
 		event, err := r.runTemplate(tmpl, runCtx)
 		if err != nil {
-			return err
+			log.Printf("[ERR] (runner) template %s errored: %s, continuing with remaining templates", tmpl.ID(), err)
+			continue
 		}
 
 		// If there was a render event store it
