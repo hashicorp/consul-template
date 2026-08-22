@@ -5,20 +5,23 @@ package watch
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
+	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/vault/api"
 )
 
 const (
-	vaultAddr  = "http://127.0.0.1:8200"
 	vaultToken = "a_token"
 )
 
@@ -26,6 +29,7 @@ var (
 	testVault   *vaultServer
 	testClients *dep.ClientSet
 	tokenRoleId string
+	vaultAddr   string
 )
 
 func TestMain(m *testing.M) {
@@ -35,6 +39,14 @@ func TestMain(m *testing.M) {
 // sub-main so I can use defer
 func main(m *testing.M) int {
 	log.SetOutput(io.Discard)
+	// Find a free port for the Vault server
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		panic(fmt.Sprintf("failed to find free port for vault: %v", err))
+	}
+	vaultAddr = fmt.Sprintf("http://%s", listener.Addr().String())
+	listener.Close()
+
 	testVault = newTestVault()
 	defer func() { testVault.Stop() }()
 
@@ -71,6 +83,7 @@ func newTestVault() *vaultServer {
 	args := []string{
 		"server", "-dev", "-dev-root-token-id", vaultToken,
 		"-dev-no-store-token",
+		"-dev-listen-address", strings.TrimPrefix(vaultAddr, "http://"),
 	}
 	cmd := exec.Command("vault", args...)
 	cmd.Stdout = io.Discard
@@ -79,6 +92,54 @@ func newTestVault() *vaultServer {
 	if err := cmd.Start(); err != nil {
 		panic("vault failed to start: " + err.Error())
 	}
+
+	// Wait for Vault to become available
+	client := &http.Client{Timeout: 1 * time.Second}
+	healthURL := vaultAddr + "/v1/sys/health"
+	startTime := time.Now()
+	timeout := 30 * time.Second
+
+	for {
+		if time.Since(startTime) > timeout {
+			panic("timed out waiting for vault dev server to start")
+		}
+
+		resp, err := client.Get(healthURL)
+		if err != nil {
+			time.Sleep(200 * time.Millisecond)
+			continue
+		}
+
+		if resp.StatusCode == http.StatusOK {
+			bodyBytes, readErr := io.ReadAll(resp.Body)
+			resp.Body.Close()
+
+			if readErr != nil {
+				time.Sleep(200 * time.Millisecond)
+				continue
+			}
+
+			var healthStatus map[string]interface{}
+			jsonErr := json.Unmarshal(bodyBytes, &healthStatus)
+			if jsonErr != nil {
+				time.Sleep(200 * time.Millisecond)
+				continue
+			}
+
+			// Check for initialized and unsealed status
+			initialized, initOk := healthStatus["initialized"].(bool)
+			sealed, sealedOk := healthStatus["sealed"].(bool)
+
+			if initOk && sealedOk && initialized && !sealed {
+				break
+			}
+		} else {
+			resp.Body.Close()
+		}
+
+		time.Sleep(1 * time.Second)
+	}
+
 	return &vaultServer{
 		cmd: cmd,
 	}
