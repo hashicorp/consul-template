@@ -48,6 +48,11 @@ type Secret struct {
 	// cubbyhole of the given token (which has a TTL of the given number of
 	// seconds)
 	WrapInfo *SecretWrapInfo
+
+	// Age reports how long this response was held by an intermediate cache
+	// before reaching the client. It is zero for a response served directly by
+	// Vault. The lifetime a lease has left is its LeaseDuration less its Age.
+	Age time.Duration
 }
 
 // SecretAuth is the structure containing auth information if we have it.
@@ -190,6 +195,18 @@ func leaseCheckWait(s *Secret) (time.Duration, error) {
 		sleep = sleep * finalFraction
 	}
 
+	// Discount the time this response has already spent in a cache. A cached
+	// lease reports its duration measured from when the lease was issued, and
+	// the Age header says how long ago that was, so that much of the wait has
+	// already elapsed. Without this the sleep runs from now rather than from
+	// issuance, and the client wakes after the credential has already expired.
+	if s.LeaseID != "" && s.Age > 0 {
+		sleep -= float64(s.Age)
+		if sleep < 0 {
+			sleep = 0
+		}
+	}
+
 	return time.Duration(sleep), nil
 }
 
@@ -232,6 +249,11 @@ func updateSecret(ours *Secret, theirs *api.Secret) {
 	if theirs.LeaseDuration != 0 {
 		ours.LeaseDuration = theirs.LeaseDuration
 	}
+
+	// Age is how long this response sat in a cache before arriving, a property
+	// of the response rather than the secret, so it is set directly rather than
+	// preserved across renewals like the fields above.
+	ours.Age = theirs.Age
 
 	if theirs.Renewable {
 		ours.Renewable = theirs.Renewable
