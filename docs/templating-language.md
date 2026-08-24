@@ -792,7 +792,7 @@ to separate files from a template.
 ```golang
 {{- with pkiCert "pki/issue/my-domain-dot-com" "common_name=foo.example.com" -}}
 {{ .Cert }}{{ .CA }}{{ .Key }}
-{{ .Key | writeToFile "/my/path/to/cert.key" "root" "root" "0400" }}
+{{ .Key | writeToFile "/my/path/to/cert.key" "root" "root" "0400" "preserve_on_empty" }}
 {{ .CA | writeToFile "/my/path/to/cert.pem" "root" "root" "0644" }}
 {{ .Cert | writeToFile "/my/path/to/cert.pem" "root" "root" "0644" "append" }}
 {{- end -}}
@@ -1896,9 +1896,17 @@ for more information.
 ### `writeToFile`
 
 Writes the content to a file with permissions, username (or UID), group name (or GID),
-and optional flags to select appending mode or add a newline.
+and optional flags to select appending mode, add a newline, or preserve existing content.
 
 The username and group name fields can be left blank to default to the current user and group.
+
+Available flags:
+
+| Flag | Description |
+|---|---|
+| `append` | Append to the file instead of overwriting it |
+| `newline` | Append a newline after the content |
+| `preserve_on_empty` | If content is empty and the file already has content, skip the write but still apply ownership and permissions. Useful with `pkiCert` to prevent side-files (e.g. private keys) from being blanked when a lease is reused on agent restart. |
 
 For example:
 
@@ -1908,6 +1916,7 @@ For example:
 {{ key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644" }}
 {{ key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644" "append" }}
 {{ key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644" "append,newline" }}
+{{ key "my/key/path" | writeToFile "/my/file/path.txt" "my-user" "my-group" "0644" "preserve_on_empty" }}
 ```
 
 ---
