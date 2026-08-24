@@ -7,11 +7,13 @@ import (
 	"encoding/json"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/vault/api"
@@ -79,9 +81,19 @@ func newTestVault() *vaultServer {
 	if err := cmd.Start(); err != nil {
 		panic("vault failed to start: " + err.Error())
 	}
-	return &vaultServer{
-		cmd: cmd,
+
+	// Wait for Vault to be ready before returning.
+	client := &http.Client{Timeout: 500 * time.Millisecond}
+	deadline := time.Now().Add(15 * time.Second)
+	for time.Now().Before(deadline) {
+		resp, err := client.Get(vaultAddr + "/v1/sys/health")
+		if err == nil {
+			resp.Body.Close()
+			return &vaultServer{cmd: cmd}
+		}
+		time.Sleep(100 * time.Millisecond)
 	}
+	panic("vault did not become ready within 15s")
 }
 
 // Sets up approle auto-auth for token generation/testing

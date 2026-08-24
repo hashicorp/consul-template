@@ -5,10 +5,12 @@ package dependency
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -274,12 +276,25 @@ func (c *ClientSet) createConsulPeerings(tenancy *test.Tenancy) error {
 }
 
 func runTestConsul(tb testutil.TestingTB) {
-	consul, err := testutil.NewTestServerConfigT(tb,
-		func(c *testutil.TestServerConfig) {
-			c.LogLevel = "warn"
-			c.Stdout = io.Discard
-			c.Stderr = io.Discard
-		})
+	cfg := func(c *testutil.TestServerConfig) {
+		c.LogLevel = "warn"
+		c.Stdout = io.Discard
+		c.Stderr = io.Discard
+	}
+	// Retry up to 3 times; the SDK's waitForAPI has only a 2-second window
+	// which can be exceeded on slow CI runners.
+	var (
+		consul *testutil.TestServer
+		err    error
+	)
+	for attempt := 1; attempt <= 3; attempt++ {
+		consul, err = testutil.NewTestServerConfigT(tb, cfg)
+		if err == nil {
+			break
+		}
+		fmt.Printf("consul start attempt %d/3 failed: %v — retrying\n", attempt, err)
+		time.Sleep(time.Duration(attempt) * time.Second)
+	}
 	if err != nil {
 		Fatalf("failed to start consul server: %v", err)
 	}
@@ -437,6 +452,21 @@ type vaultServer struct {
 	cmd         *exec.Cmd
 }
 
+// waitForVaultReady polls addr/v1/sys/health (using client) until it responds
+// or the 15-second deadline is exceeded, at which point it calls Fatalf.
+func waitForVaultReady(addr string, client *http.Client) {
+	deadline := time.Now().Add(15 * time.Second)
+	for time.Now().Before(deadline) {
+		resp, err := client.Get(addr + "/v1/sys/health")
+		if err == nil {
+			resp.Body.Close()
+			return
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	Fatalf("vault at %s did not become ready within 15s", addr)
+}
+
 func runTestVault() {
 	path, err := exec.LookPath("vault")
 	if err != nil || path == "" {
@@ -453,9 +483,8 @@ func runTestVault() {
 	if err := cmd.Start(); err != nil {
 		Fatalf("vault failed to start: %v", err)
 	}
-	testVault = &vaultServer{
-		cmd: cmd,
-	}
+	testVault = &vaultServer{cmd: cmd}
+	waitForVaultReady(vaultAddr, &http.Client{Timeout: 500 * time.Millisecond})
 }
 
 func runTestVaultTLS() {
@@ -486,6 +515,14 @@ func runTestVaultTLS() {
 		cmd:       cmd,
 		caPemPath: filepath.Join(tmpDir, "vault-ca.pem"),
 	}
+	// The TLS server uses a self-signed cert; skip verification for the health check.
+	tlsClient := &http.Client{
+		Timeout: 500 * time.Millisecond,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec
+		},
+	}
+	waitForVaultReady(vaultHttpsAddr, tlsClient)
 }
 
 func (v vaultServer) Stop() error {
