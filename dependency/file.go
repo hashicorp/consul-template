@@ -113,6 +113,16 @@ func (d *FileQuery) watch(lastStat os.FileInfo) <-chan *watchResult {
 				lastStat.ModTime() != stat.ModTime()
 
 			if changed {
+				// A concurrent write using O_TRUNC may cause stat to show an
+				// intermediate size of 0 before the new content is flushed.
+				// Re-stat after a brief pause to confirm the file is stable.
+				if lastStat != nil {
+					time.Sleep(FileQuerySleepTime)
+					if stat2, err2 := os.Stat(d.path); err2 == nil &&
+						(stat2.Size() != stat.Size() || stat2.ModTime() != stat.ModTime()) {
+						stat = stat2
+					}
+				}
 				select {
 				case <-d.stopCh:
 					return

@@ -190,6 +190,8 @@ func TestFileQuery_Fetch(t *testing.T) {
 			t.Fatal(err)
 		case data := <-dataCh:
 			assert.Equal(t, "goodbye", data)
+		case <-time.After(5 * time.Second):
+			t.Fatal("timed out waiting for file change")
 		}
 	})
 }
