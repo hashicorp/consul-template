@@ -5,6 +5,7 @@ package dependency
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -239,32 +240,34 @@ func TestRenewSecretBoundedOnRenewalFailure(t *testing.T) {
 		stopCh:      stopCh,
 	}
 
-	// Simulate the Fetch() loop: call renewSecret in a tight loop and count
-	// returns. The watcher should block via backoff — 0 returns expected in 5s.
-	var returns int32
+	// Run renewSecret once. It must not return before stopCh is closed because
+	// RenewBehaviorIgnoreErrors should block via backoff for the lease duration
+	// rather than exiting immediately on every renewal failure.
+	resultCh := make(chan error, 1)
 	go func() {
-		for {
-			select {
-			case <-stopCh:
-				return
-			default:
-			}
-			renewSecret(clients, d) //nolint:errcheck
-			atomic.AddInt32(&returns, 1)
-		}
+		resultCh <- renewSecret(clients, d)
 	}()
 
-	time.Sleep(5 * time.Second)
+	select {
+	case err := <-resultCh:
+		t.Errorf("renewSecret returned early (err=%v, renew endpoint hit %d times in 10s); "+
+			"RenewBehaviorIgnoreErrors backoff is not working — "+
+			"credential creation would be unbounded on renewal failure",
+			err, atomic.LoadInt32(&renewAttempts))
+		return
+	case <-time.After(10 * time.Second):
+		// Good: renewSecret is still blocking through the full first backoff interval.
+	}
+
 	close(stopCh)
 
-	got := int(atomic.LoadInt32(&returns))
-	t.Logf("renewSecret returned %d times, renew endpoint hit %d times in 5s (TTL=60s)",
-		got, atomic.LoadInt32(&renewAttempts))
-
-	if got > 0 {
-		t.Errorf("renewSecret returned %d times in 5s with a 60s TTL and failing renewals "+
-			"(want 0); RenewBehaviorIgnoreErrors backoff is not working — "+
-			"credential creation would be unbounded on renewal failure", got)
+	select {
+	case err := <-resultCh:
+		if !errors.Is(err, ErrStopped) {
+			t.Errorf("renewSecret returned %v after stopCh closed, want ErrStopped", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Error("renewSecret did not return after stopCh was closed (goroutine leak)")
 	}
 }
 
