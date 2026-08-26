@@ -69,3 +69,9 @@ require (
 	golang.org/x/time v0.15.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+// NOTE: TEMPORARY, DO NOT MERGE! This pulls the api's Age field from an
+// unreleased branch. Drop this replace and require a released
+// github.com/hashicorp/vault/api once
+// https://github.com/hashicorp/vault/pull/32040 has merged and shipped.
+replace github.com/hashicorp/vault/api => github.com/peteski22/vault/api v0.0.0-20260721211811-5a9a4f8b8159

@@ -1,3 +1,8 @@
+## UNRELEASED
+
+BUG FIXES:
+* fix: Account for the HTTP Age header so leases read through a caching proxy are re-rendered before they expire [GH-2160](https://github.com/hashicorp/consul-template/pull/2160)
+
 # 0.42.1
 
 IMPROVEMENTS:
