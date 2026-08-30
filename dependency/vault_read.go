@@ -146,19 +146,32 @@ func (d *VaultReadQuery) readSecret(clients *ClientSet) (*api.Secret, error) {
 	vaultClient := clients.Vault()
 
 	// Check whether this secret refers to a KV v2 entry if we haven't yet.
+	//
+	// Cache only on a SUCCESSFUL probe (err == nil). On a transient probe
+	// failure (e.g. Vault context deadline exceeded during startup) the
+	// "assume not v2" fallback is used for this one read attempt but is
+	// NOT cached, so the next Fetch() call re-probes once Vault is healthy.
+	// Caching the failure-fallback permanently latched the dependency into
+	// v1 mode for the lifetime of the process, even after Vault recovered
+	// — see issue #2149.
 	if d.isKVv2 == nil {
 		mountPath, isKVv2, err := isKVv2(vaultClient, d.rawPath)
 		if err != nil {
 			log.Printf("[WARN] %s: failed to check if %s is KVv2, "+
-				"assume not: %s", d, d.rawPath, err)
-			isKVv2 = false
+				"assume not (will re-probe on next fetch): %s",
+				d, d.rawPath, err)
 			d.secretPath = d.rawPath
+			// Intentionally do not set d.isKVv2 here: a transient Vault
+			// failure must not poison this dependency for the process
+			// lifetime. The next Fetch() will re-enter this block and
+			// probe again.
 		} else if isKVv2 {
 			d.secretPath = shimKVv2Path(d.rawPath, mountPath, clients.Vault().Namespace())
+			d.isKVv2 = &isKVv2
 		} else {
 			d.secretPath = d.rawPath
+			d.isKVv2 = &isKVv2
 		}
-		d.isKVv2 = &isKVv2
 	}
 
 	queryString := d.queryValues.Encode()
