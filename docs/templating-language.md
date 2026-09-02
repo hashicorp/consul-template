@@ -2038,9 +2038,12 @@ This can also be used with a pipe function.
 
 ## Nomad Functions
 
-Nomad service registrations can be queried using the `nomadServices` and `nomadService` functions.
-Nomad variables can be queried using the `nomadVarList` and `nomadVar` functions.
-Typically these will be used from within a Nomad [template](https://www.nomadproject.io/docs/job-specification/template#nomad-services) configuration.
+Nomad service registrations can be queried using the `nomadServices` and
+`nomadService` functions.  Nomad variables can be queried using the
+`nomadVarList` and `nomadVar` functions.  Typically these will be used from
+within a Nomad
+[template](https://www.nomadproject.io/docs/job-specification/template#nomad-services)
+configuration.
 
 ### `nomadServices`
 
@@ -2052,9 +2055,29 @@ This can be used to query the names of services registered in Nomad.
 {{ end }}
 ```
 
+You can query for services within a specific namespace or region with syntax
+like `"?ns=<NAMESPACE>@<REGION>`. For example, to query within the `prod`
+namespace in the `us-east-1` region:
+
+```golang
+{{ range nomadServices "?ns=prod@us-east-1 }}
+  {{ .Name .Tags }}
+{{ end }}
+```
+
+You can query for services across all namespaces by providing the wildcard
+`*`. The `.Namespace` field may be useful here:
+
+```golang
+{{ range nomadServices "?ns=*@us-east-1 }}
+  {{ .Name .Namespace .Tags }}
+{{ end }}
+```
+
 ### `nomadService`
 
-This can be used to query for additional information about each instance of a service registered in Nomad.
+This can be used to query for additional information about each instance of a
+service registered in Nomad.
 
 ```golang
 {{ range nomadService "my-app" }}
@@ -2062,9 +2085,11 @@ This can be used to query for additional information about each instance of a se
 {{ end}}
 ```
 
-The `nomadService` function also supports basic load-balancing via a [rendezvous hashing](https://en.wikipedia.org/wiki/Rendezvous_hashing)
-algorithm implemented in Nomad's API. To activate this behavior, the function requires three arguments in this order:
-the number of instances desired, a unique but consistent identifier associated with the requester, and the service name.
+The `nomadService` function also supports basic load-balancing via a [rendezvous
+hashing](https://en.wikipedia.org/wiki/Rendezvous_hashing) algorithm implemented
+in Nomad's API. To activate this behavior, the function requires three arguments
+in this order: the number of instances desired, a unique but consistent
+identifier associated with the requester, and the service name.
 
 Typically the unique identifier would be the allocation ID in a Nomad job.
 
@@ -2073,6 +2098,17 @@ Typically the unique identifier would be the allocation ID in a Nomad job.
 {{range nomadService 3 $allocID "redis"}}
   {{.Address}} {{.Port}} | {{.Tags}} @ {{.Datacenter}}
 {{- end}}
+```
+
+You can query for services with a specific tag or within a specific namespace or
+region with syntax like `"<TAG>.<NAME>?ns=<NAMESPACE>@<REGION>`. For example, to
+query the `web` tag of the `app` service within the `prod` namespace in the
+`us-east-1` region:
+
+```golang
+{{ range nomadService "web.app?ns=prod@us-east-1" }}
+  {{ .Address }} {{ .Port }}
+{{ end}}
 ```
 
 ## Nomad Variables
@@ -2370,4 +2406,3 @@ If you would prefer to use format strings with a compacted inline printing style
 [text-template]: https://golang.org/pkg/text/template/ "Go's text/template package"
 [vault]: https://www.vaultproject.io "Vault by HashiCorp"
 [nomad]: https://www.nomadproject.io "Nomad by HashiCorp"
-

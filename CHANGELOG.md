@@ -1,3 +1,8 @@
+# UNRELEASED
+
+IMPROVEMENTS:
+* nomad: add support for querying services from specific Nomad namespaces in `nomadService` and `nomadServices` [GH-2182](https://github.com/hashicorp/consul-template/pull/2182)
+
 # 0.42.1
 
 IMPROVEMENTS:

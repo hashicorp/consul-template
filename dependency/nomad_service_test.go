@@ -81,6 +81,42 @@ func TestNewNomadServiceQuery(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"name_namespace",
+			"myservice?ns=foo",
+			&NomadServiceQuery{
+				name:      "myservice",
+				namespace: "foo",
+			},
+			false,
+		},
+		{
+			"name_namespace_region",
+			"myservice?ns=foo@us-east-1",
+			&NomadServiceQuery{
+				region:    "us-east-1",
+				name:      "myservice",
+				namespace: "foo",
+			},
+			false,
+		},
+		{
+			"tag_name_namespace_region",
+			"tag.myservice?ns=foo@us-east-1",
+			&NomadServiceQuery{
+				region:    "us-east-1",
+				name:      "myservice",
+				namespace: "foo",
+				tag:       "tag",
+			},
+			false,
+		},
+		{
+			"namespace_only",
+			"?ns=foo",
+			nil,
+			true,
+		},
 	}
 
 	for i, tc := range cases {
@@ -274,6 +310,21 @@ func TestNomadServiceQuery_String(t *testing.T) {
 			"tag_name_region",
 			"tag.name@us-east-1",
 			"nomad.service(tag.name@us-east-1)",
+		},
+		{
+			"name_namespace",
+			"myservice?ns=foo",
+			"nomad.service(myservice?ns=foo)",
+		},
+		{
+			"name_namespace_region",
+			"myservice?ns=foo@us-east-1",
+			"nomad.service(myservice?ns=foo@us-east-1)",
+		},
+		{
+			"tag_name_namespace_region",
+			"tag.myservice?ns=foo@us-east-1",
+			"nomad.service(tag.myservice?ns=foo@us-east-1)",
 		},
 	}
 
