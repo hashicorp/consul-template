@@ -878,7 +878,7 @@ func TestCLI_ParseFlags(t *testing.T) {
 				Wait: &config.WaitConfig{
 					Enabled: config.Bool(false),
 				},
-				Once: true,
+				Once: config.Bool(true),
 			},
 			false,
 		},
@@ -1076,4 +1076,51 @@ func TestCLI_Run(t *testing.T) {
 			t.Errorf("timeout: %q", out.String())
 		}
 	})
+}
+
+func TestLoadConfigs_OnceFromConfigFile(t *testing.T) {
+	f, err := os.CreateTemp("", "ct-once-*.hcl")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(f.Name())
+	if _, err := f.WriteString("once = true\n"); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	cliConfig := config.DefaultConfig()
+	got, err := loadConfigs([]string{f.Name()}, cliConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !config.BoolVal(got.Once) {
+		t.Fatal("once from config file should be respected when -once is not set on the CLI")
+	}
+}
+
+func TestLoadConfigs_OnceCLIFalseOverridesConfigFile(t *testing.T) {
+	f, err := os.CreateTemp("", "ct-once-*.hcl")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(f.Name())
+	if _, err := f.WriteString("once = true\n"); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	cliConfig := config.DefaultConfig()
+	cliConfig.Once = config.Bool(false)
+	got, err := loadConfigs([]string{f.Name()}, cliConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if config.BoolVal(got.Once) {
+		t.Fatal("explicit -once=false should override once = true in the config file")
+	}
 }

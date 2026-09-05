@@ -38,7 +38,7 @@ func Example() {
 
 	// Create the (consul-template) Config
 	cfg := config.DefaultConfig()                 // Start with default configuration
-	cfg.Once = true                               // Perform a one-shot render
+	cfg.Once = config.Bool(true)                  // Perform a one-shot render
 	cfg.Templates = &config.TemplateConfigs{tCfg} // Add the template created earlier
 	cfg.Finalize()                                // Finalize the consul-template configuration
 

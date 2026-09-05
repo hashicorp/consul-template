@@ -98,9 +98,9 @@ type Config struct {
 	// Wait is the quiescence timers.
 	Wait *WaitConfig `mapstructure:"wait"`
 
-	// Additional command line options
-	// Run once, executing each template exactly once, and exit
-	Once bool
+	// Once, when true, executes each template exactly once and exits.
+	// It may be set from the command line (-once) or a configuration file.
+	Once *bool `mapstructure:"once"`
 
 	// ParseOnly prevents any rendering and only loads the templates for
 	// checking well formedness.
@@ -285,7 +285,9 @@ func (c *Config) Merge(o *Config) *Config {
 		r.BlockQueryWaitTime = o.BlockQueryWaitTime
 	}
 
-	r.Once = o.Once
+	if o.Once != nil {
+		r.Once = o.Once
+	}
 	r.ParseOnly = o.ParseOnly
 	if o.ErrOnFailedLookup {
 		r.ErrOnFailedLookup = o.ErrOnFailedLookup
@@ -654,8 +656,12 @@ func (c *Config) Finalize() {
 	}
 	c.Wait.Finalize()
 
+	if c.Once == nil {
+		c.Once = Bool(false)
+	}
+
 	// disable Wait if -once was specified
-	if c.Once {
+	if BoolVal(c.Once) {
 		c.Wait = &WaitConfig{Enabled: Bool(false)}
 	}
 

@@ -208,7 +208,7 @@ type RenderEvent struct {
 // Runner and any error that occurred during creation.
 func NewRunner(config *config.Config, dry bool) (*Runner, error) {
 	log.Printf("[INFO] (runner) creating new runner (dry: %v, once: %v)",
-		dry, config.Once)
+		dry, config.Once != nil && *config.Once)
 
 	runner := &Runner{
 		ErrCh:         make(chan error),
@@ -399,7 +399,7 @@ func (r *Runner) Start() {
 
 			// If we are running in once mode and all our templates are rendered,
 			// then we should exit here.
-			if r.config.Once {
+			if config.BoolVal(r.config.Once) {
 				log.Printf("[INFO] (runner) once mode and all templates rendered")
 
 				if r.child != nil {
@@ -795,7 +795,7 @@ func (r *Runner) runTemplate(tmpl *template.Template, runCtx *templateRunCtx) (*
 	// If we are in once mode and this template was already rendered, move
 	// onto the next one. We do not want to re-render the template if we are
 	// in once mode, and we certainly do not want to re-run any commands.
-	if r.config.Once {
+	if config.BoolVal(r.config.Once) {
 		r.renderEventsLock.RLock()
 		onceEvent, ok := r.renderEvents[tmpl.ID()]
 		r.renderEventsLock.RUnlock()
@@ -1061,7 +1061,7 @@ func (r *Runner) init(clients *dep.ClientSet) error {
 	r.renderEvents = make(map[string]*RenderEvent, numTemplates)
 
 	if *r.config.Dedup.Enabled {
-		if r.config.Once {
+		if config.BoolVal(r.config.Once) {
 			log.Printf("[INFO] (runner) disabling de-duplication in once mode")
 		} else {
 			r.dedup, err = NewDedupManager(r.config.Dedup, clients, r.brain, r.templates)
@@ -1482,7 +1482,7 @@ func newWatcher(c *config.Config, clients *dep.ClientSet) *watch.Watcher {
 	return watch.NewWatcher(&watch.NewWatcherInput{
 		Clients:             clients,
 		MaxStale:            config.TimeDurationVal(c.MaxStale),
-		Once:                c.Once,
+		Once:                config.BoolVal(c.Once),
 		BlockQueryWaitTime:  config.TimeDurationVal(c.BlockQueryWaitTime),
 		RenewVault:          clients.Vault().Token() != "" && config.BoolVal(c.Vault.RenewToken),
 		VaultAgentTokenFile: config.StringVal(c.Vault.VaultAgentTokenFile),
