@@ -11,7 +11,6 @@ import (
 	"regexp"
 	"sort"
 
-	nomadapi "github.com/hashicorp/nomad/api"
 	"github.com/pkg/errors"
 )
 
@@ -21,7 +20,9 @@ var (
 
 	// NomadServicesQueryRe is the regex that is used to understand a service
 	// listing Nomad query.
-	NomadServicesQueryRe = regexp.MustCompile(`\A` + regionRe + `\z`)
+	//
+	// e.g. "<?ns=namespace>@<region>", namespace may also be the wildcard "*"
+	NomadServicesQueryRe = regexp.MustCompile(`\A` + nomadNamespaceWildcardRe + regionRe + `\z`)
 )
 
 func init() {
@@ -30,8 +31,9 @@ func init() {
 
 // NomadServicesSnippet is a stub service entry in Nomad.
 type NomadServicesSnippet struct {
-	Name string
-	Tags ServiceTags
+	Name      string
+	Namespace string
+	Tags      ServiceTags
 }
 
 // nomadSortableSnippet is a sortable slice of NomadServicesSnippet structs.
@@ -46,7 +48,8 @@ func (s nomadSortableSnippet) Less(i, j int) bool { return s[i].Name < s[j].Name
 type NomadServicesQuery struct {
 	stopCh chan struct{}
 
-	region string
+	region    string
+	namespace string
 }
 
 // NewNomadServicesQuery parses a string into a NomadServicesQuery which is
@@ -58,8 +61,9 @@ func NewNomadServicesQuery(s string) (*NomadServicesQuery, error) {
 
 	m := regexpMatch(NomadServicesQueryRe, s)
 	return &NomadServicesQuery{
-		stopCh: make(chan struct{}, 1),
-		region: m["region"],
+		stopCh:    make(chan struct{}, 1),
+		region:    m["region"],
+		namespace: m["namespace"],
 	}, nil
 }
 
@@ -86,27 +90,31 @@ func (d *NomadServicesQuery) Fetch(clients *ClientSet, opts *QueryOptions) (inte
 		RawQuery: opts.String(),
 	})
 
-	namespaces, qm, err := clients.Nomad().Services().List(opts.ToNomadOpts())
+	nOpts := opts.ToNomadOpts()
+	nOpts.Namespace = d.namespace
+	listStubs, qm, err := clients.Nomad().Services().List(nOpts)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, d.String())
 	}
 
-	// Cross namespaces queries aren't allowed via consul-template, so only
-	// the namespace the client is configured for will be returned.
-	var entries []*nomadapi.ServiceRegistrationStub
-	if len(namespaces) > 0 {
-		entries = namespaces[0].Services
-	}
+	// The List API returns one entry per namespace. Flatten all namespace
+	// entries into a single slice (there will be more than one when the
+	// wildcard namespace "*" is used).
+	services := []*NomadServicesSnippet{}
 
-	log.Printf("[TRACE] %s: returned %d results", d, len(entries))
-
-	services := make([]*NomadServicesSnippet, len(entries))
-	for i, s := range entries {
-		services[i] = &NomadServicesSnippet{
-			Name: s.ServiceName,
-			Tags: deepCopyAndSortTags(s.Tags),
+	//	var entries []*nomadapi.ServiceRegistrationStub
+	for _, listStub := range listStubs {
+		for _, s := range listStub.Services {
+			services = append(services,
+				&NomadServicesSnippet{
+					Name:      s.ServiceName,
+					Namespace: listStub.Namespace,
+					Tags:      deepCopyAndSortTags(s.Tags),
+				})
 		}
 	}
+
+	log.Printf("[TRACE] %s: returned %d results", d, len(services))
 
 	sort.Stable(nomadSortableSnippet(services))
 
@@ -120,8 +128,15 @@ func (d *NomadServicesQuery) Fetch(clients *ClientSet, opts *QueryOptions) (inte
 
 // String returns the human-friendly version of this dependency.
 func (d *NomadServicesQuery) String() string {
-	if d.region != "" {
-		return fmt.Sprintf("nomad.services(@%s)", d.region)
+	if d.namespace != "" || d.region != "" {
+		ns, region := "", ""
+		if d.namespace != "" {
+			ns = "?ns=" + d.namespace
+		}
+		if d.region != "" {
+			region = "@" + d.region
+		}
+		return fmt.Sprintf("nomad.services(%s%s)", ns, region)
 	}
 	return "nomad.services"
 }

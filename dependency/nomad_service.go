@@ -21,8 +21,8 @@ var (
 	// NomadServiceQueryRe is the regex that is used to understand a service
 	// specific Nomad query.
 	//
-	// e.g. "<tag=value>.<name>@<region>"
-	NomadServiceQueryRe = regexp.MustCompile(`\A` + tagRe + serviceNameRe + regionRe + `\z`)
+	// e.g. "<tag=value>.<name><?ns=namespace>@<region>"
+	NomadServiceQueryRe = regexp.MustCompile(`\A` + tagRe + serviceNameRe + nomadNamespaceRe + regionRe + `\z`)
 )
 
 func init() {
@@ -48,10 +48,11 @@ type NomadService struct {
 type NomadServiceQuery struct {
 	stopCh chan struct{}
 
-	region string
-	name   string
-	tag    string
-	choose string
+	region    string
+	name      string
+	namespace string
+	tag       string
+	choose    string
 }
 
 // NewNomadServiceQuery parses a string into a NomadServiceQuery which is
@@ -64,10 +65,11 @@ func NewNomadServiceQuery(s string) (*NomadServiceQuery, error) {
 	m := regexpMatch(NomadServiceQueryRe, s)
 
 	return &NomadServiceQuery{
-		stopCh: make(chan struct{}, 1),
-		region: m["region"],
-		name:   m["name"],
-		tag:    m["tag"],
+		stopCh:    make(chan struct{}, 1),
+		region:    m["region"],
+		name:      m["name"],
+		namespace: m["namespace"],
+		tag:       m["tag"],
 	}, nil
 }
 
@@ -107,7 +109,9 @@ func (d *NomadServiceQuery) Fetch(client *ClientSet, opts *QueryOptions) (interf
 
 	log.Printf("[TRACE] %s: GET %s", d, u)
 
-	entries, qm, err := client.Nomad().Services().Get(d.name, opts.ToNomadOpts())
+	nOpts := opts.ToNomadOpts()
+	nOpts.Namespace = d.namespace
+	entries, qm, err := client.Nomad().Services().Get(d.name, nOpts)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, d.String())
 	}
@@ -157,6 +161,9 @@ func (d *NomadServiceQuery) String() string {
 	name := d.name
 	if d.tag != "" {
 		name = d.tag + "." + name
+	}
+	if d.namespace != "" {
+		name = name + "?ns=" + d.namespace
 	}
 	if d.region != "" {
 		name = name + "@" + d.region
