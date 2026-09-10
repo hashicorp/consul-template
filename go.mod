@@ -4,7 +4,7 @@ go 1.26.4
 
 require (
 	dario.cat/mergo v1.0.2
-	github.com/BurntSushi/toml v1.5.0
+	github.com/BurntSushi/toml v1.6.0
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/hashicorp/consul/api v1.34.4
