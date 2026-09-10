@@ -1974,7 +1974,7 @@ func TestFinalize(t *testing.T) {
 					Min:     TimeDuration(10 * time.Second),
 					Max:     TimeDuration(20 * time.Second),
 				},
-				Once: true,
+				Once: Bool(true),
 			},
 			&Config{
 				Wait: &WaitConfig{
@@ -2348,6 +2348,28 @@ func TestConfig_Merge(t *testing.T) {
 				ParseOnly: true,
 			},
 		},
+		{
+			"once_unset_does_not_overwrite",
+			&Config{
+				Once: Bool(true),
+			},
+			&Config{},
+			&Config{
+				Once: Bool(true),
+			},
+		},
+		{
+			"once_false_overrides_true",
+			&Config{
+				Once: Bool(true),
+			},
+			&Config{
+				Once: Bool(false),
+			},
+			&Config{
+				Once: Bool(false),
+			},
+		},
 	}
 
 	for i, tc := range cases {
@@ -2626,5 +2648,27 @@ func TestDefaultConfig(t *testing.T) {
 				t.Errorf("Config diff: %s", r.Diff(c))
 			}
 		})
+	}
+}
+
+func TestParse_Once(t *testing.T) {
+	c, err := Parse("once = true\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !BoolVal(c.Once) {
+		t.Fatalf("expected once=true from config file, got %#v", c.Once)
+	}
+}
+
+func TestConfig_Merge_OnceFromFileNotOverwrittenByCLIDefault(t *testing.T) {
+	file, err := Parse("once = true\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli := DefaultConfig()
+	got := DefaultConfig().Merge(file).Merge(cli)
+	if !BoolVal(got.Once) {
+		t.Fatal("once from config file was overwritten by CLI default")
 	}
 }

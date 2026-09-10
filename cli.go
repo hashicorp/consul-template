@@ -469,7 +469,7 @@ func (cli *CLI) ParseFlags(args []string) (
 	}), "max-stale", "")
 
 	flags.Var((funcBoolVar)(func(b bool) error {
-		c.Once = *(config.Bool(b))
+		c.Once = config.Bool(b)
 		return nil
 	}), "once", "")
 

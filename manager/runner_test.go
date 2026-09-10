@@ -56,7 +56,7 @@ func TestRunner_initTemplates(t *testing.T) {
 }
 
 func TestRunner_Receive(t *testing.T) {
-	c := config.TestConfig(&config.Config{Once: true})
+	c := config.TestConfig(&config.Config{Once: config.Bool(true)})
 	r, err := NewRunner(c, true)
 	if err != nil {
 		t.Fatal(err)
@@ -479,7 +479,7 @@ func TestRunner_Run(t *testing.T) {
 			var out bytes.Buffer
 
 			c := config.TestConfig(tc.c)
-			c.Once = true
+			c.Once = config.Bool(true)
 			c.Finalize()
 
 			r, err := NewRunner(c, true)
@@ -762,7 +762,7 @@ func TestRunner_Start(t *testing.T) {
 					Destination: config.String(out.Name()),
 				},
 			},
-			Once: true,
+			Once: config.Bool(true),
 		})
 		c.Finalize()
 
@@ -1064,7 +1064,7 @@ func TestRunner_Start(t *testing.T) {
 					Contents: config.String(`{{ key "render-in-memory" }}`),
 				},
 			},
-			Once: true,
+			Once: config.Bool(true),
 		})
 		c.Finalize()
 
