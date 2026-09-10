@@ -1,3 +1,13 @@
+# 0.43.0
+
+IMPROVEMENTS:
+* security: fix Vault KV v2 secret redaction bypass in template errors [GH-2184](https://github.com/hashicorp/consul-template/pull/2184)
+* vault: Introduce a `tls.Config` field on `VaultConfig` [GH-2168](https://github.com/hashicorp/consul-template/pull/2168)
+
+BUG FIXES:
+* dependency: fix runaway credential creation on renewal failure [GH-2166](https://github.com/hashicorp/consul-template/pull/2166)
+* template: preserve existing file when `writeToFile` receives empty content [GH-2167](https://github.com/hashicorp/consul-template/pull/2167)
+
 # 0.42.1
 
 IMPROVEMENTS:
