@@ -980,7 +980,7 @@ func explodeHelper(m map[string]interface{}, k string, v interface{}, p string) 
 		}
 		nest, ok := m[top].(map[string]interface{})
 		if !ok {
-			return fmt.Errorf("not a map: %q: %q already has value %q", p, top, m[top])
+			return fmt.Errorf("not a map: %q: %q already has a non-map value", p, top)
 		}
 		return explodeHelper(nest, key, v, k)
 	}

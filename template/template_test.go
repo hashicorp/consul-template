@@ -2443,6 +2443,137 @@ func TestTemplate_error_secret_leak_SV(t *testing.T) {
 	require.ErrorContains(t, err, "[redacted]")
 }
 
+// TestTemplate_error_secret_leak_SV_emptyValue verifies that an empty Nomad
+// variable value does not poison strings.NewReplacer and corrupt the error
+// message (which would happen if "" were registered as a replacement key).
+func TestTemplate_error_secret_leak_SV_emptyValue(t *testing.T) {
+	b := NewBrain()
+	b.RWMutex = sync.RWMutex{}
+	nVar, err := dep.NewNVGetQuery("", "var/test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	nVar.EnableBlocking()
+	b.Remember(nVar, &dep.NomadVarItems{
+		"empty":  dep.NomadVarItem{Key: "empty", Value: ""},
+		"secret": dep.NomadVarItem{Key: "secret", Value: "varSecret"},
+	})
+	tpl, _ := NewTemplate(&NewTemplateInput{
+		Contents: `{{ with nomadVar "var/test" }}{{ .secret.Value | parseInt }}{{ end }}`,
+	})
+	_, err = tpl.Execute(&ExecuteInput{Brain: b})
+	require.Error(t, err)
+	require.NotContains(t, err.Error(), "varSecret")
+	// The message must not be corrupted by a "[redacted]" inserted between
+	// every character, which is what registering an empty key would cause.
+	require.NotContains(t, err.Error(), "[redacted][redacted]")
+	require.Contains(t, err.Error(), "parseInt")
+}
+
+// TestTemplate_error_secret_leak_KVv2 verifies that KV v2 secrets (fields
+// nested under Data["data"]) are redacted from error messages.
+func TestTemplate_error_secret_leak_KVv2(t *testing.T) {
+	b := NewBrain()
+	b.RWMutex = sync.RWMutex{}
+	d, err := dep.NewVaultReadQuery("secret/db")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b.Remember(d, &dep.Secret{
+		Data: map[string]interface{}{
+			"data":     map[string]interface{}{"max_conns": "s3cr3tROTATED-VALUE", "password": "s3cr3tPASSWORD"},
+			"metadata": map[string]interface{}{"version": 1, "deletion_time": ""},
+		},
+	})
+	tpl, _ := NewTemplate(&NewTemplateInput{
+		Contents: `{{ with secret "secret/db" }}{{ printf "%s %s" .Data.data.max_conns .Data.data.password | parseInt }}{{ end }}`,
+	})
+	_, err = tpl.Execute(&ExecuteInput{Brain: b})
+	require.Error(t, err)
+	require.NotContains(t, err.Error(), "s3cr3tROTATED-VALUE")
+	require.NotContains(t, err.Error(), "s3cr3tPASSWORD")
+	require.Contains(t, err.Error(), "[redacted]")
+	// Sanity check: the error prefix must survive intact. If the empty
+	// deletion_time string were ever registered as a replacer needle, the
+	// message would be corrupted and this would fail.
+	require.Contains(t, err.Error(), "parseInt")
+}
+
+// TestTemplate_error_secret_leak_ShortValue verifies that short secret string
+// values (fewer than 5 characters) are still redacted from error messages and
+// are not skipped by the numeric length threshold.
+func TestTemplate_error_secret_leak_ShortValue(t *testing.T) {
+	b := NewBrain()
+	b.RWMutex = sync.RWMutex{}
+	d, err := dep.NewVaultReadQuery("secret/db")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b.Remember(d, &dep.Secret{
+		Data: map[string]interface{}{
+			"data": map[string]interface{}{"pin": "1234"},
+		},
+	})
+	tpl, _ := NewTemplate(&NewTemplateInput{
+		Contents: `{{ with secret "secret/db" }}{{ printf "pin=%s!" .Data.data.pin | parseInt }}{{ end }}`,
+	})
+	_, err = tpl.Execute(&ExecuteInput{Brain: b})
+	require.Error(t, err)
+	require.NotContains(t, err.Error(), "1234")
+	require.Contains(t, err.Error(), "[redacted]")
+}
+
+// TestTemplate_error_secret_leak_AuthAndWrap verifies that Auth.ClientToken,
+// Auth.Accessor and WrapInfo.Token are redacted from error messages.
+func TestTemplate_error_secret_leak_AuthAndWrap(t *testing.T) {
+	// Auth.ClientToken + Auth.Accessor
+	b := NewBrain()
+	b.RWMutex = sync.RWMutex{}
+	d, err := dep.NewVaultWriteQuery("auth/token/create", map[string]interface{}{"policies": "pol"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b.Remember(d, &dep.Secret{
+		Auth:     &dep.SecretAuth{ClientToken: "hvs.CAESIHXfaLongVaultToken", Accessor: "accessor-value-xyz"},
+		WrapInfo: &dep.SecretWrapInfo{Token: "hvs.WRAPINFOTokenLong"},
+	})
+	tpl, _ := NewTemplate(&NewTemplateInput{
+		Contents: `{{ with secret "auth/token/create" "policies=pol" }}{{ printf "%s %s %s" .Auth.ClientToken .Auth.Accessor .WrapInfo.Token | parseInt }}{{ end }}`,
+	})
+	_, err = tpl.Execute(&ExecuteInput{Brain: b})
+	require.Error(t, err)
+	require.NotContains(t, err.Error(), "hvs.CAESIHXfaLongVaultToken")
+	require.NotContains(t, err.Error(), "accessor-value-xyz")
+	require.NotContains(t, err.Error(), "hvs.WRAPINFOTokenLong")
+	require.Contains(t, err.Error(), "[redacted]")
+}
+
+// TestTemplate_error_explodeMap_noOracle verifies that the explodeMap oracle
+// attack is closed: the error must not quote a field the template never named.
+func TestTemplate_error_explodeMap_noOracle(t *testing.T) {
+	b := NewBrain()
+	b.RWMutex = sync.RWMutex{}
+	d, err := dep.NewVaultReadQuery("secret/app")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// attacker injects "password/x" — sort.Strings guarantees "password" is
+	// placed first, so the collision and the value disclosure are deterministic.
+	b.Remember(d, &dep.Secret{
+		Data: map[string]interface{}{
+			"data": map[string]interface{}{
+				"password": "s3cr3tVICTIM-PASSWORD", "password/x": "1",
+			},
+		},
+	})
+	tpl, _ := NewTemplate(&NewTemplateInput{
+		Contents: `{{ with secret "secret/app" }}{{ .Data.data | explodeMap }}{{ end }}`,
+	})
+	_, err = tpl.Execute(&ExecuteInput{Brain: b})
+	require.Error(t, err)
+	require.NotContains(t, err.Error(), "s3cr3tVICTIM-PASSWORD")
+}
+
 func Test_writeToFile(t *testing.T) {
 	// Use current user and its primary group for input
 	currentUser, err := user.Current()
@@ -3062,4 +3193,101 @@ func TestIdenticalTemplateContentsDifferentHash(t *testing.T) {
 	if tpl1.ID() == tpl2.ID() {
 		t.Fatal("expected these templates to have different IDs")
 	}
+}
+
+// TestTemplate_error_secret_leak_AuthMetadata verifies that values in
+// SecretAuth.Metadata (e.g. LDAP username, AWS ARN) are redacted from errors.
+func TestTemplate_error_secret_leak_AuthMetadata(t *testing.T) {
+	b := NewBrain()
+	b.RWMutex = sync.RWMutex{}
+	// secret "path" with no extra args creates a NewVaultReadQuery — match that here.
+	d, err := dep.NewVaultReadQuery("auth/ldap/login/user")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b.Remember(d, &dep.Secret{
+		Auth: &dep.SecretAuth{
+			ClientToken: "hvs.ValidTokenString",
+			Metadata:    map[string]string{"username": "s3cr3tLDAPuser", "org": "s3cr3tORGvalue"},
+		},
+	})
+	tpl, _ := NewTemplate(&NewTemplateInput{
+		Contents: `{{ with secret "auth/ldap/login/user" }}{{ printf "%s %s" .Auth.Metadata.username .Auth.Metadata.org | parseInt }}{{ end }}`,
+	})
+	_, err = tpl.Execute(&ExecuteInput{Brain: b})
+	require.Error(t, err)
+	require.NotContains(t, err.Error(), "s3cr3tLDAPuser")
+	require.NotContains(t, err.Error(), "s3cr3tORGvalue")
+	require.Contains(t, err.Error(), "[redacted]")
+}
+
+// TestTemplate_error_secret_leak_WrappedAccessor verifies that
+// SecretWrapInfo.WrappedAccessor is redacted from error messages.
+func TestTemplate_error_secret_leak_WrappedAccessor(t *testing.T) {
+	b := NewBrain()
+	b.RWMutex = sync.RWMutex{}
+	d, err := dep.NewVaultReadQuery("secret/wrapped")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b.Remember(d, &dep.Secret{
+		WrapInfo: &dep.SecretWrapInfo{
+			Token:           "hvs.WRAPTokenLongVal",
+			WrappedAccessor: "s3cr3tWrappedAccessorID",
+		},
+	})
+	tpl, _ := NewTemplate(&NewTemplateInput{
+		Contents: `{{ with secret "secret/wrapped" }}{{ printf "%s %s" .WrapInfo.Token .WrapInfo.WrappedAccessor | parseInt }}{{ end }}`,
+	})
+	_, err = tpl.Execute(&ExecuteInput{Brain: b})
+	require.Error(t, err)
+	require.NotContains(t, err.Error(), "s3cr3tWrappedAccessorID")
+	require.Contains(t, err.Error(), "[redacted]")
+}
+
+// TestTemplate_error_secret_leak_PKI verifies that PemEncoded fields from
+// VaultPKIQuery (Key, Cert, CA, CAChain) are redacted from error messages.
+func TestTemplate_error_secret_leak_PKI(t *testing.T) {
+	b := NewBrain()
+	b.RWMutex = sync.RWMutex{}
+	// pkiCertFunc uses i.destination as destPath; in tests destination is "".
+	d, err := dep.NewVaultPKIQuery("pki/issue/role", "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b.Remember(d, dep.PemEncoded{
+		Cert:    "s3cr3tCERTmaterial--long",
+		Key:     "s3cr3tKEYmaterial---long",
+		CA:      "s3cr3tCAmaterial----long",
+		CAChain: []string{"s3cr3tCAChain1--long", "s3cr3tCAChain2--long"},
+	})
+	tpl, _ := NewTemplate(&NewTemplateInput{
+		Contents: `{{ with pkiCert "pki/issue/role" }}{{ printf "%s %s %s %s %s" .Key .Cert .CA (index .CAChain 0) (index .CAChain 1) | parseInt }}{{ end }}`,
+	})
+	_, err = tpl.Execute(&ExecuteInput{Brain: b})
+	require.Error(t, err)
+	require.NotContains(t, err.Error(), "s3cr3tKEYmaterial---long")
+	require.NotContains(t, err.Error(), "s3cr3tCERTmaterial--long")
+	require.NotContains(t, err.Error(), "s3cr3tCAmaterial----long")
+	require.NotContains(t, err.Error(), "s3cr3tCAChain1--long")
+	require.NotContains(t, err.Error(), "s3cr3tCAChain2--long")
+}
+
+// TestTemplate_error_secret_leak_ConnectLeaf verifies that api.LeafCert fields
+// (PrivateKeyPEM, CertPEM) from caLeaf are redacted from error messages.
+func TestTemplate_error_secret_leak_ConnectLeaf(t *testing.T) {
+	b := NewBrain()
+	b.RWMutex = sync.RWMutex{}
+	d := dep.NewConnectLeafQuery("web")
+	b.Remember(d, &api.LeafCert{
+		CertPEM:       "s3cr3tCERTPEM---long",
+		PrivateKeyPEM: "s3cr3tPRIVATEKEY-long",
+	})
+	tpl, _ := NewTemplate(&NewTemplateInput{
+		Contents: `{{ with caLeaf "web" }}{{ printf "%s %s" .PrivateKeyPEM .CertPEM | parseInt }}{{ end }}`,
+	})
+	_, err := tpl.Execute(&ExecuteInput{Brain: b})
+	require.Error(t, err)
+	require.NotContains(t, err.Error(), "s3cr3tPRIVATEKEY-long")
+	require.NotContains(t, err.Error(), "s3cr3tCERTPEM---long")
 }
