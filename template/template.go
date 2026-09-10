@@ -12,6 +12,7 @@ import (
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
+	"github.com/hashicorp/consul/api"
 	"github.com/pkg/errors"
 	"github.com/ryanuber/go-glob"
 	"golang.org/x/exp/maps"
@@ -298,16 +299,90 @@ func (t *Template) Execute(i *ExecuteInput) (*ExecuteResult, error) {
 
 func redactinator(used *dep.Set, b *Brain, err error) error {
 	pairs := make([]string, 0, used.Len())
+
+	// collect recursively walks v and appends every scalar leaf value that is
+	// meaningful to redact. String and []byte values (the shape secret material
+	// takes) are redacted whenever they are non-empty, regardless of length, so
+	// short secrets (e.g. "1234", short usernames or access keys) are not
+	// leaked. Empty strings are skipped because registering "" would cause
+	// strings.NewReplacer to insert "[redacted]" between every character of the
+	// error message. Non-string scalars (e.g. a KV v2 metadata "version": 1)
+	// only carry a length threshold so short numbers don't corrupt unrelated
+	// parts of the message such as line and column numbers.
+	var collect func(v interface{})
+	collect = func(v interface{}) {
+		switch val := v.(type) {
+		case map[string]interface{}:
+			for _, child := range val {
+				collect(child)
+			}
+		case []interface{}:
+			for _, child := range val {
+				collect(child)
+			}
+		case string:
+			if val != "" {
+				pairs = append(pairs, val, "[redacted]")
+			}
+		case []byte:
+			if len(val) > 0 {
+				pairs = append(pairs, string(val), "[redacted]")
+			}
+		case bool, nil:
+			// no meaningful string to redact
+		default:
+			if s := fmt.Sprintf("%v", val); len(s) >= 5 {
+				pairs = append(pairs, s, "[redacted]")
+			}
+		}
+	}
+
 	for _, d := range used.List() {
 		if data, ok := b.Recall(d); ok {
 			if vd, ok := data.(*dep.Secret); ok {
-				for _, v := range vd.Data {
-					pairs = append(pairs, fmt.Sprintf("%v", v), "[redacted]")
+				// Walk Data recursively so KV v2 secrets (fields live under
+				// Data["data"]) are covered in addition to flat KV v1 secrets.
+				collect(vd.Data)
+				// Auth and WrapInfo are outside Data but can appear in errors
+				// e.g. via .Auth.ClientToken or .WrapInfo.Token in templates.
+				if vd.Auth != nil {
+					collect(vd.Auth.ClientToken)
+					collect(vd.Auth.Accessor)
+					// Metadata holds auth-method-specific values (e.g. LDAP
+					// username, AWS ARN) that can appear in error messages.
+					for _, v := range vd.Auth.Metadata {
+						collect(v)
+					}
 				}
+				if vd.WrapInfo != nil {
+					collect(vd.WrapInfo.Token)
+					// WrappedAccessor is a live Vault accessor; redact it
+					// alongside Token.
+					collect(vd.WrapInfo.WrappedAccessor)
+				}
+			}
+			// VaultPKIQuery stores a dep.PemEncoded; Key is private key
+			// material and must be redacted along with Cert, CA and CAChain.
+			if pem, ok := data.(dep.PemEncoded); ok {
+				collect(pem.Key)
+				collect(pem.Cert)
+				collect(pem.CA)
+				for _, c := range pem.CAChain {
+					collect(c)
+				}
+			}
+			// connectLeafFunc (caLeaf) stores *api.LeafCert which contains
+			// PrivateKeyPEM and CertPEM — both must be redacted.
+			if leaf, ok := data.(*api.LeafCert); ok {
+				collect(leaf.PrivateKeyPEM)
+				collect(leaf.CertPEM)
 			}
 			if nVar, ok := data.(*dep.NomadVarItems); ok {
 				for _, v := range nVar.Values() {
-					pairs = append(pairs, fmt.Sprintf("%v", v), "[redacted]")
+					// Route through collect so empty values are skipped;
+					// registering "" would make strings.NewReplacer insert
+					// "[redacted]" between every character of the error.
+					collect(v)
 				}
 			}
 		}
