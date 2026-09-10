@@ -7,9 +7,7 @@ container {
 	secrets      = true
 	triage {
 		suppress {
-			vulnerabilites = [
-				"CVE-2026-27171",
-			]
+			vulnerabilites = []
 		}
 	}
 }
@@ -20,4 +18,14 @@ binary {
 	osv          = true
 	oss_index    = false
 	nvd          = false
+	triage {
+		suppress {
+			# golang.org/x/crypto/openpgp is unmaintained and has no fixed
+			# version. consul-template does not import the openpgp packages,
+			# so this advisory is not reachable.
+			vulnerabilites = [
+				"GO-2026-5932",
+			]
+		}
+	}
 }
