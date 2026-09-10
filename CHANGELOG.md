@@ -3,6 +3,8 @@
 IMPROVEMENTS:
 * security: fix Vault KV v2 secret redaction bypass in template errors [GH-2184](https://github.com/hashicorp/consul-template/pull/2184)
 * vault: Introduce a `tls.Config` field on `VaultConfig` [GH-2168](https://github.com/hashicorp/consul-template/pull/2168)
+* security: Bump golang.org/x/crypto to v0.56.0 to fix CVE-2026-56855, CVE-2026-78662, and CVE-2026-56854 [GH-2186](https://github.com/hashicorp/consul-template/pull/2186)
+* security: Bump golang.org/x/text to v0.41.0 to fix CVE-2026-56852 [GH-2186](https://github.com/hashicorp/consul-template/pull/2186)
 
 BUG FIXES:
 * dependency: fix runaway credential creation on renewal failure [GH-2166](https://github.com/hashicorp/consul-template/pull/2166)
