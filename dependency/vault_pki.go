@@ -59,8 +59,11 @@ func (a PemEncoded) Data() PemEncoded {
 
 // VaultPKIQuery is the dependency to Vault for a secret
 type VaultPKIQuery struct {
-	stopCh  chan struct{}
-	sleepCh chan time.Duration
+	stopCh    chan struct{}
+	sleepCh   chan time.Duration
+	refreshCh chan struct{}
+	// forceRefresh is owned by the serial Fetch loop and survives failed requests.
+	forceRefresh bool
 
 	pkiPath  string
 	data     map[string]interface{}
@@ -81,11 +84,12 @@ func NewVaultPKIQuery(urlpath, filepath string, data map[string]interface{}) (*V
 	}
 
 	return &VaultPKIQuery{
-		stopCh:   make(chan struct{}, 1),
-		sleepCh:  make(chan time.Duration, 1),
-		pkiPath:  secretURL.Path,
-		data:     data,
-		filePath: filepath,
+		stopCh:    make(chan struct{}, 1),
+		sleepCh:   make(chan time.Duration, 1),
+		refreshCh: make(chan struct{}, 1),
+		pkiPath:   secretURL.Path,
+		data:      data,
+		filePath:  filepath,
 	}, nil
 }
 
@@ -96,9 +100,31 @@ func (d *VaultPKIQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface
 		return nil, nil, ErrStopped
 	default:
 	}
+	// A refresh wakes the existing fetch instead of replacing its watcher.
+	select {
+	case <-d.refreshCh:
+		d.forceRefresh = true
+	default:
+	}
 	select {
 	case dur := <-d.sleepCh:
-		time.Sleep(dur)
+		if !d.forceRefresh {
+			timer := time.NewTimer(dur)
+			select {
+			case <-timer.C:
+			case <-d.refreshCh:
+				d.forceRefresh = true
+			case <-d.stopCh:
+				timer.Stop()
+				return nil, nil, ErrStopped
+			}
+			timer.Stop()
+		}
+	default:
+	}
+	select {
+	case <-d.stopCh:
+		return nil, nil, ErrStopped
 	default:
 	}
 
@@ -125,7 +151,7 @@ func (d *VaultPKIQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface
 		return encPems, needsRenewal
 	}
 
-	encPems, err := getPEMs(false)
+	encPems, err := getPEMs(d.forceRefresh)
 	switch err {
 	case nil:
 	case needsRenewal:
@@ -136,7 +162,14 @@ func (d *VaultPKIQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interface
 	default:
 		return PemEncoded{}, nil, err
 	}
-	return respWithMetadata(encPems)
+	d.forceRefresh = false
+	value, metadata, err := respWithMetadata(encPems)
+	// A manual refresh may finish in the same second as the previous fetch.
+	// The watcher must not discard that new certificate as an unchanged index.
+	if opts != nil && metadata.LastIndex <= opts.WaitIndex {
+		metadata.LastIndex = opts.WaitIndex + 1
+	}
+	return value, metadata, err
 }
 
 // returns time left in ~90% of the original lease and a boolean
@@ -260,6 +293,24 @@ func (d *VaultPKIQuery) fetchPEMs(clients *ClientSet) ([]byte, error) {
 	}
 
 	return pems.Bytes(), nil
+}
+
+// Destination identifies the template output used as this dependency's cache.
+func (d *VaultPKIQuery) Destination() string { return d.filePath }
+
+// ForceRefresh requests a new certificate, bypassing a valid on-disk certificate.
+// Requests pending before the fetch starts are coalesced. It does not delete files,
+// start a goroutine, or change the Vault client/token. Completion is asynchronous.
+func (d *VaultPKIQuery) ForceRefresh() {
+	select {
+	case <-d.stopCh:
+		return
+	default:
+	}
+	select {
+	case d.refreshCh <- struct{}{}:
+	default:
+	}
 }
 
 // CanShare returns if this dependency is shareable.
