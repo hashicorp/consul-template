@@ -19,7 +19,7 @@ require (
 	github.com/hashicorp/logutils v1.0.0
 	github.com/hashicorp/nomad/api v0.0.0-20260410071528-9e6d492b59a8
 	github.com/hashicorp/vault/api v1.23.0
-	github.com/hashicorp/vault/api/auth/kubernetes v0.10.0
+	github.com/hashicorp/vault/api/auth/kubernetes v0.12.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/hashstructure v1.1.0
 	github.com/mitchellh/mapstructure v1.5.0
