@@ -4,6 +4,7 @@
 package template
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -504,4 +505,87 @@ func TestFileFunc_SandboxSymlinkRestoreShouldNotReuseCachedDependencyOutsideCont
 	value, err := file(linkPath)
 	require.NoError(t, err)
 	require.NotEqual(t, secret, value)
+}
+
+func TestParseInt_jsonNumber(t *testing.T) {
+	cases := []struct {
+		name    string
+		input   interface{}
+		want    int64
+		wantErr bool
+	}{
+		{"string", "42", 42, false},
+		{"json.Number", json.Number("42"), 42, false},
+		{"json.Number negative", json.Number("-7"), -7, false},
+		{"empty string", "", 0, false},
+		{"invalid string", "abc", 0, true},
+		{"invalid json.Number", json.Number("abc"), 0, true},
+		{"unsupported type", 3.14, 0, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := parseInt(tc.input)
+			if tc.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.want, got)
+			}
+		})
+	}
+}
+
+func TestParseFloat_jsonNumber(t *testing.T) {
+	cases := []struct {
+		name    string
+		input   interface{}
+		want    float64
+		wantErr bool
+	}{
+		{"string", "3.14", 3.14, false},
+		{"json.Number", json.Number("3.14"), 3.14, false},
+		{"json.Number negative", json.Number("-2.5"), -2.5, false},
+		{"empty string", "", 0.0, false},
+		{"invalid string", "abc", 0, true},
+		{"invalid json.Number", json.Number("abc"), 0, true},
+		{"unsupported type", 42, 0, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := parseFloat(tc.input)
+			if tc.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				assert.InDelta(t, tc.want, got, 0.001)
+			}
+		})
+	}
+}
+
+func TestParseUint_jsonNumber(t *testing.T) {
+	cases := []struct {
+		name    string
+		input   interface{}
+		want    uint64
+		wantErr bool
+	}{
+		{"string", "42", 42, false},
+		{"json.Number", json.Number("42"), 42, false},
+		{"empty string", "", 0, false},
+		{"invalid string", "abc", 0, true},
+		{"invalid json.Number", json.Number("abc"), 0, true},
+		{"unsupported type", 3.14, 0, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := parseUint(tc.input)
+			if tc.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tc.want, got)
+			}
+		})
+	}
 }
