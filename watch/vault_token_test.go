@@ -14,6 +14,8 @@ import (
 	"github.com/hashicorp/consul-template/config"
 	dep "github.com/hashicorp/consul-template/dependency"
 	"github.com/hashicorp/vault/api"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // approle auto-auth setup in watch_test.go, TestMain()
@@ -139,6 +141,35 @@ func TestVaultTokenWatcher(t *testing.T) {
 			}
 		case <-time.After(time.Millisecond * 100):
 			// give it a chance to throw an error
+		}
+	})
+
+	t.Run("renew_kubernetes", func(t *testing.T) {
+		// Check that there is an attempt to refresh token.
+		testClients.Vault().SetToken(vaultToken)
+
+		_, err := testClients.Vault().Auth().Token().Create(
+			&api.TokenCreateRequest{
+				ID:        "c_token",
+				TTL:       "1m",
+				Renewable: config.Bool(true),
+			})
+		require.NoError(t, err)
+
+		conf := config.DefaultVaultConfig()
+		conf.Token = config.String("")
+		conf.RenewToken = config.Bool(true)
+		conf.K8SServiceAccountToken = config.String("any_k8s_token")
+
+		watcher, err := VaultTokenWatcher(testClients, conf, nil)
+		require.NoError(t, err)
+
+		defer watcher.Stop()
+
+		select {
+		case err := <-watcher.ErrCh():
+			assert.ErrorIs(t, err, dep.ErrLeaseExpired)
+		case <-time.After(time.Millisecond * 100):
 		}
 	})
 }
