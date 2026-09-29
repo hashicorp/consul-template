@@ -61,7 +61,13 @@ func (d *VaultWriteQuery) Fetch(clients *ClientSet, opts *QueryOptions,
 	}
 	select {
 	case dur := <-d.sleepCh:
-		time.Sleep(dur)
+		timer := time.NewTimer(dur)
+		select {
+		case <-timer.C:
+		case <-d.stopCh:
+			timer.Stop()
+			return nil, nil, ErrStopped
+		}
 	default:
 	}
 
