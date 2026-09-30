@@ -473,6 +473,17 @@ func (r *Runner) Start() {
 			log.Printf("[ERR] (runner): %s", err)
 			r.ErrCh <- err
 			return
+		case err := <-r.vaultTokenWatcher.ServerErrCh():
+			// If we got a server error we push the error up the stack
+			log.Printf("[ERR] (runner) sending server error back to caller")
+			// Drain the error channel if anything already exists
+			select {
+			case <-r.ServerErrCh:
+				continue
+			default:
+			}
+			r.ServerErrCh <- err
+			goto OUTER
 
 		case tmpl := <-r.quiescenceCh:
 			// Remove the quiescence for this template from the map. This will force
