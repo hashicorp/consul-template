@@ -8,6 +8,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+// VaultTokenRefreshCurrent tells to refresh the current client token.
+const VaultTokenRefreshCurrent = ""
+
 // Ensure implements
 var _ Dependency = (*VaultTokenQuery)(nil)
 
@@ -16,6 +19,8 @@ type VaultTokenQuery struct {
 	stopCh      chan struct{}
 	secret      *Secret
 	vaultSecret *api.Secret
+
+	initialToken string
 }
 
 // NewVaultTokenQuery creates a new dependency.
@@ -28,9 +33,10 @@ func NewVaultTokenQuery(token string) (*VaultTokenQuery, error) {
 		},
 	}
 	return &VaultTokenQuery{
-		stopCh:      make(chan struct{}, 1),
-		vaultSecret: vaultSecret,
-		secret:      transformSecret(vaultSecret),
+		stopCh:       make(chan struct{}, 1),
+		vaultSecret:  vaultSecret,
+		secret:       transformSecret(vaultSecret),
+		initialToken: token,
 	}, nil
 }
 
@@ -43,8 +49,16 @@ func (d *VaultTokenQuery) Fetch(clients *ClientSet, opts *QueryOptions,
 	default:
 	}
 
-	if vaultSecretRenewable(d.secret) {
-		err := renewSecret(clients, d)
+	var currentRenewer renewer = d
+
+	if d.initialToken == VaultTokenRefreshCurrent {
+		currentRenewer = newVaultSecretsOverrideRenewer(d, clients.Vault().Token())
+	}
+
+	secret, _ := currentRenewer.secrets()
+
+	if vaultSecretRenewable(secret) {
+		err := renewSecret(clients, currentRenewer)
 		if err != nil {
 			return nil, nil, errors.Wrap(err, d.String())
 		}
@@ -79,4 +93,31 @@ func (d *VaultTokenQuery) String() string {
 // Type returns the type of this dependency.
 func (d *VaultTokenQuery) Type() Type {
 	return TypeVault
+}
+
+func newVaultSecretsOverrideRenewer(parent renewer, token string) *vaultSecretsOverrideRenewer {
+	vaultSecret := &api.Secret{
+		Auth: &api.SecretAuth{
+			ClientToken:   token,
+			Renewable:     true,
+			LeaseDuration: 1,
+		},
+	}
+
+	return &vaultSecretsOverrideRenewer{
+		renewer:     parent,
+		vaultSecret: vaultSecret,
+		secret:      transformSecret(vaultSecret),
+	}
+}
+
+type vaultSecretsOverrideRenewer struct {
+	renewer
+
+	secret      *Secret
+	vaultSecret *api.Secret
+}
+
+func (d *vaultSecretsOverrideRenewer) secrets() (*Secret, *api.Secret) {
+	return d.secret, d.vaultSecret
 }
