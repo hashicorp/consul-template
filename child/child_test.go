@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/exec"
 	"reflect"
 	"runtime"
 	"strings"
@@ -403,6 +404,35 @@ func TestKill_noProcess(t *testing.T) {
 	c := testChild(t)
 	c.killSignal = syscall.SIGUSR1
 	c.Kill()
+}
+
+func TestKill_processAlreadyFinished(t *testing.T) {
+	var buf bytes.Buffer
+	c := testChild(t)
+	c.logger = log.New(&buf, "", 0)
+	c.killSignal = syscall.SIGTERM
+	c.splay = 0
+
+	cmd := exec.Command("sh", "-c", "exit 0")
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	if err := cmd.Wait(); err != nil {
+		t.Fatal(err)
+	}
+	// Wait has reaped the process, so Signal returns ErrProcessDone.
+	// Leave exitCh open so running() still reports the child as live.
+	c.cmd = cmd
+	c.exitCh = make(chan int)
+
+	c.kill(true)
+
+	if strings.Contains(buf.String(), "Kill failed") {
+		t.Fatalf("logged a kill failure for a finished process:\n%s", buf.String())
+	}
+	if c.cmd != nil {
+		t.Fatal("cmd still set")
+	}
 }
 
 func TestStop_noWaitForSplay(t *testing.T) {
