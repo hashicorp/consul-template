@@ -21,6 +21,7 @@ provides the following functions:
   * [`safeLs`](#safels)
   * [`node`](#node)
   * [`nodes`](#nodes)
+  * [`namespaces`](#namespaces)
   * [`partitions`](#partitions)
   * [`peerings`](#peerings)
   * [`secret`](#secret)
@@ -558,6 +559,18 @@ To query a different data center and order by shortest trip time to ourselves:
 
 To access map data such as `TaggedAddresses` or `Meta`, use
 [Go's text/template][text-template] map indexing.
+
+### `namespaces`
+
+Query [Consul][consul] for all namespaces in the Consul cluster.
+
+**Note:** Namespaces are an Enterprise-only feature of Consul.
+
+```golang
+{{ range namespaces }}
+{{ .Name }} : {{ .Description }}
+{{ end }}
+```
 
 ### `partitions`
 
