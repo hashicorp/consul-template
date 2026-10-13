@@ -201,7 +201,7 @@ func (cli *CLI) Run(args []string) int {
 				return ExitCodeInterrupt
 			default:
 				// Propagate the signal to the child process
-				runner.Signal(s)
+				go runner.Signal(s)
 			}
 		case <-cli.stopCh:
 			return ExitCodeOK
@@ -209,7 +209,7 @@ func (cli *CLI) Run(args []string) int {
 	}
 }
 
-// stop is used internally to shutdown a running CLI
+// stop is used internally to shut down a running CLI
 func (cli *CLI) stop() {
 	cli.Lock()
 	defer cli.Unlock()
