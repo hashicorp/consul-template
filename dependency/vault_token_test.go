@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/vault/api"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewVaultTokenQuery(t *testing.T) {
@@ -34,6 +35,7 @@ func TestNewVaultTokenQuery(t *testing.T) {
 						LeaseDuration: 1,
 					},
 				},
+				initialToken: "my-token",
 			},
 			false,
 		},
@@ -74,5 +76,24 @@ func TestVaultTokenQuery_String(t *testing.T) {
 			}
 			assert.Equal(t, tc.exp, d.String())
 		})
+	}
+}
+
+func TestTewVaultSecretsOverrideRenewer(t *testing.T) {
+	const token = "expected_token"
+
+	parent, err := NewVaultTokenQuery(VaultTokenRefreshCurrent)
+	require.NoError(t, err)
+
+	vaultTokenSecretsOverride := newVaultSecretsOverrideRenewer(parent, token)
+
+	secret, vaultSecret := vaultTokenSecretsOverride.secrets()
+
+	if assert.NotNil(t, secret) && assert.NotNil(t, secret.Auth) {
+		assert.Equal(t, token, secret.Auth.ClientToken)
+	}
+
+	if assert.NotNil(t, vaultSecret) && assert.NotNil(t, vaultSecret.Auth) {
+		assert.Equal(t, token, vaultSecret.Auth.ClientToken)
 	}
 }
