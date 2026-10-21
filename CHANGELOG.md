@@ -1,7 +1,8 @@
 # 0.43.1
 
 IMPROVEMENTS:
-* security: Bump Go to v1.26.9 and golang.org/x/net to v0.60.0 [GH-2196](https://github.com/hashicorp/consul-template/pull/2196)
+* security: Bump Go to v1.26.10 to fix CVE-2026-111943, CVE-2026-78663, CVE-2026-78669 [GH-2196](https://github.com/hashicorp/consul-template/pull/2196)
+* security: Bump golang.org/x/net to v0.60.0 [GH-2196](https://github.com/hashicorp/consul-template/pull/2196)
 * security: Bump Go to v1.26.8 [GH-2194](https://github.com/hashicorp/consul-template/pull/2194)
 * signals: add aix build constraint and SIGVTALRM [GH-2193](https://github.com/hashicorp/consul-template/pull/2193)
 
