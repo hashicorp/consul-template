@@ -439,10 +439,15 @@ func (c *Child) kill(immediately bool) {
 	}
 
 	if err := c.signal(c.killSignal); err != nil {
-		c.logger.Printf("[ERR] (child) Kill failed: %s", err)
 		if processNotFoundErr(err) {
+			// The child already exited. Logging this as an error makes a
+			// normal shutdown look failed, and the defer would send SIGKILL
+			// to a process that is gone.
+			c.logger.Printf("[DEBUG] (child) Kill() process already exited")
 			exited = true // checked in defer
+			return
 		}
+		c.logger.Printf("[ERR] (child) Kill failed: %s", err)
 		return
 	}
 
