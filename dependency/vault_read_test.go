@@ -5,9 +5,12 @@ package dependency
 
 import (
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"reflect"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -878,4 +881,146 @@ func TestDeletedKVv2(t *testing.T) {
 	assert.False(t, deletedKVv2(&api.Secret{
 		Data: map[string]interface{}{},
 	}))
+}
+
+// TestVaultReadQuery_isKVv2_NotCachedOnProbeError verifies the fix for
+// hashicorp/consul-template#2149: a transient failure of the isKVv2 mount
+// probe must NOT poison d.isKVv2 with the assumed-not-v2 fallback. Caching
+// the failure-fallback permanently latched the dependency into KV v1 mode
+// for the lifetime of the process, even after Vault recovered — which
+// caused fresh KV v2 reads to keep failing with "Invalid path for a
+// versioned K/V secrets engine" until the agent was restarted.
+//
+// Post-fix: after a failed probe, d.isKVv2 stays nil so the next Fetch()
+// re-enters the probe block and re-detects the mount type once Vault is
+// reachable again.
+func TestVaultReadQuery_isKVv2_NotCachedOnProbeError(t *testing.T) {
+	// Build a fresh ClientSet pointed at an unreachable Vault address.
+	// The isKVv2 probe (GET sys/internal/ui/mounts/<path>) will fail with
+	// a connection error — exactly the transient-error shape from #2149
+	// (the field repro was context-deadline-exceeded against a Vault that
+	// recovered seconds later).
+	clients := NewClientSet()
+	if err := clients.CreateVaultClient(&CreateVaultClientInput{
+		Address:              "http://127.0.0.1:1",
+		Token:                "fake",
+		TransportDialTimeout: 100 * time.Millisecond,
+	}); err != nil {
+		t.Fatalf("CreateVaultClient: %s", err)
+	}
+	// Keep the test fast: skip vault-api's default retry backoff (2
+	// retries × ~1-5s) for the connection-refused probe.
+	clients.Vault().SetMaxRetries(0)
+
+	d, err := NewVaultReadQuery("secret/foo/bar")
+	if err != nil {
+		t.Fatalf("NewVaultReadQuery: %s", err)
+	}
+
+	// First probe attempt — must fail at the network layer. The actual
+	// return is irrelevant; we only care about post-call field state.
+	_, _ = d.readSecret(clients)
+
+	if d.isKVv2 != nil {
+		t.Fatalf("d.isKVv2 was cached after a failed probe (= %v); "+
+			"expected nil so the next Fetch re-probes once Vault recovers "+
+			"(see hashicorp/consul-template#2149)", *d.isKVv2)
+	}
+	// Fallback for the one in-flight read attempt is still correct.
+	if d.secretPath != "secret/foo/bar" {
+		t.Errorf("d.secretPath = %q after failed probe; want %q "+
+			"(rawPath fallback for the current read attempt)",
+			d.secretPath, "secret/foo/bar")
+	}
+
+	// A second readSecret call must re-enter the probe block (not the
+	// previously-broken cached-false fast path) and fail the same way.
+	_, _ = d.readSecret(clients)
+	if d.isKVv2 != nil {
+		t.Fatalf("d.isKVv2 was cached after a second failed probe "+
+			"(= %v); the latch fix is defeated", *d.isKVv2)
+	}
+}
+
+// TestVaultReadQuery_isKVv2_RecoversAndDetectsKVv2 is the recovery half of
+// hashicorp/consul-template#2149: after a failed isKVv2 probe leaves
+// d.isKVv2 nil, a later successful probe must actually detect KV v2
+// (shim /data/ into secretPath) rather than remaining stuck on the
+// "assume not v2" fallback. The probe is stubbed with httptest so this
+// does not require a live Vault or Nomad agent.
+func TestVaultReadQuery_isKVv2_RecoversAndDetectsKVv2(t *testing.T) {
+	var recovered atomic.Bool
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case strings.HasPrefix(r.URL.Path, "/v1/sys/internal/ui/mounts/"):
+			if !recovered.Load() {
+				// Transient probe failure: isKVv2 must return err so the
+				// assumed-not-v2 fallback is used for this attempt only.
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprintln(w, `{"errors":["temporary"]}`)
+				return
+			}
+			fmt.Fprintln(w, `{
+				"data": {
+					"path": "secret/",
+					"type": "kv",
+					"options": {"version": "2"}
+				}
+			}`)
+		case r.URL.Path == "/v1/secret/data/foo/bar":
+			fmt.Fprintln(w, `{
+				"data": {
+					"data": {"k": "v"},
+					"metadata": {"deletion_time": "", "destroyed": false, "version": 1}
+				}
+			}`)
+		default:
+			// v1 fallback path during the failed-probe attempt.
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprintln(w, `{"errors":["no secret"]}`)
+		}
+	}))
+	defer srv.Close()
+
+	clients := NewClientSet()
+	if err := clients.CreateVaultClient(&CreateVaultClientInput{
+		Address: srv.URL,
+		Token:   "fake",
+	}); err != nil {
+		t.Fatalf("CreateVaultClient: %s", err)
+	}
+	// Avoid vault-api retrying the 500 probe (default is 2 retries).
+	clients.Vault().SetMaxRetries(0)
+
+	d, err := NewVaultReadQuery("secret/foo/bar")
+	if err != nil {
+		t.Fatalf("NewVaultReadQuery: %s", err)
+	}
+
+	_, _ = d.readSecret(clients)
+	if d.isKVv2 != nil {
+		t.Fatalf("d.isKVv2 was cached after a failed probe (= %v); expected nil", *d.isKVv2)
+	}
+	if d.secretPath != "secret/foo/bar" {
+		t.Fatalf("d.secretPath = %q after failed probe; want rawPath fallback", d.secretPath)
+	}
+
+	recovered.Store(true)
+
+	secret, err := d.readSecret(clients)
+	if err != nil {
+		t.Fatalf("readSecret after probe recovery: %s", err)
+	}
+	if d.isKVv2 == nil || !*d.isKVv2 {
+		t.Fatalf("after successful probe, d.isKVv2 = %v; want true (KV v2 detected)", d.isKVv2)
+	}
+	if d.secretPath != "secret/data/foo/bar" {
+		t.Fatalf("d.secretPath = %q after recovery; want %q (KV v2 shim)",
+			d.secretPath, "secret/data/foo/bar")
+	}
+	if secret == nil || secret.Data == nil {
+		t.Fatal("expected a KV v2 secret after recovery")
+	}
 }
