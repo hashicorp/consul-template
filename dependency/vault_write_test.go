@@ -6,6 +6,7 @@ package dependency
 import (
 	"encoding/base64"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -171,6 +172,31 @@ func TestVaultWriteSecretKV_Fetch(t *testing.T) {
 			t.Fatal(err)
 		}
 		assert.Equal(t, exp, act.Data["data"])
+	})
+
+	// VaultWriteQuery should return a sensible error if the mount lookup fails.
+	// Previously, it would assume v1 and trigger a nonsense error by sending a request
+	// to an invalid KV v2 path.
+	t.Run("write_secret_v2_mounts_error", func(t *testing.T) {
+		clients, vault := testVaultServer(t, "write_secret_v2_with_mounts_error", "2")
+		mountErrorClients := newMountErrorClientSet(t, clients)
+		secretsPath := vault.secretsPath
+
+		path := secretsPath + "/foo"
+		data := map[string]interface{}{"bar": "zed"}
+
+		wq, err := NewVaultWriteQuery(path, data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, _, err = wq.Fetch(mountErrorClients, &QueryOptions{})
+		if err == nil {
+			t.Fatal("expected an error, got nil")
+		}
+		exp := "failed to check if " + path + " is KVv2"
+		if !strings.Contains(err.Error(), exp) {
+			t.Fatalf("expected error to contain \"%s\", but got \"%s\"", exp, err.Error())
+		}
 	})
 }
 

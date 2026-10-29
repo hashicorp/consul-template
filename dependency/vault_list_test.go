@@ -73,6 +73,8 @@ func TestVaultListQuery_Fetch(t *testing.T) {
 	clientsKvV2, vaultKvV2 := testVaultServer(t, "listfetchV2", "2")
 	secretsPathV2 := vaultKvV2.secretsPath
 
+	mountsErrorKvV2 := newMountErrorClientSet(t, clientsKvV2)
+
 	err := vault.CreateSecret("foo/bar", map[string]interface{}{
 		"ttl": "100ms", // explicitly make this a short duration for testing
 		"zip": "zap",
@@ -93,31 +95,43 @@ func TestVaultListQuery_Fetch(t *testing.T) {
 		name    string
 		i       string
 		exp     []string
+		err     bool
 		clients *ClientSet
 	}{
 		{
 			"exists",
 			secretsPath,
 			[]string{"foo/"},
+			false,
 			clients,
 		},
 		{
 			"no_exist",
 			"not/a/real/path/like/ever",
 			nil,
+			false,
 			clients,
 		},
 		{
 			"exists kv-v2",
 			secretsPathV2,
 			[]string{"foo/"},
+			false,
 			clientsKvV2,
 		},
 		{
 			"no_exist kv-v2",
 			"not/a/real/path/like/ever",
 			nil,
+			false,
 			clientsKvV2,
+		},
+		{
+			"mounts_error kv-v2", // transient errors reading sys/internal/ui/mounts/
+			secretsPathV2,
+			nil,
+			true,
+			mountsErrorKvV2,
 		},
 	}
 
@@ -129,11 +143,13 @@ func TestVaultListQuery_Fetch(t *testing.T) {
 			}
 
 			act, _, err := d.Fetch(tc.clients, nil)
-			if err != nil {
-				t.Fatal(err)
+			if tc.err {
+				if err == nil {
+					t.Error("expected an error, but got nil")
+				}
+			} else {
+				assert.Equal(t, tc.exp, act)
 			}
-
-			assert.Equal(t, tc.exp, act)
 		})
 	}
 
