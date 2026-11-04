@@ -1,3 +1,8 @@
+# 0.31.1
+
+IMPROVEMENTS:
+* Testing the release automation on real repos.
+
 # 0.43.1
 
 IMPROVEMENTS:
