@@ -1185,26 +1185,47 @@ func parseBool(s string) (bool, error) {
 	return result, nil
 }
 
-// parseFloat parses a string into a floating-point number with 64-bit precision
-func parseFloat(s string) (float64, error) {
-	if s == "" {
+// parseFloat parses a string or json.Number into a floating-point number with
+// 64-bit precision.
+func parseFloat(s interface{}) (float64, error) {
+	var str string
+	switch v := s.(type) {
+	case string:
+		str = v
+	case json.Number:
+		str = v.String()
+	default:
+		return 0, fmt.Errorf("parseFloat: unsupported type %T", s)
+	}
+
+	if str == "" {
 		return 0.0, nil
 	}
 
-	result, err := strconv.ParseFloat(s, 64)
+	result, err := strconv.ParseFloat(str, 64)
 	if err != nil {
 		return 0, errors.Wrap(err, "parseFloat")
 	}
 	return result, nil
 }
 
-// parseInt parses a string into a base 10 int
-func parseInt(s string) (int64, error) {
-	if s == "" {
+// parseInt parses a string or json.Number into a base 10 int
+func parseInt(s interface{}) (int64, error) {
+	var str string
+	switch v := s.(type) {
+	case string:
+		str = v
+	case json.Number:
+		str = v.String()
+	default:
+		return 0, fmt.Errorf("parseInt: unsupported type %T", s)
+	}
+
+	if str == "" {
 		return 0, nil
 	}
 
-	result, err := strconv.ParseInt(s, 10, 64)
+	result, err := strconv.ParseInt(str, 10, 64)
 	if err != nil {
 		return 0, errors.Wrap(err, "parseInt")
 	}
@@ -1224,13 +1245,23 @@ func parseJSON(s string) (interface{}, error) {
 	return data, nil
 }
 
-// parseUint parses a string into a base 10 int
-func parseUint(s string) (uint64, error) {
-	if s == "" {
+// parseUint parses a string or json.Number into a base 10 unsigned int
+func parseUint(s interface{}) (uint64, error) {
+	var str string
+	switch v := s.(type) {
+	case string:
+		str = v
+	case json.Number:
+		str = v.String()
+	default:
+		return 0, fmt.Errorf("parseUint: unsupported type %T", s)
+	}
+
+	if str == "" {
 		return 0, nil
 	}
 
-	result, err := strconv.ParseUint(s, 10, 64)
+	result, err := strconv.ParseUint(str, 10, 64)
 	if err != nil {
 		return 0, errors.Wrap(err, "parseUint")
 	}
