@@ -1,8 +1,3 @@
-# 123.1.0
-
-IMPROVEMENTS:
-* Revert "Prepare release 0.31.1" [GH-2201](https://github.com/hashicorp/consul-template/pull/2201)
-
 # 0.43.1
 
 IMPROVEMENTS:
