@@ -1,3 +1,9 @@
+# 123.1.1
+
+IMPROVEMENTS:
+* Revert "Prepare release 0.31.1" [GH-2201](https://github.com/hashicorp/consul-template/pull/2201)
+* DO NOT MERGE: Revert "Prepare release 123.1.0" [GH-2203](https://github.com/hashicorp/consul-template/pull/2203)
+
 # 0.43.1
 
 IMPROVEMENTS:
