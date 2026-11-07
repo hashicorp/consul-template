@@ -64,10 +64,14 @@ func (d *VaultReadQuery) Fetch(clients *ClientSet, opts *QueryOptions,
 	}
 	select {
 	case dur := <-d.sleepCh:
+		timer := time.NewTimer(dur)
 		select {
-		case <-time.After(dur):
-			break
+		case <-timer.C:
+			// continue
 		case <-d.stopCh:
+			if !timer.Stop() {
+				<-timer.C
+			}
 			return nil, nil, ErrStopped
 		}
 	default:
