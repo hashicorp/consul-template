@@ -1,12 +1,3 @@
-# 123.1.2
-
-IMPROVEMENTS:
-* Revert "Prepare release 0.31.1" [GH-2201](https://github.com/hashicorp/consul-template/pull/2201)
-* Revert "Prepare release 123.1.0" [GH-2203](https://github.com/hashicorp/consul-template/pull/2203)
-* build(deps): bump github.com/go-jose/go-jose/v4 from 4.1.4 to 4.1.6 [GH-2199](https://github.com/hashicorp/consul-template/pull/2199)
-* deps: bump golang.org/x/net to v0.62.0 (GO-2026-6860, GO-2026-6866) [GH-2208](https://github.com/hashicorp/consul-template/pull/2208)
-* Revert "Prepare release 123.1.1" [GH-2207](https://github.com/hashicorp/consul-template/pull/2207)
-
 # 0.43.1
 
 IMPROVEMENTS:
