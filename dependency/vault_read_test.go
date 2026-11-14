@@ -436,6 +436,39 @@ func TestVaultReadQuery_Fetch_KVv2(t *testing.T) {
 		}
 	})
 
+	// Subsequent reads from a KVv2 path should succeed even if the initial
+	// attempt to read the mounts endpoint failed.
+	t.Run("mounts_errors", func(t *testing.T) {
+		mountsErrorClients := newMountErrorClientSet(t, clients)
+		d, err := NewVaultReadQuery(secretsPath + "/foo/bar")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, _, err = d.Fetch(mountsErrorClients, nil); err == nil {
+			t.Fatal("expected an error, but got nil")
+		}
+		act, _, err := d.Fetch(clients, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var exp interface{} = &Secret{
+			Data: map[string]interface{}{
+				"data": map[string]interface{}{
+					"ttl": "100ms",
+					"zip": "zop",
+				},
+			},
+		}
+		if act != nil {
+			act.(*Secret).RequestID = ""
+			act.(*Secret).LeaseID = ""
+			act.(*Secret).LeaseDuration = 0
+			act.(*Secret).Renewable = false
+			exp.(*Secret).Data["metadata"] = act.(*Secret).Data["metadata"]
+		}
+		assert.Equal(t, exp, act)
+	})
+
 	t.Run("stops", func(t *testing.T) {
 		d, err := NewVaultReadQuery(secretsPath + "/foo/bar")
 		if err != nil {

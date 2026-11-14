@@ -119,6 +119,10 @@ type CreateVaultClientInput struct {
 	TransportMaxIdleConnsPerHost int
 	TransportMaxConnsPerHost     int
 	TransportTLSHandshakeTimeout time.Duration
+
+	RetryMinWait     time.Duration
+	RetryMaxWait     time.Duration
+	RetryMaxAttempts int
 }
 
 // CreateNomadClientInput is used as input to the CreateNomadClient function.
@@ -346,6 +350,16 @@ func (c *ClientSet) CreateVaultClient(i *CreateVaultClientInput) error {
 
 	// Setup the new transport
 	vaultConfig.HttpClient.Transport = transport
+
+	if i.RetryMinWait != 0 {
+		vaultConfig.MinRetryWait = i.RetryMinWait
+	}
+	if i.RetryMaxWait != 0 {
+		vaultConfig.MaxRetryWait = i.RetryMaxWait
+	}
+	if i.RetryMaxAttempts != 0 {
+		vaultConfig.MaxRetries = i.RetryMaxAttempts
+	}
 
 	// Create the client
 	client, err := vaultapi.NewClient(vaultConfig)

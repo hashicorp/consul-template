@@ -322,9 +322,11 @@ func isKVv2(client *api.Client, path string) (string, bool, error) {
 			return "", false, nil
 		}
 
-		// anonymous requests may fail to access /sys/internal/ui path
-		// Vault v1.1.3 returns 500 status code but may return 4XX in future
-		if client.Token() == "" {
+		// If we get a 403 then either the mount does not exist, or we do not
+		// have permission to access it. In either case, the client will get
+		// the same error when requesting the KV path. (Anonymous requests may
+		// see a 500 instead of a 403.)
+		if client.Token() == "" || (resp != nil && resp.StatusCode == 403) {
 			return "", false, nil
 		}
 
