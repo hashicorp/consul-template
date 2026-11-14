@@ -12,7 +12,7 @@ env:
 
 jobs:
   run-tests:
-    name: Run test cases (with consul${{ matrix.consul-ent-tag }})
+    name: Test CT${{ matrix.ct-version }} + Consul${{ matrix.consul-ent-tag }} ${{ matrix.consul-version }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -20,6 +20,15 @@ jobs:
         os: [ubuntu-latest]
         go: [^1]
         consul-ent-tag: ["", "-enterprise"]
+        consul-version: ["1.18.2", "1.20.6", "1.21.5", "1.22.0"]
+        ct-version: ["current", "0.40.0", "0.39.1"]
+        exclude:
+          # Don't test every combination - too many jobs
+          # Only test current CT version with enterprise Consul
+          - ct-version: "0.40.0"
+            consul-ent-tag: "-enterprise"
+          - ct-version: "0.39.1"
+            consul-ent-tag: "-enterprise"
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -30,12 +39,76 @@ jobs:
           go-version: ${{ matrix.go }}
           cache: false
 
-      - name: Install Consul${{ matrix.consul-ent-tag }}, Vault and Nomad for integration testing
+      - name: Setup HashiCorp apt repository
         run: |
           curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
           sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
-          sudo apt-get update && sudo apt-get install consul${{ matrix.consul-ent-tag }} vault nomad
+          sudo apt-get update
 
-      - name: Run tests
+      - name: Install specific Consul version ${{ matrix.consul-version }}${{ matrix.consul-ent-tag }}
         run: |
+          # Install specific Consul version via apt
+          if [ "${{ matrix.consul-ent-tag }}" = "-enterprise" ]; then
+            CONSUL_PACKAGE="consul-enterprise=${{ matrix.consul-version }}+ent-1"
+          else
+            CONSUL_PACKAGE="consul=${{ matrix.consul-version }}-1"
+          fi
+          
+          echo "Installing Consul package: $CONSUL_PACKAGE"
+          
+          # Check if package is available first
+          if ! apt-cache show "$CONSUL_PACKAGE" >/dev/null 2>&1; then
+            echo "Package $CONSUL_PACKAGE not found. Available consul versions:"
+            if [ "${{ matrix.consul-ent-tag }}" = "-enterprise" ]; then
+              apt-cache madison consul-enterprise | head -10
+            else
+              apt-cache madison consul | head -10
+            fi
+            exit 1
+          fi
+          
+          sudo apt-get install -y "$CONSUL_PACKAGE"
+          
+          # Also install Vault and Nomad (latest versions are fine for testing)
+          sudo apt-get install -y vault nomad
+
+      - name: Setup consul-template version ${{ matrix.ct-version }}
+        run: |
+          if [ "${{ matrix.ct-version }}" = "current" ]; then
+            # Build current version from source
+            make dev
+            echo "Using current consul-template version from source"
+          else
+            # Install specific released version via apt
+            CT_PACKAGE="consul-template=${{ matrix.ct-version }}-1"
+            echo "Installing consul-template package: $CT_PACKAGE"
+            sudo apt-get install -y "$CT_PACKAGE"
+          fi
+
+      - name: Verify versions
+        run: |
+          consul version
+          if [ "${{ matrix.ct-version }}" = "current" ]; then
+            # For current version built with make dev, binary is in $GOPATH/bin
+            GOPATH=$(go env GOPATH)
+            $GOPATH/bin/consul-template -version
+          else
+            consul-template -version
+          fi
+          echo "Testing consul-template ${{ matrix.ct-version }} with Consul ${{ matrix.consul-version }}${{ matrix.consul-ent-tag }}"
+
+      - name: Run integration tests with race detection
+        run: |
+          # Run the integration test suite with race detection
+          # This tests consul-template functionality against the specific Consul version
           make test-race
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: test-failure-ct${{ matrix.ct-version }}-consul${{ matrix.consul-version }}${{ matrix.consul-ent-tag }}
+          path: |
+            *.log
+            test-results/
+          retention-days: 7
