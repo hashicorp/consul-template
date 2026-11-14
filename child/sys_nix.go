@@ -7,6 +7,8 @@
 package child
 
 import (
+	"errors"
+	"os"
 	"os/exec"
 	"syscall"
 )
@@ -19,6 +21,8 @@ func setSysProcAttr(cmd *exec.Cmd, setpgid, setsid bool) {
 }
 
 func processNotFoundErr(err error) bool {
-	// ESRCH == no such process, ie. already exited
-	return err == syscall.ESRCH
+	// The process exited before the signal was delivered. Go reports that
+	// as ErrProcessDone ("os: process already finished"). A kill that
+	// races the exit can also return ESRCH.
+	return errors.Is(err, os.ErrProcessDone) || errors.Is(err, syscall.ESRCH)
 }
