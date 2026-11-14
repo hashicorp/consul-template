@@ -78,9 +78,9 @@ to any issue or pull request you'd like to see worked on. Thanks.
 
 1. Download a pre-compiled, released version from the [Consul Template releases page][releases].
 
-1. Extract the binary using `unzip` or `tar`.
+2. Extract the binary using `unzip` or `tar`.
 
-1. Move the binary into `$PATH`.
+3. Move the binary into `$PATH`.
 
 To compile from source, please see the instructions in the
 [contributing section](#contributing).
@@ -91,34 +91,34 @@ This short example assumes Consul is installed locally.
 
 1. Start a Consul cluster in dev mode:
 
-  ```shell
-  $ consul agent -dev
-  ```
+   ```shell
+   consul agent -dev
+   ```
 
 1. Author a template `in.tpl` to query the kv store:
 
-  ```liquid
-  {{ key "foo" }}
-  ```
+   ```liquid
+   {{ key "foo" }}
+   ```
 
 1. Start Consul Template:
 
-  ```shell
-  $ consul-template -template "in.tpl:out.txt" -once
-  ```
+   ```shell
+   consul-template -template "in.tpl:out.txt" -once
+   ```
 
 1. Write data to the key in Consul:
 
-  ```shell
-  $ consul kv put foo bar
-  ```
+   ```shell
+   consul kv put foo bar
+   ```
 
 1. Observe Consul Template has written the file `out.txt`:
 
-  ```shell
-  $ cat out.txt
-  bar
-  ```
+   ```shell
+   $ cat out.txt
+   bar
+   ```
 
 For more examples and use cases, please see the [examples folder][examples] in
 this repository.
