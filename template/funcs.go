@@ -97,6 +97,28 @@ func partitionsFunc(b *Brain, used, missing *dep.Set) func() ([]*dep.Partition, 
 	}
 }
 
+// namespacesFunc returns or accumulates namespace dependencies.
+func namespacesFunc(b *Brain, used, missing *dep.Set) func() ([]*dep.Namespace, error) {
+	return func() ([]*dep.Namespace, error) {
+		result := []*dep.Namespace{}
+
+		d, err := dep.NewListNamespacesQuery()
+		if err != nil {
+			return result, err
+		}
+
+		used.Add(d)
+
+		if value, ok := b.Recall(d); ok {
+			return value.([]*dep.Namespace), nil
+		}
+
+		missing.Add(d)
+
+		return result, nil
+	}
+}
+
 // exportedServicesFunc returns or accumulates partition dependencies.
 func exportedServicesFunc(b *Brain, used, missing *dep.Set) func(...string) ([]dep.ExportedService, error) {
 	return func(s ...string) ([]dep.ExportedService, error) {
