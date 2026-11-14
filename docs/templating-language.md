@@ -1496,6 +1496,21 @@ Takes the result from [`explode`](#explode) and an exploded argument then merges
 {{ .a.b.c }}{{ end }}
 ```
 
+### `mergeYAML`
+
+Takes 2 results from [`parseYAML`](#parseYAML) and returns combined result overriding only leaf values of the first argument with values of the 2nd argument.
+The arguments themselves are not modified. This preserves YAML types including booleans and numbers.
+
+```golang
+{{ $base := "foo: bar\nbar: baz" | parseYAML }}{{ "bar: no baz" | paeseYAML | mergeYAML $base | toYAML}}
+```
+
+Result:
+```yaml
+foo: bar
+bar: no baz
+```
+
 ### `trimSpace`
 
 Takes the provided input and trims all whitespace, tabs and newlines:
