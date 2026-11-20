@@ -39,13 +39,13 @@ func TestClientSet_K8SServiceTokenAuth(t *testing.T) {
 	t.Run("service_token_value", func(t *testing.T) {
 		t.Parallel()
 
-		testServerAddr := newVaultMockReversedProxy(t, vaultMock{
+		testServerAddr := newVaultMockReversedProxy(t, vaultAddr, vaultMock{
 			HandleCond: k8sLoginPathCond("kubernetes"),
-			HandleJSON: func(_ *http.Request, data map[string]interface{}) interface{} {
+			HandleJSON: func(_ *http.Request, data map[string]interface{}) (int, interface{}) {
 				assert.Equal(t, data["jwt"], "service_token", data)
 				assert.Equal(t, data["role"], "default", data)
 
-				return validSecret
+				return http.StatusOK, validSecret
 			},
 		})
 
@@ -67,13 +67,13 @@ func TestClientSet_K8SServiceTokenAuth(t *testing.T) {
 	t.Run("service_token_from_file", func(t *testing.T) {
 		t.Parallel()
 
-		testServerAddr := newVaultMockReversedProxy(t, vaultMock{
+		testServerAddr := newVaultMockReversedProxy(t, vaultAddr, vaultMock{
 			HandleCond: k8sLoginPathCond("kubernetes"),
-			HandleJSON: func(_ *http.Request, data map[string]interface{}) interface{} {
+			HandleJSON: func(_ *http.Request, data map[string]interface{}) (int, interface{}) {
 				assert.Equal(t, data["jwt"], "service_token", data)
 				assert.Equal(t, data["role"], "default_file", data)
 
-				return validSecret
+				return http.StatusOK, validSecret
 			},
 		})
 
@@ -97,13 +97,13 @@ func TestClientSet_K8SServiceTokenAuth(t *testing.T) {
 	t.Run("service_token_file_value_priority", func(t *testing.T) {
 		t.Parallel()
 
-		testServerAddr := newVaultMockReversedProxy(t, vaultMock{
+		testServerAddr := newVaultMockReversedProxy(t, vaultAddr, vaultMock{
 			HandleCond: k8sLoginPathCond("kubernetes"),
-			HandleJSON: func(_ *http.Request, data map[string]interface{}) interface{} {
+			HandleJSON: func(_ *http.Request, data map[string]interface{}) (int, interface{}) {
 				assert.Equal(t, data["jwt"], "service_token_value", data)
 				assert.Equal(t, data["role"], "default", data)
 
-				return validSecret
+				return http.StatusOK, validSecret
 			},
 		})
 
@@ -128,10 +128,10 @@ func TestClientSet_K8SServiceTokenAuth(t *testing.T) {
 	t.Run("mount_path", func(t *testing.T) {
 		t.Parallel()
 
-		testServerAddr := newVaultMockReversedProxy(t, vaultMock{
+		testServerAddr := newVaultMockReversedProxy(t, vaultAddr, vaultMock{
 			HandleCond: k8sLoginPathCond("mount_path"),
-			HandleJSON: func(r *http.Request, data map[string]interface{}) interface{} {
-				return validSecret
+			HandleJSON: func(r *http.Request, data map[string]interface{}) (int, interface{}) {
+				return http.StatusOK, validSecret
 			},
 		})
 
@@ -154,7 +154,7 @@ func TestClientSet_K8SServiceTokenAuth(t *testing.T) {
 	t.Run("token_already_set", func(t *testing.T) {
 		t.Parallel()
 
-		testServerAddr := newVaultMockReversedProxy(t)
+		testServerAddr := newVaultMockReversedProxy(t, vaultAddr)
 
 		clientSet := NewClientSet()
 		err := clientSet.CreateVaultClient(&CreateVaultClientInput{
@@ -173,10 +173,10 @@ func TestClientSet_K8SServiceTokenAuth(t *testing.T) {
 	t.Run("auth_failed", func(t *testing.T) {
 		t.Parallel()
 
-		testServerAddr := newVaultMockReversedProxy(t, vaultMock{
+		testServerAddr := newVaultMockReversedProxy(t, vaultAddr, vaultMock{
 			HandleCond: k8sLoginPathCond("kubernetes"),
-			HandleJSON: func(*http.Request, map[string]interface{}) interface{} {
-				return invalidSecret
+			HandleJSON: func(*http.Request, map[string]interface{}) (int, interface{}) {
+				return http.StatusOK, invalidSecret
 			},
 		})
 
@@ -196,7 +196,9 @@ func TestClientSet_K8SServiceTokenAuth(t *testing.T) {
 
 type vaultMock struct {
 	HandleCond func(r *http.Request) bool
-	HandleJSON func(r *http.Request, data map[string]interface{}) interface{}
+
+	// HandleJSON returns a HTTP status code and response to encode as JSON.
+	HandleJSON func(r *http.Request, data map[string]interface{}) (int, interface{})
 }
 
 func (m vaultMock) processReq(tb testing.TB, w http.ResponseWriter, r *http.Request) {
@@ -224,13 +226,14 @@ func (m vaultMock) processReq(tb testing.TB, w http.ResponseWriter, r *http.Requ
 	tb.Logf("%s: %s: %+v", r.Method, r.URL, data)
 
 	w.Header().Set("Content-Type", "application/json")
-
-	err = json.NewEncoder(w).Encode(m.HandleJSON(r, data))
+	status, respData := m.HandleJSON(r, data)
+	w.WriteHeader(status)
+	err = json.NewEncoder(w).Encode(respData)
 	assert.NoError(tb, err)
 }
 
 // newVaultMockReversedProxy mocks some calls and proxies others to Vault.
-func newVaultMockReversedProxy(tb testing.TB, mocks ...vaultMock) string {
+func newVaultMockReversedProxy(tb testing.TB, vaultAddr string, mocks ...vaultMock) string {
 	tb.Helper()
 
 	vaultURL, err := url.Parse(vaultAddr)

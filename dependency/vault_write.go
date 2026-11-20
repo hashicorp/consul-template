@@ -158,8 +158,10 @@ func (d *VaultWriteQuery) writeSecret(clients *ClientSet, opts *QueryOptions) (*
 
 	path := d.path
 	data := d.data
-	mountPath, isv2, _ := isKVv2(clients.Vault(), path)
-	if isv2 {
+	mountPath, isV2, err := isKVv2(clients.Vault(), path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check if %s is KVv2: %w", d.path, err)
+	} else if isV2 {
 		path = shimKVv2Path(path, mountPath, clients.Vault().Namespace())
 		data = map[string]interface{}{"data": d.data}
 	}
@@ -169,7 +171,7 @@ func (d *VaultWriteQuery) writeSecret(clients *ClientSet, opts *QueryOptions) (*
 		return nil, errors.Wrap(err, d.String())
 	}
 	// vaultSecret is always nil when KVv1 engine (isv2==false)
-	if isv2 && vaultSecret == nil {
+	if isV2 && vaultSecret == nil {
 		return nil, fmt.Errorf("no secret exists at %s", d.path)
 	}
 

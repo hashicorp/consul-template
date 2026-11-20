@@ -288,3 +288,29 @@ func (d *renewalTestDep) Fetch(*ClientSet, *QueryOptions) (interface{}, *Respons
 func (d *renewalTestDep) Stop()          {}
 func (d *renewalTestDep) String() string { return "test.renewal" }
 func (d *renewalTestDep) Type() Type     { return TypeVault }
+
+// newMountErrorClientSet returns a client set that fails all requests for sys/internal/ui/mounts/.
+func newMountErrorClientSet(tb testing.TB, c *ClientSet) *ClientSet {
+	vc := c.Vault()
+	mountsErrorAddr := newVaultMockReversedProxy(tb, vc.Address(), vaultMock{
+		HandleCond: func(r *http.Request) bool {
+			return strings.HasPrefix(r.URL.Path, "/v1/sys/internal/ui/mounts/")
+		},
+		HandleJSON: func(r *http.Request, _ map[string]interface{}) (int, interface{}) {
+			// Return HTTP 429, since this is a common case of a transient error.
+			data := map[string]interface{}{"errors": []string{"too many requests"}}
+			return http.StatusTooManyRequests, data
+		},
+	})
+	clients := NewClientSet()
+	tb.Cleanup(clients.Stop)
+	clients.CreateVaultClient(&CreateVaultClientInput{
+		Address:          mountsErrorAddr,
+		ClientUserAgent:  userAgent,
+		Token:            vc.Token(),
+		RetryMinWait:     time.Nanosecond * 1,
+		RetryMaxWait:     time.Nanosecond * 1,
+		RetryMaxAttempts: 1,
+	})
+	return clients
+}

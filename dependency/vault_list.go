@@ -65,8 +65,10 @@ func (d *VaultListQuery) Fetch(clients *ClientSet, opts *QueryOptions) (interfac
 
 	// Checking secret engine version. If it's v2, we should shim /metadata/
 	// to secret path if necessary.
-	mountPath, isV2, _ := isKVv2(clients.Vault(), secretsPath)
-	if isV2 {
+	mountPath, isV2, err := isKVv2(clients.Vault(), secretsPath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to check if %s is KVv2: %w", d.path, err)
+	} else if isV2 {
 		secretsPath = shimKvV2ListPath(secretsPath, mountPath)
 	}
 
