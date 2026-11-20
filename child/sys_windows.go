@@ -6,10 +6,14 @@
 
 package child
 
-import "os/exec"
+import (
+	"errors"
+	"os"
+	"os/exec"
+)
 
 func setSysProcAttr(cmd *exec.Cmd, setpgid, setsid bool) {}
 
 func processNotFoundErr(err error) bool {
-	return false
+	return errors.Is(err, os.ErrProcessDone)
 }
