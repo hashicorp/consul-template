@@ -1058,6 +1058,10 @@ func (r *Runner) init(clients *dep.ClientSet) error {
 	// back into an array of templates.
 	r.templates = templates
 
+	// Each template has at most one pending quiescence, so with one slot per
+	// template a timer can always send, even after the runner has stopped.
+	r.quiescenceCh = make(chan *template.Template, len(templates))
+
 	r.renderEvents = make(map[string]*RenderEvent, numTemplates)
 
 	if *r.config.Dedup.Enabled {
